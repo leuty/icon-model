@@ -172,10 +172,10 @@ USE mo_atm_phy_nwp_config,   ONLY: lcuda_graph_turb_tran
 !
 USE turb_utilities,          ONLY:   &
     turb_setup,                      &
+    init_basic_atmo_turb,            &
     adjust_satur_equil,              &
     solve_turb_budgets,              &
     zexner, zpsat_w
-
 
 !-------------------------------------------------------------------------------
 #ifdef SCLM
@@ -614,7 +614,7 @@ REAL (KIND=wp) :: &
     vel1,vel2, patm, &
 
 !   Platzh. fuer Hoehendifferenzen und Laengaenskalen:
-    dh,l_turb,lh,lm,z_surf,len1,len2, &
+    z_surf,len1,len2, &
     fr_sd_h, &     !dimensionless resistance for scalars between the surface and the synoptic "0"-level
     h_2m, h_10m, & !level heights (equal 2m and 10m)
     a_2m, a_10m, & !turbulent distance of 2m- and 10m-level with respect to diag. roughness
@@ -634,8 +634,7 @@ REAL (KIND=wp) :: &
                    ! full and half level
 
 LOGICAL :: &
-    lini,        & !initialization required
-    lgz0ini        !initialization of roughness length over water and ice
+    lini           !initialization required
 
 ! Local arrays:
 
@@ -748,9 +747,6 @@ REAL (KIND=wp) ::             &
   dz_sa_m,                    & ! total transfer resistance length for momentum (m)
   dz_sg_m                       ! laminar resistance length for momentum (m)
 
-REAL (KIND=wp) ::             &
-  grad        (nvec,nmvar)      ! any vertical gradient
-
 INTEGER        ::             &
   k_2d        (nvec)            ! index field of the upper level index to be used
                                 !   for near surface diagn.
@@ -782,7 +778,7 @@ LOGICAL        ::   ldebug = .FALSE.
   !$ACC   CREATE(edh, val_m, val_h, z0m_2d, z0d_2d, z2m_2d) &
   !$ACC   CREATE(z10m_2d, rat_m_2d, rat_h_2d, fac_h_2d, fac_m_2d) &
   !$ACC   CREATE(frc_2d, dz_s0_m, dz_sg_h, dz_g0_h) &
-  !$ACC   CREATE(dz_0a_m, dz_0a_h, dz_sa_h, dz_s0_h, grad) &
+  !$ACC   CREATE(dz_0a_m, dz_0a_h, dz_sa_h, dz_s0_h) &
   !$ACC   CREATE(k_2d) &
   !$ACC   COPYIN(ivend) &
   !$ACC   ASYNC(acc_async_queue) IF(lzacc)
@@ -894,7 +890,6 @@ LOGICAL        ::   ldebug = .FALSE.
 
          ! Surface-Exner-pressure:
          epr_2d(i) = zexner(ps(i))
-
       END DO
 
       !$ACC LOOP SEQ
@@ -925,92 +920,58 @@ LOGICAL        ::   ldebug = .FALSE.
 !---------------------------------------------------------------------------------------
 !>Tuning: This kind of correction should be substituded by a less ad-hoc approach.
 
+      !$ACC END PARALLEL
+
       IF (lini) THEN !only for initialization
+         !Crude estimate of frition velocity in terms of the momentum flux-density at boundary level "P" (k=ke)
+         ! by means of a diagnostic TKE-equation, neglecting moisture effencts and employing "Rf=Ri" at calculation
+         ! of the stability functions:
 
-         !$ACC LOOP GANG(STATIC: 1) VECTOR PRIVATE(lgz0ini, l_turb, dh, vel1, vel2, fm2, fh2, fakt, lm, lh, wert, val1, val2)
+         !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(acc_async_queue) IF(lzacc)
+!DIR$ IVDEP
+         !$ACC LOOP GANG(STATIC: 1) VECTOR PRIVATE(wert, val1, val2)
          DO i=ivstart, ivend
+            len_scale(i,ke1)=tdc%akt*MAX( tdc%len_min, h_top_2d(i)/( z1+h_top_2d(i)/l_scal(i) ) )
+                             !approx. turb. length scale
+            edh(i)=z2/(hhl(i,ke-1)-hhl(i,ke1))
+            val1=(u(i,ke-1)-u(i,ke))*edh(i) !vertical 'u'-gradient
+            val2=(v(i,ke-1)-v(i,ke))*edh(i) !vertical 'v'-gradient
+            wert=(t(i,ke-1)-t(i,ke))*edh(i) + tet_g !approximated 'tet_l'-gradient (neglegting humidity-effect
 
-            lgz0ini=(igz0inp == 0 .AND. fr_land(i) <= z1d2)
-            !Note: This definition of a non-land surface is now in line with the ICON-definition
-            !       using "frlnd_thrhld=z1d2"
+            frm(i,ke1)=MAX( val1**2+val2**2, fc_min(i) ) !mechanical forcing in [1/s2]
+            frh(i,ke1)=grav*wert/t(i,ke)                 !thermal forcing    in [1/s2]
+         END DO
+        !$ACC END PARALLEL
 
-            !Einfachste Schaetzung der Schubspannung als Impusls-Flussdichte durch die Nebenflaeche "P" (k=ke)
-            ! mit Hilfe einer diagnostischen TKE ohne Beruecksichtigung von Feuchte-Effekten und unter Anwendung
-            ! von "Rf=Ri" bei der Berechnung der Stabilitaetsfunktionen:
+         ! First estimates of turbulent properties at level "P" by means of a simplified TKE-equilibrium:
+         CALL init_basic_atmo_turb (tdc=tdc, i1dim=nvec, khi=ke1, &
+                                    i_st=ivstart, i_en=ivend, k_st=ke, k_en=ke, nvor=nvor, ntur=ntur, &
+                                    ltkeinp=ltkeinp, ltkeadapt=.FALSE., lextinit=.TRUE., &
+                                    tls=len_scale, fm2=frm, fh2=frh, &         !inp
+                                    tkvm=tkvm, tkvh=tkvh, tke=tke, &           !out
+                                    lacc=lzacc, opt_acc_async_queue=acc_async_queue)
+         !Note:
+         !Positive-definite initial 'tkv[m|h]' at "P"-level (k=ke) are required for initialization of both,
+         ! 'tkv[m|h]' at "0"-level (k=ke1) and friction-velocity (and with it 'gz0') for sea-surfaces.
+         !While, for "imode_trancnf<4", these initial DC-values at "P"-and "0"-level determine the
+         ! surface-layer profile-functions, the one at "0"-level needs also to be present as input
+         ! of the Turbulence Model (TMod) in SUB 'solve_turb_budgets' (dependent on 'imode_stbcalc').
+         !'tke(:,ke,nvor)' is only required for the final 'gz0'-calculation for sea-surfaces
+         ! (at the end of SUB 'turbtran').
+         !For initialization, only laminar LLDCs (and thus not containing any artificial drag contribution)
+         ! are applied at "P"-level.
+         !As 'tkv[m|h](:,ke1)' are being estimated by means of 'tkv[m|h](:,ke)', 'imode_suradap' needs
+         ! not to be considered within this initialization at all.
 
-            l_turb=h_top_2d(i) !approx. turb. length scale at "P"-level (k=ke)
-
-            l_turb=tdc%akt*MAX( tdc%len_min, l_turb/( z1+l_turb/l_scal(i) ) )
-
-            dh=z1d2*(hhl(i,ke-1)-hhl(i,ke1))
-
-            vel1=u(i,ke-1)
-            vel2=u(i,ke  )
-            grad(i,u_m)=(vel1-vel2)/dh
-
-            vel1=v(i,ke-1)
-            vel2=v(i,ke  )
-            grad(i,v_m)=(vel1-vel2)/dh
-
-            grad(i,tet_l)=(t(i,ke-1)-t(i,ke))/dh + tet_g
-
-            fm2=MAX( grad(i,u_m)**2+grad(i,v_m)**2, fc_min(i) )
-            fh2=grav*grad(i,tet_l)/t(i,ke)
-
-            ! Vereinfachte Loesung mit Rf=Ri:
-            IF (fh2 >= (z1-rim)*fm2) THEN !die krit. Ri-Zahl wird ueberschritten
-               !'lm' sowie 'lh' werden durch 'lm' bei der krit. Ri-Zahl angenaehert:
-               fakt=z1/rim-z1
-               lm=l_turb*(sm_0-(a_6+a_3)*fakt)
-               lh=lm
-            ELSE
-               fakt=fh2/(fm2-fh2)
-               lm=l_turb*(sm_0-(a_6+a_3)*fakt)
-               lh=l_turb*(sh_0-a_5*fakt)
-            END IF
-
-            val1=lm*fm2; val2=lh*fh2
-            wert=MAX( val1-val2, rim*val1 )
-
-            IF (ltkeinp) THEN
-               tke(i,ke,nvor)=tke(i,ke,ntur)
-            ELSE
-               tke(i,ke,nvor)=SQRT(tdc%d_mom*l_turb*wert)
-            END IF
-
-            val1=con_m; tkvm(i,ke)=lm*tke(i,ke,nvor)
-            val2=con_h; tkvh(i,ke)=lh*tke(i,ke,nvor)
-
-            !Note:
-            !'tk[h|m]min' are, first of all, foreseen as lower limits for 'vertdiff'-calculations;
-            ! hence, they are not required for this particular initialization of "P"-level DCs.
-            !Nevertheless, positive-definite initial 'tkv[m|h](:,ke)' are required for initialization
-            ! of both, friction-velocity (and with it 'gz0') at sea-surfaces, and 'tkv[m|h](:,ke1)'.
-            !While, at "imode_trancnf<4", these initial DC-values at "P"-and "0"-level determine the
-            ! surface-layer profile-functions, the one at "0"-level needs also to be present as input
-            ! of the Turbulence Model (TMod) in SUB 'solve_turb_budgets'.
-            !For that purposes, at least the laminar limit appears to by reasonable at "P"-level.
-            !'tke(:,ke,nvor)' is only required for the final 'gz0'-calculation for sea-surfaces
-            ! (at the end of SUB 'turbtran').
-
-            IF (tdc%imode_tkemini >= 2) THEN !adaptation of TKE and TMod. to lower limits
-               tke(i,ke,nvor)=tke(i,ke,nvor)*MAX( z1, val2/tkvh(i,ke) ) !adapted 'tke'
-               !Note:
-               !Compare the respective 'tke'-adaptation in SUB 'turbdiff'.
-            END IF
-
-            tkvh(i,ke)=MAX(val2, tkvh(i,ke)) !'tkvh(:,ke)' with lower limit
-            tkvm(i,ke)=MAX(val1, tkvm(i,ke)) !'tkvm(:,ke)' with full lower limit
-
-            !Note:
-            !Laminar LLDCs do not contain any artificial drag contribution. As, moreover, 'tkv[m|h](:,ke1)'
-            ! are being estimated by means of 'tkv[m|h](:,ke)', 'imode_suradap' needs not to be considered
-            ! within this initialization at all.
-
-            vel2=MAX( tdc%epsi, tkvm(i,ke)*SQRT(fm2) ) !estimated Ustar**2
+         !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(acc_async_queue) IF(lzacc)
+!DIR$ IVDEP
+         !$ACC LOOP GANG(STATIC: 1) VECTOR PRIVATE(vel1, vel2, fakt)
+         DO i=ivstart, ivend
+            vel2=MAX( tdc%epsi, tkvm(i,ke)*SQRT(frm(i,ke1)) ) !estimated Ustar**2
             vel1=SQRT(vel2) !Ustar
 
-            IF (lgz0ini) THEN !initialization of roughness length for water- or ice-covered surface:
+            IF (igz0inp == 0 .AND. fr_land(i) <= z1d2) THEN !initialization of roughness length for water- or ice-covered surface:
+               !Note: This definition of a non-land surface is now in line with the ICON-definition using "frlnd_thrhld=z1d2"
                IF ( l_sice(i) ) THEN !ice-covered surface
                   gz0(i)=g_z0_ice
                ELSE !water-covered surface
@@ -1024,14 +985,16 @@ LOGICAL        ::   ldebug = .FALSE.
                END IF
             END IF
 
-            tkr(i)=l_turb*vel1                          !l_0*Ustar
-
+            tkr(i)=len_scale(i,ke1)*vel1                !l_0*Ustar
             rat_m_2d(i)= tkr(i)/tkvm(i,ke)              !Ustar/(q*Sm)_P
             rat_h_2d(i)=(tkr(i)*sh_0)/(tkvh(i,ke)*sm_0) !Ustar/(q*Sh)_P*Sh(0)/Sm(0)
 
          END DO
+         !$ACC END PARALLEL
 
       END IF !only for initialization
+
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(acc_async_queue) IF(lzacc)
 
 !DIR$ IVDEP
       !$ACC LOOP GANG(STATIC: 1) VECTOR
@@ -1515,38 +1478,25 @@ LOGICAL        ::   ldebug = .FALSE.
             frh(i,ke1)=g_tet(i)*zvari(i,ke1,tet_l)+g_vap(i)*zvari(i,ke1,h2o_g)
          END DO
 
+         !$ACC END PARALLEL
+
          ! Berechnung der Stabilitaetslaengen:
 
          IF (it_durch == it_start .AND. lini) THEN !Startinitialisierung
 
-            !$ACC LOOP GANG(STATIC: 1) VECTOR PRIVATE(fakt, val1, val2, wert)
-            DO i=ivstart, ivend
-               IF (frh(i,ke1) >= (z1-rim)*frm(i,ke1)) THEN !die krit. Ri-Zahl wird ueberschritten
-                  !'lm' sowie 'lh' werden durch 'lm' bei der krit. Ri-Zahl angenaehert:
-                  fakt=z1/rim-z1
-                  tkvm(i,ke1)=l_tur_z0(i)*(sm_0-(a_6+a_3)*fakt)
-                  tkvh(i,ke1)=tkvm(i,ke1)
-               ELSE
-                  fakt=frh(i,ke1)/(frm(i,ke1)-frh(i,ke1))
-                  tkvm(i,ke1)=l_tur_z0(i)*(sm_0-(a_6+a_3)*fakt)
-                  tkvh(i,ke1)=l_tur_z0(i)*(sh_0-a_5*fakt)
-               END IF
-
-               val1=tkvm(i,ke1)*frm(i,ke1)
-               val2=tkvh(i,ke1)*frh(i,ke1)
-               wert=MAX( val1-val2, rim*val1 )
-
-               IF (.NOT.ltkeinp) THEN !TKE not present as input
-                  tke(i,ke1,nvor)=MAX( SQRT(tdc%d_mom*l_tur_z0(i)*wert), tdc%vel_min )
-               END IF
-
-!                 Retrieving this peace of out-commented code:
+            ! First estimates of turbulent properties at level "0" by means of a simplified TKE-equilibrium:
+            CALL init_basic_atmo_turb (tdc=tdc, i1dim=nvec, khi=ke1, &
+                                       i_st=ivstart, i_en=ivend, k_st=ke1, k_en=ke1, nvor=nvor, ntur=ntur, &
+                                       ltkeinp=ltkeinp, ltkeadapt=.FALSE., lextinit=.FALSE., &
+                                       tls=len_scale, fm2=frm, fh2=frh, &         !inp
+                                       tkvm=tkvm, tkvh=tkvh, tke=tke, &           !out
+                                       lacc=lzacc, opt_acc_async_queue=acc_async_queue)
                !Note:
                !'tkvm|h' are stability-dependent length-scales here, which should not be dependent on LLDCs.
-            END DO
 
          ELSE ! mit Hilfe der vorhergehenden TKE-Werte
 
+            !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(acc_async_queue) IF(lzacc)
 !DIR$ IVDEP
             !$ACC LOOP GANG(STATIC: 1) VECTOR PRIVATE(wert)
             DO i=ivstart, ivend
@@ -1554,9 +1504,9 @@ LOGICAL        ::   ldebug = .FALSE.
                tkvm(i,ke1)=tkvm(i,ke1)*wert
                tkvh(i,ke1)=tkvh(i,ke1)*wert
             END DO
-         END IF
+            !$ACC END PARALLEL
 
-         !$ACC END PARALLEL
+         END IF
 
 ! 4f)    Bestimmung des neuen SQRT(2*TKE)-Wertes, der Stabilitaetsfuntionen und des SDSS:
 

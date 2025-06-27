@@ -1609,53 +1609,23 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
       CALL get_indices_c(p_patch, jb, i_startblk, i_endblk, &
         &                i_startidx, i_endidx, rl_start, rl_end)
 
-      IF (.not. ltestcase) THEN
-       IF (lturb_init) THEN
+      IF (ltestcase) THEN
+        igz0inp_loc = MERGE( 1, 0, lscm_read_z0 ) !"lscm_read_z0 =T": initial 'gz0' (for water points) is being taken from FG
+        ltkeinp_loc = lscm_read_tke               !"lscm_read_tke=T": initial 'tke' (in general)       is being taken from FG
+      ELSE ! "lturb_init=T": 'gz0' (for water points) and 'tke' (in general) are being initialized (that means: not taken from FG),
+        igz0inp_loc = MERGE( 0, 1, lturb_init )
+        ltkeinp_loc = .NOT.lturb_init
+      END IF
 
-        ltkeinp_loc = .FALSE.  ! initialize TKE field
-        igz0inp_loc =  0       ! initialize gz0 field (water points only)
-
-       ELSE
-        !
-        ! TKE and gz0 are not re-initialized, but re-used from the first guess
-        !
-        ltkeinp_loc = .TRUE.   ! do NOT re-initialize TKE field (read from FG)
-        igz0inp_loc =  1       ! do NOT re-initialize gz0 field (read from FG)
-
-        ! Note that TKE in turbtran/turbdiff is defined as the turbulence velocity scale
-        ! TVS=SQRT(2*TKE). The TKE is limited to 5.e-5 here because it may be zero on lateral
-        ! boundary points for the limited-area mode, which would cause a crash in the initialization
-        ! performed here but hs no impact on the results otherwise.
-        !
+      IF (ltkeinp_loc) THEN ! do NOT re-initialize TKE field (read from FG)
+        ! Note that TKE in turbtran/turbdiff is defined as the turbulence velocity scale TVS=SQRT(2*TKE).
+        ! TKE is limited to "5.e-5" here, because it may be zero on lateral boundary points for the limited-area mode,
+        !  which would cause a crash in the initialization performed here but has no impact on the results otherwise.
         DO jk =1,nlevp1
           DO jc = i_startidx, i_endidx
             p_prog_now%tke(jc,jk,jb)= SQRT(2.0_wp*MAX(5.e-5_wp,p_prog_now%tke(jc,jk,jb)))
           ENDDO
         ENDDO
-       ENDIF
-      ELSE !ltestcase
-
-       IF (lscm_read_tke) THEN
-        ltkeinp_loc = .TRUE.   ! do NOT re-initialize TKE field (read from FG)
-        ! Note that TKE in turbtran/turbdiff is defined as the turbulence velocity scale
-        ! TVS=SQRT(2*TKE). The TKE is limited to 5.e-5 here because it may be zero on lateral
-        ! boundary points for the limited-area mode, which would cause a crash in the initialization
-        ! performed here but hs no impact on the results otherwise.
-        !
-        DO jk =1,nlevp1
-          DO jc = i_startidx, i_endidx
-            p_prog_now%tke(jc,jk,jb)= SQRT(2.0_wp*MAX(5.e-5_wp,p_prog_now%tke(jc,jk,jb)))
-          ENDDO
-        ENDDO
-       ELSE
-        ltkeinp_loc = .FALSE.  ! initialize TKE field
-       ENDIF
-       IF (lscm_read_z0) THEN
-        igz0inp_loc = 1   ! do NOT re-initialize gz0 field (read from FG)
-       ELSE
-        igz0inp_loc = 0  ! initialize gz0 field (water points only)
-       ENDIF
-
       ENDIF
 
       l_hori(i_startidx:i_endidx)=phy_params%mean_charlen
