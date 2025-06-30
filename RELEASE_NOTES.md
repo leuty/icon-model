@@ -50,6 +50,7 @@ Climate: ICON-Land
 - Updated JSBACH usecase with TMX and PFTs
 - Added JSBACH usecase with 12 PFTs: including C4 crops
 - Added support for CUDA graphs with AES physics (VDIFF and TMX)
+- Implemented fix for using older restart files when not using skin temperature scheme (TMX or standalone)
 
 NWP: TERRA and other surface issues
 
