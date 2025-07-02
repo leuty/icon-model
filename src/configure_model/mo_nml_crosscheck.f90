@@ -558,6 +558,14 @@ CONTAINS
           CALL finish(routine,'combining inwp_gscp=1 and inwp_gscp=2 in nested runs is not allowed')
         END IF
 
+        !! SB two-moment not supported with deep convection parameterization
+        IF ( ANY( atm_phy_nwp_config(jg)%inwp_gscp == (/4,5,6,7/) )  .AND.  &
+             &  ( atm_phy_nwp_config(jg)%inwp_convection == 1        .AND.  &
+             &     .NOT. ( atm_phy_nwp_config(jg)%lshallowconv_only   .OR.  &
+             &             atm_phy_nwp_config(jg)%lgrayzone_deepconv ) ) ) THEN
+          CALL finish(routine,'SB two-moment microphysics inwp_gscp=4/5/6/7 with parameterized deep convection is not supported')
+        END IF
+
         IF (  atm_phy_nwp_config(jg)%mu_rain < 0.0   .OR. &
           &   atm_phy_nwp_config(jg)%mu_rain > 5.0)  THEN
           CALL finish(routine,'mu_rain requires: 0 < mu_rain < 5')
