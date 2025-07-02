@@ -495,8 +495,8 @@ class BuildBotInterface(ExperimentTestCollection):
         if runflags:
             return dict(item.split("=") for item in "".join(runflags).split())
 
-    def _add_probtest_ensemble_for_member_num(
-        self, basedir, exp, builder, member_num
+    def _add_probtest_ensemble_for_member_ids(
+        self, basedir, exp, builder, member_ids
     ):
         # set path to probtest entry script
         PROBTEST = os.path.join(basedir, "externals/probtest/probtest.py")
@@ -524,8 +524,8 @@ class BuildBotInterface(ExperimentTestCollection):
             member_type,
             "--perturb-amplitude",
             self._get_perturb_amplitude_as_string(exp["name"], member_type),
-            "--member-num",
-            member_num,
+            "--member-ids",
+            member_ids,
         ]
         cmd.extend(self._get_file_ids_for_exp_as_list(exp["name"]))
         subprocess.run(cmd, check=True)
@@ -553,7 +553,7 @@ class BuildBotInterface(ExperimentTestCollection):
         )
 
         perturbed_experiments = []
-        member_ids = map(int, member_num.split(","))
+        member_ids = map(int, member_ids.split(","))
         for member_id in member_ids:
             perturbed_experiments.append(
                 f"exp.{exp['name']}_member_id_{member_type}_{member_id}"
@@ -565,11 +565,11 @@ class BuildBotInterface(ExperimentTestCollection):
             os.path.join(os.path.dirname(__file__), "../..")
         )
         # Add probtest ensemble runs
-        member_num = self._get_ensemble_num_for_exp_as_string(
+        member_ids = self._get_ensemble_num_for_exp_as_string(
             exp["name"], self.bb_name
         )
-        perturbed_experiments = self._add_probtest_ensemble_for_member_num(
-            basedir, exp, builder, member_num
+        perturbed_experiments = self._add_probtest_ensemble_for_member_ids(
+            basedir, exp, builder, member_ids
         )
 
         # Make a copy of the generic pp.generate_tolerance for each exp.
@@ -598,9 +598,9 @@ class BuildBotInterface(ExperimentTestCollection):
             os.path.join(os.path.dirname(__file__), "../..")
         )
         # Add probtest ensemble runs
-        member_num = ",".join(map(str, range(1, 51)))
-        perturbed_experiments = self._add_probtest_ensemble_for_member_num(
-            basedir, exp, builder, member_num
+        member_ids = ",".join(map(str, range(1, 50)))
+        perturbed_experiments = self._add_probtest_ensemble_for_member_ids(
+            basedir, exp, builder, member_ids
         )
 
         # Make a copy of the generic pp.select_members for each exp.

@@ -7,7 +7,7 @@ builder: balfrin_cpu_nvidia_mixed
 "c2sm_clm_r13b03_seaice": 2b6d59ae91933c8a7d98482bdd2c58582259ab50
 "mch_icon-ch1_small": c4e54ebb02cf6be99fdb30a0da825716c788ca73
 "mch_icon-ch2_small": 8f12f3cab58341a68e08dd55daec0bd412234d92
-"mch_kenda-ch1_small": 9ca436fb2b9ae07fbdec8d68479b2b3ae8254033
+"mch_kenda-ch1_small": c0bb56acc58aa448591563b647e05597123b9173
 "mch_opr_r04b07_sstice_inst": 720c083ec66fbcbb180163e4708d2aa115e7cc1b
 "mch_opr_r19b07_midnight": 98e250d8c949934031348aa2ef1cebaf57bd9187
 "mch_pollen_test": 06e23bf9130a87e8cb3c1f6ea7dea8887dd58bad

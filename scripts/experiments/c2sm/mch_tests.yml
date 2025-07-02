@@ -40,7 +40,7 @@ tests:
       - balfrin: 'tc'
     ensemble_num:
       - balfrin_cpu_nvidia: [15,9,27,47,45,33]
-      - balfrin_cpu_nvidia_mixed: [41,46,27,8,34,30]
+      - balfrin_cpu_nvidia_mixed: [1,2,37,44,49,60]
     tolerance_factor:
       - balfrin: 5
   - name: mch_pollen_test
@@ -224,6 +224,6 @@ tests:
     checksuite_modes:
       - balfrin: 'tc'
     ensemble_num:
-      - balfrin_cpu_nvidia: [17,46,39,24,30]
+      - balfrin_cpu_nvidia: [1,15,33,37]
     tolerance_factor:
       - balfrin: 5
