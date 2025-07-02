@@ -31,6 +31,7 @@ use_gpu
 use_host
 use_build_env
 use_purge_modules
+use_load_module_paths
 use_load_modules
 use_load_profile
 use_mpi
@@ -43,6 +44,7 @@ use_queue
 use_shell
 use_srcdir
 use_submit
+use_serial_submit
 use_sync_submit
 use_target
 use_flags_group
@@ -306,8 +308,11 @@ case "$use_site" in
 
   csc.fi)
     use_submit='sbatch'
+    use_serial_submit='yes'
     use_sync_submit='sbatch --wait'
     use_mpi_startrun='srun'
+    use_load_module_paths="${use_srcdir}/etc/Modules"
+    use_load_modules="icon-lumi" # ${use_srcdir}/etc/Modules/icon-lumi
     if test xyes = x"${use_gpu}"; then
       use_target='lumi_gpu'
       use_mpi_startrun="srun ${ICON_CONTAINER_WRAPPER-} ${use_srcdir}/run/run_wrapper/lumi_gpu.sh"

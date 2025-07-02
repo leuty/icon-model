@@ -38,8 +38,8 @@ forcing_timescale=365  # length of OMIP/NCEP dataset: 1 = annual; 12 = monthly d
 init_relax=1
 ocean_vertical_levels=40
 ocean_grids="OceanOnly_Icos_0158km_etopo40.nc"    #  default R2B04 without land-points
-grids_folder=/pool/data/ICON/oes/input/r0002//OceanOnly_Icos_0158km_etopo40
-ocean_data_InputFolder=/pool/data/ICON/oes/input/r0002/OceanOnly_Icos_0158km_etopo40
+grids_folder="${icon_data_rootFolder:-/pool/data/ICON}/oes/input/r0002/OceanOnly_Icos_0158km_etopo40"
+ocean_data_InputFolder="${grids_folder}"
 #-----------------------------------------------------------------------------
 #icon_data_rootFolder=/pool/data/ICON
 #

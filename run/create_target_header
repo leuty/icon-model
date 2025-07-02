@@ -178,6 +178,17 @@ ${use_purge_modules}
 EOF
       fi
 
+    # load user defined module paths
+    if [[ -n "$use_load_module_paths" ]]; then
+      cat >> "$output_script" << EOF
+#-----------------------------------------------------------------------------
+# load modules
+load_module_paths="$use_load_module_paths"
+module use \$load_module_paths
+#-----------------------------------------------------------------------------
+EOF
+    fi
+
     # load user defined modules
     if [[ -n "$use_load_modules" ]]; then
       cat >> "$output_script" << EOF
