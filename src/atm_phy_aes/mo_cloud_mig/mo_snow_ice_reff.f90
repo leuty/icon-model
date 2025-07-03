@@ -87,8 +87,8 @@ CONTAINS
     REAL(wp), PARAMETER               :: eps = 1.0e-8    ! Epsilon constant
 
     ! number of snow flakes per volume air given by N_0/lambda
-    ncn=snow_number(temp,rho,qs)
-    ncn=ncn/snow_lambda(rho,qs,ncn)
+    ncn=snow_number(temp,rho*qs)
+    ncn=ncn/snow_lambda(rho*qs,ncn)
     snow_x=rho*qs/(ncn+eps) ! average mass of snow flake in [kg]
   END FUNCTION snow_x
 

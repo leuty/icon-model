@@ -369,8 +369,7 @@ $addexp checksuite.icon-dev/check.land_quincy_canopy_test --builders "levante_na
 
 # aurora node at DKRZ - not in production,yet
 ./set_builder_flags Active --builders 'levante_aurora' --list $listname
-$addexp "checksuite.infrastructure/aurora/exp.icon_esm_r2b4.run" --builders "levante_aurora" --list $listname
-$addexp "checksuite.infrastructure/aurora/exp.icon_atm_r2b4.run" --builders "levante_aurora" --list $listname
+$addexp "checksuite.infrastructure/aurora/exp.aes_bubble_test.run" --builders "levante_aurora" --list $listname
 $addexp "checksuite.infrastructure/aurora/exp.host_and_vector_only_tests.run" --builders "levante_aurora" --list $listname
 
 # HoreKa at KIT
