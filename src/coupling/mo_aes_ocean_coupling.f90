@@ -63,6 +63,7 @@
 !----------------------------
 
 MODULE mo_aes_ocean_coupling
+#ifndef __NO_AES__
 
   USE mo_kind                ,ONLY: wp
   USE mo_model_domain        ,ONLY: t_patch
@@ -1521,4 +1522,5 @@ CONTAINS
 
   END SUBROUTINE interface_aes_ocean
 
+#endif
 END MODULE mo_aes_ocean_coupling

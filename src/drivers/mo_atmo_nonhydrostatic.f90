@@ -133,9 +133,11 @@ USE mo_aes_phy_init,        ONLY: init_aes_phy_params, init_aes_phy_external, &
 USE mo_aes_phy_cleanup,     ONLY: cleanup_aes_phy
 USE mo_interface_aes_tmx,   ONLY: init_tmx
 #endif
+
 #ifndef __NO_JSBACH__
   USE mo_jsb_model_init,    ONLY: jsbach_init_after_restart
 #endif
+
 ! Needed for upper atmosphere configuration
 USE mo_sleve_config,        ONLY: flat_height
 USE mo_io_units,            ONLY: filename_max
@@ -457,7 +459,6 @@ CONTAINS
        &  ANY(aes_phy_config(:)%dt_rad /= '')) THEN
       CALL construct_bc_aeropt_splumes_memory ( p_patch(1:) )
     END IF
-
 #endif
     END IF
 

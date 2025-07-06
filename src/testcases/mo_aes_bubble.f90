@@ -14,6 +14,7 @@
 ! Literature  cr2021_08_03_jsr for further documentation
 
 MODULE mo_aes_bubble
+#ifndef __NO_AES__
   USE mo_kind,                ONLY: wp
   USE mo_model_domain,        ONLY: t_patch
   USE mo_math_constants,      ONLY: pi
@@ -206,4 +207,5 @@ MODULE mo_aes_bubble
     gaussian = EXP(-.5_wp * xx * xx) * delta
   END FUNCTION gaussian
 
+#endif
 END MODULE mo_aes_bubble

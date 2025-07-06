@@ -47,17 +47,22 @@ MODULE mo_interface_aes_vdf
   USE mo_loopindices         ,ONLY: get_indices_c
   USE mo_nh_testcases_nml    ,ONLY: is_dry_cbl, isrfc_type
 
+#ifndef __NO_JSBACH__
   USE mo_jsb_time            ,ONLY: is_time_ltrig_rad_m1
   USE mo_cuda_graphs         ,ONLY: t_cuda_graphs, id_captured, create_graphs, &
                                     begin_capture, end_capture, replay, reset
   USE mo_jsb_interface       ,ONLY: invalidate_cuda_graphs
+#endif
+
   USE, INTRINSIC :: iso_c_binding, ONLY: c_loc
 
 
   IMPLICIT NONE
   PRIVATE
 
+#ifndef __NO_JSBACH__
   TYPE(t_cuda_graphs) :: graphs
+#endif
 
   PUBLIC  :: interface_aes_vdf
 
@@ -224,6 +229,7 @@ CONTAINS
     nice   = prm_field(jg)%kice
     turb => aes_vdf_config(jg)%turb
 
+#ifndef __NO_JSBACH__
     graph_id = -1
     IF (aes_vdf_config(jg)%lcuda_graph_vdf) THEN
       IF (.NOT. graphs%initialized) THEN
@@ -249,6 +255,7 @@ CONTAINS
         END IF
       END IF
     END IF
+#endif
 
     !$ACC DATA CREATE(zxt_emis) ASYNC(1) IF(ntrac > 0)
     !$ACC DATA CREATE(ta_hori_tend, qv_hori_tend, ql_hori_tend, qi_hori_tend) ASYNC(1) IF(turb == 2)
@@ -1783,10 +1790,13 @@ CONTAINS
     !$ACC END DATA
     !$ACC END DATA
 
+#ifndef __NO_JSBACH__
     IF (graph_id == 0) THEN
       graph_id = end_capture(graphs)
       CALL replay(graphs, graph_id, 1)
     END IF
+#endif
+
     !$ACC WAIT(1)
 
     ! disassociate pointers

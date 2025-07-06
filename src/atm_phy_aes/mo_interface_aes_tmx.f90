@@ -656,7 +656,13 @@ CONTAINS
     ALLOCATE(sfc_types(0))
     IF (iwtr <= nsfc_type) sfc_types = [sfc_types, isfc_oce]
     IF (iice <= nsfc_type) sfc_types = [sfc_types, isfc_ice]
-    IF (ilnd <= nsfc_type) sfc_types = [sfc_types, isfc_lnd]
+    IF (ilnd <= nsfc_type) THEN
+#ifndef __NO_JSBACH__
+      sfc_types = [sfc_types, isfc_lnd]
+#else
+      CALL finish(routine, 'JSBACH is not available, no land surface type defined')
+#endif
+    END IF
 
     vdf => new_vdf(patch, nproma, nlev=nlev, nsfc_tiles=nsfc_type, sfc_types=sfc_types, dt=dtime)
     __acc_attach(vdf)

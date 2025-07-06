@@ -77,8 +77,10 @@ MODULE mo_nh_testcases
   USE mo_lib_grid_geometry_info,   ONLY: planar_torus_geometry
   USE mo_nh_rce_exp,           ONLY: init_nh_state_rce_glb,                       &
                                    & init_nh_state_rce_tprescr_glb
+#ifndef __NO_AES__
   USE mo_aes_bubble,           ONLY: init_aes_bubble
   USE mo_aes_cbl,              ONLY: init_aes_cbl_dry, print_aes_cbl_testcase_config
+#endif
   USE mo_nh_torus_exp,         ONLY: init_nh_state_cbl, init_nh_state_rico,       &
                                    & init_torus_netcdf_sounding,                  &
                                    & init_torus_ascii_sounding, init_warm_bubble, &
@@ -443,9 +445,13 @@ MODULE mo_nh_testcases
     CALL message(TRIM(routine),'running DCMIP tropical cyclone testcase 52')
 
   CASE ('aes_cbl')
+#ifndef __NO_AES__
     CALL message(TRIM(routine),'running ICON CBL on torus')
 
     CALL print_aes_cbl_testcase_config()
+#else
+    CALL finish (routine, 'Error: remove --disable-aes and reconfigure')
+#endif
 
   CASE ('CBL')
 
@@ -1199,6 +1205,7 @@ MODULE mo_nh_testcases
 
   CASE ('aes_cbl')
 
+#ifndef __NO_AES__
     IF(p_patch(1)%geometry_info%geometry_type/=planar_torus_geometry)&
       CALL finish(TRIM(routine),'CBL case is only for plane torus!')
 
@@ -1225,6 +1232,9 @@ MODULE mo_nh_testcases
 !
       CALL message(TRIM(routine),'End setup '//TRIM(nh_test_name)//' test')
     END DO !jg
+#else
+    CALL finish (routine, 'Error: remove --disable-aes and reconfigure')
+#endif
 
 
   CASE ('CBL')
@@ -1306,6 +1316,7 @@ MODULE mo_nh_testcases
       CALL message(TRIM(routine),'End setup global RCE_Tprescr test')
     END DO !jg
 
+#ifndef __NO_AES__
   CASE ('aes_bubble', 'aes_bubble_land')
 
      ! u,v,w are initialized to zero.  initialize with temperature profile, add bubble to T and q
@@ -1320,6 +1331,9 @@ MODULE mo_nh_testcases
 !
       CALL message(TRIM(routine),'End setup '//TRIM(nh_test_name)//' test')
     END DO !jg
+#else
+    CALL finish (routine, 'Error: remove --disable-aes and reconfigure')
+#endif
 
 
   CASE ('RICO')

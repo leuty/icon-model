@@ -27,10 +27,12 @@ MODULE mo_vdf_sfc
   USE mo_variable,          ONLY: t_variable
   USE mo_variable_list,     ONLY: t_variable_list, t_variable_set
   USE mo_aes_vdf_config,    ONLY: aes_vdf_config
+#ifndef __NO_JSBACH__
   USE mo_cuda_graphs,       ONLY: t_cuda_graphs, id_captured, create_graphs, &
                                   begin_capture, end_capture, replay, reset
   USE mo_jsb_interface,     ONLY: invalidate_cuda_graphs
   USE mo_jsb_time,          ONLY: is_time_ltrig_rad_m1
+#endif
   USE, INTRINSIC :: iso_c_binding, ONLY: c_loc
 
 #ifdef _OPENACC
@@ -46,7 +48,9 @@ MODULE mo_vdf_sfc
   PUBLIC :: t_vdf_sfc, t_vdf_sfc_inputs, t_vdf_sfc_config, t_vdf_sfc_diagnostics, t_vdf_aggregator
 
   TYPE, EXTENDS(t_tmx_process) :: t_vdf_sfc
+#ifndef __NO_JSBACH__
     TYPE(t_cuda_graphs) :: graphs
+#endif
   CONTAINS
     PROCEDURE :: Init => Init_vdf_sfc
     PROCEDURE :: Compute
@@ -345,6 +349,7 @@ CONTAINS
       & )
 
     graph_id = -1
+#ifndef __NO_JSBACH__
     IF (aes_vdf_config(jg)%lcuda_graph_vdf .AND. .NOT. this%is_initial_time) THEN
       IF (.NOT. this%graphs%initialized) THEN
         CALL create_graphs(this%graphs, 3, modname)
@@ -364,6 +369,7 @@ CONTAINS
         END IF
       END IF
     END IF
+#endif
 
     !$ACC DATA CREATE(new_tsfc_rad, new_tsfc_eff, lwfl_net, swfl_net) &
     !$ACC   PRESENT(old_tsfc, tend_tsfc, new_tsfc, new_qsfc, tsfc_rad, lwfl_up, swfl_up, rlds, rsds) ASYNC(1)
@@ -586,10 +592,13 @@ CONTAINS
 
     END ASSOCIATE
 
+#ifndef __NO_JSBACH__
     IF (graph_id == 0) THEN
       graph_id = end_capture(this%graphs)
       CALL replay(this%graphs, graph_id, 1)
     END IF
+#endif
+
     !$ACC WAIT(1)
 
   END SUBROUTINE Compute
@@ -647,6 +656,7 @@ CONTAINS
       & )
 
     graph_id = -1
+#ifndef __NO_JSBACH__
     IF (aes_vdf_config(jg)%lcuda_graph_vdf .AND. .NOT. this%is_initial_time) THEN
       IF (.NOT. this%graphs%initialized) THEN
         CALL create_graphs(this%graphs, 3, modname)
@@ -664,6 +674,7 @@ CONTAINS
         END IF
       END IF
     END IF
+#endif
 
     CALL compute_valid_indices(domain, fract_tile, nvalid, indices)
 
@@ -833,10 +844,13 @@ CONTAINS
 
     END ASSOCIATE
 
+#ifndef __NO_JSBACH__
     IF (graph_id == 0) THEN
       graph_id = end_capture(this%graphs)
       CALL replay(this%graphs, graph_id, 1)
     END IF
+#endif
+
     !$ACC WAIT(1)
 
   END SUBROUTINE Compute_diagnostics

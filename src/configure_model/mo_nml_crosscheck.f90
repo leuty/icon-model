@@ -19,7 +19,7 @@ MODULE mo_nml_crosscheck
   USE mo_kind,                     ONLY: wp
   USE mo_exception,                ONLY: message, message_text, finish
   USE mo_impl_constants,           ONLY: inwp, tracer_only,                                &
-    &                                    iaes, RAYLEIGH_CLASSIC, INOFORCING,               &
+    &                                    iaes, ildf_echam, RAYLEIGH_CLASSIC, INOFORCING,   &
     &                                    icosmo, MODE_IAU, MODE_IAU_OLD,                   &
     &                                    max_echotop, max_wshear, max_srh,                 &
     &                                    LSS_JSBACH, ivdiff, IHELDSUAREZ, ILDF_DRY
@@ -45,9 +45,11 @@ MODULE mo_nml_crosscheck
   USE mo_atm_phy_nwp_config,       ONLY: atm_phy_nwp_config, icpl_aero_conv, iprog_aero,   &
     &                                    icpl_aero_ice, itype_dissip_heat
   USE mo_lnd_nwp_config,           ONLY: ntiles_lnd, lsnowtile, sstice_mode, llake
+#ifndef __NO_AES__
   USE mo_aes_phy_config,           ONLY: aes_phy_config
   USE mo_aes_vdf_config,           ONLY: aes_vdf_config
   USE mo_aes_rad_config,           ONLY: aes_rad_config
+#endif
   USE mo_radiation_config,         ONLY: irad_aero, iRadAeroNone, iRadAeroConst,           &
     &                                    iRadAeroTegen, iRadAeroART, iRadAeroConstKinne,   &
     &                                    iRadAeroCAMSclim, iRadAeroCAMStd,                 &
@@ -292,7 +294,7 @@ CONTAINS
     !--------------------------------------------------------------------
 
 #ifdef __NO_AES__
-    IF ( iforcing==iaes ) &
+    IF ( iforcing==iaes .OR. iforcing==ildf_echam) &
       CALL finish( routine, 'AES physics desired, but compilation with --disable-aes' )
 #endif
 
@@ -616,10 +618,14 @@ CONTAINS
       END IF
 
       IF (iforcing == iaes) THEN
+#ifndef __NO_AES__
         DO jg = 1, n_dom
           IF (ALL([iRadAeroKinne, iRadAeroKinneSP] /= aes_rad_config(jg)%irad_aero)) &
             CALL finish(routine, 'Aerosol read-in via YAC is only supported for iRadAeroKinne (irad_aero=13) and iRadAeroKinneSP (irad_aero=19)')
         END DO
+#else
+        CALL finish (routine, 'Error: remove --disable-aes and reconfigure')
+#endif
       END IF
     END IF
 
@@ -633,11 +639,17 @@ CONTAINS
         CALL finish(routine, 'Ozone read-in via YAC is only supported for irad_o3=5')
       END IF
 
-      DO jg = 1, n_dom
-        IF (iforcing == iaes .AND. ALL([5, 6] /= aes_rad_config(jg)%irad_o3 )) THEN
-          CALL finish(routine, 'Ozone read-in via YAC is only supported for irad_o3=5')
-        END IF
-      END DO
+      IF (iforcing == iaes) THEN
+#ifndef __NO_AES__
+        DO jg = 1, n_dom
+          IF (ALL([5, 6] /= aes_rad_config(jg)%irad_o3 )) THEN
+            CALL finish(routine, 'Ozone read-in via YAC is only supported for irad_o3=5')
+          END IF
+        END DO
+#else
+        CALL finish (routine, 'Error: remove --disable-aes and reconfigure')
+#endif
+      END IF
     END IF
 
 
@@ -904,13 +916,21 @@ CONTAINS
     INTEGER  :: jg
     CHARACTER(len=*), PARAMETER :: routine =  modname//'::land_crosscheck'
 
+    SELECT CASE (iforcing)
+    CASE (inwp)
+
+#ifdef __NO_JSBACH__
+    IF (ANY(atm_phy_nwp_config(1:n_dom)%inwp_surface == LSS_JSBACH)) &
+        & CALL finish(routine, "This version was compiled without jsbach. Compile with __JSBACH__, or set inwp_surface to a different value.")
+#endif
+
+    CASE (iaes)
+
+#ifndef __NO_AES__
 #ifdef __NO_JSBACH__
     IF (ANY(aes_phy_config(:)%ljsb)) THEN
       CALL finish(routine, "This version was compiled without jsbach. Compile with __JSBACH__, or set ljsb=.FALSE.")
     ENDIF
-
-    IF (ANY(atm_phy_nwp_config(1:n_dom)%inwp_surface == LSS_JSBACH)) &
-        & CALL finish(routine, "This version was compiled without jsbach. Compile with __JSBACH__, or set inwp_surface to a different value.")
 #else
     DO jg=1,n_dom
       IF (.NOT.aes_phy_config(jg)%ljsb) THEN
@@ -926,6 +946,11 @@ CONTAINS
       END IF
     END DO
 #endif
+#else
+    CALL finish (routine, 'Error: remove --disable-aes and reconfigure')
+#endif
+
+    END SELECT
 
   END SUBROUTINE land_crosscheck
   !---------------------------------------------------------------------------------------

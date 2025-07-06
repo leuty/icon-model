@@ -696,8 +696,8 @@ CONTAINS
     END DO
 !$OMP END PARALLEL DO
 
-#ifndef __NO_JSBACH__
     IF (isfc == isfc_lnd .AND. .NOT. linit) THEN
+#ifndef __NO_JSBACH__
       CALL jsbach_get_var('seb_qsat_star', domain%patch%id, ptr2d=jsb_qsat, &
         lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
 !$OMP PARALLEL DO PRIVATE(jb, jls, js) ICON_OMP_DEFAULT_SCHEDULE
@@ -711,8 +711,8 @@ CONTAINS
       END DO
 !$OMP END PARALLEL DO
       NULLIFY(jsb_qsat)
-    END IF
 #endif
+    END IF
 
   END SUBROUTINE compute_sfc_sat_spec_humidity
   !
@@ -769,8 +769,10 @@ CONTAINS
 
     INTEGER  :: jb, jl, jls, js
 
+#ifndef __NO_JSBACH__
     REAL(wp), POINTER, DIMENSION(:,:) :: &
-      &jsb_evapotrans_ptr => NULL(), jsb_latent_hflx_ptr => NULL(), jsb_sensible_hflx_ptr => NULL()
+      & jsb_evapotrans_ptr => NULL(), jsb_latent_hflx_ptr => NULL(), jsb_sensible_hflx_ptr => NULL()
+#endif
 
     CHARACTER(len=*), PARAMETER :: routine = modname//':compute_sfc_fluxes'
 
@@ -802,10 +804,6 @@ CONTAINS
       RETURN
     END IF
 
-#ifdef __NO_JSBACH__
-    IF (isfc == isfc_lnd) CALL finish(routine, "The JSBACH component is not activated")
-#endif
-
     IF (isfc == isfc_lnd) THEN
 #ifndef __NO_JSBACH__
       CALL jsbach_get_var('hydro_evapotrans',  domain%patch%id, ptr2d=jsb_evapotrans_ptr, &
@@ -814,6 +812,8 @@ CONTAINS
         & lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
       CALL jsbach_get_var('seb_sensible_hflx', domain%patch%id, ptr2d=jsb_sensible_hflx_ptr, &
         & lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
+#else
+      CALL finish(routine, "The JSBACH component is not activated")
 #endif
     END IF
 
@@ -836,20 +836,24 @@ CONTAINS
           ustress(js,jb) = rho(js,jb) * km(js,jb) * wind(js,jb) * ua(js,jb)
           vstress(js,jb) = rho(js,jb) * km(js,jb) * wind(js,jb) * va(js,jb)
         ELSE IF (isfc == isfc_lnd) THEN
+#ifndef __NO_JSBACH__
           evapotrans(js,jb) = jsb_evapotrans_ptr(js,jb)
           latent_hflx(js,jb) = jsb_latent_hflx_ptr(js,jb)
           sensible_hflx(js,jb) = jsb_sensible_hflx_ptr(js,jb)
           ustress(js,jb) = rho(js,jb) * km(js,jb) * wind(js,jb) * ua(js,jb)
           vstress(js,jb) = rho(js,jb) * km(js,jb) * wind(js,jb) * va(js,jb)
+#endif
         END IF
       END DO !jls
       !$ACC END PARALLEL LOOP
     END DO !jb
 !$OMP END PARALLEL DO
 
+#ifndef __NO_JSBACH__
     IF (isfc == isfc_lnd) THEN
       NULLIFY(jsb_evapotrans_ptr, jsb_latent_hflx_ptr, jsb_sensible_hflx_ptr)
     END IF
+#endif
 
   END SUBROUTINE compute_sfc_fluxes
   !

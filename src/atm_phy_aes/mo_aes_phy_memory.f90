@@ -23,6 +23,7 @@
 !NEC$ options "-O1"
 
 MODULE mo_aes_phy_memory
+#if !defined(__NO_AES__) || !defined(__NO_ICON_UPATMO__) || defined(__ICON_ART)
 
   USE mo_kind,                ONLY: wp
   USE mo_impl_constants,      ONLY: SUCCESS, vname_len,        &
@@ -4883,4 +4884,5 @@ CONTAINS
   END SUBROUTINE new_aes_phy_tend_list
   !-------------
 
+#endif
 END MODULE mo_aes_phy_memory

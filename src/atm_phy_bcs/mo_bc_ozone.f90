@@ -27,7 +27,6 @@ MODULE mo_bc_ozone
   &                                      p_comm_work_test, p_comm_work, p_io
   USE mo_impl_constants,           ONLY: max_dom
   USE mo_grid_config,              ONLY: n_dom
-  USE mo_aes_rad_config,           ONLY: aes_rad_config
   USE mo_netcdf_errhandler,        ONLY: nf
   USE mo_netcdf
   USE mo_time_config,              ONLY: time_config

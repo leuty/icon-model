@@ -171,7 +171,9 @@ MODULE mo_meteogram_output
   USE mo_name_list_output_types,ONLY: msg_io_meteogram_flush
   USE mo_util_phys,             ONLY: rel_hum, swdir_s
   USE mo_grid_config,           ONLY: grid_sphere_radius, is_plane_torus
+#ifndef __NO_AES__
   USE mo_aes_phy_memory,        ONLY: prm_field
+#endif
   USE mo_fortran_tools,         ONLY: assert_acc_device_only, set_acc_host_or_device
   ! generalized meteogram output
   USE mo_var_list_register,     ONLY: t_vl_register_iter
@@ -911,6 +913,7 @@ CONTAINS
         &              "SWDIR_S", "W m-2", &
         &              "shortwave direct downward flux at surface", &
         &              sfc_var_info, prm_diag%swflx_dn_sfc_diff(:,:))
+#ifndef __NO_AES__
     ELSE ! ie .NOT. iforcing == inwp
       CALL add_sfc_var(meteogram_config, var_list, VAR_GROUP_SURFACE, &
         &              "RSDS", "W m-2", &
@@ -932,6 +935,7 @@ CONTAINS
         &              "RNDS_DIR", "W m-2", &
         &              "surface downwelling direct near infrared radiation", &
         &              sfc_var_info, prm_field(jg)%rnds_dir(:,:))
+#endif
     ENDIF ! iforcing == inwp
 
     ! -- tiled surface fields

@@ -13,6 +13,8 @@
 ! convective boundary layer (CBL) on a torus
 
 MODULE mo_aes_cbl
+#ifndef __NO_AES__
+
   USE mo_kind,                ONLY: wp
   USE mo_exception,           ONLY: message, finish, print_value
   USE mo_model_domain,        ONLY: t_patch
@@ -229,4 +231,5 @@ CONTAINS
   END SUBROUTINE print_aes_cbl_testcase_config
 !!!=============================================================================================
 
+#endif
 END MODULE mo_aes_cbl

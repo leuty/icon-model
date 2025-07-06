@@ -230,7 +230,7 @@ CONTAINS
       END IF
     END IF
 
-#ifndef ICON_USE_CUDA_GRAPH
+#if !defined(ICON_USE_CUDA_GRAPH) || defined(__NO_JSBACH__)
     lcuda_graph_vdf(:) = .FALSE.
 #endif
 

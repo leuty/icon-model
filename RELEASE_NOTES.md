@@ -89,6 +89,7 @@ NWP: TERRA and other surface issues
 - Detect GPU architecture in the configure script
 - Configure CUDA/HIP C++ compiler and flags
 - Pass ICON_LDFLAGS to the Fortran compiler only
+- Fixes for disable switches --disable-aes and --disable-jsbach
 
 #### Miscellaneous
 
