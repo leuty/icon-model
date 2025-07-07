@@ -44,6 +44,12 @@
       - utils/pvcs.py
     labels: [Build system]
     mentions: [m300488]
+  # Reference data
+  - file_names:
+      - run/tolerance/hashes/*
+      - test/microphysics_1mom_schemes/reference/*
+      - test/microphysics_1mom_schemes/tolerance/*
+    labels: [new-reference]
   # Documentation:
   - file_names:
       - doc/www/*
