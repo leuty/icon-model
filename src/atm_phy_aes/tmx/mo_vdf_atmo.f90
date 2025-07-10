@@ -151,6 +151,7 @@ MODULE mo_vdf_atmo
       solver_type                     => NULL(), &
       energy_type                     => NULL()
     LOGICAL, POINTER :: &
+      l_co2                           => NULL(), &
       use_louis                       => NULL(), &
       use_km_const                    => NULL(), &
       use_scale_turb_energy_flux      => NULL()
@@ -646,6 +647,7 @@ CONTAINS
     CALL configlist%append(t_variable('solver type', shape_0d, "", type_id="integer"))
     CALL configlist%append(t_variable('energy type', shape_0d, "", type_id="integer"))
     CALL configlist%append(t_variable('dissipation factor', shape_0d, "", type_id="real"))
+    CALL configlist%append(t_variable('co2 tracer active', shape_0d, "", type_id="logical"))
 
   END FUNCTION build_atmo_config_list
 
@@ -691,6 +693,8 @@ CONTAINS
       __acc_attach(this%energy_type)
       this%dissipation_factor => this%list%Get_ptr_r0d('dissipation factor')
       __acc_attach(this%dissipation_factor)
+      this%l_co2 => this%list%Get_ptr_l0d('co2 tracer active')
+      __acc_attach(this%l_co2)
     END SELECT
 
   END SUBROUTINE Set_pointers_config

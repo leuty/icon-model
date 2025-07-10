@@ -48,6 +48,7 @@ MODULE mo_output_coupling
 
   TYPE(t_exposed_var), POINTER :: exposed_vars_head => NULL()
   INTEGER :: max_collection_size = 0, max_hor_size = 0
+  INTEGER :: yac_valid_mask_sfc_field_id, yac_valid_mask_field_id
 
 CONTAINS
 
@@ -325,6 +326,28 @@ CONTAINS
        DEALLOCATE(tmp_timelevel_var_head)
     END DO
     DEALLOCATE(vl_iter)
+
+    CALL yac_fdef_field(             &
+         & "valid_mask_sfc",         &
+         & comp_id,                  &
+         & (/cell_point_id/),        &
+         & 1,                        &
+         & 1,                        & ! collection_size
+         & timestepstring,           &
+         & YAC_TIME_UNIT_ISO_FORMAT, &
+         & yac_valid_mask_sfc_field_id )
+
+    CALL yac_fdef_field(             &
+         & "valid_mask",             &
+         & comp_id,                  &
+         & (/cell_point_id/),        &
+         & 1,                        &
+         & nlev,                     & ! collection_size
+         & timestepstring,           &
+         & YAC_TIME_UNIT_ISO_FORMAT, &
+         & yac_valid_mask_field_id )
+
+
 ! YAC_coupling
 #endif
   END SUBROUTINE construct_output_coupling
@@ -404,7 +427,7 @@ CONTAINS
    CALL finish(str_module // 'output_coupling', &
                'built without coupling support')
 #else
-   INTEGER                             :: info, ierror, collection_size, nn, now
+   INTEGER                             :: info, ierror, collection_size, nn, now, num_hor_points
    INTEGER                             :: ncontained, var_size, var_ref_pos, timer_put
    REAL(dp), ALLOCATABLE, TARGET, SAVE :: buffer(:,:) ! yac only supports double precision
    REAL(dp), CONTIGUOUS, POINTER       :: tmp_buffer(:,:)
@@ -418,9 +441,50 @@ CONTAINS
     IF (ltimer) CALL timer_start(timer_coupling_output)
     timer_put = timer_coupling_output_1stput
 
-    cur_field => exposed_vars_head
     IF (.NOT. ALLOCATED(buffer)) ALLOCATE(buffer(max_hor_size, max_collection_size))
     IF (.NOT. ALLOCATED(buffer_ptr)) ALLOCATE(buffer_ptr(1, max_collection_size))
+
+    ! handle 2d valid mask
+    CALL yac_fget_action(yac_valid_mask_sfc_field_id, info)
+    IF ( info == YAC_ACTION_NONE ) THEN
+      CALL yac_fupdate(yac_valid_mask_sfc_field_id)
+    ELSE
+      buffer(:, 1) = 1.0
+      num_hor_points = SIZE(valid_mask, 1)*SIZE(valid_mask, 3)
+      IF ( PRESENT(valid_mask) ) THEN
+        WHERE ( RESHAPE(valid_mask(:, 1, :), (/ num_hor_points /)) .LT. 0.5_wp )
+          buffer(:, 1) = 0.0
+        ENDWHERE
+      ENDIF
+      buffer_ptr(1, 1)%p => buffer(:,1)
+      CALL yac_fput(yac_valid_mask_sfc_field_id, 1, &
+           1, buffer_ptr(:, 1:1), info, ierror)
+    ENDIF
+
+    ! handle 3d valid mask
+    CALL yac_fget_action(yac_valid_mask_field_id, info)
+    IF ( info == YAC_ACTION_NONE ) THEN
+      CALL yac_fupdate(yac_valid_mask_field_id)
+    ELSE
+      buffer(:, 1:nlev) = 1.0
+      num_hor_points = SIZE(valid_mask, 1)*SIZE(valid_mask, 3)
+      IF ( PRESENT(valid_mask) ) THEN
+        DO nn = 1 , nlev
+          WHERE ( RESHAPE(valid_mask(:, nn, :), (/ num_hor_points /)) .LT. 0.5_wp )
+            buffer(:, nn) = 0.0
+          ENDWHERE
+        ENDDO
+      ENDIF
+      DO nn = 1 , nlev
+        buffer_ptr(1, nn)%p => buffer(:,nn)
+      ENDDO
+      CALL yac_fput(yac_valid_mask_field_id, 1, &
+           nlev, buffer_ptr(:, 1:nlev), info, ierror)
+    ENDIF
+
+
+
+    cur_field => exposed_vars_head
 
     DO WHILE (ASSOCIATED(cur_field))
        IF (ltimer) CALL timer_start(timer_coupling_output_buf_prep)

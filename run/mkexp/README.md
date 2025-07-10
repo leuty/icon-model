@@ -2,8 +2,7 @@
 
 MakeExperiments! (_mkexp_) is a tool for preparing experiments with MPI-M's earth system models. It provides a unified command line interface to perform experiments uisng ICON configurations maintained by the MPI-M.
 
-Information on its use is provided in the [Quick Start](./doc/Quick_Start.md) guide.
-
+Information on its use is provided in the [Running ICON](doc/www/buildrun/buildrun_running.md#using-mkexp-to-prepare-icon-experiments) guide.
 
 ## Basic structure
 
@@ -11,8 +10,6 @@ To set up an experiment, you create a config file eg.
 
 ```
 EXP_TYPE = torus
-EXP_OPTIONS =
-ENVIRONMENT = ios
 [jobs]
   [[run_start]]
     time_limit = 00:05:00
@@ -41,6 +38,6 @@ For technical details, see `utils/mkexp/doc/mkexp.pdf`.
 
 ### Computing environment settings (`mkexp/run/environments`)
 
-* Fallback environment settings if unknown or not specified (`DEFAULT.config`)
+* Fallback settings for all environments (`DEFAULT.config`)
 * Specific environment settings and job resource specifications (`<ENVIRONMENT>.config`)
 * Environment template formatting information according to system needs (`<ENVIRONMENT>.tmpl`)

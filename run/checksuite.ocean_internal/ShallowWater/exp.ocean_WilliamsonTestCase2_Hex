@@ -86,7 +86,7 @@ cat > ${ocean_namelist} << EOF
  dzlev_m(1:1)      =   1.0
   l_edge_based    = .false.       ! edge- or cell-based mimetic discretization
 
-  select_solver                   = 4       ! 1=gmres_oce_old; 2=ocean_restart_gmres, 3=mixed precisison restart
+  select_solver                   = 40       ! 1=gmres_oce_old; 2=ocean_restart_gmres, 3=mixed precisison restart
                                             ! 4=CG (default) 5=CGJ 6=BiCG 7=GMRES restart (legacy) 8=MINRES
   use_absolute_solver_tolerance   = .true.
   solver_tolerance                = 1.0E-13 ! this may further be reduced

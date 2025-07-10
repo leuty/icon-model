@@ -29,7 +29,7 @@ MODULE mo_build_decomposition
   USE mo_run_config,           ONLY: msg_level
   USE mo_model_domimp_patches, ONLY: reorder_patch_refin_ctrl,                &
     &                                import_pre_patches, complete_patches, set_parent_loc_idx
-  USE mo_parallel_config,      ONLY: p_test_run, l_test_openmp, num_io_procs, division_method
+  USE mo_parallel_config,      ONLY: p_test_run
   USE mo_impl_constants,       ONLY: success, max_dom, min_rlcell_int
   USE mo_exception,            ONLY: finish, message, message_text
   USE mo_communication,        ONLY: blk_no, idx_no, idx_1d

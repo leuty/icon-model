@@ -50,6 +50,8 @@ MODULE mo_aes_phy_bcs
   USE mo_bc_solar_irradiance        ,ONLY: read_bc_solar_irradiance, ssi_time_interpolation
   USE mo_bc_ozone                   ,ONLY: read_bc_ozone
   USE mo_bc_aeropt_kinne            ,ONLY: read_bc_aeropt_kinne
+  USE mo_bc_anthro_emission         ,ONLY: get_current_bc_anthro_emission_year, &
+       &                                   read_bc_anthro_emission, bc_anthro_emission_time_interpolation
   USE mo_bc_aeropt_cmip6_volc       ,ONLY: read_bc_aeropt_cmip6_volc
 
   ! for 6hourly sst and ice data
@@ -381,6 +383,16 @@ CONTAINS
           & ccycle_config(jg)%ico2conc == 4 .AND. &       ! co2 conc. is read from scenario file
           & .NOT. ghg_time_interpol_already_done  ) THEN  ! time interpolation still to be done
         CALL bc_greenhouse_gases_time_interpolation(mtime_old)
+      END IF
+
+      IF  ( ccycle_config(jg)%iccycle  == 1 .AND. &       ! c-cycle with interactive atmospheric co2
+          & ccycle_config(jg)%lanthro) THEN               ! and anthropogenic emissions
+          IF (mtime_old%date%year /= get_current_bc_anthro_emission_year()) THEN
+            CALL read_bc_anthro_emission(mtime_old%date%year, patch)
+          END IF
+          CALL bc_anthro_emission_time_interpolation(current_time_interpolation_weights, &
+            &                                        prm_field(jg)%fco2ant(:,:),         &
+            &                                        patch                        )
       END IF
 
 #ifndef __NO_RTE_RRTMGP__

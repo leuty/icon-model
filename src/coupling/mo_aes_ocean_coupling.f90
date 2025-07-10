@@ -63,6 +63,7 @@
 !----------------------------
 
 MODULE mo_aes_ocean_coupling
+#ifndef __NO_AES__
 
   USE mo_kind                ,ONLY: wp
   USE mo_model_domain        ,ONLY: t_patch
@@ -906,7 +907,8 @@ CONTAINS
     !  - if no lake part is present, subtract land part only
     !  - if no jsbach is present (aquaplanet), frac_oce is 1.
 
-    !$ACC DATA CREATE(frac_oce, get_buffer, put_buffer)
+    !$ACC DATA CREATE(frac_oce, get_buffer, put_buffer) &
+    !$ACC   PRESENT(prm_field(jg)%qtrc_phy) ! ACCWA (nvhpc on levante): to prevent illegal address during kernel execution
 
     CALL compute_frac_oce(p_patch, use_mask(jg), frac_oce)
 
@@ -1520,4 +1522,5 @@ CONTAINS
 
   END SUBROUTINE interface_aes_ocean
 
+#endif
 END MODULE mo_aes_ocean_coupling

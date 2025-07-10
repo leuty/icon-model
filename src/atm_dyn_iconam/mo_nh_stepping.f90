@@ -269,7 +269,9 @@ MODULE mo_nh_stepping
 #endif
 
   USE mo_coupling_config       ,ONLY: is_coupled_to_ocean
+#ifndef __NO_AES__
   USE mo_aes_ocean_coupling    ,ONLY: interface_aes_ocean
+#endif
   USE mo_coupling_config       ,ONLY: is_coupled_to_output
   USE mo_output_coupling       ,ONLY: output_coupling
 
@@ -1301,12 +1303,14 @@ MODULE mo_nh_stepping
     ! Couple atmosphere and ocean, if needed
     !
     IF (is_coupled_to_ocean()) THEN
+#ifndef __NO_AES__
       IF ( iforcing==iaes ) THEN
         IF (ltimer) CALL timer_start(timer_coupling)
         ! CALL message("nh_stepping","CALL interface_aes_ocean...")
         CALL interface_aes_ocean(p_patch(1:n_dom))
         IF (ltimer) CALL timer_stop(timer_coupling)
       END IF
+#endif
     END IF
     !
     !=====================================================================================

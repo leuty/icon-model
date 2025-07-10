@@ -44,6 +44,8 @@ MODULE mo_atmo_coupling_frame
                                     construct_atmo_wave_coupling_finalize
   USE mo_atmo_ocean_coupling ,ONLY: construct_atmo_ocean_coupling, &
                                     destruct_atmo_ocean_coupling
+  USE mo_atmo_ocean_coupling_common ,ONLY: &
+    construct_atmo_ocean_coupling_common_finalize
   USE mo_atmo_cleo_coupling  ,ONLY: construct_atmo_cleo_coupling_post_sync
   USE mo_atmo_o3_provider_coupling,ONLY: &
     construct_atmo_o3_provider_coupling_post_sync
@@ -53,8 +55,8 @@ MODULE mo_atmo_coupling_frame
 
   USE mo_exception           ,ONLY: finish, message
 
-  USE mo_coupling_utils      ,ONLY: cpl_def_main, cpl_sync_def, cpl_enddef, cpl_write_config_info
-
+  USE mo_coupling_utils      ,ONLY: cpl_def_main, cpl_sync_def, cpl_enddef, &
+       &                            cpl_write_config_info, cpl_config_file_exists
   USE mtime                  ,ONLY: timedeltaToString, MAX_TIMEDELTA_STR_LEN
 
 #ifndef __NO_ICON_COMIN__
@@ -279,6 +281,15 @@ CONTAINS
 
     ! finalizes construction of output coupling
     IF( is_coupled_to_output() ) CALL construct_output_coupling_finalize()
+
+    ! finalizes construction of atmo-ocean coupling
+    IF ( is_coupled_to_ocean() ) THEN
+      !Prevent that ICON couples without file and the error appears somewhere else
+      IF (.NOT. cpl_config_file_exists()) &
+      &  CALL finish(str_module, "coupling.yaml file could not be found!")
+      !Make sure that the fields live on the same time frame
+      IF(time_config%timeshift%dt_shift .ne. 0) CALL construct_atmo_ocean_coupling_common_finalize()
+    ENDIF
 
     ! finalizes construction of atmo-wave coupling
     IF ( is_coupled_to_waves() ) THEN

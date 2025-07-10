@@ -126,8 +126,8 @@ CONTAINS
           DO i2=1,nlev
             DO i1=jcs,jce
                !calculate reff of snow here (further down, the variables are per m^2 instead of m^3)
-               field%acsnc(i1,i2,jb) = snow_number(field%ta(i1,i2,jb), field%rho(i1,i2,jb), field%qtrc_phy(i1,i2,jb,iqs))
-               field%acsnc(i1,i2,jb) = field%acsnc(i1,i2,jb) / snow_lambda(field%rho(i1,i2,jb), field%qtrc_phy(i1,i2,jb,iqs), field%acsnc(i1,i2,jb))
+               field%acsnc(i1,i2,jb) = snow_number(field%ta(i1,i2,jb), field%rho(i1,i2,jb)*field%qtrc_phy(i1,i2,jb,iqs))
+               field%acsnc(i1,i2,jb) = field%acsnc(i1,i2,jb) / snow_lambda(field%rho(i1,i2,jb)*field%qtrc_phy(i1,i2,jb,iqs), field%acsnc(i1,i2,jb))
                field%x_snow(i1,i2,jb) = snow_x(field%ta(i1,i2,jb), field%rho(i1,i2,jb),field%qtrc_phy(i1,i2,jb,iqs))
                field%reff_snow(i1,i2,jb) = snow_reff_funeedles(field%ta(i1,i2,jb), field%rho(i1,i2,jb), field%qtrc_phy(i1,i2,jb,iqs))
 

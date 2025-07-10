@@ -9,8 +9,12 @@ AES Physics:
 - Optimization of the read-in of ozone data
 - Update atm_qubicc_test and its checksuite
 - Re-introduction of the optimized simple plumes (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/751)
+- Implemented full (interactive) carbon cycle with hamocc and land coupling, anthropogenic
+  emissions and CO2 tracer transport
+- New rain microphysics (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/868)
 - Fixes for:
   - GPU port of solar_parameters() (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/776)
+  - tropopause height calculation when using vertical nesting, and initialises tmix with nested mesh dt_loc (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/858)
 
 NWP Physics:
 
@@ -22,6 +26,10 @@ NWP Physics:
   - Fix echotop and echotopinm diagnostics for clouds reaching model top (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1750)
 
 ### ICON-Ocean
+
+- Add optimised variant of the CG-solver (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/819)
+- Ocean GPU improvements (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/769, https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/840)
+- Routines to read in First Guess and Analysis Files in the Ocean (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/511)
 
 ### ICON-Waves
 
@@ -35,14 +43,24 @@ Climate: ICON-Land
   - Improved vegetation nitrogen uptake from soil
   - Minor modifications for using JSBACH physics processes with QUINCY
   - Replace memory variables of QUINCY physics process by variables from JSBACH physics processes
+  - Bugfix related to soil/surface albedo when snow is present
+  - First implementation allowing anthropogenic land cover change with QUINCY biogeophysics processes
+- Use a common interface for QUINCY and JSBACH
 - Updated inline documentation of hydrology process
 - Fixes:
   - Verification check for some JSBACH lctlib parameters when compiling with single precision
   - Account for proc0_shift from the parallel namelist when running ICON-Land standalone
+  - OpenACC fixes for lumi
+  - Fix needed with jsbach standalone simulations on GPUs
+  - Removed unnecessary mpi-all-reduce calls to reduce run time
 - Code cleaning:
   - Only use one variable representing time step length
 - Updated JSBACH usecase with TMX and PFTs
+- Added JSBACH usecase with 12 PFTs: including C4 crops
 - Added support for CUDA graphs with AES physics (VDIFF and TMX)
+- Implemented fix for using older restart files when not using skin temperature scheme (TMX or standalone)
+- Surface water ponds (if enabled) modify the top layer soil heat capacity
+- Land initial files: Update for soil and root depth (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/837)
 
 NWP: TERRA and other surface issues
 
@@ -55,6 +73,7 @@ NWP: TERRA and other surface issues
 ### Coupling
 
 - Optimization of synchronization between atmosphere and ocean in coupled configurations (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/799)
+- Expose valid_masks in output_coupling (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/719)
 
 ### Externals
 
@@ -64,7 +83,8 @@ NWP: TERRA and other surface issues
 
 ### Infrastructure
 
-- Collection of additional changes required for single-precision (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/771)
+- Collection of additional changes required for single-precision (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/771, https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/657)
+- Add option to build ICON in single precision (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/681)
 
 #### Scripting and testing
 
@@ -79,10 +99,13 @@ NWP: TERRA and other surface issues
 - Detect GPU architecture in the configure script
 - Configure CUDA/HIP C++ compiler and flags
 - Pass ICON_LDFLAGS to the Fortran compiler only
+- Fixes for disable switches --disable-aes and --disable-jsbach
 
 #### Miscellaneous
 
 - Some OpenACC optimizations and fixes
+- Updated document on how to run HAMOCC (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/770)
+- Add bubble documentation as template for experiment configurations (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/805)
 
 
 # Release notes for icon-2025.04-1

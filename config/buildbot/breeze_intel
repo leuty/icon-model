@@ -23,7 +23,7 @@ makeflags='--jobs=8 --no-print-directory --output-sync=target V=1'
 
 set -x
 
-${icon_dir}/config/mpim/${linux_codename}.intel --disable-yaxt --disable-openmp --enable-separate-mods
+${icon_dir}/config/mpim/${linux_codename}.intel --disable-yaxt --disable-openmp --enable-separate-mods --enable-testbed
 
 make ${makeflags}
 
@@ -31,8 +31,8 @@ if test -n "${BB_NAME-}"; then
   "${icon_dir}/scripts/buildbot_scripts/build_checks/check_depgen_warnings.sh"
   "${icon_dir}/scripts/buildbot_scripts/build_checks/check_remake.sh"
   # Build the tests in parallel:
-  make ${makeflags} TESTS= check TESTS=
+  make ${makeflags} --keep-going TESTS= check
   # Run the tests serially:
-  make AM_COLOR_TESTS=always check
+  make --keep-going AM_COLOR_TESTS=always check
   "${icon_dir}/scripts/buildbot_scripts/build_checks/check_git_untracked.sh"
 fi

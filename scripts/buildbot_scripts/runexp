@@ -30,7 +30,7 @@ from buildbot_config import BuildbotConfig
 from cmd_line_job import CmdLineJob
 from icon_paths import base_path, buildbot_list_path, run_path
 from pbs_job import PBSJob
-from slurm_job import SlurmJob
+from slurm_job import SerialSlurmJob, SlurmJob
 
 # global constants
 EX_FAILED = 1
@@ -98,8 +98,13 @@ def runexp():
     if bobj.machine not in ["dwd_nec", "balfrin"]:
         icon_env.load()
 
+    serial_sbatch = setup_dict.setdefault("use_serial_submit", "no") == "yes"
+
     if bobj.submit.startswith("sbatch"):
-        Job = SlurmJob
+        if serial_sbatch:
+            Job = SerialSlurmJob
+        else:
+            Job = SlurmJob
     elif bobj.submit.startswith("qsub"):
         Job = PBSJob
     elif bobj.submit == "":

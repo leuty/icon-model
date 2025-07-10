@@ -14,6 +14,7 @@
 
 MODULE mo_read_namelists
 
+  USE mo_exception           ,ONLY: finish
   USE mo_mpi                 ,ONLY: my_process_is_stdio
   USE mo_namelist            ,ONLY: open_nml_output, close_nml_output
   USE mo_nml_annotate        ,ONLY: log_nml_settings
@@ -38,12 +39,15 @@ MODULE mo_read_namelists
 
   USE mo_advection_nml       ,ONLY: read_transport_namelist
 
+#ifndef __NO_AES__
   USE mo_aes_phy_nml         ,ONLY: process_aes_phy_nml
   USE mo_aes_cov_nml         ,ONLY: process_aes_cov_nml
   USE mo_aes_cop_nml         ,ONLY: process_aes_cop_nml
   USE mo_aes_wmo_nml         ,ONLY: process_aes_wmo_nml
   USE mo_aes_rad_nml         ,ONLY: process_aes_rad_nml
   USE mo_aes_vdf_nml         ,ONLY: process_aes_vdf_nml
+  USE mo_aes_bubble_nml      ,ONLY: process_aes_bubble_nml
+#endif
   USE mo_ccycle_nml          ,ONLY: process_ccycle_nml
 
   USE mo_nwp_phy_nml         ,ONLY: read_nwp_phy_namelist
@@ -62,7 +66,6 @@ MODULE mo_read_namelists
 
   USE mo_initicon_nml        ,ONLY: read_initicon_namelist
   USE mo_nh_testcases_nml    ,ONLY: read_nh_testcase_namelist, nh_test_name
-  USE mo_aes_bubble_nml      ,ONLY: process_aes_bubble_nml
   USE mo_scm_nml             ,ONLY: read_scm_namelist
   USE mo_meteogram_nml       ,ONLY: read_meteogram_namelist
 
@@ -172,6 +175,7 @@ CONTAINS
     SELECT CASE (iforcing)
     CASE (iaes, ILDF_ECHAM)
        !
+#ifndef __NO_AES__
        ! AES physics ...
        CALL process_aes_phy_nml          (atm_namelist_filename(1:tlen))
        !
@@ -187,6 +191,9 @@ CONTAINS
        !
        CALL read_sea_ice_namelist        (atm_namelist_filename(1:tlen))
        CALL read_art_namelist            (atm_namelist_filename(1:tlen))
+#else
+       CALL finish('read_atmo_namelists', 'Error: remove --disable-aes and reconfigure')
+#endif
        !
     CASE (INWP)
        !
@@ -217,9 +224,11 @@ CONTAINS
     !
     CALL read_initicon_namelist       (atm_namelist_filename(1:tlen))
     CALL read_nh_testcase_namelist    (atm_namelist_filename(1:tlen))
+#ifndef __NO_AES__
     IF (nh_test_name(1:10) == 'aes_bubble') THEN
       CALL process_aes_bubble_nml     (atm_namelist_filename(1:tlen))
     END IF
+#endif
 
     CALL read_scm_namelist            (atm_namelist_filename(1:tlen))
 

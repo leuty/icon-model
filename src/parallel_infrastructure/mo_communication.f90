@@ -143,6 +143,7 @@ INTERFACE exchange_data
    MODULE PROCEDURE exchange_data_l2d
    MODULE PROCEDURE exchange_data_l3d
    MODULE PROCEDURE gather_r_2d_deblock
+   MODULE PROCEDURE gather_s_2d_deblock
    MODULE PROCEDURE gather_r_1d_deblock
    MODULE PROCEDURE gather_s_1d_deblock
    MODULE PROCEDURE gather_i_2d_deblock
@@ -1236,7 +1237,7 @@ CONTAINS
   SUBROUTINE exchange_data_mult_mixprec(p_pat, lacc, nfields_dp, ndim2tot_dp, nfields_sp, ndim2tot_sp,        &
     recv1_dp, send1_dp, recv2_dp, send2_dp, recv3_dp, send3_dp, recv4_dp, send4_dp, recv5_dp, send5_dp, &
     recv1_sp, send1_sp, recv2_sp, send2_sp, recv3_sp, send3_sp, recv4_sp, send4_sp, recv5_sp, send5_sp, &
-    recv4d_dp, send4d_dp, recv4d_sp, send4d_sp, nshift)
+    recv4d_dp, send4d_dp, recv4d_sp, send4d_sp, recv3d_arr_dp, recv3d_arr_sp, nshift)
 
     CLASS(t_comm_pattern), INTENT(INOUT) :: p_pat
 
@@ -1251,6 +1252,9 @@ CONTAINS
     REAL(sp), INTENT(IN   ), TARGET, OPTIONAL ::  &
       send1_sp(:,:,:), send2_sp(:,:,:), send3_sp(:,:,:), send4_sp(:,:,:), send5_sp(:,:,:), send4d_sp(:,:,:,:)
 
+    TYPE(t_ptr_3d_dp), INTENT(INOUT), OPTIONAL :: recv3d_arr_dp(:)
+    TYPE(t_ptr_3d_sp), INTENT(INOUT), OPTIONAL :: recv3d_arr_sp(:)
+
     INTEGER, INTENT(IN)           :: nfields_dp, ndim2tot_dp, nfields_sp, ndim2tot_sp
     INTEGER, OPTIONAL, INTENT(IN) :: nshift
 
@@ -1258,89 +1262,117 @@ CONTAINS
     TYPE(t_ptr_3d_dp) :: recv_dp(nfields_dp), send_dp(nfields_dp)
     TYPE(t_ptr_3d_sp) :: recv_sp(nfields_sp), send_sp(nfields_sp)
 
-    INTEGER :: i, nf4d_dp, nf4d_sp
+    INTEGER :: i, i_dp, i_sp
     LOGICAL :: lsend
+
+   CHARACTER(len=*), PARAMETER :: routine = modname//"::exchange_data_mult_mixprec"
 
     !-----------------------------------------------------------------------
 
     lsend     = .FALSE.
 
+    i_dp = 0
+    i_sp = 0
+
     ! Set pointers to input fields
     IF (PRESENT(recv4d_dp)) THEN
-      nf4d_dp = SIZE(recv4d_dp,4)
-      DO i = 1, nf4d_dp
-        recv_dp(i)%p => recv4d_dp(:,:,:,i)
+      DO i = 1, SIZE(recv4d_dp,4)
+        i_dp = i_dp + 1
+        recv_dp(i_dp)%p => recv4d_dp(:,:,:,i)
+        IF (PRESENT(send4d_dp)) THEN ! all 4D fields must have the same dimensions
+          send_dp(i_dp)%p => send4d_dp(:,:,:,i)
+          lsend = .TRUE.
+        ENDIF
       ENDDO
-      IF (PRESENT(send4d_dp)) THEN ! all 4D fields must have the same dimensions
-        DO i = 1, nf4d_dp
-          send_dp(i)%p => send4d_dp(:,:,:,i)
-        ENDDO
-        lsend = .TRUE.
-      ENDIF
-    ELSE
-      nf4d_dp = 0
-    ENDIF
-    IF (PRESENT(recv4d_sp)) THEN
-      nf4d_sp = SIZE(recv4d_sp,4)
-      DO i = 1, nf4d_sp
-        recv_sp(i)%p => recv4d_sp(:,:,:,i)
-      ENDDO
-      IF (PRESENT(send4d_sp)) THEN ! all 4D fields must have the same dimensions
-        DO i = 1, nf4d_sp
-          send_sp(i)%p => send4d_sp(:,:,:,i)
-        ENDDO
-        lsend = .TRUE.
-      ENDIF
-    ELSE
-      nf4d_sp = 0
     ENDIF
 
     IF (PRESENT(recv1_dp)) THEN
-      recv_dp(nf4d_dp+1)%p => recv1_dp
+      i_dp = i_dp + 1
+      recv_dp(i_dp)%p => recv1_dp
       IF (PRESENT(send1_dp)) THEN
-        send_dp(nf4d_dp+1)%p => send1_dp
+        send_dp(i_dp)%p => send1_dp
         lsend = .TRUE.
       ENDIF
       IF (PRESENT(recv2_dp)) THEN
-        recv_dp(nf4d_dp+2)%p => recv2_dp
-        IF (lsend) send_dp(nf4d_dp+2)%p => send2_dp
+        i_dp = i_dp + 1
+        recv_dp(i_dp)%p => recv2_dp
+        IF (lsend) send_dp(i_dp)%p => send2_dp
         IF (PRESENT(recv3_dp)) THEN
-          recv_dp(nf4d_dp+3)%p => recv3_dp
-          IF (lsend) send_dp(nf4d_dp+3)%p => send3_dp
+          i_dp = i_dp + 1
+          recv_dp(i_dp)%p => recv3_dp
+          IF (lsend) send_dp(i_dp)%p => send3_dp
           IF (PRESENT(recv4_dp)) THEN
-            recv_dp(nf4d_dp+4)%p => recv4_dp
-            IF (lsend) send_dp(nf4d_dp+4)%p => send4_dp
+            i_dp = i_dp + 1
+            recv_dp(i_dp)%p => recv4_dp
+            IF (lsend) send_dp(i_dp)%p => send4_dp
             IF (PRESENT(recv5_dp)) THEN
-              recv_dp(nf4d_dp+5)%p => recv5_dp
-              IF (lsend) send_dp(nf4d_dp+5)%p => send5_dp
+              i_dp = i_dp + 1
+              recv_dp(i_dp)%p => recv5_dp
+              IF (lsend) send_dp(i_dp)%p => send5_dp
             ENDIF
           ENDIF
         ENDIF
       ENDIF
     ENDIF
+
+    IF (PRESENT(recv3d_arr_dp)) THEN
+      DO i = 1, SIZE(recv3d_arr_dp)
+        i_dp = i_dp + 1
+        recv_dp(i_dp)%p => recv3d_arr_dp(i)%p
+      ENDDO
+    ENDIF
+
+
+    ! Set pointers to input fields sp
+    IF (PRESENT(recv4d_sp)) THEN
+      DO i = 1, SIZE(recv4d_sp,4)
+        i_sp = i_sp + 1
+        recv_sp(i_sp)%p => recv4d_sp(:,:,:,i)
+        IF (PRESENT(send4d_sp)) THEN ! all 4D fields must have the same dimensions
+          send_sp(i_sp)%p => send4d_sp(:,:,:,i)
+          lsend = .TRUE.
+        ENDIF
+      ENDDO
+    ENDIF
+
     IF (PRESENT(recv1_sp)) THEN
-      recv_sp(nf4d_sp+1)%p => recv1_sp
+      i_sp = i_sp + 1
+      recv_sp(i_sp)%p => recv1_sp
       IF (PRESENT(send1_sp)) THEN
-        send_sp(nf4d_sp+1)%p => send1_sp
+        send_sp(i_sp)%p => send1_sp
         lsend = .TRUE.
       ENDIF
       IF (PRESENT(recv2_sp)) THEN
-        recv_sp(nf4d_sp+2)%p => recv2_sp
-        IF (lsend) send_sp(nf4d_sp+2)%p => send2_sp
+        i_sp = i_sp + 1
+        recv_sp(i_sp)%p => recv2_sp
+        IF (lsend) send_sp(i_sp)%p => send2_sp
         IF (PRESENT(recv3_sp)) THEN
-          recv_sp(nf4d_sp+3)%p => recv3_sp
-          IF (lsend) send_sp(nf4d_sp+3)%p => send3_sp
+          i_sp = i_sp + 1
+          recv_sp(i_sp)%p => recv3_sp
+          IF (lsend) send_sp(i_sp)%p => send3_sp
           IF (PRESENT(recv4_sp)) THEN
-            recv_sp(nf4d_sp+4)%p => recv4_sp
-            IF (lsend) send_sp(nf4d_sp+4)%p => send4_sp
+            i_sp = i_sp + 1
+            recv_sp(i_sp)%p => recv4_sp
+            IF (lsend) send_sp(i_sp)%p => send4_sp
             IF (PRESENT(recv5_sp)) THEN
-              recv_sp(nf4d_sp+5)%p => recv5_sp
-              IF (lsend) send_sp(nf4d_sp+5)%p => send5_sp
+              i_sp = i_sp + 1
+              recv_sp(i_sp)%p => recv5_sp
+              IF (lsend) send_sp(i_sp)%p => send5_sp
             ENDIF
           ENDIF
         ENDIF
       ENDIF
     ENDIF
+
+    IF (PRESENT(recv3d_arr_sp)) THEN
+      DO i = 1, SIZE(recv3d_arr_sp)
+        i_sp = i_sp + 1
+        recv_sp(i_sp)%p => recv3d_arr_sp(i)%p
+      ENDDO
+    ENDIF
+
+    IF (i_dp /= nfields_dp) CALL finish(routine, "internal error nfields_dp")
+    IF (i_sp /= nfields_sp) CALL finish(routine, "internal error nfields_sp")
 
     IF (lsend) THEN
       CALL p_pat%exchange_data_mult_mixprec(lacc, nfields_dp, ndim2tot_dp, &
@@ -1617,6 +1649,71 @@ CONTAINS
     DEALLOCATE(send_buffer,recv_buffer)
 
   END SUBROUTINE gather_r_2d_deblock
+
+
+  SUBROUTINE gather_s_2d_deblock(in_array, out_array, fill_value, gather_pattern)
+    ! dimension (nproma, nlev, nblk)
+    REAL(sp), INTENT(IN) :: in_array(:,:,:)
+    ! dimension (global length, nlev); only required on root
+    REAL(sp), INTENT(INOUT) :: out_array(:,:)
+    REAL(sp), INTENT(IN), OPTIONAL :: fill_value ! if provided missing values will
+    ! be replaced with this value
+    ! if not provided all valid
+    ! points will be packed to the
+    ! front of the array
+    TYPE(t_comm_gather_pattern), INTENT(IN) :: gather_pattern
+
+    REAL(sp), ALLOCATABLE :: send_buffer(:,:), recv_buffer(:,:)
+    REAL(sp), POINTER :: collector_buffer(:,:)
+    INTEGER :: i, num_send_points, nlev, idx, blk
+
+    !
+    ! OPENACC:  GPU execution assumes that all information is now on the host
+    !
+
+    nlev = SIZE(in_array, 2)
+
+    IF (SIZE(in_array, 1) /= nproma) &
+      CALL finish("gather_s_2d_deblock", &
+      &         "size of first dimension of in_array is not nproma")
+
+    IF (nlev /= SIZE(out_array, 2) .AND. p_pe_work == process_mpi_root_id) &
+      CALL finish("gather_s_2d_deblock", &
+      &         "second size of in_array and out_array are not the same")
+
+    num_send_points = SUM(gather_pattern%collector_send_size(:))
+    IF (SIZE(in_array, 1) * SIZE(in_array, 3) < num_send_points) &
+      CALL finish("gather_s_2d_deblock", "in_array is too small")
+
+    ALLOCATE(send_buffer(nlev, num_send_points))
+    IF (p_pe_work == process_mpi_root_id) THEN
+      ALLOCATE(recv_buffer(nlev, MERGE(gather_pattern%global_size, &
+        &                              SUM(gather_pattern%collector_size(:)), &
+        &                              PRESENT(fill_value))))
+    ELSE
+      ALLOCATE(recv_buffer(0,0))
+    END IF
+
+    DO i = 1, SIZE(gather_pattern%loc_index(:))
+      idx = idx_no(gather_pattern%loc_index(i))
+      blk = blk_no(gather_pattern%loc_index(i))
+      send_buffer(:,i) = in_array(idx, :, blk)
+    END DO
+
+    CALL two_phase_gather_first(send_buffer_r=send_buffer, fill_value=fill_value,&
+      gather_pattern=gather_pattern, &
+      collector_buffer_r=collector_buffer)
+    CALL two_phase_gather_second(recv_buffer_r=recv_buffer, fill_value=fill_value,&
+      gather_pattern=gather_pattern, &
+      collector_buffer_r=collector_buffer)
+
+    IF (p_pe_work == process_mpi_root_id) &
+      out_array(1:SIZE(recv_buffer, 2),1:SIZE(recv_buffer, 1)) = &
+      TRANSPOSE(recv_buffer(:,:))
+
+    DEALLOCATE(send_buffer,recv_buffer)
+
+  END SUBROUTINE gather_s_2d_deblock
 
 
   !-------------------------------------------------------------------------

@@ -302,7 +302,8 @@ CONTAINS
       & za_depth_below_sea_half, &
       & t_cf_var('velocity_windMixing', 'm2 s-1', 'vertical velocity windMixing', datatype_flt),&
       & grib2_var(255, 255, 255, datatype_pack16, GRID_UNSTRUCTURED, grid_edge),&
-      & ldims=(/nproma,n_zlev+1,nblks_e/),in_group=groups("oce_physics","oce_diag"))
+      & ldims=(/nproma,n_zlev+1,nblks_e/),in_group=groups("oce_physics","oce_diag"), lopenacc=.TRUE.)
+    __acc_attach(params_oce%velocity_windMixing)
 
     ! start by_nils
     ! --- vmix dummy variables
@@ -579,7 +580,8 @@ CONTAINS
         & t_cf_var('tracer_windMixing', '', 'tracer_windMixing', datatype_flt),&
         & grib2_var(255, 255, 255, datatype_pack16, GRID_UNSTRUCTURED, grid_cell),&
         & ldims=(/nproma,n_zlev+1,alloc_cell_blocks/), &
-        & loutput=.TRUE., lrestart=.FALSE.,in_group=groups("oce_physics","oce_diag"))
+        & loutput=.TRUE., lrestart=.FALSE.,in_group=groups("oce_physics","oce_diag"), lopenacc=.TRUE.)
+      __acc_attach(params_oce%tracer_windMixing)
 
       ! Reference to individual tracer, for I/O
       ALLOCATE(params_oce%tracer_h_ptr(no_tracer))
@@ -630,6 +632,7 @@ CONTAINS
     IF (ist/=success) THEN
       CALL finish(TRIM(routine), 'allocation for horizontal background tracer diffusion failed')
     END IF
+    !$ACC ENTER DATA COPYIN(params_oce%a_tracer_v_back)
 
    IF(GMRedi_configuration==GMRedi_combined &
    &.OR.GMRedi_configuration==GM_only.OR.GMRedi_configuration==Redi_only)THEN
@@ -659,6 +662,7 @@ CONTAINS
     ENDIF
 
     ALLOCATE(WindMixingDecay(1:n_zlev+1), WindMixingLevel(1:n_zlev+1))
+    !$ACC ENTER DATA COPYIN(WindMixingDecay, WindMixingLevel)
 
   END SUBROUTINE construct_ho_params
   !-------------------------------------------------------------------------
@@ -682,6 +686,7 @@ CONTAINS
 
     CALL vlr_del(ocean_params_list)
 
+    !$ACC EXIT DATA DELETE(params_oce%a_tracer_v_back)
     DEALLOCATE(params_oce%a_tracer_v_back,               &
       & params_oce%Tracer_HorizontalDiffusion_Reference, &
       & params_oce%Tracer_HorizontalDiffusion_Background,&
@@ -690,6 +695,7 @@ CONTAINS
       CALL finish(TRIM(routine), 'deallocation for tracer Diffusion Background failed')
     END IF
 
+    !$ACC EXIT DATA DELETE(WindMixingDecay, WindMixingLevel)
     DEALLOCATE(WindMixingDecay, WindMixingLevel)
 
   END SUBROUTINE destruct_ho_params

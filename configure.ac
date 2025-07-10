@@ -489,6 +489,13 @@ AC_ARG_ENABLE([mixed-precision],
   [AS_IF([test x"$enableval" != xno], [enable_mixed_precision=yes])],
   [enable_mixed_precision=no])
 
+AC_ARG_ENABLE([single-precision],
+  [AS_HELP_STRING([--enable-single-precision],
+     [enable single precision as the working precision (experimental)
+@<:@default=no@:>@])],
+  [AS_IF([test x"$enableval" != xno], [enable_single_precision=yes])],
+  [enable_single_precision=no])
+
 AC_ARG_ENABLE([intel-consistency],
   [AS_HELP_STRING([--enable-intel-consistency],
      [enable Intel compiler directives enforcing consistency
@@ -695,6 +702,14 @@ AC_ARG_WITH([external-comin],
   [with_external_comin=no])
 
 ############################# OPTION CROSS-CHECKS ##############################
+
+AS_VAR_IF([enable_single_precision], [yes],
+  [AS_VAR_IF([enable_mixed_precision], [yes],
+    [AC_MSG_ERROR([unsupported combination of the configure options: you are dnl
+trying to configure with the single precision as the working precision and dnl
+the mixed precision dycore: either disable the single precision dnl
+(--disable-single-precision) or disable the mixed precision dycore dnl
+(--disable-mixed-precision)])])])
 
 AS_IF(
   [test "x$enable_hip_overrides" = xyes && test "x$icon_gpu_secondary" != xhip],
@@ -1122,6 +1137,10 @@ AS_VAR_IF([enable_vectorized_lrtm], [yes],
 AS_VAR_IF([enable_mixed_precision], [yes],
   [AS_VAR_APPEND([FCFLAGS],
      [" ${FC_PP_DEF}__MIXED_PRECISION"])])
+
+AS_VAR_IF([enable_single_precision], [yes],
+  [AS_VAR_APPEND([FCFLAGS],
+     [" ${FC_PP_DEF}__SINGLE_PRECISION"])])
 
 AS_VAR_IF([enable_intel_consistency], [yes],
   [AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}IFORT_CONSISTENCY_ENFORCE"])])
@@ -2191,6 +2210,7 @@ bundled version of RTE+RRTMGP library @<:@default=$ICON_BUNDLED_FCFLAGS@:>@])dnl
      [FCFLAGS="$subdir_FCFLAGS $ICON_RTE_RRTMGP_FCFLAGS"],
      [NETCDF_FCFLAGS=], [NETCDF_FCLIBS=], [RANLIB="$RANLIB"],
      [PYTHON="$PYTHON"], [--enable-silent-rules="$enable_silent_rules"],
+     [--enable-single-precision="$enable_single_precision"],
      [--disable-maintainer-mode], [--enable-gpu="$icon_gpu_primary"])
 dnl The tests of the current version of RTE-RRTMGP are known to fail when built
 dnl with OpenACC support. The problem is in the test programs and not in the
@@ -2635,12 +2655,9 @@ version of MTIME library @<:@default=$ICON_BUNDLED_CFLAGS@:>@])dnl
      [-DCMAKE_C_FLAGS=*|-DCMAKE_Fortran_FLAGS=*|-DCMAKE_CXX_*=*])
    ACX_SUBDIR_APPEND_ARGS([externals/mtime/build],
      [-DCMAKE_AR="$AR"], [-DCMAKE_RANLIB="$RANLIB"],
-     [-DCMAKE_C_FLAGS=],
-     [-DCMAKE_C_FLAGS_ICON=dnl
-"$subdir_CFLAGS $ICON_MTIME_CFLAGS $subdir_CPPFLAGS"],
-     [-DCMAKE_Fortran_FLAGS=],
-     [-DCMAKE_Fortran_FLAGS_ICON="$subdir_FCFLAGS $ICON_MTIME_FCFLAGS"],
-     [-DCMAKE_BUILD_TYPE=ICON],
+     [-DCMAKE_C_FLAGS="$subdir_CFLAGS $ICON_MTIME_CFLAGS $subdir_CPPFLAGS"],
+     [-DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_MTIME_FCFLAGS"],
+     [-DCMAKE_BUILD_TYPE=None],
      [-DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH"],
      [-DBUILD_SHARED_LIBS=OFF], [-DBUILD_TESTING=OFF],
      [-DMTIME_ENABLE_PYTHON="$icon_mtime_python"],
@@ -2812,15 +2829,11 @@ bundled version of COMIN library @<:@default=$ICON_BUNDLED_CXXFLAGS@:>@])dnl
      [-DCMAKE_C_FLAGS=*|-DCMAKE_Fortran_FLAGS=*|-DCMAKE_CXX_FLAGS=*])
    ACX_SUBDIR_APPEND_ARGS([externals/comin/build],
      [-DCMAKE_AR="$AR"], [-DCMAKE_RANLIB="$RANLIB"],
-     [-DCMAKE_C_FLAGS=],
-     [-DCMAKE_C_FLAGS_ICON=dnl
-"$subdir_CFLAGS $ICON_COMIN_CFLAGS $subdir_CPPFLAGS"],
-     [-DCMAKE_Fortran_FLAGS=],
-     [-DCMAKE_Fortran_FLAGS_ICON="$subdir_FCFLAGS $ICON_COMIN_FCFLAGS"],
-     [-DCMAKE_CXX_FLAGS=],
-     [-DCMAKE_CXX_FLAGS_ICON=dnl
+     [-DCMAKE_C_FLAGS="$subdir_CFLAGS $ICON_COMIN_CFLAGS $subdir_CPPFLAGS"],
+     [-DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_COMIN_FCFLAGS"],
+     [-DCMAKE_CXX_FLAGS=dnl
 "$subdir_CXXFLAGS $ICON_COMIN_CXXFLAGS $subdir_CPPFLAGS"],
-     [-DCMAKE_BUILD_TYPE=ICON],
+     [-DCMAKE_BUILD_TYPE=None],
      [-DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH"],
      [-DBUILD_SHARED_LIBS=OFF], [-DBUILD_TESTING=OFF],
      [-DCOMIN_ENABLE_EXAMPLES=OFF],
@@ -2863,17 +2876,15 @@ ${ICON_FORTRAN_SUPPORT_CFLAGS-$ICON_BUNDLED_CFLAGS}
      [icon_fs_openacc=ON], [icon_fs_openacc=OFF])
    ACX_SUBDIR_APPEND_ARGS([externals/fortran-support/build],
      [-DCMAKE_AR="$AR"], [-DCMAKE_RANLIB="$RANLIB"],
-     [-DCMAKE_C_FLAGS=],
-     [-DCMAKE_C_FLAGS_ICON=dnl
+     [-DCMAKE_C_FLAGS=dnl
 "$subdir_CFLAGS $ICON_FORTRAN_SUPPORT_CFLAGS $subdir_CPPFLAGS"],
-     [-DCMAKE_Fortran_FLAGS=],
-     [-DCMAKE_Fortran_FLAGS_ICON=dnl
-"$subdir_FCFLAGS $ICON_FORTRAN_SUPPORT_FCFLAGS"],
-     [-DCMAKE_BUILD_TYPE=ICON],
+     [-DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_FORTRAN_SUPPORT_FCFLAGS"],
+     [-DCMAKE_BUILD_TYPE=None],
      [-DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH"],
      [-DBUILD_SHARED_LIBS=OFF], [-DBUILD_TESTING=OFF],
      [-DFS_ENABLE_OMP="$enable_openmp"],
      [-DFS_ENABLE_MIXED_PRECISION="$enable_mixed_precision"],
+     [-DFS_ENABLE_SINGLE_PRECISION="$enable_single_precision"],
      [-DFS_ENABLE_OPENACC="$icon_fs_openacc"])
    AS_VAR_APPEND([bundled_CMAKE_PREFIX_PATH],
      ["${bundled_CMAKE_PREFIX_PATH:+";"}dnl
@@ -2903,12 +2914,12 @@ AS_VAR_IF([icon_gpu_primary], [openacc],
   [icon_im_openacc=ON], [icon_im_openacc=OFF])
 ACX_SUBDIR_APPEND_ARGS([externals/iconmath/build],
   [-DCMAKE_AR="$AR"], [-DCMAKE_RANLIB="$RANLIB"],
-  [-DCMAKE_Fortran_FLAGS=],
-  [-DCMAKE_Fortran_FLAGS_ICON="$subdir_FCFLAGS $ICON_ICONMATH_FCFLAGS"],
-  [-DCMAKE_BUILD_TYPE=ICON], [-DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH"],
+  [-DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_ICONMATH_FCFLAGS"],
+  [-DCMAKE_BUILD_TYPE=None], [-DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH"],
   [-DBUILD_SHARED_LIBS=OFF], [-DBUILD_TESTING=OFF],
   [-DIM_ENABLE_LOOP_EXCHANGE="$enable_loop_exchange"],
   [-DIM_ENABLE_MIXED_PRECISION="$enable_mixed_precision"],
+  [-DIM_ENABLE_SINGLE_PRECISION="$enable_single_precision"],
   [-DIM_ENABLE_DIM_SWAP="$enable_dim_swap"],
   [-DIM_ENABLE_OPENACC="$icon_im_openacc"],
   [-DIM_ENABLE_OPENMP="$enable_openmp"])
@@ -3124,6 +3135,7 @@ AC_CONFIG_FILES([
   depgen.f90.config
   deplist.config
   icon.mk
+  run/SETUP.config
 ])
 
 AC_CONFIG_FILES([
@@ -3137,27 +3149,6 @@ dnl delegate this task to the configure script:
 AC_CONFIG_COMMANDS([run/set-up.info],
   [run/collect.set-up.info "$ac_file" 2>/dev/null || dnl
    AC_MSG_ERROR([failed to create $ac_file])])
-
-dnl The mkexp generator should not use run/set-up.info. Ideally, it should not
-dnl use run/collect.set-up.info either but have its own template file. The file
-dnl to be generated by the configure script using that template could still be a
-dnl shell or even a Python script but it should be run by mkexp itself, not by
-dnl the configure script. This way, both generators would be independent of each
-dnl other. Until then, we generate run/SETUP.config as a symlink to
-dnl run/set-up.info. Note that we have to use AC_CONFIG_COMMANDS and not
-dnl AC_CONFIG_LINKS because the configure script generates all symlinks before
-dnl running any of the commands, which in our case results into a failed attempt
-dnl to create a symlink (i.e. run/SETUP.config) to a non-existent file (i.e.
-dnl run/set-up.info). Therefore, we copy the standard logic of the symlink
-dnl generation here:
-AC_CONFIG_COMMANDS([run/SETUP.config],
-  [rm -f "$ac_file"
-   ac_rel_source='set-up.info'
-   ac_source="run/${ac_rel_source}"
-   ln -s "$ac_rel_source" "$ac_file" 2>/dev/null ||
-     ln "$ac_source" "$ac_file" 2>/dev/null ||
-     cp -p "$ac_source" "$ac_file" ||
-     AC_MSG_ERROR([cannot link or copy $ac_source to $ac_file])])
 
 dnl An additional step to generate dummy dependencies:
 AC_CONFIG_COMMANDS([depfiles],

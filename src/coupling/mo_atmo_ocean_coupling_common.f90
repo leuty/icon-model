@@ -17,8 +17,15 @@
 
 MODULE mo_atmo_ocean_coupling_common
 
-  USE mo_coupling_utils,  ONLY: cpl_def_field
+  USE mo_coupling_utils,  ONLY: cpl_def_field, cpl_get_field_datetime
   USE mo_grid_config,     ONLY: n_dom
+  USE mtime,              ONLY: datetime, OPERATOR(==), OPERATOR(/=)
+  USE mo_exception,       ONLY: finish
+  USE mo_ccycle_config,   ONLY: CCYCLE_MODE_INTERACTIVE, ccycle_config
+#ifdef YAC_coupling
+  USE yac,                ONLY: yac_fget_role_from_field_id, &
+                                YAC_EXCHANGE_TYPE_SOURCE
+#endif
 
   IMPLICIT NONE
 
@@ -27,6 +34,7 @@ MODULE mo_atmo_ocean_coupling_common
   CHARACTER(len=*), PARAMETER :: str_module = 'mo_atmo_ocean_coupling_common' ! Output of module for debug
 
   PUBLIC :: construct_atmo_ocean_coupling_common
+  PUBLIC :: construct_atmo_ocean_coupling_common_finalize
   PUBLIC :: destruct_atmo_ocean_coupling_common
   PUBLIC :: t_out_field_id, t_in_field_id
   PUBLIC :: out_field_ids, in_field_ids
@@ -141,6 +149,115 @@ CONTAINS
     END DO
 
   END SUBROUTINE construct_atmo_ocean_coupling_common
+
+  !>
+  !! This subroutine ensures consistency in the coupling definition and is
+  !! called after the coupling definition phase
+  SUBROUTINE construct_atmo_ocean_coupling_common_finalize()
+
+    CHARACTER(len=*), PARAMETER :: &
+    &  routine = str_module//':construct_atmo_ocean_coupling_common_finalize'
+    integer :: role
+
+    TYPE(datetime), TARGET ::  curr_datetime_umfl
+    TYPE(datetime), TARGET ::  curr_datetime_vmfl
+    TYPE(datetime), TARGET ::  curr_datetime_freshflx
+    TYPE(datetime), TARGET ::  curr_datetime_heatflx
+    TYPE(datetime), TARGET ::  curr_datetime_seaice_atm
+    TYPE(datetime), TARGET ::  curr_datetime_sp10m
+    TYPE(datetime), TARGET ::  curr_datetime_co2_vmr
+    TYPE(datetime), TARGET ::  curr_datetime_pres_msl
+
+    TYPE(datetime), POINTER :: comparison
+
+    !Make sure that comparison is a Null pointer
+    NULLIFY(comparison)
+
+#ifdef YAC_coupling
+    role = yac_fget_role_from_field_id(out_field_ids%umfl)
+    IF( role == YAC_EXCHANGE_TYPE_SOURCE ) THEN
+      curr_datetime_umfl = cpl_get_field_datetime(routine, out_field_ids%umfl)
+      comparison => curr_datetime_umfl
+    ENDIF
+
+    role = yac_fget_role_from_field_id(out_field_ids%vmfl)
+    IF( role == YAC_EXCHANGE_TYPE_SOURCE ) THEN
+      curr_datetime_vmfl = cpl_get_field_datetime(routine, out_field_ids%vmfl)
+      IF( associated(comparison) ) THEN
+        IF( comparison /= curr_datetime_vmfl ) &
+        CALL finish(routine, "inconsistent definition of field datetime in atm-oce-coupling for vmfl")
+      ELSE
+        comparison => curr_datetime_vmfl
+      ENDIF
+    ENDIF
+
+    role = yac_fget_role_from_field_id(out_field_ids%freshflx)
+    IF( role == YAC_EXCHANGE_TYPE_SOURCE ) THEN
+      curr_datetime_freshflx = cpl_get_field_datetime(routine, out_field_ids%freshflx)
+      IF( associated(comparison) ) THEN
+        IF( comparison /= curr_datetime_freshflx ) &
+        CALL finish(routine, "inconsistent definition of field datetime in atm-oce-coupling for freshflx")
+      ELSE
+        comparison => curr_datetime_freshflx
+      ENDIF
+    ENDIF
+
+    role = yac_fget_role_from_field_id(out_field_ids%heatflx)
+    IF( role == YAC_EXCHANGE_TYPE_SOURCE ) THEN
+      curr_datetime_heatflx = cpl_get_field_datetime(routine, out_field_ids%heatflx)
+      IF( associated(comparison) ) THEN
+        IF( comparison /= curr_datetime_heatflx ) &
+        CALL finish(routine, "inconsistent definition of field datetime in atm-oce-coupling for heatflx")
+      ELSE
+        comparison => curr_datetime_heatflx
+      ENDIF
+    ENDIF
+
+    role = yac_fget_role_from_field_id(out_field_ids%seaice_atm)
+    IF( role == YAC_EXCHANGE_TYPE_SOURCE ) THEN
+      curr_datetime_seaice_atm = cpl_get_field_datetime(routine, out_field_ids%seaice_atm)
+      IF( associated(comparison) ) THEN
+        IF( comparison /= curr_datetime_seaice_atm) &
+        CALL finish(routine, "inconsistent definition of field datetime in atm-oce-coupling for seaice")
+      ELSE
+        comparison => curr_datetime_seaice_atm
+      ENDIF
+    ENDIF
+
+    role = yac_fget_role_from_field_id(out_field_ids%sp10m)
+    IF( role == YAC_EXCHANGE_TYPE_SOURCE ) THEN
+      curr_datetime_sp10m = cpl_get_field_datetime(routine, out_field_ids%sp10m)
+      IF( associated(comparison) ) THEN
+        IF( comparison /= curr_datetime_sp10m) &
+        CALL finish(routine, "inconsistent definition of field datetime in atm-oce-coupling for sp10m")
+      ELSE
+        comparison => curr_datetime_sp10m
+      ENDIF
+    ENDIF
+
+    role = yac_fget_role_from_field_id(out_field_ids%pres_msl)
+    IF( role == YAC_EXCHANGE_TYPE_SOURCE ) THEN
+      curr_datetime_pres_msl = cpl_get_field_datetime(routine, out_field_ids%pres_msl)
+      IF( associated(comparison) ) THEN
+        IF( comparison /= curr_datetime_pres_msl) &
+        CALL finish(routine, "inconsistent definition of field datetime in atm-oce-coupling for pres_msl")
+      ELSE
+        comparison => curr_datetime_pres_msl
+      ENDIF
+    ENDIF
+
+    !check for the global domain of the carbon cycle is interactive
+    IF(ccycle_config(1)%iccycle == CCYCLE_MODE_INTERACTIVE) THEN
+      curr_datetime_co2_vmr = cpl_get_field_datetime(routine, out_field_ids%co2_vmr)
+      IF( associated(comparison) ) THEN
+        IF( comparison /= curr_datetime_co2_vmr ) &
+        CALL finish(routine, "inconsistent definition of field datetime in atm-oce-coupling for co2_vmr")
+      ENDIF
+    ENDIF
+
+#endif
+
+  END SUBROUTINE construct_atmo_ocean_coupling_common_finalize
 
   SUBROUTINE destruct_atmo_ocean_coupling_common()
 

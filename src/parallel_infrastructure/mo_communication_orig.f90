@@ -2919,6 +2919,15 @@ CONTAINS
       ENDDO
     ENDDO
     !$ACC END PARALLEL
+    ! the `init` subroutine is not used here as this needs to be run with `ASYNC(get_comm_acc_queue())` and not `ASYNC(1)`
+    !$ACC PARALLEL DEFAULT(PRESENT) IF(lzacc) ASYNC(get_comm_acc_queue())
+    !$ACC LOOP GANG VECTOR COLLAPSE(2)
+    DO k = 1, p_pat%n_recv
+      DO i = 1, ndim2tot_dp
+        recv_buf_dp(i,k) = 0._dp
+      ENDDO
+    ENDDO
+    !$ACC END PARALLEL
     IF (lzacc) CALL acc_wait_comms(get_comm_acc_queue())
 #endif
 

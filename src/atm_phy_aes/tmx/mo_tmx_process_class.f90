@@ -137,9 +137,14 @@ CONTAINS
     CHARACTER(len=*), PARAMETER :: routine = modname//':Lock_variable_sets'
 
     IF (ALLOCATED(this%config))      CALL this%config%Set_pointers()
-    IF (ALLOCATED(this%inputs))      CALL this%inputs%Set_pointers()
-    IF (ALLOCATED(this%diagnostics)) CALL this%diagnostics%list%allocator()
-    IF (ALLOCATED(this%diagnostics)) CALL this%diagnostics%Set_pointers()
+    IF (ALLOCATED(this%inputs)) THEN
+      CALL this%inputs%list%allocator()
+      CALL this%inputs%Set_pointers()
+    END IF
+    IF (ALLOCATED(this%diagnostics)) THEN
+      CALL this%diagnostics%list%allocator()
+      CALL this%diagnostics%Set_pointers()
+    END IF
 
     IF (ASSOCIATED(this%processes)) THEN
       DO iproc=1,SIZE(this%processes)

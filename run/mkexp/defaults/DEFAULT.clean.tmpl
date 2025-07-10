@@ -13,6 +13,8 @@
 #
 # %{mkexp_input}
 #
+# $Id: run/mkexp/defaults/DEFAULT.clean.tmpl 1 2025-05-19 09:28:54Z m221078 $
+#
 #SBATCH --account=%{ACCOUNT}
 #%  if JOB.qos is defined:
 #SBATCH --qos=%{JOB.qos}
@@ -22,7 +24,7 @@
 #SBATCH --ntasks=%{JOB.tasks}
 #SBATCH --output=%{SCRIPT_DIR}/%x.%8j.log
 #SBATCH --time=%{JOB.time_limit}
-#%include 'mkexp/environments/'+ENVIRONMENT+'.tmpl' ignore missing
+#%include ['mkexp/environments/'+ENVIRONMENT+'.tmpl', 'mkexp/environments/DEFAULT.tmpl'] ignore missing
 
 set -e
 #%  if JOB.debug_level|d(0)|int > 1:

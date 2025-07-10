@@ -31,6 +31,7 @@ use_gpu
 use_host
 use_build_env
 use_purge_modules
+use_load_module_paths
 use_load_modules
 use_load_profile
 use_mpi
@@ -43,10 +44,10 @@ use_queue
 use_shell
 use_srcdir
 use_submit
+use_serial_submit
 use_sync_submit
 use_target
 use_flags_group
-VERSION_
 PYTHON
 BUNDLED_PYTHONPATH
 '
@@ -54,9 +55,6 @@ BUNDLED_PYTHONPATH
 # Set directories:
 use_srcdir='@abs_top_srcdir@'
 use_builddir='@abs_top_builddir@'
-
-# Version info required by mkexp:
-VERSION_='@PACKAGE_VERSION@'
 
 # PYTHON interpreter
 PYTHON='@PYTHON@'
@@ -68,7 +66,7 @@ BUNDLED_PYTHONPATH='@BUNDLED_PYTHONPATH@'
 use_host='@host_fqdn@'
 use_site='local.net'
 case "$use_host" in
-  kfa-juelich.de|fz-juelich.de|*jureca*|*juwels*) use_site=juelich.de ;;
+  kfa-juelich.de|fz-juelich.de|*jureca*|*juwels*|*jpbl*) use_site=juelich.de ;;
   l*.lvt.dkrz.de|aurora*) use_site=dkrz.de ;;
   tave*|santis*|balfrin*|tasna*) use_site=cscs.ch ;;
   uc2*|fh2*|hk*) use_site=kit.edu ;;
@@ -268,10 +266,12 @@ case "$use_site" in
         test xyes != x"${use_openmp}" || use_mpi_startrun+=' --cpus-per-task=${OMP_NUM_THREADS}'
         use_target='juwels'
       ;;
-      juqueen*)
-        use_submit='llsubmit'
-        use_mpi_startrun='runjob --ranks-per-node \$mpi_procs_pernode --envs OMP_NUM_THREADS=\$OMP_NUM_THREADS --exe'
-        use_target='juqueen'
+      jpbl*)
+        use_submit='sbatch'
+        use_sync_submit='sbatch --wait'
+        use_mpi_startrun='srun --ntasks=${mpi_procs_pernode} '
+        test xyes != x"${use_openmp}" || use_mpi_startrun+=' --cpus-per-task=${OMP_NUM_THREADS}'
+        use_target='jupiter'
       ;;
     esac
   ;;
@@ -308,8 +308,11 @@ case "$use_site" in
 
   csc.fi)
     use_submit='sbatch'
+    use_serial_submit='yes'
     use_sync_submit='sbatch --wait'
     use_mpi_startrun='srun'
+    use_load_module_paths="${use_srcdir}/etc/Modules"
+    use_load_modules="icon-lumi" # ${use_srcdir}/etc/Modules/icon-lumi
     if test xyes = x"${use_gpu}"; then
       use_target='lumi_gpu'
       use_mpi_startrun="srun ${ICON_CONTAINER_WRAPPER-} ${use_srcdir}/run/run_wrapper/lumi_gpu.sh"

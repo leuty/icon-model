@@ -67,6 +67,8 @@ MODULE mo_ccycle_config
      !
      REAL(wp) :: vmr_co2   !< co2 volume mixing ratio for c-cycle
      !
+     LOGICAL  :: lanthro   !< .true. for reading in anthropogenic emissions
+     !
   END TYPE t_ccycle_config
 
   !>
@@ -98,6 +100,8 @@ CONTAINS
     ! For ico2conc = 2:
     ccycle_config(:)% vmr_co2  = 284.3e-06_wp ! co2 volume mixing ratio of 1850 (CMIP6)
     !
+    ccycle_config(:)% lanthro = .FALSE.
+    !
   END SUBROUTINE init_ccycle_config
 
   !----
@@ -127,6 +131,7 @@ CONTAINS
        CALL print_value('    ccycle_config('//TRIM(cg)//')% iccycle  ',ccycle_config(jg)% iccycle )
        CALL print_value('    ccycle_config('//TRIM(cg)//')% ico2conc ',ccycle_config(jg)% ico2conc)
        CALL print_value('    ccycle_config('//TRIM(cg)//')% vmr_co2  ',ccycle_config(jg)% vmr_co2 )
+       CALL print_value('    ccycle_config('//TRIM(cg)//')% lanthro  ',ccycle_config(jg)% lanthro )
        CALL message    ('','')
        !
        SELECT CASE(ccycle_config(jg)% iccycle)

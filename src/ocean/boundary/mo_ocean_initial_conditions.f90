@@ -43,7 +43,8 @@ MODULE mo_ocean_initial_conditions
     & smooth_initial_height_iterations, smooth_initial_temperature_iterations,  &
     & OceanReferenceDensity, LinearThermoExpansionCoefficient,                  &
     & smooth_initial_velocity_iterations, smooth_initial_velocity_weights,      &
-    & vert_cor_type
+    & vert_cor_type, check_ana_oce, check_fg_oce, fg_filename, ana_filename,    &
+    ana_varnames_map_file_oce
 
   USE mo_sea_ice_nml,        ONLY: use_IceInitialization_fromTemperature
 
@@ -69,6 +70,11 @@ MODULE mo_ocean_initial_conditions
 
   USE mo_read_interface,    ONLY: read_2D_1time, read_3D_1time, on_cells, on_edges, t_stream_id, &
     & read_netcdf_broadcast_method, openInputFile, closeFile
+  USE mo_ocean_initicono,      ONLY: read_initicono, t_initicono_read
+  USE mo_sea_ice_types,       ONLY: t_sea_ice
+  USE mo_oce_io_with_cdi,     ONLY: init_oce
+  USE mo_initicon_config,    ONLY: initicon_config, dwdana_filename, dwdfg_filename, &
+    & ana_varnames_map_file
 
   IMPLICIT NONE
   PRIVATE
@@ -76,6 +82,7 @@ MODULE mo_ocean_initial_conditions
   PUBLIC :: apply_initial_conditions, init_ocean_bathymetry !,&
   PUBLIC :: tracer_ConstantSurface, varyTracerVerticallyExponentially
   PUBLIC :: init_cell_2D_variable_fromFile, init_cell_3D_variable_fromFile
+  PUBLIC :: init_from_analysis
 !   & SST_LinearMeridional, increaseTracerLevelsLinearly
 
   REAL(wp) :: sphere_radius, u0
@@ -126,20 +133,21 @@ CONTAINS
     !CALL init_ocean_bathymetry(patch_3d=patch_3d,  cells_bathymetry=external_data%oce%bathymetry_c(:,:))
     IF(iswm_oce==1)CALL init_ocean_bathymetry(patch_3d=patch_3d,  cells_bathymetry=external_data%oce%bathymetry_c(:,:))
 
-    CALL init_ocean_velocity(patch_3d=patch_3d, normal_velocity=ocean_state%p_prog(nold(1))%vn)
+    IF(.not. ( read_initicono%u .OR. read_initicono%v .OR. read_initicono%vn) ) &
+    & CALL init_ocean_velocity(patch_3d=patch_3d, normal_velocity=ocean_state%p_prog(nold(1))%vn)
 
 
-    IF (vert_cor_type .EQ. 0) THEN
+    IF (vert_cor_type .EQ. 0 .AND. .NOT. read_initicono%zos) THEN
       CALL init_ocean_surface_height(patch_3d=patch_3d, ocean_height=ocean_state%p_prog(nold(1))%h(:,:))
     ELSE
       CALL init_ocean_surface_height(patch_3d=patch_3d, ocean_height=ocean_state%p_prog(nold(1))%eta_c(:,:))
     END IF
 
-    IF (no_tracer > 0) &
+    IF (no_tracer > 0 .AND. .NOT. read_initicono%to) &
       & CALL init_ocean_temperature(patch_3d=patch_3d, ocean_temperature=ocean_state%p_prog(nold(1))%tracer(:,:,:,1),&
       &ocean_state=ocean_state)
 
-    IF (no_tracer > 1) &
+    IF (no_tracer > 1 .AND. .NOT. read_initicono%so) &
       & CALL init_ocean_salinity(patch_3d=patch_3d, ocean_salinity=ocean_state%p_prog(nold(1))%tracer(:,:,:,2))
 
     IF (use_age_tracer) THEN
@@ -7287,7 +7295,52 @@ END DO
 
     END SUBROUTINE inclined_layer
 
+  !------------------------------------------------------------------------------------
+!<Optimize:inUse>
+  SUBROUTINE init_from_analysis(patch_3d, p_sea_ice, ocean_state, read_initicono )
 
+    ! This routine collects the fields that shall be read from a grib file, generates a
+    ! list and sends this list to initicon in shared/io. It needs the integers from
+    ! ocean_initialConditions_nml.
+
+    TYPE(t_patch_3d), TARGET, INTENT(INOUT)           :: patch_3d
+    TYPE(t_sea_ice), TARGET, INTENT(INOUT)            :: p_sea_ice
+
+    TYPE(t_hydro_ocean_state), TARGET, INTENT(INOUT)  :: ocean_state(:)
+
+    CHARACTER(LEN=*), PARAMETER :: method_name = module_name//':init_from_analysis'
+    TYPE(t_initicono_read) :: read_initicono
+    INTEGER                 :: ivar, jvar
+
+    ! In general we want to read in the variables in read_initicono at some point.
+    ! read_initicono contains u, v, vn, to, so, zos, hi, hs, conc
+
+    read_initicono%u     = .TRUE.
+    read_initicono%v     = .TRUE.
+    read_initicono%vn    = .FALSE.
+    read_initicono%to    = .TRUE.
+    read_initicono%so    = .TRUE.
+    read_initicono%hi    = .TRUE.
+    read_initicono%hs    = .TRUE.
+    read_initicono%conc  = .TRUE.
+
+    DO ivar=1, SIZE(check_fg_oce)
+      initicon_config(patch_3d%p_patch_2D%id)%fg_checklist(ivar) = check_fg_oce(ivar)
+    ENDDO
+
+    DO jvar=1, SIZE(check_ana_oce)
+      initicon_config(patch_3d%p_patch_2D%id)%ana_checklist(jvar) = check_ana_oce(jvar)
+    ENDDO
+
+    ! Now fill initicon with the filenames
+    dwdfg_filename = fg_filename
+    dwdana_filename = ana_filename
+    ana_varnames_map_file = ana_varnames_map_file_oce
+
+    CALL init_oce(patch_3d, p_sea_ice, ocean_state, read_initicono )
+
+  END SUBROUTINE init_from_analysis
+  !------------------------------------------------------------------------------------
 
 
   !-----------------------------------------------------------------------------------

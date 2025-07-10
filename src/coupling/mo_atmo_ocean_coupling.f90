@@ -26,15 +26,17 @@ MODULE mo_atmo_ocean_coupling
   USE mo_parallel_config, ONLY: nproma
   USE mo_grid_config,     ONLY: n_dom
   USE mo_impl_constants,  ONLY: inwp, iaes, SUCCESS
-  USE mo_mpi,             ONLY: p_pe_work, p_comm_work, p_lor
+  USE mo_mpi,             ONLY: p_comm_work, p_lor
   USE mo_run_config,      ONLY: iforcing
   USE mo_util_dbg_prnt,   ONLY: dbg_print
   USE mo_exception,       ONLY: finish
   USE mo_coupling_utils,  ONLY: cpl_def_cell_field_mask
   USE mo_atmo_ocean_coupling_common, ONLY: construct_atmo_ocean_coupling_common, &
                                            destruct_atmo_ocean_coupling_common
+#ifndef __NO_AES__
   USE mo_aes_ocean_coupling, ONLY: construct_aes_ocean_coupling, &
                                    destruct_aes_ocean_coupling
+#endif
 
   IMPLICIT NONE
 
@@ -126,9 +128,11 @@ CONTAINS
     CALL construct_atmo_ocean_coupling_common( &
       comp_id, cell_point_id, cell_mask_id, timestepstring, use_ocean_velocity)
 
+#ifndef __NO_AES__
     IF (iforcing == iaes) THEN
       CALL construct_aes_ocean_coupling(p_patch, use_mask, use_ocean_velocity)
     END IF
+#endif
 
   CONTAINS
 

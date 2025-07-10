@@ -9,12 +9,18 @@
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
 
-! @brief Main program for the ICON atmospheric model
+! @brief Testbed for communication. Triggered via name list parameter
+!     &testbed_nml :: testbed_model
+! See mo_icon_testbed_config.f90 for valid values of testbed_model.
+
+! @ warning: Run on only VE on NEC machines to avoid following error
+!      ! DEBUGGING: levante_aurora error
+!      !   FINISH PE:     2 sync_patch_array: Out of sync detected!
 
 MODULE mo_test_communication
 
-  USE mo_kind,                ONLY: wp, sp, dp, vp
-  USE mo_exception,           ONLY: message, message_text, finish
+  USE mo_kind,                ONLY: wp, vp, dp, sp
+  USE mo_exception,           ONLY: message, message_text, finish, warning
   USE mo_mpi,                 ONLY: work_mpi_barrier, p_n_work, p_pe_work, &
     &                               p_comm_work, p_comm_rank, p_comm_size, &
     &                               p_barrier
@@ -44,7 +50,7 @@ MODULE mo_test_communication
 
   USE mo_master_control,      ONLY: get_my_process_name
 
-  USE mo_model_domain,        ONLY: p_patch
+  USE mo_model_domain,        ONLY: p_patch, t_patch
   USE mo_atmo_model,          ONLY: construct_atmo_model, destruct_atmo_model
   USE mo_math_gradients,      ONLY: grad_fd_norm
 
@@ -53,15 +59,26 @@ MODULE mo_test_communication
   USE mo_atmo_nonhydrostatic, ONLY: construct_atmo_nonhydrostatic, destruct_atmo_nonhydrostatic
   USE mo_async_latbc_types,   ONLY: t_latbc_data
 
-  USE mo_parallel_config,    ONLY: iorder_sendrecv
-  USE mo_sync,               ONLY: SYNC_C, SYNC_E, SYNC_V, sync_patch_array, &
-    &                              sync_patch_array_mult, sync_patch_array_4de1
-  USE mo_icon_comm_lib
+  USE mo_parallel_config,     ONLY: iorder_sendrecv
+  USE mo_sync,                ONLY: SYNC_C, SYNC_E, SYNC_V, SYNC_C1, sync_patch_array, &
+    &                               sync_patch_array_mult, sync_patch_array_4de1, &
+    &                               cumulative_sync_patch_array, complete_cumulative_sync, &
+    &                               enable_sync_checks, check_patch_array
+  USE mo_icon_comm_lib,       ONLy: is_ready, until_sync, new_icon_comm_variable, &
+    &                               delete_icon_comm_variable, icon_comm_var_is_ready, &
+    &                               icon_comm_sync, icon_comm_sync_all
 
   USE mo_icon_testbed_config, ONLY: testbed_model, test_halo_communication, &
     & testbed_iterations, calculate_iterations, test_gather_communication, &
-    & test_exchange_communication, test_bench_exchange_data_mult
-  USE mo_grid_config, ONLY: n_dom_start
+    & test_exchange_communication, test_bench_exchange_data_mult, &
+    & test_sync_exchange_communication
+  USE mo_grid_config,         ONLY: n_dom_start
+  USE mo_parallel_config,     ONLY: p_test_run
+  USE fortran_support,        ONLY: t_ptr_3d_dp, t_ptr_3d_sp, set_acc_host_or_device
+  USE mo_impl_constants,      ONLY: min_rlcell, min_rlcell_int, grf_bdywidth_c
+  USE mo_loopindices,         ONLY: get_indices_c
+
+#include "add_var_acc_macro.inc"
 
 !-------------------------------------------------------------------------
 IMPLICIT NONE
@@ -122,6 +139,15 @@ CONTAINS
       CALL message("", "test_exchange_communication, test_gpu=.TRUE.")
       CALL exchange_communication_testbed(test_gpu=.TRUE.)
       CALL exchange_communication_grf_testbed(test_gpu=.TRUE.)
+#endif
+    CASE(test_sync_exchange_communication)
+      ! Enable sync_checks (disabled by default on GPU)
+      CALL enable_sync_checks()
+      CALL message("", "test_sync_exchange_communication, test_gpu=.FALSE.")
+      CALL sync_patch_array_testbed(test_gpu=.FALSE.)
+#ifdef _OPENACC
+      CALL message("", "test_sync_exchange_communication, test_gpu=.TRUE.")
+      CALL sync_patch_array_testbed(test_gpu=.TRUE.)
 #endif
 
     CASE(test_bench_exchange_data_mult)
@@ -1018,6 +1044,600 @@ CONTAINS
 !     CALL delete_icon_comm_variable(comm_2)
 !     CALL delete_icon_comm_variable(comm_1)
     !---------------------------------------------------------------------
+
+  SUBROUTINE sync_patch_array_testbed(test_gpu)
+
+    LOGICAL, OPTIONAL, INTENT(IN) :: test_gpu
+
+    INTEGER :: i, n
+    !INTEGER, PARAMETER :: types(3) = (/ SYNC_C, SYNC_E, SYNC_V /) ! SYNC_C1
+    !INTEGER :: typ
+    LOGICAL :: lzacc
+
+    REAL(dp), ALLOCATABLE :: arr_dp_3d_1(:,:,:), ref_arr_dp_3d_1(:,:,:), &
+      &                      arr_dp_3d_2(:,:,:), ref_arr_dp_3d_2(:,:,:), &
+      &                      arr_dp_3d_3(:,:,:), ref_arr_dp_3d_3(:,:,:), &
+      &                      arr_dp_3d_4(:,:,:), ref_arr_dp_3d_4(:,:,:)
+    REAL(dp), ALLOCATABLE, TARGET :: arr_dp_4d(:,:,:,:), ref_arr_dp_4d(:,:,:,:) !
+    TYPE(t_ptr_3d_dp), ALLOCATABLE :: ptr_3d_arr_dp(:), ref_ptr_3d_arr_dp(:)
+    REAL(sp), ALLOCATABLE :: arr_sp_3d_1(:,:,:), ref_arr_sp_3d_1(:,:,:), &
+      &                      arr_sp_3d_2(:,:,:), ref_arr_sp_3d_2(:,:,:), &
+      &                      arr_sp_3d_3(:,:,:), ref_arr_sp_3d_3(:,:,:), &
+      &                      arr_sp_3d_4(:,:,:), ref_arr_sp_3d_4(:,:,:)
+    REAL(sp), ALLOCATABLE, TARGET :: arr_sp_4d(:,:,:,:), ref_arr_sp_4d(:,:,:,:) !
+    TYPE(t_ptr_3d_sp), ALLOCATABLE :: ptr_3d_arr_sp(:), ref_ptr_3d_arr_sp(:)
+#ifdef __PGI
+    REAL(wp), POINTER :: tmp_ptr_4d(:,:,:,:)
+#endif
+
+    CHARACTER(*), PARAMETER :: method_name = "mo_test_communication:sync_patch_array_testbed"
+    TYPE(t_patch), POINTER :: ptr_patch
+
+    CALL set_acc_host_or_device(lzacc, test_gpu)
+
+    IF (.NOT. p_test_run) THEN
+      CALL finish(method_name, "parallel_nml::p_test_run disabled")
+    END IF
+
+    ptr_patch => p_patch(n_dom_start)
+
+    ! dp and sp fields
+    IF (.NOT. ALLOCATED(p_nh_state))CALL finish(method_name,"p_nh_state")
+    IF (.NOT. ALLOCATED(p_nh_state(n_dom_start)%prog)) CALL finish(method_name,"p_nh_state%pro")
+    CALL init_arrays_from_pointer_3d(p_nh_state(n_dom_start)%prog(1)%w,       1, arr_dp_3d_1, ref_arr_dp_3d_1, &
+      &                                                                          arr_sp_3d_1, ref_arr_sp_3d_1)
+    CALL init_arrays_from_pointer_3d(p_nh_state(n_dom_start)%prog(1)%rho,     2, arr_dp_3d_2, ref_arr_dp_3d_2, &
+      &                                                                          arr_sp_3d_2, ref_arr_sp_3d_2)
+    CALL init_arrays_from_pointer_3d(p_nh_state(n_dom_start)%prog(1)%exner,   3, arr_dp_3d_3, ref_arr_dp_3d_3, &
+      &                                                                          arr_sp_3d_3, ref_arr_sp_3d_3)
+    CALL init_arrays_from_pointer_3d(p_nh_state(n_dom_start)%prog(1)%theta_v, 4, arr_dp_3d_4, ref_arr_dp_3d_4, &
+      &                                                                          arr_sp_3d_4, ref_arr_sp_3d_4)
+    !CALL init_arrays_from_pointer_3d(p_nh_state(n_dom_start)%prog(1)%tke, ! Not associated
+
+#ifdef __PGI
+    IF (.NOT. ASSOCIATED(p_nh_state(n_dom_start)%prog(1)%tracer)) THEN
+      WRITE(message_text,'(a,i0)') "tracer not associated, id:", 1
+      CALL finish(method_name, message_text)
+    ENDIF
+
+    tmp_ptr_4d => p_nh_state(n_dom_start)%prog(1)%tracer
+    ALLOCATE(    arr_dp_4d(SIZE(tmp_ptr_4d,1),SIZE(tmp_ptr_4d,2),SIZE(tmp_ptr_4d,3),SIZE(tmp_ptr_4d,4)), &
+      &          arr_sp_4d(SIZE(tmp_ptr_4d,1),SIZE(tmp_ptr_4d,2),SIZE(tmp_ptr_4d,3),SIZE(tmp_ptr_4d,4)), &
+      &      ref_arr_dp_4d(SIZE(tmp_ptr_4d,1),SIZE(tmp_ptr_4d,2),SIZE(tmp_ptr_4d,3),SIZE(tmp_ptr_4d,4)), &
+      &      ref_arr_sp_4d(SIZE(tmp_ptr_4d,1),SIZE(tmp_ptr_4d,2),SIZE(tmp_ptr_4d,3),SIZE(tmp_ptr_4d,4)))
+#endif
+    CALL init_arrays_from_pointer_4d(p_nh_state(n_dom_start)%prog(1)%tracer,  1, arr_dp_4d, ref_arr_dp_4d, &
+      &                                                                          arr_sp_4d, ref_arr_sp_4d)
+
+    ! DEBUGGING
+    IF (.FALSE.) THEN
+      CALL print_shape_3d(1, arr_dp_3d_1, arr_sp_3d_1)
+      CALL print_shape_3d(2, arr_dp_3d_2, arr_sp_3d_2)
+      CALL print_shape_3d(3, arr_dp_3d_3, arr_sp_3d_3)
+      CALL print_shape_3d(4, arr_dp_3d_4, arr_sp_3d_4)
+      CALL print_shape_4d(1, arr_dp_4d, arr_sp_4d)
+
+      !! DEBUGGING NVHPC - seems to be inconsistency I do not understand between normal-looking shapes printed by
+      !!             print_shape_4d(), versus just print shapes directly below. Directly below gives all sorts
+      !!             of just 0's, MAX_INT, etc in shape.
+      !IF (.NOT. ALLOCATED(arr_dp_4d)) CALL finish(method_name, "arr_dp_4d not allocated")
+      !WRITE(message_text,*) "SIZE(CUSTOM) dp: [",SIZE(arr_dp_4d,1),",",SIZE(arr_dp_4d,2),",",SIZE(arr_dp_4d,3),",",SIZE(arr_dp_4d,4), &
+      !  &                   "] - TOTAL: ", SIZE(arr_dp_4d)
+      !CALL warning(method_name,message_text)
+      !WRITE(message_text,*) "SIZE(CUSTOM) sp: [",SIZE(tmp_ptr_4d,1),",",SIZE(tmp_ptr_4d,2),",",SIZE(tmp_ptr_4d,3),",",SIZE(tmp_ptr_4d,4), &
+      !  &                   "] - TOTAL: ", SIZE(tmp_ptr_4d)
+      !CALL warning(method_name,message_text)
+    ENDIF
+
+    n = SIZE(arr_dp_4d,4)
+    ALLOCATE(ptr_3d_arr_dp(n), ref_ptr_3d_arr_dp(n), &
+      &      ptr_3d_arr_sp(n), ref_ptr_3d_arr_sp(n))
+    DO i=1,n
+      ptr_3d_arr_dp(i)%p => arr_dp_4d(:,:,:,i)
+      ptr_3d_arr_sp(i)%p => arr_sp_4d(:,:,:,i)
+      ref_ptr_3d_arr_dp(i)%p => ref_arr_dp_4d(:,:,:,i)
+      ref_ptr_3d_arr_sp(i)%p => ref_arr_sp_4d(:,:,:,i)
+    END DO
+
+    ! DO WORK:
+    CALL do_work_c_3d(ptr_patch, arr_dp_3d_1, ref_arr_dp_3d_1, arr_sp_3d_1, ref_arr_sp_3d_1)
+    CALL do_work_c_3d(ptr_patch, arr_dp_3d_2, ref_arr_dp_3d_2, arr_sp_3d_2, ref_arr_sp_3d_2)
+    CALL do_work_c_3d(ptr_patch, arr_dp_3d_3, ref_arr_dp_3d_3, arr_sp_3d_3, ref_arr_sp_3d_3)
+    CALL do_work_c_3d(ptr_patch, arr_dp_3d_4, ref_arr_dp_3d_4, arr_sp_3d_4, ref_arr_sp_3d_4)
+    DO i=1,n
+      ! Points to: arr_dp_4d, arr_sp_4d
+      CALL do_work_c_3d(ptr_patch, ptr_3d_arr_dp(i)%p, ref_ptr_3d_arr_dp(i)%p, ptr_3d_arr_sp(i)%p, ref_ptr_3d_arr_sp(i)%p)
+    END DO
+
+    CALL message(method_name, "SYNC_C") ! Only testing on data on cell centres
+
+    ! Calling on each 3d field, also to verify that field data is initialized as
+    !   expected for later checks
+    CALL check_sync_patch_array(SYNC_C, 1, arr_dp_3d_1, ref_arr_dp_3d_1, &
+      &                                    arr_sp_3d_1, ref_arr_sp_3d_1)
+    CALL check_sync_patch_array(SYNC_C, 2, arr_dp_3d_2, ref_arr_dp_3d_2, &
+      &                                    arr_sp_3d_2, ref_arr_sp_3d_2)
+    CALL check_sync_patch_array(SYNC_C, 3, arr_dp_3d_3, ref_arr_dp_3d_3, &
+      &                                    arr_sp_3d_3, ref_arr_sp_3d_3)
+    CALL check_sync_patch_array(SYNC_C, 4, arr_dp_3d_4, ref_arr_dp_3d_4, &
+      &                                    arr_sp_3d_4, ref_arr_sp_3d_4)
+    DO i=1,SIZE(ptr_3d_arr_dp)
+      CALL check_sync_patch_array(SYNC_C, 4+i, ptr_3d_arr_dp(i)%p, ref_ptr_3d_arr_dp(i)%p, &
+        &                                      ptr_3d_arr_sp(i)%p, ref_ptr_3d_arr_sp(i)%p)
+    END DO
+
+
+    CALL check_sync_patch_array_mult(SYNC_C, 1, &
+      &                              arr_dp_3d_1, ref_arr_dp_3d_1, &
+      &                              arr_sp_3d_1, ref_arr_sp_3d_1, &
+      &                              arr_dp_3d_2, ref_arr_dp_3d_2, &
+      &                              arr_sp_3d_2, ref_arr_sp_3d_2, &
+      &                              arr_dp_4d, ref_arr_dp_4d, &
+      &                              arr_sp_4d, ref_arr_sp_4d, &
+      &                              ptr_3d_arr_dp, ref_ptr_3d_arr_dp, &
+      &                              ptr_3d_arr_sp, ref_ptr_3d_arr_sp)
+
+    CALL check_cumulative_sync_patch_array(SYNC_C, 1, &
+      &                                    arr_dp_3d_1, ref_arr_dp_3d_1, &
+      &                                    arr_dp_3d_2, ref_arr_dp_3d_2, &
+      &                                    arr_sp_3d_1, ref_arr_sp_3d_1, &
+      &                                    arr_sp_3d_2, ref_arr_sp_3d_2 )
+
+    !CALL message(method_name, "SYNC_E") ! use edge fields
+    !CALL init_arrays_from_pointer_3d(p_nh_state(n_dom_start)%prog(1)%vn ! edges
+    !CALL message(method_name, "SYNC_V") ! use vertex fields
+
+    ! Deallocate all
+    DEALLOCATE(arr_dp_3d_1, ref_arr_dp_3d_1,    &
+      &        arr_dp_3d_2, ref_arr_dp_3d_2,    &
+      &        arr_dp_3d_3, ref_arr_dp_3d_3,    &
+      &        arr_dp_3d_4, ref_arr_dp_3d_4,    &
+      &        arr_dp_4d, ref_arr_dp_4d,        &
+      &        ptr_3d_arr_dp, ref_ptr_3d_arr_dp )
+    DEALLOCATE(arr_sp_3d_1, ref_arr_sp_3d_1,    &
+      &        arr_sp_3d_2, ref_arr_sp_3d_2,    &
+      &        arr_sp_3d_3, ref_arr_sp_3d_3,    &
+      &        arr_sp_3d_4, ref_arr_sp_3d_4,    &
+      &        arr_sp_4d, ref_arr_sp_4d,        &
+      &        ptr_3d_arr_sp, ref_ptr_3d_arr_sp )
+
+  CONTAINS
+
+    SUBROUTINE check_sync_patch_array(typ, call_id, &
+      &                               in_array_dp_3d, ref_in_array_dp_3d, &
+      &                               in_array_sp_3d, ref_in_array_sp_3d)
+
+      INTEGER, INTENT(IN) :: typ
+
+      REAL(dp), INTENT(INOUT) :: in_array_dp_3d(:,:,:)
+      REAL(dp), INTENT(IN   ) :: ref_in_array_dp_3d(:,:,:)
+      REAL(sp), INTENT(INOUT) :: in_array_sp_3d(:,:,:)
+      REAL(sp), INTENT(IN   ) :: ref_in_array_sp_3d(:,:,:)
+      INTEGER, INTENT(IN) :: call_id
+      CHARACTER(*), PARAMETER :: method_name = "mo_test_communication:check_sync_patch_array"
+
+
+      !$ACC DATA COPYIN(in_array_dp_3d, ref_in_array_dp_3d) ASYNC(1) IF(lzacc)
+      CALL sync_patch_array (typ=typ, p_patch=ptr_patch, arr=in_array_dp_3d, lacc=lzacc)
+      CALL check_patch_array(typ=typ, p_patch=ptr_patch, arr=in_array_dp_3d, lacc=lzacc)
+      in_array_dp_3d(:,:,:) = ref_in_array_dp_3d(:,:,:) ! Restore input values
+      !$ACC END DATA
+      WRITE(message_text,'(a,i0)') "dp passed - call_id: ", call_id
+      CALL message(method_name, message_text)
+
+      !$ACC DATA COPYIN(in_array_sp_3d, ref_in_array_sp_3d) ASYNC(1) IF(lzacc)
+      CALL sync_patch_array (typ=typ, p_patch=ptr_patch, arr=in_array_sp_3d, lacc=lzacc)
+      CALL check_patch_array(typ=typ, p_patch=ptr_patch, arr=in_array_sp_3d, lacc=lzacc)
+      in_array_sp_3d(:,:,:) = ref_in_array_sp_3d(:,:,:) ! Restore input values
+      !$ACC END DATA
+      WRITE(message_text,'(a,i0)') "sp passed - call_id: ", call_id
+      CALL message(method_name, message_text)
+
+      !$ACC WAIT(1)
+
+    END SUBROUTINE check_sync_patch_array
+
+    SUBROUTINE check_sync_patch_array_mult(typ, call_id, &
+      &                                    arr_dp_3d_1, ref_arr_dp_3d_1, &
+      &                                    arr_sp_3d_1, ref_arr_sp_3d_1, &
+      &                                    arr_dp_3d_2, ref_arr_dp_3d_2, &
+      &                                    arr_sp_3d_2, ref_arr_sp_3d_2, &
+      &                                    arr_dp_4d, ref_arr_dp_4d, &
+      &                                    arr_sp_4d, ref_arr_sp_4d, &
+      &                                    ptr_3d_arr_dp, ref_ptr_3d_arr_dp, &
+      &                                    ptr_3d_arr_sp, ref_ptr_3d_arr_sp)
+
+      INTEGER, INTENT(IN) :: typ
+
+      REAL(dp), INTENT(INOUT) ::     arr_dp_3d_1(:,:,:),     arr_dp_3d_2(:,:,:), &
+        &                            arr_dp_4d(:,:,:,:)
+      REAL(sp), INTENT(INOUT) ::     arr_sp_3d_1(:,:,:),     arr_sp_3d_2(:,:,:), &
+        &                            arr_sp_4d(:,:,:,:)
+      REAL(dp), INTENT(IN   ) :: ref_arr_dp_3d_1(:,:,:), ref_arr_dp_3d_2(:,:,:), &
+        &                        ref_arr_dp_4d(:,:,:,:)
+      REAL(sp), INTENT(IN   ) :: ref_arr_sp_3d_1(:,:,:), ref_arr_sp_3d_2(:,:,:), &
+        &                        ref_arr_sp_4d(:,:,:,:)
+      TYPE(t_ptr_3d_dp), INTENT(INOUT) ::     ptr_3d_arr_dp(:)
+      TYPE(t_ptr_3d_dp), INTENT(IN   ) :: ref_ptr_3d_arr_dp(:)
+      TYPE(t_ptr_3d_sp), INTENT(INOUT) ::     ptr_3d_arr_sp(:)
+      TYPE(t_ptr_3d_sp), INTENT(IN   ) :: ref_ptr_3d_arr_sp(:)
+      INTEGER, INTENT(IN) :: call_id
+      ! Local vars
+      CHARACTER(*), PARAMETER :: method_name = "mo_test_communication:check_sync_patch_array_mult"
+      INTEGER :: i
+
+      ! 3d fields only
+      !$ACC DATA COPYIN(arr_dp_3d_1, arr_dp_3d_2, ref_arr_dp_3d_1, ref_arr_dp_3d_2) ASYNC(1) IF(lzacc)
+      CALL sync_patch_array_mult(typ=typ, p_patch=ptr_patch, nfields=2, lacc=lzacc,  &
+        &                        f3din1=arr_dp_3d_1, f3din2=arr_dp_3d_2)
+      CALL check_patch_array(typ=typ, p_patch=ptr_patch, arr=arr_dp_3d_1, lacc=lzacc)
+      CALL check_patch_array(typ=typ, p_patch=ptr_patch, arr=arr_dp_3d_2, lacc=lzacc)
+      arr_dp_3d_1(:,:,:) = ref_arr_dp_3d_1(:,:,:) ! Restore input values
+      arr_dp_3d_2(:,:,:) = ref_arr_dp_3d_2(:,:,:) ! Restore input values
+      !$ACC END DATA
+      WRITE(message_text,'(a,i0)') "dp 3d fields passed - call_id: ", call_id
+      CALL message(method_name, message_text)
+
+      !$ACC DATA COPYIN(arr_sp_3d_1, arr_sp_3d_2, ref_arr_sp_3d_1, ref_arr_sp_3d_2) ASYNC(1) IF(lzacc)
+      CALL sync_patch_array_mult(typ=typ, p_patch=ptr_patch, nfields=2, lacc=lzacc,  &
+        &                        f3din1=arr_sp_3d_1, f3din2=arr_sp_3d_2)
+      CALL check_patch_array(typ=typ, p_patch=ptr_patch, arr=arr_sp_3d_1, lacc=lzacc)
+      CALL check_patch_array(typ=typ, p_patch=ptr_patch, arr=arr_sp_3d_2, lacc=lzacc)
+      arr_sp_3d_1(:,:,:) = ref_arr_sp_3d_1(:,:,:) ! Restore input values
+      arr_sp_3d_2(:,:,:) = ref_arr_sp_3d_2(:,:,:) ! Restore input values
+      !$ACC END DATA
+      WRITE(message_text,'(a,i0)') "sp 3d fields passed - call_id: ", call_id
+      CALL message(method_name, message_text)
+
+      ! 4d and 3d field
+      !$ACC DATA COPYIN(arr_dp_3d_1, arr_dp_3d_2, arr_dp_4d, ref_arr_dp_3d_1, ref_arr_dp_3d_2, ref_arr_dp_4d) &
+      !$ACC   ASYNC(1) IF(lzacc)
+      CALL sync_patch_array_mult(typ=typ, p_patch=ptr_patch, nfields=2+SIZE(arr_dp_4d,4), lacc=lzacc,  &
+        &                        f3din1=arr_dp_3d_1, f3din2=arr_dp_3d_2, f4din=arr_dp_4d)
+      CALL check_patch_array(typ=typ, p_patch=ptr_patch, arr=arr_dp_3d_1, lacc=lzacc)
+      CALL check_patch_array(typ=typ, p_patch=ptr_patch, arr=arr_dp_3d_2, lacc=lzacc)
+      CALL check_patch_array(typ=typ, p_patch=ptr_patch, arr=arr_dp_4d, lacc=lzacc)
+      arr_dp_3d_1(:,:,:) = ref_arr_dp_3d_1(:,:,:) ! Restore input values
+      arr_dp_3d_2(:,:,:) = ref_arr_dp_3d_2(:,:,:) ! Restore input values
+      arr_dp_4d(:,:,:,:) = ref_arr_dp_4d(:,:,:,:) ! Restore input values
+      !$ACC END DATA
+      WRITE(message_text,'(a,i0)') "dp 4d+3d fields passed - call_id: ", call_id
+      CALL message(method_name, message_text)
+
+      !$ACC DATA COPYIN(arr_sp_3d_1, arr_sp_3d_2, arr_sp_4d, ref_arr_sp_3d_1, ref_arr_sp_3d_2, ref_arr_sp_4d) &
+      !$ACC   ASYNC(1) IF(lzacc)
+      CALL sync_patch_array_mult(typ=typ, p_patch=ptr_patch, nfields=2+SIZE(arr_sp_4d,4), lacc=lzacc,  &
+        &                        f3din1=arr_sp_3d_1, f3din2=arr_sp_3d_2, f4din=arr_sp_4d)
+      CALL check_patch_array(typ=typ, p_patch=ptr_patch, arr=arr_sp_3d_1, lacc=lzacc)
+      CALL check_patch_array(typ=typ, p_patch=ptr_patch, arr=arr_sp_3d_2, lacc=lzacc)
+      CALL check_patch_array(typ=typ, p_patch=ptr_patch, arr=arr_sp_4d, lacc=lzacc)
+      arr_sp_3d_1(:,:,:) = ref_arr_sp_3d_1(:,:,:) ! Restore input values
+      arr_sp_3d_2(:,:,:) = ref_arr_sp_3d_2(:,:,:) ! Restore input values
+      arr_sp_4d(:,:,:,:) = ref_arr_sp_4d(:,:,:,:) ! Restore input values
+      !$ACC END DATA
+      WRITE(message_text,'(a,i0)') "sp 4d+3d fields passed - call_id: ", call_id
+      CALL message(method_name, message_text)
+
+      ! 3d_arr and 3d field
+      !$ACC DATA COPYIN(arr_dp_3d_1, arr_dp_3d_2, ref_arr_dp_3d_1, ref_arr_dp_3d_2) ASYNC(1) IF(lzacc)
+      !$ACC ENTER DATA CREATE(ptr_3d_arr_dp, ref_ptr_3d_arr_dp) ASYNC(1) IF(lzacc)
+      DO i=1,SIZE(ptr_3d_arr_dp)
+        !$ACC ENTER DATA COPYIN(ptr_3d_arr_dp(i)%p, ref_ptr_3d_arr_dp(i)%p) ASYNC(1) IF(lzacc)
+        !$ACC WAIT(1)
+        __acc_attach(    ptr_3d_arr_dp(i)%p)
+        __acc_attach(ref_ptr_3d_arr_dp(i)%p)
+      END DO
+      CALL sync_patch_array_mult(typ=typ, p_patch=ptr_patch, nfields=2+SIZE(ptr_3d_arr_dp), lacc=lzacc,  &
+        &                        f3din1=arr_dp_3d_1, f3din2=arr_dp_3d_2, f3din_arr=ptr_3d_arr_dp)
+      CALL check_patch_array(typ=typ, p_patch=ptr_patch, arr=arr_dp_3d_1, lacc=lzacc)
+      CALL check_patch_array(typ=typ, p_patch=ptr_patch, arr=arr_dp_3d_2, lacc=lzacc)
+      arr_dp_3d_1(:,:,:) = ref_arr_dp_3d_1(:,:,:) ! Restore input values
+      arr_dp_3d_2(:,:,:) = ref_arr_dp_3d_2(:,:,:) ! Restore input values
+      DO i=1,SIZE(ptr_3d_arr_dp)
+        CALL check_patch_array(typ=typ, p_patch=ptr_patch, arr=ptr_3d_arr_dp(i)%p, lacc=lzacc)
+        ptr_3d_arr_dp(i)%p(:,:,:) = ref_ptr_3d_arr_dp(i)%p(:,:,:) ! Restore input values
+      END DO
+      DO i=1,SIZE(ptr_3d_arr_dp)
+        !$ACC EXIT DATA DELETE(ptr_3d_arr_dp(i)%p, ref_ptr_3d_arr_dp(i)%p) ASYNC(1) IF(lzacc)
+      END DO
+      !$ACC EXIT DATA DELETE(ptr_3d_arr_dp, ref_ptr_3d_arr_dp) ASYNC(1) IF(lzacc)
+      !$ACC END DATA
+      WRITE(message_text,'(a,i0)') "dp 3d_arr+3d fields passed - call_id: ", call_id
+      CALL message(method_name, message_text)
+
+
+      !$ACC DATA COPYIN(arr_sp_3d_1, arr_sp_3d_2, ref_arr_sp_3d_1, ref_arr_sp_3d_2) ASYNC(1) IF(lzacc)
+      !$ACC ENTER DATA CREATE(ptr_3d_arr_sp, ref_ptr_3d_arr_sp) ASYNC(1) IF(lzacc)
+      DO i=1,SIZE(ptr_3d_arr_sp)
+        !$ACC ENTER DATA COPYIN(ptr_3d_arr_sp(i)%p, ref_ptr_3d_arr_sp(i)%p) ASYNC(1) IF(lzacc)
+        !$ACC WAIT(1)
+        __acc_attach(    ptr_3d_arr_sp(i)%p)
+        __acc_attach(ref_ptr_3d_arr_sp(i)%p)
+      END DO
+      CALL sync_patch_array_mult(typ=typ, p_patch=ptr_patch, nfields=2+SIZE(ptr_3d_arr_sp), lacc=lzacc,  &
+        &                        f3din1=arr_sp_3d_1, f3din2=arr_sp_3d_2, f3din_arr=ptr_3d_arr_sp)
+      CALL check_patch_array(typ=typ, p_patch=ptr_patch, arr=arr_sp_3d_1, lacc=lzacc)
+      CALL check_patch_array(typ=typ, p_patch=ptr_patch, arr=arr_sp_3d_2, lacc=lzacc)
+      arr_sp_3d_1(:,:,:) = ref_arr_sp_3d_1(:,:,:) ! Restore input values
+      arr_sp_3d_2(:,:,:) = ref_arr_sp_3d_2(:,:,:) ! Restore input values
+      DO i=1,SIZE(ptr_3d_arr_sp)
+        CALL check_patch_array(typ=typ, p_patch=ptr_patch, arr=ptr_3d_arr_sp(i)%p, lacc=lzacc)
+        ptr_3d_arr_sp(i)%p(:,:,:) = ref_ptr_3d_arr_sp(i)%p(:,:,:) ! Restore input values
+      END DO
+      DO i=1,SIZE(ptr_3d_arr_sp)
+        !$ACC EXIT DATA DELETE(ptr_3d_arr_sp(i)%p, ref_ptr_3d_arr_sp(i)%p) ASYNC(1) IF(lzacc)
+      END DO
+      !$ACC EXIT DATA DELETE(ptr_3d_arr_sp, ref_ptr_3d_arr_sp) ASYNC(1) IF(lzacc)
+      !$ACC END DATA
+      WRITE(message_text,'(a,i0)') "sp 3d_arr+3d fields passed - call_id: ", call_id
+      CALL message(method_name, message_text)
+
+      !$ACC WAIT(1)
+
+    END SUBROUTINE check_sync_patch_array_mult
+
+    SUBROUTINE check_cumulative_sync_patch_array(typ, call_id, &
+      &                                          arr_dp_3d_1, ref_arr_dp_3d_1, &
+      &                                          arr_dp_3d_2, ref_arr_dp_3d_2, &
+      &                                          arr_sp_3d_1, ref_arr_sp_3d_1, &
+      &                                          arr_sp_3d_2, ref_arr_sp_3d_2 )
+
+      INTEGER, INTENT(IN) :: typ
+      INTEGER, INTENT(IN) :: call_id
+
+      ! TARGET attribute required for NAG compiler to keep cumul_sync_{dp,sp} pointer
+      !   after leaving scope of cumulative_sync_patch_array()
+      REAL(dp), TARGET, INTENT(INOUT) :: arr_dp_3d_1(:,:,:), &
+        &                                arr_dp_3d_2(:,:,:)
+      REAL(dp),         INTENT(IN   ) :: ref_arr_dp_3d_1(:,:,:), &
+        &                                ref_arr_dp_3d_2(:,:,:)
+      REAL(sp), TARGET, INTENT(INOUT) :: arr_sp_3d_1(:,:,:), &
+        &                                arr_sp_3d_2(:,:,:)
+      REAL(sp),         INTENT(IN   ) :: ref_arr_sp_3d_1(:,:,:), &
+        &                                ref_arr_sp_3d_2(:,:,:)
+      CHARACTER(*), PARAMETER :: method_name = "mo_test_communication:cumulative_sync_patch_array"
+
+      !$ACC DATA COPYIN(arr_dp_3d_1, arr_dp_3d_2, arr_sp_3d_1, arr_sp_3d_2) ASYNC(1) IF(lzacc)
+      CALL cumulative_sync_patch_array(typ, ptr_patch, arr_dp_3d_1, lacc=lzacc)
+      CALL cumulative_sync_patch_array(typ, ptr_patch, arr_dp_3d_2, lacc=lzacc)
+      CALL cumulative_sync_patch_array(typ, ptr_patch, arr_sp_3d_1, lacc=lzacc)
+      CALL cumulative_sync_patch_array(typ, ptr_patch, arr_sp_3d_2, lacc=lzacc)
+      CALL complete_cumulative_sync(lacc=lzacc)
+      CALL check_patch_array(typ=typ, p_patch=ptr_patch, arr=arr_dp_3d_1, lacc=lzacc)
+      CALL check_patch_array(typ=typ, p_patch=ptr_patch, arr=arr_dp_3d_2, lacc=lzacc)
+      CALL check_patch_array(typ=typ, p_patch=ptr_patch, arr=arr_sp_3d_1, lacc=lzacc)
+      CALL check_patch_array(typ=typ, p_patch=ptr_patch, arr=arr_sp_3d_2, lacc=lzacc)
+      arr_dp_3d_1(:,:,:) = ref_arr_dp_3d_1(:,:,:) ! Restore input values (needed for lzacc=.FALSE.)
+      arr_dp_3d_2(:,:,:) = ref_arr_dp_3d_2(:,:,:) ! Restore input values
+      arr_sp_3d_1(:,:,:) = ref_arr_sp_3d_1(:,:,:) ! Restore input values
+      arr_sp_3d_2(:,:,:) = ref_arr_sp_3d_2(:,:,:) ! Restore input values
+      !$ACC END DATA
+      WRITE(message_text,'(a,i0)') "dp2sp2 passed - call_id: ", call_id
+      CALL message(method_name, message_text)
+
+      !$ACC DATA COPYIN(arr_dp_3d_1, arr_dp_3d_2, arr_sp_3d_1, arr_sp_3d_2) ASYNC(1) IF(lzacc)
+      CALL cumulative_sync_patch_array(typ, ptr_patch, arr_dp_3d_1, lacc=lzacc)
+      CALL cumulative_sync_patch_array(typ, ptr_patch, arr_dp_3d_2, lacc=lzacc)
+      CALL cumulative_sync_patch_array(typ, ptr_patch, arr_sp_3d_1, lacc=lzacc)
+      !CALL cumulative_sync_patch_array(typ, ptr_patch, arr_sp_3d_2, lacc=lzacc)
+      CALL complete_cumulative_sync(lacc=lzacc)
+      CALL check_patch_array(typ=typ, p_patch=ptr_patch, arr=arr_dp_3d_1, lacc=lzacc)
+      CALL check_patch_array(typ=typ, p_patch=ptr_patch, arr=arr_dp_3d_2, lacc=lzacc)
+      CALL check_patch_array(typ=typ, p_patch=ptr_patch, arr=arr_sp_3d_1, lacc=lzacc)
+      !CALL check_patch_array(typ=typ, p_patch=ptr_patch, arr=arr_sp_3d_2, lacc=lzacc)
+      arr_dp_3d_1(:,:,:) = ref_arr_dp_3d_1(:,:,:) ! Restore input values
+      arr_dp_3d_2(:,:,:) = ref_arr_dp_3d_2(:,:,:) ! Restore input values
+      arr_sp_3d_1(:,:,:) = ref_arr_sp_3d_1(:,:,:) ! Restore input values
+      arr_sp_3d_2(:,:,:) = ref_arr_sp_3d_2(:,:,:) ! Restore input values
+      !$ACC END DATA
+      WRITE(message_text,'(a,i0)') "dp2sp1 passed - call_id: ", call_id
+      CALL message(method_name, message_text)
+
+      !$ACC DATA COPYIN(arr_dp_3d_1, arr_dp_3d_2, arr_sp_3d_1, arr_sp_3d_2) ASYNC(1) IF(lzacc)
+      CALL cumulative_sync_patch_array(typ, ptr_patch, arr_dp_3d_1, lacc=lzacc)
+      CALL cumulative_sync_patch_array(typ, ptr_patch, arr_dp_3d_2, lacc=lzacc)
+      !CALL cumulative_sync_patch_array(typ, ptr_patch, arr_sp_3d_1, lacc=lzacc)
+      !CALL cumulative_sync_patch_array(typ, ptr_patch, arr_sp_3d_2, lacc=lzacc)
+      CALL complete_cumulative_sync(lacc=lzacc)
+      CALL check_patch_array(typ=typ, p_patch=ptr_patch, arr=arr_dp_3d_1, lacc=lzacc)
+      CALL check_patch_array(typ=typ, p_patch=ptr_patch, arr=arr_dp_3d_2, lacc=lzacc)
+      !CALL check_patch_array(typ=typ, p_patch=ptr_patch, arr=arr_sp_3d_1, lacc=lzacc)
+      !CALL check_patch_array(typ=typ, p_patch=ptr_patch, arr=arr_sp_3d_2, lacc=lzacc)
+      arr_dp_3d_1(:,:,:) = ref_arr_dp_3d_1(:,:,:) ! Restore input values
+      arr_dp_3d_2(:,:,:) = ref_arr_dp_3d_2(:,:,:) ! Restore input values
+      arr_sp_3d_1(:,:,:) = ref_arr_sp_3d_1(:,:,:) ! Restore input values
+      arr_sp_3d_2(:,:,:) = ref_arr_sp_3d_2(:,:,:) ! Restore input values
+      !$ACC END DATA
+      WRITE(message_text,'(a,i0)') "dp2sp0 passed - call_id: ", call_id
+      CALL message(method_name, message_text)
+
+      !$ACC DATA COPYIN(arr_dp_3d_1, arr_dp_3d_2, arr_sp_3d_1, arr_sp_3d_2) ASYNC(1) IF(lzacc)
+      CALL cumulative_sync_patch_array(typ, ptr_patch, arr_dp_3d_1, lacc=lzacc)
+      !CALL cumulative_sync_patch_array(typ, ptr_patch, arr_dp_3d_2, lacc=lzacc)
+      CALL cumulative_sync_patch_array(typ, ptr_patch, arr_sp_3d_1, lacc=lzacc)
+      CALL cumulative_sync_patch_array(typ, ptr_patch, arr_sp_3d_2, lacc=lzacc)
+      CALL complete_cumulative_sync(lacc=lzacc)
+      CALL check_patch_array(typ=typ, p_patch=ptr_patch, arr=arr_dp_3d_1, lacc=lzacc)
+      !CALL check_patch_array(typ=typ, p_patch=ptr_patch, arr=arr_dp_3d_2, lacc=lzacc)
+      CALL check_patch_array(typ=typ, p_patch=ptr_patch, arr=arr_sp_3d_1, lacc=lzacc)
+      CALL check_patch_array(typ=typ, p_patch=ptr_patch, arr=arr_sp_3d_2, lacc=lzacc)
+      arr_dp_3d_1(:,:,:) = ref_arr_dp_3d_1(:,:,:) ! Restore input values
+      arr_dp_3d_2(:,:,:) = ref_arr_dp_3d_2(:,:,:) ! Restore input values
+      arr_sp_3d_1(:,:,:) = ref_arr_sp_3d_1(:,:,:) ! Restore input values
+      arr_sp_3d_2(:,:,:) = ref_arr_sp_3d_2(:,:,:) ! Restore input values
+      !$ACC END DATA
+      WRITE(message_text,'(a,i0)') "dp1sp2 passed - call_id: ", call_id
+      CALL message(method_name, message_text)
+
+      !$ACC DATA COPYIN(arr_dp_3d_1, arr_dp_3d_2, arr_sp_3d_1, arr_sp_3d_2) ASYNC(1) IF(lzacc)
+      !CALL cumulative_sync_patch_array(typ, ptr_patch, arr_dp_3d_1, lacc=lzacc)
+      !CALL cumulative_sync_patch_array(typ, ptr_patch, arr_dp_3d_2, lacc=lzacc)
+      CALL cumulative_sync_patch_array(typ, ptr_patch, arr_sp_3d_1, lacc=lzacc)
+      CALL cumulative_sync_patch_array(typ, ptr_patch, arr_sp_3d_2, lacc=lzacc)
+      CALL complete_cumulative_sync(lacc=lzacc)
+      !CALL check_patch_array(typ=typ, p_patch=ptr_patch, arr=arr_dp_3d_1, lacc=lzacc)
+      !CALL check_patch_array(typ=typ, p_patch=ptr_patch, arr=arr_dp_3d_2, lacc=lzacc)
+      CALL check_patch_array(typ=typ, p_patch=ptr_patch, arr=arr_sp_3d_1, lacc=lzacc)
+      CALL check_patch_array(typ=typ, p_patch=ptr_patch, arr=arr_sp_3d_2, lacc=lzacc)
+      arr_dp_3d_1(:,:,:) = ref_arr_dp_3d_1(:,:,:) ! Restore input values
+      arr_dp_3d_2(:,:,:) = ref_arr_dp_3d_2(:,:,:) ! Restore input values
+      arr_sp_3d_1(:,:,:) = ref_arr_sp_3d_1(:,:,:) ! Restore input values
+      arr_sp_3d_2(:,:,:) = ref_arr_sp_3d_2(:,:,:) ! Restore input values
+      !$ACC END DATA
+      WRITE(message_text,'(a,i0)') "dp0sp2 passed - call_id: ", call_id
+      CALL message(method_name, message_text)
+
+      !$ACC DATA COPY(arr_dp_3d_1, arr_dp_3d_2, arr_sp_3d_1, arr_sp_3d_2) ASYNC(1) IF(lzacc)
+      !CALL cumulative_sync_patch_array(typ, ptr_patch, arr_dp_3d_1, lacc=lzacc)
+      !CALL cumulative_sync_patch_array(typ, ptr_patch, arr_dp_3d_2, lacc=lzacc)
+      !CALL cumulative_sync_patch_array(typ, ptr_patch, arr_sp_3d_1, lacc=lzacc)
+      !CALL cumulative_sync_patch_array(typ, ptr_patch, arr_sp_3d_2, lacc=lzacc)
+      CALL complete_cumulative_sync(lacc=lzacc)
+      !CALL check_patch_array(typ=typ, p_patch=ptr_patch, arr=arr_dp_3d_1, lacc=lzacc)
+      !CALL check_patch_array(typ=typ, p_patch=ptr_patch, arr=arr_dp_3d_2, lacc=lzacc)
+      !CALL check_patch_array(typ=typ, p_patch=ptr_patch, arr=arr_sp_3d_1, lacc=lzacc)
+      !CALL check_patch_array(typ=typ, p_patch=ptr_patch, arr=arr_sp_3d_2, lacc=lzacc)
+      arr_dp_3d_1(:,:,:) = ref_arr_dp_3d_1(:,:,:) ! Restore input values
+      arr_dp_3d_2(:,:,:) = ref_arr_dp_3d_2(:,:,:) ! Restore input values
+      arr_sp_3d_1(:,:,:) = ref_arr_sp_3d_1(:,:,:) ! Restore input values
+      arr_sp_3d_2(:,:,:) = ref_arr_sp_3d_2(:,:,:) ! Restore input values
+      !$ACC END DATA
+      WRITE(message_text,'(a,i0)') "dp0sp0 passed - call_id: ", call_id
+      CALL message(method_name, message_text)
+
+      !$ACC WAIT(1)
+
+    END SUBROUTINE check_cumulative_sync_patch_array
+
+    ! Helper function
+    SUBROUTINE init_arrays_from_pointer_3d(ptr_data, id, arr_dp, ref_arr_dp, &
+      &                                                  arr_sp, ref_arr_sp)
+      REAL(wp), POINTER, INTENT(INOUT) :: ptr_data(:,:,:) !< Data already allocated by ICON during setup
+      INTEGER, INTENT(IN) :: id
+      REAL(dp), ALLOCATABLE, INTENT(INOUT) :: arr_dp(:,:,:), ref_arr_dp(:,:,:)
+      REAL(sp), ALLOCATABLE, INTENT(INOUT) :: arr_sp(:,:,:), ref_arr_sp(:,:,:)
+      CHARACTER(*), PARAMETER :: method_name = "mo_test_communication:init_arrays_from_pointer_3d"
+
+      IF (.NOT. ASSOCIATED(ptr_data)) THEN
+        WRITE(message_text,'(a,i0)') "field not associated, id: ", id
+        CALL finish(method_name, message_text)
+      ENDIF
+      IF (SIZE(ptr_data)<1) THEN
+        WRITE(message_text,'(a,i0)') "zero field size, id: ", id
+        CALL finish(method_name, message_text)
+      ENDIF
+
+      ALLOCATE(arr_dp    (SIZE(ptr_data,1),SIZE(ptr_data,2),SIZE(ptr_data,3)), &
+        &      arr_sp    (SIZE(ptr_data,1),SIZE(ptr_data,2),SIZE(ptr_data,3)), &
+        &      ref_arr_dp(SIZE(ptr_data,1),SIZE(ptr_data,2),SIZE(ptr_data,3)), &
+        &      ref_arr_sp(SIZE(ptr_data,1),SIZE(ptr_data,2),SIZE(ptr_data,3)))
+      arr_dp = REAL(ptr_data, KIND=dp)
+      arr_sp = REAL(ptr_data, KIND=sp)
+      ref_arr_dp = arr_dp
+      ref_arr_sp = arr_sp
+
+    END SUBROUTINE init_arrays_from_pointer_3d
+
+    SUBROUTINE init_arrays_from_pointer_4d(ptr_data, id, arr_dp, ref_arr_dp, &
+      &                                                  arr_sp, ref_arr_sp)
+      REAL(wp), POINTER, INTENT(INOUT) :: ptr_data(:,:,:,:) !< Data already allocated by ICON during setup
+      INTEGER, INTENT(IN) :: id
+      REAL(dp), ALLOCATABLE, INTENT(INOUT) :: arr_dp(:,:,:,:), ref_arr_dp(:,:,:,:)
+      REAL(sp), ALLOCATABLE, INTENT(INOUT) :: arr_sp(:,:,:,:), ref_arr_sp(:,:,:,:)
+      ! Local vars
+      CHARACTER(*), PARAMETER :: method_name = "mo_test_communication:init_arrays_from_pointer_4d"
+      INTEGER :: ptr_shape(4)
+      INTEGER :: ierror
+
+      IF (.NOT. ASSOCIATED(ptr_data)) THEN
+        WRITE(message_text,'(a,i0)') "field not associated, id: ", id
+        CALL finish(method_name, message_text)
+      ENDIF
+
+      ! NVHPC BUG with nvhpc compilers when doing this allocate inside this subroutine.
+      !      now moved outside the subroutine as a workaround
+#ifndef __PGI
+      ptr_shape(1) = SIZE(ptr_data,1)
+      ptr_shape(2) = SIZE(ptr_data,2)
+      ptr_shape(3) = SIZE(ptr_data,3)
+      ptr_shape(4) = SIZE(ptr_data,4)
+
+      ALLOCATE(arr_dp    (ptr_shape(1),ptr_shape(2),ptr_shape(3),ptr_shape(4)), &
+        &      arr_sp    (ptr_shape(1),ptr_shape(2),ptr_shape(3),ptr_shape(4)), &
+        &      ref_arr_dp(ptr_shape(1),ptr_shape(2),ptr_shape(3),ptr_shape(4)), &
+        &      ref_arr_sp(ptr_shape(1),ptr_shape(2),ptr_shape(3),ptr_shape(4)), &
+        &      stat=ierror)
+      IF (ierror/=0) CALL finish(method_name, "allocate")
+#endif
+
+      arr_dp = REAL(ptr_data, KIND=dp)
+      arr_sp = REAL(ptr_data, KIND=sp)
+      ref_arr_dp = arr_dp
+      ref_arr_sp = arr_sp
+
+    END SUBROUTINE init_arrays_from_pointer_4d
+
+    ! Imitate update of cell centre stencils
+    SUBROUTINE do_work_c_3d(ptr_patch, arr_dp, ref_arr_dp, arr_sp, ref_arr_sp)
+      TYPE(t_patch), INTENT(IN) :: ptr_patch
+      REAL(dp), INTENT(INOUT) :: arr_dp(:,:,:), ref_arr_dp(:,:,:)
+      REAL(sp), INTENT(INOUT) :: arr_sp(:,:,:), ref_arr_sp(:,:,:)
+      ! Local vars
+      CHARACTER(*), PARAMETER :: method_name = "mo_test_communication:do_work_c_3d"
+      INTEGER :: i_startblk, i_endblk, i_startidx, slev, elev, i_endidx, rl_start, rl_end
+      INTEGER :: jb, jc, jk
+
+      slev = 1
+      elev = ptr_patch%nlev - 1
+
+      ! index bounds
+      rl_start = 1
+      rl_end   = min_rlcell ! all grid
+      !rl_end   = min_rlcell_int ! all owned grid
+      i_startblk = ptr_patch%cells%start_block(rl_start)
+      i_endblk   = ptr_patch%cells%end_block(rl_end)
+
+      DO jb = i_startblk, i_endblk
+        CALL get_indices_c(ptr_patch, jb, i_startblk, i_endblk, &
+          i_startidx, i_endidx, rl_start, rl_end)
+
+        DO jk = slev, elev
+          DO jc = i_startidx, i_endidx
+            arr_dp(jc,jk,jb) = arr_dp(jc,jk,jb) + arr_dp(jc,jk+1,jb) + 0.5_dp
+            ref_arr_dp(jc,jk,jb) = arr_dp(jc,jk,jb)
+
+            arr_sp(jc,jk,jb) = arr_sp(jc,jk,jb) + arr_sp(jc,jk+1,jb) + 0.5_sp
+            ref_arr_sp(jc,jk,jb) = arr_sp(jc,jk,jb)
+          ENDDO ! jc
+        ENDDO ! jk
+      ENDDO ! jb
+
+    END SUBROUTINE do_work_c_3d
+
+
+    SUBROUTINE print_shape_3d(id, arr_dp, arr_sp)
+      INTEGER,  INTENT(IN) :: id
+      REAL(dp), INTENT(IN) :: arr_dp(:,:,:)
+      REAL(sp), INTENT(IN) :: arr_sp(:,:,:)
+
+      WRITE(message_text,*) "SIZE(id=",id,") dp: ",SIZE(arr_dp,1),",",SIZE(arr_dp,2),",",SIZE(arr_dp,3)
+      CALL message(method_name,message_text)
+      WRITE(message_text,*) "SIZE(id=",id,") sp: ",SIZE(arr_sp,1),",",SIZE(arr_sp,2),",",SIZE(arr_sp,3)
+      CALL message(method_name,message_text)
+    END SUBROUTINE print_shape_3d
+
+    SUBROUTINE print_shape_4d(id, arr_dp, arr_sp)
+      INTEGER,  INTENT(IN) :: id
+      REAL(dp), INTENT(IN) :: arr_dp(:,:,:,:)
+      REAL(sp), INTENT(IN) :: arr_sp(:,:,:,:)
+
+      WRITE(message_text,*) "SIZE(id=",id,") dp: ",SIZE(arr_dp,1),",",SIZE(arr_dp,2),",",SIZE(arr_dp,3),",",SIZE(arr_dp,4)
+      CALL warning(method_name,message_text)
+      WRITE(message_text,*) "SIZE(id=",id,") sp: ",SIZE(arr_sp,1),",",SIZE(arr_sp,2),",",SIZE(arr_sp,3),",",SIZE(arr_sp,4)
+      CALL warning(method_name,message_text)
+    END SUBROUTINE print_shape_4d
+
+  END SUBROUTINE sync_patch_array_testbed
 
   SUBROUTINE exchange_communication_testbed(test_gpu)
 
@@ -4641,7 +5261,6 @@ CONTAINS
       INTEGER, INTENT(in) :: line
       REAL(wp), OPTIONAL, INTENT(IN) :: fill_value_w
       INTEGER, OPTIONAL, INTENT(IN) :: fill_value_i
-      INTEGER :: i
 
       CALL exchange_data(in_array=in_array_r_1d, out_array=out_array_r_1d, &
         &                gather_pattern=gather_pattern, fill_value=fill_value_w)
@@ -4696,7 +5315,6 @@ CONTAINS
       INTEGER, INTENT(in) :: line
       REAL(wp), OPTIONAL, INTENT(IN) :: fill_value_w
       INTEGER, OPTIONAL, INTENT(IN) :: fill_value_i
-      INTEGER :: i
 
       CALL exchange_data(in_array=in_array_r_1d, out_array=out_array_r_1d, &
         &                allgather_pattern=allgather_pattern, &

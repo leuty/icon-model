@@ -22,7 +22,7 @@
 #%  endif
 #SBATCH --output=%{LOG_DIR}/%x.%8j.log
 #SBATCH --time=%{JOB.time_limit}
-#%include 'mkexp/environments/'+ENVIRONMENT+'.tmpl' ignore missing
+#%include ['mkexp/environments/'+ENVIRONMENT+'.tmpl', 'mkexp/environments/DEFAULT.tmpl'] ignore missing
 
 '''\
 Create monitoring from ICON experiment data for a given period
@@ -64,7 +64,7 @@ command_line = argparse.ArgumentParser(description=__doc__.split('\n', 1)[0])
 command_line.add_argument('start_date', type=check_date, help=
     'first date of period (YYYY-MM-DD... or YYYYMMDD...)')
 command_line.add_argument('-V', '--version', action='version', version="""
-$Id: run/mkexp/defaults/DEFAULT.mon.tmpl 5 2024-07-26 07:41:48Z m221078 $
+$Id: run/mkexp/defaults/DEFAULT.mon.tmpl 6 2025-05-19 09:30:19Z m221078 $
 %{VERSIONS_|join('\n')}
 """)
 command_line.add_argument('-c', '--clean', action='store_true', help=

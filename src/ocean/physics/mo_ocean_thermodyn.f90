@@ -62,6 +62,7 @@ MODULE mo_ocean_thermodyn
   PUBLIC :: convert_insitu2pot_temp_func
   PUBLIC :: calc_neutralslope_coeff_func_onColumn_UNESCO
   PUBLIC :: calc_neutralslope_coeff_func_onColumn
+  PUBLIC :: calc_neutralslope_coeff_func_onColumn_elem
 
   REAL(wp), PARAMETER :: eosmdjwfnum(0:11) = (/                                 &
     & 9.99843699e+02_wp,  7.35212840e+00_wp, -5.45928211e-02_wp,                 &
@@ -2019,6 +2020,115 @@ CONTAINS
     ENDDO
 
   END FUNCTION calc_neutralslope_coeff_func_onColumn
+
+  FUNCTION calc_neutralslope_coeff_func_onColumn_elem(t,s,p,variant) result(coeff)
+    !$ACC ROUTINE SEQ
+    !-----------------------------------------------------------------
+    ! REFERENCES:
+    !    McDougall, T.J. 1987.  Neutral Surfaces
+    !    Journal of Physical Oceanography, Vol 17, 1950-1964,
+    !-----------------------------------------------------------------
+    ! CHECK VALUE:
+    !    sw_beta=0.72088e-3 psu^-1 @ S=40.0psu, ptmp=10.0C (ITS-90), p=4000db
+    !    a_over_b=0.34765 psu*C^-1 @ S=40.0psu, ptmp=10.0C, p=4000db
+    ! Valid Range:
+    !    S=25 to 40psu, p=0 to 4000db (ptmp=10C)
+    !                   p=0 to 1000db (ptmp=20-40C)
+    !-----------------------------------------------------------------
+    !
+    REAL(wp), INTENT(in)  :: t        !  potential temperature (in ITS-90) [C]
+    REAL(wp), INTENT(in)  :: s        !  salinity (in PSS-78) [psu]
+    REAL(wp), INTENT(in)  :: p        !  pressure (in dezi-bar) [db]
+    INTEGER               :: variant
+    REAL(wp)              :: coeff    !  thermal expansion [1/C] and saline contraction [1/psu] coefficients
+
+    ! local variables, following the naming of the FESOM implementation
+    REAL(wp):: aob, t1, t2, t3, t4, s35, s35sq, s1, s2, s3, p1, p2, p3
+
+    INTEGER :: level
+
+    !  polynomial parameter for calculation of saline contraction coeff beta
+    REAL(wp), PARAMETER :: &
+      & bet_t0   = 0.785567e-3_wp,  &
+      & bet_t1   = 0.301985e-5_wp,  &
+      & bet_t2   = 0.555579e-7_wp,  &
+      & bet_t3   = 0.415613e-9_wp,  &
+      & bet_st0  = 0.356603e-6_wp,  &
+      & bet_st1  = 0.788212e-8_wp,  &
+      & bet_sp1  = 0.408195e-10_wp, &
+      & bet_sp2  = 0.602281e-15_wp, &
+      & bet_s2   = 0.515032e-8_wp,  &
+      & bet_p1t0 = 0.121555e-7_wp,  &
+      & bet_p1t1 = 0.192867e-9_wp,  &
+      & bet_p1t2 = 0.213127e-11_wp, &
+      & bet_p2t0 = 0.176621e-12_wp, &
+      & bet_p2t1 = 0.175379e-14_wp, &
+      & bet_p3   = 0.121551e-17_wp
+
+    !  polynomial parameter for calculation of thermal expansion coefficient alpha
+    !  via fraction alpha over beta (aob)
+    REAL(wp), PARAMETER :: &
+      & aob_t0   = 0.665157e-1_wp,  &
+      & aob_t1   = 0.170907e-1_wp,  &
+      & aob_t2   = 0.203814e-3_wp,  &
+      & aob_t3   = 0.298357e-5_wp,  &
+      & aob_t4   = 0.255019e-7_wp,  &
+      & aob_st0  = 0.378110e-2_wp,  &
+      & aob_st1  = 0.846960e-4_wp,  &
+      & aob_sp1  = 0.164759e-6_wp,  &
+      & aob_sp2  = 0.251520e-11_wp, &
+      & aob_s2   = 0.678662e-5_wp,  &
+      & aob_p1t0 = 0.380374e-4_wp,  &
+      & aob_p1t1 = 0.933746e-6_wp,  &
+      & aob_p1t2 = 0.791325e-8_wp,  &
+      & aob_p2t2 = 0.512857e-12_wp, &
+      & aob_p3   = 0.302285e-13_wp
+
+    ! t1 = t
+    s1 = s
+    p1 = p
+
+   ! correction factor for conversion of 1990 to 1968 temperature standard (IPTS-68 to IPTS-90)
+   ! the correction is less than 0.01 K in ocean water temperature range
+   !  - T68 = 1.00024*T90
+   !  - above mentioned CHECK VALUES of the paper are better met by this correction
+    t1 = t * 1.00024_wp
+
+    t2    = t1 * t1
+    t3    = t2 * t1
+    t4    = t3 * t1
+    p2    = p1 * p1
+    p3    = p2 * p1
+    s35   = s - 35.0_wp
+    s35sq = s35 * s35
+
+    ! calculate beta, saline contraction
+    coeff = bet_t0 - bet_t1*t1                            &
+      &      + bet_t2*t2 - bet_t3*t3                      &
+      &      + s35*(-bet_st0    + bet_st1*t1              &
+      &      +       bet_sp1*p1 - bet_sp2*p2)             &
+      &      + s35sq*bet_s2                               &
+      &      + p1*(-bet_p1t0 + bet_p1t1*t1 - bet_p1t2*t2) &
+      &      + p2*( bet_p2t0 - bet_p2t1*t1)               &
+      &      + p3*bet_p3
+
+    IF (variant == 1) THEN
+      ! calculate alpha/beta
+      aob = aob_t0 + aob_t1*t1                                 &
+        &         - aob_t2*t2 + aob_t3*t3                      &
+        &         - aob_t4*t4                                  &
+        &         + s35*(+aob_st0    - aob_st1*t1              &
+        &                -aob_sp1*p1 - aob_sp2*p2)             &
+        &         - s35sq*aob_s2                               &
+        &         + p1*(+aob_p1t0 - aob_p1t1*t1 + aob_p1t2*t2) &
+        &         + p2*t2*aob_p2t2                             &
+        &         - p3*aob_p3
+
+      ! calculate alpha, thermal expansion
+      coeff = aob * coeff
+    END IF
+
+  END FUNCTION calc_neutralslope_coeff_func_onColumn_elem
 
 
   !-------------------------------------------------------------------------

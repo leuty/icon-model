@@ -27,6 +27,6 @@ makeflags="--jobs=${job_count} --no-print-directory --output-sync=target V=1"
 
 set -x
 
-${icon_dir}/config/csc/lumi.gpu.cce --enable-ecrad
+${icon_dir}/config/csc/lumi.gpu.cce --enable-ecrad --enable-testbed
 
 make ${makeflags}

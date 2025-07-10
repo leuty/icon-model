@@ -84,7 +84,11 @@ CONTAINS
     REAL(KIND=wp) :: alpha, beta, omega, tol, tol2
     REAL(KIND=wp) :: rh_glob, rh_glob_o, r0v_glob, ts_glob, tt_glob, rn
     INTEGER :: nidx_e, nblk, iblk, k, m, k_final
+#if defined(_OPENACC) || defined(__NO_CONT_SOLV_OCE__)
+    REAL(KIND=wp), POINTER, DIMENSION(:,:) :: &
+#else
     REAL(KIND=wp), POINTER, DIMENSION(:,:), CONTIGUOUS :: &
+#endif
       & x, b, r0, r, v, p, ta1, s, ta2
     LOGICAL :: done, lzacc
 

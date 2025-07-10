@@ -110,6 +110,7 @@ $addexp "checksuite.icon-dev/check.atm_sma"                --machines "levante" 
 ./rmexp "checksuite.icon-dev/check.atm_sma"                --builders "levante_intel_hybrid_mixed" --list $listname
 #
 $addexp "checksuite.icon-dev/check.atm_bubble_test"        --machines "levante" --list $listname --runflags "ntasks=16 queue=shared"
+$addexp "checksuite.atm/bubble.config"                     --builders "levante_intel_hybrid" --list $listname --runflags "EXP_OPTIONS=buildbot"
 $addexp "checksuite.icon-dev/check.atm_bubble_test_update" --machines "levante" --list $listname --runflags "ntasks=16 queue=shared"
 ./rmexp "checksuite.icon-dev/check.atm_bubble_test_update" --builders "levante_nag_serial" --list $listname
 $addexp "checksuite.icon-dev/check.atm_bubble_land_test"   --machines "levante" --list $listname --runflags "ntasks=16 queue=shared"
@@ -225,6 +226,8 @@ $addexp checksuite.nwp/nwpexp.run_ICON_20_R2B4_R2B6_AO_coupled                 -
 $addexp checksuite.nwp/nwpexp.run_ICON_26_R2B4_R2B6_AO-HD_coupled              --builders dwd_nec_coupling --list $listname
 # atmo-wave coupled test
 $addexp checksuite.nwp/nwpexp.run_ICON_23_R2B4_atmo_waves_coupled              --builders dwd_nec_coupling --list $listname
+# GRIB-IO in both AO
+$addexp checksuite.nwp/nwpexp.run_ICON_29_R2B5_R2B6_AO_coupled_gribInitOce     --builders dwd_nec_coupling --list $listname
 
 # DWD_hybrid
 $addexp checksuite.nwp/nwpexp.run_ICON_11_R3B08_lam_initmode7_restarttest      --builders dwd_nec_hybrid --list $listname
@@ -326,6 +329,8 @@ $addexp exp.atm_tracer_Hadley --builders "${NVHPC_CPU_BUILDERS}" --list ${listna
 # add ocean_omip test for GPU
 $addexp "checksuite.ocean_internal/gpu/exp.ocean_omip_R2B4_V0_GM0"  --builders "${NVHPC_CPU_BUILDERS} ${NVHPC_GPU_BUILDERS}" --list $listname --runflags "cpu_time=00:10:00"
 $addexp "checksuite.ocean_internal/gpu/exp.ocean_omip_R2B4_V1_GM0"  --builders "${NVHPC_CPU_BUILDERS} ${NVHPC_GPU_BUILDERS}" --list $listname --runflags "cpu_time=00:10:00"
+$addexp "checksuite.ocean_internal/gpu/exp.ocean_omip_R2B4_V0_GM0_icono"  --builders "${NVHPC_CPU_BUILDERS} ${NVHPC_GPU_BUILDERS}" --list $listname --runflags "cpu_time=00:10:00"
+
 
 $addexp  checksuite.infrastructure/checkExternals/exp.check_externals_LEVANTE.run     --builders "${NVHPC_CPU_BUILDERS}" --list ${listname}
 $addexp  checksuite.infrastructure/checkExternals/exp.check_externals_LEVANTE_gpu.run --builders "${NVHPC_GPU_BUILDERS}" --list ${listname}
@@ -364,8 +369,7 @@ $addexp checksuite.icon-dev/check.land_quincy_canopy_test --builders "levante_na
 
 # aurora node at DKRZ - not in production,yet
 ./set_builder_flags Active --builders 'levante_aurora' --list $listname
-$addexp "checksuite.infrastructure/aurora/exp.icon_esm_r2b4.run" --builders "levante_aurora" --list $listname
-$addexp "checksuite.infrastructure/aurora/exp.icon_atm_r2b4.run" --builders "levante_aurora" --list $listname
+$addexp "checksuite.infrastructure/aurora/exp.aes_bubble_test.run" --builders "levante_aurora" --list $listname
 $addexp "checksuite.infrastructure/aurora/exp.host_and_vector_only_tests.run" --builders "levante_aurora" --list $listname
 
 # HoreKa at KIT
@@ -373,15 +377,37 @@ $addexp "checksuite.infrastructure/aurora/exp.host_and_vector_only_tests.run" --
 $addexp "exp.dwd_run_ICON_09_R2B4N5_EPS" --builders "horeka_gcc horeka_intel" --list $listname
 $addexp "checksuite.icon-dev/check.dwd_art_dustrad_R2B4N5" --builders "horeka_gcc horeka_intel horeka_cpu_nvhpc" --list $listname
 
-# Lumi at CSC
-$addexp exp.atm_tracer_Hadley_R2B4 --builders 'lumi_cpu' --list ${listname} --runflags="queue=debug"
-$addexp exp.atm_tracer_Hadley_R2B4 --builders 'lumi_gpu' --list ${listname} --runflags="queue=dev-g"
+# LUMI at CSC
+$addexp "exp.atm_tracer_Hadley_R2B4"                       --builders 'lumi_cpu' --list $listname --runflags "queue=debug"
+$addexp "exp.atm_tracer_Hadley_R2B4"                       --builders 'lumi_gpu' --list $listname --runflags "queue=dev-g"
+$addexp "checksuite.icon-dev/check.aes_amip_test"          --builders "lumi_cpu" --list $listname --runflags "queue=debug"
+$addexp "checksuite.icon-dev/check.atm_bubble_test"        --builders "lumi_cpu" --list $listname --runflags "queue=debug ntasks=16"
+$addexp "checksuite.icon-dev/check.atm_bubble_test"        --builders "lumi_gpu" --list $listname --runflags "queue=dev-g ntasks=16"
+$addexp "checksuite.icon-dev/check.atm_qubicc_nofor"       --builders "lumi_cpu" --list $listname --runflags "queue=debug"
+$addexp "checksuite.icon-dev/check.atm_qubicc_nofor"       --builders "lumi_gpu" --list $listname --runflags "queue=dev-g"
+
+$addexp "checksuite.ocean_internal/ShallowWater/exp.ocean_WilliamsonTestCase2_Hex"  --builders "lumi_cpu" --list $listname --runflags "queue=debug"
+$addexp "checksuite.ocean_internal/omip/exp.test_ocean_zstar_omip_10days"           --builders "lumi_cpu" --list $listname --runflags "queue=debug"
 
 # Communication tests
 $addexp checksuite.infrastructure/testbed/exp.icon-testbed_communication_yaxt --builders 'levante_gpu_nvhpc' --list $listname
 $addexp checksuite.infrastructure/testbed/exp.icon-testbed_communication_orig --builders 'levante_gpu_nvhpc' --list $listname
 $addexp checksuite.infrastructure/testbed/exp.icon-testbed_communication_yaxt --builders 'levante_intel_hybrid' --list $listname --runflags "queue=shared,compute ntasks=8 memory=32G"
 $addexp checksuite.infrastructure/testbed/exp.icon-testbed_communication_orig --builders 'levante_intel_hybrid' --list $listname --runflags "queue=shared,compute ntasks=16 memory=32G"
+
+# Sync tests
+for builder in levante_gcc levante_intel_hybrid levante_cpu_nvhpc levante_gpu_nvhpc levante_aurora levante_nag \
+               dwd_nec_coupling mpimacc_gcc
+do
+    $addexp "checksuite.infrastructure/testbed/exp.icon-testbed_sync" --builders "${builder}" --list ${listname}
+done
+$addexp "checksuite.infrastructure/testbed/exp.icon-testbed_sync" --builders "breeze_gcc breeze_intel" --list ${listname} --runflags "mpi_procs_pernode=4"
+$addexp "checksuite.infrastructure/testbed/exp.icon-testbed_sync" --builders "lumi_gpu"                --list ${listname} --runflags "queue=dev-g"
+$addexp "checksuite.infrastructure/testbed/exp.icon-testbed_sync" --builders "lumi_cpu"                --list ${listname} --runflags "queue=debug"
+
+# Activate all single-precision builders as build-only (exception dwd_nec_sp disabled)
+SINGLE_PRECISION_BUILDERS="levante_gcc_sp levante_intel_hybrid_sp levante_nag_sp levante_gpu_nvhpc_sp lumi_cpu_sp mpimac_gcc_sp"
+./set_builder_flags build_only --builders "${SINGLE_PRECISION_BUILDERS}" --list $listname
 
 #lets see the list
 ./lslist $listname

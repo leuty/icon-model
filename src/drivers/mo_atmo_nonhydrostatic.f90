@@ -133,9 +133,11 @@ USE mo_aes_phy_init,        ONLY: init_aes_phy_params, init_aes_phy_external, &
 USE mo_aes_phy_cleanup,     ONLY: cleanup_aes_phy
 USE mo_interface_aes_tmx,   ONLY: init_tmx
 #endif
+
 #ifndef __NO_JSBACH__
   USE mo_jsb_model_init,    ONLY: jsbach_init_after_restart
 #endif
+
 ! Needed for upper atmosphere configuration
 USE mo_sleve_config,        ONLY: flat_height
 USE mo_io_units,            ONLY: filename_max
@@ -327,7 +329,7 @@ CONTAINS
     INTEGER :: jg, ist, jt
 
     TYPE(t_sim_step_info) :: sim_step_info
-    REAL(wp) :: sim_time
+    REAL(wp) :: sim_time, dt_loc
     TYPE(t_key_value_store), POINTER :: restartAttributes
     CHARACTER(LEN=filename_max) :: model_base_dir
     INTEGER :: seed_size, i
@@ -457,7 +459,6 @@ CONTAINS
        &  ANY(aes_phy_config(:)%dt_rad /= '')) THEN
       CALL construct_bc_aeropt_splumes_memory ( p_patch(1:) )
     END IF
-
 #endif
     END IF
 
@@ -907,7 +908,8 @@ CONTAINS
 #ifndef __NO_AES__
     DO jg =1,n_dom
       IF (aes_vdf_config(jg)%use_tmx) THEN
-        CALL init_tmx(p_patch(jg), dtime)
+        dt_loc = time_config%get_model_timestep_sec(p_patch(jg)%nest_level)
+        CALL init_tmx(p_patch(jg), dt_loc)
       END IF
     END DO
 #endif

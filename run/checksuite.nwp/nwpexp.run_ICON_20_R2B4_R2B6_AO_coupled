@@ -1045,7 +1045,7 @@ if [[ "$output_oce_grib" == "yes" ]]; then
                                                                 ! 2: climate mode (absolute t-axis)
   include_last               = .FALSE.
   output_grid                = .TRUE.
-  ml_varlist                 = 'zos','to_k','so','u','v','hi','hs','conc','column_thick_c','rho','rhopot','delhi','ice_u','ice_v',
+  ml_varlist                 = 'zos','SWPT','so','u','v','hi','hs','conc','column_thick_c','rho','rhopot','delhi','ice_u','ice_v',
                                'normal_velocity','stretch_c','mld','mlotst'
 /
 EOF

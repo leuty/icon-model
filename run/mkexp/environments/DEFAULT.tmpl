@@ -11,7 +11,7 @@
 #
 # Setup for generic system
 #
-# $Id: run/mkexp/environments/DEFAULT.tmpl 1 2025-03-04 15:02:22Z m221078 $
+# $Id: run/mkexp/environments/DEFAULT.tmpl 2 2025-05-19 09:22:30Z m221078 $
 #
 
 #%  for var in JOB.env:
@@ -28,3 +28,4 @@ unset %{var}%{' '+inline_comment if inline_comment}
 #%  endfor
 
 exec < /dev/null > %{LOG_DIR}/%{JOB.log_file} 2>&1
+#%#

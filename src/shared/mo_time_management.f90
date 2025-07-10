@@ -45,7 +45,9 @@ MODULE mo_time_management
     &                                    set_tc_dt_model, set_tc_timeshift,                &
     &                                    calendar_index2string
   USE mo_run_config,               ONLY: dtime, mtime_modelTimeStep => modelTimeStep
-  USE mo_master_control,           ONLY: my_process_is_atmo, my_process_is_waves
+
+  USE mo_master_control,           ONLY: my_process_is_atmo, my_process_is_ocean, &
+    &                                    my_process_is_waves
   USE mo_impl_constants,           ONLY: max_dom,                                          &
     &                                    dtime_proleptic_gregorian => proleptic_gregorian, &
     &                                    dtime_cly360              => cly360,              &
@@ -73,7 +75,6 @@ MODULE mo_time_management
   USE mo_nonhydrostatic_config,    ONLY: divdamp_order
   USE mo_atm_phy_nwp_config,       ONLY: atm_phy_nwp_config
 #endif
-
 
   IMPLICIT NONE
 
@@ -666,7 +667,9 @@ CONTAINS
     !
     ! timeshift-operations for CURRENT DATE
     !
-    IF (my_process_is_atmo() .OR. my_process_is_waves()) THEN
+
+    IF (my_process_is_atmo() .OR. my_process_is_waves() &
+      & .OR. my_process_is_ocean() ) THEN
 
       ! A timeshift can be used to shift the current model date, and thus
       ! the actual start date by time_config%timeshift%dt_shift backwards in time.
@@ -683,6 +686,7 @@ CONTAINS
       ! If needed, round dt_shift to the nearest integer multiple of the
       ! advection time step.
       !
+
       IF (time_config%timeshift%dt_shift < 0._wp) THEN
         zdt_shift = REAL(NINT(time_config%timeshift%dt_shift/dtime),wp)*dtime
         IF (ABS((time_config%timeshift%dt_shift-zdt_shift)/zdt_shift) > 1.e-10_wp) THEN
@@ -718,7 +722,7 @@ CONTAINS
           CALL deallocateDatetime(mtime_cur_datetime)
         ENDIF
       ENDIF
-    ENDIF  !my_process_is_atmo
+    ENDIF  !my_process_is_atmo or ocean or waves
 
 
     ! --- --- STOP DATE:

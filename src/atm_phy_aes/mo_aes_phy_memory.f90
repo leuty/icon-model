@@ -23,6 +23,7 @@
 !NEC$ options "-O1"
 
 MODULE mo_aes_phy_memory
+#if !defined(__NO_AES__) || !defined(__NO_ICON_UPATMO__) || defined(__ICON_ART)
 
   USE mo_kind,                ONLY: wp
   USE mo_impl_constants,      ONLY: SUCCESS, vname_len,        &
@@ -329,7 +330,8 @@ MODULE mo_aes_phy_memory
     ! CO2
     REAL(wp),POINTER :: &
       & co2_flux_tile   (:,:,:)=>NULL(),  &!< CO2 flux on tiles (land, ocean)
-      & fco2nat         (:,  :)=>NULL()    !< Surface Carbon Mass Flux into the Atmosphere Due to Natural Sources
+      & fco2nat         (:,  :)=>NULL(),  &!< Surface Carbon Mass Flux into the Atmosphere Due to Natural Sources
+      & fco2ant         (:,  :)=>NULL()    !< Surface Carbon Mass Flux into the Atmosphere Due to Anthropogenic  ources
 
     TYPE(t_ptr_2d_wp),ALLOCATABLE :: co2_flux_tile_ptr(:)
 
@@ -505,6 +507,9 @@ MODULE mo_aes_phy_memory
       & rlut_gmean   (:)=>NULL(),      &!< [W/m2] global mean toa outgoing longwave radiation
       & prec_gmean   (:)=>NULL(),      &!< [kg/m2/s] global mean precipitation flux
       & evap_gmean   (:)=>NULL(),      &!< [kg/m2/s] global mean evaporation flux
+      & carbon_gsum  (:)=>NULL(),      &!< [GT C] global total mass of carbon
+      & co2_gmean    (:)=>NULL(),      &!< [kg CO2/m2] global mean mass of CO2
+      & co2flx_gmean (:)=>NULL(),      &!< [kg CO2/m2/s] global mean CO2 flux (anthropogenic and natural)
       & radtop_gmean (:)=>NULL(),      &!< [W/m2] global mean toa net total radiation, derived variable
       & radbot_gmean (:)=>NULL(),      &!< [W/m2] global mean surface net total radiation, derived variable
       & radbal_gmean (:)=>NULL(),      &!< [W/m2] global mean net radiative flux into atmosphere, derived variable
@@ -2289,6 +2294,16 @@ CONTAINS
     !
     ! CO2
 
+    cf_desc = t_cf_var('fco2ant', 'kg m-2 s-1',                                &
+                & 'Surface Carbon Mass Flux into the Atmosphere Due to Anthropogenic Sources', datatype_flt)
+    grib2_desc = grib2_var(255,255,255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+
+    CALL add_var( field_list, prefix//'fco2ant', field%fco2ant,                &
+                & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,     &
+                & lrestart = .TRUE., initval =  0.0_wp, ldims=shape2d,         &
+                & lopenacc=.TRUE. )
+    __acc_attach(field%fco2ant)
+
     cf_desc = t_cf_var('fco2nat', 'kg m-2 s-1',                                &
                 & 'Surface Carbon Mass Flux into the Atmosphere Due to Natural Sources', datatype_flt)
     grib2_desc = grib2_var(255,255,255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
@@ -2297,9 +2312,9 @@ CONTAINS
                 & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,     &
                 & lrestart = .TRUE., initval =  0.0_wp, ldims=shape2d,         &
                 & lopenacc=.TRUE. )
-
     __acc_attach(field%fco2nat)
 
+    ! co2_flux_tile contains only the natural emissions on the tiles, fco2nat is the grid box average
     ! &       field% co2_flux_tile(nproma,nblks,nsfc_type), &
     CALL add_var( field_list, prefix//'co2_flux_tile', field%co2_flux_tile,         &
                 & GRID_UNSTRUCTURED_CELL, ZA_SURFACE,                          &
@@ -4188,6 +4203,30 @@ CONTAINS
                 & lopenacc=.TRUE.)
     __acc_attach(field%evap_gmean)
 
+    cf_desc    = t_cf_var('carbon_gsum', 'GT C', 'global mass of carbon', datatype_flt,'carbon_gsum')
+    grib2_desc = grib2_var(255,255,255, ibits, GRID_UNSTRUCTURED, GRID_LONLAT)
+    CALL add_var( field_list, prefix//'carbon_gsum', field%carbon_gsum,            &
+                & GRID_LONLAT, ZA_SURFACE, cf_desc, grib2_desc,                &
+                & lrestart = .FALSE., ldims=(/1/),                             &
+                & lopenacc=.TRUE.)
+    __acc_attach(field%carbon_gsum)
+
+    cf_desc    = t_cf_var('co2_gmean', 'kg CO2 m-2', 'global mean of CO2 mass', datatype_flt,'co2_gmean')
+    grib2_desc = grib2_var(255,255,255, ibits, GRID_UNSTRUCTURED, GRID_LONLAT)
+    CALL add_var( field_list, prefix//'co2_gmean', field%co2_gmean,            &
+                & GRID_LONLAT, ZA_SURFACE, cf_desc, grib2_desc,                &
+                & lrestart = .FALSE., ldims=(/1/),                             &
+                & lopenacc=.TRUE.)
+    __acc_attach(field%co2_gmean)
+
+    cf_desc    = t_cf_var('co2flx_gmean', 'kg CO2 m-2', 'global mean of CO2 flux', datatype_flt,'co2flx_gmean')
+    grib2_desc = grib2_var(255,255,255, ibits, GRID_UNSTRUCTURED, GRID_LONLAT)
+    CALL add_var( field_list, prefix//'co2flx_gmean', field%co2flx_gmean,            &
+                & GRID_LONLAT, ZA_SURFACE, cf_desc, grib2_desc,                &
+                & lrestart = .FALSE., ldims=(/1/),                             &
+                & lopenacc=.TRUE.)
+    __acc_attach(field%co2flx_gmean)
+
 !   derived variable
     cf_desc    = t_cf_var('radtop_gmean', 'W m-2', 'global mean toa net total radiation', datatype_flt,'radtop_gmean')
     grib2_desc = grib2_var(255,255,255, ibits, GRID_UNSTRUCTURED, GRID_LONLAT)
@@ -4845,4 +4884,5 @@ CONTAINS
   END SUBROUTINE new_aes_phy_tend_list
   !-------------
 
+#endif
 END MODULE mo_aes_phy_memory

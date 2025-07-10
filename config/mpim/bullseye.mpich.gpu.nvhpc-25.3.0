@@ -58,7 +58,7 @@ ICON_FCFLAGS='-O2'
 
 # CUDA compiler must be from the same prefix as the Fortran compiler:
 CUDACXX="$(cd "$(dirname "$(eval "${BUILD_ENV}" >/dev/null; ${FC} -show | sed 's: .*$::')")/../.."; pwd)/cuda/11.8/bin/nvcc"
-CUDAFLAGS='-arch=sm_61 -g -O3'
+CUDAFLAGS="-ccbin=${CXX} -arch=sm_61 -g -O3"
 
 LDFLAGS="-c++libs -cuda -L${gcc_root}/lib64 ${RTTOV_LDFLAGS-} -L${sw_root}/lib"
 # The configure scripts of some of the bundled libraries (e.g. SCT) are
@@ -75,7 +75,12 @@ LIBS="-lxml2 -lfyaml -lSerialboxFortran -leccodes_f90 -leccodes ${RTTOV_LIBS-} -
 
 MPI_LAUNCH='mpiexec'
 
-EXTRA_CONFIG_ARGS='--enable-gpu --enable-dim-swap --enable-grib2'
+EXTRA_CONFIG_ARGS="\
+--enable-gpu \
+--enable-dim-swap \
+--enable-grib2 \
+--enable-bundled-python=mtime \
+"
 
 ################################################################################
 

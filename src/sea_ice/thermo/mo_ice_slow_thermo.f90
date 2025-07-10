@@ -123,12 +123,13 @@ CONTAINS
     ! totalsnowfall is applied in ice_growth_*
     DO jb = 1,p_patch%nblks_c
       CALL get_index_range(p_patch%cells%all, jb, i_startidx_c, i_endidx_c)
-      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) IF(lzacc)
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
       DO jc = i_startidx_c,i_endidx_c
         ice%totalsnowfall(jc, jb) =  atmos_fluxes%rpreci(jc, jb) * dtime
       END DO
       !$ACC END PARALLEL LOOP
     END DO
+    !$ACC WAIT(1)
 
     ! thick ice growth/melt (K-classes): calculates ice%hs, ice%hi, ice%heatOceI
     !-------------------------------------------------------------------------------
@@ -146,12 +147,13 @@ CONTAINS
 
     DO jb = 1,p_patch%nblks_c
       CALL get_index_range(p_patch%cells%all, jb, i_startidx_c, i_endidx_c)
-      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) IF(lzacc)
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
       DO jc = i_startidx_c,i_endidx_c
         ice%totalsnowfall(jc, jb) =  ice%totalsnowfall(jc, jb) * ice%concSum(jc, jb)
       END DO
       !$ACC END PARALLEL LOOP
     END DO
+    !$ACC WAIT(1)
 
     !-------------------------------------------------------------------------------
     CALL dbg_print('IceSlow: aftZero: totalSnF', ice%totalsnowfall, str_module, 3, in_subset=p_patch%cells%owned)
@@ -244,9 +246,14 @@ CONTAINS
 
     !$ACC DATA CREATE(AvailMLHeat) IF(lzacc)
 
-    !$ACC KERNELS DEFAULT(PRESENT) IF(lzacc)
-    AvailMLHeat(:,:) = 0.0_wp
-    !$ACC END KERNELS
+    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
+    DO jb = 1, p_patch%alloc_cell_blocks
+      DO jc = 1, nproma
+        AvailMLHeat(jc,jb) = 0.0_wp
+      END DO
+    END DO
+    !$ACC END PARALLEL LOOP
+    !$ACC WAIT(1)
     !-------------------------------------------------------------------------------
     CALL dbg_print('IceOpenOcean bef: SST',     sst,            str_module, 4, in_subset=p_patch%cells%owned)
     CALL dbg_print('IceOpenOcean bef: newice',  ice%newice,     str_module, 4, in_subset=p_patch%cells%owned)
@@ -256,7 +263,7 @@ CONTAINS
     !TODOram: openmp
     DO jb = all_cells%start_block, all_cells%end_block
       CALL get_index_range(all_cells, jb, i_startidx_c, i_endidx_c)
-      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) IF(lzacc)
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
       DO jc = i_startidx_c, i_endidx_c
         IF (all_cells%vertical_levels(jc,jb) < 1) CYCLE ! Ocean points only
 
@@ -292,6 +299,7 @@ CONTAINS
       END DO
       !$ACC END PARALLEL LOOP
     END DO
+    !$ACC WAIT(1)
 
     !$ACC END DATA
 
@@ -346,20 +354,26 @@ CONTAINS
 
     !$ACC DATA CREATE(fi1, fi2, fi3, snowiceave, icegrowave, snowmelted) IF(lzacc)
 
-    !$ACC KERNELS DEFAULT(PRESENT) IF(lzacc)
-    fi1         (:,:) = 0.0_wp
-    fi2         (:,:) = 0.0_wp
-    fi3         (:,:) = 0.0_wp
-    snowiceave  (:,:) = 0.0_wp
-    icegrowave  (:,:) = 0.0_wp
-    snowmelted  (:,:) = 0.0_wp
-    !$ACC END KERNELS
+    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
+    DO jb = 1, p_patch%alloc_cell_blocks
+      DO jc = 1, nproma
+        fi1         (jc,jb) = 0.0_wp
+        fi2         (jc,jb) = 0.0_wp
+        fi3         (jc,jb) = 0.0_wp
+        snowiceave  (jc,jb) = 0.0_wp
+        icegrowave  (jc,jb) = 0.0_wp
+        snowmelted  (jc,jb) = 0.0_wp
+      END DO
+    END DO
+    !$ACC END PARALLEL LOOP
+    !$ACC WAIT(1)
+
     !-------------------------------------------------------------------------------
 
   !TODOram: openmp
     DO jb = all_cells%start_block, all_cells%end_block
       CALL get_index_range(all_cells, jb, i_startidx_c, i_endidx_c)
-      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) IF(lzacc)
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
       DO jc = i_startidx_c, i_endidx_c
         IF (all_cells%vertical_levels(jc,jb) < 1) CYCLE ! Ocean points only
 
@@ -423,6 +437,7 @@ CONTAINS
       END DO
       !$ACC END PARALLEL LOOP
     END DO
+    !$ACC WAIT(1)
 
     !$ACC END DATA
 
@@ -560,13 +575,18 @@ CONTAINS
     ! surface layer thickness, same as patch_3d%p_patch_1d(1)%prism_thick_flat_sfc_c(:,1,:)
     prism_thick_flat = v_base%del_zlev_m(1)
     ! sea surface salinity
-    !$ACC KERNELS DEFAULT(PRESENT) IF(lzacc)
-    sss(:,:)  =  p_os%p_prog(nold(1))%tracer(:,1,:,2)
-    !$ACC END KERNELS
+    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
+    DO jb = 1, p_patch%alloc_cell_blocks
+      DO jc = 1, nproma
+        sss(jc,jb)  =  p_os%p_prog(nold(1))%tracer(jc,1,jb,2)
+      END DO
+    END DO
+    !$ACC END PARALLEL LOOP
+    !$ACC WAIT(1)
 
     DO jb = all_cells%start_block, all_cells%end_block
       CALL get_index_range(all_cells, jb, i_startidx_c, i_endidx_c)
-      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) IF(lzacc)
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
       DO jc = i_startidx_c, i_endidx_c
 
         DO k = 1, p_ice%kice
@@ -613,6 +633,7 @@ CONTAINS
       ENDDO
       !$ACC END PARALLEL LOOP
     ENDDO
+    !$ACC WAIT(1)
 
     !$ACC END DATA
 
@@ -657,7 +678,7 @@ CONTAINS
 
     DO jb = all_cells%start_block, all_cells%end_block
       CALL get_index_range(all_cells, jb, i_startidx_c, i_endidx_c)
-      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) IF(lzacc)
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
       DO jc = i_startidx_c, i_endidx_c
 
         DO k = 1, p_ice%kice
@@ -706,6 +727,7 @@ CONTAINS
       ENDDO
       !$ACC END PARALLEL LOOP
     ENDDO
+    !$ACC WAIT(1)
 
     !---------DEBUG DIAGNOSTICS-------------------------------------------
     CALL dbg_print('iceClUp: hi aft. limiter'     ,p_ice%hi       ,str_module, 3, in_subset=p_patch%cells%owned)
@@ -734,8 +756,8 @@ CONTAINS
     ! initialize ice-growth-related variables with zeros
     DO jb = 1, p_patch%nblks_c
       CALL get_index_range(p_patch%cells%all, jb, i_startidx_c, i_endidx_c)
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
       DO k=1,ice%kice
-        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) IF(lzacc)
         DO jc = i_startidx_c,i_endidx_c
           ice % zHeatOceI   (jc, k, jb) = 0._wp
           ice % heatOceI    (jc, k, jb) = 0._wp
@@ -750,9 +772,10 @@ CONTAINS
             ice % totalsnowfall (jc, jb) = 0._wp
           END IF
         END DO
-        !$ACC END PARALLEL LOOP
       END DO
+      !$ACC END PARALLEL LOOP
     END DO
+    !$ACC WAIT(1)
 
   END SUBROUTINE ice_growth_init
 

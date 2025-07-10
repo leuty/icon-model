@@ -15,7 +15,8 @@ MODULE mo_ocean_nml
 !-------------------------------------------------------------------------
   USE mo_kind,               ONLY: wp, sp
   USE mo_exception,          ONLY: message, warning, message_text, finish
-  USE mo_impl_constants,     ONLY: max_char_length, INIT_FROM_RESTART
+  USE mo_impl_constants,     ONLY: max_char_length, INIT_FROM_RESTART, vname_len, &
+      &                            max_var_ml
   USE mo_io_units,           ONLY: nnml, nnml_output
   USE mo_namelist,           ONLY: position_nml, positioned, open_nml, close_nml
   USE mo_mpi,                ONLY: my_process_is_stdio
@@ -31,6 +32,8 @@ MODULE mo_ocean_nml
        &                       datetimeToString, OPERATOR(+),&
        &                       getTimeDeltaFromDateTime, getTotalSecondsTimeDelta
   USE mo_master_config,      ONLY: my_model_do_restart
+  USE mo_time_config,        ONLY: set_tc_timeshift
+
 
 #ifndef __NO_ICON_ATMO__
   USE mo_coupling_config,    ONLY: is_coupled_to_atmo
@@ -205,6 +208,7 @@ MODULE mo_ocean_nml
   INTEGER, PARAMETER :: select_gmres_r = 2  ! GMRES restart
   INTEGER, PARAMETER :: select_gmres_mp_r = 3 ! GMRES restart mixed precision
   INTEGER, PARAMETER :: select_cg = 4 ! conjugate gradients - Fletcher-Reeves
+  INTEGER, PARAMETER :: select_cgo = 40 ! conjugate gradients - Fletcher-Reeves + Optimisations (LAWN56)
   INTEGER, PARAMETER :: select_cgj = 5  ! conjugate gradients - Fletcher-Reeves + Jacobi-Preconditioner
   INTEGER, PARAMETER :: select_bcgs = 6 ! bi-conjugate gradients (stabilized)
   INTEGER, PARAMETER :: select_legacy_gmres = 7  ! GMRES restart former implementation, but in updated calling infrastructure (l_lhs_direct must be true)
@@ -913,6 +917,10 @@ MODULE mo_ocean_nml
 
   !----------------------------------------------------------------------------
   ! initial conditions
+
+  ! Variables of that type contain a list of all mandatory input fields
+  ! This list can include a subset or the entire set of mandatory fields.
+
   LOGICAL  :: use_file_initialConditions  = .false.
   REAL(wp) :: initial_temperature_top     = 16.0_wp    ! reference temperature used for initialization in testcase 46
   REAL(wp) :: initial_temperature_bottom  = 16.0_wp    ! reference temperature used for initialization in testcase 46
@@ -948,6 +956,20 @@ MODULE mo_ocean_nml
   REAL(wp) :: initial_perturbation_waveNumber = 2.0_wp
   REAL(wp) :: initial_perturbation_max_ratio  = 0.05_wp
   LOGICAL  :: initialize_fromRestart = .false.
+  LOGICAL  :: use_initicono = .false. !true if data assimilation is used or first guess file is read
+  REAL(wp) :: dt_iau_oce = 0._wp !Time window for incr. analysis update
+  REAL(wp) :: dt_ana_oce = 0._wp !Time window for assimilation cycle
+  REAL(wp) :: dt_shift_oce = 0._wp ! Offset for incr. analysis update
+  INTEGER :: type_iau_wgt_oce = 1 !IAU weighting function (const.)
+  CHARACTER(LEN= max_char_length) :: ana_filename = "<path>dwdana_R<nroot>B<jlev>_DOM<idom>_oce.grb" !analysis file
+  CHARACTER(LEN= max_char_length) :: fg_filename = "<path>dwdFG_R<nroot>B<jlev>_DOM<idom>_oce.grb"!first-guess file
+  INTEGER  :: init_mode_oce = 1
+  LOGICAL  :: lread_ana_oce = .false.
+  LOGICAL  :: lconsistency_checks_oce = .true.
+  CHARACTER(LEN=vname_len) :: check_fg_oce(max_var_ml) = " "
+  CHARACTER(LEN=vname_len) :: check_ana_oce(max_var_ml) = " "
+  CHARACTER(LEN= max_char_length) :: ana_varnames_map_file_oce = " "
+
 
   ! test cases for ocean model; for the index see run scripts
   INTEGER            :: itestcase_oce  = 0
@@ -983,8 +1005,23 @@ MODULE mo_ocean_nml
     & initial_temperature_scale_depth, &
     & initial_perturbation_waveNumber, &
     & initial_perturbation_max_ratio,  &
-    & initialize_fromRestart
-  !----------------------------------------------------------------------------
+    & initialize_fromRestart     , &
+    & use_initicono              , &
+    & dt_iau_oce                 , &
+    & dt_ana_oce                 , &
+    & dt_shift_oce               , &
+    & type_iau_wgt_oce           , &
+    & ana_filename               , &
+    & fg_filename                , &
+    & init_mode_oce              , &
+    & lread_ana_oce              , &
+    &lconsistency_checks_oce     , &
+    &check_fg_oce                , &
+    &check_ana_oce               , &
+    &ana_varnames_map_file_oce
+
+
+    !----------------------------------------------------------------------------
   ! vertex list of throughflows
   INTEGER :: denmark_strait(100)         = -1
   INTEGER :: gibraltar(100)              = -1
@@ -1481,6 +1518,15 @@ MODULE mo_ocean_nml
  !!!  CALL message(method_name,'WARNING, limit_seaice set to .FALSE. - no limit for coupled experiment')
     END IF
 #endif
+
+  ! make sure that dt_shift is negative or 0.
+IF ( dt_shift_oce > 0._wp ) THEN
+  WRITE(message_text,'(a,f8.2,a)') 'dt_shift_oce=', dt_shift_oce, &
+    ' not allowed. Must be NEGATIVE or 0.'
+  CALL finish(method_name,message_text)
+ELSE
+  CALL set_tc_timeshift(dt_shift_oce)
+ENDIF
 
     ! write the contents of the namelist to an ASCII file
     IF(my_process_is_stdio()) THEN

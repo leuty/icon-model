@@ -27,10 +27,12 @@ MODULE mo_vdf_sfc
   USE mo_variable,          ONLY: t_variable
   USE mo_variable_list,     ONLY: t_variable_list, t_variable_set
   USE mo_aes_vdf_config,    ONLY: aes_vdf_config
+#ifndef __NO_JSBACH__
   USE mo_cuda_graphs,       ONLY: t_cuda_graphs, id_captured, create_graphs, &
                                   begin_capture, end_capture, replay, reset
   USE mo_jsb_interface,     ONLY: invalidate_cuda_graphs
   USE mo_jsb_time,          ONLY: is_time_ltrig_rad_m1
+#endif
   USE, INTRINSIC :: iso_c_binding, ONLY: c_loc
 
 #ifdef _OPENACC
@@ -46,7 +48,9 @@ MODULE mo_vdf_sfc
   PUBLIC :: t_vdf_sfc, t_vdf_sfc_inputs, t_vdf_sfc_config, t_vdf_sfc_diagnostics, t_vdf_aggregator
 
   TYPE, EXTENDS(t_tmx_process) :: t_vdf_sfc
+#ifndef __NO_JSBACH__
     TYPE(t_cuda_graphs) :: graphs
+#endif
   CONTAINS
     PROCEDURE :: Init => Init_vdf_sfc
     PROCEDURE :: Compute
@@ -71,6 +75,8 @@ MODULE mo_vdf_sfc
       & fsl          => NULL()    ! weight for interpolation to surface_layer mid level
     INTEGER, POINTER :: &
       & nice_thickness_classes => NULL()
+    LOGICAL, POINTER :: &
+      & l_co2 => NULL()
 
   CONTAINS
     ! PROCEDURE :: Init => init_t_vdf_sfc_variable_set
@@ -106,6 +112,8 @@ MODULE mo_vdf_sfc
       & u_oce_current(:,:) => NULL(), &
       & v_oce_current(:,:) => NULL(), &
       & ice_thickness(:,:)   => NULL(),  & !< sea ice: ice thickness [m]
+      & co2flx_ant(:,:) => NULL(), &
+
       & zf(:,:) => NULL(), & !< geom. height of lowest atm. full level [m]
       & zh(:,:) => NULL(), & !< geom. height of surface (interface level) [m]
       & fract_tile(:,:,:) => NULL()
@@ -130,12 +138,15 @@ MODULE mo_vdf_sfc
       & rough_m(:,:) => NULL(), &
       & qsat_tile(:,:,:) => NULL(), &
       & evapotrans_tile(:,:,:) => NULL(), &
+      & co2flx_nat_tile(:,:,:) => NULL(), &
       & lhfl_tile(:,:,:) => NULL(), &
       & shfl_tile(:,:,:) => NULL(), &
       & q_snocpymlt_lnd(:,:) => NULL(), &
       & ustress_tile(:,:,:) => NULL(), &
       & vstress_tile(:,:,:) => NULL(), &
       & evapotrans(:,:) => NULL(), &
+      & co2flx_nat(:,:) => NULL(), &
+      & co2flx(:,:) => NULL(), &
       & lhfl(:,:) => NULL(), &
       & shfl(:,:) => NULL(), &
       & ufts(:,:) => NULL(), &
@@ -281,6 +292,8 @@ CONTAINS
       & lwfl_net    (this%domain%nproma,this%domain%nblks_c), &
       & swfl_net    (this%domain%nproma,this%domain%nblks_c)
 
+    LOGICAL :: l_co2
+
     INTEGER :: acc_async_queues(this%domain%ntiles) ! OACC queues to process tiles in parallel
 
     CHARACTER(len=*), PARAMETER :: routine = modname//':Compute'
@@ -320,6 +333,8 @@ CONTAINS
     new_tsfc  => this%new_states%Get_ptr_r3d('surface temperature')
     new_qsfc  => this%new_states%Get_ptr_r3d('saturation specific humidity')
 
+    l_co2 = conf%list%Get_ptr_l0d('co2 tracer active')
+
     ASSOCIATE( &
       & dtime    => conf%dtime,     &
       & domain   => this%domain,    &
@@ -327,10 +342,14 @@ CONTAINS
       & lwfl_up  => diags%lwfl_up,  &
       & swfl_up  => diags%swfl_up,  &
       & rlds     => ins%rlds,       &
-      & rsds     => ins%rsds        &
+      & rsds     => ins%rsds,       &
+      & co2flx_nat => diags%co2flx_nat, &
+      & co2flx_ant => ins%co2flx_ant,   &
+      & co2flx     => diags%co2flx      &
       & )
 
     graph_id = -1
+#ifndef __NO_JSBACH__
     IF (aes_vdf_config(jg)%lcuda_graph_vdf .AND. .NOT. this%is_initial_time) THEN
       IF (.NOT. this%graphs%initialized) THEN
         CALL create_graphs(this%graphs, 3, modname)
@@ -350,6 +369,7 @@ CONTAINS
         END IF
       END IF
     END IF
+#endif
 
     !$ACC DATA CREATE(new_tsfc_rad, new_tsfc_eff, lwfl_net, swfl_net) &
     !$ACC   PRESENT(old_tsfc, tend_tsfc, new_tsfc, new_qsfc, tsfc_rad, lwfl_up, swfl_up, rlds, rsds) ASYNC(1)
@@ -443,7 +463,8 @@ CONTAINS
           & diags%albvisdir_tile(:,:,jtile), diags%albvisdif_tile(:,:,jtile), &
           & diags%albnirdir_tile(:,:,jtile), diags%albnirdif_tile(:,:,jtile), &
           & diags%kh_tile(:,:,jtile), diags%km_tile(:,:,jtile), &
-          & diags%kh_neutral_tile(:,:,jtile), diags%km_neutral_tile(:,:,jtile) &
+          & diags%kh_neutral_tile(:,:,jtile), diags%km_neutral_tile(:,:,jtile), &
+          & diags%co2flx_nat_tile(:,:,jtile) &
           & )
 
 !$OMP PARALLEL DO PRIVATE(jc, jb) ICON_OMP_DEFAULT_SCHEDULE
@@ -533,6 +554,9 @@ CONTAINS
     CALL aggregator%Aggregate(this%domain, ins%fract_tile, diags%nvalid, diags%indices, diags%shfl_tile,       diags%shfl, 'shfl')
     CALL aggregator%Aggregate(this%domain, ins%fract_tile, diags%nvalid, diags%indices, diags%ustress_tile,    diags%ustress, 'ustress')
     CALL aggregator%Aggregate(this%domain, ins%fract_tile, diags%nvalid, diags%indices, diags%vstress_tile,    diags%vstress, 'vstress')
+    IF (l_co2) THEN
+      CALL aggregator%Aggregate(this%domain, ins%fract_tile, diags%nvalid, diags%indices, diags%co2flx_nat_tile, diags%co2flx_nat, 'CO2 nat')
+    END IF
     !
     CALL aggregator%Aggregate(this%domain, ins%fract_tile, diags%nvalid, diags%indices, diags%albvisdir_tile,  diags%albvisdir, 'albvisdir')
     CALL aggregator%Aggregate(this%domain, ins%fract_tile, diags%nvalid, diags%indices, diags%albvisdif_tile,  diags%albvisdif, 'albvisdif')
@@ -549,6 +573,9 @@ CONTAINS
       DO jc = domain%i_startidx_c(jb), domain%i_endidx_c(jb)
         lwfl_up(jc,jb) = rlds(jc,jb) - lwfl_net(jc,jb)
         swfl_up(jc,jb) = rsds(jc,jb) - swfl_net(jc,jb)
+        IF (l_co2) THEN
+          co2flx(jc,jb)  = co2flx_nat(jc,jb) + co2flx_ant(jc,jb)
+        END IF
       END DO
       !$ACC END PARALLEL LOOP
     END DO
@@ -565,10 +592,13 @@ CONTAINS
 
     END ASSOCIATE
 
+#ifndef __NO_JSBACH__
     IF (graph_id == 0) THEN
       graph_id = end_capture(this%graphs)
       CALL replay(this%graphs, graph_id, 1)
     END IF
+#endif
+
     !$ACC WAIT(1)
 
   END SUBROUTINE Compute
@@ -626,6 +656,7 @@ CONTAINS
       & )
 
     graph_id = -1
+#ifndef __NO_JSBACH__
     IF (aes_vdf_config(jg)%lcuda_graph_vdf .AND. .NOT. this%is_initial_time) THEN
       IF (.NOT. this%graphs%initialized) THEN
         CALL create_graphs(this%graphs, 3, modname)
@@ -643,6 +674,7 @@ CONTAINS
         END IF
       END IF
     END IF
+#endif
 
     CALL compute_valid_indices(domain, fract_tile, nvalid, indices)
 
@@ -812,10 +844,13 @@ CONTAINS
 
     END ASSOCIATE
 
+#ifndef __NO_JSBACH__
     IF (graph_id == 0) THEN
       graph_id = end_capture(this%graphs)
       CALL replay(this%graphs, graph_id, 1)
     END IF
+#endif
+
     !$ACC WAIT(1)
 
   END SUBROUTINE Compute_diagnostics
@@ -1052,6 +1087,7 @@ CONTAINS
     CALL configlist%append(t_variable('minimal roughness length', shape_0d, "m", type_id="real"))
     CALL configlist%append(t_variable('weight for interpolation to surface_layer mid level', shape_0d, "", type_id="real"))
     CALL configlist%append(t_variable('number of sea ice thickness classes', shape_0d, "", type_id="int"))
+    CALL configlist%append(t_variable('co2 tracer active', shape_0d, "", type_id="logical"))
 
   END FUNCTION build_sfc_config_list
 
@@ -1081,6 +1117,8 @@ CONTAINS
       __acc_attach(this%fsl)
       this%nice_thickness_classes => this%list%Get_ptr_i0d('number of sea ice thickness classes')
       __acc_attach(this%nice_thickness_classes)
+      this%l_co2 => this%list%Get_ptr_l0d('co2 tracer active')
+      __acc_attach(this%l_co2)
     END SELECT
 
   END SUBROUTINE Set_pointers_config
@@ -1128,6 +1166,7 @@ CONTAINS
     CALL inlist%append(t_variable('atm CO2 concentration', shape_2d, "", type_id="real"))
     CALL inlist%append(t_variable(('u-component of ocean current'), shape_2d, "m s-1", type_id="real"))
     CALL inlist%append(t_variable(('v-component of ocean current'), shape_2d, "m s-1", type_id="real"))
+    CALL inlist%append(t_variable(('CO2 flux from anthropogenic sfc emissions'), shape_2d, "kg m-2 s-1", type_id="real"))
 
     CALL inlist%append(t_variable('thickness of sea ice', shape_2d, "m", type_id="real"))
 
@@ -1199,6 +1238,9 @@ CONTAINS
       this%v_oce_current => this%list%Get_ptr_r2d('v-component of ocean current')
       __acc_attach(this%v_oce_current)
 
+      this%co2flx_ant    => this%list%Get_ptr_r2d('CO2 flux from anthropogenic sfc emissions')
+      __acc_attach(this%co2flx_ant)
+
       this%ice_thickness  => this%list%Get_ptr_r2d('thickness of sea ice')
       __acc_attach(this%ice_thickness)
 
@@ -1250,6 +1292,7 @@ CONTAINS
     CALL diaglist%append(t_variable('sfc sensible heat flux, tile', shape_3d, "W m-2", type_id="real"))
     CALL diaglist%append(t_variable('sfc zonal wind stress, tile', shape_3d, "N m-2", type_id="real"))
     CALL diaglist%append(t_variable('sfc mer. wind stress, tile', shape_3d, "N m-2", type_id="real"))
+    CALL diaglist%append(t_variable('CO2 flux from natural sfc emissions, tile', shape_3d, "kg m-2 s-1", type_id="real"))
     !
     CALL diaglist%append(t_variable('sfc longwave net flux, tile', shape_3d, "W m-2", type_id="real"))
     CALL diaglist%append(t_variable('sfc shortwave net flux, tile', shape_3d, "W m-2", type_id="real"))
@@ -1281,6 +1324,8 @@ CONTAINS
     CALL diaglist%append(t_variable('sfc mer. wind stress', shape_2d, "N m-2", type_id="real"))
     CALL diaglist%append(t_variable('energy flux at surface from thermal exchange', shape_2d, "W m-2", type_id="real"))
     CALL diaglist%append(t_variable('energy flux at surface from vapor exchange', shape_2d, "W m-2", type_id="real"))
+    CALL diaglist%append(t_variable('CO2 flux from natural sfc emissions', shape_2d, "kg m-2 s-1", type_id="real"))
+    CALL diaglist%append(t_variable('CO2 flux from sfc emissions', shape_2d, "kg m-2 s-1", type_id="real"))
     !
     CALL diaglist%append(t_variable('sfc temperature', shape_2d, "K", type_id="real"))
     CALL diaglist%append(t_variable('sfc radiative temperature', shape_2d, "K", type_id="real"))
@@ -1385,6 +1430,8 @@ CONTAINS
       __acc_attach(this%ustress_tile)
       this%vstress_tile    => this%list%Get_ptr_r3d('sfc mer. wind stress, tile')
       __acc_attach(this%vstress_tile)
+      this%co2flx_nat_tile => this%list%Get_ptr_r3d('CO2 flux from natural sfc emissions, tile')
+      __acc_attach(this%co2flx_nat_tile)
       this%evapotrans      => this%list%Get_ptr_r2d('sfc evapotranspiration')
       __acc_attach(this%evapotrans)
       this%lhfl            => this%list%Get_ptr_r2d('sfc latent heat flux')
@@ -1395,6 +1442,10 @@ CONTAINS
       __acc_attach(this%ustress)
       this%vstress         => this%list%Get_ptr_r2d('sfc mer. wind stress')
       __acc_attach(this%vstress)
+      this%co2flx_nat      => this%list%Get_ptr_r2d('CO2 flux from natural sfc emissions')
+      __acc_attach(this%co2flx_nat)
+      this%co2flx          => this%list%Get_ptr_r2d('CO2 flux from sfc emissions')
+      __acc_attach(this%co2flx)
       this%ufts            => this%list%Get_ptr_r2d('energy flux at surface from thermal exchange')
       __acc_attach(this%ufts)
       this%ufvs            => this%list%Get_ptr_r2d('energy flux at surface from vapor exchange')

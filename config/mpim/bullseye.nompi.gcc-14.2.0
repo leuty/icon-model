@@ -68,9 +68,17 @@ ICON_ECRAD_FCFLAGS='-O2 -fmodule-private'
 ICON_HD_FCFLAGS='-O2'
 
 LDFLAGS="${RTTOV_LDFLAGS-} -L${sw_root}/lib -Wl,--disable-new-dtags"
-LIBS="-Wl,--as-needed -lxml2 -lSerialboxFortran -leccodes ${RTTOV_LIBS-} -llapack -lblas -lnetcdff -lnetcdf -lhdf5_hl_fortran -lhdf5_fortran -lhdf5"
+LIBS="-Wl,--as-needed -lxml2 -lSerialboxFortran -leccodes ${RTTOV_LIBS-} -llapack -lblas -lnetcdff -lnetcdf -lhdf5_hl_fortran -lhdf5_fortran -lhdf5 -lstdc++"
 
-EXTRA_CONFIG_ARGS='--enable-loop-exchange --disable-mpi --disable-coupling --enable-grib2 --enable-fcgroup-OCEAN --enable-fcgroup-DACE'
+EXTRA_CONFIG_ARGS="\
+--enable-loop-exchange \
+--disable-mpi \
+--disable-coupling \
+--enable-grib2 \
+--enable-fcgroup-OCEAN \
+--enable-fcgroup-DACE \
+--enable-bundled-python=mtime \
+"
 
 ################################################################################
 

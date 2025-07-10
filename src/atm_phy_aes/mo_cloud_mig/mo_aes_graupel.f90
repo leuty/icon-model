@@ -55,20 +55,17 @@ INTEGER, PARAMETER :: &
 INTEGER, PARAMETER ::                          &
   qx_ind(nx) = [lqv, lqc, lqr, lqs, lqi, lqg] ,& !
   qp_ind(np) = [lqr, lqi, lqs, lqg]
-
-REAL(wp), PARAMETER, DIMENSION(3,np) :: &
-   params = RESHAPE([ 14.58_wp,  0.111_wp     , 1.e-12_wp, &
-                       1.25_wp,  0.160_wp     , 1.e-12_wp, &
-                      57.80_wp,  0.5_wp/3.0_wp, 1.e-12_wp, &
-                      12.24_wp,  0.217_wp     , 1.e-08_wp] ,[3,np])
-
-#ifdef __INLINE_RESHAPE_WAR
-! Workaround for buggy -Minline=reshape
-REAL(wp), PARAMETER, DIMENSION(3) :: params_qr = params(:, lqr)
-REAL(wp), PARAMETER, DIMENSION(3) :: params_qi = params(:, lqi)
-REAL(wp), PARAMETER, DIMENSION(3) :: params_qs = params(:, lqs)
-REAL(wp), PARAMETER, DIMENSION(3) :: params_qg = params(:, lqg)
-#endif
+!
+! Below are coefficients to parameterize the radar reflectivity and the reflectivity
+! weighted fall speed of the hydrometeors.  They are not presently used in the Muphys
+! code, but are documented here for possible diagnostic use, or to allow the extension
+! of the code to faciliate the output of these variables in the future.
+!
+REAL(wp), PARAMETER, DIMENSION(5) :: &
+ rain_re = [ &
+  2.17470e+07_wp,  8.47148e+06_wp,  1.19189e+06_wp,  7.18530e+04_wp,  1.56936e+03_wp], &
+ rain_vd = [ &
+ -6.81479e+00_wp, -7.53619e+00_wp, -1.20634e+00_wp, -7.05880e-02_wp, -1.42711e-03_wp]
 
 REAL(wp), PARAMETER :: &
    rho_00 = 1.225_wp        , & ! reference air density
@@ -92,7 +89,6 @@ TYPE t_qx_ptr                   ! type for pointer vector
 END TYPE t_qx_ptr
 
 CONTAINS
-
 !
 ! Routines _init, _finalize, and _-run are necessary to keep ICON main repo
 !  and Muphys repo in sync
@@ -240,11 +236,11 @@ CONTAINS
     dvsw   = q(lqv)%x(iv,k)-qsat_rho(t(iv,k),rho(iv,k))
     qvsi   = qsat_ice_rho(t(iv,k),rho(iv,k))
     dvsi   = q(lqv)%x(iv,k)-qvsi
-    n_snow = snow_number  (t(iv,k),rho(iv,k),q(lqs)%x(iv,k))
-    l_snow = snow_lambda  (rho(iv,k),q(lqs)%x(iv,k),n_snow)
+    n_snow = snow_number  (t(iv,k),rho(iv,k)*q(lqs)%x(iv,k))
+    l_snow = snow_lambda  (rho(iv,k)*q(lqs)%x(iv,k),n_snow)
 
     sx2x(:,:)     = 0.0_wp
-    sx2x(lqc,lqr) = cloud_to_rain   (t(iv,k),q(lqc)%x(iv,k),q(lqr)%x(iv,k),qnc(ivstart))
+    sx2x(lqc,lqr) = cloud_to_rain   (t(iv,k),rho(iv,k),q(lqc)%x(iv,k),q(lqr)%x(iv,k),qnc(ivstart))
     sx2x(lqr,lqv) = rain_to_vapor   (t(iv,k),rho(iv,k),q(lqc)%x(iv,k),q(lqr)%x(iv,k),dvsw,dt)
     sx2x(lqc,lqi) = cloud_x_ice (t(iv,k),q(lqc)%x(iv,k),q(lqi)%x(iv,k),dt)
     sx2x(lqi,lqc) = -MIN(sx2x(lqc,lqi),0.0_wp)
@@ -342,38 +338,14 @@ CONTAINS
         zeta  = dt/(2.0_wp*dz(iv,k))
         xrho  = SQRT(rho_00/rho(iv,k))
 
-#ifdef __INLINE_RESHAPE_WAR
-        IF (k >= kmin(iv,lqr)) THEN
-          vc     = vel_scale_factor(lqr, xrho, rho(iv,k), t(iv,k), q(lqr)%x(iv,k))
-          update = precip(params_qr,zeta,vc,q(lqr)%p(iv),vt(iv,1),q(lqr)%x(iv,k),q(lqr)%x(iv,kp1),rho(iv,k))
-          q(lqr)%x(iv,k) = update(1); q(lqr)%p(iv) = update(2); vt(iv,1) = update(3)
-        END IF
-        IF (k >= kmin(iv,lqi)) THEN
-          vc     = vel_scale_factor(lqi, xrho, rho(iv,k), t(iv,k), q(lqi)%x(iv,k))
-          update = precip(params_qi,zeta,vc,q(lqi)%p(iv),vt(iv,2),q(lqi)%x(iv,k),q(lqi)%x(iv,kp1),rho(iv,k))
-          q(lqi)%x(iv,k) = update(1); q(lqi)%p(iv) = update(2); vt(iv,2) = update(3)
-        END IF
-        IF (k >= kmin(iv,lqs)) THEN
-          vc     = vel_scale_factor(lqs, xrho, rho(iv,k), t(iv,k), q(lqs)%x(iv,k))
-          update = precip(params_qs,zeta,vc,q(lqs)%p(iv),vt(iv,3),q(lqs)%x(iv,k),q(lqs)%x(iv,kp1),rho(iv,k))
-          q(lqs)%x(iv,k) = update(1); q(lqs)%p(iv) = update(2); vt(iv,3) = update(3)
-        END IF
-        IF (k >= kmin(iv,lqg)) THEN
-          vc     = vel_scale_factor(lqg, xrho, rho(iv,k), t(iv,k), q(lqg)%x(iv,k))
-          update = precip(params_qg,zeta,vc,q(lqg)%p(iv),vt(iv,4),q(lqg)%x(iv,k),q(lqg)%x(iv,kp1),rho(iv,k))
-          q(lqg)%x(iv,k) = update(1); q(lqg)%p(iv) = update(2); vt(iv,4) = update(3)
-        END IF
-#else
         !$ACC LOOP SEQ
         DO ix=1,np
           iqx = qp_ind(ix)
           IF (k >= kmin(iv,iqx)) THEN
-            vc     = vel_scale_factor(iqx, xrho, rho(iv,k), t(iv,k), q(iqx)%x(iv,k))
-            update = precip(params(:,iqx),zeta,vc,q(iqx)%p(iv),vt(iv,ix),q(iqx)%x(iv,k),q(iqx)%x(iv,kp1),rho(iv,k))
+            update = precip(iqx,zeta,t(iv,k),q(iqx)%p(iv),vt(iv,ix),q(iqx)%x(iv,k),q(iqx)%x(iv,kp1),rho(iv,k))
             q(iqx)%x(iv,k) = update(1); q(iqx)%p(iv) = update(2); vt(iv,ix) = update(3)
           END IF
         END DO
-#endif
 
         pflx(iv,k) = q(lqs)%p(iv) + q(lqi)%p(iv) + q(lqg)%p(iv)
         eflx(iv)   = dt*( q(lqr)%p(iv) * (clw*t(iv,k)-cvd*t(iv,kp1) - lvc)  &
@@ -407,13 +379,14 @@ END SUBROUTINE graupel_run
 
 !!!=============================================================================================
 
-PURE FUNCTION precip(params,zeta,vc,flx,vt,q,q_kp1,rho)
+PURE FUNCTION precip(iqx,zeta,t,flx,vt,q,q_kp1,rho)
 
   REAL(KIND=wp) precip(3)       !> time step for integration of microphysics  (  s  )
-  REAL(KIND=wp), INTENT(IN) :: &
-    params(3) , &               !> fall speed parameters
+
+  INTEGER (KIND=i4), INTENT(IN)   :: iqx
+  REAL(KIND=wp), INTENT(IN)       :: &
     zeta      , &               !> dt/(2dz)
-    vc        , &               !> state dependent fall speed correction
+    t         , &               !> temperature
     flx       , &               !> flux into cell from above
     vt        , &               !> terminal velocity
     q         , &               !> specific mass of hydrometeor
@@ -425,67 +398,68 @@ PURE FUNCTION precip(params,zeta,vc,flx,vt,q,q_kp1,rho)
   !$ACC ROUTINE SEQ
   rho_x        = q*rho
   flx_eff      = rho_x/zeta + 2.0_wp*flx
-  flx_partial  = rho_x * vc * fall_speed(rho_x, params)
-  flx_partial  = MIN( flx_partial, flx_eff )
+  flx_partial  = MIN( rho_x * vm(iqx, rho_x, rho, t), flx_eff )
   precip(1)    = zeta*(flx_eff-flx_partial) / ((1.0_wp + zeta*vt)*rho)  ! q update
   precip(2)    = (precip(1)*rho*vt + flx_partial)*0.5_wp                ! flx
   rho_x        = (precip(1)+q_kp1)*0.5_wp*rho
-  precip(3)    = vc*fall_speed(rho_x, params)                           ! vt
+  precip(3)    = vm(iqx, rho_x, rho, t)                                 ! vt
 
 END FUNCTION precip
 
 !!!=============================================================================================
 
-PURE FUNCTION vel_scale_factor(iqx,xrho,rho,t,qx)
+PURE FUNCTION vm(iqx,rho_x,rho,t)
 
-  REAL(KIND=wp)                   :: vel_scale_factor
+  REAL(KIND=wp)                   :: vm
+
   INTEGER (KIND=i4), INTENT(IN)   :: iqx
   REAL(KIND=wp), INTENT(IN)       :: &
-         xrho  , & ! sqrt(rho_00/rho)
-         rho   , & ! density of condensate
-         t     , & ! temperature
-         qx        ! specific mass
+         rho_x , & ! hydrometeor density
+         rho   , & ! air density
+         t         ! temperature
 
   REAL (KIND=wp), PARAMETER ::  &
-    b_i    =  2.0_wp/3.0_wp   , &
+    b_i    =  1.0_wp/3.0_wp   , &
     b_s    = -1.0_wp/6.0_wp
 
-   !$ACC ROUTINE SEQ
-   SELECT CASE(iqx)
-   CASE (lqi)
-      vel_scale_factor = xrho**b_i
-   CASE (lqs)
-      vel_scale_factor = xrho * snow_number(t, rho, qx)**b_s
-   CASE DEFAULT
-      vel_scale_factor = xrho
-   END SELECT
+  REAL(wp), PARAMETER, DIMENSION(2) :: &
+    a_i = [ 1.25_wp,  0.160_wp],       &
+    a_s = [57.80_wp,  1.0_wp/6.0_wp],  &
+    a_g = [12.24_wp,  0.217_wp]
 
-END FUNCTION vel_scale_factor
+  REAL(KIND=wp), PARAMETER :: rho_mx = 6.97604e-03_wp, rho_mn = 3.26216e-08_wp
+  REAL(KIND=wp), PARAMETER, DIMENSION(5) :: a_r = [ &
+  -5.91051e-01_wp, -5.37440e+00_wp, -1.00459e+00_wp, -6.44895e-02_wp, -1.40361e-03_wp]
 
-!!!=============================================================================================
-
-PURE FUNCTION fall_speed(density, params)
-  REAL(KIND=wp)             :: fall_speed
-  REAL(KIND=wp), INTENT(IN) :: density   , & ! density of condensate
-          &                    params(3)     ! fall speed parameters
+  REAL(KIND=wp) :: x
 
   !$ACC ROUTINE SEQ
-  fall_speed  =  params(1) * ((density+params(3)) ** params(2))
+  x  = MIN(rho_mx,MAX(rho_mn,rho_x))
+  SELECT CASE(iqx)
+  CASE (lqr)
+    x  = LOG(x)
+    vm = a_r(1) + x*(a_r(2) + x*(a_r(3) + x*(a_r(4) + x*a_r(5)))) * SQRT(rho_00/rho)
+  CASE (lqi)
+    vm = a_i(1)*(x ** a_i(2)) * (rho_00/rho)**b_i
+  CASE (lqs)
+    vm = a_s(1)*(x ** a_s(2)) * SQRT(rho_00/rho) * snow_number(t, x)**b_s
+  CASE (lqg)
+    vm = a_g(1)*(x ** a_g(2)) * SQRT(rho_00/rho)
+  END SELECT
 
-END FUNCTION fall_speed
+END FUNCTION vm
 
 !!!=============================================================================================
 
-PURE FUNCTION snow_number(t,rho,qs)
+PURE FUNCTION snow_number(t,rho_s)
   REAL(KIND=wp)             :: snow_number
   REAL(KIND=wp), INTENT(IN) :: t     , & ! temperature
-          &                    rho   , & ! ambient air density
-          &                    qs        ! snow  specific mass
+          &                    rho_s     ! snow specific density
 
   REAL (KIND=wp),     PARAMETER ::   &
     tmin    =  tmelt-40._wp        , &
     tmax    =  tmelt               , &
-    qsmin   =  2.0e-6_wp           , &
+    rho_s_mn=  2.0e-7_wp           , &
     xa1     = -1.65e+0_wp          , &
     xa2     =  5.45e-2_wp          , &
     xa3     =  3.27e-4_wp          , &
@@ -511,12 +485,11 @@ PURE FUNCTION snow_number(t,rho,qs)
     n0smx
 
     !$ACC ROUTINE SEQ
-    IF (qs > qmin) THEN
+    IF (rho_s > qmin) THEN
       tc    = MAX(MIN(t,tmax),tmin) - tmelt
       alf   = 10.0_wp**( xa1 + tc*(xa2 + tc*xa3) )
       bet   = xb1 + tc*(xb2 + tc*xb3)
-      n0s   = n0s3 * ((qs+qsmin) * rho / ams )**(4.0_wp-3.0_wp*bet) / (alf*alf*alf)
-
+      n0s   = n0s3 * (MAX(rho_s,rho_s_mn) / ams )**(4.0_wp-3.0_wp*bet) / (alf*alf*alf)
       y     = EXP(n0s2*tc)
       n0smn = MAX(n0s4*y,n0s5)
       n0smx = MIN(n0s6*y,n0s7)
@@ -529,22 +502,16 @@ END FUNCTION snow_number
 
 !!!=============================================================================================
 
-PURE FUNCTION snow_lambda(rho,qs,ns)
-  REAL(KIND=wp)             :: snow_lambda     ! returns riming snow rate
-  REAL(KIND=wp), INTENT(IN) :: rho         , & ! ambient density
-          &                    qs          , & ! snow specific mass
-          &                    ns              ! snow number
+PURE FUNCTION snow_lambda(rho_s,ns)
+  REAL(KIND=wp)             :: snow_lambda    ! returns riming snow rate
+  REAL(KIND=wp), INTENT(IN) :: rho_s      , & ! snow specific density
+                               ns             ! snow number
 
-  REAL(KIND=wp), PARAMETER  ::        &
-      !a1       = ams/bms            , & ! -- used constants in expression
-      a2       = ams*2.0_wp         , & ! '' (with ams*gam(bms+1.0_wp) where gam(3) = 2)
-      lmd_0    = 1.0e+10_wp         , & ! no snow value of lambda
-      bx       = 1.0_wp/(bms+1.0_wp), & ! ''
-      qsmin    = 0.0e-6_wp ! previous had 2.0e-6
+  REAL(KIND=wp), PARAMETER  :: lmd_0 = 1.0e+10_wp ! no snow value of lambda
 
   !$ACC ROUTINE SEQ
-  IF (qs > qmin) THEN
-    snow_lambda =  (a2*ns/((qs+qsmin)*rho)) ** bx
+  IF (rho_s > qmin) THEN
+    snow_lambda =  (2.0_wp * ams * ns/rho_s)**(1.0_wp/(bms+1.0_wp))
   ELSE
     snow_lambda =  lmd_0
   ENDIF
@@ -626,9 +593,10 @@ END FUNCTION deposition_factor
 
 !!!=============================================================================================
 
-PURE FUNCTION cloud_to_rain(t,qc,qr,nc)
+PURE FUNCTION cloud_to_rain(t,rho,qc,qr,nc)
   REAL(KIND=wp)             :: cloud_to_rain      ! mass from qc to qr
   REAL(KIND=wp), INTENT(IN) :: t         , & ! temperature
+          &                    rho       , & ! cloud water specific mass
           &                    qc        , & ! cloud water specific mass
           &                    qr        , & ! rain water specific mass
           &                    nc            ! cloud water number concentration
@@ -640,16 +608,21 @@ PURE FUNCTION cloud_to_rain(t,qc,qr,nc)
           a          = 6.00e+02_wp,  & ! constant in phi-function for autoconversion
           b          = 0.68e+00_wp,  & ! exponent in phi-function for autoconversion
           c          = 5.00e-05_wp,  & ! exponent in phi-function for accretion
-          ac_kernel  = 5.25e+00_wp,  & ! kernel coeff for SB2001 accretion
           x3         = 2.00e+00_wp,  & ! gamma exponent for cloud distribution
           x2         = 2.60e-10_wp,  & ! separating mass between cloud and rain
           x1         = 9.44e+09_wp,  & ! kernel coeff for SB2001 autoconversion
           au_kernel  = x1 / (20.0_wp*x2) * (x3+2.0_wp)*(x3+4.0_wp)/(x3+1.0_wp)**2.0_wp
 
+  REAL(KIND=wp), PARAMETER :: rho_mx = 6.97604e-03_wp, rho_mn = 3.26216e-08_wp
+  REAL(KIND=wp), PARAMETER, DIMENSION(5) :: a_ac =  [ &
+  -1.51715e+00_wp, -8.00600e-01_wp,  2.92153e-02_wp,  6.09625e-03_wp,  1.40900e-04_wp]
+
   REAL(KIND=wp) :: tau, & ! time-scale
                    phi, & ! similarity function for autoconversion
                    xau, & ! autoconversion rate
-                   xac    ! accretion rate
+                   xac, & ! accretion rate
+                   x,   &
+                   ac_kernel
     !
     ! Kessler (1969) autoconversion rate
     !    scau = zccau * MAX( qc_ik - qc0, 0.0_wp )
@@ -661,6 +634,8 @@ PURE FUNCTION cloud_to_rain(t,qc,qr,nc)
     !$ACC ROUTINE SEQ
     cloud_to_rain = 0.0_wp
     IF (qc > qmin_ac .AND. t > tfrz_hom) THEN
+      x = LOG(MIN(rho_mx,MAX(rho_mn,rho*qr)))
+      ac_kernel  =  a_ac(1) + x*(a_ac(2) + x*(a_ac(3) + x*(a_ac(4) + x*a_ac(5))))
       tau  = MAX(tau_min,MIN(1.0_wp-qc/(qc+qr),tau_max))
       phi  = tau**b
       phi  = a * phi * (1.0_wp - phi)**3.0_wp
@@ -741,24 +716,25 @@ PURE FUNCTION rain_to_vapor(t,rho,qc,qr,dvsw,dt)
           &                    dvsw        , & ! qv - qsat_water(T)
           &                    dt              ! time-step
 
-  REAL(KIND=wp), PARAMETER  ::     &
-          b1    =  0.16667_wp    , & ! exponent in power-law relation for mass density
-          b2    =  0.55555_wp    , & ! ''
-          c1    =  0.61_wp       , & ! ''
-          c2    = -0.0163_wp     , & ! ''
-          c3    =  1.111e-4_wp   , & ! ''
-          a1    =  1.536e-3_wp   , & ! ''
-          a2    =  1.0E+0_wp     , & ! constant in rain evap formula
-          a3    =  19.0621E+0_wp     ! prefactor (from gamma dist. and properties of air/water)
+  REAL(KIND=wp), PARAMETER  ::    &
+    c1    =  0.61_wp            , & !
+    c2    = -0.0163_wp          , & !
+    c3    =  1.111e-4_wp
 
-  REAL(KIND=wp) :: tc, evap_max
+    REAL(KIND=wp), PARAMETER :: rho_mx = 6.97604e-03_wp, rho_mn = 3.26216e-08_wp
+    REAL(KIND=wp), PARAMETER, DIMENSION(5) :: a_ev =  [ &
+    -4.33830e+00_wp, -6.61703e-01_wp, -2.13661e-01_wp, -1.18937e-02_wp, -2.01522e-04_wp]
+
+  REAL(KIND=wp) :: tc, evap_max, evap, x
 
   !$ACC ROUTINE SEQ
   rain_to_vapor = 0.0_wp
   IF( qr>qmin .AND. (dvsw+qc <= 0.0_wp)) THEN
     tc            = t - tmelt
     evap_max      = (c1 + tc*(c2 + c3*tc)) * (-dvsw)/dt
-    rain_to_vapor = MIN(a1*( a2 + a3 * (qr*rho)**b1 ) * (-dvsw) * (qr*rho)**b2, evap_max)
+    x             = LOG(MIN(rho_mx, MAX(rho_mn, qr*rho)))
+    evap          =-EXP(a_ev(1) + x*(a_ev(2) + x*(a_ev(3) + x*(a_ev(4) + x*a_ev(5))))) * dvsw
+    rain_to_vapor = MIN(EXP(evap), evap_max)
   ENDIF
 
 END FUNCTION rain_to_vapor

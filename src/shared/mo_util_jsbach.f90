@@ -1814,6 +1814,7 @@ END MODULE mo_jsb_orbit_solar_iface
 !------------------------------------------------------------------------------------------------------------
 !> Contains the function to compute surface exchange coefficients for tmx from JSBACH
 !
+#ifndef __NO_AES__
 MODULE mo_jsb_surface_exchange_iface
 
   USE mo_vdf_diag_smag, ONLY: sfc_exchange_coefficients
@@ -1821,6 +1822,7 @@ MODULE mo_jsb_surface_exchange_iface
   PUBLIC :: sfc_exchange_coefficients
 
 END MODULE mo_jsb_surface_exchange_iface
+#endif
 
 !------------------------------------------------------------------------------------------------------------
 #else

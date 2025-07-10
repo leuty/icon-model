@@ -412,7 +412,11 @@ CONTAINS
 
   SUBROUTINE subset_transfer_into_once_3d_wp(this, data_in, data_out, tt, lacc)
     CLASS(t_subset_transfer), INTENT(IN) :: this
+#if defined(_OPENACC) || defined(__NO_CONT_SOLV_OCE__)
+    REAL(KIND=wp), INTENT(IN), DIMENSION(:,:,:) :: data_in
+#else
     REAL(KIND=wp), INTENT(IN), DIMENSION(:,:,:), CONTIGUOUS :: data_in
+#endif
     REAL(KIND=wp), INTENT(INOUT), DIMENSION(:,:,:), ALLOCATABLE :: data_out
     INTEGER, INTENT(IN) :: tt
     LOGICAL, INTENT(IN), OPTIONAL :: lacc
@@ -437,7 +441,11 @@ CONTAINS
   SUBROUTINE subset_transfer_into_once_idx(this, data_in_idx, data_in_blk, &
      &  data_out_idx, data_out_blk, tt, lacc)
     CLASS(t_subset_transfer), INTENT(IN) :: this
+#if defined(_OPENACC) || defined(__NO_CONT_SOLV_OCE__)
+    INTEGER, INTENT(IN), DIMENSION(:,:,:) :: data_in_idx, data_in_blk
+#else
     INTEGER, INTENT(IN), DIMENSION(:,:,:), CONTIGUOUS :: data_in_idx, data_in_blk
+#endif
     INTEGER, INTENT(INOUT), DIMENSION(:,:,:), ALLOCATABLE :: &
       & data_out_idx, data_out_blk
     INTEGER, INTENT(IN) :: tt
@@ -462,7 +470,11 @@ CONTAINS
   SUBROUTINE subset_transfer_into_2d_wp(this, data_in, data_out, tt, lacc)
     CLASS(t_subset_transfer), INTENT(IN) :: this
     REAL(KIND=wp), INTENT(IN), DIMENSION(:,:) :: data_in
+#if defined(_OPENACC) || defined(__NO_CONT_SOLV_OCE__)
+    REAL(KIND=wp), INTENT(INOUT), DIMENSION(:,:) :: data_out
+#else
     REAL(KIND=wp), INTENT(INOUT), DIMENSION(:,:), CONTIGUOUS :: data_out
+#endif
     INTEGER, INTENT(IN) :: tt
     LOGICAL, INTENT(IN), OPTIONAL :: lacc
 
@@ -484,7 +496,11 @@ CONTAINS
   SUBROUTINE subset_transfer_into_2d_wp_2(this, di1, do1, di2, do2, tt, lacc)
     CLASS(t_subset_transfer), INTENT(IN) :: this
     REAL(KIND=wp), INTENT(IN), DIMENSION(:,:) :: di1, di2
+#if defined(_OPENACC) || defined(__NO_CONT_SOLV_OCE__)
+    REAL(KIND=wp), INTENT(INOUT), DIMENSION(:,:) :: do1, do2
+#else
     REAL(KIND=wp), INTENT(INOUT), DIMENSION(:,:), CONTIGUOUS :: do1, do2
+#endif
     INTEGER, INTENT(IN) :: tt
     LOGICAL, INTENT(IN), OPTIONAL :: lacc
     REAL(KIND=wp), ALLOCATABLE, DIMENSION(:,:,:,:) :: to, ti
@@ -535,8 +551,13 @@ CONTAINS
 
   SUBROUTINE subset_transfer_into_3d_wp(this, data_in, data_out, tt, lacc)
     CLASS(t_subset_transfer), INTENT(IN) :: this
+#if defined(_OPENACC) || defined(__NO_CONT_SOLV_OCE__)
+    REAL(KIND=wp), INTENT(IN), DIMENSION(:,:,:) :: data_in
+    REAL(KIND=wp), INTENT(INOUT), DIMENSION(:,:,:) :: data_out
+#else
     REAL(KIND=wp), INTENT(IN), DIMENSION(:,:,:), CONTIGUOUS :: data_in
     REAL(KIND=wp), INTENT(INOUT), DIMENSION(:,:,:), CONTIGUOUS :: data_out
+#endif
     INTEGER, INTENT(IN) :: tt
     LOGICAL, INTENT(IN), OPTIONAL :: lacc
     INTEGER :: i, j, n3
@@ -579,8 +600,13 @@ CONTAINS
   SUBROUTINE subset_transfer_into_idx(this, data_in_idx, data_in_blk, &
      &  data_out_idx, data_out_blk, tt, lacc)
     CLASS(t_subset_transfer), INTENT(IN) :: this
+#if defined(_OPENACC) || defined(__NO_CONT_SOLV_OCE__)
+    INTEGER, INTENT(IN), DIMENSION(:,:,:) :: data_in_blk, data_in_idx
+    INTEGER, INTENT(INOUT), DIMENSION(:,:,:) :: data_out_blk, data_out_idx
+#else
     INTEGER, INTENT(IN), DIMENSION(:,:,:), CONTIGUOUS :: data_in_blk, data_in_idx
     INTEGER, INTENT(INOUT), DIMENSION(:,:,:), CONTIGUOUS :: data_out_blk, data_out_idx
+#endif
     INTEGER, DIMENSION(:,:), ALLOCATABLE :: glb_in, glb_out
     INTEGER, INTENT(IN) :: tt
     LOGICAL, INTENT(IN), OPTIONAL :: lacc
@@ -647,8 +673,13 @@ CONTAINS
 
   SUBROUTINE subset_transfer_out_2d_wp(this, data_in, data_out, lacc)
     CLASS(t_subset_transfer), INTENT(IN) :: this
+#if defined(_OPENACC) || defined(__NO_CONT_SOLV_OCE__)
+    REAL(KIND=wp), INTENT(IN), DIMENSION(:,:) :: data_in
+    REAL(KIND=wp), INTENT(INOUT), DIMENSION(:,:) :: data_out
+#else
     REAL(KIND=wp), INTENT(IN), DIMENSION(:,:), CONTIGUOUS :: data_in
     REAL(KIND=wp), INTENT(INOUT), DIMENSION(:,:), CONTIGUOUS :: data_out
+#endif
     LOGICAL, INTENT(IN), OPTIONAL :: lacc
 
     LOGICAL :: lzacc
@@ -668,8 +699,13 @@ CONTAINS
 
   SUBROUTINE subset_transfer_bcst_1d_wp(this, data_in, data_out, lacc)
     CLASS(t_subset_transfer), INTENT(IN) :: this
+#if defined(_OPENACC) || defined(__NO_CONT_SOLV_OCE__)
+    REAL(KIND=wp), INTENT(IN), DIMENSION(:) :: data_in
+    REAL(KIND=wp), INTENT(INOUT), DIMENSION(:) :: data_out
+#else
     REAL(KIND=wp), INTENT(IN), DIMENSION(:), CONTIGUOUS :: data_in
     REAL(KIND=wp), INTENT(INOUT), DIMENSION(:), CONTIGUOUS :: data_out
+#endif
     LOGICAL, INTENT(IN), OPTIONAL :: lacc
 
     LOGICAL :: lzacc
@@ -690,8 +726,13 @@ CONTAINS
 
   SUBROUTINE subset_transfer_bcst_1d_i(this, data_in, data_out, lacc)
     CLASS(t_subset_transfer), INTENT(IN) :: this
+#if defined(_OPENACC) || defined(__NO_CONT_SOLV_OCE__)
+    INTEGER, INTENT(IN), DIMENSION(:) :: data_in
+    INTEGER, INTENT(INOUT), DIMENSION(:) :: data_out
+#else
     INTEGER, INTENT(IN), DIMENSION(:), CONTIGUOUS :: data_in
     INTEGER, INTENT(INOUT), DIMENSION(:), CONTIGUOUS :: data_out
+#endif
     LOGICAL, INTENT(IN), OPTIONAL :: lacc
 
     LOGICAL :: lzacc
@@ -712,7 +753,11 @@ CONTAINS
 
   SUBROUTINE subset_transfer_sync_2d_wp(this, data_inout, lacc)
     CLASS(t_subset_transfer), INTENT(INOUT) :: this
+#if defined(_OPENACC) || defined(__NO_CONT_SOLV_OCE__)
+    REAL(KIND=wp), INTENT(INOUT), DIMENSION(:,:) :: data_inout
+#else
     REAL(KIND=wp), INTENT(INOUT), DIMENSION(:,:), CONTIGUOUS :: data_inout
+#endif
     LOGICAL, INTENT(IN), OPTIONAL :: lacc
     LOGICAL :: lzacc
 
@@ -731,7 +776,11 @@ CONTAINS
 
   SUBROUTINE subset_transfer_sync_2d_sp(this, data_inout, lacc)
     CLASS(t_subset_transfer), INTENT(INOUT) :: this
+#if defined(_OPENACC) || defined(__NO_CONT_SOLV_OCE__)
+    REAL(KIND=sp), INTENT(INOUT), DIMENSION(:,:) :: data_inout
+#else
     REAL(KIND=sp), INTENT(INOUT), DIMENSION(:,:), CONTIGUOUS :: data_inout
+#endif
     LOGICAL, INTENT(IN), OPTIONAL :: lacc
     LOGICAL :: lzacc
 

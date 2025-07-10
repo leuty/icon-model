@@ -30,7 +30,9 @@ MODULE mo_aes_convect_tables
   USE mo_kind,      ONLY: wp
   USE mo_exception, ONLY: message_text, message, finish
   USE mo_physical_constants, ONLY: alv, als, rd, rv, tmelt, cpd
+#ifndef __NO_AES__
   USE mo_aes_cop_config,     ONLY: aes_cop_config
+#endif
   USE mo_fortran_tools,      ONLY: assert_acc_device_only
 
   USE mo_model_domain,       ONLY: p_patch  ! for debugging only
@@ -860,8 +862,12 @@ SUBROUTINE prepare_ua_index_spline(jg, name, jcs, size, temp, idx, zalpha, &
     !$ACC DATA PRESENT(temp, idx, zalpha) &
     !$ACC   NO_CREATE(xi, zphase, iphase)
     !
+#ifndef __NO_AES__
     csecfrl = aes_cop_config(jg)%csecfrl
     cthomi  = aes_cop_config(jg)%cthomi
+#else
+    CALL finish('prepare_ua_index_spline', 'Error: remove --disable-aes and reconfigure')
+#endif
 
     zinbounds = 1._wp
     ztmin = flucupmin
@@ -1135,10 +1141,14 @@ SUBROUTINE prepare_ua_index_spline(jg, name, jcs, size, temp, idx, zalpha, &
 
     ! Shortcuts to components of aes_cop_config
     !
-    REAL(wp), POINTER :: csecfrl, cthomi
+    REAL(wp) :: csecfrl, cthomi
     !
-    csecfrl => aes_cop_config(jg)% csecfrl
-    cthomi  => aes_cop_config(jg)% cthomi
+#ifndef __NO_AES__
+    csecfrl = aes_cop_config(jg)% csecfrl
+    cthomi  = aes_cop_config(jg)% cthomi
+#else
+    CALL finish('prepare_ua_index', 'Error: remove --disable-aes and reconfigure')
+#endif
 
     ! first compute all lookup indices and check if they are all within allowed bounds
 

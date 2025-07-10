@@ -82,6 +82,7 @@ CONTAINS
     USE mo_variable, ONLY: unbind_variable, bind_variable
     USE mo_vdf_atmo, ONLY: t_vdf_atmo_inputs
     USE mo_vdf_sfc, ONLY: t_vdf_sfc_inputs
+    USE mo_physical_constants, ONLY: vmr_to_mmr_co2
 
     ! Arguments
     !
@@ -111,7 +112,7 @@ CONTAINS
     ! Pointers to results (nproma,patch%nlev,patch%nblks_c)
     REAL(wp), POINTER, DIMENSION(:,:,:) :: &
       & tend_ta_vdf, tend_ua_vdf, tend_va_vdf, &
-      & tend_qv_vdf, tend_qc_vdf, tend_qi_vdf
+      & tend_qv_vdf, tend_qc_vdf, tend_qi_vdf, tend_co2_vdf
     ! Pointers to results (nproma,patch%nlev,patch%nblks_c,ntracer)
     ! REAL(wp), POINTER, DIMENSION(:,:,:,:) :: &
     !   & tend_qtrc_vdf
@@ -124,12 +125,15 @@ CONTAINS
 
     ! Local varaibles
     REAL(wp) :: q_rlw_impl(nproma,patch%nblks_c), &
-      &         tend_ta_rlw_impl(nproma,patch%nblks_c)
+      &         tend_ta_rlw_impl(nproma,patch%nblks_c), &
+      &         zco2(nproma,patch%nblks_c)
+    REAL(wp)          :: mmr_co2
+
     REAL(wp), POINTER :: ptr_r2d(:,:), ptr_r3d(:,:,:)
 
     !
     INTEGER, POINTER :: turb
-    LOGICAL :: l_use_rad
+    LOGICAL :: l_use_rad, l_co2
 
     CHARACTER(len=*), PARAMETER :: routine = modname//':interface_aes_tmx'
 
@@ -154,6 +158,8 @@ CONTAINS
     nice   = prm_field(jg)%kice
     turb => aes_vdf_config(jg)%turb
 
+    l_co2 = (iqt <= ico2 .AND. ico2 <= ntracer)
+
     IF ( is_in_sd_ed_interval ) THEN
       !
       IF ( is_active ) THEN
@@ -170,12 +176,51 @@ CONTAINS
           CALL finish(routine, 'ERROR: namelist parameter aes_vdf_config%use_tmx=.FALSE.!')
         END IF
 
-        ! After init or restart, hand over some diagnostics
-        IF (l_init_or_restart) THEN
-          ! vdf%sfc%Get_diagnostic_r3d('roughness length momentum, tile') = field%z0m_tile(:,:,:)
-          ! vdf%sfc%Get_diagnostic_r3d('roughness length heat, tile')     = field%z0h_tile(:,:,:)
-          l_init_or_restart = .FALSE.
-        END IF
+        !$ACC DATA CREATE(q_rlw_impl, tend_ta_rlw_impl, zco2) &
+        !$ACC   PRESENT(ccycle_config)
+
+!$OMP PARALLEL DO PRIVATE(jb,jc,jcs,jce, mmr_co2) ICON_OMP_DEFAULT_SCHEDULE
+        DO jb = jbs, jbe
+
+          CALL get_indices_c(patch, jb, jbs, jbe, jcs, jce, rls, rle)
+
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+
+          SELECT CASE (ccycle_config(jg)%iccycle)
+            !
+          CASE (0) ! no c-cycle
+            !$ACC LOOP GANG VECTOR
+            DO jc = jcs, jce
+              zco2(jc,jb) = 348.0e-06_wp * vmr_to_mmr_co2
+            END DO
+          CASE (1) ! c-cycle with interactive atm. co2 concentration
+            !$ACC LOOP GANG VECTOR
+            DO jc = jcs,jce
+              zco2(jc,jb) = field% qtrc_phy(jc,nlev,jb,ico2)
+            END DO
+          CASE (2) ! c-cycle with prescribed atm. co2 concentration
+
+            SELECT CASE (ccycle_config(jg)%ico2conc)
+            CASE (2)
+              mmr_co2 = ccycle_config(jg)%vmr_co2 * vmr_to_mmr_co2
+              !
+              !$ACC LOOP GANG VECTOR
+              DO jc = jcs,jce
+                zco2(jc,jb) = mmr_co2
+              END DO
+            CASE (4)
+              !$ACC LOOP GANG VECTOR
+              DO jc = jcs,jce
+                zco2(jc,jb) = ghg_co2mmr
+              END DO
+            END SELECT
+
+          END SELECT
+
+          !$ACC END PARALLEL
+
+        END DO
+!$OMP END PARALLEL DO
 
         !
         ! Some variable pointers are swapped in mo_interface_iconam_aes.f90:interface_iconam_aes
@@ -228,6 +273,12 @@ CONTAINS
           ins%pxgm1 => ins%list%Get_ptr_r3d('graupel')
           __acc_attach(ins%pxgm1)
 
+          IF (l_co2) THEN
+            ptr_r3d => field% qtrc_phy(:,:,:,ico2)
+            CALL unbind_variable(vdf%atmo%states%search('co2'))
+            CALL bind_variable(vdf%atmo%states%search('co2'), ptr_r3d)
+          END IF
+
           CALL unbind_variable(vdf%atmo%states%search('temperature'))
           CALL bind_variable(vdf%atmo%states%search('temperature'), field%ta)
           CALL unbind_variable(vdf%atmo%inputs%list%Search('temperature'))
@@ -259,6 +310,17 @@ CONTAINS
           ins%qa => ins%list%Get_ptr_r2d('atm total water')
           __acc_attach(ins%qa)
 
+          ptr_r2d => ins%list%Get_ptr_r2d('atm CO2 concentration')
+!$OMP PARALLEL DO PRIVATE(jb, jc, jcs, jce) ICON_OMP_DEFAULT_SCHEDULE
+          DO jb = jbs, jbe
+            CALL get_indices_c(patch, jb, jbs, jbe, jcs, jce, rls, rle)
+            !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(1)
+            DO jc = jcs, jce
+              ptr_r2d(jc,jb) = zco2(jc,jb)
+            END DO
+          END DO
+!$OMP END PARALLEL DO
+
           ptr_r2d => field%ta(:,nlev,:)
           CALL unbind_variable(vdf%sfc%inputs%list%Search('atm temperature'))
           CALL bind_variable(vdf%sfc%inputs%list%Search('atm temperature'), ptr_r2d)
@@ -280,6 +342,24 @@ CONTAINS
         tend_qc_vdf => vdf%atmo%Get_tendency_r3d('cloud water')
         ! Retrieve computed tendency for cloud ice
         tend_qi_vdf => vdf%atmo%Get_tendency_r3d('cloud ice')
+        IF (l_co2) THEN
+          IF (ccycle_config(jg)%iccycle == 2) THEN
+!$OMP PARALLEL DO PRIVATE(jb, jc, jcs, jce, jk) ICON_OMP_DEFAULT_SCHEDULE
+            DO jb = jbs, jbe
+              CALL get_indices_c(patch, jb, jbs, jbe, jcs, jce, rls, rle)
+              !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR COLLAPSE(2) ASYNC(1)
+              DO jk = 1, nlev
+                DO jc = jcs, jce
+                  tend_co2_vdf(jc,jk,jb) = 0._wp
+                END DO
+              END DO
+            END DO
+!$OMP END PARALLEL DO
+          ELSE
+            ! Retrieve computed tendency for CO2
+            tend_co2_vdf => vdf%atmo%Get_tendency_r3d('co2')
+          END IF
+        END IF
         ! Retrieve computed tendencies for horizontal velocity
         tend_ua_vdf => vdf%atmo%Get_tendency_r3d('eastward wind')
         tend_va_vdf => vdf%atmo%Get_tendency_r3d('northward wind')
@@ -287,8 +367,6 @@ CONTAINS
         tend_wa_vdf => vdf%atmo%Get_tendency_r3d('vertical velocity')
         ! Retrieve computed tendency for surface temperature on tiles (for output only)
         tend_ts => vdf%sfc%Get_tendency_r3d('surface temperature')
-
-        !$ACC DATA CREATE(q_rlw_impl, tend_ta_rlw_impl)
 
 !$OMP PARALLEL DO PRIVATE(jb,jc,jcs,jce,jk,jsfc) ICON_OMP_DEFAULT_SCHEDULE
         DO jb = jbs, jbe
@@ -323,6 +401,14 @@ CONTAINS
               tend%qtrc_phy(jc,jk,jb,iqi) = tend%qtrc_phy(jc,jk,jb,iqi) + tend_qi_vdf(jc,jk,jb)
               ! Update physics state
               field%qtrc_phy(jc,jk,jb,iqi) = field%qtrc_phy(jc,jk,jb,iqi) + tend_qi_vdf(jc,jk,jb) * dtime
+              !
+              IF (l_co2) THEN
+              ! Add tendency from turbulent transport to physics tendency
+              ! (is used in iconam_aes interface)
+                tend%qtrc_phy(jc,jk,jb,ico2) = tend%qtrc_phy(jc,jk,jb,ico2) + tend_co2_vdf(jc,jk,jb)
+                ! Update physics state
+                field%qtrc_phy(jc,jk,jb,ico2) = field%qtrc_phy(jc,jk,jb,ico2) + tend_co2_vdf(jc,jk,jb) * dtime
+              END IF
               !
               tend%ua_phy(jc,jk,jb) = tend%ua_phy(jc,jk,jb) + tend_ua_vdf(jc,jk,jb)
               tend%va_phy(jc,jk,jb) = tend%va_phy(jc,jk,jb) + tend_va_vdf(jc,jk,jb)
@@ -375,6 +461,7 @@ CONTAINS
                 tend%qtrc_vdf(jc,jk,jb,iqv) = tend_qv_vdf(jc,jk,jb)
                 tend%qtrc_vdf(jc,jk,jb,iqc) = tend_qc_vdf(jc,jk,jb)
                 tend%qtrc_vdf(jc,jk,jb,iqi) = tend_qi_vdf(jc,jk,jb)
+                IF (l_co2) tend%qtrc_vdf(jc,jk,jb,ico2) = tend_co2_vdf(jc,jk,jb)
               END DO
             END DO
             !$ACC END LOOP
@@ -489,6 +576,10 @@ CONTAINS
     NULLIFY(field)
     NULLIFY(tend)
 
+    IF (l_init_or_restart) THEN
+      l_init_or_restart = .FALSE.
+    END IF
+
     IF (ltimer) CALL timer_stop(timer_vdf)
 
   END SUBROUTINE interface_aes_tmx
@@ -506,7 +597,7 @@ CONTAINS
     USE mo_nonhydro_state,     ONLY: p_nh_state
     USE mo_nonhydro_types,     ONLY: t_nh_metrics, t_nh_diag, t_nh_prog
     USE mo_dynamics_config,    ONLY: nnow
-    USE mo_physical_constants, ONLY: cpd, cpv, cvd, cvv, Tf, tmelt, vmr_to_mmr_co2
+    USE mo_physical_constants, ONLY: cpd, cpv, cvd, cvv, Tf, tmelt
 
     USE mo_master_config, ONLY: isRestart
 
@@ -529,7 +620,7 @@ CONTAINS
     INTEGER, ALLOCATABLE :: sfc_types(:)
 
     REAL(wp), POINTER :: dz_srf(:,:)
-    REAL(wp), POINTER :: zco2(:,:)
+    LOGICAL           :: l_co2
 
     CHARACTER(len=*), PARAMETER :: routine = modname//':init_tmx'
 
@@ -546,37 +637,32 @@ CONTAINS
     jbs = patch%cells%start_block(rls)
     jbe = patch%cells%end_block  (rle)
 
-    ! ALLOCATE(dz_srf(nproma,patch%nblks_c))
-
-    ! TODO simple hack here
-    ALLOCATE(zco2(nproma,patch%nblks_c))
-    !$ACC ENTER DATA CREATE(zco2)
-!$OMP PARALLEL DO PRIVATE(jb,jc,jcs,jce) ICON_OMP_DEFAULT_SCHEDULE
-    DO jb = jbs, jbe
-
-      CALL get_indices_c(patch, jb, jbs, jbe, jcs, jce, rls, rle)
-
-      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG(STATIC: 1) VECTOR ASYNC(1)
-      DO jc = jcs, jce
-        zco2(jc,jb) = 348.0e-06_wp * vmr_to_mmr_co2
-      END DO
-      !$ACC END PARALLEL LOOP
-    END DO
-!$OMP END PARALLEL DO
-
     field     => prm_field(jg)
     tend      => prm_tend (jg)
     p_nh_metrics => p_nh_state(jg)%metrics
     p_nh_diag => p_nh_state(jg)%diag
     p_nh_prog => p_nh_state(jg)%prog(nnow(jg))
-
     ! Question: use fields from AES field or from e.g. p_nh_state_lists(jg)%metrics p_nh_state_lists(jg)%diag? !!!!!!!!!!
+
+    ! ALLOCATE(dz_srf(nproma,patch%nblks_c))
+
+    l_co2 = (iqt <= ico2 .AND. ico2 <= ntracer)
+
+    IF (ccycle_config(jg)%iccycle /= 0 .AND. .NOT. l_co2) THEN
+      CALL finish(routine,'The C-cycle cannot be used without CO2 tracer (ico2<iqt or ntracer<ico2)')
+    END IF
 
     ! The order of sfc_types must be consistent with how variables are defined in aes memory!
     ALLOCATE(sfc_types(0))
     IF (iwtr <= nsfc_type) sfc_types = [sfc_types, isfc_oce]
     IF (iice <= nsfc_type) sfc_types = [sfc_types, isfc_ice]
-    IF (ilnd <= nsfc_type) sfc_types = [sfc_types, isfc_lnd]
+    IF (ilnd <= nsfc_type) THEN
+#ifndef __NO_JSBACH__
+      sfc_types = [sfc_types, isfc_lnd]
+#else
+      CALL finish(routine, 'JSBACH is not available, no land surface type defined')
+#endif
+    END IF
 
     vdf => new_vdf(patch, nproma, nlev=nlev, nsfc_tiles=nsfc_type, sfc_types=sfc_types, dt=dtime)
     __acc_attach(vdf)
@@ -590,6 +676,10 @@ CONTAINS
     CALL vdf%atmo%Add_state('cloud water',          type=heat_type,     field=ptr_r3d)
     ptr_r3d => field% qtrc_phy(:,:,:,iqi)
     CALL vdf%atmo%Add_state('cloud ice',            type=heat_type,     field=ptr_r3d)
+    IF (l_co2) THEN
+      ptr_r3d => field% qtrc_phy(:,:,:,ico2)
+      CALL vdf%atmo%Add_state('co2',                type=heat_type,     field=ptr_r3d)
+    END IF
     CALL vdf%atmo%Add_state('eastward wind',        type=momentum_type, field=field%ua)
     CALL vdf%atmo%Add_state('northward wind',       type=momentum_type, field=field%va)
     CALL vdf%atmo%Add_state('vertical velocity',    type=momentum_type, field=field%wa)
@@ -612,6 +702,7 @@ CONTAINS
     CALL bind_variable(vdf%atmo%config%list%Search('solver type'), aes_vdf_config(jg)%solver_type)
     CALL bind_variable(vdf%atmo%config%list%Search('energy type'), aes_vdf_config(jg)%energy_type)
     CALL bind_variable(vdf%atmo%config%list%Search('dissipation factor'), aes_vdf_config(jg)%dissipation_factor)
+    CALL bind_variable(vdf%atmo%config%list%Search('co2 tracer active'), l_co2)
 
     ! Bind variables to atmo input list
     ! 3d
@@ -669,6 +760,7 @@ CONTAINS
     CALL bind_variable(vdf%sfc%config%list%Search('minimal roughness length'),   aes_vdf_config(jg)%z0m_min)
     CALL bind_variable(vdf%sfc%config%list%Search('weight for interpolation to surface_layer mid level'), aes_vdf_config(jg)%fsl)
     CALL bind_variable(vdf%sfc%config%list%Search('number of sea ice thickness classes'), field%kice)
+    CALL bind_variable(vdf%sfc%config%list%Search('co2 tracer active'), l_co2)
 
     ! Bind variables to sfc input list
     ptr_r2d => field%ta(:,nlev,:)
@@ -717,7 +809,9 @@ CONTAINS
     CALL bind_variable(vdf%sfc%inputs%list%Search('thickness of sea ice'), ptr_r2d)
     !
     CALL bind_variable(vdf%sfc%inputs%list%Search('cosine of zenith angle'), field%cosmu0)
-    CALL bind_variable(vdf%sfc%inputs%list%Search('atm CO2 concentration'), zco2) ! TODO carbon cycle
+    !
+    CALL bind_variable(vdf%sfc%inputs%list%Search('CO2 flux from anthropogenic sfc emissions'), field%fco2ant)
+    CALL bind_variable(vdf%sfc%diagnostics%list%Search('CO2 flux from natural sfc emissions'), field%fco2nat)
     !
     ptr_s2d => p_nh_metrics%ddqz_z_half(:,nlevp1,:)
     CALL bind_variable_vp(vdf%sfc%inputs%list%Search('reference height in surface layer times 2'), ptr_s2d)
@@ -763,6 +857,7 @@ CONTAINS
     CALL bind_variable(vdf%sfc%diagnostics%list%Search('sfc sensible heat flux, tile'),                 field%shflx_tile)
     CALL bind_variable(vdf%sfc%diagnostics%list%Search('sfc zonal wind stress, tile'),                  field%u_stress_tile)
     CALL bind_variable(vdf%sfc%diagnostics%list%Search('sfc mer. wind stress, tile'),                   field%v_stress_tile)
+    CALL bind_variable(vdf%sfc%diagnostics%list%Search('CO2 flux from natural sfc emissions, tile'),    field%co2_flux_tile)
     IF (ASSOCIATED(field%z0m)) &
       & CALL bind_variable(vdf%sfc%diagnostics%list%Search('roughness length momentum'),                    field%z0m)
     IF (ASSOCIATED(field%z0h)) &

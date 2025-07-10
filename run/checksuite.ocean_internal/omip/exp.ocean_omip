@@ -560,7 +560,7 @@ cat >> ${ocean_namelist} << EOF
   mode                            = 1
   include_last                    = .FALSE.
   output_grid                     = .TRUE.
-  ml_varlist                      = 'to', 'so', 'tke', 'u', 'v', 'w_deriv', 'zos', 'hi', 'hs',
+  ml_varlist                      = 'to', 'so', 'tke', 'u', 'v', 'zos', 'hi', 'hs',
                                     'conc', 'mlotst', 'verticallyTotal_mass_flux_e', 'ice_u',
                                     'ice_v', 'zos_square', 'HeatFlux_Total', 'FrshFlux_Runoff',
                                     'FrshFlux_Precipitation', 'FrshFlux_Evaporation',
@@ -597,79 +597,92 @@ num_io_procs=1
 cat >> ${ocean_namelist} << EOF
 
 &output_nml
-      filetype = 5
-      output_filename = ${EXPNAME}_P1Y_3d
-      output_start = ${start_date}
-      output_end = ${end_date}
-      output_interval = P1Y
-      filename_format = <output_filename>_<datetime2>
-      operation = mean
-      file_interval = ${file_interval}
-      mode = 1
-      include_last = false
-      output_grid = true
-      ml_varlist = to, so, u, v, w, tke, A_veloc_v, A_tracer_v_to, A_tracer_v_so, normal_velocity, rho, rhopot, mass_flux, heat_content_liquid_water, swrab, rsdoabsorb
+      filetype                    = 5
+      output_filename             = "${EXPNAME}_P1Y_3d"
+      output_start                = "${start_date}"
+      output_end                  = "${end_date}"
+      output_interval             = "P1Y"
+      filename_format             = "<output_filename>_<datetime2>"
+      operation                   = "mean"
+      file_interval               = "${file_interval}"
+      mode                        = 1
+      include_last                = .FALSE.
+      output_grid                 = .TRUE.
+      ml_varlist                  = 'to', 'so', 'u', 'v', 'w', 'tke', 'A_veloc_v', 'A_tracer_v_to',
+                                    'A_tracer_v_so', 'normal_velocity', 'rho', 'rhopot',
+                                    'mass_flux', 'heat_content_liquid_water', 'swrab', 'rsdoabsorb'
 /
 
 &output_nml
-      filetype = 5
-      output_filename = ${EXPNAME}_P1M_2d
-      output_start = ${start_date}
-      output_end = ${end_date}
-      output_interval = P1M
-      filename_format = <output_filename>_<datetime2>
-      operation = mean
-      file_interval = ${file_interval}
-      mode = 1
-      include_last = false
-      output_grid = true
-      m_levels = 1
-      ml_varlist = to, so, zos, hi, hs, conc, ice_u, ice_v, heat_content_seaice, heat_content_snow, heat_content_total, atmos_fluxes_stress_xw,atmos_fluxes_stress_yw,atmos_fluxes_stress_x,atmos_fluxes_stress_y,sea_level_pressure,Wind_Speed_10m,Qtop, Qbot,Qbot_slow,ice_vn,mld,condep,draftave,mlotst, zHeatOceI,heatOceI,heatOceW,zUnderIce,HeatFlux_Total,HeatFlux_ShortWave,HeatFlux_LongWave,HeatFlux_Sensible,HeatFlux_Latent,FrshFlux_Runoff,FrshFlux_Precipitation,FrshFlux_Evaporation,FrshFlux_TotalOcean,FrshFlux_VolumeIce,totalsnowfall,FrshFlux_VolumeTotal, swsum,heatabs
+      filetype                    = 5
+      output_filename             = "${EXPNAME}_P1M_2d"
+      output_start                = "${start_date}"
+      output_end                  = "${end_date}"
+      output_interval             = "P1M"
+      filename_format             = "<output_filename>_<datetime2>"
+      operation                   = "mean"
+      file_interval               = "${file_interval}"
+      mode                        = 1
+      include_last                = .FALSE.
+      output_grid                 = .TRUE.
+      m_levels                    = 1
+      ml_varlist                  = 'to', 'so', 'zos', 'hi', 'hs', 'conc', 'ice_u', 'ice_v',
+                                    'heat_content_seaice', 'heat_content_snow', 'heat_content_total',
+                                    'atmos_fluxes_stress_xw', 'atmos_fluxes_stress_yw',
+                                    'atmos_fluxes_stress_x', 'atmos_fluxes_stress_y',
+                                    'sea_level_pressure', 'Wind_Speed_10m', 'Qtop', 'Qbot',
+                                    'Qbot_slow', 'ice_vn', 'mld', 'condep', 'draftave', 'mlotst',
+                                    'zHeatOceI', 'heatOceI', 'heatOceW', 'zUnderIce',
+                                    'HeatFlux_Total', 'HeatFlux_ShortWave', 'HeatFlux_LongWave',
+                                    'HeatFlux_Sensible', 'HeatFlux_Latent', 'FrshFlux_Runoff',
+                                    'FrshFlux_Precipitation', 'FrshFlux_Evaporation',
+                                    'FrshFlux_TotalOcean', 'FrshFlux_VolumeIce', 'totalsnowfall',
+                                    'FrshFlux_VolumeTotal', 'swsum', 'heatabs'
 /
 
 &output_nml
-      filetype = 5
-      output_filename = ${EXPNAME}_P1M_mon
-      output_start = ${start_date}
-      output_end = ${end_date}
-      output_interval = P1M
-      filename_format = <output_filename>_<datetime2>
-      file_interval = ${file_interval}
-      mode = 1
-      include_last = false
-      output_grid = true
-      operation = mean
-      ml_varlist = group:ocean_monitor
+      filetype                    = 5
+      output_filename             = "${EXPNAME}_P1M_mon"
+      output_start                = "${start_date}"
+      output_end                  = "${end_date}"
+      output_interval             = "P1M"
+      filename_format             = "<output_filename>_<datetime2>"
+      file_interval               = "${file_interval}"
+      mode                        = 1
+      include_last                = .FALSE.
+      output_grid                 = .TRUE.
+      operation                   = "mean"
+      ml_varlist                  = 'group:ocean_monitor'
 /
 
 &output_nml
-      filetype = 5
-      output_filename = ${EXPNAME}_P1M_moc
-      output_start = ${start_date}
-      output_end = ${end_date}
-      output_interval = P1M
-      file_interval = ${file_interval}
-      filename_format = <output_filename>_<datetime2>
-      mode = 1
-      include_last = false
-      output_grid = true
-      operation = mean
-      ml_varlist = group:ocean_moc
+      filetype                    = 5
+      output_filename             = "${EXPNAME}_P1M_moc"
+      output_start                = "${start_date}"
+      output_end                  = "${end_date}"
+      output_interval             = "P1M"
+      file_interval               = "${file_interval}"
+      filename_format             = "<output_filename>_<datetime2>"
+      mode                        = 1
+      include_last                = .FALSE.
+      output_grid                 = .TRUE.
+      operation                   = "mean"
+      ml_varlist                  = 'group:ocean_moc'
 /
 
 &output_nml
-      filetype = 5
-      output_filename = ${EXPNAME}_P1Y_tke
-      output_start = ${start_date}
-      output_end = ${end_date}
-      output_interval = P1Y
-      file_interval = ${file_interval}
-      filename_format = <output_filename>_<datetime2>
-      mode = 1
-      include_last = false
-      output_grid = true
-      operation = mean
-      ml_varlist = group:oce_cvmix_tke, group:oce_cvmix_iwe
+      filetype                    = 5
+      output_filename             = "${EXPNAME}_P1Y_tke"
+      output_start                = "${start_date}"
+      output_end                  = "${end_date}"
+      output_interval             = "P1Y"
+      file_interval               = "${file_interval}"
+      filename_format             = "<output_filename>_<datetime2>"
+      mode                        = 1
+      include_last                = .FALSE.
+      output_grid                 = .TRUE.
+      operation                   = "mean"
+      ml_varlist                  = 'group:oce_vmix_tke', 'group:oce_vmix_iwe'
 /
 EOF
 fi
@@ -678,6 +691,7 @@ cat >> ${ocean_namelist} << EOF
 !
 &parallel_nml
   nproma                          = ${nproma}
+  nblocks_c                       = ${nblocks_c}
   p_test_run                      = .FALSE.
   l_fast_sum                      = .TRUE.
   num_prefetch_proc               = 0

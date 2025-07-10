@@ -47,7 +47,7 @@ MODULE mo_solve_nonhydro
     &                             min_rlcell, RAYLEIGH_CLASSIC, RAYLEIGH_KLEMP
   USE mo_impl_constants_grf,ONLY: grf_bdywidth_c, grf_bdywidth_e
   USE mo_sync,              ONLY: SYNC_E, SYNC_C, sync_patch_array,                             &
-                                  sync_patch_array_mult, sync_patch_array_mult_mp
+                                  sync_patch_array_mult, sync_patch_array_mult_mixprec
   USE mo_mpi,               ONLY: my_process_is_mpi_all_seq, work_mpi_barrier
   USE mo_timer,             ONLY: timer_solve_nh, timer_barrier, timer_start, timer_stop,       &
                                   timer_solve_nh_cellcomp, timer_solve_nh_edgecomp,             &
@@ -2770,8 +2770,8 @@ MODULE mo_solve_nonhydro
         IF (divdamp_type >= 3) THEN
           ! Synchronize w and vertical contribution to divergence damping
 #ifdef __MIXED_PRECISION
-          CALL sync_patch_array_mult_mp(SYNC_C, p_patch, 1, 1, lacc=.TRUE., &
-               &                        f3din1=p_nh%prog(nnew)%w, f3din1_sp=z_dwdz_dd, &
+          CALL sync_patch_array_mult_mixprec(SYNC_C, p_patch, 1, 1, lacc=.TRUE., &
+               &                        f3din1_dp=p_nh%prog(nnew)%w, f3din1_sp=z_dwdz_dd, &
                &                        opt_varname="w_nnew and z_dwdz_dd")
 #else
           CALL sync_patch_array_mult(SYNC_C, p_patch, 2, lacc=.TRUE., &

@@ -53,7 +53,7 @@ MODULE mo_ocean_layers
     & za_depth_below_sea, za_depth_below_sea_half, za_surface, &
     & za_oce_layer_interface, za_oce_layer_centre
   USE mo_grid_subset,         ONLY: t_subset_range, get_index_range
-  USE mo_ocean_thermodyn,     ONLY: calculate_density_onColumn
+  USE mo_ocean_thermodyn,     ONLY: calculate_density_onColumn, calculate_density_onColumn_elem
   !USE mo_ocean_math_operators,ONLY: div_oce_3d
   USE mo_io_units,            ONLY: nnml
   USE mo_namelist,            ONLY: position_nml, positioned
@@ -61,7 +61,9 @@ MODULE mo_ocean_layers
   USE mo_nml_annotate,        ONLY: temp_defaults, temp_settings
   USE mo_physical_constants,  ONLY: clw
   USE mo_ocean_surface_types, ONLY: t_ocean_surface
-  USE mo_ocean_thermodyn,     ONLY: calc_neutralslope_coeff_func_onColumn
+  USE mo_ocean_thermodyn,     ONLY: calc_neutralslope_coeff_func_onColumn, &
+    &                               calc_neutralslope_coeff_func_onColumn_elem
+  USE mo_fortran_tools,       ONLY: set_acc_host_or_device
 
 #include "add_var_acc_macro.inc"
 
@@ -171,7 +173,7 @@ CONTAINS
       & t_cf_var('mass_flux_lay', 'm2 s-1', 'mass flux in isopycnal layer', datatype_flt),&
       & grib2_var(255, 255, 255, DATATYPE_PACK16, GRID_UNSTRUCTURED, grid_edge),&
       & ldims=(/nproma,n_dlev,nblks_e/),in_group=groups("oce_layers"), lopenacc=.TRUE.)
-    !__acc_attach(ocean_state_diag%mass_flux_lay)
+    __acc_attach(ocean_state_diag%mass_flux_lay)
 
     CALL add_var(ocean_default_list,'layer_thickness_e', ocean_state_diag%layer_thickness_e, &
       & grid_unstructured_edge,&
@@ -179,15 +181,16 @@ CONTAINS
       & t_cf_var('layer_thickness_e', 'm', 'thickness of isopycnal layer on edges', datatype_flt),&
       & grib2_var(255, 255, 255, DATATYPE_PACK16, GRID_UNSTRUCTURED, grid_edge),&
       & ldims=(/nproma,n_dlev,nblks_e/),in_group=groups("oce_layers"), lopenacc=.TRUE.)
-    !__acc_attach(ocean_state_diag%layer_thickness_e)
+    __acc_attach(ocean_state_diag%layer_thickness_e)
 
     CALL add_var(ocean_default_list,'layer_thickness_c', ocean_state_diag%layer_thickness_c, &
       & grid_unstructured_cell,&
       & za_oce_layer_centre, &
       & t_cf_var('layer_thickness_c', 'm', 'thickness of isopycnal layer on cells', datatype_flt),&
       & grib2_var(255, 255, 255, DATATYPE_PACK16, GRID_UNSTRUCTURED, grid_cell),&
-      & ldims=(/nproma,n_dlev,alloc_cell_blocks/),in_group=groups("oce_layers"), lopenacc=.TRUE.)
-    !__acc_attach(ocean_state_diag%layer_thickness_c)
+      & ldims=(/nproma,n_dlev,alloc_cell_blocks/),in_group=groups("oce_layers"), initval=0.0_wp, &
+      & lopenacc=.TRUE.)
+    __acc_attach(ocean_state_diag%layer_thickness_c)
 
     IF (mode_layers == 1) THEN
       CALL add_var(ocean_default_list,'dhdt_tot', ocean_state_diag%dhdt_tot, &
@@ -196,7 +199,7 @@ CONTAINS
         & t_cf_var('dhdt_tot', 'm/s', 'total layer thickness change', datatype_flt),&
         & grib2_var(255, 255, 255, DATATYPE_PACK16, GRID_UNSTRUCTURED, grid_cell),&
         & ldims=(/nproma,n_dlev,alloc_cell_blocks/),in_group=groups("oce_layers"), lopenacc=.TRUE.)
-      !__acc_attach(ocean_state_diag%dhdt_tot)
+      __acc_attach(ocean_state_diag%dhdt_tot)
 
       CALL add_var(ocean_default_list,'dhdt_srf', ocean_state_diag%dhdt_srf, &
         & grid_unstructured_cell,&
@@ -204,7 +207,7 @@ CONTAINS
         & t_cf_var('dhdt_srf', 'm/s', 'layer thickness change by surface density flux', datatype_flt),&
         & grib2_var(255, 255, 255, DATATYPE_PACK16, GRID_UNSTRUCTURED, grid_cell),&
         & ldims=(/nproma,n_dlev,alloc_cell_blocks/),in_group=groups("oce_layers"), lopenacc=.TRUE.)
-      !__acc_attach(ocean_state_diag%dhdt_srf)
+      __acc_attach(ocean_state_diag%dhdt_srf)
 
       CALL add_var(ocean_default_list,'dhdt_hfl', ocean_state_diag%dhdt_hfl, &
         & grid_unstructured_cell,&
@@ -212,7 +215,7 @@ CONTAINS
         & t_cf_var('dhdt_hfl', 'm/s', 'layer thickness change by horizontal flux', datatype_flt),&
         & grib2_var(255, 255, 255, DATATYPE_PACK16, GRID_UNSTRUCTURED, grid_cell),&
         & ldims=(/nproma,n_dlev,alloc_cell_blocks/),in_group=groups("oce_layers"), lopenacc=.TRUE.)
-      !__acc_attach(ocean_state_diag%dhdt_hfl)
+      __acc_attach(ocean_state_diag%dhdt_hfl)
     ENDIF
 
     CALL add_var(ocean_default_list,'div_mass_flux_lay', ocean_state_diag%div_mass_flux_lay, &
@@ -221,7 +224,7 @@ CONTAINS
       & t_cf_var('div_mass_flux_lay', 'm/s', 'divergence of mass flux within layer', datatype_flt),&
       & grib2_var(255, 255, 255, DATATYPE_PACK16, GRID_UNSTRUCTURED, grid_cell),&
       & ldims=(/nproma,n_dlev,alloc_cell_blocks/),in_group=groups("oce_layers"), lopenacc=.TRUE.)
-    !__acc_attach(ocean_state_diag%div_mass_flux_lay)
+    __acc_attach(ocean_state_diag%div_mass_flux_lay)
 
     CALL add_var(ocean_default_list, 'diapycnal_velocity', ocean_state_diag%diapycnal_velocity, &
       & grid_unstructured_cell,&
@@ -229,7 +232,7 @@ CONTAINS
       & t_cf_var('diapycnal_velocity','m s-1','diapycnal velocity', datatype_flt),&
       & grib2_var(255, 255, 255, DATATYPE_PACK16, GRID_UNSTRUCTURED, grid_cell),&
       & ldims=(/nproma,n_dlev+1,alloc_cell_blocks/),in_group=groups("oce_layers"), lopenacc=.TRUE.)
-    !__acc_attach(ocean_state_diag%diapycnal_velocity)
+    __acc_attach(ocean_state_diag%diapycnal_velocity)
 
     CALL add_var(ocean_default_list, 'sigma2', ocean_state_diag%sigma2, &
       & grid_unstructured_cell,&
@@ -237,7 +240,7 @@ CONTAINS
       & t_cf_var('sigma2','kg/m^3','potential density ref. to 2000m', datatype_flt),&
       & grib2_var(255, 255, 255, DATATYPE_PACK16, GRID_UNSTRUCTURED, grid_cell),&
       & ldims=(/nproma,n_zlev,alloc_cell_blocks/),in_group=groups("oce_layers"), lopenacc=.TRUE.)
-    !__acc_attach(ocean_state_diag%sigma2)
+    __acc_attach(ocean_state_diag%sigma2)
 
     IF (mode_layers == 1) THEN
       CALL add_var(ocean_default_list, 'sflx_dens', ocean_state_diag%sflx_dens, &
@@ -246,7 +249,7 @@ CONTAINS
         & t_cf_var('sflx_dens','kg/s/m^2','potential density ref. to 2000m', datatype_flt),&
         & grib2_var(255, 255, 255, DATATYPE_PACK16, GRID_UNSTRUCTURED, grid_cell),&
         & ldims=(/nproma,alloc_cell_blocks/),in_group=groups("oce_layers"), lopenacc=.TRUE.)
-      !__acc_attach(ocean_state_diag%sflx_dens)
+      __acc_attach(ocean_state_diag%sflx_dens)
 
       ! drho = -rho0 alphaT dT + rho0 betaS dS
 
@@ -256,7 +259,7 @@ CONTAINS
         & t_cf_var('alphaT','1/K','thermal expansion coefficient', datatype_flt),&
         & grib2_var(255, 255, 255, DATATYPE_PACK16, GRID_UNSTRUCTURED, grid_cell),&
         & ldims=(/nproma,alloc_cell_blocks/),in_group=groups("oce_layers"), lopenacc=.TRUE.)
-      !__acc_attach(ocean_state_diag%alphaT)
+      __acc_attach(ocean_state_diag%alphaT)
 
       CALL add_var(ocean_default_list, 'betaS', ocean_state_diag%betaS, &
         & grid_unstructured_cell,&
@@ -264,7 +267,7 @@ CONTAINS
         & t_cf_var('betaS','m^3/kg','haline expansion coefficient', datatype_flt),&
         & grib2_var(255, 255, 255, DATATYPE_PACK16, GRID_UNSTRUCTURED, grid_cell),&
         & ldims=(/nproma,alloc_cell_blocks/),in_group=groups("oce_layers"), lopenacc=.TRUE.)
-      !__acc_attach(ocean_state_diag%betaS)
+      __acc_attach(ocean_state_diag%betaS)
 
       CALL add_var(ocean_default_list, 'weight_e_sum', ocean_state_diag%weight_e_sum, &
         & grid_unstructured_edge,&
@@ -272,23 +275,24 @@ CONTAINS
         & t_cf_var('weight_e_sum','','weight_e_sum', datatype_flt),&
         & grib2_var(255, 255, 255, DATATYPE_PACK16, GRID_UNSTRUCTURED, grid_edge),&
         & ldims=(/nproma,n_zlev,nblks_e/),in_group=groups("oce_layers"), lopenacc=.TRUE.)
-      !__acc_attach(ocean_state_diag%weight_e_sum)
+      __acc_attach(ocean_state_diag%weight_e_sum)
     ENDIF
 
-    ocean_state_diag%layer_thickness_c = 0.0_wp
     ALLOCATE(layer_thickness_c_old(nproma,1:n_dlev,patch_3d%p_patch_2d(1)%alloc_cell_blocks))
     layer_thickness_c_old = 0.0_wp
+    !$ACC ENTER DATA COPYIN(rho_lev, rho_lev_cent, layer_thickness_c_old)
     tstep_count = 0
 
   END SUBROUTINE init_layers
 
-  SUBROUTINE calc_layers(patch_3d, ocean_state, p_oce_sfc, op_coeffs, params_oce, stretch_c, stretch_e)
+  SUBROUTINE calc_layers(patch_3d, ocean_state, p_oce_sfc, op_coeffs, params_oce, stretch_c, stretch_e, lacc)
     TYPE(t_patch_3d ), TARGET, INTENT(in)     :: patch_3d
     TYPE(t_hydro_ocean_state), TARGET, INTENT(in) :: ocean_state
     TYPE(t_operator_coeff), INTENT(in)        :: op_coeffs
     TYPE(t_ho_params), TARGET, INTENT(inout)  :: params_oce
     REAL(wp), INTENT(IN), OPTIONAL :: stretch_c(nproma, patch_3d%p_patch_2d(1)%alloc_cell_blocks)
     REAL(wp), INTENT(IN), OPTIONAL :: stretch_e(nproma, patch_3d%p_patch_2d(1)%nblks_e)
+    LOGICAL, INTENT(IN), OPTIONAL             :: lacc
 
     TYPE(t_patch), POINTER                    :: patch_2d
     TYPE(t_subset_range), POINTER             :: edges_in_domain, cells_in_domain, all_edges, all_cells
@@ -328,6 +332,7 @@ CONTAINS
     REAL(wp) :: sflx_temp, sflx_salt
     REAL(wp) :: dmin, dmax, ddif, weight
     REAL(wp) :: mfe, div
+    LOGICAL :: lzacc
 
     LOGICAL, SAVE                             :: firstcall=.true.
 
@@ -336,7 +341,7 @@ CONTAINS
     !REAL(wp)                                  :: tmp1, tmp2
     !write(*,*) "Layers diagnostic."
 
-    ones = 1.0_wp
+    CALL set_acc_host_or_device(lzacc, lacc)
 
     patch_2d        => patch_3d%p_patch_2d(1)
     edges_in_domain => patch_2d%edges%in_domain
@@ -356,24 +361,44 @@ CONTAINS
     div_mass_flux_lay  => ocean_state%p_diag%div_mass_flux_lay
     diapycnal_velocity => ocean_state%p_diag%diapycnal_velocity
 
-    sigma2 = 0.0_wp
-    mass_flux_lay = 0.0_wp
-    layer_thickness_e = 0.0_wp
-    layer_thickness_c = 0.0_wp
-    div_mass_flux_lay = 0.0_wp
-    diapycnal_velocity = 0.0_wp
+    !$ACC DATA CREATE(rho_c, rho_ci, rho_e, rho_ei, dzc, dze, ones, neutral_coeff) IF(lzacc)
+
+    ! Not used on GPU
+    ones(:) = 1.0_wp
+
+    !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+    sigma2(:,:,:) = 0.0_wp
+    mass_flux_lay(:,:,:) = 0.0_wp
+    layer_thickness_e(:,:,:) = 0.0_wp
+    layer_thickness_c(:,:,:) = 0.0_wp
+    div_mass_flux_lay(:,:,:) = 0.0_wp
+    diapycnal_velocity(:,:,:) = 0.0_wp
+    !$ACC END KERNELS
+    !$ACC WAIT(1)
 
     ! --- calculate sigma_2000 (potential density referenced to 2000m)
     DO blockNo = all_cells%start_block, all_cells%end_block
       CALL get_index_range(all_cells, blockNo, start_index, end_index)
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
       DO jc = start_index, end_index
         ! FIXME: nnew or nold?
+#ifdef _OPENACC
+        DO level = 1, n_zlev
+          ocean_state%p_diag%sigma2(jc,level,blockNo)  = (calculate_density_onColumn_elem(&
+              & ocean_state%p_prog(nnew(1))%tracer(jc,level,blockNo,1), & ! temp
+              & ocean_state%p_prog(nnew(1))%tracer(jc,level,blockNo,2), & ! salt
+              & 2000.0_wp) - 1000._wp) * patch_3d%wet_c(jc,level,blockNo)
+        END DO
+#else
         ocean_state%p_diag%sigma2(jc,:,blockNo)  = (calculate_density_onColumn(&
             & ocean_state%p_prog(nnew(1))%tracer(jc,:,blockNo,1), & ! temp
             & ocean_state%p_prog(nnew(1))%tracer(jc,:,blockNo,2), & ! salt
             & 2000.0_wp*ones, n_zlev) - 1000._wp) * patch_3d%wet_c(jc,:,blockNo)
+#endif
       ENDDO
+      !$ACC END PARALLEL LOOP
     ENDDO
+    !$ACC WAIT(1)
 
     IF (mode_layers == 1) THEN
       sflx_dens          => ocean_state%p_diag%sflx_dens
@@ -384,23 +409,27 @@ CONTAINS
       dhdt_hfl           => ocean_state%p_diag%dhdt_hfl
       weight_e_sum       => ocean_state%p_diag%weight_e_sum
 
-      sflx_dens = 0.0_wp
-      alphaT = 0.0_wp
-      betaS = 0.0_wp
-      dhdt_tot = 0.0_wp
-      dhdt_srf = 0.0_wp
-      dhdt_hfl = 0.0_wp
-      weight_e_sum = 0.0_wp
+      !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+      sflx_dens(:,:) = 0.0_wp
+      alphaT(:,:) = 0.0_wp
+      betaS(:,:) = 0.0_wp
+      dhdt_tot(:,:,:) = 0.0_wp
+      dhdt_srf(:,:,:) = 0.0_wp
+      dhdt_hfl(:,:,:) = 0.0_wp
+      weight_e_sum(:,:,:) = 0.0_wp
+      !$ACC END KERNELS
+      !$ACC WAIT(1)
 
       DO blockNo = edges_in_domain%start_block, edges_in_domain%end_block
         CALL get_index_range(edges_in_domain, blockNo, start_index, end_index)
+        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) PRIVATE(dze, rho_e, rho_ei) ASYNC(1) IF(lzacc)
         DO je = start_index, end_index
           ! FIXME: Check whether ==sea also includes wet point at boundary
           IF (patch_3d%lsm_e(je,1,blockNo)==sea) THEN
             IF ( vert_cor_type == 0 ) THEN
-              dze = patch_3d%p_patch_1d(1)%prism_thick_e(je,:,blockNo)
+              dze(:) = patch_3d%p_patch_1d(1)%prism_thick_e(je,:,blockNo)
             ELSEIF ( vert_cor_type == 1 ) THEN
-              dze = patch_3d%p_patch_1d(1)%prism_thick_e(je,:,blockNo)*stretch_e(je,blockNo)
+              dze(:) = patch_3d%p_patch_1d(1)%prism_thick_e(je,:,blockNo)*stretch_e(je,blockNo)
             ENDIF
 
             ! FIXME: How best treating case when one of the neighbours is land?
@@ -409,7 +438,7 @@ CONTAINS
             !        *\ pay attention when extrapolating land values; use kbot
 
             ! interpolate horizontally from center to edges
-            rho_e = 0.0_wp
+            rho_e(:) = 0.0_wp
             DO jk = 1, dolic_e(je,blockNo)
               rho_e(jk) = patch_3d%wet_e(je,jk,blockNo) * 0.5_wp*( &
                 &   ocean_state%p_diag%sigma2(idx_c(je,blockNo,1),jk,blk_c(je,blockNo,1)) &
@@ -417,7 +446,8 @@ CONTAINS
             ENDDO
 
             ! interpolate vertically from center to interfaces
-            rho_ei = 0.0_wp
+            rho_ei(:) = 0.0_wp
+            !$ACC LOOP SEQ
             DO jk = 2, dolic_e(je,blockNo)
               rho_ei(jk) = (rho_e(jk-1)*dze(jk) + rho_e(jk)*dze(jk-1)) &
                 & / (dze(jk)+dze(jk-1))
@@ -518,16 +548,19 @@ CONTAINS
             ENDDO ! jk
           ENDIF ! patch_3d%lsm_e(je,1,blockNo)==sea)
         ENDDO ! je
+        !$ACC END PARALLEL LOOP
       ENDDO ! blockNo
+      !$ACC WAIT(1)
 
       ! ---
       DO blockNo = all_cells%start_block, all_cells%end_block
         CALL get_index_range(all_cells, blockNo, start_index, end_index)
         idx => patch_2d%cells%edge_idx
         blk => patch_2d%cells%edge_blk
+        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) PRIVATE(dzc, rho_c, rho_ci) ASYNC(1) IF(lzacc)
         DO jc = start_index, end_index
           IF (patch_3d%lsm_c(jc,1,blockNo)==sea) THEN
-            dzc = patch_3d%p_patch_1d(1)%prism_thick_c(jc,:,blockNo)
+            dzc(:) = patch_3d%p_patch_1d(1)%prism_thick_c(jc,:,blockNo)
 
             ! get density on cell
             DO jk = 1, dolic_c(jc,blockNo)
@@ -535,6 +568,7 @@ CONTAINS
             ENDDO
 
             ! interpolate vertically from center to interfaces
+            !$ACC LOOP SEQ
             DO jk = 2, dolic_c(jc,blockNo)
               rho_ci(jk) = (rho_c(jk-1)*dzc(jk) + rho_c(jk)*dzc(jk-1)) &
                 & / (dzc(jk)+dzc(jk-1))
@@ -606,19 +640,31 @@ CONTAINS
             ENDDO ! jk
           ENDIF ! patch_3d%lsm_c(jc,1,blockNo)==sea
         ENDDO ! jc
+        !$ACC END PARALLEL LOOP
       ENDDO ! blockNo
+      !$ACC WAIT(1)
 
       ! --- derive thickness change of layer
       ! write(*,*) dtime
       ! write(*,*) 'layer_thickness_c_old = ', layer_thickness_c_old(2,:,100)
       ! write(*,*) 'layer_thickness_c = ', layer_thickness_c(2,:,100)
       IF (firstcall) THEN
+        !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
         dhdt_tot(:,:,:) = 0.0_wp
+        !$ACC END KERNELS
+        !$ACC WAIT(1)
       ELSE
+        !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
         dhdt_tot(:,:,:) = (layer_thickness_c(:,:,:) - layer_thickness_c_old(:,:,:)) / dtime
+        !$ACC END KERNELS
+        !$ACC WAIT(1)
       ENDIF
       firstcall = .FALSE.
+      !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
       layer_thickness_c_old = layer_thickness_c
+      !$ACC END KERNELS
+      !$ACC WAIT(1)
+
       !if (blockNo==100 .and. jc==2 .and. jk==9) then
       ! write(*,*) 'layer_thickness_c_old = ', layer_thickness_c_old(2,:,100)
       ! write(*,*) 'dhdt_tot = ', dhdt_tot(2,:,100)
@@ -627,6 +673,7 @@ CONTAINS
       ! --- surface transformation
       DO blockNo = all_cells%start_block, all_cells%end_block
         CALL get_index_range(all_cells, blockNo, start_index, end_index)
+        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) PRIVATE(neutral_coeff) ASYNC(1) IF(lzacc)
         DO jc = start_index, end_index
           levels       = dolic_e(jc, blockNo)   !
 
@@ -638,12 +685,25 @@ CONTAINS
           IF(EOS_TYPE/=1)THEN
             !Nonlinear EOS, slope coefficients are calculated via the McDougall-method
             ! FIXME: use salinity instead of salinityColumn?
+#ifdef _OPENACC
+            DO level = 1, levels
+              neutral_coeff(level, 1) = calc_neutralslope_coeff_func_onColumn_elem( &
+                & ocean_state%p_prog(nold(1))%tracer(jc,level,blockNo,1), &
+                & ocean_state%p_prog(nold(1))%tracer(jc,level,blockNo,2), &
+                & 2000.0_wp, variant=1)
+              neutral_coeff(level, 2) = calc_neutralslope_coeff_func_onColumn_elem( &
+                & ocean_state%p_prog(nold(1))%tracer(jc,level,blockNo,1), &
+                & ocean_state%p_prog(nold(1))%tracer(jc,level,blockNo,2), &
+                & 2000.0_wp, variant=2)
+            END DO
+#else
             neutral_coeff = calc_neutralslope_coeff_func_onColumn( &
               & ocean_state%p_prog(nold(1))%tracer(jc,1:levels,blockNo,1), &
               & ocean_state%p_prog(nold(1))%tracer(jc,1:levels,blockNo,2), &
               !& patch_3D%p_patch_1d(1)%depth_cellinterface(jc,2:levels+1,blockNo), &
               & 2000.0_wp*ones(1:levels), &
               & levels)
+#endif
           ELSEIF(EOS_TYPE==1)THEN
             !Linear EOS: slope coefficients are equal to EOS-coefficients
             neutral_coeff(:,1) = LinearThermoExpansionCoefficient
@@ -679,19 +739,22 @@ CONTAINS
 
           ENDIF !(kbot>0)
         ENDDO
+        !$ACC END PARALLEL LOOP
       ENDDO
+      !$ACC WAIT(1)
     ELSE  !(mode_layers != 1)
       DO blockNo = edges_in_domain%start_block, edges_in_domain%end_block
         CALL get_index_range(edges_in_domain, blockNo, start_index, end_index)
+        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) PRIVATE(dze, rho_e) ASYNC(1) IF(lzacc)
         DO je = start_index, end_index
           IF (patch_3d%lsm_e(je,1,blockNo)==sea) THEN
             IF ( vert_cor_type == 0 ) THEN
-              dze = patch_3d%p_patch_1d(1)%prism_thick_e(je,:,blockNo)
+              dze(:) = patch_3d%p_patch_1d(1)%prism_thick_e(je,:,blockNo)
             ELSEIF ( vert_cor_type == 1 ) THEN
-              dze = patch_3d%p_patch_1d(1)%prism_thick_e(je,:,blockNo)*stretch_e(je,blockNo)
+              dze(:) = patch_3d%p_patch_1d(1)%prism_thick_e(je,:,blockNo)*stretch_e(je,blockNo)
             ENDIF
             ! interpolate horizontally from center to edges
-            rho_e = 0.0_wp
+            rho_e(:) = 0.0_wp
             DO jk = 1, dolic_e(je,blockNo)
               rho_e(jk) = patch_3d%wet_e(je,jk,blockNo) * 0.5_wp*( &
                 &   ocean_state%p_diag%sigma2(idx_c(je,blockNo,1),jk,blk_c(je,blockNo,1)) &
@@ -730,19 +793,22 @@ CONTAINS
             ENDDO
           ENDIF ! (patch_3d%lsm_e(je,1,blockNo)==sea)
         ENDDO
+        !$ACC END PARALLEL LOOP
       ENDDO
+      !$ACC WAIT(1)
 
       ! ---
       DO blockNo = all_cells%start_block, all_cells%end_block
         CALL get_index_range(all_cells, blockNo, start_index, end_index)
         idx => patch_2d%cells%edge_idx
         blk => patch_2d%cells%edge_blk
+        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) PRIVATE(dzc, rho_c) IF(lzacc)
         DO jc = start_index, end_index
           IF (patch_3d%lsm_c(jc,1,blockNo)==sea) THEN
             IF ( vert_cor_type == 0 ) THEN
-              dzc = patch_3d%p_patch_1d(1)%prism_thick_c(jc,:,blockNo)
+              dzc(:) = patch_3d%p_patch_1d(1)%prism_thick_c(jc,:,blockNo)
             ELSEIF ( vert_cor_type == 1 ) THEN
-              dzc = patch_3d%p_patch_1d(1)%prism_thick_c(jc,:,blockNo)*stretch_c(jc,blockNo)
+              dzc(:) = patch_3d%p_patch_1d(1)%prism_thick_c(jc,:,blockNo)*stretch_c(jc,blockNo)
             ENDIF
             ! get density on cell
             DO jk = 1, dolic_c(jc,blockNo)
@@ -763,7 +829,9 @@ CONTAINS
             ENDDO
           ENDIF ! (patch_3d%lsm_e(je,1,blockNo)==sea)
         ENDDO
+        !$ACC END PARALLEL LOOP
       ENDDO
+      !$ACC WAIT(1)
     ENDIF !(mode_layers == x)
 
     ! --- divergence of isopycnal flow
@@ -772,6 +840,7 @@ CONTAINS
       CALL get_index_range(cells_in_domain, blockNo, start_index, end_index)
       idx => patch_2d%cells%edge_idx
       blk => patch_2d%cells%edge_blk
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
       DO jd = 1, n_dlev
         DO jc = start_index, end_index
           !write(*,*) 'blockNo = ', blockNo, ' jd = ', jd, ' jc = ', jc ! debugging
@@ -781,23 +850,32 @@ CONTAINS
             & mass_flux_lay(idx(jc,blockNo,3),jd,blk(jc,blockNo,3)) * op_coeffs%div_coeff(jc,level,blockNo,3)
         ENDDO
       ENDDO
+      !$ACC END PARALLEL LOOP
     ENDDO
+    !$ACC WAIT(1)
 
     ! --- diapycnal velocity
     ! (integrate from densest layer upward and assume no diap transport through
     !  lowest layer)
-    diapycnal_velocity = 0.0_wp
+    !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+    diapycnal_velocity(:,:,:) = 0.0_wp
+    !$ACC END KERNELS
+    !$ACC WAIT(1)
     DO blockNo = cells_in_domain%start_block, cells_in_domain%end_block
       CALL get_index_range(cells_in_domain, blockNo, start_index, end_index)
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
       DO jc = start_index, end_index
         DO jd = n_dlev, 1, -1
           diapycnal_velocity(jc,jd,blockNo) = &
             & diapycnal_velocity(jc,jd+1,blockNo) - div_mass_flux_lay(jc,jd,blockNo)
         ENDDO
       ENDDO
+      !$ACC END PARALLEL LOOP
     ENDDO
+    !$ACC WAIT(1)
 
     tstep_count = tstep_count + 1
+    !$ACC END DATA
   END SUBROUTINE calc_layers
 
 END MODULE mo_ocean_layers

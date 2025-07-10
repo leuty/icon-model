@@ -41,12 +41,12 @@ all: host vector
 host:
 	@mkdir -p ${vh_dir}
 	# configuring host
-	cd ${vh_dir} && ${icon_dir}/config/dkrz/aurora.VH.gcc_mpi-3.4.0 --disable-openmp
+	cd ${vh_dir} && ${icon_dir}/config/dkrz/aurora.VH.gcc_mpi-3.4.0 --disable-openmp --enable-testbed
 	set -o pipefail; cd ${vh_dir} && \$(MAKE) |& tee make.log
 vector:
 	@mkdir -p ${ve_dir}
 	# configuring vector
-	cd ${ve_dir} && ${icon_dir}/config/dkrz/aurora.VE.nfort-5.0.1_mpi-3.4.0 --disable-openmp
+	cd ${ve_dir} && ${icon_dir}/config/dkrz/aurora.VE.nfort-5.0.1_mpi-3.4.0 --disable-openmp --enable-testbed
 	set -o pipefail; cd ${ve_dir} && \$(MAKE) |& tee make.log
 _EOF
 
