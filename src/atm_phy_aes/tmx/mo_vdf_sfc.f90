@@ -69,6 +69,7 @@ MODULE mo_vdf_sfc
       & cvd => NULL(), &
       & cvv => NULL(), &
       & min_sfc_wind => NULL(), &
+      & wind_g       => NULL(), &
       & min_rough    => NULL(), &
       & rough_m_oce  => NULL(), &
       & rough_m_ice  => NULL(), &
@@ -495,6 +496,7 @@ CONTAINS
       CALL compute_sfc_fluxes( &
         ! Input
         & this%domain, this%domain%sfc_types(jtile), diags%nvalid(:,jtile), diags%indices(:,:,jtile), &
+        & conf%wind_g, &
         & conf%cvd, &
         & ins%ua(:,:), ins%va(:,:), &
         ! & diags%theta_atm(:,:), ins%qa(:,:), diags%wind(:,:), diags%rho_tile(:,:,jtile),  &
@@ -803,6 +805,7 @@ CONTAINS
         CALL compute_sfc_fluxes( &
           ! Input
           & this%domain, isfc_ice, diags%nvalid(:,jtile), diags%indices(:,:,jtile), &
+          & conf%wind_g, &
           & conf%cvd, &
           & ins%ua(:,:), ins%va(:,:), &
           ! & diags%theta_atm(:,:), ins%qa(:,:), diags%wind(:,:), diags%rho_tile(:,:,jtile),  &
@@ -1082,6 +1085,7 @@ CONTAINS
     CALL configlist%append(t_variable('cvd', shape_0d, "", type_id="real"))
     CALL configlist%append(t_variable('cvv', shape_0d, "", type_id="real"))
     CALL configlist%append(t_variable('minimum surface wind speed', shape_0d, "m/s", type_id="real"))
+    CALL configlist%append(t_variable('wind gust parameter', shape_0d, "m/s", type_id="real"))
     CALL configlist%append(t_variable('ocean roughness length', shape_0d, "m", type_id="real"))
     CALL configlist%append(t_variable('ice roughness length', shape_0d, "m", type_id="real"))
     CALL configlist%append(t_variable('minimal roughness length', shape_0d, "m", type_id="real"))
@@ -1107,6 +1111,8 @@ CONTAINS
       __acc_attach(this%cvv)
       this%min_sfc_wind => this%list%Get_ptr_r0d('minimum surface wind speed')
       __acc_attach(this%min_sfc_wind)
+      this%wind_g => this%list%Get_ptr_r0d('wind gust parameter')
+      __acc_attach(this%wind_g)
       this%min_rough   => this%list%Get_ptr_r0d('minimal roughness length')
       __acc_attach(this%min_rough)
       this%rough_m_oce => this%list%Get_ptr_r0d('ocean roughness length')

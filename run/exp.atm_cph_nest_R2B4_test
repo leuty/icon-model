@@ -53,15 +53,15 @@ grids_folder=${nest_data_Folder}
 
 # start and end date+time
 start_date=${start_date:="1979-01-01T00:00:00Z"}
-    end_date=${end_date:="1979-01-01T00:32:00Z"}
+    end_date=${end_date:="1979-01-01T00:16:00Z"}
 
 # time steps
-radTimeStep="PT16M"
-atmTimeStep="PT4M"
+radTimeStep="PT8M"
+atmTimeStep="PT2M"
 
 # restart intervals
-checkpoint_interval="PT16M"
-restart_interval="PT32M"
+checkpoint_interval="PT8M"
+restart_interval="PT16M"
 
 # namelist files
 atmo_namelist=NAMELIST_${EXPNAME}_atm
@@ -95,9 +95,9 @@ fi
 # output intervals
 # ---------------------
 
-atm_output_interval_2d="PT4M"
-atm_output_interval_3d="PT4M"
-atm_file_interval="PT4M"
+atm_output_interval_2d="PT2M"
+atm_output_interval_3d="PT2M"
+atm_file_interval="PT2M"
 
 # output file selection
 # ---------------------
@@ -225,8 +225,8 @@ cat > ${atmo_namelist} << EOF
  aes_phy_config(1)%iqneg_p2d = 2
 
  aes_phy_config(2)%dt_rad = "${radTimeStep}"
- aes_phy_config(2)%dt_vdf = "PT120S"
- aes_phy_config(2)%dt_mig = "PT120S"
+ aes_phy_config(2)%dt_vdf = "PT60S"
+ aes_phy_config(2)%dt_mig = "PT60S"
  aes_phy_config(2)%ljsb   = .TRUE.
  aes_phy_config(2)%lamip  = .TRUE.
  aes_phy_config(2)%lice   = .TRUE.
@@ -237,8 +237,8 @@ cat > ${atmo_namelist} << EOF
  aes_phy_config(2)%iqneg_p2d = 2
 
  aes_phy_config(3)%dt_rad = "${radTimeStep}"
- aes_phy_config(3)%dt_vdf = "PT60S"
- aes_phy_config(3)%dt_mig = "PT60S"
+ aes_phy_config(3)%dt_vdf = "PT30S"
+ aes_phy_config(3)%dt_mig = "PT30S"
  aes_phy_config(3)%ljsb   = .TRUE.
  aes_phy_config(3)%lamip  = .TRUE.
  aes_phy_config(3)%lice   = .TRUE.
@@ -249,8 +249,8 @@ cat > ${atmo_namelist} << EOF
  aes_phy_config(3)%iqneg_p2d = 2
 
  aes_phy_config(4)%dt_rad = "${radTimeStep}"
- aes_phy_config(4)%dt_vdf = "PT60S"
- aes_phy_config(4)%dt_mig = "PT60S"
+ aes_phy_config(4)%dt_vdf = "PT30S"
+ aes_phy_config(4)%dt_mig = "PT30S"
  aes_phy_config(4)%ljsb   = .TRUE.
  aes_phy_config(4)%lamip  = .TRUE.
  aes_phy_config(4)%lice   = .TRUE.

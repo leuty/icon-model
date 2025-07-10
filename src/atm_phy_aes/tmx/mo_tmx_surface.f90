@@ -722,6 +722,7 @@ CONTAINS
     & domain,                  &
     & isfc,                    &
     & nvalid, indices,         &
+    & wind_g,                  &
     & cvd,                     &
     ! & ua, va, thetam1, qm1, wind, rho, qsat_sfc, theta_sfc, kh, km,  &
     & ua, va, ta, qm1, wind, u_sfc_oce, v_sfc_oce, rho, qsat_sfc, t_sfc, kh, km,  &
@@ -741,7 +742,7 @@ CONTAINS
     INTEGER,  INTENT(in)  :: &
       & nvalid(:),           &
       & indices(:,:)
-    REAL(wp), INTENT(in) :: cvd
+    REAL(wp), INTENT(in) :: cvd, wind_g
     REAL(wp), DIMENSION(:,:), INTENT(in) :: &
       & ua, &
       & va, &
@@ -824,9 +825,9 @@ CONTAINS
         js = indices(jls,jb)
         ! TODO: is the treatment of surface ocean current correct (cf. vdiff code)
         IF (isfc == isfc_oce) THEN
-          evapotrans(js,jb) = rho(js,jb) * wind(js,jb) * kh(js,jb) * (qm1(js,jb) - qsat_sfc(js,jb))
+          evapotrans(js,jb) = rho(js,jb) * kh(js,jb) * (SQRT(wind_g**2._wp + wind(js,jb)**2._wp)) * (qm1(js,jb) - qsat_sfc(js,jb))
           latent_hflx(js,jb) = evapotrans(js,jb) * (lvc+(cvv-clw)*t_sfc(js,jb))
-          sensible_hflx(js,jb) = cvd * rho(js,jb) * wind(js,jb) * kh(js,jb) * (ta(js,jb) - t_sfc(js,jb))
+          sensible_hflx(js,jb) = cvd * rho(js,jb) * kh(js,jb) * (SQRT(wind_g**2._wp + wind(js,jb)**2._wp))* (ta(js,jb) - t_sfc(js,jb))
           ustress(js,jb) = rho(js,jb) * km(js,jb) * wind(js,jb) * (ua(js,jb) - u_sfc_oce(js,jb))
           vstress(js,jb) = rho(js,jb) * km(js,jb) * wind(js,jb) * (va(js,jb) - v_sfc_oce(js,jb))
         ELSE IF (isfc == isfc_ice) THEN

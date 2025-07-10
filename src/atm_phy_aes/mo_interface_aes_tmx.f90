@@ -755,6 +755,7 @@ CONTAINS
     CALL bind_variable(vdf%sfc%config%list%Search('cvv'), cvv)
     CALL bind_variable(vdf%sfc%config%list%Search('time step'),dtime)
     CALL bind_variable(vdf%sfc%config%list%Search('minimum surface wind speed'), aes_vdf_config(jg)%min_sfc_wind)
+    CALL bind_variable(vdf%sfc%config%list%Search('wind gust parameter'),        aes_vdf_config(jg)%wind_g)
     CALL bind_variable(vdf%sfc%config%list%Search('ocean roughness length'),     aes_vdf_config(jg)%z0m_oce)
     CALL bind_variable(vdf%sfc%config%list%Search('ice roughness length'),       aes_vdf_config(jg)%z0m_ice)
     CALL bind_variable(vdf%sfc%config%list%Search('minimal roughness length'),   aes_vdf_config(jg)%z0m_min)
