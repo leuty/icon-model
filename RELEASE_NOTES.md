@@ -46,6 +46,7 @@ Climate: ICON-Land
   - Account for proc0_shift from the parallel namelist when running ICON-Land standalone
   - OpenACC fixes for lumi
   - Fix needed with jsbach standalone simulations on GPUs
+  - Removed unnecessary mpi-all-reduce calls to reduce run time
 - Code cleaning:
   - Only use one variable representing time step length
 - Updated JSBACH usecase with TMX and PFTs
