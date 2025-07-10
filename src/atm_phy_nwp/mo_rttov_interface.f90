@@ -1163,9 +1163,10 @@ SUBROUTINE downscale_rttov_output(jg, nimg, rg_satimg, satimg, l_enabled)
     CALL p_barrier(p_comm_work)
     WRITE (0,*) "Execute interpolation from reduced grid to full grid"
   END IF
-  CALL interpol_scal_nudging (p_pp, p_int, p_grf%p_dom(i_chidx), 0, 1, 1, lacc=.TRUE., &
-    &                         f3din1=rg_satimg, f3dout1=satimg,                        &
-    &                         overshoot_fac=1.0_wp,opt_l_enabled=l_enabled             )
+  CALL interpol_scal_nudging (p_pp, p_int, p_grf%p_dom(i_chidx), nshift=0, nfields=1,        &
+    &                         nlev_ex=nimg, istart_blk=1, lacc=.TRUE.,                       &
+    &                         f3din1=rg_satimg, f3dout1=satimg,                              &
+    &                         overshoot_fac=1.0_wp,opt_l_enabled=l_enabled                   )
   IF (dbg_level > 2) THEN
     CALL p_barrier(p_comm_work)
     WRITE (0,*) "CALL to interpol_scal_nudging done."

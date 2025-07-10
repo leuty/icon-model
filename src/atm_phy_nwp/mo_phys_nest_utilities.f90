@@ -1602,24 +1602,24 @@ SUBROUTINE downscale_rad_output(jg, jgp, nlev_rg, rg_aclcov, rg_lwflxall,   &
   l_limit(2:3) = .FALSE.
 
   !$ACC WAIT
-  CALL interpol_scal_nudging (p_pp, p_int, p_grf%p_dom(i_chidx), nshift, 3, 1,          &
-    &                         lacc=lzacc,                                               &
-    &                         f3din1=zrg_trdiffsolall, f3dout1=z_trdiffsolall,          &
-    &                         f3din2=p_lwflxall,       f3dout2=lwflxall,                &
-    &                         f3din3=zrg_aux3d,        f3dout3=z_aux3d,                 &
+  CALL interpol_scal_nudging (p_pp, p_int, p_grf%p_dom(i_chidx), nshift, nfields=3,        &
+    &                         nlev_ex=n2dvars_rg, istart_blk=1, lacc=lzacc,                &
+    &                         f3din1=zrg_trdiffsolall, f3dout1=z_trdiffsolall,             &
+    &                         f3din2=p_lwflxall,       f3dout2=lwflxall,                   &
+    &                         f3din3=zrg_aux3d,        f3dout3=z_aux3d,                    &
     &                         llimit_nneg=l_limit,     overshoot_fac=1.0_wp)
 
   IF (atm_phy_nwp_config(jg)%l_3d_rad_fluxes) THEN
-    CALL interpol_scal_nudging (p_pp, p_int, p_grf%p_dom(i_chidx), nshift, 4, 1,          &
-      &                         lacc=lzacc,                                               &
+    CALL interpol_scal_nudging (p_pp, p_int, p_grf%p_dom(i_chidx), nshift, nfields=4,     &
+      &                         nlev_ex=1, istart_blk=1, lacc=lzacc,                      &
       &                         f3din1=p_lwflx_up,       f3dout1=lwflx_up,                &
       &                         f3din2=p_lwflx_dn,       f3dout2=lwflx_dn,                &
       &                         f3din3=p_swflx_up,       f3dout3=swflx_up,                &
       &                         f3din4=p_swflx_dn,       f3dout4=swflx_dn,                &
       &                         overshoot_fac=1.0_wp)
 
-    CALL interpol_scal_nudging (p_pp, p_int, p_grf%p_dom(i_chidx), nshift, 4, 1,          &
-      &                         lacc=lzacc,                                               &
+    CALL interpol_scal_nudging (p_pp, p_int, p_grf%p_dom(i_chidx), nshift, nfields=4,     &
+      &                         nlev_ex=1, istart_blk=1, lacc=lzacc,                      &
       &                         f3din1=p_lwflx_up_clr,       f3dout1=lwflx_up_clr,        &
       &                         f3din2=p_lwflx_dn_clr,       f3dout2=lwflx_dn_clr,        &
       &                         f3din3=p_swflx_up_clr,       f3dout3=swflx_up_clr,        &

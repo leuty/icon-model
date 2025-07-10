@@ -530,8 +530,8 @@ END SUBROUTINE interpol_scal_nudging_core
 !
 !! Parent-to-child interpolation of scalar fields needed for boundary nudging
 !! Interpolation methods are as in interpol_scal_grf
-SUBROUTINE interpol_scal_nudging (ptr_pp, ptr_int, ptr_grf, nshift,              &
-                                  nfields, istart_blk, lacc, f3din1, f3dout1, f3din2,  &
+SUBROUTINE interpol_scal_nudging (ptr_pp, ptr_int, ptr_grf, nshift, nfields,     &
+                                  nlev_ex, istart_blk, lacc, f3din1, f3dout1, f3din2, &
                                   f3dout2, f3din3, f3dout3, f3din4, f3dout4,     &
                                   f3din5, f3dout5, f4din, f4dout,                &
                                   llimit_nneg, rlimval, overshoot_fac,           &
@@ -552,6 +552,10 @@ INTEGER, INTENT(IN) :: nshift
 ! number of fields provided on input (needed for aux fields and pointer allocation)
 ! nfields is a typically small number (1, 3, 4, or ntracer)
 INTEGER, INTENT(IN) :: nfields
+
+! maximum value of 2nd dimension (usually levels): relevant only if buffer fields are passed
+! whose dimension is not nlev or nlevp1; otherwise, nlev_ex can be set to 1 in the calling routine
+INTEGER, INTENT(IN) :: nlev_ex
 
 LOGICAL, INTENT(IN) :: lacc ! if .TRUE. use OpenACC
 
@@ -593,7 +597,7 @@ LOGICAL :: l_limit_nneg(nfields)
 REAL(wp):: r_limval(nfields)
 
 ! Auxiliary fields
-REAL(wp) :: h_aux(nproma,MAX(35,ptr_pp%nlevp1), 4,                    &
+REAL(wp) :: h_aux(nproma,MAX(nlev_ex,ptr_pp%nlevp1), 4,               &
                   ptr_pp%cells%start_block(grf_nudgintp_start_c):     &
                   MAX(ptr_pp%cells%start_block(grf_nudgintp_start_c), &
                       ptr_pp%cells%end_block(min_rlcell_int)),        &
