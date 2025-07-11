@@ -60,6 +60,9 @@ spack-configure-args.txt
 /version.c
 /xmod
 
+# Ignore build files from ragnarok
+/ragnarok/build
+
 # Dist stage files:
 /icon-*.tar.bz2
 

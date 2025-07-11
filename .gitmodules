@@ -57,3 +57,6 @@
 [submodule "externals/iconmath"]
 	path = externals/iconmath
 	url = ../../icon-libraries/libiconmath.git
+[submodule "externals/kokkos"]
+	path = externals/kokkos
+	url = https://github.com/kokkos/kokkos.git
