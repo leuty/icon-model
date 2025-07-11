@@ -19,6 +19,7 @@ atmosphere/atmosphere.md
 ocean/ocean.md
 land/land.md
 infrastructure/infrastructure.md
+infrastructure/testing/system_tests.md
 literature/literature.md
 ```
 
@@ -80,7 +81,8 @@ Information on the changes are available in the {{ '[**Release Notes**]({}/RELEA
 [**Infrastructure**](ref_infrastructure)
 ^^^
 [](ref_infrastructure_parallelization)  
-[](ref_infrastructure_io)
+[](ref_infrastructure_io)  
+[](ref_infrastructure_testing)
 :::
 
 :::{grid-item-card}

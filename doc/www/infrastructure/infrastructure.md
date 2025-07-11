@@ -12,3 +12,10 @@ A more detailed description of the parallelization is provided in the **{term}`I
 ## Input & Output (I/O)
 
 Detail information to Input and Output can be found in the **{term}`ICON Tutorial 2024`** in respectively section 2 and 7.
+
+(ref_infrastructure_testing)=
+## Testing
+
+The ICON model integrates a set of tests for supported systems. The internal CI infrastructure includes:
+
+- [System tests](ref_infrastructure_system_tests)
