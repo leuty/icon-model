@@ -57,7 +57,7 @@ MODULE mo_ocean_diagnostics
     & iforc_oce, No_Forcing, i_sea_ice, diagnostics_level, &
     & diagnose_for_horizontalVelocity, OceanReferenceDensity, &
     & eddydiag, &
-    & vert_cor_type, check_total_volume
+    & vert_cor_type, check_total_volume, fillValue
   USE mo_sea_ice_nml,        ONLY: kice, sice
   USE mo_dynamics_config,    ONLY: nold,nnew
   USE mo_parallel_config,    ONLY: nproma, p_test_run
@@ -1010,8 +1010,10 @@ CONTAINS
           !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
           DO blockNo = 1, patch_3d%p_patch_2d(1)%alloc_cell_blocks
             DO jc = 1, nproma
+              IF( patch_3d%wet_c(jc,1,blockno) /= 0 ) then
               ocean_state%p_diag%mlotstsq(jc,blockNo) = &
                 &  ocean_state%p_diag%mlotst(jc,blockNo)*ocean_state%p_diag%mlotst(jc,blockNo)
+              ENDIF
             END DO
           END DO
           !$ACC END PARALLEL LOOP
@@ -1036,8 +1038,10 @@ CONTAINS
           !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
           DO blockNo = 1, patch_3d%p_patch_2d(1)%alloc_cell_blocks
             DO jc = 1, nproma
-              ocean_state%p_diag%mlotst10sq(jc,blockNo) = &
-                &  ocean_state%p_diag%mlotst10(jc,blockNo)*ocean_state%p_diag%mlotst10(jc,blockNo)
+              IF( patch_3d%wet_c(jc,1,blockno) /= 0 ) then
+                ocean_state%p_diag%mlotst10sq(jc,blockNo) = &
+                  & ocean_state%p_diag%mlotst10(jc,blockNo)*ocean_state%p_diag%mlotst10(jc,blockNo)
+              ENDIF
             END DO
           END DO
           !$ACC END PARALLEL LOOP
@@ -1083,7 +1087,22 @@ CONTAINS
       CALL dbg_print('Diag: mld',p_diag%mld,str_module,4,in_subset=owned_cells)
 
       ! square of ssh
-      p_diag%zos_square = merge(sea_surface_height*sea_surface_height,0.0_wp,isRegistered('zos_square'))
+      IF (isRegistered('zos_square')) THEN
+
+        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
+        DO blockNo = 1, patch_3d%p_patch_2d(1)%alloc_cell_blocks
+          DO jc = 1, nproma
+            IF( patch_3d%wet_c(jc,1,blockno) /= 0 ) THEN
+              p_diag%zos_square(jc,blockno) = sea_surface_height(jc,blockno)*sea_surface_height(jc,blockno)
+            ENDIF
+          END DO
+        END DO
+        !$ACC END PARALLEL LOOP
+        !$ACC WAIT(1)
+
+        CALL dbg_print('Diag: zos_square',ocean_state%p_diag%zos_square, &
+               str_module,4,in_subset=owned_cells)
+      ENDIF
 
       monitor%gibraltar = merge( section_flux(oce_sections(1),normal_veloc)*OceanReferenceDensity, &
           &                      0.0_wp, &
@@ -2916,6 +2935,7 @@ CONTAINS
       CALL get_index_range(subset, blk, cellStart, cellEnd)
       !$ACC PARALLEL LOOP GANG DEFAULT(PRESENT) PRIVATE(sithk, snthk, dz) ASYNC(1) IF(lzacc) ! 2023-07 psam-DKRZ: Use of GANG VECTOR introduces error here
       DO cell = cellStart, cellEnd
+        IF( subset%vertical_levels(cell,blk) >= 1) THEN
         ! surface:
         ! heat of ice : heat of water equivalent at tfreeze - latent heat of fusion
 
@@ -2974,6 +2994,7 @@ CONTAINS
              ,subset%vertical_levels(cell,blk)),blk))
 
         ! rest of the underwater world
+        END IF ! only ocean values
       END DO ! cell
         !$ACC END PARALLEL LOOP
     END DO !block
@@ -3274,7 +3295,7 @@ CONTAINS
 
 
     TYPE(t_patch), POINTER                   :: patch_2d
-    TYPE(t_subset_range), POINTER            :: owned_cells
+    TYPE(t_subset_range), POINTER            :: all_cells
 
 #if defined(__LVECTOR__) || defined(_OPENACC)
     REAL(wp) :: sigh(nproma)
@@ -3291,30 +3312,32 @@ CONTAINS
 
 
     patch_2d => patch_3D%p_patch_2d(1)
-    owned_cells => patch_2d%cells%owned
+    all_cells => patch_2d%cells%all
 
 #if !defined(__LVECTOR__) && !defined(_OPENACC)
     ! Non-vector variant
 
     !ICON_OMP_PARALLEL_DO PRIVATE(start_index, end_index) SCHEDULE(dynamic)
-    DO blockNo = owned_cells%start_block, owned_cells%end_block
-      CALL get_index_range(owned_cells, blockNo, start_index, end_index)
+    DO blockNo = all_cells%start_block, all_cells%end_block
+      CALL get_index_range(all_cells, blockNo, start_index, end_index)
       ! 2023-08 psam-DKRZ: use of GANG VECTOR here gives runtime error
       !$ACC PARALLEL LOOP VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
       DO jc =  start_index, end_index
 
-         mld(jc,blockNo) = calc_mixed_layer_depth(zgrad_rho(jc,:,blockNo),&
+        IF( patch_3d%wet_c(jc,1,blockno) /= 0 ) then
+          mld(jc,blockNo) = calc_mixed_layer_depth(zgrad_rho(jc,:,blockNo),&
              sigcrit, &
              min_lev, &
              patch_3d%p_patch_1d(1)%dolic_c(jc,blockNo), &
              patch_3d%p_patch_1d(1)%prism_center_dist_c(jc,:,blockNo), &
              patch_3d%p_patch_1d(1)%zlev_m(min_lev))
-
+        ENDIF
       ENDDO
       !$ACC END PARALLEL LOOP
     ENDDO
     !$ACC WAIT(1)
     !ICON_OMP_END_PARALLEL_DO
+
 
 #else
     ! Vector variant
@@ -3323,8 +3346,8 @@ CONTAINS
 
     !ICON_OMP_PARALLEL_DO PRIVATE(start_index, end_index, jc, jk, max_lev, &
     !ICON_OMP   & masked_vertical_density_gradient, delta_h, sigh) SCHEDULE(dynamic)
-    DO blockNo = owned_cells%start_block, owned_cells%end_block
-      CALL get_index_range(owned_cells, blockNo, start_index, end_index)
+    DO blockNo = all_cells%start_block, all_cells%end_block
+      CALL get_index_range(all_cells, blockNo, start_index, end_index)
 
       ! This diagnostic calculates the mixed layer depth.
       ! It uses the incremental density increase between two
@@ -3368,6 +3391,7 @@ CONTAINS
       !$ACC WAIT(1)
     END DO
     !ICON_OMP_END_PARALLEL_DO
+
 
     !$ACC END DATA
 #endif

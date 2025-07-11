@@ -1295,7 +1295,8 @@ CONTAINS
         CALL get_index_range(all_cells, jb, start_index, end_index)
         !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) PRIVATE(z_p) ASYNC(1) IF(lzacc)
         DO jc = start_index, end_index
-          levels = max(1,patch_3d%p_patch_1d(1)%dolic_c(jc,jb))
+          levels = patch_3d%p_patch_1d(1)%dolic_c(jc,jb)
+          IF (levels == 0) CYCLE
           z_p(1:levels - 1) = patch_3d%p_patch_1d(1)%depth_CellMiddle(jc,1:levels - 1,jb) * OceanReferenceDensity * sitodbar
           !! For bottom, use the uniform depth without partial cells
           !! This allows well-balancedness for pressure gradients
@@ -1321,7 +1322,8 @@ CONTAINS
         CALL get_index_range(all_cells, jb, start_index, end_index)
         !$ACC PARALLEL LOOP GANG DEFAULT(PRESENT) PRIVATE(z_p) ASYNC(1) IF(lzacc)
         DO jc = start_index, end_index
-          levels = max(1,patch_3d%p_patch_1d(1)%dolic_c(jc,jb))
+          levels = patch_3d%p_patch_1d(1)%dolic_c(jc,jb)
+          IF (levels == 0) CYCLE
           z_p(1:levels - 1) = patch_3d%p_patch_1d(1)%depth_CellMiddle(jc,1:levels - 1,jb) * OceanReferenceDensity * sitodbar
           !! For bottom, use the uniform depth without partial cells
           z_p(levels) = patch_3d%p_patch_1d(1)%zlev_m(levels) * OceanReferenceDensity * sitodbar
@@ -1381,7 +1383,7 @@ CONTAINS
         !$ACC PARALLEL LOOP GANG VECTOR COLLAPSE(2) DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
         DO jk = 1, max_level
           DO jc = start_index, end_index
-            levels = max(1, patch_3d%p_patch_1d(1)%dolic_c(jc,jb))
+            levels = patch_3d%p_patch_1d(1)%dolic_c(jc,jb)
             IF (jk > levels) CYCLE
 
             IF (jk < levels) THEN
@@ -1411,7 +1413,7 @@ CONTAINS
         !$ACC PARALLEL LOOP GANG VECTOR COLLAPSE(2) DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
         DO jk = 1, max_level
           DO jc = start_index, end_index
-            levels = max(1, patch_3d%p_patch_1d(1)%dolic_c(jc,jb))
+            levels = patch_3d%p_patch_1d(1)%dolic_c(jc,jb)
             IF (jk > levels) CYCLE
 
             IF (jk < levels) THEN

@@ -34,6 +34,8 @@ MODULE mo_ocean_nml
   USE mo_master_config,      ONLY: my_model_do_restart
   USE mo_time_config,        ONLY: set_tc_timeshift
 
+  USE mo_cdi,                ONLY: cdiInqMissval
+
 
 #ifndef __NO_ICON_ATMO__
   USE mo_coupling_config,    ONLY: is_coupled_to_atmo
@@ -87,6 +89,8 @@ MODULE mo_ocean_nml
 !                                          !be run. Example: tracer tests with prescribed time-invariant velocity and height.
   ! ----------------------------------------------------------------------------
   ! DIAGNOSTICS
+! set fillvalue
+  REAL(wp) :: fillvalue  = 0.0_wp
   ! switch for ocean diagnostics - 0: no diagnostics; 1: write to stderr
   INTEGER            :: diagnostics_level      = 1
 
@@ -696,6 +700,7 @@ MODULE mo_ocean_nml
   REAL(wp) :: ReferencePressureIndbars
 
   !$ACC DECLARE CREATE(eos_type)
+  !$ACC DECLARE CREATE(fillvalue)
   !$ACC DECLARE CREATE(OceanReferenceDensity)
   !$ACC DECLARE CREATE(LinearThermoExpansionCoefficient)
   !$ACC DECLARE CREATE(LinearHalineContractionCoefficient)
@@ -956,6 +961,7 @@ MODULE mo_ocean_nml
   REAL(wp) :: initial_perturbation_waveNumber = 2.0_wp
   REAL(wp) :: initial_perturbation_max_ratio  = 0.05_wp
   LOGICAL  :: initialize_fromRestart = .false.
+  LOGICAL  :: use_fillValue          = .false.         ! should _FillValue attribute be set
   LOGICAL  :: use_initicono = .false. !true if data assimilation is used or first guess file is read
   REAL(wp) :: dt_iau_oce = 0._wp !Time window for incr. analysis update
   REAL(wp) :: dt_ana_oce = 0._wp !Time window for assimilation cycle
@@ -1006,6 +1012,7 @@ MODULE mo_ocean_nml
     & initial_perturbation_waveNumber, &
     & initial_perturbation_max_ratio,  &
     & initialize_fromRestart     , &
+    & use_fillValue              , &
     & use_initicono              , &
     & dt_iau_oce                 , &
     & dt_ana_oce                 , &
@@ -1022,6 +1029,7 @@ MODULE mo_ocean_nml
 
 
     !----------------------------------------------------------------------------
+
   ! vertex list of throughflows
   INTEGER :: denmark_strait(100)         = -1
   INTEGER :: gibraltar(100)              = -1
@@ -1586,8 +1594,11 @@ ENDIF
        if(lbgcadv) nbgcadv =  ntraad
     endif
 
+    ! get fillvalue from cdi
+    IF (use_fillValue) fillValue = REAL(cdiInqMissval(), KIND=wp)
     !$ACC UPDATE &
     !$ACC   DEVICE(eos_type) &
+    !$ACC   DEVICE(fillValue) &
     !$ACC   DEVICE(OceanReferenceDensity) &
     !$ACC   DEVICE(LinearThermoExpansionCoefficient) &
     !$ACC   DEVICE(LinearHalineContractionCoefficient) &

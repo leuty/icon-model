@@ -42,7 +42,7 @@ MODULE mo_ocean_ab_timestepping_zstar
     & PPscheme_type, PPscheme_ICON_Edge_vnPredict_type, &
     & solver_FirstGuess, MassMatrix_solver_tolerance,     &
     & createSolverMatrix, l_solver_compare, solver_comp_nsteps, &
-    & press_grad_type
+    & press_grad_type, use_fillvalue, fillValue
   USE mo_run_config,                ONLY: dtime, debug_check_level, nsteps, output_mode
   USE mo_timer, ONLY: timer_start, timer_stop, timers_level, timer_extra1, &
     & timer_extra2, timer_extra3, timer_extra4, timer_ab_expl, timer_ab_rhs4sfc, timer_total
@@ -230,10 +230,10 @@ CONTAINS
         ENDIF
 
         H_c  (jc, jb)      = patch_3d%p_patch_1d(1)%depth_CellInterface(jc, bt_lev + 1, jb)
-        if ( patch_3D%lsm_c(jc, 1, jb) <= sea_boundary ) THEN
+        IF ( patch_3D%lsm_c(jc, 1, jb) <= sea_boundary ) THEN
           stretch_c(jc, jb)  = (H_c(jc, jb) + eta_c(jc, jb))/H_c(jc, jb)
-        else
-          stretch_c(jc, jb)  = 1.0_wp
+        ELSE
+          stretch_c(jc, jb)  = MERGE(fillValue, 1.0_wp, use_fillvalue)
         ENDIF
 
       END DO
