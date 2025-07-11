@@ -105,7 +105,7 @@ icon_data_rootFolder="/pool/data/ICON"
 
 # how to start the icon model
 # ---------------------------
-export START="srun -l --kill-on-bad-exit=1 --nodes=${SLURM_JOB_NUM_NODES:-1} --ntasks=$((no_of_nodes * mpi_procs_pernode)) ${basedir}/run/run_wrapper_levante.sh -n $mpi_total_procs -o $mpi_io_procs -e "
+export START="srun -l --kill-on-bad-exit=1 --nodes=${SLURM_JOB_NUM_NODES:-1} --ntasks=$((no_of_nodes * mpi_procs_pernode)) ${basedir}/run/run_wrapper/levante.sh -n $mpi_total_procs -o $mpi_io_procs -e "
 export MODEL="${basedir}/bin/icon"
 
 set | grep SLURM
