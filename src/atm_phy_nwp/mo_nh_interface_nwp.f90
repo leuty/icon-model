@@ -245,10 +245,10 @@ CONTAINS
     ! Local scalars:
 
     INTEGER :: jc,jk,jb,jce,isubs!loop indices
-    INTEGER :: jg,jgc            !domain id
+    INTEGER :: jg                !domain id
 
     LOGICAL :: ltemp, lpres, ltemp_ifc, l_any_fastphys, l_any_slowphys
-    LOGICAL :: lcall_lhn, lcall_lhn_v, lapply_lhn, lcall_lhn_c  !< switches for latent heat nudging
+    LOGICAL :: lcall_lhn, lcall_lhn_v, lapply_lhn               !< switches for latent heat nudging
     LOGICAL :: lcompute_tt_lheat                                !< TRUE: store temperature tendency
                                                                 ! due to grid scale microphysics
                                                                 ! and satad for latent heat nudging
@@ -332,12 +332,6 @@ CONTAINS
 
     jg        = pt_patch%id
 
-    IF (pt_patch%n_childdom > 0) THEN
-      jgc = pt_patch%child_id(jg)
-    ELSE
-      jgc = jg
-    ENDIF
-
     ! number of vertical levels
     nlev   = pt_patch%nlev
     nlevp1 = pt_patch%nlevp1
@@ -380,7 +374,6 @@ CONTAINS
     !
     IF (ldass_lhn .AND. assimilation_config(jg)%lvalid_data .AND. .NOT. linit) THEN
       !
-      IF ( jg == jgc )  CALL assimilation_config(jg)%dass_g%reinitEvents()
       lcall_lhn   = assimilation_config(jg)%dass_lhn%isActive(mtime_datetime)
       lcall_lhn_v = assimilation_config(jg)%dass_lhn_verif%isActive(mtime_datetime)
       IF (msg_level >= 15) CALL assimilation_config(jg)%dass_g%printStatus(mtime_datetime)
@@ -1038,8 +1031,7 @@ CONTAINS
       ENDIF
 
 
-      lcall_lhn_c = assimilation_config(jgc)%dass_lhn%isActive(mtime_datetime)
-      lapply_lhn  = (lcall_lhn .OR. lcall_lhn_c) .AND. assimilation_config(jg)%lvalid_data
+      lapply_lhn  = lcall_lhn .AND. assimilation_config(jg)%lvalid_data
 
       IF (lapply_lhn) THEN
 
