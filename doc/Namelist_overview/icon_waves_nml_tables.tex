@@ -134,6 +134,10 @@ peak\_v10 & R & 9.0          & m/s & peak value of 10 m V wind component for tes
 peak\_lat & R & -60.0        & degree & latitude of wind peak value & \tabularnewline
 peak\_lon & R & -140.0       & degree & longitude of wind peak value & \tabularnewline
 impl\_fac & R & 1.0          & & first order Euler backward time integration scheme for total source function & \tabularnewline
+stokes\_method & I & 1       &   & 1 - calculation of Stokes profile from the full spectrum \\
+                                   2 - calculation based on Breivik (2016) & \tabularnewline
+stokes\_depth & R & 50.0     & m &  maximum of Stokes layer depth & \tabularnewline
+stokes\_th    & R & 2.0      & m &  thickness of individual layers & \tabularnewline
 \end{longtab}
 
 Defined and used in: \verb+src/waves/config/mo_wave_nml.f90+

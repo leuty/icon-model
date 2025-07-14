@@ -45,11 +45,12 @@ CONTAINS
       ! convenience pointer
       wc => wave_config(jg)
       IF (my_process_is_io()) THEN
-        ALLOCATE(wc%freqs(wc%nfreqs), wc%dirs(wc%ndirs), stat=ist)
+        ALLOCATE(wc%freqs(wc%nfreqs), wc%dirs(wc%ndirs), wc%stokes_level(wc%ndepths), stat=ist)
         IF (ist/=SUCCESS) CALL finish(routine, "allocation for wc%freqs and wc%dirs failed on IO PE")
       ENDIF
       CALL p_bcast(wc%freqs(:), bcast_root, p_comm_work_2_io)
       CALL p_bcast(wc%dirs(:) , bcast_root, p_comm_work_2_io)
+      CALL p_bcast(wc%stokes_level(:) , bcast_root, p_comm_work_2_io)
     ENDDO
 
   END SUBROUTINE replicate_wave_data_on_io_procs

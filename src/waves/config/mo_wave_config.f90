@@ -75,9 +75,13 @@ MODULE mo_wave_config
     REAL(wp) :: zalp     ! shifts growth curve (ecmwf cy45r1).
     REAL(wp) :: alpha_ch ! minimum charnock constant (ecmwf cy45r1)
 
-    REAL(wp) :: depth     ! ocean depth (m) if not 0, then constant depth
-    REAL(wp) :: depth_min ! allowed minimum of model depth (m)
-    REAL(wp) :: depth_max ! allowed maximum of model depth (m)
+    REAL(wp) :: depth        ! ocean depth (m) if not 0, then constant depth
+    REAL(wp) :: depth_min    ! allowed minimum of model depth (m)
+    REAL(wp) :: depth_max    ! allowed maximum of model depth (m)
+    INTEGER  :: stokes_method ! 1 - calculation of Stokes profile from the full spectrum
+                              ! 2 - calculation based on Breivik (2016)
+    REAL(wp) :: stokes_depth ! maximum of Stokes layer depth (m)
+    REAL(wp) :: stokes_th    ! individual Stokes layer thickness (m)
 
     INTEGER  :: niter_smooth ! number of smoothing iterations for wave bathymetry
                              ! if 0 then no smoothing
@@ -112,6 +116,8 @@ MODULE mo_wave_config
 
     ! derived variables and fields
     !
+    INTEGER  :: ndepths      ! number of depth levels (used for Stokes profile calculation)
+
     REAL(wp) ::            &
       &  delth,            & ! angular increment of spectrum [rad].
       &  mo_tail,          & ! mo  tail factor.
@@ -143,7 +149,8 @@ MODULE mo_wave_config
       &  sin_dir(:),       & ! sine of direction
       &  cos_dir(:),       & ! cosine of direction
       &  rhowg_dfim(:),    & ! momentum and energy flux weights.
-      &  wtauhf(:)           ! integration weight for tau_phi_hf
+      &  wtauhf(:),        & ! integration weight for tau_phi_hf
+      &  stokes_level(:)     ! depth of each layer (m)
 
     INTEGER, ALLOCATABLE :: &
       &  dir_neig_ind(:,:)   ! index of direction neighbor (2,1:ndirs)
@@ -187,6 +194,7 @@ CONTAINS
     CALL DO_DEALLOCATE(me%RHOWG_DFIM)
     CALL DO_DEALLOCATE(me%dir_neig_ind)
     CALL DO_DEALLOCATE(me%wtauhf)
+    CALL DO_DEALLOCATE(me%stokes_level)
     CALL DO_DEALLOCATE(me%idx_coastedges)
     CALL DO_DEALLOCATE(me%blk_coastedges)
     CALL DO_DEALLOCATE(me%orient_coastedges)
@@ -234,6 +242,7 @@ CONTAINS
     CALL message ('!','')
     CALL message (' ','')
 
+
     DO jg=1,n_dom
 
       ! convenience pointer
@@ -247,6 +256,7 @@ CONTAINS
       ELSE
         wc%lread_forcing = .FALSE.
       ENDIF
+
 
       ALLOCATE(wc%dirs         (wc%ndirs),  &
         &      wc%sin_dir      (wc%ndirs),  &
@@ -266,6 +276,28 @@ CONTAINS
 
       ALLOCATE(wc%dir_neig_ind (2,wc%ndirs), stat=ist)
       IF (ist/=SUCCESS) CALL finish(routine, "allocation for fields of type INTEGER failed")
+
+      ! calculate depth of each depth layer in Stokes layer
+      IF ((wc%stokes_depth > 0._wp) .AND. (wc%stokes_th > 0._wp)) THEN
+
+        ALLOCATE(wc%stokes_level(wc%ndepths),stat=ist)
+        IF (ist/=SUCCESS) CALL finish(routine, "allocation for stokes_level field of type REAL failed")
+
+        CALL message ('','')
+        CALL message (':--- Run with Stokes layer --------------------------------','')
+        WRITE(message_text,'(f10.5)') wc%stokes_depth
+        CALL message ('               depth of Stokes layer (m)',message_text)
+        WRITE(message_text,'(f10.5)') wc%stokes_th
+        CALL message ('                     layer thickness (m)',message_text)
+        WRITE(message_text,'(i5)') wc%ndepths
+        CALL message ('  number of depth layers in Stokes layer',message_text)
+        CALL message (':----------------------------------------------------------','')
+
+        DO j = 1, wc%ndepths
+          wc%stokes_level(j) = wc%stokes_th * REAL(j,wp)
+        END DO
+
+      END IF
 
 
       ! calculate wind speed interval in the flminfr table

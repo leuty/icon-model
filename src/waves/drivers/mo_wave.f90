@@ -26,6 +26,7 @@ MODULE mo_wave
   USE mo_var_list_register_utils, ONLY: vlr_print_groups
   USE mo_run_config,            ONLY: output_mode, msg_level
   USE mo_io_config,             ONLY: configure_io
+  USE mo_wave_io_config,        ONLY: init_wave_var_in_output, wave_var_in_output
   USE mo_mpi,                   ONLY: my_process_is_stdio
   USE mo_wave_stepping,         ONLY: perform_wave_stepping
   USE mo_wave_events,           ONLY: create_wave_events
@@ -84,6 +85,9 @@ CONTAINS
 
     IF (timers_level > 1) CALL timer_start(timer_model_init)
 
+    ! Check if optional diagnostics are requested for output
+    CALL init_wave_var_in_output(n_dom)
+
     ! calculate elapsed simulation time in seconds
     sim_time = getElapsedSimTimeInSeconds(time_config%tc_current_date)
 
@@ -93,7 +97,7 @@ CONTAINS
            &  .AND. end_time(jg) > sim_time
     END DO
 
-    CALL construct_wave_state(p_patch(1:),n_timelevels=2)
+    CALL construct_wave_state(p_patch(1:),n_timelevels=2, var_in_output=wave_var_in_output(:))
 
     CALL construct_wave_forcing_state(p_patch(1:))
 

@@ -716,7 +716,7 @@ cat > ${wave_namelist} <<EOF
  msg_level            = 15
  ltestcase            = .FALSE.       ! run testcase
  ldynamics            = .TRUE.
- ltransport           = .FALSE.
+ ltransport           = .TRUE.
  ntracer              = $((${nd}*${nf}))
  output               = "nml"
 /
@@ -744,6 +744,12 @@ cat > ${wave_namelist} <<EOF
   ndirs       = ${nd}   ! number of directions
   nfreqs      = ${nf}   ! number of frequencies
   forc_file_prefix = '' ! prefix of forcing file name
+  stokes_depth  = 40.
+  stokes_th     = 2.
+  stokes_method = 1
+  niter_smooth  = 3
+  depth_min     = 2.
+  depth_max     = 999.
  /
  &output_nml
   filetype                =                          4         ! output format: 2=GRIB2, 4=NETCDFv2
@@ -758,6 +764,17 @@ cat > ${wave_namelist} <<EOF
   output_grid             =                      .TRUE.      ! flag whether grid information is added to output.
   ml_varlist              = 'bathymetry_c','z0',
                             'group:wave_forcing','group:wave_short'
+ /
+ &output_nml
+  filetype                =                          4         ! output format: 2=GRIB2, 4=NETCDFv2
+  dom                     =                         -1         ! write all domains
+  output_bounds           =         0., 345601., 86400         ! output: start, end, increment
+  steps_per_file          =                         10         ! number of output steps in one output file
+  mode                    =                          1         ! 1: forecast mode (relative t-axis), 2: climate mode (absolute t-axis)
+  include_last            =                     .FALSE.        ! flag whether to include the last time step
+  output_filename         =               'WAVE_Stokes'        ! file name base
+  output_grid             =                      .TRUE.        ! flag whether grid information is added to output.
+  ml_varlist              = 'u3d_stokes'
 /
 EOF
 

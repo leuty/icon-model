@@ -28,6 +28,7 @@ MODULE mo_wave_diagnostics
   USE mo_kind,                ONLY: wp
   USE mo_fortran_tools,       ONLY: init
   USE mo_wave_constants,      ONLY: EMIN
+  USE mo_wave_stokes,         ONLY: stokes_profile_spectrum, stokes_profile_breivik
 
   IMPLICIT NONE
 
@@ -190,6 +191,43 @@ CONTAINS
       &                tracer = tracer, &
       &              u_stokes = p_diag%u_stokes, & ! OUT
       &              v_stokes = p_diag%v_stokes)   ! OUT
+
+
+    IF (ASSOCIATED(p_diag%last_idx_depth) .AND. &
+      & ASSOCIATED(p_diag%kbar)           .AND. &
+      & ASSOCIATED(p_diag%T_stokes)       .AND. &
+      & ASSOCIATED(p_diag%u3d_stokes)     .AND. &
+      & ASSOCIATED(p_diag%v3d_stokes)) THEN
+
+      IF (wave_config%stokes_method == 1) THEN
+
+        CALL stokes_profile_spectrum(p_patch = p_patch, &
+          &           wave_config = wave_config, &
+          &            wave_num_c = p_diag%wave_num_c, &
+          &                 depth = depth,  &
+          &          stokes_level = wave_config%stokes_level, &
+          &        last_idx_depth = p_diag%last_idx_depth, &
+          &                tracer = tracer, &
+          &            u3d_stokes = p_diag%u3d_stokes, & ! OUT
+          &            v3d_stokes = p_diag%v3d_stokes)   ! OUT
+
+      ELSE
+
+        CALL stokes_profile_breivik(p_patch = p_patch, &
+          &           wave_config = wave_config, &
+          &            wave_num_c = p_diag%wave_num_c, &
+          &                 depth = depth,  &
+          &          stokes_level = wave_config%stokes_level, &
+          &        last_idx_depth = p_diag%last_idx_depth, &
+          &                tracer = tracer, &
+          &              u_stokes = p_diag%u_stokes, & !
+          &              v_stokes = p_diag%v_stokes, & !
+          &                  kbar = p_diag%kbar,     & ! OUT
+          &              T_stokes = p_diag%T_stokes, & ! OUT
+          &            u3d_stokes = p_diag%u3d_stokes, & ! OUT
+          &            v3d_stokes = p_diag%v3d_stokes)   ! OUT
+      END IF
+    END IF
 
   END SUBROUTINE calculate_output_diagnostics
 
@@ -431,7 +469,7 @@ CONTAINS
   !>
   !! Calculation of separation of total energy according to mask
   !!
-  !! Calculation of total energy by integtation over directions and frequencies.
+  !! Calculation of total energy by integration over directions and frequencies.
   !! A tail correction is added.
   !! Adaptation of WAM 4.5 code of the subroutine TOTAL_ENERGY
   !! developed by S.D. HASSELMANN, optimized by L. Zambresky
@@ -636,7 +674,7 @@ CONTAINS
     TYPE(t_patch),       INTENT(IN)         :: p_patch
     TYPE(t_wave_config), TARGET, INTENT(IN) :: wave_config
     REAL(wp),            INTENT(IN)         :: tracer(:,:,:,:) !energy spectral bins
-    REAL(wp),            INTENT(INOUT)      :: pp(:,:)     !< significant wave height [m]
+    REAL(wp),            INTENT(INOUT)      :: pp(:,:)     !< wave peak period [s-1]
 
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
     INTEGER :: i_startidx, i_endidx
@@ -1105,8 +1143,9 @@ CONTAINS
   !! Adaptation of WAM 4.5 code of the subroutine STOKES_DRIFT
   !! developed by M.REISTAD, O.SAETRA, and H.GUNTHER
   !!
-  !! Reference
-  !! Kern E. Kenton, JGR, Vol 74 NO 28, 1969
+  !! References:
+  !! Kern E. Kenyon, JGR, Vol 74 NO 28, 1969
+  !! O. Breivik, J.-R. Bidlot & P. Janssen, 2016 (high-frequency tail)
   !!
   SUBROUTINE stokes_drift(p_patch, wave_config, wave_num_c, depth, tracer, u_stokes, v_stokes)
 
@@ -1141,7 +1180,7 @@ CONTAINS
     CALL init(u_stokes, lacc=.FALSE.)
     CALL init(v_stokes, lacc=.FALSE.)
 !$OMP BARRIER
-!$OMP DO PRIVATE(jb,jc,jf,jd,i_startidx,i_endidx,ak,akd,si,ci,fact,tailfac) ICON_OMP_DEFAULT_SCHEDULE
+!$OMP DO PRIVATE(jb,jc,jf,jd,i_startidx,i_endidx,ak,akd,si,ci,fact) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = i_startblk, i_endblk
       CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,           &
            &                 i_startidx, i_endidx, i_rlstart, i_rlend)
@@ -1172,11 +1211,24 @@ CONTAINS
 
       END DO freqs
 
+      ! Addition of HF tail following Breivik (2016)
       DO jc = i_startidx, i_endidx
-        tailfac = wc%freqs(wc%nfreqs)**2 / &
-          &      (wc%dfreqs(wc%nfreqs) * (wc%freqs(wc%nfreqs)+0.5_wp*wc%dfreqs(wc%nfreqs)))
-        u_stokes(jc,jb) = u_stokes(jc,jb) + tailfac * si(jc)
-        v_stokes(jc,jb) = v_stokes(jc,jb) + tailfac * ci(jc)
+        si(jc)  = 0._wp
+        ci(jc)  = 0._wp
+      ENDDO
+
+      DO jd = 1, wc%ndirs
+        DO jc = i_startidx, i_endidx
+          si(jc) = si(jc) + 2._wp*tracer(jc,jd,jb,wc%nfreqs) * wc%sin_dir(jd) *  &
+                          &  wave_num_c(jc,wc%nfreqs,jb) * pi2*wc%freqs(wc%nfreqs)**2
+          ci(jc) = ci(jc) + 2._wp*tracer(jc,jd,jb,wc%nfreqs) * wc%cos_dir(jd) *  &
+                          &  wave_num_c(jc,wc%nfreqs,jb) * pi2*wc%freqs(wc%nfreqs)**2
+        END DO
+      END DO
+
+      DO jc = i_startidx, i_endidx
+        u_stokes(jc,jb) = u_stokes(jc,jb) + si(jc)
+        v_stokes(jc,jb) = v_stokes(jc,jb) + ci(jc)
       END DO
 
     END DO
