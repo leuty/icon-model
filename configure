@@ -608,7 +608,14 @@ DEFAULT_VERBOSITY
 icon_bundled_cmake_builddirs
 icon_bundled_builddirs
 ICON_HD_FCFLAGS
+ICON_RAGNAROK_HIPFLAGS
+ICON_RAGNAROK_CUDAFLAGS
+ICON_RAGNAROK_CXXFLAGS
+ICON_RAGNAROK_FCFLAGS
 ICON_ICONMATH_FCFLAGS
+ICON_KOKKOS_HIPFLAGS
+ICON_KOKKOS_CUDAFLAGS
+ICON_KOKKOS_CXXFLAGS
 ICON_FORTRAN_SUPPORT_CFLAGS
 ICON_FORTRAN_SUPPORT_FCFLAGS
 ICON_COMIN_CXXFLAGS
@@ -759,6 +766,7 @@ enable_quincy
 enable_waves
 enable_coupling
 enable_aes
+enable_ragnarok
 enable_nwp
 enable_ecrad
 enable_rte_rrtmgp
@@ -867,7 +875,14 @@ ICON_COMIN_CFLAGS
 ICON_COMIN_CXXFLAGS
 ICON_FORTRAN_SUPPORT_FCFLAGS
 ICON_FORTRAN_SUPPORT_CFLAGS
+ICON_KOKKOS_CXXFLAGS
+ICON_KOKKOS_CUDAFLAGS
+ICON_KOKKOS_HIPFLAGS
 ICON_ICONMATH_FCFLAGS
+ICON_RAGNAROK_FCFLAGS
+ICON_RAGNAROK_CXXFLAGS
+ICON_RAGNAROK_CUDAFLAGS
+ICON_RAGNAROK_HIPFLAGS
 ICON_HD_FCFLAGS'
 ac_subdirs_all='externals/rte-rrtmgp
 externals/ecrad
@@ -1549,6 +1564,8 @@ Model Features:
                           [default=no]
   --enable-coupling       enable the coupling [default=yes]
   --enable-aes            enable the AES physics package [default=yes]
+  --enable-ragnarok       enable experimental components implemented in
+                          C++/Kokkos [default=no]
   --enable-nwp            enable the NWP physics package [default=yes]
   --enable-ecrad          enable usage of the ECMWF radiation scheme (ECRAD)
                           [default=no]
@@ -1826,10 +1843,33 @@ Some influential environment variables:
               Fortran compiler flags to be appended to CFLAGS when configuring
               the bundled version of FORTRAN-SUPPORT library
               [default=$ICON_BUNDLED_CFLAGS]
+  ICON_KOKKOS_CXXFLAGS
+              C++ compiler flags to be appended to CXXFLAGS when configuring
+              the KOKKOS library [default=$ICON_BUNDLED_CXXFLAGS]
+  ICON_KOKKOS_CUDAFLAGS
+              CUDA C++ compiler flags to be appended to CUDAFLAGS when
+              configuring the KOKKOS library [default=$ICON_BUNDLED_CUDAFLAGS]
+  ICON_KOKKOS_HIPFLAGS
+              HIP C++ compiler flags to be appended to HIPFLAGS when
+              configuring the KOKKOS library [default=$ICON_BUNDLED_HIPFLAGS]
   ICON_ICONMATH_FCFLAGS
               Fortran compiler flags to be appended to FCFLAGS when
               configuring the bundled version of ICONMATH library
               [default=$ICON_BUNDLED_FCFLAGS]
+  ICON_RAGNAROK_FCFLAGS
+              Fortran compiler flags to be appended to FCFLAGS when
+              configuring the RAGNAROK library [default=$ICON_BUNDLED_FCFLAGS]
+  ICON_RAGNAROK_CXXFLAGS
+              C++ compiler flags to be appended to CXXFLAGS when configuring
+              the RAGNAROK library [default=$ICON_BUNDLED_CXXFLAGS]
+  ICON_RAGNAROK_CUDAFLAGS
+              CUDA C++ compiler flags to be appended to CUDAFLAGS when
+              configuring the RAGNAROK library
+              [default=$ICON_BUNDLED_CUDAFLAGS]
+  ICON_RAGNAROK_HIPFLAGS
+              HIP C++ compiler flags to be appended to HIPFLAGS when
+              configuring the RAGNAROK library
+              [default=$ICON_BUNDLED_HIPFLAGS]
   ICON_HD_FCFLAGS
               Fortran compiler flags to be appended to FCFLAGS when
               configuring the bundled version of HD model
@@ -2144,6 +2184,48 @@ fi
 
 } # ac_fn_hip_try_compile
 
+acx_prog_search_abspath_fn ()
+{
+acx_prog_exec=$1
+      case $acx_prog_exec in #(
+  *[\\/]*) :
+    if as_fn_executable_p $acx_prog_exec; then :
+  acx_prog_search_abspath=$acx_prog_exec
+fi ;; #(
+  *) :
+    as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    if as_fn_executable_p "$as_dir/$acx_prog_exec"; then :
+  acx_prog_search_abspath="$as_dir/$acx_prog_exec"; break
+fi
+  done
+IFS=$as_save_IFS
+ ;;
+esac
+      case $acx_prog_search_abspath in #(
+  unknown) :
+     ;; #(
+  [\\/]* | ?:[\\/]*) :
+     ;; #(
+  *) :
+    asx_dir=`echo "$acx_prog_search_abspath" | sed 's%/[^/]*$%%' 2>/dev/null`
+         asx_file=`echo "$acx_prog_search_abspath" | sed 's%.*/%%' 2>/dev/null`
+         asx_dir=`cd "$asx_dir" >/dev/null 2>&1 && pwd 2>/dev/null`
+         acx_prog_search_abspath=unknown
+         case $asx_dir in #(
+  [\\/]* | ?:[\\/]*) :
+    if as_fn_executable_p "$asx_dir/$asx_file"; then :
+  acx_prog_search_abspath="$asx_dir/$asx_file"
+fi ;; #(
+  *) :
+     ;;
+esac ;;
+esac
+} # acx_prog_search_abspath_fn
+
 # ac_fn_cuda_check_header_compile LINENO HEADER VAR INCLUDES
 # ----------------------------------------------------------
 # Tests whether HEADER exists and can be compiled using the include files in
@@ -2203,48 +2285,6 @@ $as_echo "$ac_res" >&6; }
   eval $as_lineno_stack; ${as_lineno_stack:+:} unset as_lineno
 
 } # ac_fn_hip_check_header_compile
-
-acx_prog_search_abspath_fn ()
-{
-acx_prog_exec=$1
-      case $acx_prog_exec in #(
-  *[\\/]*) :
-    if as_fn_executable_p $acx_prog_exec; then :
-  acx_prog_search_abspath=$acx_prog_exec
-fi ;; #(
-  *) :
-    as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-    if as_fn_executable_p "$as_dir/$acx_prog_exec"; then :
-  acx_prog_search_abspath="$as_dir/$acx_prog_exec"; break
-fi
-  done
-IFS=$as_save_IFS
- ;;
-esac
-      case $acx_prog_search_abspath in #(
-  unknown) :
-     ;; #(
-  [\\/]* | ?:[\\/]*) :
-     ;; #(
-  *) :
-    asx_dir=`echo "$acx_prog_search_abspath" | sed 's%/[^/]*$%%' 2>/dev/null`
-         asx_file=`echo "$acx_prog_search_abspath" | sed 's%.*/%%' 2>/dev/null`
-         asx_dir=`cd "$asx_dir" >/dev/null 2>&1 && pwd 2>/dev/null`
-         acx_prog_search_abspath=unknown
-         case $asx_dir in #(
-  [\\/]* | ?:[\\/]*) :
-    if as_fn_executable_p "$asx_dir/$asx_file"; then :
-  acx_prog_search_abspath="$asx_dir/$asx_file"
-fi ;; #(
-  *) :
-     ;;
-esac ;;
-esac
-} # acx_prog_search_abspath_fn
 
 # ac_fn_fc_try_run LINENO
 # -----------------------
@@ -3152,6 +3192,16 @@ if test "${enable_aes+set}" = set; then :
 fi
 else
   enable_aes=yes
+fi
+
+
+# Check whether --enable-ragnarok was given.
+if test "${enable_ragnarok+set}" = set; then :
+  enableval=$enable_ragnarok; if test x"$enableval" != xno; then :
+  enable_ragnarok=yes
+fi
+else
+  enable_ragnarok=no
 fi
 
 
@@ -5860,6 +5910,10 @@ if test "x$enable_aes" = xno; then :
   as_fn_append FCFLAGS " ${FC_PP_DEF}__NO_AES__"
 fi
 
+if test "x$enable_ragnarok" = xno; then :
+  as_fn_append FCFLAGS " ${FC_PP_DEF}__NO_RAGNAROK__"
+fi
+
 if test "x$enable_nwp" = xno; then :
   as_fn_append FCFLAGS " ${FC_PP_DEF}__NO_NWP__"
 fi
@@ -6907,6 +6961,7 @@ subdir_CUDAFLAGS=${CUDAFLAGS-}
 subdir_HIPFLAGS=${HIPFLAGS-}
 
 icon_gpu_secondary_arch=unknown
+icon_cmake_hipcc_workaround=
 case $icon_gpu_secondary in #(
   cuda) :
     CUDAFLAGS=${CUDAFLAGS-}
@@ -7723,6 +7778,31 @@ ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
+    case $HIPCXX in #(
+  *hipcc*) :
+    icon_cmake_hipcc_workaround='unset HIPCXX && '
+          acx_prog_search_abspath=unknown
+   set dummy hipconfig; shift; acx_prog_exec=$1; shift; acx_prog_args="$@"
+   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for the absolute path to $acx_prog_exec" >&5
+$as_echo_n "checking for the absolute path to $acx_prog_exec... " >&6; }
+   acx_prog_search_abspath_fn "$acx_prog_exec"
+   { $as_echo "$as_me:${as_lineno-$LINENO}: result: $acx_prog_search_abspath" >&5
+$as_echo "$acx_prog_search_abspath" >&6; }
+   if test "x$acx_prog_search_abspath" = xunknown; then :
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "unable to find the absolute path to $acx_prog_exec
+See \`config.log' for more details
+${icon_usr_note}" "$LINENO" 5; }
+else
+  if test -n "$acx_prog_args"; then :
+  as_fn_append acx_prog_search_abspath " $acx_prog_args"
+fi
+
+fi ;; #(
+  *) :
+     ;;
+esac
     export HIPCXX
         case $acx_prog_hipcxx_works in #(
   no) :
@@ -11617,6 +11697,114 @@ esac
    as_fn_append icon_pvcs_subdirs ' externals/fortran-support'
 fi
 
+if test "x$enable_ragnarok" = xyes; then :
+  icon_subdir_srcdir="$srcdir/externals/kokkos"
+   icon_subdir_unique_file='core/src/Kokkos_Core.hpp'
+   if test ! -r "$icon_subdir_srcdir/$icon_subdir_unique_file"; then :
+  as_fn_error $? "unable to find sources of the bundled version of KOKKOS library ($icon_subdir_unique_file) in '$icon_subdir_srcdir'" "$LINENO" 5
+fi
+      ICON_KOKKOS_CXXFLAGS=${ICON_KOKKOS_CXXFLAGS-$ICON_BUNDLED_CXXFLAGS}
+      ICON_KOKKOS_CUDAFLAGS=${ICON_KOKKOS_CUDAFLAGS-$ICON_BUNDLED_CUDAFLAGS}
+      ICON_KOKKOS_HIPFLAGS=${ICON_KOKKOS_HIPFLAGS-$ICON_BUNDLED_HIPFLAGS}
+                        acx_subdir_run_cmd_externals_kokkos_build="${icon_cmake_hipcc_workaround}'${CMAKE}'"
+   acx_subdir_build_type_externals_kokkos_build='cmake'
+                                             acx_subdir_pre_adjust_cmake_args_nocomps_noutils
+      acx_subdir_run_args_externals_kokkos_build=$acx_subdir_pre_adjusted_cmake_args_nocomps_noutils
+         acx_subdir_srcdirs_fn "externals/kokkos/build"
+      acx_tmp="$ac_top_srcdir/utils/cmake-wrapper"
+      case $acx_tmp in #(
+  *\'*) :
+    acx_tmp=`$as_echo "$acx_tmp" | sed "s/'/'\\\\\\\\''/g"` ;; #(
+  *) :
+     ;;
+esac
+      as_fn_append acx_subdir_run_args_externals_kokkos_build " '$acx_tmp'"
+      as_fn_append extra_build_subdirs " externals/kokkos/build"
+   acx_subdir_run_externals_kokkos_build=no
+   eval "set dummy $acx_subdir_run_args_ragnarok_build"; shift
+   acx_subdir_run_args_ragnarok_build=
+   while test $# != 0; do
+     acx_tmp=$1
+     case $acx_tmp in #(
+  -DCMAKE_C_*=*|-DCMAKE_Fortran_*=*|-DCMAKE_CXX_FLAGS=*) :
+     ;; #(
+  *) :
+           case $acx_tmp in #(
+  *\'*) :
+    acx_tmp=`$as_echo "$acx_tmp" | sed "s/'/'\\\\\\\\''/g"` ;; #(
+  *) :
+     ;;
+esac
+        as_fn_append acx_subdir_run_args_ragnarok_build " '$acx_tmp'" ;;
+esac
+     shift
+   done
+   icon_kokkos_extra_args=
+   if test "x$enable_openmp" = xyes; then :
+  as_fn_append icon_kokkos_extra_args ' -DKokkos_ENABLE_OPENMP=ON'
+else
+  as_fn_append icon_kokkos_extra_args ' -DKokkos_ENABLE_SERIAL=ON'
+fi
+   case $icon_gpu_secondary in #(
+  cuda) :
+    as_fn_append icon_kokkos_extra_args ' -DKokkos_ENABLE_CUDA=ON' ;; #(
+  hip) :
+    as_fn_append icon_kokkos_extra_args ' -DKokkos_ENABLE_HIP=ON' ;; #(
+  *) :
+     ;;
+esac
+   if test x"$icon_gpu_secondary" != xno; then :
+  case $icon_gpu_secondary_arch in #(
+  gfx*) :
+    icon_tmp=`$as_echo_n "$icon_gpu_secondary_arch" | tr 'abcdefghijklmnopqrstuvwxyz' 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'` ;; #(
+  *0) :
+    icon_tmp=`$as_echo_n "$icon_gpu_secondary_arch" | sed 's/0$//'` ;; #(
+  *) :
+    icon_tmp=$icon_gpu_secondary_arch ;;
+esac
+      case $icon_tmp in #(
+  30|32|35|37) :
+    as_fn_append icon_kokkos_extra_args " -DKokkos_ARCH_KEPLER${icon_tmp}=ON" ;; #(
+  50|52|53) :
+    as_fn_append icon_kokkos_extra_args " -DKokkos_ARCH_MAXWELL${icon_tmp}=ON" ;; #(
+  60|61) :
+    as_fn_append icon_kokkos_extra_args " -DKokkos_ARCH_PASCAL${icon_tmp}=ON" ;; #(
+  70|72) :
+    as_fn_append icon_kokkos_extra_args " -DKokkos_ARCH_VOLTA${icon_tmp}=ON" ;; #(
+  75) :
+    as_fn_append icon_kokkos_extra_args " -DKokkos_ARCH_TURING${icon_tmp}=ON" ;; #(
+  80|86) :
+    as_fn_append icon_kokkos_extra_args " -DKokkos_ARCH_AMPERE${icon_tmp}=ON" ;; #(
+  89) :
+    as_fn_append icon_kokkos_extra_args " -DKokkos_ARCH_ADA${icon_tmp}=ON" ;; #(
+  90) :
+    as_fn_append icon_kokkos_extra_args " -DKokkos_ARCH_HOPPER${icon_tmp}=ON" ;; #(
+  100|120) :
+    as_fn_append icon_kokkos_extra_args " -DKokkos_ARCH_BLACKWELL${icon_tmp}=ON" ;; #(
+  GFX*) :
+    as_fn_append icon_kokkos_extra_args " -DKokkos_ARCH_AMD_${icon_tmp}=ON" ;; #(
+  *) :
+    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: unable to identify the Kokkos device architecture name" >&5
+$as_echo "$as_me: WARNING: unable to identify the Kokkos device architecture name" >&2;} ;;
+esac
+fi
+   set dummy -DCMAKE_AR="$AR" -DCMAKE_RANLIB="$RANLIB" -DCMAKE_CXX_FLAGS="$subdir_CXXFLAGS $ICON_KOKKOS_CXXFLAGS $subdir_CPPFLAGS" -DCMAKE_CUDA_FLAGS="$subdir_CUDAFLAGS $ICON_KOKKOS_CUDAFLAGS" -DCMAKE_CUDA_STANDARD_LIBRARIES="$LIBS" -DCMAKE_HIP_FLAGS="$subdir_HIPFLAGS $ICON_KOKKOS_HIPFLAGS" -DCMAKE_HIP_STANDARD_LIBRARIES="$LIBS" -DCMAKE_BUILD_TYPE=None -DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH" -DBUILD_SHARED_LIBS=OFF -DCMAKE_HIP_ARCHITECTURES=OFF -DICON_DEP_SOURCE_DIR="${icon_abs_top_srcdir}/externals/kokkos" -DICON_EXCLUDE_FROM_ALL='impl_git_version' -DKokkos_ENABLE_IMPL_MDSPAN=OFF -DKokkos_ENABLE_LIBDL=OFF -DKokkos_ENABLE_COMPILE_AS_CMAKE_LANGUAGE=ON $icon_kokkos_extra_args; shift
+   for acx_tmp; do
+     case $acx_tmp in #(
+  *\'*) :
+    acx_tmp=`$as_echo "$acx_tmp" | sed "s/'/'\\\\\\\\''/g"` ;; #(
+  *) :
+     ;;
+esac
+     as_fn_append acx_subdir_run_args_externals_kokkos_build " '$acx_tmp'"
+   done
+   as_fn_append bundled_CMAKE_PREFIX_PATH "${bundled_CMAKE_PREFIX_PATH:+";"}${icon_abs_top_builddir}/externals/kokkos/build"
+   BUNDLED_LIBFILES="externals/kokkos/build/_icon/simd/src/libkokkossimd.a $BUNDLED_LIBFILES"
+   BUNDLED_LIBFILES="externals/kokkos/build/_icon/containers/src/libkokkoscontainers.a $BUNDLED_LIBFILES"
+   BUNDLED_LIBFILES="externals/kokkos/build/_icon/core/src/libkokkoscore.a $BUNDLED_LIBFILES"
+   as_fn_append icon_pvcs_subdirs ' externals/kokkos'
+fi
+
 icon_subdir_srcdir="$srcdir/externals/iconmath"
 icon_subdir_unique_file="src/support/mo_math_constants.f90"
 if test ! -r "$icon_subdir_srcdir/$icon_subdir_unique_file"; then :
@@ -11685,6 +11873,62 @@ BUNDLED_LIBFILES="externals/iconmath/build/src/horizontal/libiconmath-horizontal
 as_fn_append bundled_includes "${FC_MOD_IN}externals/iconmath/build/src/interpolation/mod "
 BUNDLED_LIBFILES="externals/iconmath/build/src/interpolation/libiconmath-interpolation.a $BUNDLED_LIBFILES"
 as_fn_append icon_pvcs_subdirs ' externals/iconmath'
+
+if test "x$enable_ragnarok" = xyes; then :
+     ICON_RAGNAROK_FCFLAGS=${ICON_RAGNAROK_FCFLAGS-$ICON_BUNDLED_FCFLAGS}
+      ICON_RAGNAROK_CXXFLAGS=${ICON_RAGNAROK_CXXFLAGS-$ICON_BUNDLED_CXXFLAGS}
+      ICON_RAGNAROK_CUDAFLAGS=${ICON_RAGNAROK_CUDAFLAGS-$ICON_BUNDLED_CUDAFLAGS}
+      ICON_RAGNAROK_HIPFLAGS=${ICON_RAGNAROK_HIPFLAGS-$ICON_BUNDLED_HIPFLAGS}
+                        acx_subdir_run_cmd_ragnarok_build="${icon_cmake_hipcc_workaround}'${CMAKE}'"
+   acx_subdir_build_type_ragnarok_build='cmake'
+                                             acx_subdir_pre_adjust_cmake_args_nocomps_noutils
+      acx_subdir_run_args_ragnarok_build=$acx_subdir_pre_adjusted_cmake_args_nocomps_noutils
+         acx_subdir_srcdirs_fn "ragnarok/build"
+      acx_tmp="$ac_top_srcdir/ragnarok"
+      case $acx_tmp in #(
+  *\'*) :
+    acx_tmp=`$as_echo "$acx_tmp" | sed "s/'/'\\\\\\\\''/g"` ;; #(
+  *) :
+     ;;
+esac
+      as_fn_append acx_subdir_run_args_ragnarok_build " '$acx_tmp'"
+      as_fn_append extra_build_subdirs " ragnarok/build"
+   acx_subdir_run_ragnarok_build=no
+   eval "set dummy $acx_subdir_run_args_ragnarok_build"; shift
+   acx_subdir_run_args_ragnarok_build=
+   while test $# != 0; do
+     acx_tmp=$1
+     case $acx_tmp in #(
+  -DCMAKE_C_*=*|-DCMAKE_Fortran_FLAGS=*|-DCMAKE_CXX_FLAGS=*) :
+     ;; #(
+  *) :
+           case $acx_tmp in #(
+  *\'*) :
+    acx_tmp=`$as_echo "$acx_tmp" | sed "s/'/'\\\\\\\\''/g"` ;; #(
+  *) :
+     ;;
+esac
+        as_fn_append acx_subdir_run_args_ragnarok_build " '$acx_tmp'" ;;
+esac
+     shift
+   done
+   set dummy -DCMAKE_AR="$AR" -DCMAKE_RANLIB="$RANLIB" -DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_RAGNAROK_FCFLAGS" -DCMAKE_CXX_FLAGS="$subdir_CXXFLAGS $ICON_RAGNAROK_CXXFLAGS $subdir_CPPFLAGS" -DCMAKE_CUDA_FLAGS="$subdir_CUDAFLAGS $ICON_RAGNAROK_CUDAFLAGS" -DCMAKE_HIP_STANDARD_LIBRARIES="$LIBS" -DCMAKE_HIP_FLAGS="$subdir_HIPFLAGS $ICON_RAGNAROK_HIPFLAGS" -DCMAKE_HIP_STANDARD_LIBRARIES="$LIBS" -DCMAKE_BUILD_TYPE=None -DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH" -DBUILD_SHARED_LIBS=OFF -DCMAKE_CUDA_ARCHITECTURES=OFF -DCMAKE_HIP_ARCHITECTURES=OFF; shift
+   for acx_tmp; do
+     case $acx_tmp in #(
+  *\'*) :
+    acx_tmp=`$as_echo "$acx_tmp" | sed "s/'/'\\\\\\\\''/g"` ;; #(
+  *) :
+     ;;
+esac
+     as_fn_append acx_subdir_run_args_ragnarok_build " '$acx_tmp'"
+   done
+   if test "x$enable_delayed_config" = xyes; then :
+  as_fn_append BUNDLED_RULES "ragnarok/build/Makefile:| externals/kokkos/build/Makefile$as_nl"
+fi
+   as_fn_append BUNDLED_RULES "ragnarok/build: externals/kokkos/build$as_nl"
+   as_fn_append bundled_includes "${FC_MOD_IN}ragnarok/build/src/icon_bridge/mod "
+   BUNDLED_LIBFILES="ragnarok/build/src/libragnarok.a $BUNDLED_LIBFILES"
+fi
 
 FCFLAGS="${bundled_includes}${FCFLAGS}"
 

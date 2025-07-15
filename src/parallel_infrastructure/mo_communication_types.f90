@@ -39,10 +39,13 @@ PUBLIC :: t_comm_pattern, t_comm_pattern_collection, t_p_comm_pattern
   END TYPE xfer_list
   PUBLIC :: xfer_list
 
+  TYPE, PUBLIC :: t_comm_pattern_descr
+    CLASS(*), POINTER :: ptr => NULL()
+  END TYPE t_comm_pattern_descr
 !--------------------------------------------------------------------------------------------------
 !
 TYPE, ABSTRACT :: t_comm_pattern
-
+  TYPE(t_comm_pattern_descr) :: descr
   CONTAINS
 
     PROCEDURE(interface_setup_comm_pattern), DEFERRED :: setup

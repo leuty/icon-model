@@ -90,6 +90,7 @@ CONTAINS
     REAL(wp) :: km_min(SIZE(vdiff_config))          !< min mass weighted turbulent viscosity
     REAL(wp) :: max_turb_scale(SIZE(vdiff_config))  !< max turbulence length scale
     REAL(wp) :: min_sfc_wind(SIZE(vdiff_config))    !< min sfc wind in free convection limit
+    REAL(wp) :: wind_g(SIZE(vdiff_config))          !< wind gust paramater
 
     LOGICAL  :: lcuda_graph_vdf(SIZE(vdiff_config)) !< use CUDA graph to speed up execution
 
@@ -119,6 +120,7 @@ CONTAINS
       km_min, &
       max_turb_scale, &
       min_sfc_wind, &
+      wind_g, &
       lcuda_graph_vdf
 
     !------
@@ -150,6 +152,7 @@ CONTAINS
     km_min(:) = defaults%km_min
     max_turb_scale(:) = defaults%max_turb_scale
     min_sfc_wind(:) = defaults%min_sfc_wind
+    wind_g(:) = defaults%wind_g
     lcuda_graph_vdf(:) = defaults%lcuda_graph_vdf
 
     IF (my_process_is_stdio()) THEN
@@ -197,6 +200,7 @@ CONTAINS
       km_min(:) = -1._wp
       max_turb_scale(:) = -1._wp
       min_sfc_wind(:) = -1._wp
+      wind_g(:) = -1._wp
 
       READ(nnml, NML=turb_vdiff_nml)
 
@@ -223,6 +227,7 @@ CONTAINS
       CALL fill_default(km_min(:), defaults%km_min)
       CALL fill_default(max_turb_scale(:), defaults%max_turb_scale)
       CALL fill_default(min_sfc_wind(:), defaults%min_sfc_wind)
+      CALL fill_default(wind_g(:), defaults%wind_g)
 
       IF (my_process_is_stdio()) THEN
         iunit = temp_settings()
@@ -263,6 +268,7 @@ CONTAINS
     vdiff_config(:)%km_min = km_min(:)
     vdiff_config(:)%max_turb_scale = max_turb_scale(:)
     vdiff_config(:)%min_sfc_wind = min_sfc_wind(:)
+    vdiff_config(:)%wind_g = wind_g(:)
     vdiff_config(:)%lcuda_graph_vdf = lcuda_graph_vdf(:)
 
     DO jg = 1, SIZE(turb)

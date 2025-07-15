@@ -633,8 +633,12 @@ aes\_vdf\_config(jg)\% km\_min & R & 0.001 &  &
 min mass weighted turbulent viscosity &
 aes\_phy\_config(jg)\% dt\_vdf > 0.000s \tabularnewline
 %
-aes\_vdf\_config(jg)\% min\_sfc\_wind & R & 1. &  &
+aes\_vdf\_config(jg)\% min\_sfc\_wind & R & 0.3 &  &
 min sfc wind in free convection limit &
+aes\_phy\_config(jg)\% dt\_vdf > 0.000s \tabularnewline
+%
+aes\_vdf\_config(jg)\% wind\_g & R & 3.0 &  &
+wind gust parameter &
 aes\_phy\_config(jg)\% dt\_vdf > 0.000s \tabularnewline
 %
 aes\_vdf\_config(jg)\% lcuda\_graph\_vdf & L & .FALSE. & &

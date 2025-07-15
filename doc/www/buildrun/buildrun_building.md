@@ -149,13 +149,15 @@ The configure script supports several groups of compiler flags. Each group is as
 - `ICON_CDI_CFLAGS`, `ICON_MTIME_CFLAGS`, etc. &mdash; C compiler flags to be appended to `CFLAGS` when configuring the respective bundled packages (defaults to `ICON_BUNDLED_CFLAGS`);
 - `CXXFLAGS` &mdash; C++ compiler flags to be passed to the configure and CMake (via the `-DCMAKE_CXX_FLAGS` argument) scripts of the bundled packages (defaults to an empty string);
 - `ICON_BUNDLED_CXXFLAGS` &mdash; C++ compiler flags to be appended to `CXXFLAGS` when configuring the bundled packages (defaults to an empty string);
-- `ICON_COMIN_CXXFLAGS`, etc. &mdash; C++ compiler flags to be appended to `CXXFLAGS` when configuring the respective bundled packages (defaults to `ICON_BUNDLED_CXXFLAGS`);
+- `ICON_COMIN_CXXFLAGS`, `ICON_RAGNAROK_CXXFLAGS`, etc. &mdash; C++ compiler flags to be appended to `CXXFLAGS` when configuring the respective bundled packages (defaults to `ICON_BUNDLED_CXXFLAGS`);
 - `CUDAFLAGS` &mdash; CUDA C++ compiler flags to be used when configuring and compiling ICON, as well as passed to the configure and CMake (via the `-DCMAKE_CUDA_FLAGS` argument) scripts of the bundled packages (defaults to an empty string);
 - `ICON_CUDAFLAGS` &mdash; CUDA C++ compiler flags to be appended to `CUDAFLAGS` when configuring and compiling ICON (defaults to an empty string);
 - `ICON_BUNDLED_CUDAFLAGS` &mdash; CUDA C++ compiler flags to be appended to `CUDAFLAGS` when configuring the bundled packages (defaults to `ICON_CUDAFLAGS`);
+- `ICON_RAGNAROK_CUDAFLAGS`, etc. &mdash; CUDA C++ compiler flags to be appended to `CUDAFLAGS` when configuring the respective bundled packages (defaults to `ICON_BUNDLED_CUDAFLAGS`);
 - `HIPFLAGS` &mdash; HIP C++ compiler flags to be used when configuring and compiling ICON, as well as passed to the configure and CMake (via the `-DCMAKE_HIP_FLAGS` argument) scripts of the bundled packages (defaults to an empty string);
 - `ICON_HIPFLAGS` &mdash; HIP C++ compiler flags to be appended to `HIPFLAGS` when configuring and compiling ICON (defaults to an empty string);
 - `ICON_BUNDLED_HIPFLAGS` &mdash; HIP C++ compiler flags to be appended to `HIPFLAGS` when configuring the bundled packages (defaults to `ICON_HIPFLAGS`);
+- `ICON_RAGNAROK_HIPFLAGS`, etc. &mdash; HIP C++ compiler flags to be appended to `HIPFLAGS` when configuring the respective bundled packages (defaults to `ICON_BUNDLED_HIPFLAGS`);
 - `LDFLAGS` &mdash; common Fortran, C, C++, CUDA C++ and HIP C++ compiler flags to be used when configuring and linking ICON, as well as passed to the configure and CMake (via the `-DCMAKE_EXE_LINKER_FLAGS`, `-DCMAKE_MODULE_LINKER_FLAGS` and `-DCMAKE_SHARED_LINKER_FLAGS` arguments) scripts of the bundled packages (defaults to an empty string);
 - `ICON_LDFLAGS` &mdash; Fortran compiler flags to be appended to `LDFLAGS` when configuring and linking ICON (defaults to an empty string);
 - `LIBS` &mdash; a list of libraries (see [Table 1](tab_icon_depgraph) for the recommended order) to be passed to the linker by the Fortran compiler when linking ICON and to the configure and CMake (via the `-DCMAKE_<LANG>_STANDARD_LIBRARIES` arguments) scripts of the bundled packages (defaults to an empty string).

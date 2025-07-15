@@ -423,9 +423,9 @@ PURE FUNCTION vm(iqx,rho_x,rho,t)
     b_s    = -1.0_wp/6.0_wp
 
   REAL(wp), PARAMETER, DIMENSION(2) :: &
-    a_i = [ 1.25_wp,  0.160_wp],       &
-    a_s = [57.80_wp,  1.0_wp/6.0_wp],  &
-    a_g = [12.24_wp,  0.217_wp]
+    a_i = [  1.25_wp,  0.160_wp],      &
+    a_s = [2.0_wp*57.80_wp,  1.0_wp/6.0_wp], &
+    a_g = [ 12.24_wp,  0.217_wp]
 
   REAL(KIND=wp), PARAMETER :: rho_mx = 6.97604e-03_wp, rho_mn = 3.26216e-08_wp
   REAL(KIND=wp), PARAMETER, DIMENSION(5) :: a_r = [ &
@@ -674,7 +674,7 @@ PURE FUNCTION cloud_to_snow(t,qc,qs,ns,lambda)
   REAL(KIND=wp), PARAMETER  ::      &
       ecs    = 0.9_wp             , & ! Collection efficiency for snow collecting cloud water
       b_rim  =-(v1s+3.0_wp)       , & ! ''
-      c_rim  = 2.61_wp*ecs*v0s        ! '' (with pi*gam(v1s+3)/4 = 2.610)
+      c_rim  = 2.61_wp*ecs*v0s*3.0_wp ! '' (with pi*gam(v1s+3)/4 = 2.610 and tuning factor 3)
 
   !$ACC ROUTINE SEQ
   cloud_to_snow = 0.0_wp

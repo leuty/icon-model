@@ -11,6 +11,7 @@ This website contains a collection of ICON documentation including references to
 :hidden:
 buildrun/buildrun_quickstart.md
 buildrun/buildrun_recommended/aes_configurations/bubble.md
+buildrun/buildrun_recommended/aes_configurations/nest.md
 tools/tools.md
 tools/ecflow-ecmwf.md
 tools/comin/comin.md
@@ -18,6 +19,7 @@ atmosphere/atmosphere.md
 ocean/ocean.md
 land/land.md
 infrastructure/infrastructure.md
+infrastructure/testing/system_tests.md
 literature/literature.md
 ```
 
@@ -37,8 +39,9 @@ Information on the changes are available in the {{ '[**Release Notes**]({}/RELEA
 [](ref_buildrun_environments)  
 [](ref_buildrun_gridextpar)  
 [](ref_buildrun_icbc)  
-[](ref_buildrun_recommconf)
-[](ref_buildrun_bubble)
+[](ref_buildrun_recommconf)  
+[](ref_buildrun_bubble)  
+[](ref_buildrun_nest)
 :::
 
 :::{grid-item-card}
@@ -78,7 +81,8 @@ Information on the changes are available in the {{ '[**Release Notes**]({}/RELEA
 [**Infrastructure**](ref_infrastructure)
 ^^^
 [](ref_infrastructure_parallelization)  
-[](ref_infrastructure_io)
+[](ref_infrastructure_io)  
+[](ref_infrastructure_testing)
 :::
 
 :::{grid-item-card}

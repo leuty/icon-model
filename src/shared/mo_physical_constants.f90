@@ -217,7 +217,7 @@ MODULE mo_physical_constants
                                       ! point relationship         [C/ppt]
                                       ! (aka melting) temperature) [C]
 !   muS          = -(-0.0575 + 1.710523E-3*Sqrt(Sice) - 2.154996E-4*Sice) * Sice
-    albedoW      = 0.07_wp,         & ! albedo of the ocean used in atmosphere
+    albedoW      = 0.05_wp,         & ! albedo of the ocean used in atmosphere
 
 
     fr_fac       = 1.1925_wp,       & ! Frank Roeske energy budget closing factor for OMIP

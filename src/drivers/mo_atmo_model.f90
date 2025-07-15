@@ -166,6 +166,11 @@ MODULE mo_atmo_model
   USE mo_impl_constants,          ONLY: max_dom
 #endif
 
+#ifndef __NO_RAGNAROK__
+  USE mo_ragnarok, ONLY: init_ragnarok
+  USE mo_ragnarok_bridge, ONLY: init_ragnarok_bridge
+#endif
+
   !-------------------------------------------------------------------------
 
   IMPLICIT NONE
@@ -319,6 +324,10 @@ CONTAINS
          &                          num_io_procs_radar=num_io_procs_radar,        &
          &                          radar_flag_doms_model=luse_radarfwo(1:n_dom), &
          &                          num_dio_procs=proc0_shift)
+
+#ifndef __NO_RAGNAROK__
+    IF (my_process_is_work()) CALL init_ragnarok()
+#endif
 
 #ifndef __NO_ICON_COMIN__
     ! Non-work PEs dont participate in the plugin comms
@@ -722,6 +731,13 @@ CONTAINS
 #endif
 
     !------------------------------------------------------------------
+
+#ifndef __NO_RAGNAROK__
+    !------------------------------------------------------------------
+    ! 12. Connect ICON and ragnarok
+    !------------------------------------------------------------------
+    IF (my_process_is_work()) CALL init_ragnarok_bridge()
+#endif
 
     IF (timers_level > 1) CALL timer_stop(timer_model_init)
 

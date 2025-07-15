@@ -47,10 +47,14 @@ XML2_LIBS='-lxml2'
 BUILD_ENV="module load ${modules}; export LD_LIBRARY_PATH=\"${ECCODES_ROOT}/lib64:${FYAML_ROOT}/lib:${XML2_ROOT}/lib:\$CRAY_LD_LIBRARY_PATH:\${LD_LIBRARY_PATH-}\";"
 
 CC='cc'
-CPPFLAGS="-I${ECCODES_ROOT}/include -I${FYAML_ROOT}/include -I${XML2_ROOT}/include/libxml2"
 CFLAGS='-g -gdwarf-4'
 ICON_CFLAGS='-O3'
 ICON_BUNDLED_CFLAGS='-O2'
+
+CXX='CC'
+CXXFLAGS='-g -gdwarf-4 -O2'
+
+CPPFLAGS="-I${ECCODES_ROOT}/include -I${FYAML_ROOT}/include -I${XML2_ROOT}/include/libxml2"
 
 FC='ftn'
 FCFLAGS="-hadd_paren -Ktrap=divz,ovf,inv -hflex_mp=intolerant -hfp1 -g -hipa0"
@@ -90,6 +94,8 @@ BUILD_ENV="${BUILD_ENV}" \
 CC="${CC}" \
 CFLAGS="${CFLAGS}" \
 CPPFLAGS="${CPPFLAGS}" \
+CXX="${CXX}" \
+CXXFLAGS="${CXXFLAGS}" \
 FC="${FC}" \
 FCFLAGS="${FCFLAGS}" \
 ICON_BUNDLED_CFLAGS="${ICON_BUNDLED_CFLAGS}" \

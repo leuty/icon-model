@@ -19,6 +19,8 @@ icon_dir=$(cd "${script_dir}/../.."; pwd)
 
 ################################################################################
 
+intel_root='/sw/spack-levante/intel-oneapi-compilers-2022.0.1-an2cbq/compiler/latest/linux'
+
 gcc_root='/sw/spack-levante/gcc-11.2.0-bcn7mb'
 stdcpp_libs='-lstdc++'
 
@@ -63,7 +65,7 @@ CFLAGS="${arch} -g -gdwarf-4 -pc64 -ip -fma -qno-opt-dynamic-align"
 ICON_CFLAGS='-O3 -ftz'
 ICON_BUNDLED_CFLAGS='-O2 -ftz'
 
-CXX=$("${mpi_root}/bin/mpicxx" -show | sed 's: .*$::')
+CXX="${intel_root}/bin/icpx"
 CXXFLAGS="${CFLAGS} -O2 -ftz"
 
 CPPFLAGS="-I${hdf5_root}/include -I${netcdf_root}/include -I${eccodes_root}/include -I${fyaml_root}/include -I${xml2_root}/include/libxml2"
@@ -80,7 +82,7 @@ ICON_ECRAD_FCFLAGS='-qno-opt-dynamic-align -no-fma -fpe0'
 LDFLAGS="-L${gcc_root}/lib64 -L${hdf5_root}/lib -L${netcdf_root}/lib -L${netcdff_root}/lib -L${netlib_lapack_root}/lib64 -L${eccodes_root}/lib64 -L${fyaml_root}/lib -Wl,--disable-new-dtags -Wl,--as-needed"
 LIBS="${xml2_libs} ${fyaml_libs} ${eccodes_libs} ${blas_lapack_libs} ${netcdff_libs} ${netcdf_libs} ${hdf5_libs} ${zlib_libs} ${stdcpp_libs}"
 
-AR="$($CC -show | sed 's: .*$::;s:/[^/]*$::')/xiar"
+AR="${intel_root}/bin/intel64/xiar"
 
 MPI_LAUNCH="${mpi_root}/bin/mpiexec"
 

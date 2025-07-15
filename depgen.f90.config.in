@@ -65,3 +65,5 @@
 --fc-external-mods=hdf5,h5lt
 #   ECCODES:
 --fc-external-mods=grib_api,eccodes
+#   RAGNAROK:
+--fc-external-mods=mo_ragnarok,mo_ragnarok_support

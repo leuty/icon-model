@@ -495,7 +495,7 @@ set_run_target_bullx_gpu()
 	set_default use_mpi_procs_pernode '"\$(( $num_gpus_pernode + 1 ))"'
 	srun_cmd="srun -l --kill-on-bad-exit=1 --nodes=\${SLURM_JOB_NUM_NODES:-1} --gpus-per-node=${num_gpus_pernode}"
     srun_cmd="${srun_cmd} --ntasks=\$((no_of_nodes * mpi_procs_pernode))"
-    srun_cmd="${srun_cmd} \${basedir}/run/run_wrapper_levante.sh -n \${mpi_total_procs} -o \${num_io_procs} -e"
+    srun_cmd="${srun_cmd} \${basedir}/run/run_wrapper/levante.sh -n \${mpi_total_procs} -o \${num_io_procs} -e"
     use_mpi_startrun="${srun_cmd}"
     else
 	start="srun --cpu-freq=HighM1 -n 1"
