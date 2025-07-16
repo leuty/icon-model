@@ -47,7 +47,7 @@ grep 'DATES=' $check_script > ${check_script}_DATES
 # REFERENCE model directory and reference experiment for update test
 #
 export OVERWRITE=no
-reference_dir=2025-07-13.icon-mpim.a009ba62634a
+reference_dir=2025-07-14.icon-mpim.ba32a940381d
 [[ ! -z $BB_NAME ]] && builder=$(echo ${BB_NAME} | tr '[:upper:]' '[:lower:]') # new buildbot
 export REFERENCE=$icon_data_rootFolder/buildbot_data/ref/${reference_dir}/${builder}
 

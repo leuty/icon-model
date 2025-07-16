@@ -52,9 +52,11 @@ Climate: ICON-Land
   - Account for proc0_shift from the parallel namelist when running ICON-Land standalone
   - OpenACC fixes for lumi
   - Fix needed with jsbach standalone simulations on GPUs
+  - Fixed sequence of variables in surface temperature routine calls
   - Removed unnecessary mpi-all-reduce calls to reduce run time
 - Code cleaning:
   - Only use one variable representing time step length
+  - Revised surface temperature computation wrt variable names and comments
 - Updated JSBACH usecase with TMX and PFTs
 - Added JSBACH usecase with 12 PFTs: including C4 crops
 - Added support for CUDA graphs with AES physics (VDIFF and TMX)
