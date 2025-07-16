@@ -115,7 +115,6 @@ if test $(pwd) != $(cd "${icon_dir}"; pwd); then
   echo "Copying runscript input files from the source directory..."
   rsync -uavz ${icon_dir}/run . --exclude='*.in' --exclude='.*' --exclude='standard_*'
   ln -sf -t run/ ${icon_dir}/run/standard_*
-  ln -sf set-up.info run/SETUP.config
   for dir in \
     'externals/art/runctrl_examples' \
     'externals/ecrad/data' \
