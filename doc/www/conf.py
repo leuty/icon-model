@@ -22,7 +22,7 @@ import pydata_sphinx_theme
 # -- Project information -----------------------------------------------------
 
 project = "ICON"
-copyright = "2024, The ICON Partners"
+copyright = "2025, The ICON Partners"
 author = "ICON"
 html_favicon = "_static/faviconICON.ico"
 

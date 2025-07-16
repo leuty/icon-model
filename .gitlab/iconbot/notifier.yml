@@ -54,6 +54,9 @@
   - file_names:
       - doc/www/*
     labels: [Documentation]
+  - file_names:
+      - doc/www/index.md
+      - doc/www/conf.py
     mentions: [m300368]
   # GPU-related changes:
   - file_names: ['*.f90', '*.F90']

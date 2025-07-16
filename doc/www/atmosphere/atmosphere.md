@@ -117,7 +117,7 @@ More detailed descriptions of some of above options are available here:
 ^^^
 [](ref_atmosphere_ecrad)  
 [](ref_atmosphere_ecrad_redgrid)  
-[](ref_atmosphere_ecrad_aerosol)
+[](ref_atmosphere_ecrad_aerosol)  
 [FSD Parameter](ref_atmosphere_ecrad_fsd)
 :::
 ::::

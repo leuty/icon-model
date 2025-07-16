@@ -38,7 +38,6 @@ Information on the changes are available in the {{ '[**Release Notes**]({}/RELEA
 [](ref_buildrun_gridextpar)  
 [](ref_buildrun_icbc)  
 [](ref_buildrun_recommconf)
-[](ref_buildrun_bubble)
 :::
 
 :::{grid-item-card}
