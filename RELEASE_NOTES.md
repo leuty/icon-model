@@ -45,6 +45,7 @@ Climate: ICON-Land
   - Replace memory variables of QUINCY physics process by variables from JSBACH physics processes
   - Bugfix related to soil/surface albedo when snow is present
   - First implementation allowing anthropogenic land cover change with QUINCY biogeophysics processes
+  - Enable running the agriculture process in QUINCY also when only running biogeophysical processes
 - Use a common interface for QUINCY and JSBACH
 - Updated inline documentation of hydrology process
 - Fixes:
