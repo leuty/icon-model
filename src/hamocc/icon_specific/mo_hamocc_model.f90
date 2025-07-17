@@ -86,7 +86,7 @@ MODULE mo_hamocc_model
   USE mo_operator_ocean_coeff_3d,ONLY: construct_operators_coefficients, &
     & destruct_operators_coefficients
 
-   USE mo_impl_constants,      ONLY: success
+  USE mo_impl_constants,      ONLY: success
 
   USE mo_alloc_patches,        ONLY: destruct_patches, destruct_comm_patterns
   USE mo_ocean_read_namelists, ONLY: read_ocean_namelists
@@ -98,6 +98,7 @@ MODULE mo_hamocc_model
   USE mo_output_event_types,   ONLY: t_sim_step_info
   USE mo_grid_tools,           ONLY: create_dummy_cell_closure
   USE mo_io_config,            ONLY: restartWritingParameters
+  USE mo_restart,              ONLY: detachRestartProcs
   USE mo_bgc_icon_comm,        ONLY: hamocc_state
   USE mo_ocean_time_events,    ONLY: init_ocean_time_events, getCurrentDate_to_String,          &
     & ocean_time_nextStep, isCheckpoint, isEndOfThisRun, newNullDatetime,  &
@@ -176,7 +177,16 @@ MODULE mo_hamocc_model
       !  forcing is part of the restart file
     END IF ! isRestart()
 
-
+    IF ( is_coupled_run() ) THEN
+      ! The initialisation of the coupling needs to be called by all (!) MPI processes
+      ! in MPI_COMM_WORLD.
+      ! construct_dummy_coupling needs to be called before init_name_list_output
+      ! due to calling sequence in subroutine atmo_model for other atmosphere
+      ! processes
+      IF (ltimer) CALL timer_start(timer_coupling)
+      CALL construct_dummy_coupling ( get_my_process_name()  )
+      IF (ltimer) CALL timer_stop(timer_coupling)
+    END IF
 
     !------------------------------------------------------------------
     ! Initialize output file if necessary;
@@ -437,26 +447,25 @@ MODULE mo_hamocc_model
     !-------------------------------------------------------------------
     CALL init_timer
 
-    IF ( is_coupled_run() ) THEN
+    IF (ltimer) CALL timer_start(timer_model_init)
 
-      ! The initialisation of the coupling needs to be called by all (!) MPI processes
-      ! in MPI_COMM_WORLD.
-      ! construct_dummy_coupling needs to be called before init_name_list_output
-      ! due to calling sequence in subroutine atmo_model for other atmosphere
-      ! processes
+    !-------------------------------------------------------------------
+    ! 3.4 construct basic coupler
+    !-------------------------------------------------------------------
+
+    IF (is_coupled_run()) THEN
       IF (ltimer) CALL timer_start(timer_coupling)
       CALL cpl_construct()
-      CALL construct_dummy_coupling ( get_my_process_name()  )
       IF (ltimer) CALL timer_stop(timer_coupling)
     END IF
-
-    IF (ltimer) CALL timer_start(timer_model_init)
 
     !-------------------------------------------------------------------
     ! 4. Setup IO procs
     !-------------------------------------------------------------------
     ! If we belong to the I/O PEs just call xxx_io_main_proc before
     ! reading patches.  This routine will never return
+    CALL detachRestartProcs(ltimer)
+
     CALL init_io_processes()
 
     ! 4. Import patches
