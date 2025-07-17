@@ -13,7 +13,7 @@
 Zonda is a web interface designed to facilitate the generation of External Parameter data (EXTPAR) on ICON triangular grids for research and on-demand simulations.
 This is realized as a two-step process:
 
-1. In the [frontend](https://zonda.ethz.ch/), the user specifies the domain(s) including the appropriate settings for the external parameter generation. Example configurations and a expert mode with additional choices are available to assist the user. As a result, the user gets a JSON code snippet which is required for the second step.
+1. In the [frontend](https://zonda.ethz.ch/), the user specifies the domain(s) including the appropriate settings for the external parameter generation. Example configurations and an expert mode with additional choices are available to assist the user. As a result, the user gets a JSON code snippet which is required for the second step.
 2. In the [backend](https://github.com/C2SM/zonda-request), the JSON code has to be pasted into a github issue. Then, the github CI triggers the generation of the ICON Grid and EXTPAR data.
 
 :::{admonition} Zonda Access
@@ -26,12 +26,12 @@ Zonda is _free_ to use, the only requirement is a github account. The Zonda web 
 (ref_tools_yac)=
 ## Coupling (YAC)
 
-YAC (Yet Another Coupler) is a flexibe coupling library which comes with ICON.
-Its interface is compatible to the well known OASIS coupler and it can be
+YAC (Yet Another Coupler) is a flexible coupling library which comes with ICON.
+Its interface is compatible to the well-known OASIS coupler and it can be
 used as a full replacement of it.
 YAC supports many different horizontal interpolations and a unique
 interpolation stack to control alternatives in case direct interpolation is not
-feasable. It is not only used for coupling atmosphere and ocean components of
+feasible. It is not only used for coupling atmosphere and ocean components of
 ICON, but also for a highly flexible output method.
 
 ```{image} yak_small_black.svg
@@ -56,14 +56,14 @@ You can find further information in the  [**YAC Documentation**](https://yac.git
 :::
 
 (ref_tools_cdo)=
-## Data Analyslis & Remapping (CDO)
+## Data Analysis & Remapping (CDO)
 
 [CDO](https://code.mpimet.mpg.de/projects/cdo) is a well know data anlysis tool
 developed by [Max-Planck-Institute for Meteorology](https://mpimet.mpg.de/en). CDO supports the ICON native horizontal grid so that ICON
 model output can be easily analysed.
 
 Examples:
-- [Horizontal interlations](https://code.mpimet.mpg.de/projects/cdo/wiki/FAQ#How-can-I-remap-ICON-data-when-the-grid-information-is-stored-in-a-separated-file) can be done with a wide range of methods
+- [Horizontal interpolations](https://code.mpimet.mpg.de/projects/cdo/wiki/FAQ#How-can-I-remap-ICON-data-when-the-grid-information-is-stored-in-a-separated-file) can be done with a wide range of methods
 - Vertical interpolation from ICON (atm) vertical sigma hight coordinate with the `ap2pl` operator:
   - (optional) add CF-conform name for pressure with
   ```shell
