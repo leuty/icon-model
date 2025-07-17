@@ -282,7 +282,7 @@ CONTAINS
 
     ENDIF
 
-!ICON_OMP_DO_PARALLEL  PRIVATE(start_cell_index,end_cell_index, cell_index, level) ICON_OMP_DEFAULT_SCHEDULE
+!ICON_OMP_PARALLEL_DO  PRIVATE(start_cell_index,end_cell_index, cell_index, level) ICON_OMP_DEFAULT_SCHEDULE
     DO blockNo = all_cells%start_block, all_cells%end_block
       CALL get_index_range(all_cells, blockNo, start_cell_index, end_cell_index)
       DO cell_index = start_cell_index, end_cell_index
@@ -291,11 +291,11 @@ CONTAINS
         ENDDO
       ENDDO
     ENDDO
-!ICON_OMP_END_DO_PARALLEL
+!ICON_OMP_END_PARALLEL_DO
 
     !The code below has to be executed for temperature, salinity and HAMOCC tracers, i.e. for all tracers.
     !
-!ICON_OMP_DO_PARALLEL PRIVATE(start_cell_index,end_cell_index, cell_index, level) ICON_OMP_DEFAULT_SCHEDULE
+!ICON_OMP_PARALLEL_DO PRIVATE(start_cell_index,end_cell_index, cell_index, level) ICON_OMP_DEFAULT_SCHEDULE
     DO blockNo = cells_in_domain%start_block, cells_in_domain%end_block
       CALL get_index_range(cells_in_domain, blockNo, start_cell_index, end_cell_index)
       DO cell_index = start_cell_index, end_cell_index
@@ -354,7 +354,7 @@ CONTAINS
 
       END DO
     END DO
-!ICON_OMP_END_DO_PARALLEL
+!ICON_OMP_END_PARALLEL_DO
 
     !Map the explicit horizontal tracer flux from cell centers to edges (where the horizontal divergence is calculated)
     !
@@ -364,7 +364,7 @@ CONTAINS
     !
     CALL map_cell2edges_3D( patch_3D,flux_vec_horz_center, GMRedi_flux_horz, op_coeff)
 
-!ICON_OMP_DO_PARALLEL PRIVATE(start_edge_index,end_edge_index, edge_index, level) ICON_OMP_DEFAULT_SCHEDULE
+!ICON_OMP_PARALLEL_DO PRIVATE(start_edge_index,end_edge_index, edge_index, level) ICON_OMP_DEFAULT_SCHEDULE
         DO blockNo = edges_in_domain%start_block, edges_in_domain%end_block
           CALL get_index_range(edges_in_domain, blockNo, start_edge_index, end_edge_index)
           DO edge_index = start_edge_index, end_edge_index
@@ -376,7 +376,7 @@ CONTAINS
             END DO
           END DO
         END DO
-!ICON_OMP_END_DO_PARALLEL
+!ICON_OMP_END_PARALLEL_DO
 
 
     IF(INCLUDE_SLOPE_SQUARED_IMPLICIT)THEN
@@ -423,7 +423,7 @@ CONTAINS
 	  !We follow the approach in POP, where these two contributions are added
 	  !(see Reference manual POP, sect 5.1.3, in particular p. 41, after eq (150)).
 
-!ICON_OMP_DO_PARALLEL PRIVATE(start_cell_index,end_cell_index, cell_index, level) ICON_OMP_DEFAULT_SCHEDULE
+!ICON_OMP_PARALLEL_DO PRIVATE(start_cell_index,end_cell_index, cell_index, level) ICON_OMP_DEFAULT_SCHEDULE
 	DO blockNo = cells_in_domain%start_block, cells_in_domain%end_block
 	  CALL get_index_range(cells_in_domain, blockNo, start_cell_index, end_cell_index)
 	  DO cell_index = start_cell_index, end_cell_index
@@ -434,7 +434,7 @@ CONTAINS
 	    END DO
 	  END DO
 	END DO
-!ICON_OMP_END_DO_PARALLEL
+!ICON_OMP_END_PARALLEL_DO
 
 	CALL sync_patch_array(sync_c, patch_2D, param%a_tracer_v(:,:,:,tracer_index), lacc=.FALSE.)
 
@@ -941,8 +941,9 @@ CONTAINS
   idt_src=3  ! output print level (1-5, fix)
   CALL dbg_print('calc_slopes: squared',ocean_state%p_aux%slopes_squared,&
     & str_module,idt_src, in_subset=cells_in_domain)
-  CALL dbg_print('calc_slopes: slope abs',sqrt(ocean_state%p_aux%slopes_squared(:,:,:)),&
-    & str_module,idt_src, in_subset=cells_in_domain)
+  ! sqrt would be always calculated :/ don't do it
+  !!CALL dbg_print('calc_slopes: slope abs',sqrt(ocean_state%p_aux%slopes_squared(:,:,:)),&
+  !!  & str_module,idt_src, in_subset=cells_in_domain)
   CALL dbg_print('calc_slopes: slopes dz',ocean_state%p_aux%slopes_drdz,&
     & str_module,idt_src, in_subset=cells_in_domain)
   CALL dbg_print('calc_slopes: slopes dx',ocean_state%p_aux%slopes_drdx,&
@@ -1362,19 +1363,23 @@ CONTAINS
       K_I = kappa
     ENDIF
 
-    IF(SWITCH_OFF_TAPERING)THEN
-     ocean_state%p_aux%taper_function_1(:,:,:)=1.0_wp
-     ocean_state%p_aux%taper_function_2(:,:,:)=1.0_wp
-    ENDIF
-    taper_diagonal_horz(:,:,:)     =0.0_wp
-    taper_diagonal_vert_expl(:,:,:)=0.0_wp
-    taper_diagonal_vert_impl(:,:,:)=0.0_wp
-    taper_off_diagonal_horz(:,:,:)%x(1)=0.0_wp
-    taper_off_diagonal_horz(:,:,:)%x(2)=0.0_wp
-    taper_off_diagonal_horz(:,:,:)%x(3)=0.0_wp
-    taper_off_diagonal_vert(:,:,:)%x(1)=0.0_wp
-    taper_off_diagonal_vert(:,:,:)%x(2)=0.0_wp
-    taper_off_diagonal_vert(:,:,:)%x(3)=0.0_wp
+!ICON_OMP_PARALLEL_DO ICON_OMP_DEFAULT_SCHEDULE
+    DO blockNo = 1 , patch_3D%p_patch_2D(1)%alloc_cell_blocks
+      IF(SWITCH_OFF_TAPERING)THEN
+      ocean_state%p_aux%taper_function_1(:,:,blockNo)=1.0_wp
+      ocean_state%p_aux%taper_function_2(:,:,blockNo)=1.0_wp
+      ENDIF
+      taper_diagonal_horz(:,:,blockNo)     =0.0_wp
+      taper_diagonal_vert_expl(:,:,blockNo)=0.0_wp
+      taper_diagonal_vert_impl(:,:,blockNo)=0.0_wp
+      taper_off_diagonal_horz(:,:,blockNo)%x(1)=0.0_wp
+      taper_off_diagonal_horz(:,:,blockNo)%x(2)=0.0_wp
+      taper_off_diagonal_horz(:,:,blockNo)%x(3)=0.0_wp
+      taper_off_diagonal_vert(:,:,blockNo)%x(1)=0.0_wp
+      taper_off_diagonal_vert(:,:,blockNo)%x(2)=0.0_wp
+      taper_off_diagonal_vert(:,:,blockNo)%x(3)=0.0_wp
+    END DO
+!ICON_OMP_END_PARALLEL_DO
     !-------------------------------------------------------------------------------
 
     SELECT CASE(tapering_scheme)
@@ -1807,7 +1812,7 @@ ocean_state%p_prog(nold(1))%tracer_collection%tracer(tracer_index)%concentration
           ENDDO
         ENDDO
       ENDDO
-!ICON_OMP_DO_PARALLEL PRIVATE(start_cell_index,end_cell_index, cell_index, level) ICON_OMP_DEFAULT_SCHEDULE
+!ICON_OMP_PARALLEL_DO PRIVATE(start_cell_index,end_cell_index, cell_index, level) ICON_OMP_DEFAULT_SCHEDULE
       DO blockNo = cells_in_domain%start_block, cells_in_domain%end_block
         CALL get_index_range(cells_in_domain, blockNo, start_cell_index, end_cell_index)
         DO cell_index = start_cell_index, end_cell_index
@@ -1852,7 +1857,7 @@ ocean_state%p_prog(nold(1))%tracer_collection%tracer(tracer_index)%concentration
 !           END DO
         END DO
       END DO
-!ICON_OMP_END_DO_PARALLEL
+!ICON_OMP_END_PARALLEL_DO
 
     ! use a vector communicator
     CALL sync_patch_array_mult(sync_c, patch_2D, 3, lacc=.FALSE., &
@@ -1950,10 +1955,10 @@ ocean_state%p_prog(nold(1))%tracer_collection%tracer(tracer_index)%concentration
 
 
 
-! !ICON_OMP_DO_PARALLEL PRIVATE(start_cell_index,end_cell_index, cell_index, end_level,neutral_coeff, &
+! !ICON_OMP_PARALLEL_DO PRIVATE(start_cell_index,end_cell_index, cell_index, end_level,neutral_coeff, &
 ! !ICON_OMP  level) ICON_OMP_DEFAULT_SCHEDULE
 
-!ICON_OMP_DO_PARALLEL PRIVATE(start_cell_index,end_cell_index, cell_index, end_level,neutral_coeff,level) ICON_OMP_DEFAULT_SCHEDULE
+!ICON_OMP_PARALLEL_DO PRIVATE(start_cell_index,end_cell_index, cell_index, end_level,neutral_coeff,level) ICON_OMP_DEFAULT_SCHEDULE
     DO blockNo = cells_in_domain%start_block, cells_in_domain%end_block
       CALL get_index_range(cells_in_domain, blockNo, start_cell_index, end_cell_index)
 
@@ -2057,7 +2062,7 @@ ocean_state%p_prog(nold(1))%tracer_collection%tracer(tracer_index)%concentration
 
       END DO ! cell_index = start_cell_index, end_cell_index
     END DO  ! blockNo = all_cells%start_block, all_cells%end_block
-!ICON_OMP_END_DO_PARALLEL
+!ICON_OMP_END_PARALLEL_DO
 
 
 
@@ -2572,7 +2577,7 @@ END SUBROUTINE vertical_GM
 
     !! Convert vertical gradients from d/ds to d/dz
     start_level = 1
-!ICON_OMP_DO_PARALLEL PRIVATE(start_cell_index,end_cell_index, jc, level, end_level) ICON_OMP_DEFAULT_SCHEDULE
+!ICON_OMP_PARALLEL_DO PRIVATE(start_cell_index,end_cell_index, jc, level, end_level) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = cells_in_domain%start_block, cells_in_domain%end_block
       CALL get_index_range(cells_in_domain, jb, start_cell_index, end_cell_index)
       DO jc = start_cell_index, end_cell_index
@@ -2590,7 +2595,7 @@ END SUBROUTINE vertical_GM
 
       END DO
     END DO
-!ICON_OMP_END_DO_PARALLEL
+!ICON_OMP_END_PARALLEL_DO
 
     CALL calc_tapering_function(patch_3d, param, ocean_state)
 
@@ -2697,6 +2702,7 @@ END SUBROUTINE vertical_GM
     REAL(wp), POINTER :: tracer_gradient_vert_center(:,:,:)
 
     REAL(wp) :: mapped_vertical_diagonal_impl(nproma,n_zlev+1,patch_3D%p_patch_2D(1)%alloc_cell_blocks)
+    REAL(wp), DIMENSION(nproma,n_zlev,patch_3D%p_patch_2D(1)%alloc_cell_blocks) :: flux_vec_horz_center_x, flux_vec_horz_center_y, flux_vec_horz_center_z
 
     REAL(wp) :: nabla_T_horz(nproma, n_zlev,patch_3D%p_patch_2d(1)%nblks_e)
     REAL(wp) :: nabla_S_horz(nproma, n_zlev,patch_3D%p_patch_2d(1)%nblks_e)
@@ -2759,10 +2765,11 @@ END SUBROUTINE vertical_GM
          END DO
       END DO
     END DO
-!ICON_OMP_END_DO_PARALLEL
+!ICON_OMP_END_PARALLEL_DO
 
     ENDIF  ! Leave the gradient calculating block
 
+!ICON_OMP_PARALLEL_DO PRIVATE(start_cell_index, end_cell_index, cell_index, level) ICON_OMP_DEFAULT_SCHEDULE
     DO blockNo = all_cells%start_block, all_cells%end_block
       CALL get_index_range(all_cells, blockNo, start_cell_index, end_cell_index)
 #ifdef __LVECTOR__
@@ -2776,10 +2783,11 @@ END SUBROUTINE vertical_GM
         ENDDO
       ENDDO
     ENDDO
+!ICON_OMP_END_PARALLEL_DO
 
     !The code below has to be executed for temperature, salinity and HAMOCC tracers, i.e. for all tracers.
     !
-!ICON_OMP_DO_PARALLEL PRIVATE(start_cell_index,end_cell_index, cell_index, level, max_level) ICON_OMP_DEFAULT_SCHEDULE
+!ICON_OMP_PARALLEL_DO PRIVATE(start_cell_index,end_cell_index, cell_index, level, max_level) ICON_OMP_DEFAULT_SCHEDULE
     DO blockNo = cells_in_domain%start_block, cells_in_domain%end_block
       CALL get_index_range(cells_in_domain, blockNo, start_cell_index, end_cell_index)
       DO cell_index = start_cell_index, end_cell_index
@@ -2831,17 +2839,32 @@ END SUBROUTINE vertical_GM
 
       END DO
     END DO
-!ICON_OMP_END_DO_PARALLEL
+!ICON_OMP_END_PARALLEL_DO
 
     !Map the explicit horizontal tracer flux from cell centers to edges (where the horizontal divergence is calculated)
     !
     ! use a vector communicator
+    ! Copy the x(:) into temp arrays using OMP
+!ICON_OMP_PARALLEL_DO ICON_OMP_DEFAULT_SCHEDULE
+    DO blockNo = 1, patch_3D%p_patch_2d(1)%alloc_cell_blocks
+      flux_vec_horz_center_x(:,:,blockNo) = flux_vec_horz_center(:,:,blockNo)%x(1)
+      flux_vec_horz_center_y(:,:,blockNo) = flux_vec_horz_center(:,:,blockNo)%x(2)
+      flux_vec_horz_center_z(:,:,blockNo) = flux_vec_horz_center(:,:,blockNo)%x(3)
+    END DO
+!ICON_OMP_END_PARALLEL_DO
     CALL sync_patch_array_mult(sync_c, patch_2D, 3, lacc=.FALSE., &
-        & f3din1=flux_vec_horz_center(:,:,:)%x(1), f3din2=flux_vec_horz_center(:,:,:)%x(2), f3din3=flux_vec_horz_center(:,:,:)%x(3))
+        & f3din1=flux_vec_horz_center_x, f3din2=flux_vec_horz_center_y, f3din3=flux_vec_horz_center_z)
+!ICON_OMP_PARALLEL_DO ICON_OMP_DEFAULT_SCHEDULE
+    DO blockNo = 1, patch_3D%p_patch_2d(1)%alloc_cell_blocks
+      flux_vec_horz_center(:,:,blockNo)%x(1) = flux_vec_horz_center_x(:,:,blockNo)
+      flux_vec_horz_center(:,:,blockNo)%x(2) = flux_vec_horz_center_y(:,:,blockNo)
+      flux_vec_horz_center(:,:,blockNo)%x(3) = flux_vec_horz_center_z(:,:,blockNo)
+    END DO
+!ICON_OMP_END_PARALLEL_DO
     !
     CALL map_cell2edges_3D( patch_3D,flux_vec_horz_center, GMredi_flux_horz, op_coeff)
 
-!ICON_OMP_DO_PARALLEL PRIVATE(start_edge_index,end_edge_index, edge_index, level, max_level) ICON_OMP_DEFAULT_SCHEDULE
+!ICON_OMP_PARALLEL_DO PRIVATE(start_edge_index,end_edge_index, edge_index, level, max_level) ICON_OMP_DEFAULT_SCHEDULE
         DO blockNo = edges_in_domain%start_block, edges_in_domain%end_block
           CALL get_index_range(edges_in_domain, blockNo, start_edge_index, end_edge_index)
 #ifdef __LVECTOR__
@@ -2860,7 +2883,7 @@ END SUBROUTINE vertical_GM
             END DO
           END DO
         END DO
-!ICON_OMP_END_DO_PARALLEL
+!ICON_OMP_END_PARALLEL_DO
 
 
     IF(INCLUDE_SLOPE_SQUARED_IMPLICIT)THEN
@@ -2889,7 +2912,7 @@ END SUBROUTINE vertical_GM
         !We follow the approach in POP, where these two contributions are added
         !(see Reference manual POP, sect 5.1.3, in particular p. 41, after eq (150)).
         !
-!ICON_OMP_DO_PARALLEL PRIVATE(start_cell_index,end_cell_index, cell_index, level, max_level) ICON_OMP_DEFAULT_SCHEDULE
+!ICON_OMP_PARALLEL_DO PRIVATE(start_cell_index,end_cell_index, cell_index, level, max_level) ICON_OMP_DEFAULT_SCHEDULE
         DO blockNo = cells_in_domain%start_block, cells_in_domain%end_block
           CALL get_index_range(cells_in_domain, blockNo, start_cell_index, end_cell_index)
 #ifdef __LVECTOR__
@@ -2907,7 +2930,7 @@ END SUBROUTINE vertical_GM
             END DO
           END DO
         END DO
-!ICON_OMP_END_DO_PARALLEL
+!ICON_OMP_END_PARALLEL_DO
 
     CALL sync_patch_array(sync_c, patch_2D, param%a_tracer_v(:,:,:,tracer_index), lacc=.FALSE.)
 

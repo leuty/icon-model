@@ -10,6 +10,7 @@
 ! ---------------------------------------------------------------
 
 #include "icon_definitions.inc"
+#include "omp_definitions.inc"
    MODULE mo_hamocc_ocean_physics
 
     USE mo_kind,                         ONLY: wp
@@ -121,15 +122,23 @@
 
       stretch_c => ocean_to_hamocc_state%stretch_c(:,:)
       ! Adapt levels to changed stretching factors
-      do jk = 1,bgc_zlevs
-        pddpo(:,jk,:) = patch_3d%p_patch_1d(1)%prism_thick_flat_sfc_c(:,jk,:) * &
-              &           stretch_c(:,:) * patch_3d%wet_c(:,1,:)
-        pddpo_new(:,jk,:) = patch_3d%p_patch_1d(1)%prism_thick_flat_sfc_c(:,jk,:) * &
-              &           ocean_to_hamocc_state%stretch_c_new(:,:) * patch_3d%wet_c(:,1,:)
+!ICON_OMP_PARALLEL_DO ICON_OMP_DEFAULT_SCHEDULE
+      DO jb = 1, hamocc_ocean_state%ocean_transport_state%patch_3d%p_patch_2d(1)%alloc_cell_blocks
+        do jk = 1,bgc_zlevs
+          pddpo(:,jk,jb) = patch_3d%p_patch_1d(1)%prism_thick_flat_sfc_c(:,jk,jb) * &
+                &           stretch_c(:,jb) * patch_3d%wet_c(:,1,jb)
+          pddpo_new(:,jk,jb) = patch_3d%p_patch_1d(1)%prism_thick_flat_sfc_c(:,jk,jb) * &
+                &           ocean_to_hamocc_state%stretch_c_new(:,jb) * patch_3d%wet_c(:,1,jb)
 
-        ptiestu(:,jk,:) = patch_3d%p_patch_1d(1)%depth_cellMiddle(:,jk,:) * &
-              &           stretch_c(:,:) + ocean_to_hamocc_state%draftave(:,:)
-      enddo
+          ptiestu(:,jk,jb) = patch_3d%p_patch_1d(1)%depth_cellMiddle(:,jk,jb) * &
+                &           stretch_c(:,jb) + ocean_to_hamocc_state%draftave(:,jb)
+        enddo
+
+        ! ssh is included in the adapted level thickness and depth
+        ssh(:,jb) = 0.0_wp
+        ssh_new(:,jb) = 0.0_wp
+      END DO
+!ICON_OMP_END_PARALLEL_DO
 
       ! compute stretch_e as the avrege of the two cells
       cell_idx  => patch_3D%p_patch_2D(1)%edges%cell_idx
@@ -144,17 +153,16 @@
       END DO
 !ICON_OMP_END_PARALLEL_DO
 
-      ! ssh is included in the adapted level thickness and depth
-      ssh(:,:) = 0.0_wp
-      ssh_new(:,:) = 0.0_wp
-
     ELSE
-      pddpo(:,:,:) = patch_3d%p_patch_1d(1)%prism_thick_flat_sfc_c(:,:,:)
-      pddpo_new(:,:,:) = patch_3d%p_patch_1d(1)%prism_thick_flat_sfc_c(:,:,:)
+!ICON_OMP_PARALLEL_DO ICON_OMP_DEFAULT_SCHEDULE
+      DO jb = 1, hamocc_ocean_state%ocean_transport_state%patch_3d%p_patch_2d(1)%alloc_cell_blocks
+        pddpo(:,:,jb) = patch_3d%p_patch_1d(1)%prism_thick_flat_sfc_c(:,:,jb)
+        pddpo_new(:,:,jb) = patch_3d%p_patch_1d(1)%prism_thick_flat_sfc_c(:,:,jb)
 
-      ptiestu(:,:,:) = patch_3d%p_patch_1d(1)%depth_cellMiddle(:,:,:)
-      ssh(:,:) = ocean_to_hamocc_state%h_old(:,:)
-      ssh_new(:,:) = ocean_to_hamocc_state%h_new(:,:)
+        ptiestu(:,:,jb) = patch_3d%p_patch_1d(1)%depth_cellMiddle(:,:,jb)
+        ssh(:,jb) = ocean_to_hamocc_state%h_old(:,jb)
+        ssh_new(:,jb) = ocean_to_hamocc_state%h_new(:,jb)
+      END DO
     ENDIF
 
 
@@ -340,6 +348,8 @@
     p_patch => p_patch_3D%p_patch_2D(1)
     all_cells => p_patch%cells%all
 
+!ICON_OMP_PARALLEL_DO PRIVATE(i_startidx_c, i_endidx_c, jc, jk, i_bgc_tra, &
+!ICON_OMP nlevs, h_old, h_new, h_change) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = all_cells%start_block, all_cells%end_block
         CALL get_index_range(all_cells, jb, i_startidx_c, i_endidx_c)
         DO jc = i_startidx_c, i_endidx_c
@@ -422,6 +432,7 @@
             endif
         ENDDO
     ENDDO
+!ICON_OMP_END_PARALLEL_DO
 
    END SUBROUTINE dilute_hamocc_tracers_zstar
 

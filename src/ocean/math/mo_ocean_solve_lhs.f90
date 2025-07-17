@@ -722,10 +722,7 @@ CONTAINS
   END SUBROUTINE lhs_create_matrix_init
 
 ! backend routine applying lhs-matrix
-#if !defined(_OPENACC) || !defined(_CRAYFTN)
-  PURE_OR_OMP &
-#endif
-  SUBROUTINE lhs_doit_wp(this, x, ax, a , b, i, lacc)
+  PURE_OR_OMP SUBROUTINE lhs_doit_wp(this, x, ax, a , b, i, lacc)
     CLASS(t_lhs), INTENT(IN) :: this
 #if defined(_OPENACC) || defined(__NO_CONT_SOLV_OCE__)
     REAL(KIND=wp), INTENT(IN), DIMENSION(:,:) :: x
@@ -872,10 +869,7 @@ CONTAINS
   END SUBROUTINE lhs_apply_noaii_wp
 
 ! sp-variant of lhs_doit_wp
-#if !defined(_OPENACC) || !defined(_CRAYFTN)
-  PURE_OR_OMP &
-#endif
-  SUBROUTINE lhs_doit_sp(this, x, ax, a, b, i, lacc)
+  PURE_OR_OMP SUBROUTINE lhs_doit_sp(this, x, ax, a, b, i, lacc)
     CLASS(t_lhs), INTENT(IN) :: this
 #if defined(_OPENACC) || defined(__NO_CONT_SOLV_OCE__)
     REAL(KIND=sp), INTENT(IN), DIMENSION(:,:) :: x

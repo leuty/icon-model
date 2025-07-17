@@ -880,11 +880,15 @@ ENDDO
 
     !$ACC DATA CREATE(z_adv_u_i, z_adv_u_m) IF(lzacc)
 
-    !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-    z_adv_u_m(1:nproma,1:n_zlev,1:patch_2D%alloc_cell_blocks)%x(1) = 0.0_wp
-    z_adv_u_m(1:nproma,1:n_zlev,1:patch_2D%alloc_cell_blocks)%x(2) = 0.0_wp
-    z_adv_u_m(1:nproma,1:n_zlev,1:patch_2D%alloc_cell_blocks)%x(3) = 0.0_wp
-    !$ACC END KERNELS
+!ICON_OMP_PARALLEL_DO ICON_OMP_DEFAULT_SCHEDULE
+    DO blockNo = 1, patch_2D%alloc_cell_blocks
+      !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+      z_adv_u_m(1:nproma,1:n_zlev,blockNo)%x(1) = 0.0_wp
+      z_adv_u_m(1:nproma,1:n_zlev,blockNo)%x(2) = 0.0_wp
+      z_adv_u_m(1:nproma,1:n_zlev,blockNo)%x(3) = 0.0_wp
+      !$ACC END KERNELS
+    END DO
+!ICON_OMP_END_PARALLEL_DO
     !$ACC WAIT(1)
 
 !ICON_OMP_PARALLEL_DO PRIVATE(start_index,end_index,jc, jk, fin_level,inv_prism_center_distance, &

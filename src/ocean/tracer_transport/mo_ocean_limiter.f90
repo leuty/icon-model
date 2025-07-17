@@ -316,7 +316,7 @@ CONTAINS
 
 
 !ICON_OMP_DO PRIVATE(start_index, end_index, jc, level, delta_z, delta_z_new, &
-!ICON_OMP z_fluxdiv_c) ICON_OMP_DEFAULT_SCHEDULE
+!ICON_OMP z_fluxdiv_c, cell_connect) ICON_OMP_DEFAULT_SCHEDULE
     !$ACC DATA COPYIN(div_adv_flux_vert, div_coeff, dolic_c, edge_of_cell_blk, edge_of_cell_idx) &
     !$ACC   COPYIN(flx_tracer_low, h_old, h_new, num_edges, prism_thick_flat_sfc_c, tracer) &
     !$ACC   COPY(z_tracer_max, z_tracer_min, z_tracer_new_low, z_tracer_update_horz) IF(lzacc)
@@ -1002,16 +1002,13 @@ CONTAINS
 !ctr=0
 
 
-! ! !ICON_OMP_MASTER
     ! Synchronize r_m and r_p
     CALL sync_patch_array_mult(sync_c1, patch_2d, 2, lacc=lzacc, f3din1=r_m, f3din2=r_p)
-! ! !ICON_OMP_END_MASTER
-! ! !ICON_OMP_BARRIER
 
     ! 5. Now loop over all edges and determine the minimum fraction which must
     !    multiply the antidiffusive flux at the edge.
     !    At the end, compute new, limited fluxes which are then passed to the main
-!ICON_OMP_DO_PARALLEL PRIVATE(start_index, end_index, edge_index, level, z_signum, r_frac) ICON_OMP_DEFAULT_SCHEDULE
+!ICON_OMP_PARALLEL_DO PRIVATE(start_index, end_index, edge_index, level, z_signum, r_frac) ICON_OMP_DEFAULT_SCHEDULE
     DO blockNo = edges_start_block, edges_end_block
       CALL get_index_range(edges_in_domain, blockNo, start_index, end_index)
 
@@ -1055,8 +1052,8 @@ CONTAINS
       !$ACC END PARALLEL
     ENDDO
     !$ACC WAIT(1)
-!ICON_OMP_END_DO_PARALLEL
-! !ICON_OMP_END_PARALLEL
+!ICON_OMP_END_PARALLEL_DO
+
 
   !$ACC END DATA
   END SUBROUTINE limiter_ocean_zalesak_horizontal_onTriangles
@@ -1174,7 +1171,7 @@ CONTAINS
   ENDIF
 
 !ICON_OMP_PARALLEL
-!ICON_OMP_DO PRIVATE(start_index, end_index, edge_index, level) ICON_OMP_DEFAULT_SCHEDULE
+!ICON_OMP_DO PRIVATE(start_index, end_index, edge_index, level, max_dolic_e) ICON_OMP_DEFAULT_SCHEDULE
     DO blockNo = edges_in_domain%start_block, edges_in_domain%end_block
       CALL get_index_range(edges_in_domain, blockNo, start_index, end_index)
 
@@ -1257,7 +1254,7 @@ CONTAINS
 
     !Fluid interior
 !ICON_OMP_DO PRIVATE(start_index, end_index, jc, level, delta_z, delta_z_new, &
-!ICON_OMP z_fluxdiv_c) ICON_OMP_DEFAULT_SCHEDULE
+!ICON_OMP z_fluxdiv_c, max_dolic_c) ICON_OMP_DEFAULT_SCHEDULE
     DO blockNo = cells_in_domain%start_block, cells_in_domain%end_block
       CALL get_index_range(cells_in_domain, blockNo, start_index, end_index)
 
@@ -1309,8 +1306,9 @@ CONTAINS
     ! 4. Limit the antidiffusive fluxes z_mflx_anti, such that the updated tracer
     !    field is free of any new extrema.
 !ICON_OMP_PARALLEL
-!ICON_OMP_DO PRIVATE(start_index, end_index, jc, level, inv_prism_thick_new, &
-!ICON_OMP z_mflx_anti1, z_mflx_anti2, z_mflx_anti3, z_max, z_min, cell_connect, p_p, p_m, nidx, nblk) ICON_OMP_DEFAULT_SCHEDULE
+!ICON_OMP_DO PRIVATE(start_index, end_index, jc, level, inv_prism_thick_new, max_dolic_c, &
+!ICON_OMP z_mflx_anti1, z_mflx_anti2, z_mflx_anti3, z_max, z_min, cell_connect, p_p, p_m, &
+!ICON_OMP nidx1, nblk1, nidx2, nblk2, nidx3, nblk3 ) ICON_OMP_DEFAULT_SCHEDULE
     DO blockNo = cells_in_domain%start_block, cells_in_domain%end_block
 
       ! this is only needed for the parallel test setups
@@ -1439,7 +1437,7 @@ CONTAINS
     ! 5. Now loop over all edges and determine the minimum fraction which must
     !    multiply the antidiffusive flux at the edge.
     !    At the end, compute new, limited fluxes which are then passed to the main
-!ICON_OMP_DO_PARALLEL PRIVATE(start_index, end_index, edge_index, level, z_signum, r_frac) ICON_OMP_DEFAULT_SCHEDULE
+!ICON_OMP_PARALLEL_DO PRIVATE(start_index, end_index, edge_index, level, z_signum, r_frac, max_dolic_e) ICON_OMP_DEFAULT_SCHEDULE
     DO blockNo = edges_in_domain%start_block, edges_in_domain%end_block
       CALL get_index_range(edges_in_domain, blockNo, start_index, end_index)
 
@@ -1493,8 +1491,8 @@ CONTAINS
       !$ACC END PARALLEL
       !$ACC WAIT(1)
     ENDDO
-!ICON_OMP_END_DO_PARALLEL
-! !ICON_OMP_END_PARALLEL
+!ICON_OMP_END_PARALLEL_DO
+
      !$ACC END DATA
   END SUBROUTINE limiter_ocean_zalesak_horizontal_onTriangles_lvector
   !-------------------------------------------------------------------------

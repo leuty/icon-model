@@ -12,6 +12,10 @@
 ! Contains the implementation of the semi-implicit Adams-Bashforth timestepping
 ! for the ICON ocean model using the z* vertical co-ordinate.
 
+!----------------------------
+#include "omp_definitions.inc"
+#include "icon_definitions.inc"
+!----------------------------
 MODULE mo_ocean_ab_timestepping_zstar
   !-------------------------------------------------------------------------
 
@@ -111,7 +115,7 @@ MODULE mo_ocean_ab_timestepping_zstar
   USE mo_restart,                ONLY: t_RestartDescriptor, createRestartDescriptor, deleteRestartDescriptor
   USE mo_ice_fem_interface,      ONLY: ice_fem_init_vel_restart, ice_fem_update_vel_restart
   USE mo_ocean_math_utils,       ONLY: solve_tridiag_block
-  USE mo_fortran_tools,          ONLY: set_acc_host_or_device
+  USE mo_fortran_tools,          ONLY: set_acc_host_or_device, init
 
   USE mo_ocean_physics_types,ONLY: v_params
 
@@ -204,14 +208,15 @@ CONTAINS
 
     !$ACC DATA CREATE(H_c, z_depth, w_temp, w_edg, w_deriv) IF(lzacc)
 
-!ICON_OMP_MASTER
-      CALL sync_patch_array(sync_c, patch_2D, eta_c, lacc=lzacc)
-!ICON_OMP_END_MASTER
-!ICON_OMP_BARRIER
+    CALL sync_patch_array(sync_c, patch_2D, eta_c, lacc=lzacc)
 
-    !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-    z_depth(:,:,:) = 0.0_wp
-    !$ACC END KERNELS
+!ICON_OMP_PARALLEL
+    CALL init(z_depth, lacc=lzacc)
+    CALL init(w_edg,   lacc=lzacc)
+    CALL init(w_temp,  lacc=lzacc)
+    CALL init(w_deriv, lacc=lzacc)
+    CALL init(ocean_state%p_diag%w_deriv, lacc=lzacc)
+!ICON_OMP_END_PARALLEL
     !$ACC WAIT(1)
 
 !ICON_OMP_PARALLEL_DO PRIVATE(start_index,end_index, jc, bt_lev) ICON_OMP_DEFAULT_SCHEDULE
@@ -242,10 +247,7 @@ CONTAINS
     !$ACC WAIT(1)
 !ICON_OMP_END_PARALLEL_DO
 
-!ICON_OMP_MASTER
-      CALL sync_patch_array(sync_c, patch_2D, stretch_c, lacc=lzacc)
-!ICON_OMP_END_MASTER
-!ICON_OMP_BARRIER
+    CALL sync_patch_array(sync_c, patch_2D, stretch_c, lacc=lzacc)
 
 !ICON_OMP_PARALLEL_DO PRIVATE(start_index, end_index, je, &
 !ICON_OMP  id1, id2, bl1, bl2, st1, st2) ICON_OMP_DEFAULT_SCHEDULE
@@ -281,24 +283,14 @@ CONTAINS
     !$ACC WAIT(1)
 !ICON_OMP_END_PARALLEL_DO
 
-
-!ICON_OMP_MASTER
-      CALL sync_patch_array(sync_e, patch_2D, stretch_e, lacc=lzacc)
-!ICON_OMP_END_MASTER
-!ICON_OMP_BARRIER
-
+    CALL sync_patch_array(sync_e, patch_2D, stretch_e, lacc=lzacc)
 
   !-------------------------------------------------------------------------
   !! Transform w* to w
   !! w* = (w - v.grad z)*(dz/dz*)^(-1)
   !-------------------------------------------------------------------------
 
-    !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-    w_edg(:,:,:) = 0.0_wp
-    !$ACC END KERNELS
-    !$ACC WAIT(1)
-
-!ICON_OMP_DO PRIVATE(start_index, end_index, je, id1, bl1, id2, bl2, jk) ICON_OMP_DEFAULT_SCHEDULE
+!ICON_OMP_PARALLEL_DO PRIVATE(start_index, end_index, je, id1, bl1, id2, bl2, jk) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = all_edges%start_block, all_edges%end_block
       CALL get_index_range(all_edges, jb, start_index, end_index)
 
@@ -321,17 +313,11 @@ CONTAINS
       !$ACC END PARALLEL LOOP
     END DO
     !$ACC WAIT(1)
-!ICON_OMP_END_DO NOWAIT
-!ICON_OMP_END_PARALLEL
-
-    !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-    w_temp(:,:,:) = 0.0_wp
-    !$ACC END KERNELS
-    !$ACC WAIT(1)
+!ICON_OMP_END_PARALLEL_DO
 
 !ICON_OMP_PARALLEL_DO PRIVATE(start_index,end_index, jc, st1, st2, st3, &
 !ICON_OMP edge_1_index, edge_1_block, edge_2_index, edge_2_block, edge_3_index, edge_3_block,  &
-!ICON_OMP level) ICON_OMP_DEFAULT_SCHEDULE
+!ICON_OMP level, dz_dt) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = all_cells%start_block, all_cells%end_block
       CALL get_index_range(all_cells, jb, start_index, end_index)
       !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
@@ -377,13 +363,7 @@ CONTAINS
     !$ACC WAIT(1)
 !ICON_OMP_END_PARALLEL_DO
 
-    !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-    w_deriv(:,:,:) = 0.0_wp
-    !$ACC END KERNELS
-    !$ACC WAIT(1)
-
-!ICON_OMP_PARALLEL_DO PRIVATE(start_cell_index,end_cell_index, level)
-!ICON_OMP_DEFAULT_SCHEDULE
+!ICON_OMP_PARALLEL_DO PRIVATE(start_index, end_index, jc, jk) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = all_cells%start_block, all_cells%end_block
       CALL get_index_range(all_cells, jb, start_index, end_index)
       !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
@@ -402,11 +382,6 @@ CONTAINS
     !! FIXME: The below usage gives an error
     !! Maybe it is because of all_cells vs cells_in_domain?
 !    CALL map_scalar_center2prismtop(patch_3d, w_temp, operators_coefficients, w_deriv)
-
-    !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-    ocean_state%p_diag%w_deriv(:,:,:) = 0.0_wp
-    !$ACC END KERNELS
-    !$ACC WAIT(1)
 
 !ICON_OMP_PARALLEL_DO PRIVATE(start_index,end_index, jc, jk) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = all_cells%start_block, all_cells%end_block
@@ -647,7 +622,7 @@ CONTAINS
     !-------------------------------------------------------------------------------
     CALL map_edges2edges_3d_zstar( patch_3d, ocean_state%p_diag%vn_time_weighted, op_coeffs, &
       & stretch_e, ocean_state%p_diag%mass_flx_e, lacc=lzacc)
-!ICON_OMP_PARALLEL_DO PRIVATE(start_index,end_index, jc, jk) ICON_OMP_DEFAULT_SCHEDULE
+!ICON_OMP_PARALLEL_DO PRIVATE(start_index,end_index, jc, jk, div_m_c, bt_lev, H_c, deta_dt) ICON_OMP_DEFAULT_SCHEDULE
     DO blockNo = cells_in_domain%start_block, cells_in_domain%end_block
       CALL get_index_range(cells_in_domain, blockNo, start_index, end_index)
       CALL div_oce_3D_onTriangles_onBlock(ocean_state%p_diag%mass_flx_e, patch_3D, op_coeffs%div_coeff, &
