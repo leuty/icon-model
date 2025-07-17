@@ -2609,6 +2609,7 @@ dnl Parallel-NetCDF features enabled, CDI will override the default value.
      [acx_cv_have_pnetcdf=no],
 dnl Disable unwanted extra dependencies.
      [acx_cv_have_libnc_dap=no], [acx_cv_have_nc4hdf5=no])
+   BUNDLED_LIBFILES="externals/cdi/src/.libs/libcdi.a $BUNDLED_LIBFILES"
    AS_VAR_IF([enable_cdi_pio], [yes],
 dnl To enable the test suite of CDI, we need to provide the configure script of
 dnl the library with information on how to link to the bundled YAXT and PPM
@@ -2651,7 +2652,6 @@ ${icon_abs_top_builddir}/externals/yaxt/src/libyaxt_c.la"])
         ["${FC_INC_FLAG}${srcdir}/externals/cdi/src "])
       BUNDLED_LIBFILES="externals/cdi/src/.libs/libcdipio.a $BUNDLED_LIBFILES"])
    AS_VAR_APPEND([bundled_includes], ["${FC_MOD_IN}externals/cdi/src "])
-   BUNDLED_LIBFILES="externals/cdi/src/.libs/libcdi.a $BUNDLED_LIBFILES"
    BUNDLED_LIBFILES="externals/cdi/src/.libs/libcdi_f2003.a $BUNDLED_LIBFILES"
    AS_VAR_APPEND([icon_pvcs_subdirs], [' externals/cdi'])])
 
@@ -3246,8 +3246,10 @@ AS_VAR_IF([enable_art], [yes],
   [AC_SUBST([ART_ENABLED], ['#'])])
 
 AS_VAR_IF([enable_mpi], [yes],
-  [AC_SUBST([MPI_ENABLED], [''])],
-  [AC_SUBST([MPI_ENABLED], ['#'])])
+  [AC_SUBST([MPI_ENABLED], [''])
+   AC_SUBST([MPI_DISABLED], ['#'])],
+  [AC_SUBST([MPI_ENABLED], ['#'])
+   AC_SUBST([MPI_DISABLED], [''])])
 
 AS_VAR_IF([enable_openmp], [yes],
   [AC_SUBST([OPENMP_ENABLED], [''])],

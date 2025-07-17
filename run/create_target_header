@@ -1685,18 +1685,14 @@ set_run_target_hk()
     set_default use_cpu_time 01:00:00
 
     if [[ -n "$BB_SYSTEM" ]]; then
-    # this buildbot, do not use job id
+        # this buildbot, do not use job id
         job_log_name="LOG.$job_name"
+
+        use_queue="dev_${use_queue}"
+
+        limit_time_bb "00:45:00" "00:45:00"
     else
         job_log_name="LOG.$job_name.%j"
-    fi
-
-    if [[ -n "$BB_SYSTEM" ]]; then
-        limit_time_bb "00:45:00" "00:45:00"
-    fi
-
-    if [[ "x$BB_SYSTEM" != 'x' ]]; then
-        use_queue="dev_${use_queue}"
     fi
 
     cdo='cdo'

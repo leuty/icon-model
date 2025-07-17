@@ -45,6 +45,6 @@ if test -n "${BB_NAME-}"; then
   # Build the tests in parallel:
   make ${makeflags} --keep-going TESTS= check
   # Run the tests serially:
-  make --keep-going AM_COLOR_TESTS=always check
+  make --keep-going ICON_VERBOSE_TESTS=1 ICON_COLOR_TESTS=always check
   "${icon_dir}/scripts/buildbot_scripts/build_checks/check_git_untracked.sh"
 fi

@@ -94,6 +94,8 @@ LIBS+=' -lcraymp'
 
 CMAKE="${sw_root}/cmake-3.31.6/bin/cmake"
 
+MPI_LAUNCH='srun'
+
 # Note that the generated list of flags will contain RPATHs to the custom
 # libraries because BUILD_ENV not only loads the modules but also extends the
 # LD_LIBRARY_PATH variable for the configure scripts and test suites of the
@@ -124,6 +126,7 @@ ICON_O1_FCFLAGS="${ICON_O1_FCFLAGS}" \
 ICON_O1_PATH="${ICON_O1_PATH}" \
 LDFLAGS="${LDFLAGS}" \
 LIBS="${LIBS}" \
+MPI_LAUNCH="${MPI_LAUNCH}" \
 ${EXTRA_CONFIG_ARGS} \
 "$@"
 

@@ -31,9 +31,9 @@ fi
 # file produced by the scheduler because it might be empty if the time limit for
 # the job is exceeded, which leads to a false positive result of the test.
 # Instead, we create 'exp.check_externals_DWD.run.final_status', which has
-# higher priority for the Buildbot. First, we write a non-zero exit code to the
-# file, which will indicate a failure if the rest of the script below does not
-# have enough time to finish the tests:
+# higher priority for the Buildbot. We write a non-zero exit code to the file,
+# which will indicate a failure if the code below does not have enough time to
+# finish:
 echo '255' > exp.check_externals_DWD.run.final_status
 
 unset MAKEFLAGS
@@ -43,8 +43,8 @@ set -x
 # Build the tests with the highest level of parallelism (limited by the number
 # of the host CPU cores on one node) and then run them with a smaller number of
 # jobs (limited by the number of the vector engine cores on all nodes):
-time make -C ../vector --jobs=24 --keep-going --output-sync=target --no-print-directory V=1 TESTS= check-bundled && \
-  time make -C ../vector --jobs=4 --keep-going AM_COLOR_TESTS=always check-bundled
+time make -C ../vector --jobs=24 --keep-going --no-print-directory --output-sync=target V=1 TESTS= check-bundled && \
+  time make -C ../vector --jobs=4 --keep-going ICON_VERBOSE_TESTS=1 ICON_COLOR_TESTS=always check-bundled
 
 # Save the exit code of the 'make check-bundled' command:
 exitcode=$?

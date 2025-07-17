@@ -596,6 +596,7 @@ HIP_ENABLED
 CUDA_ENABLED
 GPU_ENABLED
 OPENMP_ENABLED
+MPI_DISABLED
 MPI_ENABLED
 ART_ENABLED
 EMVORADO_ENABLED
@@ -11206,6 +11207,7 @@ esac
 esac
      as_fn_append acx_subdir_run_args_externals_cdi " '$acx_tmp'"
    done
+   BUNDLED_LIBFILES="externals/cdi/src/.libs/libcdi.a $BUNDLED_LIBFILES"
    if test "x$enable_cdi_pio" = xyes; then :
        if test "x$with_external_yaxt" = xno; then :
   set dummy acx_cv_c_include_yaxt_h="-I${icon_abs_top_builddir}/externals/yaxt/inst_headers" acx_cv_option_search_xt_initialized_c="${icon_abs_top_builddir}/externals/yaxt/src/libyaxt_c.la" acx_cv_fortran_mod_yaxt="${FC_MOD_IN}${icon_abs_top_builddir}/externals/yaxt/inst_headers/f90" acx_cv_option_search_xt_initialized_fc="${icon_abs_top_builddir}/externals/yaxt/src/libyaxt.la ${icon_abs_top_builddir}/externals/yaxt/src/libyaxt_c.la"; shift
@@ -11237,7 +11239,6 @@ fi
       BUNDLED_LIBFILES="externals/cdi/src/.libs/libcdipio.a $BUNDLED_LIBFILES"
 fi
    as_fn_append bundled_includes "${FC_MOD_IN}externals/cdi/src "
-   BUNDLED_LIBFILES="externals/cdi/src/.libs/libcdi.a $BUNDLED_LIBFILES"
    BUNDLED_LIBFILES="externals/cdi/src/.libs/libcdi_f2003.a $BUNDLED_LIBFILES"
    as_fn_append icon_pvcs_subdirs ' externals/cdi'
 fi
@@ -12149,8 +12150,12 @@ fi
 if test "x$enable_mpi" = xyes; then :
   MPI_ENABLED=''
 
+   MPI_DISABLED='#'
+
 else
   MPI_ENABLED='#'
+
+   MPI_DISABLED=''
 
 fi
 

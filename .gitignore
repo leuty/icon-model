@@ -144,3 +144,7 @@ scripts/buildbot_scripts/probtest.log
 
 # CI/CD artifacts and caches (see .gitlab-ci.yml):
 /.ci_dir/
+
+# Test stage files:
+test/unit-tests/**/*.x
+test/unit-tests/**/*.log

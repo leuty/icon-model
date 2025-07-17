@@ -81,7 +81,12 @@ repos:
     hooks:
       - id: fprettify
         name: fprettify
-        files: ^ragnarok/.*\.([fF]\d*|incf?)$
+        files: |
+          (?x)^(
+            # Apply to selected directories only:
+            ragnarok |
+            test/unit-tests
+          )/.*\.([fF]\d*|incf?)$
   - repo: https://github.com/fsfe/reuse-tool
     rev: v5.0.2
     hooks:
