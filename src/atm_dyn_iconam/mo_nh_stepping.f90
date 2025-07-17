@@ -113,7 +113,7 @@ MODULE mo_nh_stepping
 #ifndef __NO_NWP__
   USE mo_nh_interface_nwp,         ONLY: nwp_nh_interface
   USE mo_phy_events,               ONLY: mtime_ctrl_physics
-  USE mo_nwp_phy_init,             ONLY: init_nwp_phy, init_cloud_aero_cpl, clim_cdnc
+  USE mo_nwp_phy_init,             ONLY: init_nwp_phy, init_cloud_aero_cpl
   USE mo_apt_routines,             ONLY: apply_landalb_tuning
   USE mo_nwp_sfc_utils,            ONLY: aggregate_landvars, aggr_landvars, process_sst_and_seaice
   USE mo_nwp_diagnosis,            ONLY: nwp_diag_for_output, nwp_opt_diagnostics, nwp_diag_global
@@ -481,10 +481,7 @@ MODULE mo_nh_stepping
            & phy_params(jg), mtime_current         ,&
            & lreset=(iau_iter==2)                   )
 
-      IF (atm_phy_nwp_config(jg)%icpl_aero_gscp == 3) THEN
-        ! Use cloud droplet number from climatology:
-        CALL clim_cdnc(mtime_current, p_patch(jg), ext_data(jg), prm_diag(jg))
-      ELSEIF (.NOT.isRestart()) THEN
+      IF (atm_phy_nwp_config(jg)%icpl_aero_gscp /= 3 .AND. .NOT.isRestart()) THEN
         CALL init_cloud_aero_cpl (mtime_current, p_patch(jg), p_nh_state(jg)%metrics, ext_data(jg), prm_diag(jg))
       ENDIF
 

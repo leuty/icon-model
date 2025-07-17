@@ -46,6 +46,9 @@ MODULE mo_nwp_tuning_config
   PUBLIC :: limit_negpblcape
   PUBLIC :: tune_rhebc_land
   PUBLIC :: tune_rhebc_ocean
+  PUBLIC :: tune_rmfdeps_land
+  PUBLIC :: tune_rmfdeps_ocean
+  PUBLIC :: tune_detrainment_profile
   PUBLIC :: tune_rcucov
   PUBLIC :: tune_rhebc_land_trop
   PUBLIC :: tune_rhebc_ocean_trop
@@ -171,6 +174,15 @@ MODULE mo_nwp_tuning_config
 
   REAL(wp) :: &                    !< RH threshold for onset of evaporation below cloud base over sea
     &  tune_rhebc_ocean
+
+  REAL(wp) :: &                    !< fractional mass flux for downdrafts over land
+    &  tune_rmfdeps_land
+
+  REAL(wp) :: &                    !< fractional mass flux for downdrafts over sea
+    &  tune_rmfdeps_ocean
+
+  REAL(wp) :: &                    !< prefactor in RH-dependent detrainment profile
+    &  tune_detrainment_profile
 
   REAL(wp) :: &                    !< Convective area fraction
     &  tune_rcucov

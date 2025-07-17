@@ -25,6 +25,7 @@ MODULE mo_nwp_phy_init
   USE mo_nwp_lnd_types,       ONLY: t_lnd_prog, t_wtr_prog, t_lnd_diag
   USE mo_ext_data_types,      ONLY: t_external_data
   USE mo_ext_data_init,       ONLY: diagnose_ext_aggr, vege_clim
+  USE mo_td_ext_data,         ONLY: set_cdnc_from_extdata
   USE mo_nonhydro_types,      ONLY: t_nh_prog, t_nh_diag, t_nh_metrics
   USE mo_exception,           ONLY: message, finish, message_text
   USE mo_vertical_coord_table,ONLY: vct_a
@@ -118,6 +119,7 @@ MODULE mo_nwp_phy_init
   USE mo_cuparameters,        ONLY: sugwd
   USE mtime,                  ONLY: datetime, MAX_DATETIME_STR_LEN, &
     &                               datetimeToString, newDatetime, deallocateDatetime
+  USE mo_util_mtime,          ONLY: assumePrevMidnight
   USE mo_bcs_time_interpolation, ONLY: t_time_interpolation_weights,         &
     &                                  calculate_time_interpolation_weights
   USE mo_timer,               ONLY: timers_level, timer_start, timer_stop,   &
@@ -154,7 +156,7 @@ MODULE mo_nwp_phy_init
   PRIVATE
 
 
-  PUBLIC  :: init_nwp_phy, init_cloud_aero_cpl, clim_cdnc
+  PUBLIC  :: init_nwp_phy, init_cloud_aero_cpl
 
   CHARACTER(len=*), PARAMETER :: modname = 'mo_nwp_phy_init'
 
@@ -219,10 +221,11 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
   REAL(wp), ALLOCATABLE :: zpres_sfc(:,:)    ! ref sfc press
   REAL(wp), ALLOCATABLE :: zpres_ifc(:,:,:)  ! ref press at interfaces
 
-  LOGICAL :: lland, lglac, lshallow, ldetrain_prec, lgrayzone_dc, lrestune_off, lmflimiter_off
+  LOGICAL :: lland, lglac, lshallow, ldetrain_prec, lgrayzone_dc, lconv_cdnc, lrestune_off, lmflimiter_off
   LOGICAL :: lstoch_expl, lstoch_sde,lstoch_deep,lvvcouple,lvv_shallow_deep
   LOGICAL :: ltkeinp_loc  !< turbtran switch
   INTEGER :: igz0inp_loc  !< turbtran switch
+  INTEGER :: itype_ascent !< convection switch
   LOGICAL :: linit_mode, lturb_init, lreset_mode
   LOGICAL :: lupatmo_phy
   LOGICAL :: l_filename_year
@@ -913,6 +916,18 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
 #endif
   END SELECT
 
+  ! cloud_num_fac is used in clim_cdnc, but is only available after the 1st call of init_slowphys
+  ! however, clim_cdnc has to be called once before the 1st call of init_slowphys
+  IF (atm_phy_nwp_config(jg)%lscale_cdnc .AND. linit_mode) THEN
+    prm_diag%cloud_num_fac(:,:) = 1._wp
+  ENDIF
+
+  ! Monthly MODIS cdnc climatology: The time interpolation has been done in mo_ext_data_init.
+  ! Here we just have to set prm_diag%cloud_num from ext_data%atm%cdnc
+  IF (atm_phy_nwp_config(jg)%icpl_aero_gscp == 3) THEN
+    CALL set_cdnc_from_extdata(p_patch, ext_data, prm_diag)
+  ENDIF
+
 #ifdef __ICON_ART
   ! Indices of dust tracers for coupled ice nucleation with ART. The indices are not needed here, we are
   ! just checking that they exist and write them to standard out, if the msg_level is high enough.
@@ -1081,12 +1096,6 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
         IF (irad_o3 == 5) CALL read_bc_ozone(ini_date%date%year,p_patch,irad_o3, &
      &                                       vmr2mmr_opt=o3mr2gg,opt_from_coupler=is_coupled_to_o3(), &
      &                                       lacc=.FALSE.)
-
-        ! cloud_num_fac is used in clim_cdnc, but is only available after the 1st call of init_slowphys
-        ! however, clim_cdnc has to be called once before the 1st call of init_slowphys
-        IF (atm_phy_nwp_config(jg)%lscale_cdnc .AND. linit_mode) THEN
-          prm_diag%cloud_num_fac(:,:) = 1._wp
-        ENDIF
 
         !------------------------------------------------------------
         ! Initialize solar flux in SW bands and solar constant (W/m2)
@@ -1300,6 +1309,7 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
 
     lshallow   = atm_phy_nwp_config(jg)%lshallowconv_only
     lgrayzone_dc = atm_phy_nwp_config(jg)%lgrayzone_deepconv
+    lconv_cdnc = atm_phy_nwp_config(jg)%lconv_cdnc_interp
     ldetrain_prec = atm_phy_nwp_config(jg)%ldetrain_conv_prec
     lrestune_off = atm_phy_nwp_config(jg)%lrestune_off
     lmflimiter_off = atm_phy_nwp_config(jg)%lmflimiter_off
@@ -1308,9 +1318,10 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
     lstoch_deep = atm_phy_nwp_config(jg)%lstoch_deep
     lvvcouple = atm_phy_nwp_config(jg)%lvvcouple
     lvv_shallow_deep = atm_phy_nwp_config(jg)%lvv_shallow_deep
+    itype_ascent = atm_phy_nwp_config(jg)%itype_parcel_ascent
 
-    CALL sucumf(rsltn,nlev,phy_params,lshallow,lgrayzone_dc,ldetrain_prec,lrestune_off, &
-         & lmflimiter_off,lstoch_expl,lstoch_sde,lstoch_deep,lvvcouple,lvv_shallow_deep, &
+    CALL sucumf(rsltn,nlev,phy_params,lshallow,lgrayzone_dc,lconv_cdnc,ldetrain_prec,lrestune_off, &
+         & lmflimiter_off,lstoch_expl,lstoch_sde,lstoch_deep,lvvcouple,lvv_shallow_deep,itype_ascent, &
          & pref)
     CALL suphli
     CALL suvdf
@@ -2032,67 +2043,5 @@ END SUBROUTINE init_nwp_phy
 !$OMP END PARALLEL
 
   END SUBROUTINE init_cloud_aero_cpl
-
-  !------------------------------------------------
-  ! Use climatological data of cloud droplet number
-  ! Satellite based data are provided in EXTPAR
-  !------------------------------------------------
-
-  SUBROUTINE clim_cdnc(mtime_date, p_patch, ext_data, prm_diag)
-
-    TYPE(datetime)       , INTENT(in)    :: mtime_date
-    TYPE(t_patch)        , INTENT(in)    :: p_patch
-    TYPE(t_external_data), INTENT(in)    :: ext_data
-
-    TYPE(t_nwp_phy_diag) , INTENT(inout) :: prm_diag
-
-    INTEGER  :: imo1, imo2
-    INTEGER  :: rl_start, rl_end, i_startblk, i_endblk, i_startidx, i_endidx
-    INTEGER  :: jb, jc
-
-    REAL(wp) :: wgt
-
-    TYPE(t_time_interpolation_weights) :: current_time_interpolation_weights
-
-    TYPE(datetime), POINTER            :: mtime_hour
-
-    CALL message('mo_nwp_phy_init:', 'Use climatological cdnc')
-
-    mtime_hour => newDatetime(mtime_date)
-    mtime_hour%time%minute = 0
-    mtime_hour%time%second = 0
-    mtime_hour%time%ms     = 0
-    current_time_interpolation_weights = calculate_time_interpolation_weights(mtime_hour)
-    call deallocateDatetime(mtime_hour)
-    imo1 = current_time_interpolation_weights%month1
-    imo2 = current_time_interpolation_weights%month2
-    wgt  = current_time_interpolation_weights%weight2
-    rl_start = 1
-    rl_end   = min_rlcell_int
-
-    i_startblk = p_patch%cells%start_block(rl_start)
-    i_endblk   = p_patch%cells%end_block(rl_end)
-
-!$OMP PARALLEL
-!$OMP DO PRIVATE(jb,jc,i_startidx,i_endidx)
-    DO jb = i_startblk, i_endblk
-
-      CALL get_indices_c(p_patch, jb, i_startblk, i_endblk, i_startidx, i_endidx, rl_start, rl_end)
-        DO jc = i_startidx, i_endidx
-          ! Calculate the weighted average of monthly cloud droplet number
-          prm_diag%cloud_num(jc,jb) = ( ext_data%atm_td%cdnc(jc,jb,imo1) + &
-                   ( ext_data%atm_td%cdnc(jc,jb,imo2) - ext_data%atm_td%cdnc(jc,jb,imo1) ) * wgt )
-
-          ! scaling of external cdnc with a scaling factor derived from the simple plumes
-          IF ( atm_phy_nwp_config(p_patch%id)%lscale_cdnc ) THEN
-              prm_diag%cloud_num(jc,jb) = prm_diag%cloud_num_fac(jc,jb) * prm_diag%cloud_num(jc,jb)
-          ENDIF
-        ENDDO
-
-    ENDDO
-!$OMP END DO
-!$OMP END PARALLEL
-
-  END SUBROUTINE clim_cdnc
 
 END MODULE mo_nwp_phy_init

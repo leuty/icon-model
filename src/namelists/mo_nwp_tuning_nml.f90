@@ -51,6 +51,9 @@ MODULE mo_nwp_tuning_nml
     &                               config_tune_grzdc_offset     => tune_grzdc_offset,     &
     &                               config_tune_rhebc_land       => tune_rhebc_land,       &
     &                               config_tune_rhebc_ocean      => tune_rhebc_ocean,      &
+    &                               config_tune_rmfdeps_land     => tune_rmfdeps_land,     &
+    &                               config_tune_rmfdeps_ocean    => tune_rmfdeps_ocean,    &
+    &                               config_tune_detrainment_profile => tune_detrainment_profile, &
     &                               config_tune_rcucov           => tune_rcucov,           &
     &                               config_tune_rhebc_land_trop  => tune_rhebc_land_trop,  &
     &                               config_tune_rhebc_ocean_trop => tune_rhebc_ocean_trop, &
@@ -176,6 +179,15 @@ MODULE mo_nwp_tuning_nml
 
   REAL(wp) :: &                    !< RH threshold for onset of evaporation below cloud base over sea
     &  tune_rhebc_ocean
+
+  REAL(wp) :: &                    !< fractional mass flux for downdrafts over land
+    &  tune_rmfdeps_land
+
+  REAL(wp) :: &                    !< fractional mass flux for downdrafts over sea
+    &  tune_rmfdeps_ocean
+
+  REAL(wp) :: &                    !< prefactor in RH-dependent detrainment profile
+    &  tune_detrainment_profile
 
   REAL(wp) :: &                    !< Convective area fraction
     &  tune_rcucov
@@ -321,6 +333,7 @@ MODULE mo_nwp_tuning_nml
     &                      max_freshsnow_inc,                                     &
     &                      tune_capdcfac_et, tune_box_liq, tune_rhebc_land,       &
     &                      tune_rhebc_ocean, tune_rcucov, tune_texc,              &
+    &                      tune_rmfdeps_land, tune_rmfdeps_ocean, tune_detrainment_profile, &
     &                      tune_qexc, tune_minsnowfrac,tune_rhebc_land_trop,      &
     &                      tune_rhebc_ocean_trop, tune_rcucov_trop,               &
     &                      tune_dust_abs, tune_gfrcrit, tune_grcrit,              &
@@ -437,6 +450,15 @@ CONTAINS
 
     !> RH threshold for onset of evaporation below cloud base over sea (original IFS value 0.9)
     tune_rhebc_ocean = 0.85_wp
+
+    !> fractional mass flux for downdrafts over land
+    tune_rmfdeps_land  = 0.25_wp
+
+    !> fractional mass flux for downdrafts over ocean
+    tune_rmfdeps_ocean = 0.15_wp
+
+    !> prefactor in RH-dependent detrainment profile
+    tune_detrainment_profile = 0.0_wp
 
     !> Convective area fraction used for computing evaporation below cloud base (original IFS value 0.05)
     tune_rcucov      = 0.05_wp
@@ -636,6 +658,9 @@ CONTAINS
     config_tune_grzdc_offset     = tune_grzdc_offset
     config_tune_rhebc_land       = tune_rhebc_land
     config_tune_rhebc_ocean      = tune_rhebc_ocean
+    config_tune_rmfdeps_land     = tune_rmfdeps_land
+    config_tune_rmfdeps_ocean    = tune_rmfdeps_ocean
+    config_tune_detrainment_profile = tune_detrainment_profile
     config_tune_rcucov           = tune_rcucov
     config_tune_rhebc_land_trop  = tune_rhebc_land_trop
     config_tune_rhebc_ocean_trop = tune_rhebc_ocean_trop

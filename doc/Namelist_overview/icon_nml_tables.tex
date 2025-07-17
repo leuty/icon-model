@@ -5477,6 +5477,14 @@ measures targeted at grayzone (convection-permitting) model resolutions\\
 & inwp\_convection = 1; cannot be combined with lshallowconv\_only
 \tabularnewline
 
+%\hline
+itype\_parcel\_ascent&
+I (max\_ dom)&
+1&
+&
+1: ICON-NWP, 2: IFS/CY41r2 \\
+& inwp\_convection = 1
+\tabularnewline
 
 %\hline
 ldetrain\_conv\_prec&
@@ -5485,6 +5493,15 @@ L (max\_ dom)&
 &
 .TRUE.: Activate detrainment of convective rain and snow\\
 & inwp\_convection = 1
+\tabularnewline
+
+%\hline
+lconv\_cdnc\_interp&
+L (max\_ dom)&
+.FALSE.&
+&
+.TRUE.: cloud\_num based interpolation for rmfdeps and rhebc to replace land/sea mask. Should be combined with icpl\_aero\_conv=1.  \\
+& inwp\_convection = 1, icpl\_aero\_gscp=3
 \tabularnewline
 
 %\hline
@@ -6157,7 +6174,7 @@ run\_nml:iforcing = inwp, inwp\_gscp = 8
 
 \hline
 \hline
-\multicolumn{6}{|l|}{\textbf{Convection scheme}}
+\multicolumn{6}{|l|}{\textbf{Convection scheme} (Tiedtke-Bechtold)}
 \tabularnewline
 
 
@@ -6279,6 +6296,33 @@ run\_nml:iforcing = inwp
 \tabularnewline
 
 \hline
+tune\_rmfdeps\_land&
+R&
+0.25&
+&
+fractional mass flux for downdrafts over land &
+run\_nml:iforcing = inwp;  lshallowconv\_only = .FALSE.; lgrayzone\_deepconv = .FALSE;
+\tabularnewline
+
+\hline
+tune\_rmfdeps\_ocean&
+R&
+0.15&
+&
+fractional mass flux for downdrafts over ocean &
+run\_nml:iforcing = inwp;  lshallowconv\_only = .FALSE.; lgrayzone\_deepconv = .FALSE;
+\tabularnewline
+
+\hline
+tune\_detrainment\_profile&
+R&
+0.0&
+&
+prefactor in RH-dependent detrainment profile, recommended range is $1.7$ to $1.9$ &
+run\_nml:iforcing = inwp;
+\tabularnewline
+
+\hline
 tune\_grzdc\_offset&
 R&
 0.0&
@@ -6290,9 +6334,9 @@ run\_nml:iforcing = inwp; lgrayzone\_deepconv = .TRUE.
 
 \hline
 \hline
+
 \multicolumn{6}{|l|}{\textbf{Cloud scheme}}
 \tabularnewline
-
 \hline
 tune\_box\_liq&
 R&
@@ -6441,7 +6485,6 @@ cloud droplet number threshold to identify regions for cloud cover modification 
 run\_nml:iforcing = inwp; inwp\_clcover = 1
 \tabularnewline
 
-\hline
 \hline
 \multicolumn{6}{|l|}{\textbf{Saturation adjustment}}
 \tabularnewline

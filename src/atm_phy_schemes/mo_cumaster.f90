@@ -44,7 +44,7 @@ MODULE mo_cumaster
   USE mo_stoch_sde,            ONLY: shallow_stoch_sde, shallow_stoch_sde_passive
   USE mo_stoch_explicit,       ONLY: shallow_stoch_explicit
   USE mo_stoch_deep,           ONLY: deep_stoch_sde
-  USE mo_nwp_phy_types, ONLY: t_ptr_cloud_ensemble
+  USE mo_nwp_phy_types,        ONLY: t_ptr_cloud_ensemble
 
   IMPLICIT NONE
 
@@ -697,7 +697,7 @@ CALL cubasen &
   & ( kidia,    kfdia,    klon,   ktdia,    klev, &
   & phy_params%kcon1, phy_params%kcon2, phy_params%entrorg,fac_entrorg, &
   & phy_params%entstpc1, phy_params%entstpc2, phy_params%rdepths, &
-  & phy_params%texc, phy_params%qexc, phy_params%lgrayzone_deepconv, mtnmask, ldland, ldlake, &
+  & phy_params%texc, phy_params%qexc, phy_params%lgrayzone_deepconv, phy_params%itype_parcel_ascent, mtnmask, ldland, ldlake, &
   & ztenh,    zqenh,    pgeoh,    paph,&
   & pqhfl,    pahfs,    &
   & pten,     pqen,     pqsen,    pgeo,&
@@ -883,13 +883,13 @@ ENDDO
 CALL cuascn &
   & ( kidia,    kfdia,    klon,   ktdia,   klev, phy_params%mfcfl, &
   & phy_params%entrorg, fac_entrorg, phy_params%detrpen, phy_params%rprcon, phy_params%lmfmid,      &
-  & phy_params%lgrayzone_deepconv, ptsphy, paer_ss,                &
+  & phy_params%lgrayzone_deepconv, phy_params%lconv_cdnc_interp, ptsphy, paer_ss,                   &
   & ztenh,    zqenh,&
   & ptenq, &
   & pten,     pqen,     pqsen,    plitot,&
   & pgeo,     pgeoh,    pap,      paph,&
   & zdph,     zdgeoh,                  &
-  & pvervel,  zwubase, pcloudnum,deprof,      &
+  & pvervel,  zwubase, pcloudnum, deprof,      &
   & ldland,   ldlake,  ldcum,    ktype,    ilab,&
   & ptu,      pqu,      plu,     zlrain,        &
   & pmfu,     zmfub,    zlglac,&
@@ -980,13 +980,13 @@ IF(lmfdd) THEN
 
   CALL cudlfsn &
     & ( kidia,    kfdia,    klon,   ktdia,    klev,&
-    & kcbot,    kctop,    ldcum, fac_rmfdeps, &
+    & kcbot,    kctop,    ldcum, phy_params%lconv_cdnc_interp, fac_rmfdeps, &
     & ztenh,    zqenh,         &
     & pten,     pqsen,    pgeo,&
     & pgeoh,    paph,     ptu,      pqu, &
     & zmfub,    zrfl,&
     & ztd,      zqd,&
-    & pmfd,     zmfds,    zmfdq,    zdmfdp,&
+    & pmfd,     zmfds,    zmfdq,    zdmfdp,  pcloudnum, &
     & idtop,    llddraf, ldland,   ldlake, lacc )
 
 !*            (B)  DETERMINE DOWNDRAFT T,Q AND FLUXES IN 'CUDDRAF'
@@ -1098,6 +1098,7 @@ DO jl = kidia, kfdia
        zcapdcycl(jl) = ztau(jl)*MAX(0.0_jprb,zkhvfl(jl))*rcpd/zdz
     ENDIF
     IF (llo1 .AND. icapdcycl==2) THEN
+      ! this is consistent with IFS/Cy41r2
       IF (ldland(jl)) THEN
         zcapdcycl(jl) = zcappbl(jl)*ztau(jl)*phy_params%tau0
       ELSE
@@ -1519,7 +1520,7 @@ IF(lmfit) THEN
   CALL cuascn &
     & ( kidia,    kfdia,    klon,   ktdia,   klev, phy_params%mfcfl, &
     & phy_params%entrorg, fac_entrorg, phy_params%detrpen,phy_params%rprcon, phy_params%lmfmid, &
-    & phy_params%lgrayzone_deepconv, ptsphy, paer_ss,&
+    & phy_params%lgrayzone_deepconv, phy_params%lconv_cdnc_interp, ptsphy, paer_ss,&
     & ztenh,    zqenh,    &
     & ptenq,            &
     & pten,     pqen,     pqsen,    plitot,&
@@ -1714,8 +1715,8 @@ CALL cuflxn &
   & ( kidia,    kfdia,    klon,   ktdia,    klev, phy_params%mfcfl, &
   & phy_params%rhebc_land, phy_params%rhebc_ocean, phy_params%rcucov, &
   & phy_params%rhebc_land_trop, phy_params%rhebc_ocean_trop, &
-  & phy_params%rcucov_trop, phy_params%lmfdsnow, trop_mask,   &
-  & ptsphy,  pten,     pqen,     pqsen,    ztenh,    zqenh,&
+  & phy_params%rcucov_trop, phy_params%lmfdsnow, phy_params%lconv_cdnc_interp, trop_mask, &
+  & pcloudnum, ptsphy,  pten,     pqen,     pqsen,    ztenh,    zqenh,&
   & paph,     pap,      pgeoh,    ldland,   ldlake, ldcum,&
   & kcbot,    kctop,    idtop,    itopm2,&
   & ktype,    llddraf,&

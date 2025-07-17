@@ -70,6 +70,8 @@ MODULE mo_nwp_phy_nml
   LOGICAL  :: lmflimiter_off(max_dom)     !! switch off MF limiters in convection setup
   INTEGER  :: nclds(max_dom)              !! max number of clouds in stochastic cloud ensemble
   LOGICAL  :: lgrayzone_deepconv(max_dom) !! use grayzone tuning for deep convection
+  LOGICAL  :: lconv_cdnc_interp(max_dom)  !! use cloud droplet number to replace land/sea mask in convection scheme
+  INTEGER  :: itype_parcel_ascent(max_dom)!! options for parcel ascent in parameterized convection
   LOGICAL  :: ldetrain_conv_prec(max_dom) !! detrain convective rain and snow
   INTEGER  :: inwp_cldcover(max_dom)      !! cloud cover
   LOGICAL  :: lsgs_cond(max_dom)          !! subgrid-scale condensation related to cloud cover
@@ -141,6 +143,7 @@ MODULE mo_nwp_phy_nml
     &                    ldetrain_conv_prec, rain_n0_factor,         &
     &                    icalc_reff, lupatmo_phy, icpl_rad_reff,     &
     &                    lgrayzone_deepconv, ithermo_water,          &
+    &                    lconv_cdnc_interp, itype_parcel_ascent,     &
     &                    lmicrophysicsFirst,                         &
     &                    lsbm_coupled, lcuda_graph_turb_tran,        &
     &                    lscale_cdnc, lvariable_rain_n0,             &
@@ -223,9 +226,10 @@ CONTAINS
     lrestune_off(:)       = .FALSE. ! default: all tunings as for default master branch
     lmflimiter_off(:)     = .FALSE. ! default: mass flux limiters on
     lgrayzone_deepconv(:) = .FALSE.
+    lconv_cdnc_interp(:)  = .FALSE.
     ldetrain_conv_prec(:) = .FALSE.
     lsgs_cond(:)          = .TRUE.  ! activate subgrid-scale condensation in cloud cover scheme
-
+    itype_parcel_ascent(:)= 1       ! default: ICON-NWP (1: ICON-NWP, 2: IFS/Cy41r1)
 
     lrtm_filename   = 'rrtmg_lw.nc'
     cldopt_filename = 'ECHAM6_CldOptProps.nc'
@@ -559,6 +563,7 @@ CONTAINS
       atm_phy_nwp_config(jg)%lrestune_off       = lrestune_off(jg)
       atm_phy_nwp_config(jg)%lmflimiter_off     = lmflimiter_off(jg)
       atm_phy_nwp_config(jg)%lgrayzone_deepconv = lgrayzone_deepconv(jg)
+      atm_phy_nwp_config(jg)%lconv_cdnc_interp  = lconv_cdnc_interp(jg)
       atm_phy_nwp_config(jg)%ldetrain_conv_prec = ldetrain_conv_prec(jg)
       atm_phy_nwp_config(jg)%lsgs_cond          = lsgs_cond(jg)
 

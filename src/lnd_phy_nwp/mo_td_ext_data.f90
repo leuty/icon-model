@@ -49,7 +49,6 @@ MODULE mo_td_ext_data
   USE mo_bcs_time_interpolation, ONLY: t_time_interpolation_weights,         &
     &                                  calculate_time_interpolation_weights
   USE mo_dynamics_config,     ONLY: nnow_rcf
-  USE mo_nwp_phy_init,        ONLY: clim_cdnc
 
   IMPLICIT NONE
 
@@ -58,6 +57,7 @@ MODULE mo_td_ext_data
   PUBLIC  :: update_nwp_phy_bcs
   PUBLIC  :: set_sst_and_seaice
   PUBLIC  :: read_td_ext_data_file
+  PUBLIC  :: set_cdnc_from_extdata
 
   CHARACTER(LEN=*), PARAMETER :: modname = 'mo_td_extdata'
 
@@ -217,12 +217,57 @@ CONTAINS
         &                        ext_data%atm%emis_rad      )! out
 
     ENDIF
+
     ! Interpolate monthly cdnc climatology
     IF (atm_phy_nwp_config(jg)%icpl_aero_gscp == 3) THEN
-      CALL clim_cdnc(target_datetime, p_patch, ext_data, prm_diag)
+      CALL interpol_monthly_mean(p_patch,                          &! in
+           &                     target_datetime,                  &! in
+           &                     ext_data%atm_td%cdnc,             &! in
+           &                     ext_data%atm%cdnc                 )! out
+      CALL set_cdnc_from_extdata(p_patch, ext_data, prm_diag)
     ENDIF
 
   END SUBROUTINE update_nwp_phy_bcs
+
+  !------------------------------------------------
+  ! Use climatological data of cloud droplet number
+  ! Satellite based data are provided in EXTPAR
+  !------------------------------------------------
+
+  SUBROUTINE set_cdnc_from_extdata(p_patch, ext_data, prm_diag)
+
+    TYPE(t_patch)        , INTENT(in)    :: p_patch
+    TYPE(t_external_data), INTENT(in)    :: ext_data
+    TYPE(t_nwp_phy_diag) , INTENT(inout) :: prm_diag
+
+    INTEGER  :: rl_start, rl_end, i_startblk, i_endblk, i_startidx, i_endidx
+    INTEGER  :: jb, jc
+
+    rl_start   = 1
+    rl_end     = min_rlcell_int
+    i_startblk = p_patch%cells%start_block(rl_start)
+    i_endblk   = p_patch%cells%end_block(rl_end)
+
+!$OMP PARALLEL
+!$OMP DO PRIVATE(jb,jc,i_startidx,i_endidx)
+    DO jb = i_startblk, i_endblk
+
+        CALL get_indices_c(p_patch, jb, i_startblk, i_endblk, i_startidx, i_endidx, rl_start, rl_end)
+        DO jc = i_startidx, i_endidx
+
+          prm_diag%cloud_num(jc,jb) = ext_data%atm%cdnc(jc,jb)
+
+          ! scaling of external cdnc with a scaling factor derived from the simple plumes
+          IF ( atm_phy_nwp_config(p_patch%id)%lscale_cdnc ) THEN
+              prm_diag%cloud_num(jc,jb) = prm_diag%cloud_num_fac(jc,jb) * prm_diag%cloud_num(jc,jb)
+          ENDIF
+        ENDDO
+
+    ENDDO
+!$OMP END DO
+!$OMP END PARALLEL
+
+  END SUBROUTINE set_cdnc_from_extdata
 
 
   !>

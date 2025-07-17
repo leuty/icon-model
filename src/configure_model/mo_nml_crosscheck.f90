@@ -398,6 +398,11 @@ CONTAINS
             ENDIF
           ENDIF
 
+          ! CDNC-based interpolation in convection scheme only useful with MODIS CDNC
+          IF ( atm_phy_nwp_config(jg)%lconv_cdnc_interp .AND. atm_phy_nwp_config(jg)%icpl_aero_gscp /= 3 ) THEN
+            CALL message(routine,'CDNC-based interpolation in convection scheme can only be combined with icpl_aero_gscp = 3')
+          END IF
+
           ! check if CAMS/Tegen aerosols are available for DeMott ice nucleation scheme
           IF (icpl_aero_ice == 1 .AND. .NOT. ANY(irad_aero == (/iRadAeroTegen, iRadAeroCAMSclim, iRadAeroCAMStd/) ) ) &
             & CALL finish(routine,'icpl_aero_ice = 1 requires irad_aero= 6,7 or 8')

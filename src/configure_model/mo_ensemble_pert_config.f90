@@ -1157,10 +1157,10 @@ MODULE mo_ensemble_pert_config
       IF (lrecomp) THEN
         DO jg = 1, n_dom
           CALL sucumf(p_patch(jg)%geometry_info%mean_characteristic_length,p_patch(jg)%nlev,phy_params(jg),&
-            atm_phy_nwp_config(jg)%lshallowconv_only,atm_phy_nwp_config(jg)%lgrayzone_deepconv,            &
+            atm_phy_nwp_config(jg)%lshallowconv_only,atm_phy_nwp_config(jg)%lgrayzone_deepconv,atm_phy_nwp_config(jg)%lconv_cdnc_interp, &
             atm_phy_nwp_config(jg)%ldetrain_conv_prec,atm_phy_nwp_config(jg)%lrestune_off,atm_phy_nwp_config(jg)%lmflimiter_off, &
             atm_phy_nwp_config(jg)%lstoch_expl,atm_phy_nwp_config(jg)%lstoch_sde,atm_phy_nwp_config(jg)%lstoch_deep, &
-            atm_phy_nwp_config(jg)%lvvcouple, atm_phy_nwp_config(jg)%lvv_shallow_deep)
+            atm_phy_nwp_config(jg)%lvvcouple, atm_phy_nwp_config(jg)%lvv_shallow_deep,atm_phy_nwp_config(jg)%itype_parcel_ascent)
 
           phy_params(jg)%gkdrag      = tune_gkdrag(jg)
           phy_params(jg)%gkdrag_enh  = tune_gkdrag_enh(jg)

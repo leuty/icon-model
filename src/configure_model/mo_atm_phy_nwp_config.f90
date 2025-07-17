@@ -98,6 +98,8 @@ MODULE mo_atm_phy_nwp_config
     LOGICAL ::  lmflimiter_off     !! switch off mass flux limiters in convection
     INTEGER ::  nclds              !! max number of clouds in stochastic cloud ensemble
     LOGICAL ::  lgrayzone_deepconv !! use grayzone tuning for deep convection
+    LOGICAL ::  lconv_cdnc_interp  !! switch for cloud droplet number to replace land/sea mask in convection scheme
+    INTEGER ::  itype_parcel_ascent!! options for parcel ascent in parameterized convection
     LOGICAL ::  ldetrain_conv_prec !! detrain convective rain and snow
     LOGICAL ::  lsgs_cond          !! subgrid-scale condensation related to cloud cover
     INTEGER ::  inwp_radiation   !! radiation

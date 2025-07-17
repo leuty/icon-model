@@ -42,7 +42,8 @@ MODULE mo_cuflxtends
     &                        rmfsoltq,  rmfsoluv                    ,&
     &                        rmfsolct, rmfcmin,rg       ,rcpd       ,&
     &                        rlvtt   , rlstt    ,rlmlt    ,rtt      ,&
-    &                        lhook, dr_hook, lmfglac, lmfwetb
+    &                        lhook, dr_hook, lmfglac, lmfwetb       ,&
+    &                        cdnc_low, cdnc_delt
 
   USE mo_cufunctions, ONLY: foelhmcu, foeewmcu, foealfcu, &
     & foeewl,   foeewi
@@ -68,7 +69,8 @@ CONTAINS
   SUBROUTINE cuflxn &
     & (  kidia,    kfdia,    klon,   ktdia,   klev, rmfcfl, &
     & rhebc_land, rhebc_ocean, rcucov, rhebc_land_trop,     &
-    & rhebc_ocean_trop, rcucov_trop, lmfdsnow, trop_mask, ptsphy, &
+    & rhebc_ocean_trop, rcucov_trop, lmfdsnow, lcdnc_interp, &
+    & trop_mask, pcloudnum, ptsphy,  &
     & pten,     pqen,     pqsen,    ptenh,    pqenh,&
     & paph,     pap,      pgeoh,    ldland,   ldlake, ldcum,&
     & kcbot,    kctop,    kdtop,    ktopm2,&
@@ -193,6 +195,7 @@ CONTAINS
     REAL(KIND=jprb)   ,INTENT(in)    :: rhebc_land, rhebc_ocean
     REAL(KIND=jprb)   ,INTENT(in)    :: rhebc_land_trop, rhebc_ocean_trop
     LOGICAL           ,INTENT(in)    :: lmfdsnow
+    LOGICAL           ,INTENT(in)    :: lcdnc_interp
     REAL(KIND=jprb)   ,INTENT(in)    :: rcucov, rcucov_trop
     REAL(KIND=jprb)   ,INTENT(in)    :: trop_mask(klon)
     REAL(KIND=jprb)   ,INTENT(in)    :: pten(klon,klev)
@@ -203,6 +206,7 @@ CONTAINS
     REAL(KIND=jprb)   ,INTENT(in)    :: paph(klon,klev+1)
     REAL(KIND=jprb)   ,INTENT(in)    :: pap(klon,klev)
     REAL(KIND=jprb)   ,INTENT(in)    :: pgeoh(klon,klev+1)
+    REAL(KIND=jprb)   ,INTENT(in)    :: pcloudnum(klon)
     LOGICAL           ,INTENT(in)    :: ldland(klon)
     LOGICAL           ,INTENT(in)    :: ldlake(klon)
     LOGICAL           ,INTENT(in)    :: ldcum(klon)
@@ -242,7 +246,7 @@ CONTAINS
       & zdenom, zdrfl, zdrfl1, zfac, & !, zfoeewi, zfoeewl, &
       & zoealfa, zoeewm, zoelhm, zpdr, zpds, &
       & zrfl, zrfln, zrmin, zrnew, zsnmlt, ztarg, &
-      & ztmst, zzp, zten, zwetb , zglac
+      & ztmst, zzp, zten, zwetb , zglac, zland, zocean, zcdnc
     REAL(KIND=jprb) :: zhook_handle
 
     ! Numerical fit to wet bulb temperature
@@ -299,11 +303,18 @@ CONTAINS
       IF(.NOT.ldcum(jl).OR.kdtop(jl) < kctop(jl)) lddraf(jl)=.FALSE.
       IF(.NOT.ldcum(jl)) ktype(jl)=0
       idbas(jl)=klev
-      IF(ldland(jl) .OR. ldlake(jl)) THEN
-        zrhebc(jl) = rhebc_land*(1._jprb - trop_mask(jl))  + rhebc_land_trop*trop_mask(jl)
+      IF (lcdnc_interp) THEN
+          zland  = rhebc_land*(1._jprb - trop_mask(jl))  + rhebc_land_trop*trop_mask(jl)
+          zocean = rhebc_ocean*(1._jprb - trop_mask(jl)) + rhebc_ocean_trop*trop_mask(jl)
+          zcdnc  = MIN(MAX(0._JPRB,(pcloudnum(jl)-cdnc_low)/cdnc_delt),1.0_JPRB)
+          zrhebc(jl) = zocean*(1.0_JPRB-zcdnc)+zland*zcdnc
       ELSE
-        zrhebc(jl) = rhebc_ocean*(1._jprb - trop_mask(jl)) + rhebc_ocean_trop*trop_mask(jl)
-      ENDIF
+        IF(ldland(jl) .OR. ldlake(jl)) THEN
+          zrhebc(jl) = rhebc_land*(1._jprb - trop_mask(jl))  + rhebc_land_trop*trop_mask(jl)
+        ELSE
+          zrhebc(jl) = rhebc_ocean*(1._jprb - trop_mask(jl)) + rhebc_ocean_trop*trop_mask(jl)
+        ENDIF
+      END IF
       zrcucov(jl) = rcucov*(1._jprb - trop_mask(jl)) + rcucov_trop*trop_mask(jl)
     ENDDO
 

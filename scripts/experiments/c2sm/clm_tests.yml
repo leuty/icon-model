@@ -19,7 +19,7 @@ tests:
       - balfrin: 't'
       - santis: 'b'
     ensemble_num:
-      - balfrin_cpu_nvidia: [1,3,6,8,10,17,20,21,30,34]
+      - balfrin_cpu_nvidia: [1,5,14,25,27,33,36,44]
       - balfrin_cpu_nvidia_mixed: [22,18,37,44,3,25]
     tolerance_factor:
     - balfrin: 10

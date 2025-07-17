@@ -21,7 +21,8 @@ MODULE mo_cuparameters
   USE mo_nwp_tuning_config, ONLY: tune_entrorg, tune_rhebc_land, tune_rhebc_ocean, tune_rcucov, &
     tune_texc, tune_qexc, tune_rhebc_land_trop, tune_rhebc_ocean_trop, tune_rcucov_trop, tune_gkdrag, &
     tune_gkwake, tune_gfrcrit, tune_grcrit, tune_rprcon, tune_rdepths, tune_minsso, tune_blockred, &
-    tune_eiscrit, tune_gkdrag_enh, tune_grcrit_enh, tune_minsso_gwd, tune_grzdc_offset
+    tune_eiscrit, tune_gkdrag_enh, tune_grcrit_enh, tune_minsso_gwd, tune_grzdc_offset, &
+    tune_rmfdeps_land, tune_rmfdeps_ocean, tune_detrainment_profile
 
   IMPLICIT NONE
 
@@ -327,6 +328,7 @@ MODULE mo_cuparameters
   ! REAL(KIND=jprb) :: rtau0 -> moved into phy_params because it is resolution-dependent
   INTEGER         :: icapdcycl
   REAL(KIND=jprb) :: rcpecons
+  REAL(KIND=jprb) :: rdetrain
   ! REAL(KIND=jprb) :: rcucov
   REAL(KIND=jprb) :: rtaumel
   ! REAL(KIND=jprb) :: rhebc
@@ -459,6 +461,9 @@ MODULE mo_cuparameters
   LOGICAL         :: LRDIFF_STRATO
   LOGICAL         :: LDIAG_STRATO
 
+  REAL(KIND=JPRB), PARAMETER :: cdnc_low  = 70.e6_JPRB
+  REAL(KIND=JPRB), PARAMETER :: cdnc_high = 110.e6_JPRB
+  REAL(KIND=JPRB), PARAMETER :: cdnc_delt = cdnc_high - cdnc_low
 
   ! yomhook
   LOGICAL:: LHOOK=.FALSE.
@@ -516,11 +521,14 @@ MODULE mo_cuparameters
   PUBLIC :: sugwd
   PUBLIC :: dr_hook
   PUBLIC :: lhook
+  PUBLIC :: rdetrain
   PUBLIC :: vdiv, vexp, vrec, vlog
 ! shallow stochastic convection
   PUBLIC :: k_wei, alpha_mf, beta_mf, mean_mf, m0, C1, kinv, active_fraction, mavg1,nclds
 ! deep stochastic convection
   PUBLIC :: deep_k_wei, deep_alpha_mf, deep_beta_mf, deep_mean_mf, deep_mean_tau
+! cloud droplet number based interpolation
+  PUBLIC :: cdnc_low, cdnc_delt
 
   ! Module variables used in acc routine need to be in acc declare create()
   ! these variables are used in mo_cufunctions.f90
@@ -1051,9 +1059,9 @@ CONTAINS
 !------------------------------------------------------------------------------
 
 
-  SUBROUTINE sucumf(rsltn,klev,phy_params,lshallow_only,lgrayzone_deepconv,ldetrain_conv_prec, &
+  SUBROUTINE sucumf(rsltn,klev,phy_params,lshallow_only,lgrayzone_deepconv,lconv_cdnc_interp,ldetrain_conv_prec, &
        & lrestune_off,lmflimiter_off,lstoch_expl,lstoch_sde,lstoch_deep,lvvcouple, &
-       & lvv_shallow_deep,pmean)
+       & lvv_shallow_deep,itype_parcel_ascent,pmean)
 
 
 !     THIS ROUTINE DEFINES DISPOSABLE PARAMETERS FOR MASSFLUX SCHEME
@@ -1106,7 +1114,7 @@ INTEGER(KIND=jpim) :: nflevg
 INTEGER(KIND=jpim), INTENT(in) :: klev
 REAL(KIND=jprb)   , INTENT(in) :: rsltn
 TYPE(t_phy_params), INTENT(inout) :: phy_params
-LOGICAL           , INTENT(in) :: lshallow_only, lgrayzone_deepconv
+LOGICAL           , INTENT(in) :: lshallow_only, lgrayzone_deepconv,lconv_cdnc_interp
 LOGICAL           , INTENT(in) :: ldetrain_conv_prec
 LOGICAL           , INTENT(in) :: lrestune_off
 LOGICAL           , INTENT(in) :: lmflimiter_off
@@ -1115,6 +1123,7 @@ LOGICAL           , INTENT(in) :: lstoch_sde
 LOGICAL           , INTENT(in) :: lstoch_deep
 LOGICAL           , INTENT(in) :: lvvcouple
 LOGICAL           , INTENT(in) :: lvv_shallow_deep
+INTEGER(KIND=jpim), INTENT(in) :: itype_parcel_ascent
 REAL(KIND=jprb)   , INTENT(in), OPTIONAL :: pmean(klev)
 
 !* change to operations
@@ -1190,8 +1199,8 @@ IF (lshallow_only .OR. lgrayzone_deepconv) THEN
   rmfdeps       = 0.30_JPRB
   rmfdeps_ocean = rmfdeps
 ELSE
-  rmfdeps       = 0.25_JPRB
-  rmfdeps_ocean = 0.15_JPRB
+  rmfdeps       = tune_rmfdeps_land      ! was 0.25_JPRB before
+  rmfdeps_ocean = tune_rmfdeps_ocean     ! was 0.15_JPRB before
 ENDIF
 
 !     RDEPTHS:   MAXIMUM ALLOWED SHALLOW CLOUD DEPTH (Pa)
@@ -1262,6 +1271,9 @@ ENDIF
 phy_params%entrorg = tune_entrorg
 IF (lshallow_only .AND. .NOT. lrestune_off .OR. lgrayzone_deepconv ) &
    phy_params%entrorg = phy_params%entrorg*MAX(1._jprb,SQRT(5.e3_jprb/MAX(2.e3_jprb,rsltn)))
+
+! parameter for RH-dependent detrainment
+rdetrain = tune_detrainment_profile
 
 ! resolution-dependent settings for 'excess values' of temperature and QV used for convection triggering (test parcel ascent)
 
@@ -1341,6 +1353,15 @@ ELSE
   phy_params%tune_grzdc_offset = 0._jprb
 ENDIF
 
+IF (lconv_cdnc_interp) THEN
+  CALL message('mo_cuparameters','Using CDNC-based interpolation in convection')
+  WRITE(message_text,'(2(a,e7.2))') "   cdnc_low = ",cdnc_low,", cdnc_high = ",cdnc_high
+  CALL message('mo_cuparameters', TRIM(message_text))
+  phy_params%lconv_cdnc_interp = .TRUE.
+ELSE
+  phy_params%lconv_cdnc_interp = .FALSE.
+END IF
+
 IF (ldetrain_conv_prec) THEN
   phy_params%lmfdsnow = .TRUE.
 ELSE
@@ -1376,6 +1397,8 @@ IF (lvv_shallow_deep) THEN
 ELSE
   phy_params%lvv_shallow_deep = .FALSE.
 ENDIF
+
+phy_params%itype_parcel_ascent = itype_parcel_ascent
 
 lmfdd   =.TRUE.   ! use downdrafts
 lmfit   =.FALSE.  ! updraught iteration or not
