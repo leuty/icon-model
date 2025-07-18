@@ -269,7 +269,7 @@ output_oce_dbg=yes
 #--------------------------------------------------------------------------------------------------
 
 if [ $mpi_total_procs -lt 2 ] ; then
-  check_error 0 "This setup requires at least 2 mpi processes. Exit"
+  check_error 1 "This setup requires at least 2 mpi processes. Exit"
 fi
 
 # I.1 Split the number of total procs and assign to each component
@@ -415,7 +415,7 @@ ecRad_data_path="${ICONDIR}/externals/ecrad/data"
 # If the model runs with mpi_procs=1, then this script exits without error:
 if [[ ${mpi_total_procs} = 1 ]]; then
   echo "This test must not be started if mpi_procs=1 --> exit test without error"
-  check_error 0 "exp.nat_jww_nwp_mpiomp"
+  check_error 1 "exp.nat_jww_nwp_mpiomp"
   exit 0
 fi
 
@@ -1404,8 +1404,8 @@ fi
 if [ $mpi_total_procs -lt `expr $mpi_oce_procs + 1` ] ; then
    echo "Too few mpi_total_procs for requested mpi_oce_procs."
    echo "-> check mpi_total_procs and mpi_oce_procs. Exiting."
-   check_error 0
-   exit
+   check_error 1
+   exit 1
 fi
 
 #-----------------------------------------------------------------------------

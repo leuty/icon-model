@@ -495,8 +495,8 @@ fi
 if [ $mpi_total_procs -lt $((mpi_oce_procs + 1)) ] ; then
    echo "Total task count ($mpi_total_procs) does not fit ocean task count ($mpi_oce_procs)"
    echo "-> check mpi_total_procs and mpi_oce_procs. Exiting"
-   check_error 0
-   exit
+   check_error 1
+   exit 1
 fi
 
 #=============================================================================

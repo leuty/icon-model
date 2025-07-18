@@ -38,8 +38,8 @@ FILE2="${EXP}_${GRID2}_0001.nc"
 
 if [[ ! -f ${FILED}/${FILE1} && ! -f ${FILED}/${FILE2} ]]; then
   echo "Both data files have not been generated --> exit postprocessing"
-  check_error 0 "post.nat_jww_nwp_mpiomp"
-  exit 0
+  check_error 1 "post.nat_jww_nwp_mpiomp"
+  exit 1
 fi
 
 VARN="pres_sfc"

@@ -206,7 +206,7 @@ add_link_file $INDIR/ifs2icon_R2B05_DOM02.nc ifs2icon_R2B05_DOM02.nc
 # If the model runs with mpi_procs=1, then this script exits without error:
 if [[ ${mpi_total_procs} = 1 ]]; then
   echo "This test must not be started if mpi_procs=1 --> exit test without error"
-  check_error 0 "exp.nat_jww_nwp_mpiomp"
+  check_error 1 "exp.nat_jww_nwp_mpiomp"
   exit 0
 fi
 
