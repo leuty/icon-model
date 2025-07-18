@@ -108,6 +108,13 @@ NWP: TERRA and other surface issues
 - Add bubble documentation as template for experiment configurations (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/805)
 
 
+# Release notes for icon-2025.04-2
+
+### Infrastructure
+
+- Increase buffer size for auxiliary field during nest start
+
+
 # Release notes for icon-2025.04-1
 
 ### ICON-Atmo
