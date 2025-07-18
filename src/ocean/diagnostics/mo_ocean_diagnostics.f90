@@ -3363,8 +3363,10 @@ CONTAINS
 
       !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
       DO jc = start_index, end_index
-        mld(jc,blockNo) = patch_3d%p_patch_1d(1)%zlev_m(min_lev)
-        sigh(jc) = sigcrit
+        IF( patch_3d%wet_c(jc,1,blockno) /= 0 ) THEN
+          mld(jc,blockNo) = patch_3d%p_patch_1d(1)%zlev_m(min_lev)
+          sigh(jc) = sigcrit
+        ENDIF
       END DO
       !$ACC END PARALLEL LOOP
       !$ACC WAIT(1)
