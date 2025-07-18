@@ -18,4 +18,4 @@ SCRIPT_DIR=$(cd "$(dirname "$0")"; pwd)
 
 export HK_GPU_MPIRUN_FLAGS=''
 export HK_GPU_FCFLAGS='-acc=verystrict -gpu=cc80'
-${SCRIPT_DIR}/hk.common.nvhpc-24.7 --enable-gpu --enable-mpi-gpu --enable-serialization=read "$@"
+${SCRIPT_DIR}/hk.common.nvhpc-24.7 --enable-gpu --disable-mpi-gpu "$@" # 2025-05-27: dwd_run_ICON_09_R2B4N5_EPS encounters UCX error with mpi-gpu enabled

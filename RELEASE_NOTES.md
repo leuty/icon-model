@@ -1,3 +1,10 @@
+# Release notes for icon-2025.04-2
+
+### Infrastructure
+
+- Increase buffer size for auxiliary field during nest start
+
+
 # Release notes for icon-2025.04-1
 
 ### ICON-Atmo
