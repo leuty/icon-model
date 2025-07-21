@@ -267,9 +267,7 @@ CONTAINS
     & albvisdir, albvisdif, albnirdir, albnirdif, &
     & opt_acc_async_queue )
 
-#ifndef __NO_ICON_OCEAN__
-  USE mo_ice_interface, ONLY: ice_fast
-#endif
+  USE mo_ice_fast, ONLY: ice_fast
 
     TYPE(t_domain), INTENT(in), POINTER :: domain
     REAL(wp), INTENT(in) :: dtime
@@ -320,8 +318,6 @@ CONTAINS
     CALL init(T1,        lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
     CALL init(T2,        lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
 !$OMP END PARALLEL
-
-#ifndef __NO_ICON_OCEAN__
 
     kice = 1
 
@@ -388,10 +384,6 @@ CONTAINS
     END DO
 
 !$OMP END PARALLEL DO
-
-#else
-    CALL finish(routine, "The ice process requires the ICON_OCEAN component")
-#endif
 
     !$ACC END DATA
 
