@@ -54,17 +54,20 @@ XML2_LIBS='-lxml2'
 
 ################################################################################
 
-BUILD_ENV=". ${MODULESHOME}/init/sh; module purge; module load ${modules}; ulimit -s unlimited; export VE_LD_LIBRARY_PATH=\"${BLAS_LAPACK_ROOT}/lib:\${VE_LD_LIBRARY_PATH-}\";"
+BUILD_ENV="save_CC=\$CC; save_CXX=\$CXX; save_FC=\$FC; save_F77=\$F77; . ${MODULESHOME}/init/sh; module purge; module load ${modules}; CC=\$save_CC; CXX=\$save_CXX; FC=\$save_FC; F77=\$save_F77; ulimit -s unlimited; export VE_LD_LIBRARY_PATH=\"${BLAS_LAPACK_ROOT}/lib:\${VE_LD_LIBRARY_PATH-}\";"
 
 CC='mpincc'
 CFLAGS='-finline-functions -mno-vector-fma -fno-associative-math -msched-block -fcse-after-vectorization -traceback=verbose'
 ICON_CFLAGS='-O3'
 ICON_BUNDLED_CFLAGS='-O2'
 
+CXX='nc++'
+CXXFLAGS='-finline-functions -mno-vector-fma -fno-associative-math -msched-block -fcse-after-vectorization -traceback=verbose -O2'
+
 CPPFLAGS="-USX -D__SX__=__NEC__ -I${HDF5_ROOT}/include -I${NETCDF_ROOT}/include -I${ECCODES_ROOT}/include -I${FYAML_ROOT}/include -I${XML2_ROOT}/include/libxml2"
 
 FC='mpinfort'
-FCFLAGS="-USX -D__SX__=__NEC__ -I${HDF5_ROOT}/include -I${NETCDFF_ROOT}/include -I${ECCODES_ROOT}/include -fdiag-vector=0 -report-all -no-report-cg -traceback=verbose -O3 -mstack-arrays -msched-block -mvector-floating-divide-instruction -mvector-sqrt-instruction -floop-unroll-completely=8 -floop-unroll-completely-nest=8 -fcse-after-vectorization -mno-vector-fma -fno-associative-math"
+FCFLAGS="-USX -D__SX__=__NEC__ -I${HDF5_ROOT}/include -I${NETCDFF_ROOT}/include -I${ECCODES_ROOT}/include -fdiag-vector=0 -report-all -no-report-cg -traceback=verbose -O3 -mstack-arrays -msched-block -mvector-floating-divide-instruction -mvector-sqrt-instruction -floop-unroll-completely=8 -floop-unroll-completely-nest=8 -fcse-after-vectorization -mno-vector-fma -fno-associative-math -cxxlib"
 
 # Load list of inline files from DWD:
 source "${icon_dir}/config/dwd/inlinelist.sh"
@@ -97,16 +100,18 @@ BUILD_ENV="${BUILD_ENV}" \
 CC="${CC}" \
 CFLAGS="${CFLAGS}" \
 CPPFLAGS="${CPPFLAGS}" \
+CXX="${CXX}" \
+CXXFLAGS="${CXXFLAGS}" \
 FC="${FC}" \
 FCFLAGS="${FCFLAGS}" \
 ICON_BUNDLED_CFLAGS="${ICON_BUNDLED_CFLAGS}" \
 ICON_CFLAGS="${ICON_CFLAGS}" \
 ICON_ECRAD_FCFLAGS="${ICON_ECRAD_FCFLAGS}" \
 ICON_FCFLAGS="${ICON_FCFLAGS}" \
-ICON_OCEAN_FCFLAGS="${ICON_OCEAN_FCFLAGS}" \
-ICON_OCEAN_PATH="${ICON_OCEAN_PATH}" \
 ICON_FORTRAN_SUPPORT_FCFLAGS="${ICON_FORTRAN_SUPPORT_FCFLAGS}" \
 ICON_LDFLAGS="${ICON_LDFLAGS}" \
+ICON_OCEAN_FCFLAGS="${ICON_OCEAN_FCFLAGS}" \
+ICON_OCEAN_PATH="${ICON_OCEAN_PATH}" \
 LDFLAGS="${LDFLAGS}" \
 LIBS="${LIBS}" \
 MPI_LAUNCH="${MPI_LAUNCH}" \
