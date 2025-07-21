@@ -119,15 +119,18 @@ CONTAINS
 !ICON_OMP edgeOfVertex_index, edgeOfVertex_block, level) ICON_OMP_DEFAULT_SCHEDULE
     DO blockNo = verts_in_domain%start_block, verts_in_domain%end_block
       CALL get_index_range(verts_in_domain, blockNo, start_index_v, end_index_v)
-      !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-      vn_dual(:,:,blockNo)%x(1) = 0.0_wp
-      vn_dual(:,:,blockNo)%x(2) = 0.0_wp
-      vn_dual(:,:,blockNo)%x(3) = 0.0_wp
-      !$ACC END KERNELS
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
+      DO level = 1, n_zlev
+        DO vertexIndex = 1, nproma
+          vn_dual(vertexIndex,level,blockNo)%x(1) = 0.0_wp
+          vn_dual(vertexIndex,level,blockNo)%x(2) = 0.0_wp
+          vn_dual(vertexIndex,level,blockNo)%x(3) = 0.0_wp
+        END DO
+      END DO
+      !$ACC END PARALLEL LOOP
 #if defined (__LVECTOR__) || defined (_OPENACC)
       max_num_edges = MAXVAL(patch_2D%verts%num_edges(start_index_v:end_index_v,blockNo))
       !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-      !$ACC LOOP SEQ
       DO vertexConnect = 1, max_num_edges
         !$ACC LOOP GANG VECTOR COLLAPSE(2)
         DO level = start_level, end_level
@@ -149,14 +152,12 @@ CONTAINS
 #else
       !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
       DO vertexIndex = start_index_v, end_index_v
-        !$ACC LOOP SEQ
         DO vertexConnect = 1, patch_2D%verts%num_edges(vertexIndex,blockNo)
 
           edgeOfVertex_index = patch_2D%verts%edge_idx(vertexIndex,blockNo,vertexConnect)
           edgeOfVertex_block = patch_2D%verts%edge_blk(vertexIndex,blockNo,vertexConnect)
 
           IF (edgeOfVertex_index > 0) THEN
-            !$ACC LOOP SEQ
             DO level = start_level, end_level
               vn_dual(vertexIndex,level,blockNo)%x = vn_dual(vertexIndex,level,blockNo)%x   &
                 & + edge2vert_coeff_cc(vertexIndex,level,blockNo,vertexConnect)%x           &
@@ -1344,17 +1345,20 @@ CONTAINS
     DO blockNo = verts_in_domain%start_block, verts_in_domain%end_block
       CALL get_index_range(verts_in_domain, blockNo, start_index_v, end_index_v)
 
-      !$ACC KERNELS DEFAULT(PRESENT) IF(lzacc)
-      rot_vec_v(:,:,blockNo) = 0.0_wp
-      z_vort_internal(:,:) = 0.0_wp
-      !$ACC END KERNELS
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
+      DO level = 1, n_zlev
+        DO vertexIndex = 1, nproma
+          rot_vec_v(vertexIndex,level,blockNo) = 0.0_wp
+          z_vort_internal(vertexIndex,level) = 0.0_wp
+        END DO
+      END DO
+      !$ACC END PARALLEL LOOP
 
       max_vertexConnect = MAXVAL(patch_2D%verts%num_edges(start_index_v:end_index_v,blockNo))
       max_end_level = MAXVAL(patch_3D%p_patch_1d(1)%vertex_bottomLevel(start_index_v:end_index_v, blockNo))
       max_boundary_edges = MAXVAL(p_op_coeff%bnd_edges_per_vertex(start_index_v:end_index_v,:,blockNo))
 
       !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-      !$ACC LOOP SEQ
       DO vertexConnect = 1, max_vertexConnect
         !$ACC LOOP GANG VECTOR COLLAPSE(2)
         DO level = start_level, max_end_level
@@ -1382,9 +1386,13 @@ CONTAINS
 
       !Finalize vorticity calculation by closing the dual loop along boundary edges
       IF(i_bc_veloc_lateral/=i_bc_veloc_lateral_noslip)THEN
-        !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-        z_vort_boundary(:,:) = 0.0_wp
-        !$ACC END KERNELS
+        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
+        DO level = 1, n_zlev
+          DO vertexIndex = 1, nproma
+            z_vort_boundary(vertexIndex,level) = 0.0_wp
+          END DO
+        END DO
+        !$ACC END PARALLEL LOOP
 
         !$ACC PARALLEL LOOP GANG VECTOR COLLAPSE(3) DEFAULT(PRESENT) PRIVATE(z_vt) ASYNC(1) IF(lzacc)
         DO level = start_level, max_end_level

@@ -2293,7 +2293,6 @@ CONTAINS
         CALL get_index_range(all_cells, jb, start_index, end_index)
         !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
         DO jc = start_index, end_index
-          !$ACC LOOP SEQ
           DO jk=1, patch_3d%p_patch_1d(1)%dolic_c(jc,jb) ! operate on wet ocean points only
             rhopot(jc,jk,jb) = calc_potential_density_mpiom_elemental( &
               & tracer(jc,jk,jb,1), tracer(jc,jk,jb,2))
@@ -2311,7 +2310,6 @@ CONTAINS
         CALL get_index_range(all_cells, jb, start_index, end_index)
         !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
         DO jc = start_index, end_index
-          !$ACC LOOP SEQ
           DO jk=1, patch_3d%p_patch_1d(1)%dolic_c(jc,jb) ! operate on wet ocean points only
             rhopot(jc,jk,jb) = calc_potential_density_mpiom_elemental( &
               & tracer(jc,jk,jb,1), sal_ref)

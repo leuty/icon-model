@@ -2135,7 +2135,17 @@ CONTAINS
     INTEGER :: tmp_level_index, tmp_deg
     INTEGER :: mpi_comm
 
-    REAL(wp) :: lat, deltaMoc, deltahfl, deltawfl, deltahfbasin, deltasltbasin, smoothWeight
+#ifdef _OPENACC
+    REAL(wp) :: lat(nproma,patch_3d%p_patch_2d(1)%alloc_cell_blocks)
+    REAL(wp) :: deltahfl(nproma,patch_3d%p_patch_2d(1)%alloc_cell_blocks)
+    REAL(wp) :: deltawfl(nproma,patch_3d%p_patch_2d(1)%alloc_cell_blocks)
+    REAL(wp) :: deltaMoc(nproma,n_zlev,patch_3d%p_patch_2d(1)%alloc_cell_blocks)
+    REAL(wp) :: deltahfbasin(nproma,patch_3d%p_patch_2d(1)%alloc_cell_blocks)
+    REAL(wp) :: deltasltbasin(nproma,patch_3d%p_patch_2d(1)%alloc_cell_blocks)
+#else
+    REAL(wp) :: lat, deltahfl, deltawfl, deltaMoc, deltahfbasin, deltasltbasin
+#endif
+    REAL(wp) :: smoothWeight, tmp_slt, tmp_hf
     REAL(wp), ALLOCATABLE :: allmocs(:,:,:)
 
     REAL(wp) :: factor_to_sv
@@ -2154,7 +2164,7 @@ CONTAINS
     n=MAX(12,n_zlev) !needs at leat 12 levels to store the wfl/hfl/hfbasin variables
     ALLOCATE(allmocs(4,n,nlat_moc))
 
-    !$ACC DATA CREATE(allmocs) IF(lzacc)
+    !$ACC DATA CREATE(lat, deltahfl, deltawfl, deltaMoc, deltahfbasin, deltasltbasin, allmocs) IF(lzacc)
 
     !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(3) ASYNC(1) IF(lzacc)
     DO ilat = 1, nlat_moc
@@ -2202,11 +2212,144 @@ CONTAINS
 
     smoothWeight = 1.0_wp / REAL(2*latSmooth + 1, wp)
 
+#ifdef _OPENACC
+    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
+    DO BLOCK = 1, patch_3d%p_patch_2d(1)%alloc_cell_blocks
+      DO idx = 1, nproma
+        lat(idx,BLOCK) = patch_2d%cells%center(idx,BLOCK)%lat*rad2deg
+
+        deltahfl(idx,BLOCK) = patch_2d%cells%area(idx,BLOCK) * heatflux_total(idx,BLOCK) &
+                            * patch_3D%wet_c(idx,1,BLOCK)*smoothWeight
+
+        deltawfl(idx,BLOCK) = patch_2d%cells%area(idx,BLOCK) * frshflux_volumetotal(idx,BLOCK) &
+                            * patch_3D%wet_c(idx,1,BLOCK)*smoothWeight
+      END DO
+    END DO
+    !$ACC END PARALLEL LOOP
+    !$ACC WAIT(1)
+
+    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(3) ASYNC(1) IF(lzacc)
+    DO BLOCK = 1, patch_3d%p_patch_2d(1)%alloc_cell_blocks
+      DO level = 1, n_zlev
+        DO idx = 1, nproma
+          deltaMoc(idx,level,BLOCK) = patch_2d%cells%area(idx,BLOCK) * OceanReferenceDensity * w(idx,level,BLOCK)*smoothWeight
+        END DO
+      END DO
+    END DO
+    !$ACC END PARALLEL LOOP
+    !$ACC WAIT(1)
+
     DO BLOCK = cells%start_block, cells%end_block
       CALL get_index_range(cells, BLOCK, start_index, end_index)
-      !$ACC PARALLEL DEFAULT(PRESENT) &
-      !$ACC   PRIVATE(deltaMoc, deltahfbasin, deltasltbasin, deltahfl, deltawfl, ilat) ASYNC(1) IF(lzacc)
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+      !$ACC LOOP GANG VECTOR
+      DO level = 1, n_zlev
+        !$ACC LOOP SEQ
+        DO idx = start_index, end_index
+          IF (level > cells%vertical_levels(idx,BLOCK)) CYCLE
+
+          ! lat: corresponding latitude row of 1 deg extension
+          !            1 south pole
+          ! nlat_moc=180 north pole
+
+          ! distribute MOC over (2*jbrei)+1 latitude rows
+          !  - no weighting with latitudes done
+          !  - lat: index of 180 X 1 deg meridional resolution
+          !$ACC LOOP SEQ
+          DO l = -latSmooth, latSmooth
+            ilat = NINT(REAL(nlat_moc, wp)*0.5_wp + lat(idx,BLOCK) + REAL(l, wp))
+            ilat = MAX(1,MIN(ilat,nlat_moc))
+
+            global_moc(level,ilat) = global_moc(level,ilat) - deltaMoc(idx,level,BLOCK)
+
+            IF (patch_3D%basin_c(idx,BLOCK) == 1) THEN
+              atlant_moc(level,ilat) = atlant_moc(level,ilat) - deltaMoc(idx,level,BLOCK)
+            END IF
+            IF (patch_3D%basin_c(idx,BLOCK) >= 2) THEN
+              pacind_moc(level,ilat) = pacind_moc(level,ilat) - deltaMoc(idx,level,BLOCK)
+            END IF
+
+            IF (level .EQ. 1) THEN
+              global_hfl(level,ilat) = global_hfl(level,ilat) - deltahfl(idx,BLOCK)
+              global_wfl(level,ilat) = global_wfl(level,ilat) - deltawfl(idx,BLOCK)
+
+              IF (patch_3D%basin_c(idx,BLOCK) == 1) THEN
+                atlant_hfl(level,ilat) = atlant_hfl(level,ilat) - deltahfl(idx,BLOCK)
+                atlant_wfl(level,ilat) = atlant_wfl(level,ilat) - deltawfl(idx,BLOCK)
+              END IF
+              IF (patch_3D%basin_c(idx,BLOCK) >= 2) THEN
+                pacind_hfl(level,ilat) = pacind_hfl(level,ilat) - deltahfl(idx,BLOCK)
+                pacind_wfl(level,ilat) = pacind_wfl(level,ilat) - deltawfl(idx,BLOCK)
+              END IF
+            END IF
+
+          END DO
+        END DO
+      END DO
+      !$ACC END PARALLEL
+      !$ACC WAIT(1)
+    END DO
+
+    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) REDUCTION(+: tmp_slt, tmp_hf) ASYNC(1) IF(lzacc)
+    DO BLOCK = 1, patch_3d%p_patch_2d(1)%alloc_cell_blocks
+      DO idx = 1, nproma
+        tmp_slt = 0.0_wp
+        tmp_hf = 0.0_wp
+        DO level = 1, n_zlev
+          IF (level > cells%vertical_levels(idx,BLOCK)) CYCLE
+
+          tmp_slt = tmp_slt + patch_2d%cells%area(idx,BLOCK) * delta_so(idx,level,BLOCK)*smoothWeight
+          tmp_hf = tmp_hf + patch_2d%cells%area(idx,BLOCK) * delta_thetao(idx,level,BLOCK)*smoothWeight
+
+          IF (level .EQ. 1) THEN
+            tmp_hf = tmp_hf + patch_2d%cells%area(idx,BLOCK) * ( delta_ice(idx,BLOCK) + delta_snow(idx,BLOCK) )*smoothWeight
+          ENDIF
+        END DO
+        deltasltbasin(idx,BLOCK) = tmp_slt
+        deltahfbasin(idx,BLOCK) = tmp_hf
+      END DO
+    END DO
+    !$ACC END PARALLEL LOOP
+    !$ACC WAIT(1)
+
+    DO BLOCK = cells%start_block, cells%end_block
+      CALL get_index_range(cells, BLOCK, start_index, end_index)
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
       !$ACC LOOP SEQ
+      DO idx = start_index, end_index
+
+        ! lat: corresponding latitude row of 1 deg extension
+        !            1 south pole
+        ! nlat_moc=180 north pole
+
+        ! distribute MOC over (2*jbrei)+1 latitude rows
+        !  - no weighting with latitudes done
+        !  - lat: index of 180 X 1 deg meridional resolution
+        !$ACC LOOP SEQ
+        DO l = -latSmooth, latSmooth
+          ilat = NINT(REAL(nlat_moc, wp)*0.5_wp + lat(idx,BLOCK) + REAL(l, wp))
+          ilat = MAX(1,MIN(ilat,nlat_moc))
+
+          global_hfbasin(1,ilat) = global_hfbasin(1,ilat) - deltahfbasin(idx,BLOCK)
+          global_sltbasin(1,ilat) = global_sltbasin(1,ilat) - deltasltbasin(idx,BLOCK)
+
+          IF (patch_3D%basin_c(idx,BLOCK) == 1) THEN
+            atlant_hfbasin(1,ilat) = atlant_hfbasin(1,ilat) - deltahfbasin(idx,BLOCK)
+            atlant_sltbasin(1,ilat) = atlant_sltbasin(1,ilat) - deltasltbasin(idx,BLOCK)
+          END IF
+          IF (patch_3D%basin_c(idx,BLOCK) >= 2) THEN
+            pacind_hfbasin(1,ilat) = pacind_hfbasin(1,ilat) - deltahfbasin(idx,BLOCK)
+            pacind_sltbasin(1,ilat) = pacind_sltbasin(1,ilat) - deltasltbasin(idx,BLOCK)
+          END IF
+
+        END DO
+      END DO
+      !$ACC END PARALLEL
+      !$ACC WAIT(1)
+    END DO
+#else
+    DO BLOCK = cells%start_block, cells%end_block
+      CALL get_index_range(cells, BLOCK, start_index, end_index)
       DO idx = start_index, end_index
         lat = patch_2d%cells%center(idx,BLOCK)%lat*rad2deg
 
@@ -2215,7 +2358,7 @@ CONTAINS
 
         deltawfl = patch_2d%cells%area(idx,BLOCK) * frshflux_volumetotal(idx,BLOCK) &
                   * patch_3D%wet_c(idx,1,BLOCK)
-        !$ACC LOOP SEQ
+
         DO level = 1, cells%vertical_levels(idx,BLOCK)
 
           deltaMoc = patch_2d%cells%area(idx,BLOCK) * OceanReferenceDensity * w(idx,level,BLOCK)
@@ -2238,7 +2381,6 @@ CONTAINS
           ! distribute MOC over (2*jbrei)+1 latitude rows
           !  - no weighting with latitudes done
           !  - lat: index of 180 X 1 deg meridional resolution
-          !$ACC LOOP SEQ
           DO l = -latSmooth, latSmooth
             ilat = NINT(REAL(nlat_moc, wp)*0.5_wp + lat + REAL(l, wp))
             ilat = MAX(1,MIN(ilat,nlat_moc))
@@ -2274,14 +2416,12 @@ CONTAINS
               pacind_wfl(level,ilat) = pacind_wfl(level,ilat) - MERGE(deltawfl*smoothWeight, &
                    0.0_wp, patch_3D%basin_c(idx,BLOCK) >= 2)
             END IF
-
           END DO
 
         END DO
       END DO
-      !$ACC END PARALLEL
-      !$ACC WAIT(1)
     END DO
+#endif
 
     ! compute point-wise sum over all mpi ranks and store results
     !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)

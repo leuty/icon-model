@@ -811,7 +811,7 @@ CONTAINS
         END DO
 #endif
 
-        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) IF(lzacc)
+        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
         DO level = startLevel, n_zlev
           DO je =  start_edge_index, end_edge_index
             If (level > patch_3d%p_patch_1d(1)%dolic_e(je,blockNo)) CYCLE
@@ -3056,9 +3056,13 @@ CONTAINS
     DO blockNo = edges_in_domain%start_block, edges_in_domain%end_block
       CALL get_index_range(edges_in_domain, blockNo, start_edge_index, end_edge_index)
 
-      !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-      ptp_vn(:,:,blockNo) = 0.0_wp
-      !$ACC END KERNELS
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
+      DO level = 1, n_zlev
+        DO je = 1, nproma
+          ptp_vn(je,level,blockNo) = 0.0_wp
+        END DO
+      END DO
+      !$ACC END PARALLEL LOOP
 
       !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
       DO je = start_edge_index, end_edge_index
