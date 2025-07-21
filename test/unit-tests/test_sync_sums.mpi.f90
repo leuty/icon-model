@@ -59,9 +59,11 @@ PROGRAM test_sync_sums_parallel
   ! global_sum: Simple example using array of init_data=[1,2,3,...]
   CALL check_global_sum(wp_data_3d, REAL(comm_size*init_data, wp), data_size)
 
+#ifndef __SINGLE_PRECISION
   ! omp_global_sum_array: Simple example using array of init_data=[1,2,3,...]
   CALL check_omp_global_sum_array(RESHAPE(wp_data_3d, (/data_size/)), ref_wp_sum, l_fast_sum_in=.TRUE.)
   CALL check_omp_global_sum_array(RESHAPE(wp_data_3d, (/data_size/)), ref_wp_sum, l_fast_sum_in=.FALSE.)
+#endif
 
   ! global_min
   CALL check_global_min(RESHAPE(wp_data_3d, (/data_size/)) + comm_rank, &
@@ -115,6 +117,7 @@ CONTAINS
 
   END SUBROUTINE check_global_sum
 
+#ifndef __SINGLE_PRECISION
   ! Total sum (local and global reduction)
   SUBROUTINE check_omp_global_sum_array(wp_data_1d, ref_wp_sum, l_fast_sum_in)
     REAL(wp), INTENT(IN) :: wp_data_1d(:)
@@ -138,6 +141,7 @@ CONTAINS
     END IF
 
   END SUBROUTINE check_omp_global_sum_array
+#endif
 
   ! global min
   SUBROUTINE check_global_min(wp_data_1d, ref_wp_min)
