@@ -11799,7 +11799,7 @@ fi
 esac
      as_fn_append acx_subdir_run_args_externals_kokkos_build " '$acx_tmp'"
    done
-   as_fn_append bundled_CMAKE_PREFIX_PATH "${bundled_CMAKE_PREFIX_PATH:+";"}${icon_abs_top_builddir}/externals/kokkos/build"
+   as_fn_append bundled_CMAKE_PREFIX_PATH "${bundled_CMAKE_PREFIX_PATH:+";"}${icon_abs_top_builddir}/externals/kokkos/build/_icon"
    BUNDLED_LIBFILES="externals/kokkos/build/_icon/simd/src/libkokkossimd.a $BUNDLED_LIBFILES"
    BUNDLED_LIBFILES="externals/kokkos/build/_icon/containers/src/libkokkoscontainers.a $BUNDLED_LIBFILES"
    BUNDLED_LIBFILES="externals/kokkos/build/_icon/core/src/libkokkoscore.a $BUNDLED_LIBFILES"

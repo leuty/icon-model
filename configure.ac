@@ -1020,7 +1020,8 @@ ACX_LANG_MACRO_FLAG([AC_SUBST([FC_PP_DEF], [$acx_cv_fc_macro_flag])])
 
 ACX_FC_ATTRIBUTE_CONTIGUOUS(
   [AS_VAR_APPEND([FCFLAGS],
-  [" ${FC_PP_DEF}HAVE_FC_ATTRIBUTE_CONTIGUOUS"])], [:])
+     [" ${FC_PP_DEF}HAVE_FC_ATTRIBUTE_CONTIGUOUS"])],
+  [:])
 
 AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}__ICON__"])
 
@@ -3008,7 +3009,7 @@ KOKKOS library @<:@default=$ICON_BUNDLED_HIPFLAGS@:>@])dnl
      [$icon_kokkos_extra_args])
    AS_VAR_APPEND([bundled_CMAKE_PREFIX_PATH],
      ["${bundled_CMAKE_PREFIX_PATH:+";"}dnl
-${icon_abs_top_builddir}/externals/kokkos/build"])
+${icon_abs_top_builddir}/externals/kokkos/build/_icon"])
    BUNDLED_LIBFILES=dnl
 "externals/kokkos/build/_icon/simd/src/libkokkossimd.a $BUNDLED_LIBFILES"
    BUNDLED_LIBFILES=dnl
