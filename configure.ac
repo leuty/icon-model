@@ -1023,6 +1023,17 @@ ACX_FC_ATTRIBUTE_CONTIGUOUS(
      [" ${FC_PP_DEF}HAVE_FC_ATTRIBUTE_CONTIGUOUS"])],
   [:])
 
+AC_CACHE_CHECK([whether $FC supports quadruple-precision real kind],
+  [icon_cv_have_quad_precision],
+  [icon_cv_have_quad_precision=no
+    AC_LINK_IFELSE([AC_LANG_PROGRAM([], [[
+      implicit none
+      integer, parameter :: qp = selected_real_kind(30)
+      real(qp), parameter :: v = 1._qp]])],
+      [icon_cv_have_quad_precision=yes])])
+AS_VAR_IF([icon_cv_have_quad_precision], [yes],
+  [AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}__HAVE_QUAD_PRECISION"])])
+
 AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}__ICON__"])
 
 AS_VAR_IF([enable_atmo], [no],

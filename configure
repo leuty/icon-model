@@ -5869,6 +5869,32 @@ else
   :
 fi
 
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether $FC supports quadruple-precision real kind" >&5
+$as_echo_n "checking whether $FC supports quadruple-precision real kind... " >&6; }
+if ${icon_cv_have_quad_precision+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  icon_cv_have_quad_precision=no
+    cat > conftest.$ac_ext <<_ACEOF
+      program main
+
+      implicit none
+      integer, parameter :: qp = selected_real_kind(30)
+      real(qp), parameter :: v = 1._qp
+      end
+_ACEOF
+if ac_fn_fc_try_link "$LINENO"; then :
+  icon_cv_have_quad_precision=yes
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $icon_cv_have_quad_precision" >&5
+$as_echo "$icon_cv_have_quad_precision" >&6; }
+if test "x$icon_cv_have_quad_precision" = xyes; then :
+  as_fn_append FCFLAGS " ${FC_PP_DEF}__HAVE_QUAD_PRECISION"
+fi
+
 as_fn_append FCFLAGS " ${FC_PP_DEF}__ICON__"
 
 if test "x$enable_atmo" = xno; then :
