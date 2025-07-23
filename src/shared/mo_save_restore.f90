@@ -34,10 +34,6 @@ MODULE mo_save_restore
   USE mo_util_string,             ONLY: pretty_print_string_list
   USE mo_fortran_tools,           ONLY: copy, init
 
-#if defined(__PGI) || defined(__FLANG)
-  USE mo_util_texthash,           ONLY: t_char_workaround
-#endif
-
   IMPLICIT NONE
 
   PRIVATE
@@ -120,10 +116,6 @@ CONTAINS
     CHARACTER(len=vname_len), ALLOCATABLE :: savedGroup(:)
     INTEGER :: savedGroupSize
     INTEGER :: i, jg
-#if defined(__PGI) || defined(__FLANG)
-    TYPE(t_char_workaround), POINTER :: key_p
-#endif
-
 
     ! skip patch, if inactive
     IF (.NOT. p_patch%ldom_active) RETURN
@@ -156,6 +148,15 @@ CONTAINS
     END DO
 
   CONTAINS
+
+#if defined(__PGI) || defined(__FLANG)
+    ! workaround for compiler limitations
+    SUBROUTINE alloc_ptr_from_str(ptr, src)
+      CLASS(*), POINTER, INTENT(out) :: ptr
+      CHARACTER(len=*), INTENT(in) :: src
+      ALLOCATE(ptr, SOURCE=src)
+    END SUBROUTINE alloc_ptr_from_str
+#endif
 
     SUBROUTINE save(fields, var)
       TYPE(t_HashTable), INTENT(INOUT) :: fields
@@ -206,9 +207,7 @@ CONTAINS
       ENDIF
 
 #if defined(__PGI) || defined(__FLANG)
-      ALLOCATE(key_p)
-      key_p%c = TRIM(get_var_name(var%info))
-      key => key_p
+      CALL alloc_ptr_from_str(key, TRIM(get_var_name(var%info)))
 #else
       ALLOCATE(key, SOURCE=TRIM(get_var_name(var%info)))
 #endif
@@ -231,8 +230,6 @@ CONTAINS
     END SUBROUTINE save
 
   END SUBROUTINE save_var_group_state
-
-
 
   !>
   !! Restore state of a variable group. E.g. used for iterative IAU (see mo_iau.f90).

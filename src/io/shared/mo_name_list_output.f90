@@ -95,7 +95,8 @@ MODULE mo_name_list_output
   USE mo_name_list_output_gridinfo, ONLY: write_grid_info_grb2, GRID_INFO_NONE
   USE mo_util_file,                 ONLY: util_rename, get_filename, get_path
   ! config
-  USE mo_master_control,            ONLY: my_process_is_ocean, my_process_is_waves, get_my_process_name
+  USE mo_master_control,            ONLY: my_process_is_ocean, my_process_is_waves, &
+    &                                     my_process_is_hamocc, get_my_process_name
   USE mo_master_config,             ONLY: getModelBaseDir, isRestart
   USE mo_grid_config,               ONLY: n_dom, l_limited_area
   USE mo_run_config,                ONLY: msg_level
@@ -2666,18 +2667,19 @@ CONTAINS
       &                    lset_timers_for_idle_pe, is_io_root
     INTEGER             :: jg, jstep, action
     TYPE(t_par_output_event), POINTER :: ev
-    LOGICAL             :: is_ocean, is_wave
+    LOGICAL             :: is_ocean, is_wave, is_hamocc
 
     is_io_root = my_process_is_mpi_ioroot()
     is_ocean   = my_process_is_ocean() ! FIXME: is that really sensible?
     is_wave    = my_process_is_waves()
+    is_hamocc  = my_process_is_hamocc()
 
     ! define initial time stamp used as reference for output statistics
     CALL set_reference_time()
 
     ! FIXME? ocean and waves the other way round?
     ! Initialize name list output, this is a collective call for all PEs
-    IF ( (.NOT. is_ocean)  .AND. (.NOT. is_wave) ) &
+    IF ( (.NOT. is_ocean)  .AND. (.NOT. is_wave) .AND. (.NOT. is_hamocc) ) &
       & CALL init_name_list_output(sim_step_info)
 
     ! setup of meteogram output
@@ -2702,7 +2704,7 @@ CONTAINS
     END IF
 
     ! FIXME: Explain this braindead weirdnes.
-    IF (is_ocean .OR. is_wave) &
+    IF (is_ocean .OR. is_wave .OR. is_hamocc) &
       & CALL init_name_list_output(sim_step_info)
 
 

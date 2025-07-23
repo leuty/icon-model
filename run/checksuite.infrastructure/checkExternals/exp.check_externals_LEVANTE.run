@@ -57,8 +57,8 @@ unset MAKEFLAGS
 makeflags="--jobs=${SLURM_NTASKS:-22} --keep-going"
 
 # Build and run the tests in two separate steps for better output in the log:
-time make -C "${basedir}" ${makeflags} --output-sync=target --no-print-directory V=1 TESTS= check-bundled && \
-  time make -C "${basedir}" ${makeflags} AM_COLOR_TESTS=always check-bundled
+time make -C "${basedir}" ${makeflags} --no-print-directory --output-sync=target V=1 TESTS= check-bundled && \
+  time make -C "${basedir}" ${makeflags} ICON_VERBOSE_TESTS=1 ICON_COLOR_TESTS=always check-bundled
 
 # Save the exit code of the 'make check-bundled' command:
 exitcode=$?

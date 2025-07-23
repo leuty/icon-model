@@ -12,6 +12,9 @@ AES Physics:
 - Implemented full (interactive) carbon cycle with hamocc and land coupling, anthropogenic
   emissions and CO2 tracer transport
 - New rain microphysics (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/868)
+- Add gustiness to surface turbulent exchange (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/880)
+- Decrease albedoW from 0.07 to 0.05 (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/894)
+- Riming of cloud water and snow and faster snow fall velocity (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/909)
 - Fixes for:
   - GPU port of solar_parameters() (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/776)
   - tropopause height calculation when using vertical nesting, and initialises tmix with nested mesh dt_loc (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/858)
@@ -28,8 +31,13 @@ NWP Physics:
 ### ICON-Ocean
 
 - Add optimised variant of the CG-solver (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/819)
-- Ocean GPU improvements (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/769, https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/840)
+- Ocean GPU improvements (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/769, https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/840, https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/862)
 - Routines to read in First Guess and Analysis Files in the Ocean (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/511)
+- Add fillValues on dry ocean cells (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/469)
+- Improve OMP parallelization for ocean (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/893)
+- Fix concurrent HAMOCC (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/921)
+- Bugfix for the mld mlotst diagnostics on vector/gpu (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/928)
+- Enable compilation of sea ice thermodynamics for atmosphere-only builds (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/797)
 
 ### ICON-Waves
 
@@ -45,6 +53,8 @@ Climate: ICON-Land
   - Replace memory variables of QUINCY physics process by variables from JSBACH physics processes
   - Bugfix related to soil/surface albedo when snow is present
   - First implementation allowing anthropogenic land cover change with QUINCY biogeophysics processes
+  - Enable running the agriculture process in QUINCY also when only running biogeophysical processes
+  - Different code updates reducing the number of restart variables in QUINCY runs
 - Use a common interface for QUINCY and JSBACH
 - Updated inline documentation of hydrology process
 - Fixes:
@@ -52,9 +62,11 @@ Climate: ICON-Land
   - Account for proc0_shift from the parallel namelist when running ICON-Land standalone
   - OpenACC fixes for lumi
   - Fix needed with jsbach standalone simulations on GPUs
+  - Fixed sequence of variables in surface temperature routine calls
   - Removed unnecessary mpi-all-reduce calls to reduce run time
 - Code cleaning:
   - Only use one variable representing time step length
+  - Revised surface temperature computation wrt variable names and comments
 - Updated JSBACH usecase with TMX and PFTs
 - Added JSBACH usecase with 12 PFTs: including C4 crops
 - Added support for CUDA graphs with AES physics (VDIFF and TMX)
@@ -85,6 +97,9 @@ NWP: TERRA and other surface issues
 
 - Collection of additional changes required for single-precision (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/771, https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/657)
 - Add option to build ICON in single precision (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/681)
+- Add infrastructure for the Kokkos C++ development
+- Add infrastructure for unit testing
+- Remove usage of t_char_workaround (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/883)
 
 #### Scripting and testing
 
@@ -100,12 +115,17 @@ NWP: TERRA and other surface issues
 - Configure CUDA/HIP C++ compiler and flags
 - Pass ICON_LDFLAGS to the Fortran compiler only
 - Fixes for disable switches --disable-aes and --disable-jsbach
+- Fixes for the quad-precision handling
 
 #### Miscellaneous
 
 - Some OpenACC optimizations and fixes
 - Updated document on how to run HAMOCC (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/770)
 - Add bubble documentation as template for experiment configurations (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/805)
+- Add documentation about future nested buildbot configuration (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/864)
+- Add testing section to infrastructure documentation and document checksuite (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/866)
+- Apply auto line-ending rules and enable syntax highlighting for test templates (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/885)
+- Fix typos in tools documentation (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/927)
 
 
 # Release notes for icon-2025.04-2

@@ -775,7 +775,7 @@ subroutine integrate_tke_gpu(                      &
         tke_Pr(jc,level)   = prandtl(jc,level)
       END DO
 
-      DO level = nlev+1, max_nlev+1
+      DO level = nlev+2, max_nlev+1
         tke_Lmix(jc,level)  = 0.0_wp
         tke_Pr(jc,level)    = 0.0_wp
       END DO

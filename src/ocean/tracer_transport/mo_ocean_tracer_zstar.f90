@@ -12,6 +12,10 @@
 ! Contains the implementation of the tracer transport routines for the ICON ocean model
 ! using the z* vertical co-ordinate
 
+!----------------------------
+#include "omp_definitions.inc"
+#include "icon_definitions.inc"
+!----------------------------
 MODULE mo_ocean_tracer_zstar
   !-------------------------------------------------------------------------
   USE mo_kind,                         ONLY: wp

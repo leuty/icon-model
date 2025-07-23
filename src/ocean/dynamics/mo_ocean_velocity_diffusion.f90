@@ -832,9 +832,7 @@ CONTAINS
 !     REAL(wp) ::  HarmonicDiffusion(nproma,n_zlev,patch_3D%p_patch_2d(1)%nblks_e)
     REAL(wp) :: h_e        (nproma,patch_3D%p_patch_2d(1)%nblks_e)
     TYPE(t_cartesian_coordinates)  :: p_nabla2_dual(nproma,n_zlev,patch_3D%p_patch_2d(1)%nblks_v)
-#ifdef _OPENACC
     REAL(wp), DIMENSION(1:nproma,1:n_zlev,1:patch_3D%p_patch_2d(1)%nblks_v) ::p_nabla2_dual_x, p_nabla2_dual_y, p_nabla2_dual_z
-#endif _OPENACC
     INTEGER,  DIMENSION(:,:,:), POINTER :: icidx, icblk, ividx, ivblk
     TYPE(t_subset_range), POINTER :: edges_in_domain
     TYPE(t_patch), POINTER :: patch_2D
@@ -941,29 +939,31 @@ CONTAINS
       & operators_coeff%edge2vert_coeff_cc,&
       & p_nabla2_dual, lacc=lzacc)
 
-#ifdef _OPENACC
-    ! FIXME 2024-09 DKRZ-dzo: The call to sync_patch_array fails on GPU when the entries
-    !                         p_nabla2_dual(:,:,:)%x(1) to x(3) are passed directly.
-    !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-    p_nabla2_dual_x = p_nabla2_dual(:,:,:)%x(1)
-    p_nabla2_dual_y = p_nabla2_dual(:,:,:)%x(2)
-    p_nabla2_dual_z = p_nabla2_dual(:,:,:)%x(3)
-    !$ACC END KERNELS
-    !$ACC WAIT(1)
+    ! Copy the x(:) into temp arrays using OMP
+!ICON_OMP_PARALLEL_DO ICON_OMP_DEFAULT_SCHEDULE
+    DO blockNo = 1, patch_3D%p_patch_2d(1)%nblks_v
+      !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+      p_nabla2_dual_x(:,:,blockNo) = p_nabla2_dual(:,:,blockNo)%x(1)
+      p_nabla2_dual_y(:,:,blockNo) = p_nabla2_dual(:,:,blockNo)%x(2)
+      p_nabla2_dual_z(:,:,blockNo) = p_nabla2_dual(:,:,blockNo)%x(3)
+      !$ACC END KERNELS
+      !$ACC WAIT(1)
+    END DO
+!ICON_OMP_END_PARALLEL_DO
 
     CALL sync_patch_array_mult(sync_v, patch_2D, 3, lacc=lzacc, &
       & f3din1=p_nabla2_dual_x, f3din2=p_nabla2_dual_y, f3din3=p_nabla2_dual_z)
 
-    !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-    p_nabla2_dual(:,:,:)%x(1) = p_nabla2_dual_x
-    p_nabla2_dual(:,:,:)%x(2) = p_nabla2_dual_y
-    p_nabla2_dual(:,:,:)%x(3) = p_nabla2_dual_z
-    !$ACC END KERNELS
-    !$ACC WAIT(1)
-#else
-    CALL sync_patch_array_mult(sync_v, patch_2D, 3, lacc=.FALSE., &
-      & f3din1=p_nabla2_dual(:,:,:)%x(1), f3din2=p_nabla2_dual(:,:,:)%x(2), f3din3=p_nabla2_dual(:,:,:)%x(3))
-#endif
+!ICON_OMP_PARALLEL_DO ICON_OMP_DEFAULT_SCHEDULE
+    DO blockNo = 1, patch_3D%p_patch_2d(1)%nblks_v
+      !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+      p_nabla2_dual(:,:,blockNo)%x(1) = p_nabla2_dual_x(:,:,blockNo)
+      p_nabla2_dual(:,:,blockNo)%x(2) = p_nabla2_dual_y(:,:,blockNo)
+      p_nabla2_dual(:,:,blockNo)%x(3) = p_nabla2_dual_z(:,:,blockNo)
+      !$ACC END KERNELS
+      !$ACC WAIT(1)
+    END DO
+!ICON_OMP_END_PARALLEL_DO
 
     CALL rot_vertex_ocean_3d( patch_3D, z_nabla2_e, p_nabla2_dual, operators_coeff, z_rot_v, lacc=lzacc)
 

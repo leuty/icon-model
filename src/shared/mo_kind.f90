@@ -45,15 +45,7 @@ MODULE mo_kind
   INTEGER, PARAMETER :: sp = SELECTED_REAL_KIND(ps,rs) !< single precision
   INTEGER, PARAMETER :: dp = SELECTED_REAL_KIND(pd,rd) !< double precision
 
-#ifndef __HAVE_QUAD_PRECISION
-#  if defined(__PGI)
-#     define __HAVE_QUAD_PRECISION 0
-#  else
-#    define __HAVE_QUAD_PRECISION 1
-#  endif
-#endif
-
-#if __HAVE_QUAD_PRECISION
+#ifdef __HAVE_QUAD_PRECISION
   INTEGER, PARAMETER :: qp = SELECTED_REAL_KIND(pq)    !< quad precision
 #else
   INTEGER, PARAMETER :: qp = -1                        !< quad precision

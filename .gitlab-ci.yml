@@ -121,6 +121,7 @@ Coding Style:
 General Style:
   stage: basic
   variables:
+    ICON_SRC_PATHS: src support test/unit-tests
     GIT_SUBMODULE_STRATEGY: normal
     GIT_SUBMODULE_PATHS: externals/art externals/jsbach
   before_script:
@@ -134,9 +135,9 @@ General Style:
     #   - externals/jsbach
     # However, we cannot currently do that because they will fail the tests.
     # Therefore, we check as many of them as possible:
-    - ./scripts/ci_scripts/check_encoding.sh 'src' 'support' ${GIT_SUBMODULE_PATHS}
-    - ./scripts/ci_scripts/check_src_noexec.sh 'src' 'support' 'externals/jsbach'
-    - ./scripts/ci_scripts/check_fortran.py 'src' 'support' ${GIT_SUBMODULE_PATHS}
+    - ./scripts/ci_scripts/check_encoding.sh ${ICON_SRC_PATHS} ${GIT_SUBMODULE_PATHS}
+    - ./scripts/ci_scripts/check_src_noexec.sh ${ICON_SRC_PATHS} 'externals/jsbach'
+    - ./scripts/ci_scripts/check_fortran.py ${ICON_SRC_PATHS} ${GIT_SUBMODULE_PATHS}
     - ./scripts/ci_scripts/check_granule_encapsulation.sh
     - python scripts/experiments/yaml_experiment_test_processor.py
 
@@ -399,6 +400,48 @@ cscs-ci/santis_gpu:
     - if: $CI_PIPELINE_SOURCE == "web"
       when: manual
     - if: $CSCS_CI_INACTIVE_BUILDERS =~ "/(^|,)santis-gpu(,|$)/"
+      when: never
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: manual
+
+.common_levante:
+  stage: system
+  needs: []
+  variables:
+    BUILDER_NAME: ${CI_JOB_NAME}
+  trigger:
+    include: .gitlab/ci/levante.yml
+    strategy: depend
+  inherit:
+    variables: false
+  interruptible: true
+
+levante_gcc:
+  extends: .common_levante
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "web"
+      when: manual
+    - if: $ICON_INACTIVE_BUILDERS =~ "/(^|,)levante_gcc(,|$)/"
+      when: never
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: manual
+
+levante_gpu_nvhpc:
+  extends: .common_levante
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "web"
+      when: manual
+    - if: $ICON_INACTIVE_BUILDERS =~ "/(^|,)levante_gpu_nvhpc(,|$)/"
+      when: never
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: manual
+
+levante_intel_hybrid:
+  extends: .common_levante
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "web"
+      when: manual
+    - if: $ICON_INACTIVE_BUILDERS =~ "/(^|,)levante_intel_hybrid(,|$)/"
       when: never
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       when: manual

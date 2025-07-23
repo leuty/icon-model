@@ -14,6 +14,10 @@
 ! Provide an implementation of the parameters used for surface forcing
 ! of the hydrostatic ocean model.
 
+!----------------------------
+#include "omp_definitions.inc"
+#include "icon_definitions.inc"
+!----------------------------
 MODULE mo_ocean_surface_refactor
 !-------------------------------------------------------------------------
 !
@@ -132,6 +136,7 @@ CONTAINS
         ! sst-change in surface module after sea-ice thermodynamics using HeatFlux_Total and old freeboard
         ! freeboard before sea ice model (used for thermal boundary condition (Eq.1))
         ! by construction, is stored in p_oce_sfc%cellThicknessUnderIce
+!ICON_OMP_PARALLEL_DO PRIVATE(i_startidx_c, i_endidx_c, jc, heatflux_surface_layer) ICON_OMP_DEFAULT_SCHEDULE
         DO jb = all_cells%start_block, all_cells%end_block
           CALL get_index_range(all_cells, jb, i_startidx_c, i_endidx_c)
           !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) PRIVATE(heatflux_surface_layer) ASYNC(1) IF(lzacc)
@@ -153,6 +158,7 @@ CONTAINS
           ENDDO
           !$ACC END PARALLEL LOOP
         ENDDO
+!ICON_OMP_END_PARALLEL_DO
         !$ACC WAIT(1)
       ENDIF
     END IF
@@ -161,6 +167,8 @@ CONTAINS
     !  - add to h_old before explicit term
     !  - change in salt concentration applied here
     !    i.e. for salinity relaxation only, no volume flux is applied
+!ICON_OMP_PARALLEL_DO PRIVATE(i_startidx_c, i_endidx_c, jc, &
+!ICON_OMP zUnderIceArt, sss_inter, zUnderIceOld, zUnderIce_ini) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = all_cells%start_block, all_cells%end_block
       CALL get_index_range(all_cells, jb, i_startidx_c, i_endidx_c)
       !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) PRIVATE(zUnderIce_ini) ASYNC(1) IF(lzacc)
@@ -206,7 +214,7 @@ CONTAINS
           p_ice%zUnderIce(jc,jb) = zUnderIceOld + p_oce_sfc%FrshFlux_VolumeTotal(jc,jb) * dtime
           p_oce_sfc%SSS(jc,jb)   = sss_inter * zUnderIceOld / p_ice%zUnderIce(jc,jb)
 
-         zUnderIce_ini=  p_patch_3D%p_patch_1D(1)%prism_thick_flat_sfc_c(jc,1,jb) &
+          zUnderIce_ini =  p_patch_3D%p_patch_1D(1)%prism_thick_flat_sfc_c(jc,1,jb) &
               &                    + p_os%p_prog(nold(1))%h(jc,jb) - p_ice%draftave_old(jc,jb)
           !******  (Thermodynamic Eq. 5)  ******
           !! Finally, let sea-level change from P-E+RO plus snow fall on ice, net total volume forcing to ocean surface
@@ -226,6 +234,7 @@ CONTAINS
       END DO
       !$ACC END PARALLEL LOOP
     END DO
+!ICON_OMP_END_PARALLEL_DO
     !$ACC WAIT(1)
 
     !---------DEBUG DIAGNOSTICS-------------------------------------------
@@ -346,6 +355,7 @@ CONTAINS
     all_cells       => p_patch%cells%all
     !-----------------------------------------------------------------------
 
+!ICON_OMP_PARALLEL_DO PRIVATE(i_startidx_c, i_endidx_c, jc) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = all_cells%start_block, all_cells%end_block
       CALL get_index_range(all_cells, jb, i_startidx_c, i_endidx_c)
       !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
@@ -354,6 +364,7 @@ CONTAINS
       END DO
       !$ACC END PARALLEL LOOP
     END DO
+!ICON_OMP_END_PARALLEL_DO
     !$ACC WAIT(1)
 
     IF (no_tracer>=1) p_oce_sfc%sst => p_os%p_prog(nold(1))%tracer(:,1,:,1)
@@ -415,6 +426,7 @@ CONTAINS
     !---------------------------------------------------------------------
     CALL update_atmos_fluxes(p_patch_3D, p_as, atmos_fluxes, p_oce_sfc, p_os, p_ice, this_datetime, lacc=lzacc)
 
+!ICON_OMP_PARALLEL_DO PRIVATE(i_startidx_c, i_endidx_c, jc) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = all_cells%start_block, all_cells%end_block
       CALL get_index_range(all_cells, jb, i_startidx_c, i_endidx_c)
       !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
@@ -431,6 +443,7 @@ CONTAINS
       END DO
       !$ACC END PARALLEL LOOP
     END DO
+!ICON_OMP_END_PARALLEL_DO
     !$ACC WAIT(1)
 
     IF ( i_sea_ice > 0 ) THEN ! sea ice is on
@@ -448,6 +461,7 @@ CONTAINS
 
       ! for the setup without sea ice the SST is set to freezing temperature Tf
       ! should not be done here! Move to apply_surface_fluxes
+!ICON_OMP_PARALLEL_DO PRIVATE(i_startidx_c, i_endidx_c, jc) ICON_OMP_DEFAULT_SCHEDULE
       DO jb = all_cells%start_block, all_cells%end_block
         CALL get_index_range(all_cells, jb, i_startidx_c, i_endidx_c)
         !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
@@ -456,6 +470,7 @@ CONTAINS
         END DO
         !$ACC END PARALLEL LOOP
       END DO
+!ICON_OMP_END_PARALLEL_DO
       !$ACC WAIT(1)
 
     ENDIF
@@ -480,6 +495,7 @@ CONTAINS
 
     IF ( lswr_jerlov ) THEN
 
+!ICON_OMP_PARALLEL_DO PRIVATE(i_startidx_c, i_endidx_c, jc) ICON_OMP_DEFAULT_SCHEDULE
       DO jb = all_cells%start_block, all_cells%end_block
         CALL get_index_range(all_cells, jb, i_startidx_c, i_endidx_c)
         !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
@@ -489,10 +505,12 @@ CONTAINS
         END DO
         !$ACC END PARALLEL LOOP
       END DO
+!ICON_OMP_END_PARALLEL_DO
       !$ACC WAIT(1)
 
     ELSE
 
+!ICON_OMP_PARALLEL_DO PRIVATE(i_startidx_c, i_endidx_c, jc) ICON_OMP_DEFAULT_SCHEDULE
       DO jb = all_cells%start_block, all_cells%end_block
         CALL get_index_range(all_cells, jb, i_startidx_c, i_endidx_c)
         !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
@@ -501,6 +519,7 @@ CONTAINS
         END DO
         !$ACC END PARALLEL LOOP
       END DO
+!ICON_OMP_END_PARALLEL_DO
       !$ACC WAIT(1)
 
     END IF
@@ -611,6 +630,7 @@ CONTAINS
     CALL dbg_print('UpdSfcSTART: oce_sfc%SST ',p_oce_sfc%SST, str_module, 2, in_subset=p_patch%cells%owned)
     CALL dbg_print('UpdSfcSTART: oce_sfc%SSS ',p_oce_sfc%SSS, str_module, 2, in_subset=p_patch%cells%owned)
 
+!ICON_OMP_PARALLEL_DO PRIVATE(i_startidx_c, i_endidx_c, jc) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = all_cells%start_block, all_cells%end_block
       CALL get_index_range(all_cells, jb, i_startidx_c, i_endidx_c)
       !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
@@ -628,10 +648,12 @@ CONTAINS
           &                                   + p_oce_sfc%FrshFlux_TotalOcean(jc,jb)
       END DO
     END DO
+!ICON_OMP_END_PARALLEL_DO
     !$ACC WAIT(1)
 
     IF (no_tracer > 0) THEN
       IF ( heatflux_forcing_on_sst ) THEN
+!ICON_OMP_PARALLEL_DO PRIVATE(i_startidx_c, i_endidx_c, jc, heatflux_surface_layer) ICON_OMP_DEFAULT_SCHEDULE
         DO jb = all_cells%start_block, all_cells%end_block
           CALL get_index_range(all_cells, jb, i_startidx_c, i_endidx_c)
           !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) PRIVATE(heatflux_surface_layer) ASYNC(1) IF(lzacc)
@@ -654,6 +676,7 @@ CONTAINS
           ENDDO
           !$ACC END PARALLEL LOOP
         ENDDO
+!ICON_OMP_END_PARALLEL_DO
         !$ACC WAIT(1)
       ENDIF
 
@@ -662,6 +685,8 @@ CONTAINS
       ! apply volume flux to surface elevation
 #ifdef __LVECTOR__
       !$ACC DATA CREATE(dz_new, z_change, temp_stretch) IF(lzacc)
+!ICON_OMP_PARALLEL_DO PRIVATE(i_startidx_c, i_endidx_c, jc, jt, &
+!ICON_OMP max_lev, bt_lev, d_c, min_h, temp_stretch, dz_old, lev, dz_new, z_change) ICON_OMP_DEFAULT_SCHEDULE
       DO jb = all_cells%start_block, all_cells%end_block
         CALL get_index_range(all_cells, jb, i_startidx_c, i_endidx_c)
 
@@ -783,8 +808,11 @@ CONTAINS
         !$ACC END PARALLEL
         !$ACC WAIT(1)
       END DO ! jb
+!ICON_OMP_END_PARALLEL_DO
       !$ACC END DATA
 #else
+!ICON_OMP_PARALLEL_DO PRIVATE(i_startidx_c, i_endidx_c, jc, jt, &
+!ICON_OMP bt_lev, d_c, min_h, temp_stretch, dz_old, dz_new, z_change) ICON_OMP_DEFAULT_SCHEDULE
       DO jb = all_cells%start_block, all_cells%end_block
         CALL get_index_range(all_cells, jb, i_startidx_c, i_endidx_c)
         !$ACC PARALLEL DEFAULT(PRESENT) PRIVATE(dz_old, dz_new, z_change) ASYNC(1) IF(lzacc)
@@ -883,11 +911,13 @@ CONTAINS
         END DO
         !$ACC END PARALLEL
       END DO
+!ICON_OMP_END_PARALLEL_DO
       !$ACC WAIT(1)
 #endif
 
     ENDIF
 
+!ICON_OMP_PARALLEL_DO PRIVATE(i_startidx_c, i_endidx_c, jc) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = all_cells%start_block, all_cells%end_block
       CALL get_index_range(all_cells, jb, i_startidx_c, i_endidx_c)
       !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
@@ -897,6 +927,7 @@ CONTAINS
       END DO
       !$ACC END PARALLEL LOOP
     END DO
+!ICON_OMP_END_PARALLEL_DO
     !$ACC WAIT(1)
 
     CALL dbg_print('UpdSfcEND: oce_sfc%SST ',p_oce_sfc%SST, str_module, 2, in_subset=p_patch%cells%owned)

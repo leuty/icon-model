@@ -44,7 +44,7 @@ MODULE mo_ocean_initial_conditions
     & OceanReferenceDensity, LinearThermoExpansionCoefficient,                  &
     & smooth_initial_velocity_iterations, smooth_initial_velocity_weights,      &
     & vert_cor_type, check_ana_oce, check_fg_oce, fg_filename, ana_filename,    &
-    ana_varnames_map_file_oce
+    ana_varnames_map_file_oce, fillValue
 
   USE mo_sea_ice_nml,        ONLY: use_IceInitialization_fromTemperature
 
@@ -195,16 +195,11 @@ CONTAINS
 
     CALL closeFile(stream_id)
 
-    ! write(0,*) variable
-!     CALL work_mpi_barrier()
     DO block = all_cells%start_block, all_cells%end_block
       CALL get_index_range(all_cells, block, start_cell_index, end_cell_index)
       DO idx = start_cell_index, end_cell_index
         DO level = patch_3d%p_patch_1d(1)%dolic_c(idx,block) + 1, n_zlev
-!           IF ( variable(idx,level,block) /=  0.0_wp) THEN
-!             CALL warning(method_name, "non-zero variable on land")
-            variable(idx,level,block) = 0.0_wp
-!           ENDIF
+            variable(idx,level,block) = fillValue
         ENDDO
       ENDDO
     ENDDO
@@ -253,7 +248,9 @@ CONTAINS
     DO blockno = all_cells%start_block, all_cells%end_block
       CALL get_index_range(all_cells, blockno, start_cell_index, end_cell_index)
       DO jc = start_cell_index, end_cell_index
-         variable(jc,blockno) = variable(jc,blockno) * patch_3d%wet_c(jc,1,blockno)
+        IF(  patch_3d%wet_c(jc,1,blockno) /= 1 ) THEN
+          variable(jc,blockno) = fillValue
+        ENDIF
       ENDDO
     ENDDO
 

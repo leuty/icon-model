@@ -39,8 +39,8 @@ MODULE mo_surface
   USE mo_jsb_interface,     ONLY: jsbach_interface
 #endif
   USE mo_aes_sfc_indices,   ONLY: nsfc_type
+  USE mo_ice_fast,          ONLY: ice_fast
 #ifndef __NO_ICON_OCEAN__
-  USE mo_ice_interface,     ONLY: ice_fast
   USE mo_ml_ocean,          ONLY: ml_ocean
 #endif
 
@@ -1063,8 +1063,6 @@ CONTAINS
 
     IF (idx_ice <= ksfc_type .AND. aes_phy_config(jg)%lice) THEN
 
-#ifndef __NO_ICON_OCEAN__
-
       ! For explicit coupling to ice:
 
       ! Freezing point of sea-water
@@ -1190,10 +1188,6 @@ CONTAINS
       ! (Switched off for now, should be used for implicit coupling)
       !pcpt_tile(jcs:jce,idx_ice) = ptsfc_tile(jcs:jce,idx_ice) * zt2s_conv(jcs:jce,idx_ice)
 
-#else
-    ! __NO_ICON_OCEAN__
-      CALL finish("mo_surface:update_surface", "The ice process requires the ICON_OCEAN component")
-#endif
     ENDIF ! lice
 
    !-------------------------------------------------------------------

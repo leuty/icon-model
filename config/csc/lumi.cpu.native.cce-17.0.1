@@ -47,10 +47,14 @@ XML2_LIBS='-lxml2'
 BUILD_ENV="module load ${modules}; export LD_LIBRARY_PATH=\"${ECCODES_ROOT}/lib64:${FYAML_ROOT}/lib:${XML2_ROOT}/lib:\$CRAY_LD_LIBRARY_PATH:\${LD_LIBRARY_PATH-}\";"
 
 CC='cc'
-CPPFLAGS="-I${ECCODES_ROOT}/include -I${FYAML_ROOT}/include -I${XML2_ROOT}/include/libxml2"
 CFLAGS='-g -gdwarf-4'
 ICON_CFLAGS='-O3'
 ICON_BUNDLED_CFLAGS='-O2'
+
+CXX='CC'
+CXXFLAGS='-g -gdwarf-4 -O2'
+
+CPPFLAGS="-I${ECCODES_ROOT}/include -I${FYAML_ROOT}/include -I${XML2_ROOT}/include/libxml2"
 
 FC='ftn'
 FCFLAGS="-hadd_paren -Ktrap=divz,ovf,inv -hflex_mp=intolerant -hfp1 -g -hipa0"
@@ -76,6 +80,8 @@ ICON_LDFLAGS="-Wl,--disable-new-dtags -Wl,--as-needed -Wl,-rpath,${extra_rpath_d
 
 LIBS="${XML2_LIBS} ${FYAML_LIBS} ${ECCODES_LIBS} ${ZLIB_LIBS}"
 
+MPI_LAUNCH='srun'
+
 # Note that the generated list of flags will contain RPATHs to the custom
 # libraries because BUILD_ENV not only loads the modules but also extends the
 # LD_LIBRARY_PATH variable for the configure scripts and test suites of the
@@ -90,6 +96,8 @@ BUILD_ENV="${BUILD_ENV}" \
 CC="${CC}" \
 CFLAGS="${CFLAGS}" \
 CPPFLAGS="${CPPFLAGS}" \
+CXX="${CXX}" \
+CXXFLAGS="${CXXFLAGS}" \
 FC="${FC}" \
 FCFLAGS="${FCFLAGS}" \
 ICON_BUNDLED_CFLAGS="${ICON_BUNDLED_CFLAGS}" \
@@ -100,6 +108,7 @@ ICON_O0_FCFLAGS="${ICON_O0_FCFLAGS}" \
 ICON_O0_PATH="${ICON_O0_PATH}" \
 LDFLAGS="${LDFLAGS}" \
 LIBS="${LIBS}" \
+MPI_LAUNCH="${MPI_LAUNCH}" \
 ${EXTRA_CONFIG_ARGS} \
 "$@"
 

@@ -15,7 +15,7 @@
 ! which an OpenMP parallelization of copying data into / back from the
 ! MPI-buffer seems to give a benefit. Further compilers may be added
 ! here once the OpenMP implementation is sufficiently efficient
-#if ((defined(_CRAYFTN) && !defined(_OPENACC)) || defined(__INTEL_COMPILER))
+#if ((defined(_CRAYFTN) && !defined(_OPENACC)) || defined(__INTEL_COMPILER) || defined(__NVCOMPILER))
 #define __OMPPAR_COPY__
 #endif
 

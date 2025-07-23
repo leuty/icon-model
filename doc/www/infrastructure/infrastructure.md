@@ -1,6 +1,6 @@
 (ref_infrastructure)=
 # Infrastructure Overview
-This page describe the main infrastucutres of the icon model such as the parallelization and I/O.
+This page describe the main infrastructures of the icon model such as the parallelization and I/O.
 
 (ref_infrastructure_parallelization)=
 ## Parallelization
@@ -10,5 +10,12 @@ A more detailed description of the parallelization is provided in the **{term}`I
 
 (ref_infrastructure_io)=
 ## Input & Output (I/O)
-
 Detail information to Input and Output can be found in the **{term}`ICON Tutorial 2024`** in respectively section 2 and 7.
+
+(ref_infrastructure_testing)=
+## Testing
+
+The ICON model integrates a set of tests for supported systems. The internal CI infrastructure includes:
+
+- [System tests](ref_infrastructure_system_tests)
+- [Unit tests](ref_infrastructure_testing_unit_testing)

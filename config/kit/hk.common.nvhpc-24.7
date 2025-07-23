@@ -26,7 +26,7 @@ NVHPC_COMPILERS="${NVHPC_ROOT}/compilers"
 NVHPC_LIBS='-lstdc++ -llapack -lblas -lnvf'
 
 CUDA_ROOT="${NVHPC_ROOT}/cuda/12.5"
-CUDA_LIBS='-lcudart'
+CUDA_LIBS='-lcudart -lcuda'
 
 MPI_ROOT="${NVHPC_ROOT}/comm_libs/12.5/hpcx/latest/ompi/"
 MPI_FORTRAN_MOD_DIR="${MPI_ROOT}/lib"
@@ -56,9 +56,10 @@ RTTOV_LIBS='-lrttov13'
 
 ################################################################################
 
-BUILD_ENV="export LD_LIBRARY_PATH=\"${NVHPC_COMPILERS}/lib:${MPI_ROOT}/lib:${CUDA_ROOT}/lib64:${BUILDENV_ROOT}/${BUILDENV}/lib:${BUILDENV_ROOT}/${BUILDENV}/lib64:${SERIALBOX2_ROOT}/lib:/usr/lib64:/usr/lib\";export PATH=\"${BUILDENV_ROOT}/bin:/usr/bin\"; unset CPATH C_INCLUDE_PATH CPLUS_INCLUDE_PATH INCLUDE LIBRARY_PATH;"
+BUILD_ENV="export LD_LIBRARY_PATH=\"${NVHPC_COMPILERS}/lib:${MPI_ROOT}/lib:${CUDA_ROOT}/lib64:${BUILDENV_ROOT}/${BUILDENV}/lib:${BUILDENV_ROOT}/${BUILDENV}/lib64:${SERIALBOX2_ROOT}/lib:/usr/lib64:/usr/lib\"; export PATH=\"${BUILDENV_ROOT}/bin:/usr/bin\"; unset CPATH C_INCLUDE_PATH CPLUS_INCLUDE_PATH INCLUDE; export LIBRARY_PATH='${CUDA_ROOT}/lib64/stubs'; export CUDAToolkit_ROOT='${CUDA_ROOT}';"
 
 CC="${NVHPC_COMPILERS}/bin/nvc"
+CXX="${NVHPC_COMPILERS}/bin/nvc++"
 FC="${NVHPC_COMPILERS}/bin/nvfortran"
 CUDACXX="${NVHPC_COMPILERS}/bin/nvcc"
 AR='/usr/bin/ar'
@@ -66,6 +67,7 @@ AR='/usr/bin/ar'
 # 2025-03-14: currently mch_ch_r04b09_dace_synsat segfaults with -O2 in FCFLAGS.
 FCFLAGS="-I${MPI_ROOT}/include -I${MPI_FORTRAN_MOD_DIR} -I${BUILDENV_ROOT}/${BUILDENV}/include -I${SERIALBOX2_ROOT}/include -Mpreprocess -g -O -Mrecursive -Mallocatable=03 -Minfo=accel,inline -Mstack_arrays ${HK_GPU_FCFLAGS}"
 CFLAGS="-std=c99 -g -O2 -I${BUILDENV_ROOT}/${BUILDENV}/include -I${BUILDENV_ROOT}/generic/include"
+CXXFLAGS='-g -O2'
 CPPFLAGS="-I${MPI_ROOT}/include -I${BUILDENV_ROOT}/${BUILDENV}/include -I${BUILDENV_ROOT}/generic/include -I${XML2_INCLUDE_DIR}"
 
 CUDAFLAGS='--std=c++14 -arch=sm_80 -g -O3'
@@ -96,8 +98,10 @@ fi
 BUILD_ENV="${BUILD_ENV}" \
 AR="${AR}" \
 CC="${CC}" \
+CXX="${CXX}" \
 FC="${FC}" \
 CFLAGS="${CFLAGS}" \
+CXXFLAGS="${CXXFLAGS}" \
 CPPFLAGS="${CPPFLAGS}" \
 FCFLAGS="${FCFLAGS}" \
 LDFLAGS="${LDFLAGS}" \
@@ -122,7 +126,6 @@ if test $(pwd) != $(cd "${ICON_DIR}"; pwd); then
   echo 'Copying runscript input files from the source directory...'
   rsync -uavz ${ICON_DIR}/run . --exclude='*.in' --exclude='.*' --exclude='standard_*'
   ln -sf -t run/ ${ICON_DIR}/run/standard_*
-  ln -sf set-up.info run/SETUP.config
   for dir in \
     'externals/art/runctrl_examples' \
     'externals/ecrad/data' \

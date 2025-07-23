@@ -64,6 +64,7 @@ MODULE mo_ocean_tracer_dev
   USE mo_ocean_tracer_transport_types,  ONLY: t_ocean_tracer, t_tracer_collection, t_ocean_transport_state
   USE mo_ocean_tracer_zstar,        ONLY: upwind_zstar_hflux_oce, limiter_ocean_zalesak_horz_zstar, &
     & tracer_diffusion_vertical_implicit_zstar
+  USE mo_fortran_tools,             ONLY: copy, init
 
   IMPLICIT NONE
 
@@ -967,10 +968,12 @@ CONTAINS
     !---------------------------------------------------------------------
 
     ! these are probably not necessary
-    div_diff_flx_vert = 0.0_wp
-    div_adv_flux_vert = 0.0_wp
-    div_adv_flux_horz = 0.0_wp
-    div_diff_flux_horz = 0.0_wp
+!ICON_OMP_PARALLEL
+    CALL init(div_diff_flx_vert, lacc=.FALSE.)
+    CALL init(div_adv_flux_vert, lacc=.FALSE.)
+    CALL init(div_adv_flux_horz, lacc=.FALSE.)
+    CALL init(div_diff_flux_horz, lacc=.FALSE.)
+!ICON_OMP_END_PARALLEL
     !---------------------------------------------------------------------
     !---------DEBUG DIAGNOSTICS-------------------------------------------
     idt_src=2  ! output print level (1-5, fix)
@@ -999,11 +1002,15 @@ CONTAINS
       & old_tracer%concentration, &
       & transport_state%mass_flux_e,         &
       & z_adv_flux_h)
-    z_adv_low = z_adv_flux_h
+!ICON_OMP_PARALLEL
+    CALL copy(z_adv_flux_h, z_adv_low, lacc=.FALSE.)
+!ICON_OMP_END_PARALLEL
 
     call map_edges2edges_sc_zstar( patch_3d, transport_state%vn, old_tracer%concentration, &
       & p_op_coeff, stretch_e, z_adv_flux_h)
-    z_adv_high = z_adv_flux_h
+!ICON_OMP_PARALLEL
+    CALL copy(z_adv_flux_h, z_adv_high, lacc=.FALSE.)
+!ICON_OMP_END_PARALLEL
 
     CALL limiter_ocean_zalesak_horz_zstar( patch_3d,   &
       & transport_state%w,           &
@@ -1041,8 +1048,10 @@ CONTAINS
       & div_diff_flx_vert)
 
     IF (typeOfTracers == "ocean" )THEN
-      p_os%p_diag%GMRedi_flux_horz(:,:,:,tracer_index) = GMRedi_flux_horz
-      p_os%p_diag%GMRedi_flux_vert(:,:,:,tracer_index)  = GMRedi_flux_vert
+!ICON_OMP_PARALLEL
+      CALL copy(GMRedi_flux_horz, p_os%p_diag%GMRedi_flux_horz(:,:,:,tracer_index), lacc=.FALSE.)
+      CALL copy(GMRedi_flux_vert, p_os%p_diag%GMRedi_flux_vert(:,:,:,tracer_index), lacc=.FALSE.)
+!ICON_OMP_END_PARALLEL
     ENDIF
 
     !Case: Implicit Vertical diffusion
@@ -1138,7 +1147,9 @@ CONTAINS
       ! start by_nils ts_budget
       ! save tracer values temporarily
       IF (new_tracer%diagnostics%is_activated) THEN
-        new_tracer%diagnostics%idf(:,:,:) = new_tracer%concentration(:,:,:)
+!ICON_OMP_PARALLEL
+        CALL copy(new_tracer%concentration(:,:,:), new_tracer%diagnostics%idf(:,:,:), lacc=.FALSE.)
+!ICON_OMP_END_PARALLEL
       ENDIF
       ! end by_nils ts_budget
 
@@ -1151,8 +1162,10 @@ CONTAINS
       ! tendency from impl. diffusion and impl. Redi part
       ! zstar
       IF (new_tracer%diagnostics%is_activated) THEN
-        dz_new = 0.0_wp
+!ICON_OMP_PARALLEL_DO PRIVATE(start_cell_index, end_cell_index, jc, &
+!ICON_OMP level ) ICON_OMP_DEFAULT_SCHEDULE
         DO jb = cells_in_domain%start_block, cells_in_domain%end_block
+          dz_new(:,:,jb) = 0.0_wp
           CALL get_index_range(cells_in_domain, jb, start_cell_index, end_cell_index)
           DO jc = start_cell_index, end_cell_index
             DO level = 1, patch_3d%p_patch_1d(1)%dolic_c(jc,jb)
@@ -1161,15 +1174,16 @@ CONTAINS
                 & * stretch_c(jc,jb)
             ENDDO
           ENDDO
-        ENDDO
-        new_tracer%diagnostics%idf(:,:,:) = &
-          & (new_tracer%concentration(:,:,:) - new_tracer%diagnostics%idf(:,:,:)) &
-          & / dtime * dz_new(:,:,:)
+          new_tracer%diagnostics%idf(:,:,jb) = &
+            & (new_tracer%concentration(:,:,jb) - new_tracer%diagnostics%idf(:,:,jb)) &
+            & / dtime * dz_new(:,:,jb)
+          ENDDO
+!ICON_OMP_END_PARALLEL_DO
       ENDIF
       ! end by_nils ts_budget
 
       IF(tracer_index == 1) THEN
-      !ICON_OMP_PARALLEL_DO PRIVATE(start_cell_index, end_cell_index, jc, &
+!ICON_OMP_PARALLEL_DO PRIVATE(start_cell_index, end_cell_index, jc, &
 !ICON_OMP level ) ICON_OMP_DEFAULT_SCHEDULE
         DO jb = cells_in_domain%start_block, cells_in_domain%end_block
           CALL get_index_range(cells_in_domain, jb, start_cell_index, end_cell_index)
@@ -1231,8 +1245,9 @@ CONTAINS
       CALL dbg_print('temp tend trc2:', p_os%p_diag%opottemptend, str_module, 4, in_subset=cells_in_domain)
       CALL dbg_print('salt tend trc2:', p_os%p_diag%osalttend,    str_module, 4, in_subset=cells_in_domain)
     ELSEIF(tracer_index >= 3) THEN
-      CALL dbg_print('tracer tend >3:', (new_tracer%concentration(:,:,:)&
-            &- old_tracer%concentration(:,:,:))/dtime, str_module, 4, in_subset=cells_in_domain)
+      ! We can't do math in dbg_print arguments
+      ! CALL dbg_print('tracer tend >3:', (new_tracer%concentration(:,:,:)&
+      !       &- old_tracer%concentration(:,:,:))/dtime, str_module, 4, in_subset=cells_in_domain)
     ENDIF
 
     !---------------------------------------------------------------------

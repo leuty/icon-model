@@ -126,7 +126,7 @@ export basedir="${thisdir}/../build/cpurun_lvec"
 cd "${basedir}/run"
 # experiments_dir can be predefined in a machine specific run_target_* header
 experiments_dir="${experiments_dir:=${basedir}/experiments}"
-runwrapper="${basedir}/run/run_wrapper_levante.sh"
+runwrapper="${basedir}/run/run_wrapper/levante.sh"
 export icon_data_rootFolder="/pool/data/ICON"
 export testingFolder_prefix="~/testingFolder"
 

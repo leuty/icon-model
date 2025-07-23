@@ -100,7 +100,7 @@ ICON_DACE_PATH="externals/dace_icon"
 LDFLAGS="-L${ZLIBROOT}/lib -L${AEC_DIR}/lib -L${SZIPROOT}/lib -L${HDF5ROOT}/lib -L${NETCDFROOT}/lib -L${NETCDFFROOT}/lib -L${RTTOV_ROOT}/lib -L${ECCODES_LIB_DIR} -L${AMDLIB_ROOT}/libs -L${XML2ROOT}/lib -shared-mpi"
 LIBS="-Wl,--as-needed ${XML2_LIBS} ${ECCODES__LIBS} ${RTTOV_LIBS} ${AMD_LIBS} ${NETCDFF_LIBS} ${NETCDF_LIBS} ${HDF5_LIBS} ${SZIP_LIB} ${AEC_LIB} ${ZLIB_LIB} ${FYAML_LIB} ${CXX_LIB} ${STATICLINK_FLAGS}"
 
-MPI_LAUNCH=''  # needed e.g. for yac configuration. What is the correct setting for gnu ??
+MPI_LAUNCH='/opt/nec/ve/mpi/3.5.0/bin/runtime/mpirun -vh'  # needed for the unit testing
 
 # full operational NWP configuration including ecRad and DACE+EMVORADO coupling
 EXTRA_CONFIG_ARGS='--disable-mpi-checks --disable-rpaths --enable-active-target-sync --enable-mixed-precision --enable-loop-exchange --enable-grib2 --enable-mpi --enable-openmp --enable-rttov --enable-ecrad --enable-dace --enable-fcgroup-DACE --enable-emvorado --enable-art --disable-aes --disable-jsbach --disable-ocean --disable-coupling'

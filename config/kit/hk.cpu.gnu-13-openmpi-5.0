@@ -23,6 +23,7 @@ BUILDENV='gcc-13'
 GCC_ROOT='/opt/gcc/13'
 MKL_ROOT='/software/all/toolkit/Intel_OneAPI/mkl/2023.1.0'
 
+CXX_LIBS='-lstdc++'
 MKL_LIBS='-lmkl_gf_lp64 -lmkl_sequential -lmkl_core'
 MPI_LIBS='-lmpi_usempif08 -lmpi_usempi_ignore_tkr -lmpi_mpifh -lmpi'
 HDF5_LIBS='-lhdf5_hl -lhdf5 -lhdf5_hl_fortran -lhdf5_fortran'
@@ -51,15 +52,17 @@ RTTOV_LIBS='-lrttov13'
 BUILD_ENV="export LD_LIBRARY_PATH=\"${GCC_ROOT}/lib64:${BUILDENV_ROOT}/${BUILDENV}/lib:${BUILDENV_ROOT}/${BUILDENV}/lib64:${MKL_ROOT}/lib/intel64:/usr/lib64\"; export PATH=\"${GCC_ROOT}/bin:${BUILDENV_ROOT}/${BUILDENV}/bin:/usr/bin\"; unset CPATH C_INCLUDE_PATH CPLUS_INCLUDE_PATH INCLUDE LIBRARY_PATH;"
 
 CC="${GCC_ROOT}/bin/gcc"
+CXX="${GCC_ROOT}/bin/g++"
 FC="${GCC_ROOT}/bin/gfortran"
 AR="${GCC_ROOT}/bin/gcc-ar"
 
 FCFLAGS="-I${BUILDENV_ROOT}/${BUILDENV}/include -I${BUILDENV_ROOT}/${BUILDENV}/lib -ffree-line-length-none -fmodule-private -fimplicit-none -fmax-identifier-length=63 -Wall -Wcharacter-truncation -Wconversion -Wunderflow -Wunused-parameter -Wno-surprising -fall-intrinsics -g1 -march=native -mpc64"
 CFLAGS="-g1 -gdwarf-4 -march=native -mpc64 -I${BUILDENV_ROOT}/${BUILDENV}/include"
+CXXFLAGS='-g1 -gdwarf-4 -march=native -mpc64'
 CPPFLAGS="-I${GCC_ROOT}/include -I${BUILDENV_ROOT}/${BUILDENV}/include -I${XML2_INCLUDE_DIR}"
 
 LDFLAGS="-L${GCC_ROOT}/lib64 -L${MKL_ROOT}/lib/intel64 -L${BUILDENV_ROOT}/${BUILDENV}/lib -L${BUILDENV_ROOT}/${BUILDENV}/lib64 -L${SERIALBOX2_ROOT}/lib"
-LIBS="-Wl,--disable-new-dtags -Wl,--as-needed ${MPI_LIBS} ${XML2_LIBS} ${ZLIB_LIBS} ${ECCODES_LIBS} ${FYAML_LIBS} ${MKL_LIBS} ${SERIALBOX2_LIBS} ${NETCDFF_LIBS} ${NETCDF_LIBS} ${HDF5_LIBS}"
+LIBS="-Wl,--disable-new-dtags -Wl,--as-needed ${MPI_LIBS} ${XML2_LIBS} ${ZLIB_LIBS} ${ECCODES_LIBS} ${FYAML_LIBS} ${MKL_LIBS} ${SERIALBOX2_LIBS} ${NETCDFF_LIBS} ${NETCDF_LIBS} ${HDF5_LIBS} ${CXX_LIBS}"
 
 ICON_COMMON_FCFLAGS='-fbacktrace -fbounds-check -fstack-protector-all -finit-real=nan -finit-integer=-2147483648 -finit-character=127 -O2'
 ICON_FCFLAGS="${ICON_COMMON_FCFLAGS} -std=f2008 -DDO_NOT_COMBINE_PUT_AND_NOCHECK"
@@ -95,6 +98,8 @@ BUILD_ENV="${BUILD_ENV}" \
 AR="${AR}" \
 CC="${CC}" \
 CFLAGS="${CFLAGS}" \
+CXX="${CXX}" \
+CXXFLAGS="${CXXFLAGS}" \
 CPPFLAGS="${CPPFLAGS}" \
 FC="${FC}" \
 FCFLAGS="${FCFLAGS}" \

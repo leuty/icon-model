@@ -41,6 +41,7 @@ ICON_DIRECTORIES = [
     "data",
     "doc",
     "etc",
+    "ragnarok",
     "run",
     "scripts",
     "src",
@@ -79,6 +80,7 @@ ICON_IGNORED_PATTERNS = [
     "src/atm_phy_schemes/mo_sso_ifs.f90",
     "src/atm_phy_schemes/mo_vdftofdc.f90",
     "src/lnd_phy_schemes/mo_voskin.f90",
+    "test/microphysics_1mom_schemes/cmake/Modules/FindNetCDF.cmake",
     # Alan Miller (ACM):
     "src/atm_phy_schemes/random_rewrite.f90",
     # AER, Rebecca Adams-Selin (BSD-3-Clause):
@@ -114,7 +116,15 @@ FILE_TYPES = [
     ),
     FileType(
         name="C/C++/CUDA/HIP",
-        glob_patterns=["*.c", "*.cu", "*.h", "*.hip.cc"],
+        glob_patterns=[
+            "*.c",
+            "*.cpp",
+            "*.cu",
+            "*.h",
+            "*.hip.cc",
+            "*.hpp",
+            "*.ipp",
+        ],
         line_comment_start="//",
         re_license_prefix=None,
         license_format_message="must start on the first line of the file",
@@ -126,6 +136,13 @@ FILE_TYPES = [
         re_license_prefix=r"(?:#![^\n]+\n\n?)?",
         license_format_message="should start on the first line of the file but can be "
         "prefixes with a shebang and an empty line",
+    ),
+    FileType(
+        name="CMake",
+        glob_patterns=["*/CMakeLists.txt", "*.cmake"],
+        line_comment_start="#",
+        re_license_prefix=None,
+        license_format_message="must start on the first line of the file",
     ),
 ]
 

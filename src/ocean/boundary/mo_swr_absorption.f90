@@ -24,6 +24,10 @@
 !    Heat is distributed over the water column in proportion to the absorption.
 !    No Heat is transpered into sea floor, but is added to the bottom level.
 
+!----------------------------
+#include "omp_definitions.inc"
+#include "icon_definitions.inc"
+!----------------------------
 MODULE mo_swr_absorption
   USE mo_kind,                      ONLY: wp
   USE mo_ocean_nml,                 ONLY: jerlov_atten, jerlov_bluefrac, n_zlev
@@ -99,7 +103,7 @@ CONTAINS
     swrab => ocean_state%p_diag%swrab
 
 
-    !ICON_OMP_PARALLEL_DO PRIVATE(start_index, end_index) SCHEDULE(dynamic)
+!ICON_OMP_PARALLEL_DO PRIVATE(jc, level, start_index, end_index) SCHEDULE(dynamic)
     DO blockNo = all_cells%start_block, all_cells%end_block
       CALL get_index_range(all_cells, blockNo, start_index, end_index)
       DO jc =  start_index, end_index
@@ -119,6 +123,7 @@ CONTAINS
 
       END DO
     END DO
+!ICON_OMP_END_PARALLEL_DO
 
   END SUBROUTINE jerlov_swr_absorption
 
@@ -176,7 +181,7 @@ CONTAINS
 
     !$ACC DATA CREATE(heatabb, heatabs_t) IF(lzacc)
 
-    !ICON_OMP_PARALLEL_DO PRIVATE(start_index, end_index,hetabs_t,level,heatabb) SCHEDULE(dynamic)
+!ICON_OMP_PARALLEL_DO PRIVATE(start_index, end_index, heatabs_t, jc, level, heatabb) SCHEDULE(dynamic)
     DO blockNo = all_cells%start_block, all_cells%end_block
       CALL get_index_range(all_cells, blockNo, start_index, end_index)
 
@@ -217,6 +222,7 @@ CONTAINS
       END DO
       !$ACC END PARALLEL
     END DO
+!ICON_OMP_END_PARALLEL_DO
     !$ACC WAIT(1)
 
     !$ACC END DATA
@@ -282,7 +288,7 @@ CONTAINS
 
     !$ACC DATA CREATE(heatabb, heatabs_t) IF(lzacc)
 
-    !ICON_OMP_PARALLEL_DO PRIVATE(start_index, end_index,hetabs_t,level,heatabb) SCHEDULE(dynamic)
+!ICON_OMP_PARALLEL_DO PRIVATE(start_index, end_index,heatabs_t, jc, level, heatabb) SCHEDULE(dynamic)
     DO blockNo = all_cells%start_block, all_cells%end_block
       CALL get_index_range(all_cells, blockNo, start_index, end_index)
 
@@ -324,6 +330,7 @@ CONTAINS
       END DO
       !$ACC END PARALLEL
     END DO
+!ICON_OMP_END_PARALLEL_DO
     !$ACC WAIT(1)
 
     !$ACC END DATA
@@ -383,7 +390,7 @@ CONTAINS
 
 
 
-    !ICON_OMP_PARALLEL_DO PRIVATE(start_index, end_index) SCHEDULE(dynamic)
+!ICON_OMP_PARALLEL_DO PRIVATE(start_index, end_index, jc, level) SCHEDULE(dynamic)
     DO blockNo = all_cells%start_block, all_cells%end_block
       CALL get_index_range(all_cells, blockNo, start_index, end_index)
       !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)

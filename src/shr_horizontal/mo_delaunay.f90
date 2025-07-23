@@ -738,6 +738,8 @@ CONTAINS
   END SUBROUTINE triangulate_mthreaded
 
 #ifdef __SX__
+
+#ifdef __HAVE_QUAD_PRECISION
   FUNCTION ccw_spherical_vec(tri,pxyz,ipt,start,end)
     USE mo_delaunay_types, ONLY: t_triangle, t_point, t_edge,t_triangulation,t_point_list
     INTEGER, INTENT(IN) :: start,end,ipt
@@ -889,6 +891,33 @@ CONTAINS
     END IF
   END FUNCTION circum_circle_spherical_vec
 
+#else
+
+  ! Stub if __HAVE_QUAD_PRECISION not defined
+  FUNCTION ccw_spherical_vec(tri,pxyz,ipt,start,end)
+    USE mo_delaunay_types, ONLY: t_triangle, t_point, t_edge,t_triangulation,t_point_list
+    INTEGER, INTENT(IN) :: start,end,ipt
+    LOGICAL :: ccw_spherical_vec(start:end)
+    TYPE (t_point_list), INTENT(IN)   :: pxyz
+    TYPE (t_triangulation), INTENT(IN), TARGET :: tri
+
+    CALL finish(modname//":circum_spherical_vec", "not defined __HAVE_QUAD_PRECISION")
+  END FUNCTION ccw_spherical_vec
+
+  ! Stub if __HAVE_QUAD_PRECISION not defined
+  FUNCTION circum_circle_spherical_vec(p,tri, pxyz, start, end)
+    USE mo_delaunay_types, ONLY: t_triangle, t_point, t_point_list,t_triangulation,t_triangle
+    INTEGER, INTENT(IN) :: start, end
+    LOGICAL :: circum_circle_spherical_vec(start:end)
+    TYPE (t_point),      INTENT(IN)   :: p
+    TYPE (t_point_list), INTENT(IN)   :: pxyz
+    TYPE (t_triangulation), INTENT(IN), TARGET :: tri
+
+    CALL finish(modname//":circum_circle_spherical_vec", "not defined __HAVE_QUAD_PRECISION")
+  END FUNCTION circum_circle_spherical_vec
+
+#endif
+
   PURE FUNCTION triangle_edge(p, i)
     USE mo_delaunay_types, ONLY: t_edge
     TYPE(t_edge) :: triangle_edge
@@ -897,6 +926,7 @@ CONTAINS
 
     triangle_edge = t_edge( p1=p(i), p2=p(MOD(i+1,3)) )
   END FUNCTION triangle_edge
+
 #endif
 
   !> Upper bound for point cloud diameter

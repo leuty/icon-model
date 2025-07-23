@@ -286,10 +286,14 @@ CONTAINS
 
     ! 2. Calculate monotonized slope
     !
-    !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-    z_slope(:, :) = 0._wp
-    z_face(:, :)  = 0.0_wp
-    !$ACC END KERNELS
+    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
+    DO thisLevel = 1, n_zlev+1
+      DO jc = 1, nproma
+        z_slope(jc,thisLevel) = 0._wp
+        z_face(jc,thisLevel)  = 0.0_wp
+      END DO
+    END DO
+    !$ACC END PARALLEL LOOP
 
     !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
     !$ACC LOOP GANG(STATIC: 1) VECTOR
@@ -423,10 +427,14 @@ CONTAINS
     ! the limitation procedure.
     ! Therefore 2 additional fields z_face_up and z_face_low are
     ! introduced.
-    !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-    z_face_low(1:nproma,1:n_zlev) = 0.0_wp
-    z_face_up (1:nproma,1:n_zlev) = 0.0_wp
-    !$ACC END KERNELS
+    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
+    DO thisLevel = 1, n_zlev
+      DO jc = 1, nproma
+        z_face_low(jc,thisLevel) = 0.0_wp
+        z_face_up (jc,thisLevel) = 0.0_wp
+      END DO
+    END DO
+    !$ACC END PARALLEL LOOP
     !$ACC WAIT(1)
 
     IF (vertical_limiter_type == islopel_vsm) THEN
@@ -458,16 +466,18 @@ CONTAINS
 
     ENDIF  !  p_ityp_vlimit
 
-    !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-    upward_tracer_flux(:,:) = 0.0_wp
-    !$ACC END KERNELS
+    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
+    DO thisLevel = 1, n_zlev+1
+      DO jc = 1, nproma
+        upward_tracer_flux(jc,thisLevel) = 0.0_wp
+      END DO
+    END DO
+    !$ACC END PARALLEL LOOP
 
 ! !CDIR NODEP
-    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-    !$ACC LOOP GANG(STATIC: 1) VECTOR
+    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
     DO jc = startIndex, endIndex
 ! !CDIR NODEP
-      !$ACC LOOP SEQ
       DO thisLevel = secondLevel, cells_noOfLevels(jc)
         ! index of top half thisLevel
         levelAbove = thisLevel - 1
@@ -515,15 +525,15 @@ CONTAINS
 
       END DO ! end loop over cells
     ENDDO ! end loop over vertical levels
+    !$ACC END PARALLEL LOOP
     !
     ! set lower boundary condition
     !
     ! upward_tracer_flux(startIndex:endIndex,nlevp1) = 0.0_wp
 
-    !$ACC LOOP GANG(STATIC: 1) VECTOR
+    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
     DO jc = startIndex, endIndex
 ! !CDIR NODEP
-      !$ACC LOOP SEQ
       DO thisLevel = firstLevel, cells_noOfLevels(jc)
         ! positive vertical divergence in direction of w (upward positive)
         flux_div_vert(jc,thisLevel) = upward_tracer_flux(jc, thisLevel) &
@@ -534,7 +544,7 @@ CONTAINS
         flux_div_vert(jc,thisLevel) = 0.0_wp
       ENDDO
     END DO
-    !$ACC END PARALLEL
+    !$ACC END PARALLEL LOOP
     !$ACC WAIT(1)
     !$ACC END DATA
   END SUBROUTINE upwind_vflux_ppm_onBlock

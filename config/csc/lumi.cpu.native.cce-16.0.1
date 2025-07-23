@@ -74,6 +74,8 @@ ICON_LDFLAGS="-Wl,--disable-new-dtags -Wl,--as-needed -Wl,-rpath,${extra_rpath_d
 
 LIBS="${XML2_LIBS} ${FYAML_LIBS} ${ECCODES_LIBS} ${ZLIB_LIBS}"
 
+MPI_LAUNCH='srun'
+
 # Note that the generated list of flags will contain RPATHs to the custom
 # libraries because BUILD_ENV not only loads the modules but also extends the
 # LD_LIBRARY_PATH variable for the configure scripts and test suites of the
@@ -98,6 +100,7 @@ ICON_O0_FCFLAGS="${ICON_O0_FCFLAGS}" \
 ICON_O0_PATH="${ICON_O0_PATH}" \
 LDFLAGS="${LDFLAGS}" \
 LIBS="${LIBS}" \
+MPI_LAUNCH="${MPI_LAUNCH}" \
 ${EXTRA_CONFIG_ARGS} \
 "$@"
 

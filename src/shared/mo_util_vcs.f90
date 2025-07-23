@@ -300,6 +300,11 @@ CONTAINS
 #ifdef __SCT__
       CALL message('', '  SCT: '//get_revision('sct'))
 #endif
+#ifndef __NO_RAGNAROK__
+      CALL message('', '  KOKKOS:')
+      CALL message('', '    version: '//get_kokkos_version())
+      CALL message('', '    revision: '//get_revision('kokkos'))
+#endif
 
       CALL message('', 'other libraries:')
       tmp_string1 = get_eccodes_version()
@@ -396,6 +401,16 @@ CONTAINS
     CALL tixiGetVersion(ptr)
     get_tixi_version = f_ptr_to_str(ptr)
   END FUNCTION get_tixi_version
+#endif
+
+#ifndef __NO_RAGNAROK__
+  FUNCTION get_kokkos_version()
+    USE mo_ragnarok, ONLY: getKokkosVersion
+    CHARACTER(:), ALLOCATABLE :: get_kokkos_version
+    CHARACTER(c_char), POINTER :: ptr(:)
+    CALL getKokkosVersion(ptr)
+    get_kokkos_version = f_ptr_to_str(ptr)
+  END FUNCTION get_kokkos_version
 #endif
 
 #ifdef YAC_coupling

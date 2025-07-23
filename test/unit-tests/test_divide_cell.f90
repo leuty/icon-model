@@ -12,6 +12,7 @@
 PROGRAM test_divide_cell
 
   USE mo_decomposition_tools, ONLY: t_cell_info, divide_cells_by_location
+  USE mo_test_common, ONLY: test_fail, test_pass
 
   IMPLICIT NONE
 
@@ -21,7 +22,7 @@ PROGRAM test_divide_cell
   LOGICAL, ALLOCATABLE :: seen(:)
 
   TYPE(t_cell_info) :: cell_desc(ncells) &
-       = (/ t_cell_info(-5000, -1000, 1, HUGE(1)), &
+       = (/t_cell_info(-5000, -1000, 1, HUGE(1)), &
        &    t_cell_info(5000, -1000, 2, -HUGE(1)), &
        &    t_cell_info(-5000, 1000, 3, HUGE(1)), &
        &    t_cell_info(5000, 1000, 4, -HUGE(1)), &
@@ -30,27 +31,27 @@ PROGRAM test_divide_cell
        &    t_cell_info(5000, -2000, 7, -HUGE(1)), &
        &    t_cell_info(-5000, 2000, 8, HUGE(1)), &
        &    t_cell_info(5000, 2000, 9, -HUGE(1)), &
-       &    t_cell_info(-5000, 0, 10, HUGE(1)) /)
+       &    t_cell_info(-5000, 0, 10, HUGE(1))/)
 
   CALL divide_cells_by_location(ncells, cell_desc, &
-       firstpart, nparts - 1 + firstpart)
+                                firstpart, nparts - 1 + firstpart)
 
-  ALLOCATE(seen(0:MAX(ncells, nparts)))
+  ALLOCATE (seen(0:MAX(ncells, nparts)))
   seen = .FALSE.
-  seen(firstpart:nparts+firstpart-1) = .FALSE.
+  seen(firstpart:nparts + firstpart - 1) = .FALSE.
   DO i = 1, ncells
     owner = cell_desc(i)%owner
     IF (owner < firstpart .OR. owner >= nparts + firstpart) THEN
       PRINT *, ' cell ', i, 'found invalid owner assignment!'
       PRINT *, TRIM(cell_desc2str(cell_desc(i)))
-      STOP 1
+      CALL test_fail()
     END IF
     seen(owner) = .TRUE.
   END DO
-  DO i = firstpart, nparts+firstpart-1
+  DO i = firstpart, nparts + firstpart - 1
     IF (.NOT. seen(i)) THEN
       PRINT *, 'no cells assigned to rank ', i, '!'
-      STOP 1
+      CALL test_fail()
     END IF
   END DO
 
@@ -61,11 +62,14 @@ PROGRAM test_divide_cell
   END DO
 #endif
 
+  CALL test_pass()
+
 CONTAINS
   FUNCTION cell_desc2str(c) RESULT(s)
     TYPE(t_cell_info), INTENT(in) :: c
     INTEGER, PARAMETER :: idig = RANGE(1) + 1 + 1
-    CHARACTER(4 * idig + (4 - 1) * 2) :: s
+    CHARACTER(4*idig + (4 - 1)*2) :: s
     WRITE (s, '(3(i0,", "),i0)') c%lat, c%lon, c%cell_number, c%owner
   END FUNCTION cell_desc2str
+
 END PROGRAM test_divide_cell

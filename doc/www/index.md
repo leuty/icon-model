@@ -6,18 +6,19 @@ _It's the job that's never started as takes longest to finish - J.R.R. Tolkien_
 
 This website contains a collection of ICON documentation including references to documentation available at other places. We do not claim that this documentation is complete, but we hope you will still find it helpful.
 
-
 ```{toctree}
 :hidden:
 buildrun/buildrun_quickstart.md
 buildrun/buildrun_recommended/aes_configurations/bubble.md
+buildrun/buildrun_recommended/aes_configurations/nest.md
 tools/tools.md
 tools/ecflow-ecmwf.md
-tools/comin/comin.md
 atmosphere/atmosphere.md
 ocean/ocean.md
 land/land.md
 infrastructure/infrastructure.md
+infrastructure/testing/system_tests.md
+infrastructure/testing/unit_testing.md
 literature/literature.md
 ```
 
@@ -77,7 +78,8 @@ Information on the changes are available in the {{ '[**Release Notes**]({}/RELEA
 [**Infrastructure**](ref_infrastructure)
 ^^^
 [](ref_infrastructure_parallelization)  
-[](ref_infrastructure_io)
+[](ref_infrastructure_io)  
+[](ref_infrastructure_testing)
 :::
 
 :::{grid-item-card}

@@ -115,6 +115,7 @@ CONTAINS
                      send_glb2loc_index, src_n_points, src_owner, &
                      src_global_index, inplace, comm)
 
+    p_pat%descr%ptr => p_pat
   END SUBROUTINE setup_comm_pattern
 
 
@@ -159,7 +160,8 @@ CONTAINS
    CALL p_pat%setup2(comm, recv_msg, send_msg, &
      &               glb2loc_index_recv, glb2loc_index_send)
 
-  END SUBROUTINE setup_comm_pattern2
+   p_pat%descr%ptr => p_pat
+ END SUBROUTINE setup_comm_pattern2
 
   SUBROUTINE setup_comm_pattern_collection(patterns, pattern_collection)
 

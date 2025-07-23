@@ -22,6 +22,31 @@ icon_dir=$(cd "${script_dir}/../.."; pwd)
 ve_dir="${icon_dir}/build/ve"
 vh_dir="${icon_dir}/build/vh"
 
+makefile='host-vector.mk'
+cat > "${makefile}" <<_EOF
+GNUMAKEFLAGS= --no-print-directory --output-sync=line
+SHELL= /bin/bash
+
+all: ve-all vh-all
+check-icon: ve-check-icon vh-check-icon
+
+%: ve-% vh-%
+
+ve-%: ${ve_dir}/Makefile
+	set -o pipefail; \$(MAKE) -C '\$(<D)' --output-sync=target \$* |& tee -a '\$(<D)/make.log'
+
+vh-%: ${vh_dir}/Makefile
+	set -o pipefail; \$(MAKE) -C '\$(<D)' --output-sync=target \$* |& tee -a '\$(<D)/make.log'
+
+${ve_dir}/Makefile:
+	# configuring in '\$(@D)'
+	mkdir -p '\$(@D)' && cd '\$(@D)' && rm -f make.log && ${icon_dir}/config/dkrz/aurora.VE.nfort-5.0.1_mpi-3.4.0 --disable-openmp --enable-testbed
+
+${vh_dir}/Makefile:
+	# configuring in '\$(@D)'
+	mkdir -p '\$(@D)' && cd '\$(@D)' && rm -f make.log && ${icon_dir}/config/dkrz/aurora.VH.gcc_mpi-3.4.0 --disable-openmp --enable-testbed
+_EOF
+
 if test -n "${BB_NAME-}"; then
   job_count=22
 else
@@ -33,22 +58,18 @@ makeflags="--jobs=${job_count} V=1"
 
 set -x
 
-make ${makeflags} -f - <<_EOF
-GNUMAKEFLAGS= --no-print-directory --output-sync=line
-SHELL= /bin/bash
-.PHONY: all host vector
-all: host vector
-host:
-	@mkdir -p ${vh_dir}
-	# configuring host
-	cd ${vh_dir} && ${icon_dir}/config/dkrz/aurora.VH.gcc_mpi-3.4.0 --disable-openmp --enable-testbed
-	set -o pipefail; cd ${vh_dir} && \$(MAKE) |& tee make.log
-vector:
-	@mkdir -p ${ve_dir}
-	# configuring vector
-	cd ${ve_dir} && ${icon_dir}/config/dkrz/aurora.VE.nfort-5.0.1_mpi-3.4.0 --disable-openmp --enable-testbed
-	set -o pipefail; cd ${ve_dir} && \$(MAKE) |& tee make.log
-_EOF
+cat "${makefile}"
+
+make --makefile="${makefile}" ${makeflags}
+
+if test -n "${BB_NAME-}"; then
+  # Build the tests in parallel:
+  make --makefile="${makefile}" ${makeflags} --keep-going TESTS= check-icon
+  # Run the tests serially:
+  make --makefile="${makefile}" --keep-going ICON_VERBOSE_TESTS=1 ICON_COLOR_TESTS=always check-icon
+fi
+
+rm -f "${makefile}"
 
 # Copy the generated system description because the buildbot-scripting needs it:
 cat ${ve_dir}/run/set-up.info

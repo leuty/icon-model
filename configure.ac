@@ -167,6 +167,13 @@ AC_ARG_ENABLE([aes],
   [AS_IF([test x"$enableval" != xno], [enable_aes=yes])],
   [enable_aes=yes])
 
+AC_ARG_ENABLE([ragnarok],
+  [AS_HELP_STRING([--enable-ragnarok],
+     [enable experimental components implemented in C++/Kokkos
+@<:@default=no@:>@])],
+  [AS_IF([test x"$enableval" != xno], [enable_ragnarok=yes])],
+  [enable_ragnarok=no])
+
 AC_ARG_ENABLE([nwp],
   [AS_HELP_STRING([--enable-nwp],
      [enable the NWP physics package @<:@default=yes@:>@])],
@@ -1013,7 +1020,19 @@ ACX_LANG_MACRO_FLAG([AC_SUBST([FC_PP_DEF], [$acx_cv_fc_macro_flag])])
 
 ACX_FC_ATTRIBUTE_CONTIGUOUS(
   [AS_VAR_APPEND([FCFLAGS],
-  [" ${FC_PP_DEF}HAVE_FC_ATTRIBUTE_CONTIGUOUS"])], [:])
+     [" ${FC_PP_DEF}HAVE_FC_ATTRIBUTE_CONTIGUOUS"])],
+  [:])
+
+AC_CACHE_CHECK([whether $FC supports quadruple-precision real kind],
+  [icon_cv_have_quad_precision],
+  [icon_cv_have_quad_precision=no
+    AC_LINK_IFELSE([AC_LANG_PROGRAM([], [[
+      implicit none
+      integer, parameter :: qp = selected_real_kind(30)
+      real(qp), parameter :: v = 1._qp]])],
+      [icon_cv_have_quad_precision=yes])])
+AS_VAR_IF([icon_cv_have_quad_precision], [yes],
+  [AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}__HAVE_QUAD_PRECISION"])])
 
 AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}__ICON__"])
 
@@ -1046,6 +1065,9 @@ AS_VAR_IF([enable_coupling], [yes],
 
 AS_VAR_IF([enable_aes], [no],
   [AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}__NO_AES__"])])
+
+AS_VAR_IF([enable_ragnarok], [no],
+  [AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}__NO_RAGNAROK__"])])
 
 AS_VAR_IF([enable_nwp], [no],
   [AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}__NO_NWP__"])])
@@ -1227,6 +1249,7 @@ subdir_CUDAFLAGS=${CUDAFLAGS-}
 subdir_HIPFLAGS=${HIPFLAGS-}
 
 icon_gpu_secondary_arch=unknown
+icon_cmake_hipcc_workaround=
 dnl We do not use AS_CASE to prevent checking for CUDACXX and HIPCXX when GPU
 dnl support is disabled:
 case $icon_gpu_secondary in #(
@@ -1303,6 +1326,18 @@ dnl Override the default flags set by ACX_PROG_HIPCXX:
 dnl Make sure the configure checks are run with ICON_HIPFLAGS:
     AS_VAR_APPEND([HIPFLAGS], ["${ICON_HIPFLAGS:+ }${ICON_HIPFLAGS}"])
     ACX_PROG_HIPCXX
+dnl CMake does not accept hipcc as the HIP compiler and fails the configuration
+dnl if HIPCXX contains hipcc as a substring. Therefore, we have to unset the
+dnl variable before running cmake:
+    AS_CASE([$HIPCXX],
+      [*hipcc*],
+      [icon_cmake_hipcc_workaround='unset HIPCXX && '
+dnl CMake wants to get the required information from the hipconfig utility. Any
+dnl attempt to ensure the consistency between hipcc and hipconfig in the PATH
+dnl seems error-prone. The best we can do is bring the importance of hipconfig
+dnl to the user's attention by checking whether the executable is in the PATH
+dnl and failing the configuration if that is not the case:
+       ACX_PROG_SEARCH_ABSPATH([hipconfig])])
 dnl Make sure that the bundled packages pick up the same HIPCXX if not set by
 dnl the user on the command line:
     export HIPCXX
@@ -2586,6 +2621,7 @@ dnl Parallel-NetCDF features enabled, CDI will override the default value.
      [acx_cv_have_pnetcdf=no],
 dnl Disable unwanted extra dependencies.
      [acx_cv_have_libnc_dap=no], [acx_cv_have_nc4hdf5=no])
+   BUNDLED_LIBFILES="externals/cdi/src/.libs/libcdi.a $BUNDLED_LIBFILES"
    AS_VAR_IF([enable_cdi_pio], [yes],
 dnl To enable the test suite of CDI, we need to provide the configure script of
 dnl the library with information on how to link to the bundled YAXT and PPM
@@ -2628,7 +2664,6 @@ ${icon_abs_top_builddir}/externals/yaxt/src/libyaxt_c.la"])
         ["${FC_INC_FLAG}${srcdir}/externals/cdi/src "])
       BUNDLED_LIBFILES="externals/cdi/src/.libs/libcdipio.a $BUNDLED_LIBFILES"])
    AS_VAR_APPEND([bundled_includes], ["${FC_MOD_IN}externals/cdi/src "])
-   BUNDLED_LIBFILES="externals/cdi/src/.libs/libcdi.a $BUNDLED_LIBFILES"
    BUNDLED_LIBFILES="externals/cdi/src/.libs/libcdi_f2003.a $BUNDLED_LIBFILES"
    AS_VAR_APPEND([icon_pvcs_subdirs], [' externals/cdi'])])
 
@@ -2895,6 +2930,106 @@ ${icon_abs_top_builddir}/externals/fortran-support/build"])
 "externals/fortran-support/build/src/libfortran-support.a $BUNDLED_LIBFILES"
    AS_VAR_APPEND([icon_pvcs_subdirs], [' externals/fortran-support'])])
 
+AS_VAR_IF([enable_ragnarok], [yes],
+  [icon_subdir_srcdir="$srcdir/externals/kokkos"
+   icon_subdir_unique_file='core/src/Kokkos_Core.hpp'
+   AS_IF([test ! -r "$icon_subdir_srcdir/$icon_subdir_unique_file"],
+     [AC_MSG_ERROR([unable to find sources of the bundled version of KOKKOS dnl
+library ($icon_subdir_unique_file) in '$icon_subdir_srcdir'])])
+   AC_ARG_VAR([ICON_KOKKOS_CXXFLAGS],
+     [C++ compiler flags to be appended to CXXFLAGS when configuring the KOKKOS
+library @<:@default=$ICON_BUNDLED_CXXFLAGS@:>@])dnl
+   ICON_KOKKOS_CXXFLAGS=${ICON_KOKKOS_CXXFLAGS-$ICON_BUNDLED_CXXFLAGS}
+   AC_ARG_VAR([ICON_KOKKOS_CUDAFLAGS],
+     [CUDA C++ compiler flags to be appended to CUDAFLAGS when configuring the
+KOKKOS library @<:@default=$ICON_BUNDLED_CUDAFLAGS@:>@])dnl
+   ICON_KOKKOS_CUDAFLAGS=${ICON_KOKKOS_CUDAFLAGS-$ICON_BUNDLED_CUDAFLAGS}
+   AC_ARG_VAR([ICON_KOKKOS_HIPFLAGS],
+     [HIP C++ compiler flags to be appended to HIPFLAGS when configuring the
+KOKKOS library @<:@default=$ICON_BUNDLED_HIPFLAGS@:>@])dnl
+   ICON_KOKKOS_HIPFLAGS=${ICON_KOKKOS_HIPFLAGS-$ICON_BUNDLED_HIPFLAGS}
+   ACX_SUBDIR_INIT_CMAKE([utils/cmake-wrapper],
+     [no-run no-adjust-compilers no-adjust-utilities],
+     [externals/kokkos/build], [${icon_cmake_hipcc_workaround}'${CMAKE}'])
+   ACX_SUBDIR_REMOVE_ARGS([ragnarok/build],
+     [-DCMAKE_C_*=*|-DCMAKE_Fortran_*=*|-DCMAKE_CXX_FLAGS=*])
+   icon_kokkos_extra_args=
+   AS_VAR_IF([enable_openmp], [yes],
+     [AS_VAR_APPEND([icon_kokkos_extra_args], [' -DKokkos_ENABLE_OPENMP=ON'])],
+     [AS_VAR_APPEND([icon_kokkos_extra_args], [' -DKokkos_ENABLE_SERIAL=ON'])])
+   AS_CASE([$icon_gpu_secondary],
+     [cuda],
+     [AS_VAR_APPEND([icon_kokkos_extra_args], [' -DKokkos_ENABLE_CUDA=ON'])],
+     [hip],
+     [AS_VAR_APPEND([icon_kokkos_extra_args], [' -DKokkos_ENABLE_HIP=ON'])])
+   AS_IF([test x"$icon_gpu_secondary" != xno],
+     [AS_CASE([$icon_gpu_secondary_arch],
+        [gfx*], [icon_tmp=dnl
+`AS_ECHO_N(["$icon_gpu_secondary_arch"]) | tr 'm4_cr_letters' 'm4_cr_LETTERS'`],
+        [*0], [icon_tmp=dnl
+`AS_ECHO_N(["$icon_gpu_secondary_arch"]) | sed 's/0$//'`],
+        [icon_tmp=$icon_gpu_secondary_arch])
+      AS_CASE([$icon_tmp],
+        [30|32|35|37],
+        [AS_VAR_APPEND([icon_kokkos_extra_args],
+           [" -DKokkos_ARCH_KEPLER${icon_tmp}=ON"])],
+        [50|52|53],
+        [AS_VAR_APPEND([icon_kokkos_extra_args],
+           [" -DKokkos_ARCH_MAXWELL${icon_tmp}=ON"])],
+        [60|61],
+        [AS_VAR_APPEND([icon_kokkos_extra_args],
+           [" -DKokkos_ARCH_PASCAL${icon_tmp}=ON"])],
+        [70|72],
+        [AS_VAR_APPEND([icon_kokkos_extra_args],
+           [" -DKokkos_ARCH_VOLTA${icon_tmp}=ON"])],
+        [75],
+        [AS_VAR_APPEND([icon_kokkos_extra_args],
+           [" -DKokkos_ARCH_TURING${icon_tmp}=ON"])],
+        [80|86],
+        [AS_VAR_APPEND([icon_kokkos_extra_args],
+           [" -DKokkos_ARCH_AMPERE${icon_tmp}=ON"])],
+        [89],
+        [AS_VAR_APPEND([icon_kokkos_extra_args],
+           [" -DKokkos_ARCH_ADA${icon_tmp}=ON"])],
+        [90],
+        [AS_VAR_APPEND([icon_kokkos_extra_args],
+           [" -DKokkos_ARCH_HOPPER${icon_tmp}=ON"])],
+        [100|120],
+        [AS_VAR_APPEND([icon_kokkos_extra_args],
+           [" -DKokkos_ARCH_BLACKWELL${icon_tmp}=ON"])],
+        [GFX*],
+        [AS_VAR_APPEND([icon_kokkos_extra_args],
+           [" -DKokkos_ARCH_AMD_${icon_tmp}=ON"])],
+        [AC_MSG_WARN(
+           [unable to identify the Kokkos device architecture name])])])
+   ACX_SUBDIR_APPEND_ARGS([externals/kokkos/build],
+     [-DCMAKE_AR="$AR"], [-DCMAKE_RANLIB="$RANLIB"],
+     [-DCMAKE_CXX_FLAGS=dnl
+"$subdir_CXXFLAGS $ICON_KOKKOS_CXXFLAGS $subdir_CPPFLAGS"],
+     [-DCMAKE_CUDA_FLAGS="$subdir_CUDAFLAGS $ICON_KOKKOS_CUDAFLAGS"],
+     [-DCMAKE_CUDA_STANDARD_LIBRARIES="$LIBS"],
+     [-DCMAKE_HIP_FLAGS="$subdir_HIPFLAGS $ICON_KOKKOS_HIPFLAGS"],
+     [-DCMAKE_HIP_STANDARD_LIBRARIES="$LIBS"],
+     [-DCMAKE_BUILD_TYPE=None],
+     [-DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH"],
+     [-DBUILD_SHARED_LIBS=OFF], [-DCMAKE_HIP_ARCHITECTURES=OFF],
+     [-DICON_DEP_SOURCE_DIR="${icon_abs_top_srcdir}/externals/kokkos"],
+     [-DICON_EXCLUDE_FROM_ALL='impl_git_version'],
+     [-DKokkos_ENABLE_IMPL_MDSPAN=OFF], [-DKokkos_ENABLE_LIBDL=OFF],
+     [-DKokkos_ENABLE_COMPILE_AS_CMAKE_LANGUAGE=ON],
+     [$icon_kokkos_extra_args])
+   AS_VAR_APPEND([bundled_CMAKE_PREFIX_PATH],
+     ["${bundled_CMAKE_PREFIX_PATH:+";"}dnl
+${icon_abs_top_builddir}/externals/kokkos/build/_icon"])
+   BUNDLED_LIBFILES=dnl
+"externals/kokkos/build/_icon/simd/src/libkokkossimd.a $BUNDLED_LIBFILES"
+   BUNDLED_LIBFILES=dnl
+"externals/kokkos/build/_icon/containers/src/libkokkoscontainers.a dnl
+$BUNDLED_LIBFILES"
+   BUNDLED_LIBFILES=dnl
+"externals/kokkos/build/_icon/core/src/libkokkoscore.a $BUNDLED_LIBFILES"
+   AS_VAR_APPEND([icon_pvcs_subdirs], [' externals/kokkos'])])
+
 icon_subdir_srcdir="$srcdir/externals/iconmath"
 icon_subdir_unique_file="src/support/mo_math_constants.f90"
 AS_IF([test ! -r "$icon_subdir_srcdir/$icon_subdir_unique_file"],
@@ -2945,6 +3080,46 @@ BUNDLED_LIBFILES=dnl
 "externals/iconmath/build/src/interpolation/libiconmath-interpolation.a dnl
 $BUNDLED_LIBFILES"
 AS_VAR_APPEND([icon_pvcs_subdirs], [' externals/iconmath'])
+
+AS_VAR_IF([enable_ragnarok], [yes],
+  [AC_ARG_VAR([ICON_RAGNAROK_FCFLAGS],
+     [Fortran compiler flags to be appended to FCFLAGS when configuring the
+RAGNAROK library @<:@default=$ICON_BUNDLED_FCFLAGS@:>@])dnl
+   ICON_RAGNAROK_FCFLAGS=${ICON_RAGNAROK_FCFLAGS-$ICON_BUNDLED_FCFLAGS}
+   AC_ARG_VAR([ICON_RAGNAROK_CXXFLAGS],
+     [C++ compiler flags to be appended to CXXFLAGS when configuring the
+RAGNAROK library @<:@default=$ICON_BUNDLED_CXXFLAGS@:>@])dnl
+   ICON_RAGNAROK_CXXFLAGS=${ICON_RAGNAROK_CXXFLAGS-$ICON_BUNDLED_CXXFLAGS}
+   AC_ARG_VAR([ICON_RAGNAROK_CUDAFLAGS],
+     [CUDA C++ compiler flags to be appended to CUDAFLAGS when configuring the
+RAGNAROK library @<:@default=$ICON_BUNDLED_CUDAFLAGS@:>@])dnl
+   ICON_RAGNAROK_CUDAFLAGS=${ICON_RAGNAROK_CUDAFLAGS-$ICON_BUNDLED_CUDAFLAGS}
+   AC_ARG_VAR([ICON_RAGNAROK_HIPFLAGS],
+     [HIP C++ compiler flags to be appended to HIPFLAGS when configuring the
+RAGNAROK library @<:@default=$ICON_BUNDLED_HIPFLAGS@:>@])dnl
+   ICON_RAGNAROK_HIPFLAGS=${ICON_RAGNAROK_HIPFLAGS-$ICON_BUNDLED_HIPFLAGS}
+   ACX_SUBDIR_INIT_CMAKE([ragnarok],
+     [no-run no-adjust-compilers no-adjust-utilities],
+     [ragnarok/build], [${icon_cmake_hipcc_workaround}'${CMAKE}'])
+   ACX_SUBDIR_REMOVE_ARGS([ragnarok/build],
+     [-DCMAKE_C_*=*|-DCMAKE_Fortran_FLAGS=*|-DCMAKE_CXX_FLAGS=*])
+   ACX_SUBDIR_APPEND_ARGS([ragnarok/build],
+     [-DCMAKE_AR="$AR"], [-DCMAKE_RANLIB="$RANLIB"],
+     [-DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_RAGNAROK_FCFLAGS"],
+     [-DCMAKE_CXX_FLAGS=dnl
+"$subdir_CXXFLAGS $ICON_RAGNAROK_CXXFLAGS $subdir_CPPFLAGS"],
+     [-DCMAKE_CUDA_FLAGS="$subdir_CUDAFLAGS $ICON_RAGNAROK_CUDAFLAGS"],
+     [-DCMAKE_HIP_STANDARD_LIBRARIES="$LIBS"],
+     [-DCMAKE_HIP_FLAGS="$subdir_HIPFLAGS $ICON_RAGNAROK_HIPFLAGS"],
+     [-DCMAKE_HIP_STANDARD_LIBRARIES="$LIBS"],
+     [-DCMAKE_BUILD_TYPE=None],
+     [-DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH"],
+     [-DBUILD_SHARED_LIBS=OFF], [-DCMAKE_CUDA_ARCHITECTURES=OFF],
+     [-DCMAKE_HIP_ARCHITECTURES=OFF])
+   icon_bundled_config_after_config([ragnarok/build], [externals/kokkos/build])
+   AS_VAR_APPEND([bundled_includes],
+     ["${FC_MOD_IN}ragnarok/build/src/icon_bridge/mod "])
+   BUNDLED_LIBFILES="ragnarok/build/src/libragnarok.a $BUNDLED_LIBFILES"])
 
 dnl Prepend the include search flags to FCFLAGS:
 FCFLAGS="${bundled_includes}${FCFLAGS}"
@@ -3083,8 +3258,10 @@ AS_VAR_IF([enable_art], [yes],
   [AC_SUBST([ART_ENABLED], ['#'])])
 
 AS_VAR_IF([enable_mpi], [yes],
-  [AC_SUBST([MPI_ENABLED], [''])],
-  [AC_SUBST([MPI_ENABLED], ['#'])])
+  [AC_SUBST([MPI_ENABLED], [''])
+   AC_SUBST([MPI_DISABLED], ['#'])],
+  [AC_SUBST([MPI_ENABLED], ['#'])
+   AC_SUBST([MPI_DISABLED], [''])])
 
 AS_VAR_IF([enable_openmp], [yes],
   [AC_SUBST([OPENMP_ENABLED], [''])],

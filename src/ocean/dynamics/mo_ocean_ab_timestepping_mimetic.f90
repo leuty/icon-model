@@ -837,10 +837,14 @@ CONTAINS
       !$ACC END PARALLEL LOOP
     ENDIF
     IF(is_first_timestep)THEN
-      !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-      ocean_state%p_aux%g_nimd(1:nproma,1:n_zlev, blockNo) = &
-        & ocean_state%p_aux%g_n(1:nproma,1:n_zlev,blockNo)
-      !$ACC END KERNELS
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
+      DO jk = 1, n_zlev
+        DO je = 1, nproma
+          ocean_state%p_aux%g_nimd(je,jk,blockNo) = &
+            & ocean_state%p_aux%g_n(je,jk,blockNo)
+        END DO
+      END DO
+      !$ACC END PARALLEL LOOP
     ELSE
       !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
       DO je = start_edge_index, end_edge_index
