@@ -30,6 +30,9 @@ These configurations are supported by the Max Planck Institute for Meteorology. 
 [Nest](ref_buildrun_nest):
 : This case tests ICON's capability of handling several meshes, nested within one another. The configuration uses a global R2B4 parent mesh, a first-level nested domain that covers the Atlantic ocean, and two second-level nested domains focused over the ITCZ and stratocumulus southern region. The latter two domains share the same parent mesh, which slightly complexifies the case. This allows to test both the parent-child nesting and most features pertaining to limited-area runs.
 
+[AMIP](ref_buildrun_amip):
+: This configuration follows the Atmospheric Model Intercomparison Project (AMIP) protocol. In this configuration, ICON solves the fluid dynamics equations in the atmosphere on the entire Globe using horizontal grid spacing of 40 km and finer. The atmosphere is coupled to a 1-D land module and to a non-dynamical ocean and sea ice. This means that sea surface temperature and sea ice area is prescribed. The atmosphere is vertically discretized in 90 levels, and the land is represented by 5 soil layers.
+
 ## NWP Use Cases
 
 The use cases for NWP (Numerical Weather Prediction) are available on the [DKRZ Swiftbrowser](https://swiftbrowser.dkrz.de/public/dkrz_4d992e1b-f237-4258-a2bc-138ca6a1cf59/icon-model-use-cases/).

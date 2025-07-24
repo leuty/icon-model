@@ -11,6 +11,7 @@ This website contains a collection of ICON documentation including references to
 buildrun/buildrun_quickstart.md
 buildrun/buildrun_recommended/aes_configurations/bubble.md
 buildrun/buildrun_recommended/aes_configurations/nest.md
+buildrun/buildrun_recommended/aes_configurations/amip.md
 tools/tools.md
 tools/ecflow-ecmwf.md
 atmosphere/atmosphere.md
