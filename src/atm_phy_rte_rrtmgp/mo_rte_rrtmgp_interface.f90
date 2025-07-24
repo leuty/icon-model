@@ -17,7 +17,8 @@ MODULE mo_rte_rrtmgp_interface
   USE mo_parallel_config,            ONLY: nproma_sub
   USE mo_bc_aeropt_kinne,            ONLY: set_bc_aeropt_kinne
   USE mo_bc_aeropt_splumes_opt,      ONLY: add_bc_aeropt_splumes_opt
-   USE mo_bc_aeropt_cmip6_volc,       ONLY: add_bc_aeropt_cmip6_volc
+  USE mo_bc_aeropt_cmip6_volc,       ONLY: add_bc_aeropt_cmip6_volc
+  USE mo_aes_cop_config,             ONLY: aes_cop_config
 
   USE mo_optical_props,              ONLY: ty_optical_props_1scl, &
                                            ty_optical_props_2str
@@ -29,7 +30,7 @@ MODULE mo_rte_rrtmgp_interface
   USE mo_icon_fluxes_sw,             ONLY: ty_icon_fluxes_sw, set_fractions
   USE mo_rte_rrtmgp_setup,           ONLY: k_dist_lw, k_dist_sw, &
                                            cloud_optics_lw, cloud_optics_sw, &
-                                           stop_on_err, inhoml, inhomi, inhoms
+                                           stop_on_err
 
   USE mo_rad_diag,                   ONLY: rad_aero_diag
   USE mo_timer,                      ONLY: ltimer, timer_start, timer_stop, &
@@ -56,6 +57,7 @@ MODULE mo_rte_rrtmgp_interface
    &                                       timer_rte_sw_allsky
   USE mo_radiation_general,          ONLY: wavenum1, wavenum2
   USE mo_aes_rad_config,             ONLY: aes_rad_config
+  USE mo_aes_cop_config,             ONLY: aes_cop_config
   USE mtime,                         ONLY: datetime
   USE mo_fortran_tools,              ONLY: set_acc_host_or_device
 
@@ -111,7 +113,7 @@ CONTAINS
       & zf              ,zh              ,dz                               ,&
       & pp_sfc          ,pp_fl           ,pp_hl                            ,&
       & tk_sfc          ,tk_fl           ,tk_hl                            ,&
-      & rad_2d                                                             ,&
+      & cinhoml_2d                                                         ,&
       & xvmr_vap        ,xm_liq          ,xm_ice                           ,&
       & reff_ice        ,tau_ice         ,reff_snow       ,tau_snow        ,&
       & cdnc            ,xc_frc          ,xm_snw                           ,&
@@ -185,7 +187,7 @@ CONTAINS
          tau_snow(:,:)      !< optical depth of snow integrated over bands
 
     REAL(wp), INTENT(INOUT) :: &
-         rad_2d(:)          !< arbitrary 2d field for output inside radiation
+         cinhoml_2d(:)      !< 2d-field for the cloud liquid water inhomogeneity
 
     REAL(wp), INTENT(OUT)   :: &
       & lw_dnw_clr(:,:),& !< Clear-sky downward longwave  at all levels
@@ -216,9 +218,13 @@ CONTAINS
          aer_aod_9731  (:,:)    !< Aerosol optical density at 9731 nm
 
     LOGICAL :: lclrsky_lw, lclrsky_sw
-    LOGICAL :: inhom_lts
+    REAL(wp):: cinhomi
+    REAL(wp):: cinhoms
+    REAL(wp):: cinhoml_cf
+    REAL(wp):: cinhoml_sf
+    INTEGER :: cinhoml_jk
+
     LOGICAL :: use_acc
-    REAL(wp) :: inhom_lts_max
 
     ! --------------------------------------------------------------------------
     INTEGER :: ncol_supplied, ncol_needed, jchunk_start, jchunk_end
@@ -346,8 +352,12 @@ CONTAINS
     lclrsky_lw    = aes_rad_config(jg)%lclrsky_lw
     lclrsky_sw    = aes_rad_config(jg)%lclrsky_sw
     !
-    inhom_lts     = aes_rad_config(jg)%inhom_lts
-    inhom_lts_max = aes_rad_config(jg)%inhom_lts_max
+    cinhomi         = aes_cop_config(jg)%cinhomi
+    cinhoms         = aes_cop_config(jg)%cinhoms
+    cinhoml_cf      = aes_cop_config(jg)%cinhoml_cf
+    cinhoml_sf      = aes_cop_config(jg)%cinhoml_sf
+    cinhoml_jk      = aes_cop_config(jg)%cinhoml_jk
+    !
     ! --------------------------------------------------------------------------
     !
     !
@@ -363,7 +373,8 @@ CONTAINS
 
        CALL rte_rrtmgp_interface_onBlock(                              &
           & lclrsky_lw,        lclrsky_sw,                             &
-          & inhom_lts,         inhom_lts_max,                          &
+          & cinhomi,           cinhoms,                                &
+          & cinhoml_cf,        cinhoml_sf,        cinhoml_jk,          &
           & ncol_needed,       klev,                                   &
           & psctm,             ssi_factor,                             &
           & loland(:),         loglac(:),                              &
@@ -374,7 +385,7 @@ CONTAINS
           & zf(:,:),           zh(:,:),           dz(:,:),             &
           & pp_sfc(:),         pp_fl(:,:),        pp_hl(:,:),          &
           & tk_sfc(:),         tk_fl(:,:),        tk_hl(:,:),          &
-          & rad_2d(:),                                                 &
+          & cinhoml_2d(:),                                             &
           & xvmr_vap(:,:),     xm_liq(:,:),                            &
           & xm_ice(:,:),       reff_ice(:,:),     tau_ice(:,:),        &
           & reff_snow(:,:),    tau_snow(:,:),                          &
@@ -403,7 +414,8 @@ CONTAINS
         jchunk_end = MIN(jchunk_start + nproma_sub - 1, jce)
         CALL shift_and_call_rte_rrtmgp_interface_onBlock(                &
             & lclrsky_lw,        lclrsky_sw,                             &
-            & inhom_lts,         inhom_lts_max,                          &
+            & cinhomi,           cinhoms,                                &
+            & cinhoml_cf,        cinhoml_sf,        cinhoml_jk,          &
             & jchunk_start,      jchunk_end,                             &
             & klev,                                                      &
             & psctm,             ssi_factor,                             &
@@ -415,7 +427,7 @@ CONTAINS
             & zf(:,:),           zh(:,:),           dz(:,:),             &
             & pp_sfc(:),         pp_fl(:,:),        pp_hl(:,:),          &
             & tk_sfc(:),         tk_fl(:,:),        tk_hl(:,:),          &
-            & rad_2d(:),                                                 &
+            & cinhoml_2d(:),                                             &
             & xvmr_vap(:,:),     xm_liq(:,:),                            &
             & xm_ice(:,:),       reff_ice(:,:),     tau_ice(:,:),        &
             & reff_snow(:,:),    tau_snow(:,:),                          &
@@ -500,7 +512,8 @@ CONTAINS
 
   SUBROUTINE rte_rrtmgp_interface_onBlock(                   &
        & lclrsky_lw,     lclrsky_sw,                         &
-       & inhom_lts,      inhom_lts_max,                      &
+       & cinhomi,        cinhoms,                            &
+       & cinhoml_cf,     cinhoml_sf,     cinhoml_jk,         &
        & ncol,           klev,                               &
        & psctm,          ssi_factor,                         &
        & laland,         laglac,                             &
@@ -511,7 +524,7 @@ CONTAINS
        & zf,             zh,             dz,                 &
        & pp_sfc,         pp_fl,          pp_hl,              &
        & tk_sfc,         tk_fl,          tk_hl,              &
-       & rad_2d,                                             &
+       & cinhoml_2d,                                         &
        & xvmr_vap,       xm_liq,                             &
        & xm_ice,         reff_ice,       tau_ice,            &
        & reff_snow,      tau_snow,                           &
@@ -534,8 +547,9 @@ CONTAINS
 
     LOGICAL,INTENT(IN)  :: lclrsky_lw                    !< flag for LW clear-sky computations
     LOGICAL,INTENT(IN)  :: lclrsky_sw                    !< flag for SW clear-sky computations
-    LOGICAL,INTENT(IN)  :: inhom_lts
-    REAL(wp),INTENT(IN) :: inhom_lts_max                 !< maximum value on inhoml
+    REAL(wp),INTENT(IN) :: cinhomi, cinhoms              !< inhomogeneity factors for ice, and snow
+    REAL(wp),INTENT(IN) :: cinhoml_cf, cinhoml_sf        !< limiting inhomogeneity for liquid cumulus and stratus
+    INTEGER,INTENT(IN)  :: cinhoml_jk                    !< level index for blending function of inhoml factors
 
     INTEGER,INTENT(IN)  :: &
          ncol,             & !< number of columns
@@ -590,7 +604,7 @@ CONTAINS
          tau_snow(:,:)       !< optical depth of snow integrated over bands
 
     REAL (wp), INTENT (INOUT) :: &
-         rad_2d(:)           !< arbitrary 2d-field in radiation for output
+         cinhoml_2d(:)       !< 2d-field for the cloud liquid water inhomogeneity
 
 
     REAL (wp), TARGET, INTENT (INOUT) ::       &
@@ -721,17 +735,18 @@ CONTAINS
                   'Droplet minimun size required is bigger than maximum')
     END IF
 
-    IF (inhom_lts) THEN
+    IF (cinhoml_sf /= cinhoml_cf) THEN
       !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(1)
       DO jl = 1, ncol
-         lts = tk_fl(jl,min(73,klev))*(1e5_wp/pp_fl(jl,min(73,klev)))**(rd_o_cpd) - tk_sfc(jl)*(1e5_wp/pp_sfc(jl))**(rd_o_cpd)
-         rad_2d(jl) = inhoml + (inhom_lts_max-inhoml)*(1._wp - atan2(del1,(lts - del2))/pi)
+         lts = tk_fl(jl,min(cinhoml_jk,klev))*(1e5_wp/pp_fl(jl,min(cinhoml_jk,klev)))**(rd_o_cpd) &
+           & - tk_sfc(jl)*(1e5_wp/pp_sfc(jl))**(rd_o_cpd)
+         cinhoml_2d(jl) = cinhoml_cf + (cinhoml_sf-cinhoml_cf)*(1._wp - atan2(del1,(lts - del2))/pi)
       END DO
      !$ACC END PARALLEL LOOP
      ELSE
       !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(1)
       DO jl = 1, ncol
-         rad_2d(jl) = inhoml
+         cinhoml_2d(jl) = cinhoml_cf
       END DO
       !$ACC END PARALLEL LOOP
     END IF
@@ -1186,14 +1201,14 @@ CONTAINS
     ! hack inhom implementation by scaling the condensate water paths
     ! it's important to run this AFTER the longwave
     !!$ACC DATA CREATE(zlwp,ziwp,zswp)
-    !!$ACC DATA PRESENT(rad_2d)
+    !!$ACC DATA PRESENT(cinhoml_2d)
     !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
     !$ACC LOOP GANG VECTOR COLLAPSE(2)
     DO j = 1, klev
       DO i = 1, ncol
-        zlwp(i,j) = zlwp(i,j) * rad_2d(i)
-        ziwp(i,j) = ziwp(i,j) * inhomi
-        zswp(i,j) = zswp(i,j) * inhoms
+        zlwp(i,j) = zlwp(i,j) * cinhoml_2d(i)
+        ziwp(i,j) = ziwp(i,j) * cinhomi
+        zswp(i,j) = zswp(i,j) * cinhoms
       END DO
     END DO
     !$ACC END PARALLEL
@@ -1343,7 +1358,8 @@ CONTAINS
   ! ----------------------------------------------------------------------------
   SUBROUTINE shift_and_call_rte_rrtmgp_interface_onBlock(    &
     & lclrsky_lw,     lclrsky_sw,                     &
-    & inhom_lts,      inhom_lts_max,                  &
+    & cinhomi,        cinhoms,                        &
+    & cinhoml_cf,     cinhoml_sf,     cinhoml_jk,     &
     & jcs,            jce,                            &
     &                 klev,                           &
     !
@@ -1356,7 +1372,7 @@ CONTAINS
     & zf,             zh,             dz,             &
     & pp_sfc,         pp_fl,          pp_hl,          &
     & tk_sfc,         tk_fl,          tk_hl,          &
-    & rad_2d,                                         &
+    & cinhoml_2d,                                     &
     & xvmr_vap,       xm_liq,                         &
     & xm_ice,         reff_ice,       tau_ice,        &
     & reff_snow,      tau_snow,                       &
@@ -1376,8 +1392,9 @@ CONTAINS
 
  LOGICAL,INTENT(IN)  :: lclrsky_lw                    !< flag for LW clear-sky computations
  LOGICAL,INTENT(IN)  :: lclrsky_sw                    !< flag for SW clear-sky computations
- LOGICAL,INTENT(IN)  :: inhom_lts
- REAL(wp),INTENT(IN) :: inhom_lts_max
+ REAL(wp),INTENT(IN) :: cinhomi, cinhoms              !< inhomogeneity factors for ice, snow
+ REAL(wp),INTENT(IN) :: cinhoml_cf, cinhoml_sf        !< inhomogeneity factor for cumuliform and stratiform liquid
+ INTEGER,INTENT(IN)  :: cinhoml_jk                    !< level index for lts computation
 
  INTEGER,INTENT(IN)  :: &
       & jcs,            & !< cell/column index, start
@@ -1432,7 +1449,7 @@ CONTAINS
       & tau_snow(:,:)       !< optical depth of snow integrated over bands
 
  REAL (wp), INTENT (INOUT) :: &
-      & rad_2d(:)           !< arbitrary 2d-field in radiation for output
+      & cinhoml_2d(:)       !< 2d-field for the cloud liquid water inhomogeneity
 
 
  REAL (wp), TARGET, INTENT (INOUT) ::       &
@@ -1590,7 +1607,8 @@ CONTAINS
   !
   CALL rte_rrtmgp_interface_onBlock(                                                 &
       & lclrsky_lw,               lclrsky_sw,                                        &
-      & inhom_lts,                inhom_lts_max,                                     &
+      & cinhomi,                  cinhoms,                                           &
+      & cinhoml_cf,               cinhoml_sf,               cinhoml_jk,              &
       & ncol,                     klev,                                              &
       !
       & psctm,                    ssi_factor,                                        &
@@ -1602,7 +1620,7 @@ CONTAINS
       & s_zf(:,:),                s_zh(:,:),                s_dz(:,:),               &
       & pp_sfc     (jcs:jce),     s_pp_fl(:,:),             s_pp_hl(:,:),            &
       & tk_sfc     (jcs:jce),     s_tk_fl(:,:),             s_tk_hl(:,:),            &
-      & rad_2d     (jcs:jce),                                                        &
+      & cinhoml_2d (jcs:jce),                                                        &
       & s_xvmr_vap(:,:),          s_xm_liq(:,:),                                     &
       & s_xm_ice(:,:),            s_reff_ice(:,:),          s_tau_ice(:,:),          &
       & s_reff_snow(:,:),         s_tau_snow(:,:),                                   &

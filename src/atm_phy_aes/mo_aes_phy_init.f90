@@ -77,7 +77,7 @@ MODULE mo_aes_phy_init
   USE mo_aes_convect_tables,   ONLY: init_aes_convect_tables => init_convect_tables
 
   ! cloud optical properties
-  USE mo_aes_cop_config,       ONLY: print_aes_cop_config, aes_cop_config
+  USE mo_aes_cop_config,       ONLY: eval_aes_cop_config, print_aes_cop_config
 
   ! two-moment bulk microphysics
   USE mo_2mom_mcrph_driver,    ONLY: two_moment_mcrph_init
@@ -199,13 +199,12 @@ CONTAINS
       CALL print_aes_rad_config(ng)
       !
       ! Cloud optical properties
+      CALL  eval_aes_cop_config(ng)
       CALL print_aes_cop_config(ng)
 #ifndef __NO_RTE_RRTMGP__
       !
-      ! Radiation constants for gas and cloud optics
-      CALL rte_rrtmgp_basic_setup(nproma, nlev, pressure_scale, droplet_scale,          &
-        &                         aes_cop_config(1)%cinhoml, aes_cop_config(1)%cinhomi, &
-        &                         aes_cop_config(1)%cinhoms)
+      ! Radiation constants for gas
+      CALL rte_rrtmgp_basic_setup
 #endif
     END IF
 

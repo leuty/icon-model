@@ -65,7 +65,7 @@ if [ ${grid_refinement} == R02B08 ] ; then
    # namelist variables
    #
    num_restart_procs=10
-   cinhoml=0.4
+   cinhoml_cf=0.4
    l_soil_texture=.TRUE.
 
 elif [ ${grid_refinement} == R02B09 ] ; then
@@ -87,7 +87,7 @@ elif [ ${grid_refinement} == R02B09 ] ; then
    # namelist variables
    #
    num_restart_procs=992
-   cinhoml=0.45
+   cinhoml_cf=0.45
    l_soil_texture=.FALSE.
 
 elif [ ${grid_refinement} == R02B10 ] ; then
@@ -108,7 +108,7 @@ elif [ ${grid_refinement} == R02B10 ] ; then
    # namelist variables
    #
    num_restart_procs=992
-   cinhoml=0.5
+   cinhoml_cf=0.5
    l_soil_texture=.FALSE.
 
 elif [ ${grid_refinement} == R02B04 ] ; then
@@ -129,7 +129,7 @@ elif [ ${grid_refinement} == R02B04 ] ; then
    # namelist variables
    #
    num_restart_procs=1
-   cinhoml=0.4
+   cinhoml_cf=0.4
    l_soil_texture=.TRUE.
 
 elif [ ${grid_refinement} == R02B06 ] ; then
@@ -150,7 +150,7 @@ elif [ ${grid_refinement} == R02B06 ] ; then
    # namelist variables
    #
    num_restart_procs=1
-   cinhoml=0.4
+   cinhoml_cf=0.4
    l_soil_texture=.TRUE.
 
 fi
@@ -345,8 +345,6 @@ cat > ${atmo_namelist} << EOF
  aes_rad_config(1)%irad_cfc11 = 3
  aes_rad_config(1)%irad_cfc12 = 3
  aes_rad_config(1)%irad_aero  = 13 ! tropospheric aerosol optical properties after S. Kinne, filename with year
- aes_rad_config(1)%inhom_lts  = .TRUE.
- aes_rad_config(1)%inhom_lts_max = 0.725
 /
 &aes_vdf_nml
  aes_vdf_config(1)%turb       = 2
@@ -363,9 +361,10 @@ cat > ${atmo_namelist} << EOF
  aes_cov_config(1)%cqx        = 1.e-6
 /
 &aes_cop_nml
- aes_cop_config(1)%cinhomi  = 0.6
- aes_cop_config(1)%cinhoms  = 0.6
- aes_cop_config(1)%cinhoml  = ${cinhoml}
+ aes_cop_config(1)%cinhomi    = 0.6
+ aes_cop_config(1)%cinhoms    = 0.6
+ aes_cop_config(1)%cinhoml_cf = ${cinhoml_cf}
+ aes_cop_config(1)%cinhoml_sf = 0.725
  aes_cop_config(1)%cn1lnd   = 50.0
  aes_cop_config(1)%cn1sea   = 50.0
  aes_cop_config(1)%cn2lnd   = 220.0

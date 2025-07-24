@@ -220,7 +220,8 @@ cat > ${atmo_namelist} << EOF
  aes_cop_config(1)%cn2sea     = 100.0
  aes_cop_config(1)%cinhomi    =   1.0
  aes_cop_config(1)%cinhoms    =   1.0
- aes_cop_config(1)%cinhoml    =   1.0
+ aes_cop_config(1)%cinhoml_cf =   1.0
+ aes_cop_config(1)%cinhoml_sf =   1.0
 /
 &cloud_mig_nml
  cloud_mig_config(1)%mu_rain        = 0.5

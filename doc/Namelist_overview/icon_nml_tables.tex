@@ -192,12 +192,22 @@ ice cloud inhomogeneity factor &
 
 aes\_cop\_config(jg)\% cinhoms &
 R & 0.8 & &
-snow cloud inhomogeneity factor, \newline
+snow cloud inhomogeneity factor &
 \tabularnewline
 
-aes\_cop\_config(jg)\% cinhoml &
+aes\_cop\_config(jg)\% cinhoml\_cf &
 R & 0.4 & &
-liquid cloud inhomogeneity factor, \newline
+liquid cloud inhomogeneity factor for cumuliform clouds &
+\tabularnewline
+
+aes\_cop\_config(jg)\% cinhoml\_sf &
+R & 0.8 & &
+liquid cloud inhomogeneity factor for stratiform clouds &
+\tabularnewline
+
+aes\_cop\_config(jg)\% cinhoml\_lts\_height &
+R & 3200. & m &
+height over ocean used to determine the index of the highest level below this height. This model level is used to compute the lower tropospheric stability as a difference of the potential temperature at this level and at the surface to identify stratocumulus areas &
 \tabularnewline
 
 aes\_cop\_config(jg)\% cthomi &

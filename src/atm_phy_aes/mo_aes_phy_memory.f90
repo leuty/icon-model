@@ -252,7 +252,7 @@ MODULE mo_aes_phy_memory
       & tau_snow    (:,:,:)=>NULL()    !< 3d optical depth of snow
     ! arbitrary 2d-field in radiation for output
     REAL(wp), POINTER ::      &
-      & rad_2d      (:,:)=>NULL()      !< arbitrary 2d field in radiation for output
+      & cinhoml_2d      (:,:)=>NULL()      !< arbitrary 2d field in radiation for output
     ! aerosol optical properties
     REAL(wp),POINTER ::      &
       & aer_aod_533 (:,:,:)=>NULL(),  &!< aerosol optical depth at 533 nm
@@ -2473,17 +2473,17 @@ CONTAINS
     ! Arbitrary output fields for radiation
     !--------------------------------------
 
-    cf_desc    = t_cf_var('rad_2d', '', &
-               & 'arbitrary radiation 2d-field', datatype_flt)
-    grib2_desc = grib2_var(0,6,1, ibits, GRID_UNSTRUCTURED, GRID_CELL)
-    CALL add_var( field_list, prefix//'rad_2d', field%rad_2d,       &
+    cf_desc    = t_cf_var('cinhoml_2d', '', &
+               & 'cloud liquid water inhomogeneity', datatype_flt)
+    grib2_desc = grib2_var(255,255,255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+    CALL add_var( field_list, prefix//'cinhoml_2d', field%cinhoml_2d,       &
          &        GRID_UNSTRUCTURED_CELL, ZA_SURFACE,            &
          &        cf_desc, grib2_desc,                           &
          &        ldims=shape2d,                                 &
          &        lrestart = .FALSE.,                            &
          &        isteptype=TSTEP_INSTANT,                       &
          &        lopenacc=.TRUE.)
-    __acc_attach(field%rad_2d)
+    __acc_attach(field%cinhoml_2d)
 
     !-------
     ! Clouds
