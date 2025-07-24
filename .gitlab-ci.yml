@@ -290,6 +290,21 @@ Granules:
         - src/shared/mo_impl_constants_grf.f90
         - test/microphysics_1mom_schemes/**/*
 
+Ragnarok:
+  stage: test
+  needs: []
+  trigger:
+    include: .gitlab/ci/ragnarok.yml
+    strategy: depend
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "web"
+      when: manual
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - .gitlab/ci/ragnarok.yml
+        - externals/kokkos
+        - ragnarok/**/*
+
 Namelist Overview:
   stage: documentation
   needs: []
