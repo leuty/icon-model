@@ -15,6 +15,7 @@ workflow:
     - if: $CI_PROJECT_PATH == "icon/icon-model"
       when: never
     - if: $CI_PIPELINE_SOURCE == "push"
+    - if: $CI_PIPELINE_SOURCE == "schedule"
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_PIPELINE_SOURCE == "web"
       auto_cancel:
@@ -387,6 +388,8 @@ cscs-ci/santis_cpu:
       when: manual
     - if: $CSCS_CI_INACTIVE_BUILDERS =~ "/(^|,)santis-cpu(,|$)/"
       when: never
+    - if: $ICON_TEST_SCHEDULE == "nightly"
+      when: always
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       when: manual
 
@@ -401,6 +404,8 @@ cscs-ci/santis_gpu:
       when: manual
     - if: $CSCS_CI_INACTIVE_BUILDERS =~ "/(^|,)santis-gpu(,|$)/"
       when: never
+    - if: $ICON_TEST_SCHEDULE == "nightly"
+      when: always
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       when: manual
 
