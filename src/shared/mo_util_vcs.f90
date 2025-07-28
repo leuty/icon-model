@@ -345,11 +345,6 @@ CONTAINS
       ELSE
         CALL message('', '  C: '//unknown_value)
       END IF
-      ! Probtest fails if it does not find the following lines in the log:
-      CALL message('', 'probtest metadata:')
-      CALL message('', '  Revision: '//icon_revision)
-      CALL message('', '  Branch: '//icon_local_branch)
-      CALL message('', '')
     END IF
 
     IF (LEN(executable) == 0) executable = 'unknown executable'
