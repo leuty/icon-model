@@ -36,13 +36,15 @@ ln -s exp.$exp_original exp.$EXPERIMENT
 
 # TYPES is a list of names identifying the files <EXPERIMENT>_<TYPE>_<DATE>.<FORMAT> to be checked.
 # get TYPES from the main check script
-grep 'TYPES=' $check_script > ${check_script}_TYPES
-. ./${check_script}_TYPES
+grep 'TYPES=' $check_script > ${check_script}_${modification}_TYPES
+. ./${check_script}_${modification}_TYPES
+rm  ${check_script}_${modification}_TYPES
 
 # DATES is a list of dates identifying the files <EXPERIMENT>_<TYPE>_<DATE>.<FORMAT> to be checked.
 # get DATES from main check script
-grep 'DATES=' $check_script > ${check_script}_DATES
-. ./${check_script}_DATES
+grep 'DATES=' $check_script > ${check_script}_${modification}_DATES
+. ./${check_script}_${modification}_DATES
+rm  ${check_script}_${modification}_DATES
 
 # REFERENCE model directory and reference experiment for update test
 #

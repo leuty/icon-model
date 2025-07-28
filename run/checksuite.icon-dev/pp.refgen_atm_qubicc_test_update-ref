@@ -20,6 +20,7 @@ check_script=checksuite.icon-dev/check.${base_exp%_test_update_base}
 # get TYPES from the main check script
 grep 'TYPES=' $check_script > ${check_script}_TYPES
 . ./${check_script}_TYPES
+rm  ${check_script}_TYPES
 
 update_file_ids=$TYPES
 
