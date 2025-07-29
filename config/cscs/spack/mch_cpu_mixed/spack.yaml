@@ -11,8 +11,9 @@
 spack:
   specs:
   - cosmo-eccodes-definitions@2.36.0.3
-  - icon @develop %nvhpc +grib2 +eccodes-definitions +ecrad +emvorado +art +dace
-    ~aes ~jsbach ~ocean ~coupling ~rte-rrtmgp ~loop-exchange ~async-io-rma +mixed-precision
+  - icon @develop %nvhpc +grib2 +eccodes-definitions +ecrad +emvorado +art +dace ~aes
+    ~jsbach ~ocean ~coupling ~rte-rrtmgp ~loop-exchange ~async-io-rma +mixed-precision
+    extra-config-args="--enable-single-precision-ecrad"
   view: true
   concretizer:
     unify: true

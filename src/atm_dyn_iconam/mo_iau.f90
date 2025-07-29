@@ -74,7 +74,7 @@ MODULE mo_iau
   USE mo_initicon_config,         ONLY: type_iau_wgt, is_iau_active, iau_wgt_dyn, iau_wgt_adv, &
     &                                   qcana_mode, qiana_mode, qrsgana_mode
   USE mo_run_config,              ONLY: iqv, iqc, iqi, iqr, iqs, iqg, iqh, &
-    &                                   iqm_max, iqni, iqnc, iqnr, iqns, iqng, iqnh, iqbin, iqb_i, iqb_e, &
+    &                                   iqm_max, iqni, iqnc, iqnr, iqns, iqng, iqnh, iqbin, iqb_last, &
     &                                   ldass_lhn
   USE mo_dynamics_config,         ONLY: nnow, nnew, nnow_rcf, nnew_rcf
   USE mo_advection_config,        ONLY: advection_config
@@ -588,10 +588,10 @@ CONTAINS
         ENDDO
       ENDIF
 
-      IF (atm_phy_nwp_config(jg)%lsbm) THEN
+      IF (atm_phy_nwp_config(jg)%inwp_gscp == 8) THEN
         IF (qrsgana_mode > 0) THEN
           !$ACC LOOP SEQ
-          DO iqb = iqb_i, iqb_e
+          DO iqb = 1, iqb_last
             !$ACC LOOP GANG(STATIC: 1) VECTOR
             DO jc = i_startidx, i_endidx
               pt_prog_rcf%tracer(jc,jk,jb,iqbin(iqb)) = MAX(0._wp,pt_prog_rcf%tracer(jc,jk,jb,iqbin(iqb)) + &

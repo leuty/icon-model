@@ -81,7 +81,7 @@ MODULE mo_nml_crosscheck
     &                                    newDatetime, deallocateDatetime
   USE mo_sleve_config,             ONLY: itype_laydistr, flat_height, top_height
   USE mo_nudging_config,           ONLY: nudging_config, indg_type
-  USE mo_nwp_tuning_config,        ONLY: itune_gust_diag
+  USE mo_nwp_tuning_config,        ONLY: itune_gust_diag, tune_cu_alfa
   USE mo_nudging_nml,              ONLY: check_nudging
   USE mo_upatmo_config,            ONLY: check_upatmo
   USE mo_name_list_output_config,  ONLY: is_variable_in_output_dom
@@ -317,6 +317,18 @@ CONTAINS
           &  CALL finish( routine,'satad has to be switched on')
         ENDIF
 
+        IF (atm_phy_nwp_config(jg)%inwp_gscp == 8) THEN
+          IF (.NOT. atm_phy_nwp_config(jg)%lmicrophysicsFirst) THEN
+            CALL finish( routine,'lmicrophysicsFirst=TRUE is recommended for SBM')
+          END IF
+          IF (atm_phy_nwp_config(jg)%inwp_satad == 1) THEN
+            CALL finish( routine,'inwp_satad=0 is recommended for SBM')
+          END IF
+#ifdef _OPENACC
+          CALL finish(routine,'SBM is not supported on GPU')
+#endif
+        END IF
+
         IF( (atm_phy_nwp_config(jg)%inwp_gscp==0) .AND. &
           & (atm_phy_nwp_config(jg)%inwp_convection==0) .AND.&
           & (atm_phy_nwp_config(jg)%inwp_radiation==0) .AND.&
@@ -348,7 +360,6 @@ CONTAINS
           CALL finish( routine, 'Wrong value for: icpl_rad_reff. Coupling effective radius for all '//  &
                                  'hydrometeors only works with ECRAD!')
         ENDIF
-
 
         ! check radiation scheme in relation to chosen ozone and irad_aero=iRadAeroTegen to itopo
 
@@ -388,6 +399,11 @@ CONTAINS
                                    &(irad_aero=18,19) and icpl_aero_gscp = 3; reset lscale_cdnc to .false.')
             ENDIF
           ENDIF
+
+          ! CDNC-based interpolation in convection scheme only useful with MODIS CDNC
+          IF ( atm_phy_nwp_config(jg)%lconv_cdnc_interp .AND. atm_phy_nwp_config(jg)%icpl_aero_gscp /= 3 ) THEN
+            CALL message(routine,'CDNC-based interpolation in convection scheme can only be combined with icpl_aero_gscp = 3')
+          END IF
 
           ! check if CAMS/Tegen aerosols are available for DeMott ice nucleation scheme
           IF (icpl_aero_ice == 1 .AND. .NOT. ANY(irad_aero == (/iRadAeroTegen, iRadAeroCAMSclim, iRadAeroCAMStd/) ) ) &
@@ -538,10 +554,23 @@ CONTAINS
             & CALL finish(routine,'iprog_aero > 0 currently only available for irad_aero=6 (Tegen)')
         ENDIF
 
+        !! check options for cloud scheme
+        IF ( tune_cu_alfa > 0 .AND. ANY(atm_phy_nwp_config(1:n_dom)%icpl_aero_gscp == 0) ) THEN
+          CALL finish(routine,'cloud scheme with tune_cu_alfa > 0 requires icpl_aero_gscp > 0')
+        END IF
+
         !! check microphysics scheme
         IF (   ANY(atm_phy_nwp_config(1:n_dom)%inwp_gscp == 2) .AND. &
              & ANY(atm_phy_nwp_config(1:n_dom)%inwp_gscp == 1) ) THEN
           CALL finish(routine,'combining inwp_gscp=1 and inwp_gscp=2 in nested runs is not allowed')
+        END IF
+
+        !! SB two-moment not supported with deep convection parameterization
+        IF ( ANY( atm_phy_nwp_config(jg)%inwp_gscp == (/4,5,6,7/) )  .AND.  &
+             &  ( atm_phy_nwp_config(jg)%inwp_convection == 1        .AND.  &
+             &     .NOT. ( atm_phy_nwp_config(jg)%lshallowconv_only   .OR.  &
+             &             atm_phy_nwp_config(jg)%lgrayzone_deepconv ) ) ) THEN
+          CALL finish(routine,'SB two-moment microphysics inwp_gscp=4/5/6/7 with parameterized deep convection is not supported')
         END IF
 
         IF (  atm_phy_nwp_config(jg)%mu_rain < 0.0   .OR. &
@@ -565,6 +594,26 @@ CONTAINS
           CALL finish(routine,' Turbulence enhancement of collisions '//  &
                       'in two-moment scheme (lturb_enhc) not applicable for aes physics.')
         ENDIF
+
+#ifdef __NEC__
+#ifndef __ASL__
+        IF ( atm_phy_nwp_config(jg)%lstochastic_pattern_generator .AND. atm_phy_nwp_config(jg)%spg_use_asl) THEN
+          CALL finish( routine,'Stochastic pattern generator using Advanced Scientific Library (ASL) has to be linked with ASL')
+        ENDIF
+#endif
+#else
+#ifndef __NEC_VH__
+        IF ( atm_phy_nwp_config(jg)%lstochastic_pattern_generator .AND. atm_phy_nwp_config(jg)%spg_use_asl) THEN
+          CALL finish( routine,'Stochastic pattern generator using Advanced Scientific Library (ASL) is only available on NEC')
+        ENDIF
+#endif
+#endif
+#ifdef __NEC__
+        IF ( atm_phy_nwp_config(jg)%lstochastic_pattern_generator .AND. .not.atm_phy_nwp_config(jg)%spg_use_asl) THEN
+          CALL finish(modname, 'Stochastic pattern generator on NEC without ASL. This is inefficient, please use ASL.')
+        END IF
+#endif
+
 
         ! ltmpcor activates the calculation of dissipative heating in turbdiff;
         ! to prevent double-counting, the respective calculations in the NWP interface need to be skipped

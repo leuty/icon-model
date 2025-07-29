@@ -193,6 +193,7 @@ CONTAINS
       tune_zcsg=0.5_wp, &
       tune_zvz0i=1.25_wp, &
       tune_mu_rain=0.0_wp, &
+      tune_dice_conv=100e-6_wp, &
       tune_icesedi_exp=0.30_wp, &
       tune_rain_n0_factor=1.0_wp, &
       lvariable_rain_n0=.FALSE.)

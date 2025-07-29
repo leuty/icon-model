@@ -23,7 +23,7 @@ MODULE mo_nwp_rad_interface
   USE mo_ext_data_types,       ONLY: t_external_data
   USE mo_parallel_config,      ONLY: nproma
   USE mo_impl_constants,       ONLY: MODIS
-  USE mo_kind,                 ONLY: wp
+  USE mo_kind,                 ONLY: wp, rp
   USE mo_nwp_lnd_types,        ONLY: t_lnd_prog, t_wtr_prog, t_lnd_diag
   USE mo_model_domain,         ONLY: t_patch
   USE mo_nonhydro_types,       ONLY: t_nh_prog, t_nh_diag
@@ -117,7 +117,7 @@ MODULE mo_nwp_rad_interface
     CHARACTER(len=max_timedelta_str_len) :: dstring
     INTEGER :: jg
     INTEGER :: nbands_lw, nbands_sw    !< Number of short and long wave bands
-    REAL(wp), POINTER :: wavenum1_sw(:), wavenum2_sw(:)
+    REAL(rp), POINTER :: wavenum1_sw(:), wavenum2_sw(:)
 
     REAL(wp):: zsct                    ! solar constant (at time of year)
     REAL(wp):: dsec                    ! [s] time increment of radiative transfer wrt. datetime

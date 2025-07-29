@@ -98,6 +98,8 @@ MODULE mo_atm_phy_nwp_config
     LOGICAL ::  lmflimiter_off     !! switch off mass flux limiters in convection
     INTEGER ::  nclds              !! max number of clouds in stochastic cloud ensemble
     LOGICAL ::  lgrayzone_deepconv !! use grayzone tuning for deep convection
+    LOGICAL ::  lconv_cdnc_interp  !! switch for cloud droplet number to replace land/sea mask in convection scheme
+    INTEGER ::  itype_parcel_ascent!! options for parcel ascent in parameterized convection
     LOGICAL ::  ldetrain_conv_prec !! detrain convective rain and snow
     LOGICAL ::  lsgs_cond          !! subgrid-scale condensation related to cloud cover
     INTEGER ::  inwp_radiation   !! radiation
@@ -121,7 +123,8 @@ MODULE mo_atm_phy_nwp_config
     REAL(wp) :: mu_snow          !! ...for snow
     REAL(wp) :: rain_n0_factor   !! tuning factor for intercept parameter of raindrop size distribution
     LOGICAL  :: lvariable_rain_n0 !! if true: use variable rain_n0_factor approaching 1 for large QR
-    LOGICAL ::  lsbm_warm_full    !! false: Piggy Backing with 2M, true: full warm-phase SBM
+    LOGICAL  :: lmicrophysicsFirst !! if true: run microphysics before turbdiff
+    LOGICAL  :: lsbm_coupled       !! FALSE: use 2M for feedback and run uncoupled SBM, TRUE: use SBM feedback
     REAL(wp) :: qi0, qc0
 
     INTEGER  :: icpl_aero_gscp     !! type of aerosol-microphysics coupling
@@ -135,6 +138,15 @@ MODULE mo_atm_phy_nwp_config
     INTEGER  :: icalc_reff         !! type of effective radius calculation
     INTEGER  :: icpl_rad_reff      !! couplig of radiation and effective radius
     INTEGER  :: ithermo_water      !! thermodynamic of water
+
+    ! stochastic pattern generator
+    REAL(wp) :: spg_length_scale   !! length scale
+    REAL(wp) :: spg_time_scale     !! time scale of AR1 process
+    INTEGER  :: spg_spec_modes     !! number of spectral modes
+    REAL(wp) :: spg_variance       !! variance in grid point space
+    LOGICAL  :: spg_fourier_modes  !! use Fourier modes for limited area
+    LOGICAL  :: spg_use_asl        !! use ASL library on NEC
+    LOGICAL  :: lstochastic_pattern_generator   !! use stochastic pattern generator
 
     ! upper atmosphere
     LOGICAL ::  lupatmo_phy        !! use upper atmosphere physics
@@ -157,7 +169,6 @@ MODULE mo_atm_phy_nwp_config
 
     LOGICAL :: lhave_graupel       ! Flag if microphysics scheme has a prognostic variable for graupel
     LOGICAL :: l2moment            ! Flag if 2-moment microphysics scheme is used
-    LOGICAL :: lsbm                ! Flag if sbm microphysics scheme is used
     LOGICAL :: lhydrom_read_from_fg(1:20)  ! Flag for each hydrometeor tracer, if it has been read from fg file
     LOGICAL :: lhydrom_read_from_ana(1:20) ! Flag for each hydrometeor tracer, if it has been read from ana file
 
@@ -339,7 +350,6 @@ CONTAINS
         &  atm_phy_nwp_config(jg)%lenabled(itgwd)     = .TRUE.
 
       ! Set flags for the microphysics schemes:
-      atm_phy_nwp_config(jg)%lsbm = .FALSE.
       SELECT CASE (atm_phy_nwp_config(jg)%inwp_gscp)
       CASE (2)
         atm_phy_nwp_config(jg)%lhave_graupel = .TRUE.
@@ -349,7 +359,6 @@ CONTAINS
         atm_phy_nwp_config(jg)%l2moment = .TRUE.
       CASE (8)
         atm_phy_nwp_config(jg)%lhave_graupel = .TRUE.
-        atm_phy_nwp_config(jg)%lsbm = .TRUE.
       CASE DEFAULT
         atm_phy_nwp_config(jg)%lhave_graupel = .FALSE.
         atm_phy_nwp_config(jg)%l2moment = .FALSE.

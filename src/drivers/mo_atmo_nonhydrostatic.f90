@@ -101,6 +101,7 @@ USE mo_lookup_tables_constants, ONLY: init_satpres_coeffs
 USE mo_atm_phy_nwp_config,   ONLY: configure_atm_phy_nwp, atm_phy_nwp_config
 USE mo_synsat_config,        ONLY: configure_synsat
 USE mo_iau,                  ONLY: save_initial_state, reset_to_initial_state
+USE mo_physical_constants,   ONLY: amd, amco2
 #ifndef __NO_NWP__
 USE mo_ensemble_pert_config, ONLY: configure_ensemble_pert
 USE mo_ext_data_init,        ONLY: init_index_lists
@@ -109,6 +110,7 @@ USE mo_sppt_config,          ONLY: sppt_config, configure_sppt
 USE mo_nwp_phy_cleanup,      ONLY: cleanup_nwp_phy
 USE mo_nwp_ww,               ONLY: configure_ww
 USE mo_nwp_vdiff_interface,  ONLY: nwp_vdiff_setup
+USE mo_radiation_config,     ONLY: vmr_co2
 #endif
 #ifdef __ICON_ART
 ! ICON-ART
@@ -126,7 +128,6 @@ USE mo_cloud_mig_memory,    ONLY: construct_cloud_mig_memory
 USE mo_cloud_two_memory,    ONLY: construct_cloud_two_memory
 USE mo_radiation_forcing_memory, ONLY: construct_rad_forcing_list => construct_radiation_forcing_list
 USE mo_atm_energy_memory,   ONLY: construct_atm_energy
-USE mo_physical_constants,  ONLY: amd, amco2
 USE mo_aes_phy_dims,        ONLY: init_aes_phy_dims
 USE mo_aes_phy_init,        ONLY: init_aes_phy_params, init_aes_phy_external, &
    &                              init_aes_phy_field, init_o3_lcariolle
@@ -732,8 +733,21 @@ CONTAINS
 
       !
       ! Initialize tracers which are not available in the analysis file,
-      ! but may be used with AES physics, for real cases or test cases.
+      ! but may be used with AES/NWP physics, for real cases or test cases.
       !
+      IF (iforcing == inwp ) THEN
+#ifdef __NO_NWP__
+        CALL finish (routine, 'Error: remove --disable-nwp and reconfigure')
+#else
+        DO jg = 1,n_dom
+          IF ( ico2 /= 0 ) THEN
+!$OMP PARALLEL
+            CALL init(p_nh_state(jg)%prog(nnow_rcf(jg))%tracer(:,:,:,ico2), vmr_co2*amco2/amd, lacc=.FALSE.)
+!$OMP END PARALLEL
+          END IF
+        END DO
+#endif
+      END IF
       IF (iforcing == iaes ) THEN
 #ifdef __NO_AES__
         CALL finish (routine, 'Error: remove --disable-aes and reconfigure')

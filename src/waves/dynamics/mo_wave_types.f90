@@ -121,14 +121,16 @@ MODULE mo_wave_types
       &  mean_period(:,:),    & ! mean wave period = 1/femean    (nproma,nblks_c) (s)
       &  peak_period(:,:),    & ! peak wave period               (nproma,nblks_c) (s)
       &  u_stokes(:,:),       & ! U-component of surface Stokes drift (nproma,nblks_c) (m/s)
-      &  v_stokes(:,:)        & ! V-component of surface Stokes drift (nproma,nblks_c) (m/s)
+      &  v_stokes(:,:),       & ! V-component of surface Stokes drift (nproma,nblks_c) (m/s)
+      &  kbar(:,:),           & ! Wavenumber for Breivik parametrisation (nproma,nblks_c) (1/m)
+      &  T_stokes(:,:),       & ! magnitude of Stokes transport (nproma,nblks_c) (m^2/s)
+      &  u3d_stokes(:,:,:),   & ! U-component of 3d Stokes drift (nproma,ndepths,nblks_c) (m/s)
+      &  v3d_stokes(:,:,:)      ! V-component of 3d Stokes drift (nproma,ndepths,nblks_c) (m/s)
 
-      &  => NULL()
     REAL(vp), POINTER, CONTIGUOUS :: &
       &  AF11(:),             & ! for discrete approximation of nonlinear transfer (nfreqs+4) (-)
       &  FKLAP(:), FKLAP1(:), & ! --//-- (nfreqs+4) (-)
-      &  FKLAM(:), FKLAM1(:)  & ! --//-- (nfreqs+4) (-)
-      &  => NULL()
+      &  FKLAM(:), FKLAM1(:)    ! --//-- (nfreqs+4) (-)
 
     INTEGER, POINTER, CONTIGUOUS ::  &
       &  last_prog_freq_ind(:,:), & ! last frequency index of the prognostic range (nproma,nblks_c) (-)
@@ -137,8 +139,8 @@ MODULE mo_wave_types
       &  ikm(:), ikm1(:),         & ! --//-- (nfreqs+4) (-)
       &  k1w(:,:), k2w(:,:),      & ! --//-- (ndirs, 2) (-)
       &  k11w(:,:), k21w(:,:),    & ! --//-- (ndirs, 2) (-)
-      &  ja1(:,:), ja2(:,:)       & ! --//-- (ndirs, 2) (-)
-      &  => NULL()
+      &  ja1(:,:), ja2(:,:),      & ! --//-- (ndirs, 2) (-)
+      &  last_idx_depth(:,:)        ! last index of Stokes depth layer (nproma,nblks_c) (-)
 
     TYPE(t_ptr_3d_int), ALLOCATABLE :: swmask_ptr(:)     !< pointer array: one pointer for each tracer
   END type t_wave_diag

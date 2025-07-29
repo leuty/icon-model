@@ -78,6 +78,7 @@
     USE mo_util_string,         ONLY: tolower
     USE mo_util_sysinfo,        ONLY: check_file_exists
     USE mo_dictionary,          ONLY: t_dictionary
+    USE mo_atm_phy_nwp_config,  ONLY: atm_phy_nwp_config
 
     IMPLICIT NONE
     PRIVATE
@@ -795,6 +796,31 @@
         ENDIF
       END DO
 
+      ! Special treatment of lateral boundary conditions for SBM microphysics < -------------------------------
+      ! transfer all qx to qv:
+      IF ( atm_phy_nwp_config(1)%inwp_gscp == 8 ) THEN ! outer domain jg=1
+!$OMP PARALLEL DO PRIVATE (jk,jb,jc,i_startidx,i_endidx)
+        DO jb = 1, i_endblk
+          CALL get_indices_c(p_patch, jb, 1, i_endblk, i_startidx, i_endidx, 1, rl_end)
+          DO jk = 1, nlev_in
+            DO jc = i_startidx, i_endidx
+              latbc%latbc_data(tlev)%atm_in%qv(jc,jk,jb)=latbc%latbc_data(tlev)%atm_in%qv(jc,jk,jb)+ &
+                                       latbc%latbc_data(tlev)%atm_in%qc(jc,jk,jb)+ &
+                                       latbc%latbc_data(tlev)%atm_in%qr(jc,jk,jb)+ &
+                                       latbc%latbc_data(tlev)%atm_in%qi(jc,jk,jb)+ &
+                                       latbc%latbc_data(tlev)%atm_in%qs(jc,jk,jb)
+
+              latbc%latbc_data(tlev)%atm_in%qc(jc,jk,jb)=0.0_wp
+              latbc%latbc_data(tlev)%atm_in%qr(jc,jk,jb)=0.0_wp
+              latbc%latbc_data(tlev)%atm_in%qi(jc,jk,jb)=0.0_wp
+              latbc%latbc_data(tlev)%atm_in%qs(jc,jk,jb)=0.0_wp
+            END DO
+          END DO
+        END DO
+!$OMP END PARALLEL DO
+      END IF
+      ! Special treatment of lateral boundary conditions for SBM microphysics > -------------------------------
+
       IF (latbc%buffer%lread_theta_rho) THEN
 
         CALL get_data(latbc, 'theta_v', latbc%latbc_data(tlev)%atm_in%theta_v, read_params(icell), latbc_dict)
@@ -842,30 +868,6 @@
       IF (latbc%buffer%lread_u_v) THEN
         CALL get_data(latbc, 'u', latbc%latbc_data(tlev)%atm_in%u, read_params(icell), latbc_dict)
         CALL get_data(latbc, 'v', latbc%latbc_data(tlev)%atm_in%v, read_params(icell), latbc_dict)
-      ENDIF
-
-      IF (latbc_config%fac_latbc_presbiascor > 0._wp) THEN
-
-!$OMP PARALLEL DO PRIVATE (jk,jb,jc,i_startidx,i_endidx)
-        DO jb = 1, i_endblk
-
-          CALL get_indices_c(p_patch, jb, 1, i_endblk, i_startidx, i_endidx, 1, rl_end)
-
-          DO jk = 1, nlev_in
-            DO jc = i_startidx, i_endidx
-
-              IF (.NOT. latbc%patch_data%cell_mask(jc,jb)) CYCLE
-
-              latbc%latbc_data(tlev)%atm_in%pres(jc,jk,jb) =                                                  &
-                latbc%latbc_data(tlev)%atm_in%pres(jc,jk,jb) + latbc_config%fac_latbc_presbiascor*            &
-                p_nh_state%diag%p_avginc(jc,jb)*EXP(-latbc%latbc_data_const%z_mc_in(jc,nlev_in,jb)/8000._wp)* &
-                latbc%latbc_data(tlev)%atm_in%pres(jc,jk,jb)/latbc%latbc_data(tlev)%atm_in%pres(jc,nlev_in,jb)
-
-              ENDDO
-            ENDDO
-        ENDDO
-!$OMP END PARALLEL DO
-
       ENDIF
 
       ! Read vertical component of velocity (W) or OMEGA
@@ -942,6 +944,30 @@
         END IF
 
       END IF
+
+      IF (latbc_config%fac_latbc_presbiascor > 0._wp) THEN
+
+!$OMP PARALLEL DO PRIVATE (jk,jb,jc,i_startidx,i_endidx)
+        DO jb = 1, i_endblk
+
+          CALL get_indices_c(p_patch, jb, 1, i_endblk, i_startidx, i_endidx, 1, rl_end)
+
+          DO jk = 1, nlev_in
+            DO jc = i_startidx, i_endidx
+
+              IF (.NOT. latbc%patch_data%cell_mask(jc,jb)) CYCLE
+
+              latbc%latbc_data(tlev)%atm_in%pres(jc,jk,jb) =                                                  &
+                latbc%latbc_data(tlev)%atm_in%pres(jc,jk,jb) + latbc_config%fac_latbc_presbiascor*            &
+                p_nh_state%diag%p_avginc(jc,jb)*EXP(-latbc%latbc_data_const%z_mc_in(jc,nlev_in,jb)/8000._wp)* &
+                latbc%latbc_data(tlev)%atm_in%pres(jc,jk,jb)/latbc%latbc_data(tlev)%atm_in%pres(jc,nlev_in,jb)
+
+              ENDDO
+            ENDDO
+        ENDDO
+!$OMP END PARALLEL DO
+
+      ENDIF
 
       IF (latbc%buffer%lconvert_omega2w) THEN
         ! (note that "convert_omega2w" requires the pressure field

@@ -631,8 +631,8 @@ MODULE mo_ensemble_pert_config
     CALL random_gen(rnd_gkdrag, rnd_num)
     tune_gkdrag(1) = gkdrag_sv(1) + 2._wp*(rnd_num-0.5_wp)*range_gkdrag
     IF (gkdrag_sv(1) > 0._wp) THEN
-      tune_gkdrag(2:max_dom)     = (gkdrag_sv(1) + 2._wp*(rnd_num-0.5_wp)*range_gkdrag)*gkdrag_sv(2:max_dom)/gkdrag_sv(1)
-      tune_gkdrag_enh(1:max_dom) = (gkdrag_sv(1) + 2._wp*(rnd_num-0.5_wp)*range_gkdrag)*gkdrag_enh_sv(1:max_dom)/gkdrag_sv(1)
+      tune_gkdrag(2:max_dom)     = (gkdrag_sv(1) + 2._wp*(rnd_num-0.5_wp)*range_gkdrag)*(gkdrag_sv(2:max_dom)/gkdrag_sv(1))
+      tune_gkdrag_enh(1:max_dom) = (gkdrag_sv(1) + 2._wp*(rnd_num-0.5_wp)*range_gkdrag)*(gkdrag_enh_sv(1:max_dom)/gkdrag_sv(1))
     ELSE
       tune_gkdrag(2:max_dom)     = gkdrag_sv(2:max_dom) + 2._wp*(rnd_num-0.5_wp)*range_gkdrag
       tune_gkdrag_enh(1:max_dom) = gkdrag_enh_sv(1:max_dom) + 2._wp*(rnd_num-0.5_wp)*range_gkdrag
@@ -1157,10 +1157,10 @@ MODULE mo_ensemble_pert_config
       IF (lrecomp) THEN
         DO jg = 1, n_dom
           CALL sucumf(p_patch(jg)%geometry_info%mean_characteristic_length,p_patch(jg)%nlev,phy_params(jg),&
-            atm_phy_nwp_config(jg)%lshallowconv_only,atm_phy_nwp_config(jg)%lgrayzone_deepconv,            &
+            atm_phy_nwp_config(jg)%lshallowconv_only,atm_phy_nwp_config(jg)%lgrayzone_deepconv,atm_phy_nwp_config(jg)%lconv_cdnc_interp, &
             atm_phy_nwp_config(jg)%ldetrain_conv_prec,atm_phy_nwp_config(jg)%lrestune_off,atm_phy_nwp_config(jg)%lmflimiter_off, &
             atm_phy_nwp_config(jg)%lstoch_expl,atm_phy_nwp_config(jg)%lstoch_sde,atm_phy_nwp_config(jg)%lstoch_deep, &
-            atm_phy_nwp_config(jg)%lvvcouple, atm_phy_nwp_config(jg)%lvv_shallow_deep)
+            atm_phy_nwp_config(jg)%lvvcouple, atm_phy_nwp_config(jg)%lvv_shallow_deep,atm_phy_nwp_config(jg)%itype_parcel_ascent)
 
           phy_params(jg)%gkdrag      = tune_gkdrag(jg)
           phy_params(jg)%gkdrag_enh  = tune_gkdrag_enh(jg)

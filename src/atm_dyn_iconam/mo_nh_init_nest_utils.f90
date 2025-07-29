@@ -670,8 +670,8 @@ MODULE mo_nh_init_nest_utils
                                lacc=.FALSE.,                                              &
                                nfields=3,  ndim2tot=3*nlev_p+1,                           &
                                recv1=thv_pr_lp, recv2=rho_pr_lp, recv3=w_lp)
-    CALL interpol_scal_nudging (p_pp, p_int, p_grf%p_dom(i_chidx), nshift, 3, 1,          &
-                                lacc=.FALSE.,                                             &
+    CALL interpol_scal_nudging (p_pp, p_int, p_grf%p_dom(i_chidx), nshift, nfields=3,     &
+                                nlev_ex=1, istart_blk=1, lacc=.FALSE.,                    &
                                 f3din1=thv_pr_lp, f3dout1=p_child_prog%theta_v,           &
                                 f3din2=rho_pr_lp, f3dout2=p_child_prog%rho,               &
                                 f3din3=w_lp,      f3dout3=p_child_prog%w                  )
@@ -686,17 +686,17 @@ MODULE mo_nh_init_nest_utils
                                              ndim2tot=ntracer*nlev_p, &
                                              recv4d=tracer_lp)
       l_limit(:) = .TRUE. ! apply positive definite limiter
-      CALL interpol_scal_nudging (p_pp, p_int, p_grf%p_dom(i_chidx),  &
-                                  nshift, ntracer, 1,                 &
-                                  lacc=.FALSE., f4din=tracer_lp,      &
+      CALL interpol_scal_nudging (p_pp, p_int, p_grf%p_dom(i_chidx), nshift, &
+                                  nfields=ntracer, nlev_ex=1, istart_blk=1,  &
+                                  lacc=.FALSE., f4din=tracer_lp,             &
                                   f4dout=p_child_prog_rcf%tracer, llimit_nneg=l_limit)
       CALL sync_patch_array_mult(SYNC_C, p_pc, ntracer, lacc=.FALSE., f4din=p_child_prog_rcf%tracer)
     ENDIF
 
     IF (ltransport .AND. iprog_aero >= 1 .AND. iforcing == inwp) THEN
       IF(l_parallel) CALL exchange_data(p_pat=p_pp%comm_pat_c, lacc=.FALSE., recv=aero_lp)
-      CALL interpol_scal_nudging (p_pp, p_int, p_grf%p_dom(i_chidx),          &
-                                  0, 1, 1, lacc=.FALSE.,                      &
+      CALL interpol_scal_nudging (p_pp, p_int, p_grf%p_dom(i_chidx), nshift=0,                        &
+                                  nfields=1, nlev_ex=nclass_aero, istart_blk=1, lacc=.FALSE.,         &
                                   f3din1=aero_lp, f3dout1=prm_diag(jgc)%aerosol, llimit_nneg=(/.TRUE./))
       CALL sync_patch_array(SYNC_C,p_pc,prm_diag(jgc)%aerosol,lacc=.FALSE.)
     ENDIF
@@ -704,26 +704,27 @@ MODULE mo_nh_init_nest_utils
     IF (iforcing == inwp) THEN
       IF(l_parallel) CALL exchange_data(p_pat=p_pp%comm_pat_c, lacc=.FALSE., recv=phdiag_lp)
       IF(l_parallel) CALL exchange_data(p_pat=p_pp%comm_pat_c, lacc=.FALSE., recv=phdiag_npd_lp)
-      CALL interpol_scal_nudging (p_pp, p_int, p_grf%p_dom(i_chidx), 0,         &
-                                  2, 1, lacc=.FALSE., overshoot_fac=1.005_wp,   &
-                                  f3din1=phdiag_lp,     f3dout1=phdiag_chi,     &
-                                  f3din2=phdiag_npd_lp, f3dout2=phdiag_npd_chi, &
+      CALL interpol_scal_nudging (p_pp, p_int, p_grf%p_dom(i_chidx), nshift=0, nfields=2, &
+                                  nlev_ex=MAX(num_phdiagvars, num_phdiagvars_npd),        &
+                                  istart_blk=1, lacc=.FALSE., overshoot_fac=1.005_wp,     &
+                                  f3din1=phdiag_lp,     f3dout1=phdiag_chi,               &
+                                  f3din2=phdiag_npd_lp, f3dout2=phdiag_npd_chi,           &
                                   llimit_nneg=(/.TRUE.,.FALSE./) )
       CALL sync_patch_array(SYNC_C,p_pc,phdiag_chi,lacc=.FALSE.)
     ENDIF
 
     IF (atm_phy_nwp_config(jg)%inwp_surface == 1) THEN
       IF(l_parallel) CALL exchange_data(p_pat=p_pp%comm_pat_c, lacc=.FALSE., recv=lndvars_lp)
-      CALL interpol_scal_nudging (p_pp, p_int, p_grf%p_dom(i_chidx), 0,      &
-                                  1, 1, lacc=.FALSE.,                        &
+      CALL interpol_scal_nudging (p_pp, p_int, p_grf%p_dom(i_chidx), nshift=0,                   &
+                                  nfields=1, nlev_ex=num_lndvars, istart_blk=1, lacc=.FALSE.,    &
                                   f3din1=lndvars_lp, f3dout1=lndvars_chi, overshoot_fac=1.005_wp )
       CALL sync_patch_array(SYNC_C,p_pc,lndvars_chi,lacc=.FALSE.)
     ENDIF
 
     IF (atm_phy_nwp_config(jg)%inwp_surface == 1 .AND. lseaice) THEN
       IF(l_parallel) CALL exchange_data(p_pat=p_pp%comm_pat_c, lacc=.FALSE., recv=wtrvars_lp)
-      CALL interpol_scal_nudging (p_pp, p_int, p_grf%p_dom(i_chidx), 0,      &
-                                  1, 1, lacc=.FALSE.,                        &
+      CALL interpol_scal_nudging (p_pp, p_int, p_grf%p_dom(i_chidx), nshift=0,                   &
+                                  nfields=1, nlev_ex=num_wtrvars, istart_blk=1, lacc=.FALSE.,    &
                                   f3din1=wtrvars_lp, f3dout1=wtrvars_chi, overshoot_fac=1.005_wp )
       CALL sync_patch_array(SYNC_C,p_pc,wtrvars_chi,lacc=.FALSE.)
     ENDIF
@@ -1156,8 +1157,8 @@ MODULE mo_nh_init_nest_utils
 
     ! Step 2c: Perform interpolation from local parent to child grid
 
-    CALL interpol_scal_nudging (p_pp, p_int, p_grf%p_dom(i_chidx), nshift, 3, 1,          &
-                                lacc=.FALSE.,                                             &
+    CALL interpol_scal_nudging (p_pp, p_int, p_grf%p_dom(i_chidx), nshift, nfields=3,     &
+                                nlev_ex=1, istart_blk=1, lacc=.FALSE.,                    &
                                 f3din1=temp_lp, f3dout1=initicon(jgc)%atm_inc%temp,       &
                                 f3din2=pres_lp, f3dout2=initicon(jgc)%atm_inc%pres,       &
                                 f3din3=qv_lp,   f3dout3=initicon(jgc)%atm_inc%qv          )
@@ -1404,8 +1405,8 @@ MODULE mo_nh_init_nest_utils
     ! parent grid
 
     IF(l_parallel) CALL exchange_data(p_pat=p_pp%comm_pat_c, lacc=.FALSE., RECV=lndvars_lp)
-    CALL interpol_scal_nudging (p_pp, p_int, p_grf%p_dom(i_chidx), 0, &
-                                1, 1, lacc=.FALSE.,                   &
+    CALL interpol_scal_nudging (p_pp, p_int, p_grf%p_dom(i_chidx), nshift=0,                   &
+                                nfields=1, nlev_ex=num_lndvars, istart_blk=1, lacc=.FALSE.,    &
                                 f3din1=lndvars_lp, f3dout1=lndvars_chi, overshoot_fac=1.005_wp )
     CALL sync_patch_array(SYNC_C,p_pc,lndvars_chi,lacc=.FALSE.)
 
@@ -1633,8 +1634,8 @@ MODULE mo_nh_init_nest_utils
 
     ! Prognostic part of the model domain
     ! Note: in contrast to boundary interpolation, nudging expects the input on the local parent grid
-    CALL interpol_scal_nudging (ptr_pp, ptr_int, ptr_grf, 0, 1, 1, lacc=.FALSE., &
-                                f3din1=ptr_topo_cp, f3dout1=z_topo_cc)
+    CALL interpol_scal_nudging (ptr_pp, ptr_int, ptr_grf, nshift=0, nfields=1, nlev_ex=1, istart_blk=1, &
+                                lacc=.FALSE., f3din1=ptr_topo_cp, f3dout1=z_topo_cc)
 
     ! 2. Apply terrain blending to cell points
     ! In the boundary interpolation zone (cell rows 1-4), the interpolated values

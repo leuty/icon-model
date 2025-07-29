@@ -859,7 +859,7 @@ CONTAINS
             radar_data(jg)%radar_ct%blacklist = 0.0_wp
 !            radar_data(jg)%radar_ct%radheight = 0.0_wp
             radar_data(jg)%radar_td%radheight = 0.0_wp
-
+            radar_data(jg)%radar_td%spqual = 1.0_wp
 
           !--------------------------------------------------------------------
           !

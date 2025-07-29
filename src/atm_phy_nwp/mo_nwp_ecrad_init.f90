@@ -27,7 +27,7 @@
 
 MODULE mo_nwp_ecrad_init
 
-  USE mo_kind,                 ONLY: wp
+  USE mo_kind,                 ONLY: wp, rp
   USE mo_exception,            ONLY: finish, message, message_text
   USE mo_radiation_config,     ONLY: icld_overlap, irad_aero, ecrad_data_path,             &
                                  &   ecrad_isolver, ecrad_igas_model, isolrad,             &
@@ -85,7 +85,7 @@ CONTAINS
       &  ecrad_conf                         !< ecRad configuration state
 
     ! Local variables
-    REAL(wp)                  :: &
+    REAL(rp)                  :: &
       &  wavelength_bound_sw(1), & !< Wavelength bound between VIS and NIR albedo (m)
       &  wavelength_bound_lw(0)    !< Wavelength bound LW emissivity (m)
     INTEGER                   :: &
@@ -393,13 +393,13 @@ CONTAINS
 
     ! Set up the near-IR, visible, and photosynthetically active radiation wavelength bounds.
     ! Bounds for nir and vis are from mo_nwp_phy_types.
-    CALL ecrad_conf%get_sw_weights(0.7e-6_wp, 5.0e-6_wp,       &
+    CALL ecrad_conf%get_sw_weights(0.7e-6_rp, 5.0e-6_rp,       &
       &  nweight_nir_ecrad, iband_nir_ecrad, weight_nir_ecrad, &
       &  'near-IR radiation')
-    CALL ecrad_conf%get_sw_weights(0.3e-6_wp, 0.7e-6_wp,       &
+    CALL ecrad_conf%get_sw_weights(0.3e-6_rp, 0.7e-6_rp,       &
       &  nweight_vis_ecrad, iband_vis_ecrad, weight_vis_ecrad, &
       &  'visible radiation')
-    CALL ecrad_conf%get_sw_weights(0.4e-6_wp, 0.7e-6_wp,       &
+    CALL ecrad_conf%get_sw_weights(0.4e-6_rp, 0.7e-6_rp,       &
       &  nweight_par_ecrad, iband_par_ecrad, weight_par_ecrad, &
       &  'photosynthetically active radiation, PAR')
 

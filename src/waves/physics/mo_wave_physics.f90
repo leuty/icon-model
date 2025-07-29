@@ -18,6 +18,7 @@
 MODULE mo_wave_physics
 
   USE mo_kind,                ONLY: wp, vp
+  USE mo_exception,           ONLY: finish
   USE mo_model_domain,        ONLY: t_patch
   USE mo_impl_constants,      ONLY: MAX_CHAR_LENGTH, min_rlcell, min_rledge
   USE mo_loopindices,         ONLY: get_indices_c, get_indices_e
@@ -45,6 +46,7 @@ MODULE mo_wave_physics
   PUBLIC :: set_energy2emin
   PUBLIC :: mask_energy
   PUBLIC :: sdepth_lim
+  PUBLIC :: calc_last_idx_depth
 
   CHARACTER(LEN=*), PARAMETER :: modname = 'mo_wave_physics'
 
@@ -1248,7 +1250,7 @@ CONTAINS
     INTEGER  :: jb,jc,jf,jd
     REAL(wp) :: em(nproma)
 
-    REAL, PARAMETER :: gamd  = 0.8_wp  !! Parameter of depth limited wave height
+    REAL(wp), PARAMETER :: gamd  = 0.8_wp  !! Parameter of depth limited wave height
 
     TYPE(t_wave_config), POINTER :: wc => NULL()
 
@@ -1370,5 +1372,55 @@ CONTAINS
 !$OMP END PARALLEL
   END SUBROUTINE mask_energy
 
+  !>
+  !! Calculation of the index of the last Stokes level
+  !!
+  SUBROUTINE calc_last_idx_depth(p_patch, wave_config, depth_c, last_idx_depth)
+    CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER ::  &
+         &  routine = modname//':calc_last_idx_depth'
+
+    TYPE(t_patch),       INTENT(IN)         :: p_patch
+    TYPE(t_wave_config), TARGET, INTENT(IN) :: wave_config
+    REAL(wp),            INTENT(IN)         :: depth_c(:,:)        !< water depth at cell centers (nproma,nblks_c) ( m )
+    INTEGER,             INTENT(INOUT)      :: last_idx_depth(:,:) !< index of last Stokes level (nproma,nblks_c)
+
+    TYPE(t_wave_config), POINTER :: wc => NULL()
+
+    INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
+    INTEGER :: i_startidx, i_endidx
+    INTEGER :: jb,jk,jc
+
+    wc => wave_config
+
+    i_rlstart  = 1
+    i_rlend    = min_rlcell
+    i_startblk = p_patch%cells%start_block(i_rlstart)
+    i_endblk   = p_patch%cells%end_block(i_rlend)
+
+!$OMP PARALLEL
+!$OMP DO PRIVATE(jb,jk,jc,i_startidx,i_endidx) ICON_OMP_DEFAULT_SCHEDULE
+    DO jb = i_startblk, i_endblk
+      CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,           &
+        &                 i_startidx, i_endidx, i_rlstart, i_rlend)
+
+      DO jk = 1,wc%ndepths
+        DO jc = i_startidx, i_endidx
+          !        last_idx_depth(jc,jb) = 1
+          !        DO jk = 1,wc%ndepths
+          IF (wc%stokes_level(jk) <= depth_c(jc,jb)) THEN
+            last_idx_depth(jc,jb) = jk
+          END IF
+        END DO
+      END DO
+
+      ! optional sanity check:
+      IF ( MINVAL(last_idx_depth(i_startidx:i_endidx,jb)) < 1) THEN
+        CALL finish(routine,'Incorrect number of Stokes levels')
+      END IF
+    END DO
+!$OMP ENDDO NOWAIT
+!$OMP END PARALLEL
+
+  END SUBROUTINE calc_last_idx_depth
 
 END MODULE mo_wave_physics

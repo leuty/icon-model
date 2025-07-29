@@ -51,6 +51,9 @@ MODULE mo_nwp_tuning_nml
     &                               config_tune_grzdc_offset     => tune_grzdc_offset,     &
     &                               config_tune_rhebc_land       => tune_rhebc_land,       &
     &                               config_tune_rhebc_ocean      => tune_rhebc_ocean,      &
+    &                               config_tune_rmfdeps_land     => tune_rmfdeps_land,     &
+    &                               config_tune_rmfdeps_ocean    => tune_rmfdeps_ocean,    &
+    &                               config_tune_detrainment_profile => tune_detrainment_profile, &
     &                               config_tune_rcucov           => tune_rcucov,           &
     &                               config_tune_rhebc_land_trop  => tune_rhebc_land_trop,  &
     &                               config_tune_rhebc_ocean_trop => tune_rhebc_ocean_trop, &
@@ -87,6 +90,9 @@ MODULE mo_nwp_tuning_nml
     &                               config_tune_sc_eis           => tune_sc_eis,           &
     &                               config_tune_sc_invmin        => tune_sc_invmin,        &
     &                               config_tune_sc_invmax        => tune_sc_invmax,        &
+    &                               config_tune_cu_alfa          => tune_cu_alfa,          &
+    &                               config_tune_cu_cdnc          => tune_cu_cdnc,          &
+    &                               config_tune_dice_conv        => tune_dice_conv,        &
     &                               config_tune_dursun_scaling   => tune_dursun_scaling,   &
     &                               config_tune_sbmccn           => tune_sbmccn,           &
     &                               config_tune_urbahf           => tune_urbahf,           &
@@ -173,6 +179,15 @@ MODULE mo_nwp_tuning_nml
 
   REAL(wp) :: &                    !< RH threshold for onset of evaporation below cloud base over sea
     &  tune_rhebc_ocean
+
+  REAL(wp) :: &                    !< fractional mass flux for downdrafts over land
+    &  tune_rmfdeps_land
+
+  REAL(wp) :: &                    !< fractional mass flux for downdrafts over sea
+    &  tune_rmfdeps_ocean
+
+  REAL(wp) :: &                    !< prefactor in RH-dependent detrainment profile
+    &  tune_detrainment_profile
 
   REAL(wp) :: &                    !< Convective area fraction
     &  tune_rcucov
@@ -293,6 +308,15 @@ MODULE mo_nwp_tuning_nml
   REAL(wp) :: &                    !< maximum inversion height (m) used to define region with
        &  tune_sc_invmax           !< enhanced stratocumulus cloud cover
 
+  REAL(wp) :: &                    !< scaling factor for low cloud cover modification
+       &  tune_cu_alfa             !< used for more U-shaped low cloud cover
+
+  REAL(wp) :: &                    !< threshold cloud droplet number concentration for low cloud cover modification
+       &  tune_cu_cdnc             !< used for more U-shaped low cloud cover
+
+  REAL(wp) :: &                    !< mean diameter of detrained cloud ice of parameterized convection
+       &  tune_dice_conv           !< for two-moment schemes
+
   REAL(wp) :: &                    !< scaling of direct solar rediation to tune sunshine duration
        &  tune_dursun_scaling      !< in corresponding diagnostic
 
@@ -309,6 +333,7 @@ MODULE mo_nwp_tuning_nml
     &                      max_freshsnow_inc,                                     &
     &                      tune_capdcfac_et, tune_box_liq, tune_rhebc_land,       &
     &                      tune_rhebc_ocean, tune_rcucov, tune_texc,              &
+    &                      tune_rmfdeps_land, tune_rmfdeps_ocean, tune_detrainment_profile, &
     &                      tune_qexc, tune_minsnowfrac,tune_rhebc_land_trop,      &
     &                      tune_rhebc_ocean_trop, tune_rcucov_trop,               &
     &                      tune_dust_abs, tune_gfrcrit, tune_grcrit,              &
@@ -320,6 +345,7 @@ MODULE mo_nwp_tuning_nml
     &                      tune_blockred, itune_gust_diag, tune_rcapqadv,         &
     &                      tune_gustsso_lim, tune_eiscrit, itune_o3,              &
     &                      tune_sc_eis, tune_sc_invmin, tune_sc_invmax,           &
+    &                      tune_cu_alfa, tune_cu_cdnc, tune_dice_conv,            &
     &                      tune_capethresh, tune_gkdrag_enh, tune_grcrit_enh,     &
     &                      tune_minsso_gwd, tune_dursun_scaling, tune_sbmccn,     &
     &                      itune_slopecorr, tune_gustlim_agl, tune_gustlim_fac,   &
@@ -425,6 +451,15 @@ CONTAINS
     !> RH threshold for onset of evaporation below cloud base over sea (original IFS value 0.9)
     tune_rhebc_ocean = 0.85_wp
 
+    !> fractional mass flux for downdrafts over land
+    tune_rmfdeps_land  = 0.25_wp
+
+    !> fractional mass flux for downdrafts over ocean
+    tune_rmfdeps_ocean = 0.15_wp
+
+    !> prefactor in RH-dependent detrainment profile
+    tune_detrainment_profile = 0.0_wp
+
     !> Convective area fraction used for computing evaporation below cloud base (original IFS value 0.05)
     tune_rcucov      = 0.05_wp
 
@@ -497,6 +532,16 @@ CONTAINS
     !> enhancement.
     tune_sc_invmin   = 200._wp
     tune_sc_invmax   = 1500._wp
+
+    !> scaling parameter for low cloud cover modification and cloud droplet number
+    !> threshold to identify region for cloud cover modification
+    !> The parameter tune_cu_alfa is zero as default to turn off the modification.
+    tune_cu_alfa     = 0.0_wp
+    tune_cu_cdnc     = 150e6_wp
+
+    !> mean diameter of detrained cloud ice of parameterized convection
+    !> needed for two-moment microphysical schemes
+    tune_dice_conv   = 100e-6_wp
 
     !> scaling of direct solar radiation in sunshine duration diagnostic
     tune_dursun_scaling = 1._wp
@@ -613,6 +658,9 @@ CONTAINS
     config_tune_grzdc_offset     = tune_grzdc_offset
     config_tune_rhebc_land       = tune_rhebc_land
     config_tune_rhebc_ocean      = tune_rhebc_ocean
+    config_tune_rmfdeps_land     = tune_rmfdeps_land
+    config_tune_rmfdeps_ocean    = tune_rmfdeps_ocean
+    config_tune_detrainment_profile = tune_detrainment_profile
     config_tune_rcucov           = tune_rcucov
     config_tune_rhebc_land_trop  = tune_rhebc_land_trop
     config_tune_rhebc_ocean_trop = tune_rhebc_ocean_trop
@@ -649,6 +697,9 @@ CONTAINS
     config_tune_sc_eis           = tune_sc_eis
     config_tune_sc_invmin        = tune_sc_invmin
     config_tune_sc_invmax        = tune_sc_invmax
+    config_tune_cu_alfa          = tune_cu_alfa
+    config_tune_cu_cdnc          = tune_cu_cdnc
+    config_tune_dice_conv        = tune_dice_conv
     config_tune_dursun_scaling   = tune_dursun_scaling
     config_tune_sbmccn           = tune_sbmccn
     config_tune_urbisa           = tune_urbisa

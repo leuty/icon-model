@@ -38,7 +38,10 @@ MODULE mo_nwp_turbdiff_interface
   USE mo_nwp_lnd_types,          ONLY: t_lnd_prog, t_wtr_prog, t_lnd_diag
   USE mo_parallel_config,        ONLY: nproma
   USE mo_run_config,             ONLY: msg_level, iqv, iqc, iqi, iqnc, iqni, iqtke, &
-    &                                  iqs, iqns, lart, ltestcase
+    &                                  iqs, iqns, lart, ltestcase, iqbin, &
+    &                                  iqb_water_start, iqb_snow_start, iqb_snow_end
+  USE mo_sbm_util,               ONLY: krdrop, krice
+
   USE mo_atm_phy_nwp_config,     ONLY: atm_phy_nwp_config, itype_dissip_heat
   USE mo_nonhydrostatic_config,  ONLY: kstart_moist, kstart_tracer
 
@@ -165,6 +168,8 @@ CONTAINS
 
   INTEGER, SAVE :: nstep_turb = 0
 
+  INTEGER :: iqb, snowbin_start, snowbin_end !< for SBM microphysics bins vertical diffusion
+
   TYPE(t_comin_tracer_info), POINTER :: this_info => NULL()
 
 !--------------------------------------------------------------
@@ -200,11 +205,27 @@ CONTAINS
   ! logical for SB two-moment scheme
   ltwomoment = atm_phy_nwp_config(jg)%l2moment
 
+  ! set the limits of the loop over ice-snow mass-bins in case of SBM
+  IF ( atm_phy_nwp_config(jg)%inwp_gscp == 8 ) THEN
+    snowbin_start = 0
+    snowbin_end = 0
+    IF ((tdc%ldiff_qi) .AND. (tdc%ldiff_qs)) THEN
+      snowbin_start = iqb_snow_start
+      snowbin_end = iqb_snow_end
+    ELSE IF (tdc%ldiff_qi) THEN
+      snowbin_start = iqb_snow_start
+      snowbin_end = iqb_snow_start-1+krice
+    ELSE IF (tdc%ldiff_qs) THEN
+      snowbin_start = iqb_snow_start+krice
+      snowbin_end = iqb_snow_end
+    END IF
+  END IF
+
   !$ACC DATA CREATE(ddt_turb_qnc, ddt_turb_qni, ddt_turb_qs, ddt_turb_qns) &
   !$ACC   CREATE(l_hori, zvari, zrhon, z_tvs, ztmassfl_s, ut_sso, vt_sso)
 
 !$OMP PARALLEL
-!$OMP DO PRIVATE(jb,jc,jk,i_startidx,i_endidx,z_tvs,ncloud_offset,ptr,nzprv,l_hori,zvari,zrhon,ztmassfl_s,         &
+!$OMP DO PRIVATE(jb,jc,jk,iqb,i_startidx,i_endidx,z_tvs,ncloud_offset,ptr,nzprv,l_hori,zvari,zrhon,ztmassfl_s,         &
 !$OMP            jt,ddt_turb_qnc, ddt_turb_qni, ddt_turb_qs, ddt_turb_qns, ut_sso, vt_sso)  ICON_OMP_GUIDED_SCHEDULE
 
   DO jb = i_startblk, i_endblk
@@ -382,6 +403,40 @@ CONTAINS
           ptr(ncloud_offset)%kstart =  kstart_moist(jg)
         ENDIF ! ltwomoment
       ENDIF ! ldiff_qs
+
+      IF ( atm_phy_nwp_config(jg)%inwp_gscp == 8 ) THEN
+        !cloud water mass bins for SBM microphysics
+        DO iqb = iqb_water_start, iqb_water_start-1+krdrop
+          ! register bin iqb for turbulent diffusion
+          ncloud_offset = ncloud_offset + 1
+          DO jk=1, nlev
+            DO jc=1, nproma
+              prm_nwp_tend%ddt_tracer_turb(jc,jk,jb,iqbin(iqb)) = 0.0_wp
+            END DO
+          END DO
+          ptr(ncloud_offset)%av     => p_prog_rcf%tracer(:,:,jb,iqbin(iqb))
+          ptr(ncloud_offset)%at     => prm_nwp_tend%ddt_tracer_turb(:,:,jb,iqbin(iqb))
+          ptr(ncloud_offset)%sv     => NULL()
+          ptr(ncloud_offset)%kstart =  kstart_moist(jg)
+        END DO
+      END IF
+
+      IF ( (atm_phy_nwp_config(jg)%inwp_gscp == 8) .AND. ((tdc%ldiff_qi) .OR. (tdc%ldiff_qs)) ) THEN
+        !ice mass bins for SBM microphysics
+        DO iqb = snowbin_start, snowbin_end
+          ! register bin iqb for turbulent diffusion
+          ncloud_offset = ncloud_offset + 1
+          DO jk=1, nlev
+            DO jc=1, nproma
+              prm_nwp_tend%ddt_tracer_turb(jc,jk,jb,iqbin(iqb)) = 0.0_wp
+            END DO
+          END DO
+          ptr(ncloud_offset)%av     => p_prog_rcf%tracer(:,:,jb,iqbin(iqb))
+          ptr(ncloud_offset)%at     => prm_nwp_tend%ddt_tracer_turb(:,:,jb,iqbin(iqb))
+          ptr(ncloud_offset)%sv     => NULL()
+          ptr(ncloud_offset)%kstart =  kstart_moist(jg)
+        END DO
+      END IF
 
 #ifdef __ICON_ART
       IF ( lart .AND. art_config(jg)%nturb_tracer > 0 ) THEN
@@ -923,6 +978,32 @@ CONTAINS
         !$ACC END PARALLEL
       ENDIF ! ltwomoment
     ENDIF ! ldiff_qs
+
+    IF ( atm_phy_nwp_config(jg)%inwp_gscp == 8 ) THEN
+      !update cloud water mass bins for SBM microphysics
+      DO iqb = iqb_water_start, iqb_water_start-1+krdrop
+        DO jk = kstart_moist(jg), nlev
+          DO jc = i_startidx, i_endidx
+            p_prog_rcf%tracer(jc,jk,jb,iqbin(iqb)) = MAX(0.0_wp, p_prog_rcf%tracer(jc,jk,jb,iqbin(iqb)) &
+              &                             + tcall_turb_jg                               &
+              &                             * prm_nwp_tend%ddt_tracer_turb(jc,jk,jb,iqbin(iqb)))
+          ENDDO
+        ENDDO
+      END DO
+    END IF
+
+    IF ( (atm_phy_nwp_config(jg)%inwp_gscp == 8) .AND. ((tdc%ldiff_qi) .OR. (tdc%ldiff_qs)) ) THEN
+      !update ice mass bins for SBM microphysics
+      DO iqb = snowbin_start, snowbin_end
+        DO jk = kstart_moist(jg), nlev
+          DO jc = i_startidx, i_endidx
+            p_prog_rcf%tracer(jc,jk,jb,iqbin(iqb)) = MAX(0.0_wp, p_prog_rcf%tracer(jc,jk,jb,iqbin(iqb)) &
+              &                             + tcall_turb_jg                               &
+              &                             * prm_nwp_tend%ddt_tracer_turb(jc,jk,jb,iqbin(iqb)))
+          ENDDO
+        ENDDO
+      END DO
+    END IF
 
   ENDDO ! jb
   !$ACC WAIT

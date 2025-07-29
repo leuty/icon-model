@@ -24,7 +24,7 @@
 
 MODULE mo_cover_koe
 
-  USE mo_kind,               ONLY: wp, vp, i4
+  USE mo_kind,               ONLY: wp, vp, rp, i4
 
   USE mo_physical_constants, ONLY: rdv    , & !! r_d / r_v
                                    rv     , & !! Rv
@@ -46,7 +46,8 @@ MODULE mo_cover_koe
   USE mo_cover_cosmo,        ONLY: cover_cosmo
 
   USE mo_nwp_tuning_config,  ONLY: tune_box_liq, tune_box_liq_asy, tune_thicklayfac, tune_sgsclifac, icpl_turb_clc, &
-                                   allow_overcast, tune_sc_eis, tune_sc_invmin, tune_sc_invmax, tune_box_ice
+                                   allow_overcast, tune_sc_eis, tune_sc_invmin, tune_sc_invmax, tune_box_ice, &
+                                   tune_cu_alfa, tune_cu_cdnc
 
   USE mo_ensemble_pert_config, ONLY: box_liq_sv, thicklayfac_sv, box_liq_asy_sv
 
@@ -116,6 +117,7 @@ SUBROUTINE cover_koe( &
   & pgeo, deltaz                    , & ! in:    geopotential above ground, layer thickness
   & rho                             , & ! in:    density
   & rcld                            , & ! inout: standard deviation of saturation deficit
+  & cloud_num                       , & ! in:    2d cloud droplet number
   & ldland                          , & ! in:    land/sea mask
   & ldcum, kcbot, kctop, ktype      , & ! in:    convection: on/off, bottom, top, type
   & fac_ccqc                        , & ! in:    EPS perturbation factor for CLC-QC relationship
@@ -159,6 +161,7 @@ REAL(KIND=wp), DIMENSION(:,:), INTENT(IN) ::  &
   & qs                   ! specific snow        content                  (kg/kg)
 
 REAL(KIND=wp), DIMENSION(:), INTENT(IN) ::  &
+  & cloud_num        , & ! cloud droplet number
   & ps               , & ! surface pressure
   & t_g              , & ! surface temperature
   & fac_ccqc             ! EPS perturbation factor for CLC-QC relationship
@@ -234,10 +237,10 @@ REAL(KIND=wp) :: &
 REAL(KIND=wp), DIMENSION(klon,klev)  :: &
   zqlsat , zqisat, zagl_lim, zdqlsat_dT
 
-REAL(KIND=wp), DIMENSION(klon) :: qsum_col(klon)
+REAL(KIND=wp), DIMENSION(klon) :: qsum_col(klon), zaux_sc(klon)
 
 LOGICAL, DIMENSION(klon) ::  &
-     & stratocumulus
+     & stratocumulus, shallowcumulus
 
 !! Local parameters:
 !! -----------------
@@ -245,6 +248,9 @@ LOGICAL, DIMENSION(klon) ::  &
 REAL(KIND=wp), PARAMETER  :: &
   & zcldlim  = 1.0e-8_wp, & ! threshold of cloud water/ice for cloud cover  (kg/kg)
   & taudecay = 1500.0_wp, & ! decay time scale of convective anvils
+  & cc_cu_mode = 0.50_wp, & ! value of spurious mode in unmodified clc histogram over ocean
+  & cc_cu_min  = 0.05_wp, & ! minimum cloud cover for low cloud droplet number concentration
+  & cc_cu_qc   = 0.20_wp, & ! inverse of amplification factor for qc in shallow cumulus
   & tm10     = tmelt - 10.0_wp, &
   & tm40     = tmelt - 40.0_wp
 
@@ -275,7 +281,7 @@ REAL(KIND=wp), PARAMETER :: lvocv = alv/cvd
 !$ACC DATA &
 !$ACC   CREATE(cc_turb, qc_turb, qi_turb, cc_conv, qc_conv, qi_conv, cc_turb_liq, cc_turb_ice) &
 !$ACC   CREATE(p0, zqlsat, zqisat, zagl_lim, zdqlsat_dT, stratocumulus, zsc_top, zratfsd, qsum_col) &
-!$ACC   CREATE(zcldlim) &
+!$ACC   CREATE(shallowcumulus, zaux_sc) &
 !$ACC   IF(lzacc)
 
 ! saturation mixing ratio at -50 C and 200 hPa
@@ -337,21 +343,25 @@ DO jk = kstart,klev
 ENDDO
 
 !-----------------------------------------------------------------------
-! Calculate averaged vertical velocity for stratocumulus diagnostic
+! Calculate variables for stratocumulus and shallow cumulus diagnostic
 !-----------------------------------------------------------------------
 
-! For enhanced diagnostic cloud cover in stratocumulus regime, identify
-! Sc region based on EIS criterion exceeding threshold, plus inversion height
-! falling between a critical min/max level.
 !$ACC LOOP GANG(STATIC: 1) VECTOR
 DO jl = kidia,kfdia
-  IF (kcinv(jl) < klev) THEN
-    zsc_top(jl) = pgeo(jl,kcinv(jl))*grav_i
-  ELSE
-    zsc_top(jl) = 0._wp
-  END IF
+
+  zsc_top(jl) = MERGE(pgeo(jl,kcinv(jl))*grav_i, 0._wp, kcinv(jl) < klev)
+
+  ! For enhanced diagnostic cloud cover in stratocumulus regime, identify Sc region based on EIS criterion
+  ! exceeding threshold, plus inversion height falling between a critical min/max level.
   stratocumulus(jl) = ( peis(jl) > 0.75_wp*tune_sc_eis    &
                &       .and. zsc_top(jl) > tune_sc_invmin .and. zsc_top(jl) < tune_sc_invmax )
+
+  ! For modified diagnostic cloud cover in shallow cumulus regime, identify region based on ktype and
+  ! EIS threshold to include boundary layer clouds that are not captured by the convection scheme
+  shallowcumulus(jl) = ( tune_cu_alfa > 0.0_wp .and. cloud_num(jl) < tune_cu_cdnc .and. .not.stratocumulus(jl) &
+               &       .and. ( ktype(jl) == 2 .or. ktype(jl) == 3 .or. ( peis(jl) < 0.5_wp .and. ktype(jl) == 0 ) ) )
+  zaux_sc(jl) = MERGE(MAX(MIN((tune_cu_cdnc-cloud_num(jl))/(tune_cu_cdnc-50e6_wp),1.0_wp),0.0_wp), 0._wp, shallowcumulus(jl))
+
 END DO
 
 !-----------------------------------------------------------------------
@@ -430,6 +440,19 @@ CASE( 1 )
         cc_turb_liq(jl,jk) = MIN(1._wp,SIGN((ABS(zaux)/(par1*deltaq))**(2._wp-sc_exp),zaux))
         ! compensating reduction of cloud water content if the thick-layer correction is active
         fac_aux = 1._wp + fac_ccqc(jl)*(lvocv*zdqlsat_dT(jl,jk)+thicklay_fac)*MIN(1._wp,2.5_wp*(1._wp-cc_turb_liq(jl,jk)))
+        IF ( shallowcumulus(jl) .and. cc_turb_liq(jl,jk) < 1.0_wp ) THEN
+          ! Modify shallow convective cloud cover over the ocean as function of cloud droplet number.
+          ! Cloud cover values larger than tune_cu_mode are increased, values smaller than tune_cu_mode
+          ! are decreased to represent mesoscale convective organization. This flattens the spurious
+          ! maximum at clc~0.5 and results in a more U-shaped distribution with more clear-sky grid points
+          ! and agrees better with satellite observations.
+          ! - Compensating increase of cloud water content where shallow cumulus correction is active. Realistic?
+          ! - The stronger shift for cc > cc_cu_mode helps to keep mean cloud cover constant.
+          zaux = tune_cu_alfa * (tune_cu_cdnc-cloud_num(jl))/tune_cu_cdnc
+          zaux = MERGE(3.0_wp*zaux, zaux, cc_turb_liq(jl,jk) > cc_cu_mode)
+          cc_turb_liq(jl,jk) = MAX(MIN(cc_turb_liq(jl,jk)+zaux*(cc_turb_liq(jl,jk)-cc_cu_mode),1.0_wp),0.0_wp)
+          fac_aux = MAX(fac_aux*cc_cu_qc,cc_turb_liq(jl,jk)**2)
+        ENDIF
         IF ( cc_turb_liq(jl,jk) > 0.0_wp ) THEN
           qc_turb  (jl,jk) = deltaq*cc_turb_liq(jl,jk)**2/fac_aux
         ELSE
@@ -501,6 +524,9 @@ CASE( 1 )
       IF (luse_core) THEN
         cc_conv(jl,jk) = cc_conv(jl,jk)+pcore(jl,jk)
       ENDIF
+
+      ! optionally reduce clc toward a fixed value cc_cu_min for trade wind cumulus clouds over clean ocean
+      cc_conv(jl,jk) = (1.0_wp-zaux_sc(jl))*cc_conv(jl,jk)+zaux_sc(jl)*cc_cu_min
 
       ! detrainment water is defined as detrainment rate * updraft liquid water in layer below
       qc_conv(jl,jk) = cc_conv(jl,jk) * plu(jl,jkp1)*       tfac ! ql up
@@ -796,8 +822,9 @@ REAL(KIND=wp), DIMENSION(klon,klev), INTENT(IN) ::  &
   & qi_tot           , & ! specific cloud ice   content diagnostic       (kg/kg)
   & zratfsd              ! detrainment ratio                             (unitless)
 
+REAL(KIND=rp), INTENT(IN) ::  &
+  & fsd_background       ! default FSD value
 REAL(KIND=wp), INTENT(IN) ::  &
-  & fsd_background   , & ! default FSD value
   & fsd_gridlen      , & ! assumed horizontal grid spacing in km
   & zcldlim              ! min condensate value for presence of cloud
 

@@ -46,6 +46,9 @@ MODULE mo_nwp_tuning_config
   PUBLIC :: limit_negpblcape
   PUBLIC :: tune_rhebc_land
   PUBLIC :: tune_rhebc_ocean
+  PUBLIC :: tune_rmfdeps_land
+  PUBLIC :: tune_rmfdeps_ocean
+  PUBLIC :: tune_detrainment_profile
   PUBLIC :: tune_rcucov
   PUBLIC :: tune_rhebc_land_trop
   PUBLIC :: tune_rhebc_ocean_trop
@@ -80,6 +83,9 @@ MODULE mo_nwp_tuning_config
   PUBLIC :: tune_sc_eis
   PUBLIC :: tune_sc_invmin
   PUBLIC :: tune_sc_invmax
+  PUBLIC :: tune_cu_alfa
+  PUBLIC :: tune_cu_cdnc
+  PUBLIC :: tune_dice_conv
   PUBLIC :: tune_dursun_scaling
   PUBLIC :: tune_sbmccn
   PUBLIC :: tune_urbahf, tune_urbisa
@@ -168,6 +174,15 @@ MODULE mo_nwp_tuning_config
 
   REAL(wp) :: &                    !< RH threshold for onset of evaporation below cloud base over sea
     &  tune_rhebc_ocean
+
+  REAL(wp) :: &                    !< fractional mass flux for downdrafts over land
+    &  tune_rmfdeps_land
+
+  REAL(wp) :: &                    !< fractional mass flux for downdrafts over sea
+    &  tune_rmfdeps_ocean
+
+  REAL(wp) :: &                    !< prefactor in RH-dependent detrainment profile
+    &  tune_detrainment_profile
 
   REAL(wp) :: &                    !< Convective area fraction
     &  tune_rcucov
@@ -292,6 +307,15 @@ MODULE mo_nwp_tuning_config
 
   REAL(wp) :: &                    !< maximum inversion height (m) used to define region with
        &  tune_sc_invmax           !< enhanced stratocumulus cloud cover
+
+  REAL(wp) :: &                    !< scaling factor for low cloud cover modification
+       &  tune_cu_alfa             !< used for more U-shaped low cloud cover
+
+  REAL(wp) :: &                    !< threshold cloud droplet number concentration for low cloud cover modification
+       &  tune_cu_cdnc             !< used for more U-shaped low cloud cover
+
+  REAL(wp) :: &                    !< mean diameter of detrained cloud ice of parameterized convection
+       &  tune_dice_conv           !< for two-moment schemes
 
   REAL(wp) :: &                    !< scaling of direct solar rediation to tune sunshine duration
        &  tune_dursun_scaling      !< in corresponding diagnostic

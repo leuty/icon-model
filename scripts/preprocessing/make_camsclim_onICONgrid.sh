@@ -83,7 +83,7 @@ $runpython
 ncks -m -A -C -v time ./timevar.nc ${timeFile}
 # edit attributes
 ncatted -O -a standard_name,time,o,c,'time' ${timeFile}
-ncatted -O -a units,time,o,c,"months since 2001-1-15 24:00:00" ${timeFile}
+ncatted -O -a units,time,o,c,"months since 2001-1-15 12:00:00" ${timeFile}
 ncatted -O -a calendar,time,o,c,"proleptic_gregorian" ${timeFile}
 ncatted -O -a axis,time,o,c,"T" ${timeFile}
 

@@ -19,6 +19,7 @@ MODULE  turb_utilities
 !
 !   Routines (module procedures) currently contained:
 !     - turb_setup           : setting up the turbulence model
+!     - init_basic_atmo_turb : initialization of basic properites of atmospheric turbulence
 !     - adjust_satur_equil   : sub-grid scale moist physics in terms of a
 !                              statistical saturation adjustment
 !     - solve_turb_budgets   : solution of prognostic TKE-equation and the reduced
@@ -171,6 +172,7 @@ USE mo_physical_constants, ONLY : &
     rdocp    => rd_o_cpd, & ! r_d / cp_d
     lhocp    => alvdcp,   & ! lh_v / cp_d
     con_m,                & ! kinematic vsicosity of dry air (m2/s)
+    con_h,                & ! scalar conductivity of dry air (m2/s)
 !
     grav,                 & ! acceleration due to gravity
     p0ref,                & ! reference pressure for Exner-function
@@ -224,7 +226,7 @@ PUBLIC adjust_satur_equil, solve_turb_budgets, vert_grad_diff,   &
        prep_impl_vert_diff, calc_impl_vert_diff,                 &
        vert_smooth, bound_level_interp,                          &
        zbnd_val, zexner, zpsat_w,                                &
-       turb_setup
+       turb_setup, init_basic_atmo_turb
 
 REAL (KIND=wp), PARAMETER :: &
 !
@@ -436,6 +438,170 @@ INTEGER :: i,k
      !$ACC END DATA
 
 END SUBROUTINE turb_setup
+
+!==============================================================================
+!==============================================================================
+
+SUBROUTINE init_basic_atmo_turb ( tdc, i1dim, khi, &
+                                  i_st, i_en, k_st, k_en, nvor, ntur, &
+                                  ltkeinp, ltkeadapt, lextinit, &
+                                  tls, fm2, fh2, &
+                                  tkvm, tkvh, tprn, tvt, tke, &
+                                  lacc, opt_acc_async_queue )
+
+TYPE(t_turbdiff_config), POINTER, INTENT(IN) :: tdc ! 'turbdiff' configuration state for a single patch (domain)
+
+INTEGER, INTENT(IN) :: &
+  i1dim,      & !length of blocks
+  khi,        & !extra start index of vertical dimension for arrays that may be declared only for that level in 'turbtran'
+
+  i_st, i_en, & !horizontal start- and end-indices
+  k_st, k_en, & !vertical   start- and end-indices
+
+  nvor, ntur    !prvious and current time-step index of tke
+
+LOGICAL, INTENT(IN)  :: &
+
+  ltkeinp,    & !TKE present as input for current time level 'ntur'
+  ltkeadapt,  & !full TKE-adaptation to shear-related part of LLDCs
+  lextinit      !extended initialization (full diffusion coefficients including LLDCs)
+
+REAL(wp), DIMENSION(:,khi:), INTENT(IN) :: &
+  tls,  &  !turbulent master scale [m]
+  fm2,  &  !squared frequency of mechanical forcing         [1/s2]
+  fh2      !squared frequency of thermal    forcing         [1/s2]
+
+REAL(wp), DIMENSION(:,:), INTENT(INOUT) :: &
+           !"lextinit=T":                                              "lextinit=F":
+  tkvm, &  !turbulent diffusion-coefficient for momentum    [m2/s ] or related stability-length [m]
+  tkvh     !turbulent diffusion-coefficient for scalars     [m2/s ]    related stability-length [m]
+
+REAL(wp), DIMENSION(:,:), OPTIONAL, INTENT(INOUT) :: &
+  tprn     !turbulent Prandtl-number                        ( --- )
+
+REAL(wp), DIMENSION(:,khi:), OPTIONAL, INTENT(INOUT) :: &
+  tvt      !turbulent transport of turbulent velocity scale [m/s2]
+
+REAL(wp), DIMENSION(:,:,:), INTENT(INOUT) :: &
+  tke      !q:=SQRT(2*TKE); TKE='turbul. kin. energy'       [ m/s ]
+           ! (defined on half levels)
+
+!Attention: "INTENT(OUT)" might cause some not-intended default-setting for not-treated levels!
+
+!------------------------------------------------------------------------------
+LOGICAL, OPTIONAL, INTENT(IN) :: lacc
+INTEGER, OPTIONAL, INTENT(IN) :: opt_acc_async_queue
+
+LOGICAL :: lzacc
+INTEGER :: acc_async_queue
+!------------------------------------------------------------------------------
+
+! Local variables:
+
+INTEGER  :: i, k, km
+
+REAL(wp) :: tur_len, frm, frh, val1, val2, fakt, wert
+
+!------------------------------------------------------------------------------
+   CALL set_acc_host_or_device(lzacc, lacc)
+
+   IF(PRESENT(opt_acc_async_queue)) THEN
+      acc_async_queue = opt_acc_async_queue
+   ELSE
+      acc_async_queue = 1
+   ENDIF
+!------------------------------------------------------------------------------
+
+   !$ACC DATA PRESENT(tls, fm2, fh2, tkvm, tkvh, tprn, tvt, tke) &
+   !$ACC   COPYIN(i_en) &
+   !$ACC   ASYNC(acc_async_queue) IF(lzacc)
+
+   !Calculation of the basic turbulence properties 'tkv[mh]', 'tke' and (optionally) 'tprn', 'tvt=tketens'
+   ! by means of a simplified TMod (TKE-equilibrium at the condition "Rf=Ri")
+   ! applied for initialization in 'turbdiff' and 'turbtran':
+
+   !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(acc_async_queue) IF(lzacc)
+   !$ACC LOOP SEQ PRIVATE(km)
+   DO k=k_st, k_en
+     km=MAX(k,khi) !level index of some arrays that may be declared only for level 'khi' in 'turbtran'
+!DIR$ IVDEP
+     !$ACC LOOP GANG(STATIC: 1) VECTOR PRIVATE(tur_len, frm, frh, val1, val2, fakt, wert)
+     DO i=i_st, i_en
+
+       tur_len=tls(i,km)
+       frm=fm2(i,km); frh=fh2(i,km)
+
+       ! Simplified solution for stability-length by means of "Rf=Ri":
+       IF (frh >= (z1-rim)*frm) THEN !the critical Ri-numer is exceeded and
+         !specific stability-length values 'tkv[m|h]' are approximated by 'tkvm' valid at the critical Ri-number:
+         fakt=z1/rim-z1
+         tkvm(i,k)=tur_len*(sm_0-(a_6+a_3)*fakt)
+         tkvh(i,k)=tkvm(i,k)
+       ELSE
+         fakt=frh/(frm-frh)
+         tkvm(i,k)=tur_len*(sm_0-(a_6+a_3)*fakt)
+         tkvh(i,k)=tur_len*(sh_0-a_5*fakt)
+       END IF
+
+       !Note: So far, 'tkv[m|h]' are specific stability-length values.
+
+       IF (.NOT.ltkeinp) THEN
+         val1=tkvm(i,k)*frm; val2=tkvh(i,k)*frh
+         wert=MAX( val1-val2, rim*val1 )
+!ttt< new version: being activated together with next commit with impact on results.
+!        tke(i,k,nvor)=MAX( tdc%vel_min, SQRT(tdc%d_mom*tur_len*wert) ) !initial value for SQRT(TKE)
+!ttt= only to avoid failed tolerance tests:
+         tke(i,k,nvor)=SQRT(tdc%d_mom*tur_len*wert) !initial value for SQRT(TKE)
+         IF (k==km) tke(i,k,nvor)=MAX( tdc%vel_min, tke(i,k,nvor) )
+!ttt>
+       ELSE
+         tke(i,k,nvor)=tke(i,k,ntur)
+       END IF
+
+       IF (lextinit) THEN !extended initialization (full diffusion coefficients including lower limits),
+                          ! optional Prandtl-number and reset to no vertical TKE-diffusion)
+         val1=con_m; tkvm(i,k)=tkvm(i,k)*tke(i,k,nvor) !turbulent diffusion-coefficient for momentum
+         val2=con_h; tkvh(i,k)=tkvh(i,k)*tke(i,k,nvor) !turbulent diffusion-coefficient for scalars
+
+         !Note:
+         !'tk[h|m]min' are, fist of all, foreseen as lower limits for 'vertdiff'-calculations; hence,
+         ! they are not required for initialization.
+         !Nevertheless, since the 'tkv[m|h]' from the previous time-step are required as input of the
+         ! Turbulence Model (TMod) in SUB 'solve_turb_budgets' (dependent on 'imode_stbcalc'), at least
+         ! the laminar limit is used for securing a reasonable start of this kind of time-step iteration.
+
+         IF (tdc%imode_tkemini >= 2) THEN !any adaptation of TKE and the TMod. to lower limits
+           tke(i,k,nvor)=tke(i,k,1)*MAX( z1, val2/tkvh(i,k) ) !adapted 'tke'
+         ENDIF
+         IF (ltkeadapt .AND. PRESENT(tprn)) THEN !full adaptation of TKE and the TMod. to lower limits
+           tprn(i,k)=tkvm(i,k)/tkvh(i,k) !turbulent Prandtl-number as calcuated by the simplified TMod.
+                                         ! used for initialization
+           !Note:
+           !At this simplified turbulence diagnostics (being applied for initialization only) additional
+           ! shear-forcing by NTCs is not considered.
+           !Accordingly, the indirect shear-impact related to 'tk[h|m]min' is missing as well, not at least,
+           ! because it's application should be connected with further modulation (e.g. dependent on Ri-number
+           ! or on the distance from the surface).
+           !Moreover, due to time-step smoothing of 'tke' (through 'tkesmot'), any not realistic and large deviation
+           ! of 'tke' from the quilibrium-solution of the TMod, might have a quite long-standing detrimental impact.
+           !Thus, for initialization, only the laminar limit (including the related TKE-adaptation) is applied,
+           ! which secures a reasonable start of time-step interation.
+           !See also notes related to 'ltkeadapt' in SUB 'turbdiff'.
+         END IF
+
+         tkvm(i,k)=MAX( val1, tkvm(i,k) ) !'tkvm' with lower limit
+         tkvh(i,k)=MAX( val2, tkvh(i,k) ) !'tkvh' with lower limit
+
+         IF (PRESENT(tvt)) tvt(i,km)=z0 !no vertical diffusion of q=SQRT(2*TKE) present at initialization
+       END IF
+
+     END DO
+   END DO
+   !$ACC END PARALLEL
+
+   !$ACC END DATA
+
+END SUBROUTINE init_basic_atmo_turb
 
 !==============================================================================
 !==============================================================================

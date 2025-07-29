@@ -25,6 +25,7 @@ MODULE mo_nwp_phy_cleanup
   USE mo_grid_config,          ONLY: n_dom
   USE mo_aerosol_sources_types,ONLY: p_dust_source_const, p_fire_source_info
   USE mo_aerosol_util,         ONLY: tegen_scal_factors
+  USE mo_stoch_pattern_generator, ONLY: stochastic_pattern_destruct
 
   IMPLICIT NONE
 
@@ -65,6 +66,8 @@ CONTAINS
     ENDDO
 
     CALL tegen_scal_factors%finalize()
+
+    IF (atm_phy_nwp_config(1)%lstochastic_pattern_generator) CALL stochastic_pattern_destruct
 
   END SUBROUTINE cleanup_nwp_phy
 

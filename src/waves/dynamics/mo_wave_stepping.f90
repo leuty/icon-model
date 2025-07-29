@@ -44,9 +44,10 @@ MODULE mo_wave_stepping
     &                                    src_nonlinear_transfer, integrate_in_time_src, &
     &                                    src_wave_breaking
   USE mo_wave_physics,             ONLY: tm1_tm2_periods_and_wm1_wm2_wavenumber, &
-       &                                 mean_frequency_and_total_energy, air_sea, last_prog_freq_ind, &
-       &                                 impose_high_freq_tail, wave_stress, &
-       &                                 mask_energy, compute_wave_number, compute_group_velocity, sdepth_lim
+    &                                    mean_frequency_and_total_energy, air_sea, last_prog_freq_ind, &
+    &                                    impose_high_freq_tail, wave_stress, &
+    &                                    mask_energy, compute_wave_number, compute_group_velocity, sdepth_lim, &
+    &                                    calc_last_idx_depth
   USE mo_wave_config,              ONLY: wave_config, generate_filename
   USE mo_energy_propagation_config,ONLY: energy_propagation_config
   USE mo_wave_forcing_state,       ONLY: wave_forcing_state
@@ -280,6 +281,13 @@ CONTAINS
         &  depth_e      = wave_ext_data(jg)%depth_e,        & !in
         &  gv_c         = p_wave_state(jg)%diag%gv_c,       & !out
         &  gv_e         = p_wave_state(jg)%diag%gv_e)         !out
+
+      IF (ASSOCIATED(p_wave_state(jg)%diag%last_idx_depth)) &
+        CALL calc_last_idx_depth(                           &
+          &  p_patch        = p_patch(jg),                  &
+          &  wave_config    = wave_config(jg),              &
+          &  depth_c        = wave_ext_data(jg)%depth_c,    &
+          &  last_idx_depth = p_wave_state(jg)%diag%last_idx_depth) !OUT
 
     END DO
 

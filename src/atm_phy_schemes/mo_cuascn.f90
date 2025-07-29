@@ -32,7 +32,7 @@ MODULE mo_cuascn
     &                        lphylin  ,rlptrc,           &
     &                        entshalp ,rmfcmin,          &
     &                        rmflic   ,rmflia ,rvdifts  ,&
-    &                        rmfcmax, rlmin             ,&
+    &                        rmfcmax, rlmin, rdetrain,   &
     &                        lhook,   dr_hook, lmfglac
 
 
@@ -52,7 +52,7 @@ CONTAINS
   !
   SUBROUTINE cuascn &
     & ( kidia,    kfdia,    klon,    ktdia,  klev, rmfcfl, &
-    & entrorg, fac_entrorg, detrpen, rprcon, lmfmid, lgrz_deepconv, ptsphy,&
+    & entrorg, fac_entrorg, detrpen, rprcon, lmfmid, lgrz_deepconv, lcdnc_interp, ptsphy,&
     & paer_ss,  ptenh,    pqenh,    ptenq,             &
     & pten,     pqen,     pqsen,    plitot,&
     & pgeo,     pgeoh,    pap,      paph,&
@@ -220,7 +220,7 @@ INTEGER(KIND=jpim),INTENT(in)    :: kfdia
 INTEGER(KIND=jpim),INTENT(in)    :: ktdia
 REAL(KIND=jprb)   ,INTENT(in)    :: rmfcfl
 REAL(KIND=jprb)   ,INTENT(in)    :: entrorg, rprcon, detrpen
-LOGICAL           ,INTENT(in)    :: lmfmid, lgrz_deepconv
+LOGICAL           ,INTENT(in)    :: lmfmid, lgrz_deepconv, lcdnc_interp
 REAL(KIND=jprb)   ,INTENT(in)    :: ptsphy
 !KF
 REAL(KIND=jprb)   ,INTENT(in), OPTIONAL:: paer_ss(klon)
@@ -478,7 +478,8 @@ ENDDO
 
       !$ACC LOOP GANG(STATIC: 1) VECTOR
       DO jl=kidia,kfdia
-        IF(.NOT. ldland(jl) .AND. .NOT. ldlake(jl) .AND. .NOT. lgrz_deepconv) THEN
+        IF(.NOT. ldland(jl) .AND. .NOT. ldlake(jl) .AND. .NOT. lgrz_deepconv &
+             &                                     .AND. .NOT. lcdnc_interp ) THEN
           zdrain(jl)  = MIN(0.6E4_JPRB, zdrain(jl) ) ! ... but over ocean at most 60 hPa
           zdnoprc(jl) = MIN(3.e-4_JPRB, zdnoprc(jl)) ! ... but over ocean at most 0.3 g/kg
         ENDIF
@@ -891,8 +892,10 @@ DO jk=klev-1,ktdia+2,-1
               zkedke=pkineu(jl,jk)/MAX(1.e-10_JPRB,pkineu(jl,jk+1))
               zkedke=MAX(1.e-30_JPRB,MIN(1.0_JPRB,zkedke))
               zmfun=SQRT(zkedke)
-! ** suggestion by P. Bechtold (2013-11-21) - but degrades various scores in ICON **
-!             zmfun = (1.6_JPRB-MIN(1.0_JPRB,pqen(JL,JK)/pqsen(JL,JK)))*zmfun
+              IF (rdetrain > 1.0_JPRB) THEN
+                ! suggestion by P. Bechtold (2013-11-21) with RH-dependent detrainment
+                zmfun = (rdetrain-MIN(1.0_JPRB,pqen(JL,JK)/pqsen(JL,JK)))*zmfun
+              END IF
               zdmfde(jl)=MAX(zdmfde(jl),pmfu(jl,jk+1)*(1.0_JPRB-zmfun))
               plude(jl,jk)=plu(jl,jk+1)*zdmfde(jl)
               pmfu(jl,jk)=pmfu(jl,jk+1)+zdmfen(jl)-zdmfde(jl)! Mass flux is same as layer below, minus detraiment

@@ -25,6 +25,7 @@ MODULE mo_nh_testcases_nml
 !
 !
   USE mo_kind,                 ONLY: wp
+  USE mo_exception,            ONLY: finish, message_text
   USE mo_namelist,             ONLY: position_nml, POSITIONED, open_nml, close_nml
   USE mo_impl_constants,       ONLY: MAX_CHAR_LENGTH, MAX_NTRACER
   USE mo_io_units,             ONLY: nnml
@@ -35,7 +36,7 @@ MODULE mo_nh_testcases_nml
                                    & p_base_nconst, theta0_base_nconst, h_nconst,    &
                                    & N_nconst, rh_nconst, rhgr_nconst,               &
                                    & itype_anaprof_uv, nlayers_linwind, h_linwind,   &
-                                   & u_linwind, ugr_linwind, vel_const,              &
+                                   & u_linwind, ugr_linwind, vel_const, dir_wind,    &
                                    & itype_topo_ana, schaer_h0,                      &
                                    & schaer_a, schaer_lambda, halfwidth_2dm,         &
                                    & mount_lonc_deg, mount_latc_deg, m_height,       &
@@ -195,7 +196,7 @@ MODULE mo_nh_testcases_nml
                             p_base_nconst, theta0_base_nconst, h_nconst,     &
                             N_nconst, rh_nconst, rhgr_nconst,                &
                             itype_anaprof_uv, nlayers_linwind, h_linwind,    &
-                            u_linwind, ugr_linwind, vel_const,               &
+                            u_linwind, ugr_linwind, vel_const, dir_wind,     &
                             itype_topo_ana,                                  &
                             schaer_h0, schaer_a, schaer_lambda,              &
                             halfwidth_2dm, mount_lonc_deg, mount_latc_deg,   &
@@ -331,6 +332,7 @@ MODULE mo_nh_testcases_nml
      rhgr_poly(2)=0._wp   !DR rhgr_poly(1)=0._wp
     ! for the wind profiles
     vel_const = 20.0_wp
+    dir_wind = 270._wp
     itype_anaprof_uv  = 1
     nlayers_linwind   = 2
     h_linwind(:)      = 1._wp
@@ -415,8 +417,41 @@ MODULE mo_nh_testcases_nml
 
     n_flat_level=MAX(2,n_flat_level)
 
+    CALL configure_g_lim_area
+
   END SUBROUTINE read_nh_testcase_namelist
 
+
+  !> Map choices of itype_anaprof_uv to the general case with a specified wind profile. This
+  !! simplifies the implementation of the test case.
+  SUBROUTINE configure_g_lim_area
+
+    SELECT CASE (itype_anaprof_uv)
+    CASE (1)
+      ! General case, no adjustments needed.
+
+    CASE (2) ! Constant wind profile.
+      nlayers_linwind = 1
+      h_linwind(1) = 0._wp
+      u_linwind(1) = vel_const
+      ugr_linwind(1) = 0._wp
+
+    ! deprecated but kept for backward compatibility
+    !
+    CASE (3) ! Constant v wind profile.
+      nlayers_linwind = 1
+      h_linwind(1) = 0._wp
+      u_linwind(1) = vel_const
+      ugr_linwind(1) = 0._wp
+      dir_wind = 180._wp
+
+    CASE DEFAULT
+      WRITE (message_text,*) 'itype_anaprof_uv = ', itype_anaprof_uv, ' unknown.'
+      CALL finish('mo_nh_testcases_nml:read_nh_testcase_namelist', message_text)
+
+    END SELECT
+
+  END SUBROUTINE configure_g_lim_area
 
 !-------------------------------------------------------------------------
 END MODULE mo_nh_testcases_nml

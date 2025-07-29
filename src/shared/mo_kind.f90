@@ -64,6 +64,11 @@ MODULE mo_kind
   INTEGER, PARAMETER :: vp = dp                        !< selected variable precision
 #endif
 #endif
+#ifdef __SINGLE_PRECISION_ECRAD
+  INTEGER, PARAMETER :: rp = sp
+#else
+  INTEGER, PARAMETER :: rp = wp
+#endif
 
 
   !
@@ -87,7 +92,7 @@ MODULE mo_kind
   !
   INTEGER, PARAMETER :: wi = i4                       !< selected working precission
   !
-  PUBLIC :: sp, dp, qp, wp, xwp, vp, i1, i2, i4, i8
+  PUBLIC :: sp, dp, qp, wp, xwp, vp, rp, i1, i2, i4, i8
   !
   !--------------------------------------------------------------------
 

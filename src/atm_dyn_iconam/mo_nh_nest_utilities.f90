@@ -1362,8 +1362,8 @@ CONTAINS
       lacc=.TRUE., &
       nfields=3, ndim2tot=3*nlev_c+1, &
       recv1=diff_thv, recv2=diff_rho, recv3=diff_w)
-    CALL interpol_scal_nudging (p_pp, p_int, p_grf%p_dom(i_chidx), 0, 3, istartblk_c,          &
-      &                         lacc=.TRUE.,                                                   &
+    CALL interpol_scal_nudging (p_pp, p_int, p_grf%p_dom(i_chidx), nshift=0, nfields=3,        &
+      &                         nlev_ex=1, istart_blk=istartblk_c, lacc=.TRUE.,                &
       &                         f3din1=diff_thv, f3dout1=p_diag%grf_tend_thv,                  &
       &                         f3din2=diff_rho, f3dout2=p_diag%grf_tend_rho,                  &
       &                         f3din3=diff_w,   f3dout3=p_diag%grf_tend_w                     )
@@ -1376,9 +1376,9 @@ CONTAINS
         lacc=.TRUE., &
         nfields=ntracer_nudge, ndim2tot=ntracer_nudge*nlev_c, recv4d=diff_tr)
 
-      CALL interpol_scal_nudging (p_pp, p_int, p_grf%p_dom(i_chidx),                   &
-        &                         0, ntracer_nudge, istartblk_c, lacc=.TRUE.,          &
-        &                         f4din=diff_tr,                                       &
+      CALL interpol_scal_nudging (p_pp, p_int, p_grf%p_dom(i_chidx), nshift=0,                &
+        &                         nfields=ntracer_nudge, nlev_ex=1, istart_blk=istartblk_c,   &
+        &                         lacc=.TRUE., f4din=diff_tr,                                 &
         &                         f4dout=p_diag%grf_tend_tracer(:,:,:,1:ntracer_nudge) )
       CALL sync_patch_array_mult(SYNC_C, p_pc, ntracer_nudge, lacc=.TRUE., &
                                  f4din=p_diag%grf_tend_tracer(:,:,:,1:ntracer_nudge))
@@ -1549,9 +1549,9 @@ CONTAINS
     ! those, the nudging tendencies are applied outside the dynamical core for reasons of mass consistency
 
     IF(l_parallel) CALL exchange_data(p_pat=p_pp%comm_pat_c, lacc=.TRUE., recv=diff_rho)
-    CALL interpol_scal_nudging (p_pp, p_int, p_grf%p_dom(i_chidx), 0, 1, istartblk_c, &
-      &                         lacc=.TRUE.,                                          &
-      &                         f3din1=diff_rho, f3dout1=p_diag%grf_tend_rho          )
+    CALL interpol_scal_nudging (p_pp, p_int, p_grf%p_dom(i_chidx), nshift=0,               &
+      &                         nfields=1, nlev_ex=1, istart_blk=istartblk_c, lacc=.TRUE., &
+      &                         f3din1=diff_rho, f3dout1=p_diag%grf_tend_rho)
     CALL sync_patch_array(SYNC_C,p_pc,p_diag%grf_tend_rho,lacc=.TRUE.)
 
     !$ACC WAIT(1)
@@ -2177,11 +2177,11 @@ CONTAINS
         &                     nfields=3, ndim2tot=3*nlev, &
         &                     recv1=pres_lp, recv2=temp_lp, recv3=qv_lp)
       !
-      CALL interpol_scal_nudging (p_plp, p_int, p_grf%p_dom(i_chidx), 0, 3, 1,           &
-        &                         lacc=lacc, &
-        &                         f3din1=pres_lp, f3dout1=latbc_data%atm_child(jg)%pres, &
-        &                         f3din2=temp_lp, f3dout2=latbc_data%atm_child(jg)%temp, &
-        &                         f3din3=qv_lp,   f3dout3=latbc_data%atm_child(jg)%qv    )
+      CALL interpol_scal_nudging (p_plp, p_int, p_grf%p_dom(i_chidx), nshift=0, nfields=3, &
+        &                         nlev_ex=1, istart_blk=1, lacc=lacc,                      &
+        &                         f3din1=pres_lp, f3dout1=latbc_data%atm_child(jg)%pres,   &
+        &                         f3din2=temp_lp, f3dout2=latbc_data%atm_child(jg)%temp,   &
+        &                         f3din3=qv_lp,   f3dout3=latbc_data%atm_child(jg)%qv      )
       !
       CALL sync_patch_array_mult(SYNC_C, p_patch(jg), 3, lacc=lacc, &
         &                        f3din1=latbc_data%atm_child(jg)%pres, &

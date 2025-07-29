@@ -66,6 +66,7 @@ path = [
   "run/tolerance/hashes/*",
   "schedulers/ecmwf/gen/mapfile_vlist.txt",
   "scripts/**/TAG",
+  "scripts/jenkins_scripts/scripts/test.euler.cpu",
   "scripts/postprocessing/amip_quickplots/VARS.txt",
   "scripts/postprocessing/tools/iconplot_ncl/*.list",
   "test/microphysics_1mom_schemes/input-data.nc.md5",

@@ -405,6 +405,7 @@ CONTAINS
                  &                     ext_data(jg)%atm_td%cdnc,         &! in
                  &                     ext_data(jg)%atm%cdnc             )! out
           ENDDO
+          ! prm_diag%cloud_num is set in mo_nwp_phy_init from ext_data%atm%cdnc
         ENDIF
 
         ! clean up

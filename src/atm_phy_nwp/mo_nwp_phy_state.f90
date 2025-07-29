@@ -68,7 +68,8 @@ USE mo_cdi_constants,       ONLY: GRID_UNSTRUCTURED_CELL,             &
   &                               GRID_CELL
 USE mo_master_control,      ONLY: get_my_process_name
 USE mo_parallel_config,     ONLY: nproma
-USE mo_run_config,          ONLY: nqtendphy, iqv, iqc, iqi, iqr, iqs, iqg, iqh, lart, ldass_lhn
+USE mo_run_config,          ONLY: nqtendphy, iqv, iqc, iqi, iqr, iqs, iqg, iqh, lart, ldass_lhn, &
+  &                               iqb_water_start, iqb_water_end, iqb_snow_start, iqb_snow_end, iqbin
 USE mo_exception,           ONLY: message, finish !,message_text
 USE mo_model_domain,        ONLY: t_patch, p_patch, p_patch_local_parent
 USE mo_grid_config,         ONLY: n_dom, n_dom_start, nexlevs_rrg_vnest
@@ -231,11 +232,12 @@ SUBROUTINE construct_nwp_phy_state( p_patch, var_in_output )
      CALL new_nwp_phy_stochconv_list ( jg, nblks_c, listname, &
        &                          prm_nwp_stochconv_list(jg), prm_nwp_stochconv(jg))
 
-     ! create additional SBM-specific storage, if SBM microphysics is selected
-     IF (atm_phy_nwp_config(jg)%inwp_gscp == 8) THEN
-       CALL construct_sbm_storage (p_patch)
-     ENDIF
   ENDDO
+
+  ! create additional SBM-specific storage, if SBM microphysics is selected
+  IF (ANY(atm_phy_nwp_config(:)%inwp_gscp == 8)) THEN
+    CALL construct_sbm_storage (p_patch)
+  ENDIF
 
   ! Allocate variable of type t_phy_params containing domain-dependent parameters
   ALLOCATE(phy_params(n_dom), STAT=ist)
@@ -469,9 +471,12 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       &     diag%reff_qr, &
       &     diag%reff_qs, &
       &     diag%rh, &
+      &     diag%rlamh_fac_t, &
+      &     diag%rlamh_varfac_t, &
       &     diag%sdi2, &
       &     diag%snowalb_fac, &
       &     diag%landalb_inc, &
+      &     diag%spg, &
       &     diag%srh, &
       &     diag%ssa_sw, &
       &     diag%tot_pr_max, &
@@ -484,6 +489,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       &     diag%tetfl_turb, &
       &     diag%tkred_sfc, &
       &     diag%tkred_sfc_h, &
+      &     diag%r_bsmin_fac, &
       &     diag%tt_lheat, &
       &     diag%ttend_lhn, &
       &     diag%twater, &
@@ -1880,6 +1886,17 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
         __acc_attach(diag%hydiffu_fac)
     ENDIF
 
+    IF (icpl_da_sfcevap >= 6) THEN
+      ! Factor for bare-soil evaporation resistance
+      cf_desc    = t_cf_var('r_bsmin_fac', '-', 'tuning factor for bare-soil evaporation resistance', datatype_flt)
+      grib2_desc = grib2_var( 255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( diag_list, 'r_bsmin_fac', diag%r_bsmin_fac,   &
+        &           GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc,  &
+        &           grib2_desc, ldims=shape2d, loutput=.TRUE.,    &
+        &           initval=1.0_wp, lrestart=.TRUE., lopenacc=.TRUE.)
+        __acc_attach(diag%r_bsmin_fac)
+    ENDIF
+
     ! Factor for adaptive surface friction tuning
     !
     ! sfcfric_fac     diag%sfcfric_fac(nproma,nblks_c)
@@ -2919,6 +2936,15 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       __acc_attach(diag%g_sw)
     ENDIF
 
+    IF ( atm_phy_nwp_config(k_jg)%lstochastic_pattern_generator ) THEN
+      ! &      diag%spg(nproma,nblks_c)
+      cf_desc    = t_cf_var('spg', '-', 'stochastic pattern generator perturbation field', datatype_flt)
+      grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( diag_list, 'spg', diag%spg,                 &
+           & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,          &
+           & ldims=shape2d, lrestart=.false., lopenacc=.FALSE. )
+    END IF
+
     ! &      diag%cloud_num(nproma,nblks_c)
     cf_desc    = t_cf_var('cloud_num', 'm-3', 'cloud droplet number concentration', datatype_flt)
     grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
@@ -3435,7 +3461,32 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
          & lrestart=.FALSE.)
     ENDDO
 
+    IF (icpl_da_sfcevap >= 6) THEN
+      !        diag%rlamh_varfac_t (nproma, nblks, ntiles_total)
+      cf_desc    = t_cf_var('rlamh_varfac_t', '', 'variable scaling factor for rlam_heat', &
+        &                   datatype_flt)
+      grib2_desc = grib2_var(255,255,255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( diag_list, 'rlamh_varfac_t', diag%rlamh_varfac_t,    &
+        & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,       &
+        & ldims=shape3dsubs, lcontainer=.TRUE., lrestart=.FALSE.,        &
+        & loutput=.FALSE., lopenacc=.TRUE., initval=1._wp)
+      __acc_attach(diag%rlamh_varfac_t)
 
+      ! fill the seperate variables belonging to the container rlamh_varfac_t
+      ALLOCATE(diag%rlamh_varfac_ptr(ntiles_total))
+      DO jsfc = 1,ntiles_total
+        WRITE(csfc,'(i1)') jsfc
+        CALL add_ref( diag_list, 'rlamh_varfac_t',                         &
+           & 'rlamh_varfac_t'//TRIM(ADJUSTL(csfc)),                        &
+           & diag%rlamh_varfac_ptr(jsfc)%p_2d,                             &
+           & GRID_UNSTRUCTURED_CELL, ZA_SURFACE,                           &
+           & t_cf_var('rlamh_varfac_'//TRIM(csfc), '', '', datatype_flt),  &
+           & grib2_var(255,255,255, ibits, GRID_UNSTRUCTURED, GRID_CELL),  &
+           & ref_idx=jsfc, ldims=shape2d,                                  &
+           & var_class=CLASS_TILE,                                         &
+           & lrestart=.TRUE.)
+      ENDDO
+    ENDIF
 
     ! &      diag%gz0(nproma,nblks_c)
     cf_desc     = t_cf_var('gz0', 'm2 s-2 ','roughness length times gravity', datatype_flt)
@@ -6156,6 +6207,9 @@ SUBROUTINE new_nwp_phy_tend_list( k_jg, klev,  kblks,   &
     INTEGER :: datatype_flt
     INTEGER :: ncomin_tendphy_turb, ncomin_tendphy_conv
 
+    CHARACTER(len=30) :: tracer_name !for SBM microphysics bins vertical diffusion
+    INTEGER           :: iqb
+
     ncomin_tendphy_turb = comin_config%comin_icon_domain_config(k_jg)%nturb_tracer
     ncomin_tendphy_conv = comin_config%comin_icon_domain_config(k_jg)%nconv_tracer
 
@@ -6504,6 +6558,42 @@ SUBROUTINE new_nwp_phy_tend_list( k_jg, klev,  kblks,   &
                 & vert_intp_method=VINTP_METHOD_LIN),                             &
                 & ref_idx=iqi, ldims=shape3d, lrestart=.FALSE.,                   &
                 & in_group=groups("phys_tendencies") )
+
+    !33 drop mass bins for SBM microphysics
+    IF ( atm_phy_nwp_config(k_jg)%inwp_gscp == 8 ) THEN
+      DO iqb = iqb_water_start, iqb_water_end
+        tracer_name = TRIM('ddt_bin_turb_')//TRIM(advection_config(k_jg)%tracer_names(iqbin(iqb)))
+        CALL add_ref( phy_tend_list, 'ddt_tracer_turb',                           &
+                & tracer_name, phy_tend%tracer_turb_ptr(iqbin(iqb))%p_3d,         &
+                & GRID_UNSTRUCTURED_CELL, ZA_REFERENCE,                           &
+                & t_cf_var(tracer_name, 'kg kg**-1 s**-1',                        &
+                & 'turbulence tendency of bin', datatype_flt),                    &
+                & grib2_var(192, 162, 202, ibits, GRID_UNSTRUCTURED, GRID_CELL),  & ! What to do with grib number?
+                & vert_interp=create_vert_interp_metadata(                        &
+                & vert_intp_type=vintp_types("P","Z","I"),                        &
+                & vert_intp_method=VINTP_METHOD_LIN),                             &
+                & ref_idx=iqbin(iqb), ldims=shape3d, lrestart=.FALSE.,            &
+                & in_group=groups("phys_tendencies") )
+      END DO
+    END IF
+
+    !33 ice-snow mass bins for SBM microphysics
+    IF ( atm_phy_nwp_config(k_jg)%inwp_gscp == 8 ) THEN
+      DO iqb = iqb_snow_start, iqb_snow_end
+        tracer_name = TRIM('ddt_bin_turb_')//TRIM(advection_config(k_jg)%tracer_names(iqbin(iqb)))
+        CALL add_ref( phy_tend_list, 'ddt_tracer_turb',                           &
+                & tracer_name, phy_tend%tracer_turb_ptr(iqbin(iqb))%p_3d,         &
+                & GRID_UNSTRUCTURED_CELL, ZA_REFERENCE,                           &
+                & t_cf_var(tracer_name, 'kg kg**-1 s**-1',                        &
+                & 'turbulence tendency of bin', datatype_flt),                    &
+                & grib2_var(192, 162, 202, ibits, GRID_UNSTRUCTURED, GRID_CELL),  & ! What to do with grib number?
+                & vert_interp=create_vert_interp_metadata(                        &
+                & vert_intp_type=vintp_types("P","Z","I"),                        &
+                & vert_intp_method=VINTP_METHOD_LIN),                             &
+                & ref_idx=iqbin(iqb), ldims=shape3d, lrestart=.FALSE.,            &
+                & in_group=groups("phys_tendencies") )
+      END DO
+    END IF
 
 #ifdef __ICON_ART
     ! art

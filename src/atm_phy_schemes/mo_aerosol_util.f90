@@ -18,7 +18,7 @@ MODULE mo_aerosol_util
   USE mo_impl_constants,         ONLY: min_rlcell_int, iss, iorg, ibc, iso4, idu, nclass_aero
   USE mo_impl_constants_grf,     ONLY: grf_bdywidth_c
   USE mo_math_constants,         ONLY: rad2deg
-  USE mo_kind,                   ONLY: wp
+  USE mo_kind,                   ONLY: wp, rp
   USE mo_exception,              ONLY: finish
   USE mo_loopindices,            ONLY: get_indices_c
   USE mo_lrtm_par,               ONLY: jpband => nbndlw
@@ -57,22 +57,22 @@ MODULE mo_aerosol_util
 
   ! The (long wave) wavenumbers from rrtm are not set when not using RRTM
   ! So we copy the values from mo_lrtm_setup (long wave) and mo_srtm_config (short wave)
-  REAL(wp), PARAMETER :: & !< Lower wavenumber bound long wave
-    &  rrtm_wavenum1_lw(jpband) = (/  10._wp, 350._wp, 500._wp, 630._wp, 700._wp, 820._wp, &
-                                &    980._wp,1080._wp,1180._wp,1390._wp,1480._wp,1800._wp, &
-                                &   2080._wp,2250._wp,2380._wp,2600._wp/)
-  REAL(wp), PARAMETER :: & !< Upper wavenumber bound long wave
-    &  rrtm_wavenum2_lw(jpband) = (/ 350._wp, 500._wp, 630._wp, 700._wp, 820._wp, 980._wp, &
-                                &   1080._wp,1180._wp,1390._wp,1480._wp,1800._wp,2080._wp, &
-                                &   2250._wp,2380._wp,2600._wp,3250._wp/)
-  REAL(wp), PARAMETER :: & !< Lower wavenumber bound short wave
-    &  rrtm_wavenum1_sw(jpsw) = (/ 2600._wp, 3250._wp, 4000._wp, 4650._wp, 5150._wp, 6150._wp, &
-                              &    7700._wp, 8050._wp,12850._wp,16000._wp,22650._wp,29000._wp, &
-                              &   38000._wp, 820._wp  /)
-  REAL(wp), PARAMETER :: & !< Upper wavenumber bound short wave
-    &  rrtm_wavenum2_sw(jpsw) = (/ 3250._wp, 4000._wp, 4650._wp, 5150._wp, 6150._wp, 7700._wp, &
-                              &    8050._wp,12850._wp,16000._wp,22650._wp,29000._wp,38000._wp, &
-                              &   50000._wp, 2600._wp /)
+  REAL(rp), PARAMETER :: & !< Lower wavenumber bound long wave
+    &  rrtm_wavenum1_lw(jpband) = (/  10._rp, 350._rp, 500._rp, 630._rp, 700._rp, 820._rp, &
+                                &    980._rp,1080._rp,1180._rp,1390._rp,1480._rp,1800._rp, &
+                                &   2080._rp,2250._rp,2380._rp,2600._rp/)
+  REAL(rp), PARAMETER :: & !< Upper wavenumber bound long wave
+    &  rrtm_wavenum2_lw(jpband) = (/ 350._rp, 500._rp, 630._rp, 700._rp, 820._rp, 980._rp, &
+                                &   1080._rp,1180._rp,1390._rp,1480._rp,1800._rp,2080._rp, &
+                                &   2250._rp,2380._rp,2600._rp,3250._rp/)
+  REAL(rp), PARAMETER :: & !< Lower wavenumber bound short wave
+    &  rrtm_wavenum1_sw(jpsw) = (/ 2600._rp, 3250._rp, 4000._rp, 4650._rp, 5150._rp, 6150._rp, &
+                              &    7700._rp, 8050._rp,12850._rp,16000._rp,22650._rp,29000._rp, &
+                              &   38000._rp, 820._rp  /)
+  REAL(rp), PARAMETER :: & !< Upper wavenumber bound short wave
+    &  rrtm_wavenum2_sw(jpsw) = (/ 3250._rp, 4000._rp, 4650._rp, 5150._rp, 6150._rp, 7700._rp, &
+                              &    8050._rp,12850._rp,16000._rp,22650._rp,29000._rp,38000._rp, &
+                              &   50000._rp, 2600._rp /)
 
   !ecRad
   TYPE t_tegen_scal_factors
@@ -317,7 +317,8 @@ CONTAINS
       &  l_rrtm_gas_model         !< Use RRTM gas model (mimic legacy behavior)
     ! Local variables
     REAL(wp), ALLOCATABLE :: &
-      &  mapping(:,:),       & !< Mapping matrix between wavenumbers at RRTM gas model bands and at ecckd bands
+      &  mapping(:,:)          !< Mapping matrix between wavenumbers at RRTM gas model bands and at ecckd bands
+    REAL(rp), ALLOCATABLE :: &
       &  mapping_transp(:,:)   !< Transposed of mapping
     INTEGER :: &
       &  n_bands_sw,         & !< Number of ecrad shortwave bands

@@ -678,8 +678,8 @@ The main switch for the Latent heat nudging scheme is called ldass\_lhn and has 
 
 %\hline
  {nlhn\_start}&
-I&
--9999&
+R(n\_dom)&
+-9999.&
 s&
 time in seconds when LHN is applied for the first time&
 run\_nml:ldass\_lhn = .true.
@@ -687,8 +687,8 @@ run\_nml:ldass\_lhn = .true.
 
 %\hline
  {nlhn\_end}&
-I&
--9999&
+R(n\_dom)&
+-9999.&
 s&
 time in seconds when LHN is applied for the last time&
 run\_nml:ldass\_lhn = .true.
@@ -696,7 +696,7 @@ run\_nml:ldass\_lhn = .true.
 
 %\hline
  {lhn\_coef}&
-R&
+R(n\_dom)&
 1.0&
 &
 Nudging coefficient of adding the increments&
@@ -704,7 +704,7 @@ Nudging coefficient of adding the increments&
 
 %\hline
  {fac\_lhn\_up}&
-R&
+R(n\_dom)&
 2.0&
 &
 Upper limit of the scaling factor of the temperature profile.&
@@ -712,7 +712,7 @@ Upper limit of the scaling factor of the temperature profile.&
 
 %\hline
  {fac\_lhn\_down}&
-R&
+R(n\_dom)&
 0.5&
 &
 Lower limit of the scaling factor of the temperature profile.&
@@ -729,7 +729,7 @@ fac\_lhn\_down, fac\_lhn\_up, fac\_lhn\_artif
 
 %\hline
  {lhn\_updt\_rule}&
-I(max\_ dom)&
+I(n\_dom)&
 0&
 &
 Rule for humidity update by LHN: \\
@@ -766,7 +766,7 @@ If set .FALSE. the model surface precipitation rate is used as reference.&
 
 %\hline
  {rqrsgmax}&
-R&
+R(n\_dom)&
 1.0&
 &
 This value determines the height of the vertical averaging, to obtain the reference precipitation rate\\
@@ -838,7 +838,7 @@ abs\_lhn\_lim
 
 %\hline
  {abs\_lhn\_lim}&
-R&
+R(n\_dom)&
 50./3600.&
 K/s&
 Lower and upper limit for temperature increments to be added.&
@@ -855,7 +855,7 @@ Vertical smoothing of the profile of temperature increments &
 
 %\hline
  {lhn\_relax}&
-L&
+L(n\_dom)&
 .FALSE.&
 &
 Horizontal smoothing of radar data but also of incorporated model fields &
@@ -864,7 +864,7 @@ nlhn\_relax
 
 %\hline
  {nlhn\_relax}&
-I&
+I(n\_dom)&
 2&
 grid points&
 Number of horizontal grid point, where smoothing is applied.&
@@ -873,7 +873,7 @@ lhn\_relax = .TRUE.
 
 %\hline
  {lhn\_wweight}&
-L&
+L(n\_dom)&
 .FALSE.&
 &
 Reduction of the LHN temperature increment in case of strong advection, messured by horizontal wind in 950, 850 and 700 hPa.\\
@@ -947,8 +947,8 @@ lhn\_artif, lhn\_artif\_only
 
 %\hline
  {nlhnverif\_start}&
-I&
--9999&
+R&
+-9999.&
 s&
 time in seconds when online verification within LHN is active for the first time&
 run\_nml:ldass\_lhn = .true.
@@ -956,8 +956,8 @@ run\_nml:ldass\_lhn = .true.
 
 %\hline
  {nlhnverif\_end}&
-I&
--9999&
+R&
+-9999.&
 s&
 time in seconds when online verification within LHN is active for the last time&
 run\_nml:ldass\_lhn = .true.
@@ -989,8 +989,8 @@ Path where the radar data file is expected.&
 \tabularnewline
 
 %\hline
- {radardata\_file(:)}&
-C (n\_dom)&
+ {radardata\_file}&
+C(n\_dom)&
 &
 &
 Name of the radar data file. This might be either in GRIB2 or in NetCDF (recommended).&
@@ -998,15 +998,15 @@ Name of the radar data file. This might be either in GRIB2 or in NetCDF (recomme
 
 %\hline
  {lhn\_black}&
-L&
+L(n\_dom)&
 .FALSE.&
 &
 Apply a blacklist information in the radar data obtained by comparison against satelite cloud information&
 \tabularnewline
 
 %\hline
- {blacklist\_file(:)}&
-C (n\_dom)&
+ {blacklist\_file}&
+C(n\_dom)&
 'radarblacklist.nc'&
 &
 Name of blacklist file, containing a mask concerning the quality of the radar data.\\
@@ -1018,15 +1018,15 @@ lhn\_black=.TRUE.
 
 %\hline
  {lhn\_bright}&
-L&
+L(n\_dom)&
 .FALSE.&
 &
 Apply a model intern bright band detection to avoid strong overestimation due to uncertain radar observations.&
 \tabularnewline
 
 %\hline
- {height\_file(:)}&
-C (n\_dom)&
+ {height\_file}&
+C(n\_dom)&
 'radarheight.nc'&
 &
 Name of file containing the height of the lowest scan for each possible radar station within the given radar composite.\\
@@ -1037,7 +1037,7 @@ lhn\_bright=.TRUE.
 
 %\hline
  {nradar}&
-I (n\_dom)&
+I(n\_dom)&
 20&
 &
 Maximal number of radar height layers contained within height\_file&
@@ -1046,7 +1046,7 @@ lhn\_bright=.TRUE.
 
 %\hline
  {lhn\_spqual}&
-L&
+L(n\_dom)&
 .FALSE.&
 &
 Use quality index to infer the horizontal spatial weight of the LHN increments. The quality index is read in as RAD\_QUAL variable (besides the RAD\_PRECIP variable) from the LHN input file.&
@@ -2676,7 +2676,9 @@ Choosing values $>$ 0 requires itype\_vegetation\_cycle=2 (in extpar\_nml) :\\
 (requires assimilation of T2M and RH2M) \\
 4: as option 3, but uses the minimum evaporation resistance (default set by cr\_bsmin) instead of c\_soil for adaptive
 tuning of bare-soil evaporation \\
-5: as option 4, but additional adjustment of hydraulic diffusivity (capillary transport) and asymmetry factor for stomata resistance &
+5: as option 4, but additional adjustment of hydraulic diffusivity (capillary transport) and asymmetry factor for stomata resistance \\
+6: as option 5, but additional time-dependent adjustment of rlam\_heat and bare-soil evaporation resistance depending on
+a combination of meteorological conditions and time-filtered data assimilation increments &
 init\_mode=5
 \tabularnewline
 
@@ -5479,6 +5481,14 @@ measures targeted at grayzone (convection-permitting) model resolutions\\
 & inwp\_convection = 1; cannot be combined with lshallowconv\_only
 \tabularnewline
 
+%\hline
+itype\_parcel\_ascent&
+I (max\_ dom)&
+1&
+&
+1: ICON-NWP, 2: IFS/CY41r2 \\
+& inwp\_convection = 1
+\tabularnewline
 
 %\hline
 ldetrain\_conv\_prec&
@@ -5487,6 +5497,15 @@ L (max\_ dom)&
 &
 .TRUE.: Activate detrainment of convective rain and snow\\
 & inwp\_convection = 1
+\tabularnewline
+
+%\hline
+lconv\_cdnc\_interp&
+L (max\_ dom)&
+.FALSE.&
+&
+.TRUE.: cloud\_num based interpolation for rmfdeps and rhebc to replace land/sea mask. Should be combined with icpl\_aero\_conv=1.  \\
+& inwp\_convection = 1, icpl\_aero\_gscp=3
 \tabularnewline
 
 %\hline
@@ -5623,10 +5642,14 @@ inwp\_cldcover = 1
 \tabularnewline
 
 %\hline
-lsbm\_warm\_full&
-L (max\_ dom) & .TRUE. &  & TRUE: warm-phase Spectral Bin Microphysics (SBM). False: 2-moment scheme
-is applied (as for inwp\_gscp = 4) and SBM is running in a "Piggy Backing" mode for diagnostic purposes&
+lsbm\_coupled&
+L (max\_ dom) & .TRUE. &  & TRUE: use SBM feedback, FALSE: use 2M for feedback and run uncoupled SBM &
 inwp\_gscp = 8
+\tabularnewline
+
+%\hline
+lmicrophysicsFirst&
+L (max\_ dom) & .FALSE. &  & TRUE: run microphysics before turbdiff, FALSE: after turbdiff
 \tabularnewline
 
 
@@ -5881,6 +5904,69 @@ Activate cuda graphs for turbulent transfers. Automatically set to .FALSE. if no
 ICON\_USE\_CUDA\_GRAPH activated
 \tabularnewline
 
+%\hline
+lstochastic\_pattern\_generator &
+L &
+.FALSE. &
+-&
+Activate stochastic pattern generator using either spherical harmonics (global) or Fourier modes (LAM)&
+\tabularnewline
+
+%\hline
+spg\_fourier\_modes &
+L &
+.TRUE. &
+-&
+Use Fourier modes for stochastic pattern generator in LAM configurations. For LAM simulations spherical harmonics can be used by setting this switch to .false. but this is computationally inefficient and only useful for tests or consistency with a global configuration. & \scriptsize
+lstochastic\_pattern\_generator=.true. \\ and l\_limited\_area=.true.
+\tabularnewline
+
+%\hline
+spg\_use\_asl &
+L &
+.FALSE. &
+-&
+Use Advanced Scientific Library (ASL) provided by NEC. & \scriptsize
+lstochastic\_pattern\_generator=.true.
+\tabularnewline
+
+
+%\hline
+spg\_length\_scale &
+R &
+1000e3 &
+m &
+Length scale of stochastic pattern & \scriptsize
+lstochastic\_pattern\_generator=.true.
+\tabularnewline
+
+%\hline
+spg\_time\_scale &
+R &
+3600.0 &
+s &
+Time scale of stochastic pattern & \scriptsize
+lstochastic\_pattern\_generator=.true.
+\tabularnewline
+
+%\hline
+spg\_spec\_modes &
+I &
+50 &
+- &
+Number of spectral modes used for stochastic pattern generator & \scriptsize
+lstochastic\_pattern\_generator=.true.
+\tabularnewline
+
+%\hline
+spg\_variance &
+R &
+1.0 &
+- &
+Variance of stochastic pattern in grid point space & \scriptsize
+lstochastic\_pattern\_generator=.true.
+\tabularnewline
+
 \end{longtab}
 
 
@@ -6023,7 +6109,7 @@ run\_nml:iforcing = inwp
 
 \hline
 \hline
-\multicolumn{6}{|l|}{\textbf{Grid scale microphysics} (one moment)}
+\multicolumn{6}{|l|}{\textbf{Grid scale microphysics}}
 \tabularnewline
 
 \hline
@@ -6072,18 +6158,27 @@ inwp\_gscp=2
 \tabularnewline
 
 \hline
+tune\_dice\_conv&
+R&
+100e-6&
+m&
+mean diameter of detrained cloud ice of parameterized convection &
+run\_nml:iforcing = inwp; inwp\_convection = 1, inwp\_gscp = 3
+\tabularnewline
+
+\hline
 tune\_sbmccn&
 R&
 1.0&
 &
 Scaling factor (0,1] for initial aerosol concentration profile, used for comparison\\
 between simulations with two-moment and warm SBM microphysics&
-run\_nml:iforcing = inwp
+run\_nml:iforcing = inwp, inwp\_gscp = 8
 \tabularnewline
 
 \hline
 \hline
-\multicolumn{6}{|l|}{\textbf{Convection scheme}}
+\multicolumn{6}{|l|}{\textbf{Convection scheme} (Tiedtke-Bechtold)}
 \tabularnewline
 
 
@@ -6205,6 +6300,33 @@ run\_nml:iforcing = inwp
 \tabularnewline
 
 \hline
+tune\_rmfdeps\_land&
+R&
+0.25&
+&
+fractional mass flux for downdrafts over land &
+run\_nml:iforcing = inwp;  lshallowconv\_only = .FALSE.; lgrayzone\_deepconv = .FALSE;
+\tabularnewline
+
+\hline
+tune\_rmfdeps\_ocean&
+R&
+0.15&
+&
+fractional mass flux for downdrafts over ocean &
+run\_nml:iforcing = inwp;  lshallowconv\_only = .FALSE.; lgrayzone\_deepconv = .FALSE;
+\tabularnewline
+
+\hline
+tune\_detrainment\_profile&
+R&
+0.0&
+&
+prefactor in RH-dependent detrainment profile, recommended range is $1.7$ to $1.9$ &
+run\_nml:iforcing = inwp;
+\tabularnewline
+
+\hline
 tune\_grzdc\_offset&
 R&
 0.0&
@@ -6214,6 +6336,11 @@ activity of the convection scheme and suppress convective drizzle (recommendatio
 run\_nml:iforcing = inwp; lgrayzone\_deepconv = .TRUE.
 \tabularnewline
 
+\hline
+\hline
+
+\multicolumn{6}{|l|}{\textbf{Cloud scheme}}
+\tabularnewline
 \hline
 tune\_box\_liq&
 R&
@@ -6345,6 +6472,28 @@ run\_nml:iforcing = inwp; inwp\_clcover = 1
 \tabularnewline
 
 \hline
+tune\_cu\_alfa&
+R&
+0.0&
+&
+scaling parameter of modification of cloud fraction of shallow liquid clouds &
+run\_nml:iforcing = inwp; inwp\_clcover = 1;  icpl\_aero\_gscp $>$ 0
+\tabularnewline
+
+\hline
+tune\_cu\_cdnc&
+R&
+150e6&
+m$^{-3}$&
+cloud droplet number threshold to identify regions for cloud cover modification &
+run\_nml:iforcing = inwp; inwp\_clcover = 1
+\tabularnewline
+
+\hline
+\multicolumn{6}{|l|}{\textbf{Saturation adjustment}}
+\tabularnewline
+
+\hline
 tune\_supsat\_limfac&
 R&
 0.0&
@@ -6353,7 +6502,6 @@ Limiting factor for parameterized supersaturation in updrafts during the saturat
 (0.0 for thermodynamic equilibrium) &
 run\_nml:iforcing = inwp; inwp\_satad = 1
 \tabularnewline
-
 
 \hline
 \hline
@@ -7081,7 +7229,8 @@ C&None&  &
 h\_levels &
 R(:)&None& m &
  height levels \\
-&
+ (height above mean sea level, \emph{not} above ground) \\
+ &
 \tabularnewline
 
 %\hline
@@ -10422,9 +10571,9 @@ nh\_test\_name=\\'g\_lim\_area'
 itype\_anaprof\_uv&
 I& 1 & &
 kind of wind profile:\\
-1 piecewise linear wind layers\\
-2 constant zonal wind\\
-3 constant meridional wind&
+1: piecewise linear wind layers\\
+2: constant wind\\
+(3: constant meridional wind, deprecated)&
 nh\_test\_name=\\'g\_lim\_area'
 \tabularnewline
 %\hline
@@ -10559,9 +10708,15 @@ itype\_anaprof\_uv=1
 %\hline
 vel\_const&
 R& 20. & m/s &
-constant zonal/meridional wind (itype\_anaprof\_uv=2,3)&
+constant wind speed (itype\_anaprof\_uv=2)&
 nh\_test\_name=\\'g\_lim\_area' and
-itype\_anaprof\_uv=2,3
+itype\_anaprof\_uv=2
+\tabularnewline
+%\hline
+dir\_wind&
+R& 270. & deg &
+wind direction (0 = N, 90 = E)&
+nh\_test\_name=\\'g\_lim\_area'
 \tabularnewline
 %\hline
 mount\_lonc\_deg&

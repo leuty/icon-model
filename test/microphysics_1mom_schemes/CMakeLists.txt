@@ -162,7 +162,7 @@ add_custom_target(
   COMMAND
     ${probtest_CMD} init --codebase-install ${CMAKE_CURRENT_BINARY_DIR}
     --template-name ${PROJECT_SOURCE_DIR}/granule.jinja --experiment-name 1mom
-    --member-num 9
+    --member-ids "1,2,3,4,5,6,7,8,9"
   COMMENT "Running probtest initialization for the tolerance data update"
 )
 

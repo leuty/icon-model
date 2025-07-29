@@ -70,6 +70,8 @@ MODULE mo_nwp_phy_nml
   LOGICAL  :: lmflimiter_off(max_dom)     !! switch off MF limiters in convection setup
   INTEGER  :: nclds(max_dom)              !! max number of clouds in stochastic cloud ensemble
   LOGICAL  :: lgrayzone_deepconv(max_dom) !! use grayzone tuning for deep convection
+  LOGICAL  :: lconv_cdnc_interp(max_dom)  !! use cloud droplet number to replace land/sea mask in convection scheme
+  INTEGER  :: itype_parcel_ascent(max_dom)!! options for parcel ascent in parameterized convection
   LOGICAL  :: ldetrain_conv_prec(max_dom) !! detrain convective rain and snow
   INTEGER  :: inwp_cldcover(max_dom)      !! cloud cover
   LOGICAL  :: lsgs_cond(max_dom)          !! subgrid-scale condensation related to cloud cover
@@ -100,13 +102,22 @@ MODULE mo_nwp_phy_nml
   REAL(wp) :: rain_n0_factor     !! tuning factor for intercept parameter of raindrop size distribution
   LOGICAL  :: lvariable_rain_n0  !! if true: use variable rain_n0_factor approaching 1 for large QR
   REAL(wp) :: mu_snow            !! ...for snow
-  LOGICAL  :: lsbm_warm_full     !! false: Piggy Backing with 2M, true: full warm-phase SBM
+  LOGICAL  :: lmicrophysicsFirst !! true: run microphysics before turbdiff, false: after turbdiff
+  LOGICAL  :: lsbm_coupled       !! FALSE: use 2M for feedback and run uncoupled SBM, TRUE: use SBM feedback
 
   INTEGER  :: icalc_reff(max_dom)    !! type of effective radius calculation
   INTEGER  :: icpl_rad_reff(max_dom) !! coupling radiation and effective radius
   INTEGER  :: ithermo_water(max_dom) !! thermodynamic of water
 
   LOGICAL  :: lcuda_graph_turb_tran  !! Activate CUDA GRAPH in turbulent transfer
+
+  LOGICAL  :: lstochastic_pattern_generator   !! use stochastic pattern generator
+  LOGICAL  :: spg_use_asl           !! stochastic pattern generator, use ASL library
+  LOGICAL  :: spg_fourier_modes     !! stochastic pattern generator, Fourier modes
+  REAL(wp) :: spg_length_scale      !! stochastic pattern generator, length scale
+  REAL(wp) :: spg_time_scale        !! stochastic pattern generator, time scale of AR1 process
+  INTEGER  :: spg_spec_modes        !! stochastic pattern generator, number of spectral modes
+  REAL(wp) :: spg_variance          !! stochastic pattern generator, variance in grid point space
 
   !> NetCDF file containing longwave absorption coefficients and other data
   !> for RRTMG_LW k-distribution model ('rrtmg_lw.nc')
@@ -132,9 +143,15 @@ MODULE mo_nwp_phy_nml
     &                    ldetrain_conv_prec, rain_n0_factor,         &
     &                    icalc_reff, lupatmo_phy, icpl_rad_reff,     &
     &                    lgrayzone_deepconv, ithermo_water,          &
-    &                    lsbm_warm_full, lcuda_graph_turb_tran,      &
+    &                    lconv_cdnc_interp, itype_parcel_ascent,     &
+    &                    lmicrophysicsFirst,                         &
+    &                    lsbm_coupled, lcuda_graph_turb_tran,        &
     &                    lscale_cdnc, lvariable_rain_n0,             &
-    &                    itype_dissip_heat
+    &                    itype_dissip_heat,                          &
+    &                    lstochastic_pattern_generator,              &
+    &                    spg_length_scale, spg_time_scale,           &
+    &                    spg_spec_modes, spg_variance,               &
+    &                    spg_fourier_modes, spg_use_asl
 
 CONTAINS
 
@@ -209,9 +226,10 @@ CONTAINS
     lrestune_off(:)       = .FALSE. ! default: all tunings as for default master branch
     lmflimiter_off(:)     = .FALSE. ! default: mass flux limiters on
     lgrayzone_deepconv(:) = .FALSE.
+    lconv_cdnc_interp(:)  = .FALSE.
     ldetrain_conv_prec(:) = .FALSE.
     lsgs_cond(:)          = .TRUE.  ! activate subgrid-scale condensation in cloud cover scheme
-
+    itype_parcel_ascent(:)= 1       ! default: ICON-NWP (1: ICON-NWP, 2: IFS/Cy41r1)
 
     lrtm_filename   = 'rrtmg_lw.nc'
     cldopt_filename = 'ECHAM6_CldOptProps.nc'
@@ -221,13 +239,23 @@ CONTAINS
     qi0      = 0.0_wp
     qc0      = 0.0_wp
 
+    ! stochastic pattern generator
+    lstochastic_pattern_generator = .false.
+    spg_use_asl       = .false.
+    spg_fourier_modes = .true.
+    spg_length_scale  = 1000e3_wp
+    spg_time_scale    = 3600.0_wp
+    spg_spec_modes    = 50
+    spg_variance      = 1.0_wp
+
     ! shape parameter for gamma distribution for rain and snow
     mu_rain = 0.0_wp
     mu_snow = 0.0_wp
     rain_n0_factor = 1.0_wp
     lvariable_rain_n0 = .FALSE.
 
-    lsbm_warm_full = .TRUE. ! false: Piggy Backing with 2M, true: full warm-phase SBM
+    lmicrophysicsFirst = .FALSE. ! false: run microphysics after turbdiff, true: before turbdiff
+    lsbm_coupled = .TRUE. !FALSE: use 2M for feedback and run uncoupled SBM, TRUE: use SBM feedback
 
     ustart_raylfric    = 160._wp
     efdt_min_raylfric  = 10800._wp
@@ -469,6 +497,9 @@ CONTAINS
         CALL finish(routine,'GPU version not available for Stochastic Bin Microphysics (inwp_gscp=8).')
       ENDIF
 
+      IF (lstochastic_pattern_generator) THEN
+        CALL finish(routine,'The spectral stochastic pattern generatore has not yet been ported to GPU.')
+      END IF
 #endif
 
       IF (inwp_surface(jg) == LSS_JSBACH .AND. inwp_turb(jg) /= ivdiff) THEN
@@ -532,6 +563,7 @@ CONTAINS
       atm_phy_nwp_config(jg)%lrestune_off       = lrestune_off(jg)
       atm_phy_nwp_config(jg)%lmflimiter_off     = lmflimiter_off(jg)
       atm_phy_nwp_config(jg)%lgrayzone_deepconv = lgrayzone_deepconv(jg)
+      atm_phy_nwp_config(jg)%lconv_cdnc_interp  = lconv_cdnc_interp(jg)
       atm_phy_nwp_config(jg)%ldetrain_conv_prec = ldetrain_conv_prec(jg)
       atm_phy_nwp_config(jg)%lsgs_cond          = lsgs_cond(jg)
 
@@ -555,7 +587,15 @@ CONTAINS
       atm_phy_nwp_config(jg)%icalc_reff      = icalc_reff (jg)
       atm_phy_nwp_config(jg)%icpl_rad_reff   = icpl_rad_reff (jg)
       atm_phy_nwp_config(jg)%ithermo_water   = ithermo_water(jg)
-      atm_phy_nwp_config(jg)%lsbm_warm_full  = lsbm_warm_full
+      atm_phy_nwp_config(jg)%lmicrophysicsFirst = lmicrophysicsFirst
+      atm_phy_nwp_config(jg)%lsbm_coupled    = lsbm_coupled
+      atm_phy_nwp_config(jg)%lstochastic_pattern_generator = lstochastic_pattern_generator
+      atm_phy_nwp_config(jg)%spg_use_asl       = spg_use_asl
+      atm_phy_nwp_config(jg)%spg_length_scale  = spg_length_scale
+      atm_phy_nwp_config(jg)%spg_time_scale    = spg_time_scale
+      atm_phy_nwp_config(jg)%spg_spec_modes    = spg_spec_modes
+      atm_phy_nwp_config(jg)%spg_variance      = spg_variance
+      atm_phy_nwp_config(jg)%spg_fourier_modes = spg_fourier_modes
     ENDDO
 
     config_lrtm_filename         = TRIM(lrtm_filename)

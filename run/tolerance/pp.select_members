@@ -56,9 +56,8 @@ selected_members_file_name="${basedir}/${probtest_exp}_selected_members.csv"
 "$PROBTEST" select-members \
     --stats-file-name "$stats_file_name" \
     --selected-members-file-name "$selected_members_file_name" \
-    --min-member-num 5 \
-    --max-member-num 15 \
-    --total-member-num 50 \
+    --max-member-count 20 \
+    --total-member-count 49 \
     --min-factor 5 \
     --max-factor 50 || exit 4
 

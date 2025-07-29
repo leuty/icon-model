@@ -27,7 +27,7 @@ source "${SCRIPT_DIR}/inlinelist.sh"
 MODULE_SETTINGS=". ${MODULESHOME}/init/sh; module purge"
 
 
-MODULES='sx/default nfort/5.1.0 nc++/5.1.0 mpi/3.5.0 netcdf4/4.7.3-sx hdf5/1.10.5-sx eccodes/2.36.0-sx aec/1.1.2-sx nlc/3.0.0 libxml2/2.9.10-sx szip/2.1.1-sx zlib/1.2.11-sx libfyaml/0.8-sx unsupported cmake/3.26.4'
+MODULES='sx/default nfort/5.1.0 nc++/5.1.0 mpi/3.5.0 netcdf4/4.7.3-sx hdf5/1.10.5-sx eccodes/2.38.3-sx aec/1.1.2-sx nlc/3.0.0 libxml2/2.9.10-sx szip/2.1.1-sx zlib/1.2.11-sx libfyaml/0.8-sx unsupported cmake/3.26.4'
 
 
 ### Libraries ###
@@ -39,8 +39,8 @@ NETCDF_LIBS='-lnetcdf'
 # HDF5
 HDF5_LIBS='-lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5'
 
-# BLAS, LAPACK
-LAPACK_LIBS='-llapack -lblas_sequential'
+# BLAS, LAPACK, ASL
+LAPACK_LIBS='-llapack -lblas_sequential -lasl_sequential'
 
 # ECCODES - note that we use a double underscore because ECCODES_LIBS may be overwritten by system settings
 ECCODES__LIBS='-leccodes_f90 -leccodes'
@@ -100,7 +100,7 @@ CPPFLAGS="${ECCODES_INCLUDE} -I${HDF5_DIR}/include -I${NETCDF_DIR}/include ${ECC
 
 # Fortran compiler wrapper on NEC machine
 FC='mpinfort'
-FCFLAGS="${ECCODES_INCLUDE} -I${HDF5_DIR}/include -I${NETCDF_DIR}/include -I${RTTOV_ROOT}/include/rttov13 -fdiag-vector=0 -report-all -no-report-cg -traceback=verbose -O3 -mstack-arrays -msched-block -floop-unroll-completely=8 -floop-unroll-completely-nest=8 -fcse-after-vectorization -mno-vector-fma -fno-associative-math -DUSE_XML2 -USX -D__SX__=__NEC__ -D__COMM_OPT__ -D__BLOCK_GET__ -D_RTTOV_ARCH_VECTOR -DNFORT_BROKEN_INLINES"
+FCFLAGS="${ECCODES_INCLUDE} -I${HDF5_DIR}/include -I${NETCDF_DIR}/include -I${RTTOV_ROOT}/include/rttov13 -fdiag-vector=0 -report-all -no-report-cg -traceback=verbose -O3 -mstack-arrays -msched-block -floop-unroll-completely=8 -floop-unroll-completely-nest=8 -fcse-after-vectorization -mno-vector-fma -fno-associative-math -DUSE_XML2 -USX -D__SX__=__NEC__ -D__COMM_OPT__ -D__BLOCK_GET__ -D_RTTOV_ARCH_VECTOR -DNFORT_BROKEN_INLINES -D__ASL__"
 
 ICON_FCFLAGS="-finline-functions -finline-file=$(join_arr : "${ICON_DIR}/" "${INLINE_LIST_EMVORADO[@]}" "${INLINE_LIST_ICON[@]}" "${INLINE_LIST_ART[@]}" "${INLINE_LIST_DACE[@]}")"
 #

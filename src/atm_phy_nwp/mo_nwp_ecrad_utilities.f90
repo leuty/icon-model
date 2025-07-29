@@ -20,7 +20,7 @@
 
 MODULE mo_nwp_ecrad_utilities
 
-  USE mo_kind,                   ONLY: wp
+  USE mo_kind,                   ONLY: wp, rp
   USE mo_math_constants,         ONLY: rad2deg, pi
   USE mo_exception,              ONLY: finish
   USE mo_fortran_tools,          ONLY: set_acc_host_or_device, assert_acc_device_only
@@ -325,7 +325,8 @@ CONTAINS
       &  clc(:,:),              & !< Cloud cover
       &  temp(:,:),             & !< Full level temperature field
       &  pres(:,:),             & !< Full level pressure field
-      &  fact_reffc,            & !< Factor in the calculation of cloud droplet effective radius
+      &  fact_reffc               !< Factor in the calculation of cloud droplet effective radius
+    REAL(rp), INTENT(in)     :: &
       &  clc_min                  !< Minimum cloud cover value to be considered as partly cloudy
     REAL(wp), POINTER, INTENT(in)     :: &
       &  acdnc(:,:),            & !< Cloud droplet numb. conc. (m-3)
@@ -355,8 +356,9 @@ CONTAINS
       &  lwc, iwc,              & !< Cloud liquid and ice water content
       &  liwcfac,               & !< Factor to calculate cloud liquid and ice water content
       &  zcos_lat,              & !< latitude factor cos(lat)
-      &  zdecorr(i_startidx:i_endidx), &!< decorrelation length scale
       &  reff_min, reff_max       !< Limits for reff needed by ecrad (hardcoded)
+    REAL(rp)                 :: &
+      &  zdecorr(i_startidx:i_endidx) !< decorrelation length scale
     REAL (wp), PARAMETER     :: &
       &  qcrit_rad = 5E-5_wp      !< Limit for when to consider large hydrometeors for radiation
     INTEGER                  :: &
@@ -642,7 +644,7 @@ CONTAINS
     ! Water Vapor
     SELECT CASE(irad_h2o)
       CASE(0) ! No water vapor
-        CALL ecrad_gas%put_well_mixed(ecRad_IH2O, IVolumeMixingRatio, 0._wp,  istartcol=i_startidx, iendcol=i_endidx)
+        CALL ecrad_gas%put_well_mixed(ecRad_IH2O, IVolumeMixingRatio, 0._rp,  istartcol=i_startidx, iendcol=i_endidx)
       CASE(1) ! Use values from diagnosed water vapor content
         CALL ecrad_gas%put(ecRad_IH2O, IMassMixingRatio, qv(i_startidx:i_endidx,:), istartcol=i_startidx)
       CASE DEFAULT
@@ -652,7 +654,7 @@ CONTAINS
     ! Ozone
     SELECT CASE(irad_o3)
       CASE(0) ! No Ozone
-        CALL ecrad_gas%put_well_mixed(ecRad_IO3,IVolumeMixingRatio, 0._wp,  istartcol=i_startidx,iendcol=i_endidx)
+        CALL ecrad_gas%put_well_mixed(ecRad_IO3,IVolumeMixingRatio, 0._rp,  istartcol=i_startidx,iendcol=i_endidx)
       CASE(10) ! Use values from interactive ozone
         CALL ecrad_gas%put(ecRad_IO3, IMassMixingRatio, o3(i_startidx:i_endidx,:), istartcol=i_startidx)
       CASE(5,7,9,79,97) ! Use values from GEMS/MACC (different profiles)
@@ -668,11 +670,11 @@ CONTAINS
     !CO2
     SELECT CASE(irad_co2)
       CASE(0) ! No CO2
-        CALL ecrad_gas%put_well_mixed(ecRad_ICO2,IVolumeMixingRatio, 0._wp,    istartcol=i_startidx,iendcol=i_endidx)
+        CALL ecrad_gas%put_well_mixed(ecRad_ICO2,IVolumeMixingRatio, 0._rp,    istartcol=i_startidx,iendcol=i_endidx)
       CASE(2) ! Constant value derived from namelist parameter vmr_co2
-        CALL ecrad_gas%put_well_mixed(ecRad_ICO2,IVolumeMixingRatio, vmr_co2,  istartcol=i_startidx,iendcol=i_endidx)
+        CALL ecrad_gas%put_well_mixed(ecRad_ICO2,IVolumeMixingRatio, REAL(vmr_co2, rp),  istartcol=i_startidx,iendcol=i_endidx)
       CASE(4) ! time dependent concentration from external file
-        CALL ecrad_gas%put_well_mixed(ecRad_ICO2,IMassMixingRatio, ghg_co2mmr,  istartcol=i_startidx,iendcol=i_endidx)
+        CALL ecrad_gas%put_well_mixed(ecRad_ICO2,IMassMixingRatio, REAL(ghg_co2mmr, rp),  istartcol=i_startidx,iendcol=i_endidx)
       CASE DEFAULT
         CALL finish(routine, 'Current implementation only supports irad_co2 = 0, 2, 4')
     END SELECT
@@ -680,11 +682,11 @@ CONTAINS
     !O2
     SELECT CASE(irad_o2)
       CASE(0) ! No O2
-        CALL ecrad_gas%put_well_mixed(ecRad_IO2,IVolumeMixingRatio, 0._wp,   istartcol=i_startidx,iendcol=i_endidx)
+        CALL ecrad_gas%put_well_mixed(ecRad_IO2,IVolumeMixingRatio, 0._rp,   istartcol=i_startidx,iendcol=i_endidx)
       CASE(2) ! Constant value derived from namelist parameter vmr_o2
         ! O2 is hardcoded within rrtm gas solver of ecRad, option for ecRad_IO2 only in case of psrad gas solver
         ! We still put it in ecRad, because this bug should be fixed with the next ecRad release
-        CALL ecrad_gas%put_well_mixed(ecRad_IO2,IVolumeMixingRatio, vmr_o2,  istartcol=i_startidx,iendcol=i_endidx)
+        CALL ecrad_gas%put_well_mixed(ecRad_IO2,IVolumeMixingRatio, REAL(vmr_o2, rp),  istartcol=i_startidx,iendcol=i_endidx)
       CASE DEFAULT
         CALL finish(routine, 'Current implementation only supports irad_o2 = 0, 2')
     END SELECT
@@ -692,11 +694,11 @@ CONTAINS
     !CFC11
     SELECT CASE(irad_cfc11)
       CASE(0) ! No CFC11
-        CALL ecrad_gas%put_well_mixed(ecRad_ICFC11,IVolumeMixingRatio, 0._wp,    istartcol=i_startidx,iendcol=i_endidx)
+        CALL ecrad_gas%put_well_mixed(ecRad_ICFC11,IVolumeMixingRatio, 0._rp,    istartcol=i_startidx,iendcol=i_endidx)
       CASE(2) ! Constant value derived from namelist parameter vmr_cfc11
-        CALL ecrad_gas%put_well_mixed(ecRad_ICFC11,IVolumeMixingRatio, vmr_cfc11,istartcol=i_startidx,iendcol=i_endidx)
+        CALL ecrad_gas%put_well_mixed(ecRad_ICFC11,IVolumeMixingRatio, REAL(vmr_cfc11, rp),istartcol=i_startidx,iendcol=i_endidx)
       CASE(4) ! time dependent concentration from external file
-        CALL ecrad_gas%put_well_mixed(ecRad_ICFC11,IMassMixingRatio, ghg_cfcmmr(1),istartcol=i_startidx, &
+        CALL ecrad_gas%put_well_mixed(ecRad_ICFC11,IMassMixingRatio, REAL(ghg_cfcmmr(1), rp),istartcol=i_startidx, &
           &                           iendcol=i_endidx)
       CASE DEFAULT
         CALL finish(routine, 'Current implementation only supports irad_cfc11 = 0, 2, 4')
@@ -705,11 +707,11 @@ CONTAINS
     !CFC12
     SELECT CASE(irad_cfc12)
       CASE(0) ! No CFC12
-        CALL ecrad_gas%put_well_mixed(ecRad_ICFC12,IVolumeMixingRatio, 0._wp,    istartcol=i_startidx,iendcol=i_endidx)
+        CALL ecrad_gas%put_well_mixed(ecRad_ICFC12,IVolumeMixingRatio, 0._rp,    istartcol=i_startidx,iendcol=i_endidx)
       CASE(2) ! Constant value derived from namelist parameter vmr_cfc12
-        CALL ecrad_gas%put_well_mixed(ecRad_ICFC12,IVolumeMixingRatio, vmr_cfc12,istartcol=i_startidx,iendcol=i_endidx)
+        CALL ecrad_gas%put_well_mixed(ecRad_ICFC12,IVolumeMixingRatio, REAL(vmr_cfc12, rp),istartcol=i_startidx,iendcol=i_endidx)
       CASE(4) ! time dependent concentration from external file
-        CALL ecrad_gas%put_well_mixed(ecRad_ICFC12,IMassMixingRatio, ghg_cfcmmr(2),istartcol=i_startidx, &
+        CALL ecrad_gas%put_well_mixed(ecRad_ICFC12,IMassMixingRatio, REAL(ghg_cfcmmr(2), rp),istartcol=i_startidx, &
           &                           iendcol=i_endidx)
       CASE DEFAULT
         CALL finish(routine, 'Current implementation only supports irad_cfc12 = 0, 2, 4')
@@ -718,9 +720,9 @@ CONTAINS
     !N2O
     SELECT CASE(irad_n2o)
       CASE(0) ! No N2O
-        CALL ecrad_gas%put_well_mixed(ecRad_IN2O,IVolumeMixingRatio, 0._wp,  istartcol=i_startidx,iendcol=i_endidx)
+        CALL ecrad_gas%put_well_mixed(ecRad_IN2O,IVolumeMixingRatio, 0._rp,  istartcol=i_startidx,iendcol=i_endidx)
       CASE(2) ! Constant value derived fromecrad_set_gas namelist parameter vmr_n2o
-        CALL ecrad_gas%put_well_mixed(ecRad_IN2O,IVolumeMixingRatio, vmr_n2o,istartcol=i_startidx,iendcol=i_endidx)
+        CALL ecrad_gas%put_well_mixed(ecRad_IN2O,IVolumeMixingRatio, REAL(vmr_n2o, rp),istartcol=i_startidx,iendcol=i_endidx)
       CASE(3) ! Tanh profile
         ALLOCATE(n2o(ncol,nlev))
         !$ACC ENTER DATA CREATE(n2o) ASYNC(1)
@@ -730,7 +732,7 @@ CONTAINS
         !$ACC EXIT DATA DELETE(n2o)
         DEALLOCATE(n2o)
       CASE(4) ! time dependent concentration from external file
-        CALL ecrad_gas%put_well_mixed(ecRad_IN2O,IMassMixingRatio, ghg_n2ommr,istartcol=i_startidx,iendcol=i_endidx)
+        CALL ecrad_gas%put_well_mixed(ecRad_IN2O,IMassMixingRatio, REAL(ghg_n2ommr, rp),istartcol=i_startidx,iendcol=i_endidx)
       CASE DEFAULT
         CALL finish(routine, 'Current implementation only supports irad_n2o = 0, 2, 3, 4')
     END SELECT
@@ -738,9 +740,9 @@ CONTAINS
     !CH4
     SELECT CASE(irad_ch4)
       CASE(0) ! No CH4
-        CALL ecrad_gas%put_well_mixed(ecRad_ICH4,IVolumeMixingRatio, 0._wp,  istartcol=i_startidx,iendcol=i_endidx)
+        CALL ecrad_gas%put_well_mixed(ecRad_ICH4,IVolumeMixingRatio, 0._rp,  istartcol=i_startidx,iendcol=i_endidx)
       CASE(2) ! Constant value derived from namelist parameter vmr_ch4
-        CALL ecrad_gas%put_well_mixed(ecRad_ICH4,IVolumeMixingRatio, vmr_ch4,istartcol=i_startidx,iendcol=i_endidx)
+        CALL ecrad_gas%put_well_mixed(ecRad_ICH4,IVolumeMixingRatio, REAL(vmr_ch4, rp),istartcol=i_startidx,iendcol=i_endidx)
       CASE(3) ! Tanh profile
         ALLOCATE(ch4(ncol,nlev))
         !$ACC ENTER DATA CREATE(ch4) ASYNC(1)
@@ -750,15 +752,15 @@ CONTAINS
         !$ACC EXIT DATA DELETE(ch4)
         DEALLOCATE(ch4)
       CASE(4) ! time dependent concentration from external file
-        CALL ecrad_gas%put_well_mixed(ecRad_ICH4,IMassMixingRatio, ghg_ch4mmr,istartcol=i_startidx,iendcol=i_endidx)
+        CALL ecrad_gas%put_well_mixed(ecRad_ICH4,IMassMixingRatio, REAL(ghg_ch4mmr, rp),istartcol=i_startidx,iendcol=i_endidx)
       CASE DEFAULT
         CALL finish(routine, 'Current implementation only supports irad_ch4 = 0, 2, 3, 4')
     END SELECT
 
     ! The following gases are currently not filled from the ICON side. Although they are set to 0 inside ecrad,
     ! they are set to 0 here for completeness.
-    CALL ecrad_gas%put_well_mixed(ecRad_IHCFC22,IVolumeMixingRatio, 0._wp, istartcol=i_startidx, iendcol=i_endidx)
-    CALL ecrad_gas%put_well_mixed(ecRad_ICCl4,  IVolumeMixingRatio, 0._wp, istartcol=i_startidx, iendcol=i_endidx)
+    CALL ecrad_gas%put_well_mixed(ecRad_IHCFC22,IVolumeMixingRatio, 0._rp, istartcol=i_startidx, iendcol=i_endidx)
+    CALL ecrad_gas%put_well_mixed(ecRad_ICCl4,  IVolumeMixingRatio, 0._rp, istartcol=i_startidx, iendcol=i_endidx)
 
     CALL ecrad_set_gas_units(ecrad_conf, ecrad_gas)
 
@@ -962,9 +964,9 @@ CONTAINS
   !!
   SUBROUTINE transmissivity_in_band (weights, bands, tr_band, cosmu0, mask, tr_wgt, nbands)
 
-    REAL(wp), INTENT(IN) :: weights(:) !< Weight for each band index present in `band`.
+    REAL(rp), INTENT(IN) :: weights(:) !< Weight for each band index present in `band`.
     INTEGER, INTENT(IN) :: bands(:) !< List of band indices.
-    REAL(wp), INTENT(IN) :: tr_band(:,:) !< Transmissivities for each band (nbands,ncells).
+    REAL(rp), INTENT(IN) :: tr_band(:,:) !< Transmissivities for each band (nbands,ncells).
     REAL(wp), INTENT(IN) :: cosmu0(:) !< Cosine of the solar zenith angle.
     LOGICAL, INTENT(IN) :: mask(:) !< Set to .TRUE. for elements that should be processed.
     REAL(wp), INTENT(INOUT) :: tr_wgt(:) !< Total (band-weighted) transmissivity (ncells).

@@ -16,7 +16,7 @@ experiments:
     restart_date: ['19790201T120000Z']
     tolerance:
       perturb_amplitude:
-        - mixed: 1e-7
+        - mixed: 1e-3
         - double: 1e-14
       file_id:
         - NetCDF: ['*atm_3d*.nc']

@@ -21,12 +21,21 @@ AES Physics:
 
 NWP Physics:
 
+- New mixed-phase Spectral Bin Microphysics (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1658)
 - enable reading and interpolating ozone and Kinne aerosol data using YAC (icon-nwp!1716)
 - Tuning changes for better prediction of fog / low stratus (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1762)
+- Extension of adaptive parameter tuning to reduce cold/moist bias around sunset (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1774)
+- Modified shallow cloud cover as function of cloud droplet number (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1730)
+- New deep convection options to improve precipitation in the tropics (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1778)
 - Fixes:
   - Inconsistent initialization time step length in vdiff interface and jsbach
   - Make ecRad compilable with Cray 17.0.1 for AMD GPUs (https://gitlab.dkrz.de/icon/icon/-/merge_requests/648)
   - Fix echotop and echotopinm diagnostics for clouds reaching model top (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1750)
+  - fix P-E lake double counting in JSBACH (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1773)
+  - LHN: Correction of some smaller bugs in observation processing (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1706)
+  - LHN: event bugfix (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1792)
+  - Bug fix for nudging interpolation (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1795)
+  - Bug fix in pressure bias correction for IFS lateral boundary data (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1802)
 
 ### ICON-Ocean
 
@@ -40,6 +49,8 @@ NWP Physics:
 - Enable compilation of sea ice thermodynamics for atmosphere-only builds (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/797)
 
 ### ICON-Waves
+
+- Implementation of Stokes depth diagnostic (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1782)
 
 ### Soil and Surface
 
@@ -92,14 +103,17 @@ NWP: TERRA and other surface issues
 - Switch to fortran-support 2.2.0
 - Switch to CDI 2.5.2.1
 - Switch to HD v5.2.4
+- Switch to probtest v1.1
 
 ### Infrastructure
 
 - Collection of additional changes required for single-precision (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/771, https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/657)
 - Add option to build ICON in single precision (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/681)
+- single precision for ecRad (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1628)
 - Add infrastructure for the Kokkos C++ development
 - Add infrastructure for unit testing
 - Remove usage of t_char_workaround (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/883)
+- Stochastic pattern generator based on spherical harmonics (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1708)
 
 #### Scripting and testing
 

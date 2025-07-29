@@ -90,6 +90,8 @@ ICON_IGNORED_PATTERNS = [
     "src/sea_ice/dynamics_fem/mo_ice_fem_evp.f90",
     "src/sea_ice/dynamics_fem/mo_ice_fem_init.f90",
     "src/sea_ice/dynamics_fem/mo_ice_fem_mesh.f90",
+    # SHTOOLS (BSD-3-Clause):
+    "src/shr_horizontal/mo_math_legendre.f90",
     # External projects:
     "utils/mkhelper/*",
     "utils/fpp-wrappers/*",

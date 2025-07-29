@@ -24,18 +24,20 @@ MODULE mo_wave_state
   USE mo_var_list_register,         ONLY: vlr_add, vlr_del
   USE mo_var_groups,                ONLY: groups
   USE mo_cdi_constants,             ONLY: GRID_UNSTRUCTURED_CELL, GRID_CELL, &
-       &                                  GRID_UNSTRUCTURED_EDGE, GRID_EDGE
+    &                                     GRID_UNSTRUCTURED_EDGE, GRID_EDGE
   USE mo_cdi,                       ONLY: DATATYPE_FLT32, DATATYPE_FLT64, GRID_UNSTRUCTURED, &
-       &                                  DATATYPE_PACK16, DATATYPE_INT
-  USE mo_zaxis_type,                ONLY: ZA_SURFACE, ZA_FREQ_GENERIC, ZA_DIR_GENERIC
+    &                                     DATATYPE_PACK16, DATATYPE_INT
+  USE mo_zaxis_type,                ONLY: ZA_SURFACE, ZA_FREQ_GENERIC, ZA_DIR_GENERIC, &
+    &                                     ZA_DEPTH_BELOW_SEA
   USE mo_cf_convention,             ONLY: t_cf_var
   USE mo_grib2,                     ONLY: t_grib2_var, grib2_var
   USE mo_io_config,                 ONLY: lnetcdf_flt64_output
+  USE mo_wave_io_config,            ONLY: t_wave_var_in_output
   USE mo_var_metadata,              ONLY: get_timelevel_string, create_hor_interp_metadata
   USE mo_tracer_metadata,           ONLY: create_tracer_metadata
 
   USE mo_wave_types,                ONLY: t_wave_prog, t_wave_source, t_wave_diag, &
-       &                                  t_wave_state, t_wave_state_lists
+    &                                     t_wave_state, t_wave_state_lists
   USE mo_wave_config,               ONLY: t_wave_config, wave_config
 
 
@@ -56,10 +58,13 @@ MODULE mo_wave_state
 
 CONTAINS
 
-  SUBROUTINE construct_wave_state(p_patch, n_timelevels)
+  SUBROUTINE construct_wave_state(p_patch, n_timelevels, var_in_output)
 
-    TYPE(t_patch), INTENT(IN) :: p_patch(:)
-    INTEGER,       INTENT(IN) :: n_timelevels
+    TYPE(t_patch),         INTENT(IN) :: p_patch(:)
+    INTEGER,               INTENT(IN) :: n_timelevels
+    TYPE(t_wave_var_in_output), INTENT(IN) ::      & !< switches for optional diagnostics
+      &  var_in_output(:)
+
 
     CHARACTER(len=max_char_length) :: listname
     CHARACTER(len=*), PARAMETER :: routine = modname//'::construct_wave_state'
@@ -129,7 +134,8 @@ CONTAINS
             p_patch(jg), &
             p_wave_state(jg)%diag, &
             p_wave_state_lists(jg)%diag_list, &
-            listname)
+            listname, &
+            var_in_output(jg))
 
     END DO
 
@@ -341,12 +347,14 @@ CONTAINS
 
 
 
-  SUBROUTINE new_wave_state_diag_list(p_patch, p_diag, p_diag_list, listname)
+  SUBROUTINE new_wave_state_diag_list(p_patch, p_diag, p_diag_list, listname, var_in_output)
 
     TYPE(t_patch),         INTENT(IN)    :: p_patch
     TYPE(t_wave_diag),     INTENT(INOUT) :: p_diag
     TYPE(t_var_list_ptr),  INTENT(INOUT) :: p_diag_list
     CHARACTER(len=*),      INTENT(IN)    :: listname
+    TYPE(t_wave_var_in_output), INTENT(IN)    :: &  !< optional diagnostic switches
+      &  var_in_output
 
     CHARACTER(len=*), PARAMETER :: routine = modname//'::new_wave_state_diag_list'
 
@@ -357,10 +365,12 @@ CONTAINS
     INTEGER :: datatype_flt  !< floating point accuracy in NetCDF output
     INTEGER :: nblks_c, nblks_e
     INTEGER :: nfreqs, ndirs, jmax
+    INTEGER :: ndepths
     INTEGER :: jg,jf
     INTEGER :: ist
     INTEGER :: shape2d_c(2)
     INTEGER :: shape3d_freq_c(3), shape3d_freq_e(3)
+    INTEGER :: shape3d_depth_c(3)
     INTEGER :: shape1d_freq_p4(1), shape1d_dir_2(2)
     INTEGER :: shape4d_c(4), shape3d_dir_c(3)
 
@@ -369,6 +379,92 @@ CONTAINS
 
     TYPE(t_wave_config),      POINTER :: wc
 
+    !------------------------------
+    ! Ensure that all pointers have a defined association status
+    !------------------------------
+    NULLIFY(p_diag%gv_c, &
+    &       p_diag%gv_e, &
+    &       p_diag%emean, &
+    &       p_diag%emeanws, &
+    &       p_diag%femean, &
+    &       p_diag%hrms_frac, &
+    &       p_diag%wbr_frac, &
+    &       p_diag%wave_num_c, &
+    &       p_diag%wave_num_e, &
+    &       p_diag%f1mean, &
+    &       p_diag%femeanws, &
+    &       p_diag%akmean, &
+    &       p_diag%xkmean, &
+    &       p_diag%swell_mask, &
+    &       p_diag%last_prog_freq_ind, &
+    &       p_diag%ALPHAJ, &
+    &       p_diag%FP, &
+    &       p_diag%ET, &
+    &       p_diag%flminfr_tab, &
+    &       p_diag%ustar, &
+    &       p_diag%z0, &
+    &       p_diag%tauw, &
+    &       p_diag%phiaw, &
+    &       p_diag%tauhf1, &
+    &       p_diag%phihf1, &
+    &       p_diag%tauhf, &
+    &       p_diag%phihf, &
+    &       p_diag%xlevtail, &
+    &       p_diag%IKP, &
+    &       p_diag%IKP1, &
+    &       p_diag%IKM, &
+    &       p_diag%IKM1, &
+    &       p_diag%K1W, &
+    &       p_diag%K2W, &
+    &       p_diag%K11W, &
+    &       p_diag%K21W, &
+    &       p_diag%JA1, &
+    &       p_diag%JA2, &
+    &       p_diag%AF11, &
+    &       p_diag%FKLAP, &
+    &       p_diag%FKLAP1, &
+    &       p_diag%FKLAM, &
+    &       p_diag%FKLAM1, &
+    &       p_diag%hs, &
+    &       p_diag%hs_max, &
+    &       p_diag%hs_dir, &
+    &       p_diag%tpp, &
+    &       p_diag%tmp, &
+    &       p_diag%tm1, &
+    &       p_diag%tm2, &
+    &       p_diag%ds, &
+    &       p_diag%emean_sea, &
+    &       p_diag%femean_sea, &
+    &       p_diag%f1mean_sea, &
+    &       p_diag%hs_sea, &
+    &       p_diag%hs_sea_dir, &
+    &       p_diag%pp_sea, &
+    &       p_diag%mp_sea, &
+    &       p_diag%m1_sea, &
+    &       p_diag%m2_sea, &
+    &       p_diag%ds_sea, &
+    &       p_diag%emean_swell, &
+    &       p_diag%femean_swell, &
+    &       p_diag%f1mean_swell, &
+    &       p_diag%hs_swell, &
+    &       p_diag%hs_swell_dir, &
+    &       p_diag%pp_swell, &
+    &       p_diag%mp_swell, &
+    &       p_diag%m1_swell, &
+    &       p_diag%m2_swell, &
+    &       p_diag%ds_swell, &
+    &       p_diag%drag, &
+    &       p_diag%tauwn, &
+    &       p_diag%beta, &
+    &       p_diag%u_stokes, &
+    &       p_diag%v_stokes, &
+    &       p_diag%last_idx_depth, &
+    &       p_diag%kbar, &
+    &       p_diag%T_stokes, &
+    &       p_diag%u3d_stokes, &
+    &       p_diag%v3d_stokes)
+
+
     ! pointer to wave_config(jg) to save some paperwork
     wc => wave_config(p_patch%id)
 
@@ -376,9 +472,10 @@ CONTAINS
     nblks_c = p_patch%nblks_c
     nblks_e = p_patch%nblks_e
 
-    nfreqs = wc%nfreqs
-    ndirs  = wc%ndirs
-    jmax = wc%jmax
+    nfreqs  = wc%nfreqs
+    ndirs   = wc%ndirs
+    jmax    = wc%jmax
+    ndepths = wc%ndepths
 
     shape1d_freq_p4   = (/nfreqs+4/)
     shape1d_dir_2     = (/ndirs, 2/)
@@ -386,6 +483,7 @@ CONTAINS
     shape3d_freq_c    = (/nproma, nfreqs, nblks_c/)
     shape3d_freq_e    = (/nproma, nfreqs, nblks_e/)
     shape3d_dir_c     = (/nproma, ndirs, nblks_c/)
+    shape3d_depth_c   = (/nproma, ndepths, nblks_c/)
     shape4d_c         = (/nproma, ndirs, nblks_c, nfreqs/)
 
 
@@ -963,6 +1061,53 @@ CONTAINS
          & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
          & lrestart=.FALSE., loutput=.TRUE.,                        &
          & ldims=shape2d_c)
+
+    IF (var_in_output%last_idx_depth .OR. &
+      & var_in_output%kbar           .OR. &
+      & var_in_output%T_stokes       .OR. &
+      & var_in_output%u3d_stokes     .OR. &
+      & var_in_output%v3d_stokes) THEN
+
+       WRITE(0,*) '--- calculate Stokes ---'
+
+      cf_desc   = t_cf_var('last_idx_depth', '-', 'last index of depth layer', datatype_int)
+      grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var(p_diag_list, 'last_idx_depth', p_diag%last_idx_depth, &
+           & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,    &
+           & lrestart=.FALSE., loutput=.TRUE.,                           &
+           & ldims=shape2d_c)
+
+      cf_desc   = t_cf_var('kbar', 'm-1', 'Breivik wavenumber', datatype_flt)
+      grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var(p_diag_list, 'kbar', p_diag%kbar,                 &
+           & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
+           & lrestart=.FALSE., loutput=.TRUE.,                        &
+           & ldims=shape2d_c)
+
+      cf_desc   = t_cf_var('T_stokes', 'm2s-1', 'Magnitude of Stokes transport', datatype_flt)
+      grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var(p_diag_list, 'T_stokes', p_diag%T_stokes,         &
+           & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
+           & lrestart=.FALSE., loutput=.TRUE.,                        &
+           & ldims=shape2d_c)
+
+      cf_desc    = t_cf_var('u3d_stokes', 'ms-1', 'U-component of 3d Stokes drift', datatype_flt)
+      grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var(p_diag_list, 'u3d_stokes', p_diag%u3d_stokes,          &
+           & GRID_UNSTRUCTURED_CELL, ZA_DEPTH_BELOW_SEA, cf_desc, grib2_desc, &
+           & lrestart=.FALSE., loutput=.TRUE.,                        &
+           & ldims=shape3d_depth_c)
+
+      cf_desc    = t_cf_var('v3d_stokes', 'ms-1', 'V-component of 3d Stokes drift', datatype_flt)
+      grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var(p_diag_list, 'v3d_stokes', p_diag%v3d_stokes,          &
+           & GRID_UNSTRUCTURED_CELL, ZA_DEPTH_BELOW_SEA, cf_desc, grib2_desc, &
+           & lrestart=.FALSE., loutput=.TRUE.,                        &
+           & ldims=shape3d_depth_c)
+
+   ELSE
+      WRITE(0,*) '--- without Stokes ---'
+   END IF
 
 
   END SUBROUTINE new_wave_state_diag_list

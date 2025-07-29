@@ -134,6 +134,13 @@ done
 # green house gases filename
 ghg_filename=greenhouse_historical.nc
 
+# ASL for stochastic pattern generator
+if [[ "$builder" = "rcl_nec" ]]; then
+  spg_use_asl=".true."
+else
+  spg_use_asl=".false."
+fi
+
 # ----------------------------------------------------------------------
 # create ICON master namelist
 # ----------------------------------------------------------------------
@@ -269,6 +276,12 @@ cat > NAMELIST_${EXPID} << EOF
           efdt_min_raylfric = 7200.
           icapdcycl         = 3
           icpl_o3_tp        = 1
+          lstochastic_pattern_generator = .true.
+          spg_use_asl       = ${spg_use_asl}
+          spg_length_scale  = 500e3
+          spg_time_scale    = 7200.
+          spg_spec_modes    = 5
+          spg_variance      = 1.
         /
         &nwp_tuning_nml
           tune_gust_factor =7 ! iref: 8

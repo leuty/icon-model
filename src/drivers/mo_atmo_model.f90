@@ -78,7 +78,7 @@ MODULE mo_atmo_model
     &                                   iqni, iqg, iqm_max, iqtke, iqh, iqnr, iqns, iqng,     &
     &                                   iqnh, iqnc, iqgl, iqhl, inccn, ininact, ininpot,      &
     &                                   lart, nqtendphy, ntracer,                             &
-    &                                   iqbin, iqb_i, iqb_e, iqb_s
+    &                                   iqbin, iqb_length, iqb_last
   USE mo_gribout_config,          ONLY: configure_gribout
   USE mo_atm_phy_nwp_config,      ONLY: atm_phy_nwp_config
 #ifndef __NO_JSBACH__
@@ -716,7 +716,7 @@ CONTAINS
       &                       iqgl, iqhl, inccn, ininact, ininpot,         &
       &                       iqtke, iqm_max, ntracer, nqtendphy,          &
       &                       atm_phy_nwp_config(:)%nclass_gscp,           &
-      &                       iqbin, iqb_i, iqb_e, iqb_s)
+      &                       iqbin, iqb_length, iqb_last)
 
     IF (lmoist_thdyn .AND. .NOT.(iqv>0)) THEN
       CALL finish( routine, 'Trying to run moist thermodynamics without moisture')

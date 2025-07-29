@@ -40,7 +40,7 @@ MODULE mo_nwp_reff_interface
   USE mo_nonhydrostatic_config,ONLY: kstart_moist
   USE mo_atm_phy_nwp_config,   ONLY: atm_phy_nwp_config, iprog_aero, icpl_aero_ice
   USE mo_radiation_config,     ONLY: irad_aero, iRadAeroTegen, iRadAeroCAMSclim, iRadAeroCAMStd
-  USE mo_nwp_tuning_config,    ONLY: tune_zceff_min, tune_v0snow, tune_zvz0i, tune_icesedi_exp, tune_zcsg
+  USE mo_nwp_tuning_config,    ONLY: tune_zceff_min, tune_v0snow, tune_zvz0i, tune_icesedi_exp, tune_zcsg, tune_dice_conv
 
   USE mo_reff_types,           ONLY: t_reff_calc_dom,  nreff_max_calc
   USE mo_reff_main,            ONLY: init_reff_calc, mapping_indices, mapping_indices_gscp3, calculate_ncn, &
@@ -101,6 +101,7 @@ MODULE mo_nwp_reff_interface
            &                        tune_v0snow    = tune_v0snow,                   &
            &                        tune_zcsg      = tune_zcsg,                     &
            &                        tune_zvz0i     = tune_zvz0i,                    &
+           &                      tune_dice_conv   = tune_dice_conv,                &
            &                      tune_icesedi_exp = tune_icesedi_exp,              &
            &                        tune_mu_rain   = atm_phy_nwp_config(jg)%mu_rain,&
            &                   tune_rain_n0_factor = atm_phy_nwp_config(jg)%rain_n0_factor,&

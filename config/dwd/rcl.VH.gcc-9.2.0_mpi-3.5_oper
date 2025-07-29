@@ -24,7 +24,7 @@ ICON_DIR=$(cd "${SCRIPT_DIR}/../..">/dev/null; pwd)
 MODULE_SETTINGS=". ${MODULESHOME}/init/sh; module purge"
 
 
-MODULES='apps sx/default gcc/9.2.0 mpi/3.5.0 netcdf4/4.7.3-VH-gnu hdf5/1.10.5-VH-gnu eccodes/2.36.0-VH-gnu aec/1.1.2-VH-gnu aocl/2.1-VH-gnu szip/2.1.1-VH-gnu libfyaml/0.8-VH-gnu unsupported cmake/3.26.4'
+MODULES='apps sx/default gcc/9.2.0 mpi/3.5.0 netcdf4/4.7.3-VH-gnu hdf5/1.10.5-VH-gnu eccodes/2.38.3-VH-gnu aec/1.1.2-VH-gnu13 aocl/2.1-VH-gnu szip/2.1.1-VH-gnu libfyaml/0.8-VH-gnu unsupported cmake/3.26.4'
 
 
 ### Libraries ###

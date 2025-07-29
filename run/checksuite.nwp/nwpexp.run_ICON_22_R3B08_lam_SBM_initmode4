@@ -12,7 +12,7 @@
 #
 # This experiment describes a ICON-LAM experiment using the NWP physics package.
 # The only difference to nwpexp.run_ICON_12_R3B08_lam_initmode4 is the usage
-# of the Stochastic Bin Microphysics (SBM) scheme by IMS instead of the graupel
+# of the Spectral Bin Microphysics (SBM) scheme by IMS instead of the graupel
 # scheme. In addition, the number of time steps has been reduced from 24h to 2h.
 #
 #--------------------------------------------------------------------------------------------------
@@ -296,14 +296,15 @@ cat > NAMELIST_NWP << EOF
 
 ! nwp_phy_nml: switches for the physics schemes ------------------------------
 &nwp_phy_nml
- inwp_gscp                   =                          8         ! stochastic bin microphysics (SBM)
- lsbm_warm_full              =                      .TRUE.        ! full warm-phase SBM
+ inwp_gscp                   =                          8         ! Spectral bin microphysics (SBM)
+ lsbm_coupled                =                      .TRUE.        ! couple SBM to ICON dynamics (TRUE recommended for inwp_gscp=8)
+ lmicrophysicsFirst          =                      .TRUE.        ! run microphysics before turbulence (TRUE recommended for inwp_gscp=8)
  inwp_convection             =                          1         ! convection
  lshallowconv_only           =                      .TRUE.        ! only shallow convection
  inwp_radiation              =                          4         ! radiation
  inwp_cldcover               =                          1         ! cloud cover scheme for radiation
  inwp_turb                   =                          1         ! vertical diffusion and transfer
- inwp_satad                  =                          0         ! saturation adjustment
+ inwp_satad                  =                          0         ! saturation adjustment (0 recommended for inwp_gscp=8)
  inwp_sso                    =                          1         ! subgrid scale orographic drag
  inwp_gwd                    =                          0         ! non-orographic gravity wave drag
  inwp_surface                =                          1         ! surface scheme

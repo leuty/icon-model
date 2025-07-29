@@ -155,6 +155,7 @@ MODULE mo_timer
 
   ! nwp physics
   PUBLIC :: timer_satad_v_3D
+  PUBLIC :: timer_stoch_pattern_gen
   PUBLIC :: timer_phys_exner
   PUBLIC :: timer_phys_u_v
   PUBLIC :: timer_nwp_turbulence, timer_nwp_surface
@@ -336,6 +337,7 @@ MODULE mo_timer
   INTEGER :: timer_nh_diagnostics
   INTEGER :: timer_diagnose_pres_temp
   INTEGER :: timer_satad_v_3D
+  INTEGER :: timer_stoch_pattern_gen
   INTEGER :: timer_phys_exner
   INTEGER :: timer_phys_u_v
   INTEGER :: timer_nwp_turbulence, timer_nwp_surface
@@ -848,6 +850,7 @@ CONTAINS
     timer_nh_diagnostics = new_timer("nh_diagnostics")
     timer_diagnose_pres_temp = new_timer("diagnose_pres_temp")
     timer_satad_v_3D = new_timer("satad")
+    timer_stoch_pattern_gen = new_timer("stoch_pattern_gen")
     timer_phys_u_v = new_timer("phys_u_v")
     timer_nwp_turbulence = new_timer("nwp_turbulence")
     timer_nwp_turbtrans = new_timer("nwp_turbtrans")

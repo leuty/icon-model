@@ -17,8 +17,10 @@ tests:
     refgen: ['balfrin_cpu_nvidia']
     checksuite_modes:
       - balfrin: 't'
-    ensemble_num: # Use 1 ensemble member as the tolerances are 0
-      - balfrin_cpu_nvidia: [1]
+    ensemble_num:
+      - balfrin_cpu_nvidia: [25,12,13,20,19]
+    tolerance_factor:
+      - balfrin: 5
   - name: mch_ch_r04b09_dace_synsat
     tags: ['atm','merge2rc','probtest']
     checksuite_modes:
@@ -38,7 +40,7 @@ tests:
       - balfrin: 'tc'
     ensemble_num:
       - balfrin_cpu_nvidia: [15,9,27,47,45,33]
-      - balfrin_cpu_nvidia_mixed: [15,36,28,50,41,4,2,38]
+      - balfrin_cpu_nvidia_mixed: [1,2,37,44,49,60]
     tolerance_factor:
       - balfrin: 5
   - name: mch_pollen_test
@@ -50,7 +52,9 @@ tests:
       - balfrin: 't'
     ensemble_num:
       - balfrin_cpu_nvidia: [25,12,13,20,19]
-      - balfrin_cpu_nvidia_mixed: [18,7,49,45,28]
+      - balfrin_cpu_nvidia_mixed: [25,12,13,20,19]
+    tolerance_factor:
+      - balfrin: 5
   - name: mch_icon-ch1
     tags: ['mch-opr']
     machines:
@@ -68,7 +72,7 @@ tests:
       - balfrin: 'gt'
     ensemble_num:
       - balfrin_cpu_nvidia: [50,21,39,38,15]
-      - balfrin_cpu_nvidia_mixed: [15,31,22,34,35,43]
+      - balfrin_cpu_nvidia_mixed: [30,16,4,19,10,15,20,44]
   - name: mch_icon-ch2
     tags: ['mch-opr']
     machines:
@@ -85,8 +89,10 @@ tests:
     checksuite_modes:
       - balfrin: 'tg'
     ensemble_num:
-      - balfrin_cpu_nvidia: [25,46,27,32,4]
-      - balfrin_cpu_nvidia_mixed: [36,34,1,26,11,22,16,13]
+      - balfrin_cpu_nvidia: [25,12,13,20,19]
+      - balfrin_cpu_nvidia_mixed: [34,50,11,35,40]
+    tolerance_factor:
+      - balfrin: 5
   - name: mch_kenda-ch1
     tags: ['mch-opr']
     machines:
@@ -99,46 +105,48 @@ tests:
     tags: ['atm','merge2rc','probtest']
     machines:
       - name: balfrin
-    refgen: ['balfrin_cpu_nvidia','balfrin_cpu_nvidia_mixed','alps_mch_test_cpu']
+        include_only: ['balfrin_cpu_nvidia', 'balfrin_gpu_nvidia']
+    refgen: ['balfrin_cpu_nvidia','alps_mch_test_cpu']
     checksuite_modes:
       - balfrin: 't'
     ensemble_num:
-      - balfrin_cpu_nvidia: [18,48,43,37,32,25]
-      - balfrin_cpu_nvidia_mixed: [32,11,18,20,24,46,47]
+      - balfrin_cpu_nvidia: [38,17,42,37,32]
+    tolerance_factor:
+      - balfrin: 5
   - name: mch_opr_r04b07_lhn_00
     tags: ['atm','merge2rc','probtest']
     machines:
       - name: balfrin
-    refgen: ['balfrin_cpu_nvidia','balfrin_cpu_nvidia_mixed','alps_mch_test_cpu']
+        include_only: ['balfrin_cpu_nvidia', 'balfrin_gpu_nvidia']
+    refgen: ['balfrin_cpu_nvidia','alps_mch_test_cpu']
     checksuite_modes:
       - balfrin: 't'
     ensemble_num:
-      - balfrin_cpu_nvidia: [19,43,31,1,25,33,20,4,7,2,50,5,46,30,3]
-      - balfrin_cpu_nvidia_mixed: [21,27,13,37,24,50,49,12,11]
+      - balfrin_cpu_nvidia: [25,12,13,20,19]
     tolerance_factor:
-      - balfrin: 10
+      - balfrin: 5
   - name: mch_opr_r04b07_lhn_12_emvorado
     tags: ['atm','merge2rc','probtest']
     machines:
       - name: balfrin
+        include_only: ['balfrin_cpu_nvidia', 'balfrin_gpu_nvidia']
     checksuite_modes:
       - balfrin: 't'
-    refgen: ['balfrin_cpu_nvidia','balfrin_cpu_nvidia_mixed','alps_mch_test_cpu']
+    refgen: ['balfrin_cpu_nvidia','alps_mch_test_cpu']
     ensemble_num:
-      - balfrin_cpu_nvidia: [36,2,28,40,25,27,18,34,33,47,9]
-      - balfrin_cpu_nvidia_mixed: [13,42,47,24,11,28,45,1,8,17,3,49,39,20,46]
+      - balfrin_cpu_nvidia: [15,44,31,18,24]
     tolerance_factor:
-      - balfrin: 10
+      - balfrin: 5
   - name: mch_opr_r04b07_nest
     tags: ['atm','merge2rc','probtest']
     machines:
       - name: balfrin
-    refgen: ['balfrin_cpu_nvidia','balfrin_cpu_nvidia_mixed','alps_mch_test_cpu']
+        include_only: ['balfrin_cpu_nvidia', 'balfrin_gpu_nvidia']
+    refgen: ['balfrin_cpu_nvidia','alps_mch_test_cpu']
     checksuite_modes:
       - balfrin: 'rt'
     ensemble_num:
       - balfrin_cpu_nvidia: [22,36,1,26,4,37]
-      - balfrin_cpu_nvidia_mixed: [38,22,48,19,37]
     tolerance_factor:
       - balfrin: 5
   - name: mch_opr_r04b07_performance
@@ -157,17 +165,19 @@ tests:
       - balfrin: 't'
     ensemble_num:
       - balfrin_cpu_nvidia: [50,23,40,18,19]
-      - balfrin_cpu_nvidia_mixed: [50,20,40,39,15]
+      - balfrin_cpu_nvidia_mixed: [18,20,42,9,13,12,31]
   - name: mch_opr_r19b07_lpi
     tags: ['atm','merge2rc','probtest']
     machines:
       - name: balfrin
-    refgen: ['balfrin_cpu_nvidia','balfrin_cpu_nvidia_mixed','alps_mch_test_cpu']
+        include_only: ['balfrin_cpu_nvidia', 'balfrin_gpu_nvidia']
+    refgen: ['balfrin_cpu_nvidia','alps_mch_test_cpu']
     checksuite_modes:
       - balfrin: 't'
     ensemble_num:
-      - balfrin_cpu_nvidia: [25,42,14,45,47,46,23,39,17]
-      - balfrin_cpu_nvidia_mixed: [14,48,33,45,35,31,39,6,8,13,38,7,21,32]
+      - balfrin_cpu_nvidia: [10,26,45,31,24]
+    tolerance_factor:
+      - balfrin: 5
   - name: mch_opr_r19b07_midnight
     tags: ['atm','merge2rc','probtest']
     machines:
@@ -177,18 +187,22 @@ tests:
     checksuite_modes:
       - balfrin: 't'
     ensemble_num:
-      - balfrin_cpu_nvidia: [29,46,32,35,4]
-      - balfrin_cpu_nvidia_mixed: [26,39,25,5,35,6,3,47]
+      - balfrin_cpu_nvidia: [16,44,34,21,26]
+      - balfrin_cpu_nvidia_mixed: [40,1,35,6,38,33,16,8]
+    tolerance_factor:
+      - balfrin: 5
   - name: mch_opr_r19b07_turb
     tags: ['atm','merge2rc','probtest']
     machines:
       - name: balfrin
+        include_only: ['balfrin_cpu_nvidia', 'balfrin_gpu_nvidia']
     checksuite_modes:
       - balfrin: 't'
-    refgen: ['balfrin_cpu_nvidia', 'balfrin_cpu_nvidia_mixed', 'alps_mch_test_cpu']
+    refgen: ['balfrin_cpu_nvidia', 'alps_mch_test_cpu']
     ensemble_num:
-      - balfrin_cpu_nvidia: [20,9,49,46,28]
-      - balfrin_cpu_nvidia_mixed: [17,38,7,24,23,21,50]
+      - balfrin_cpu_nvidia: [18,44,34,21,26]
+    tolerance_factor:
+      - balfrin: 5
   - name: mch_kenda-ch1_dev_small
     tags: ['atm','merge2rc','probtest']
     machines:
@@ -198,7 +212,9 @@ tests:
     checksuite_modes:
       - balfrin: 'tc'
     ensemble_num:
-      - balfrin_cpu_nvidia: [18,46,37,23,28]
+      - balfrin_cpu_nvidia: [15,5,9,48,50]
+    tolerance_factor:
+      - balfrin: 5
   - name: mch_kenda-ch1_dev2_small
     tags: ['atm','merge2rc','probtest']
     machines:
@@ -208,4 +224,6 @@ tests:
     checksuite_modes:
       - balfrin: 'tc'
     ensemble_num:
-      - balfrin_cpu_nvidia: [26,28,48,29,46]
+      - balfrin_cpu_nvidia: [1,15,33,37]
+    tolerance_factor:
+      - balfrin: 5

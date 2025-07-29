@@ -56,6 +56,10 @@ MODULE mo_nwp_parameters
     LOGICAL :: lmfdsnow
     ! switch for grayzone tuning for deep convection
     LOGICAL :: lgrayzone_deepconv
+    ! switch for cloud droplet number to replace land/sea mask in convection scheme
+    LOGICAL :: lconv_cdnc_interp
+    ! options for parcel ascent in parameterized convection
+    INTEGER :: itype_parcel_ascent
     ! Tuning factor for offset in CAPE closure for grayzone deep convection
     REAL(wp) :: tune_grzdc_offset
     ! switches on explicit stochastic shallow convection

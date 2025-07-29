@@ -323,7 +323,7 @@ CONTAINS
 SUBROUTINE cubasen &
  & ( kidia,    kfdia,  klon,  ktdia, klev, njkt1, njkt2,  &
  & entrorg, fac_entrorg, entstpc1, entstpc2, rdepths, texc, qexc,      &
- & lgrz_deepconv, mtnmask, ldland, ldlake,                &
+ & lgrz_deepconv, itype_parcel_ascent, mtnmask, ldland, ldlake,                &
  & ptenh,  pqenh, pgeoh, paph,  pqhfl, pahfs,             &
 !& PSSTRU,   PSSTRV,                                      &
  & pten,     pqen,     pqsen, pgeo,                       &
@@ -486,6 +486,7 @@ REAL(KIND=jprb)   ,INTENT(in)    :: mtnmask(klon)
 LOGICAL           ,INTENT(in)    :: ldland(klon)
 LOGICAL           ,INTENT(in)    :: ldlake(klon)
 LOGICAL           ,INTENT(in)    :: lgrz_deepconv
+INTEGER           ,INTENT(in)    :: itype_parcel_ascent
 REAL(KIND=jprb)   ,INTENT(in)    :: ptenh(klon,klev)
 REAL(KIND=jprb)   ,INTENT(in)    :: pqenh(klon,klev)
 REAL(KIND=jprb)   ,INTENT(in)    :: pgeoh(klon,klev+1)
@@ -747,7 +748,12 @@ DO jkk=klev,MAX(ktdia,jkt1),-1 ! Big external loop for level testing:
           zredfac = 1._jprb/(1._jprb+mtnmask(jl))
           ztexc=texc*zredfac
           zqexc=qexc*pqenh(jl,jkk)*zredfac
-          IF (jkk == klev-1 .AND. ldocean(jl) ) THEN
+          IF (jkk == klev-1 .AND. itype_parcel_ascent == 2 ) THEN
+            ! as in IFS without upper limit and land/sea mask only
+            ! excess value at lowest level as lower bound
+            ztexc = MAX(ztexc, ztex(jl))
+            zqexc = MAX(zqexc, zqex(jl))
+          ELSEIF (jkk == klev-1 .AND. ldocean(jl) ) THEN
             ztexc = MAX(ztexc, ztex(jl))
             ztexc = MIN(ztexc, 3.0_JPRB)
             zqexc = MAX(zqexc, zqex(jl))
@@ -870,8 +876,14 @@ DO jkk=klev,MAX(ktdia,jkt1),-1 ! Big external loop for level testing:
           zsf = (zsenh(jl,jk+1) + zsenh(jl,jk))*0.5_JPRB
 !         zmix(jl)=2.0_JPRB*0.8E-4_JPRB*zdz(jl)*(paph(jl,jk)/paph(jl,klev+1))**3
 !         ZMIX(JL)=0.4_JPRB*ENTRORG*ZDZ(JL)*MIN(1.0_JPRB,(PQSEN(JL,JK)/PQSEN(JL,KLEV))**3)
-          ZMIX(JL)=MERGE(0.3_JPRB, 1.3_JPRB - MIN(1.0_JPRB,PQEN(JL,JK)/PQSEN(JL,JK)), ldocean(jl)) &
-         &  * ENTRORG*fac_entrorg(jl)*ZDZ(JL)*MAX(0.2_JPRB,MIN(1.0_JPRB,(PQSEN(JL,JK)/PQSEN(JL,KLEV))**2))
+          IF (itype_parcel_ascent == 2) THEN
+            ! cubic profile with marginal limit, no RH dependency, and no land-ocean contrast as IFS/Cy41r1
+            ZMIX(JL)=0.3_JPRB*ENTRORG*fac_entrorg(jl)*ZDZ(JL)*MAX(0.01_JPRB,MIN(1.0_JPRB,(PQSEN(JL,JK)/PQSEN(JL,KLEV))**3))
+          ELSE
+            ! quadratic profile, no RH dependency over ocean, and lower limit on entrorg
+            ZMIX(JL)=MERGE(0.3_JPRB, 1.3_JPRB - MIN(1.0_JPRB,PQEN(JL,JK)/PQSEN(JL,JK)), ldocean(jl)) &
+         &    * ENTRORG*fac_entrorg(jl)*ZDZ(JL)*MAX(0.2_JPRB,MIN(1.0_JPRB,(PQSEN(JL,JK)/PQSEN(JL,KLEV))**2))
+          END IF
           ! Limitation to avoid trouble at very coarse vertical resolution
           zmix(jl) = MIN(1.0_jprb,zmix(jl))
           zqu(jl,jk)= zqu(jl,jk+1)*(1.0_JPRB-zmix(jl))+ zqf*zmix(jl)

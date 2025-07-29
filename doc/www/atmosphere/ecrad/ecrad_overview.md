@@ -148,3 +148,20 @@ fsd_background
 fsd_gridlen
   (`&radiation_nml`) Value for assumed horizontal grid spacing in FSD parameterization.
 :::
+
+(ref_single_precision)=
+# Single precision
+
+The ecRad radiation scheme supports single-precision computation, which improves
+performance and reduces memory usage.
+This approach is accurate enough for most applications.
+It is especially beneficial for high-resolution simulations or large ensemble
+runs, where computational efficiency is crucial.
+You can enable single-precision computation via the appropriate configure
+option.
+Refer to the output of `./configure --help` for details.
+
+Please note that the quality of this feature has not been evaluated for global
+applications (i.e., altitudes higher than 25 km).
+Users are therefore advised to run a benchmark simulation before using this
+combination.

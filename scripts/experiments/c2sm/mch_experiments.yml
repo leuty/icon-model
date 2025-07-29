@@ -28,6 +28,9 @@ experiments:
     dates: ['20230115T110000Z']
     restart_date: ['20230115T110000Z']
     tolerance:
+      perturb_amplitude:
+        - mixed: 1e-2
+        - double: 1e-14
       file_id:
         - NetCDF: ['*atm_3d_ml*.nc', '*iaf*', '*lfff0*']
         - NetCDF_no_time_dim: ['*lfff_ml*']

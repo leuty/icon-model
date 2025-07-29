@@ -35,7 +35,9 @@ MODULE mo_run_config
   PUBLIC :: ltimer, timers_level, activate_sync_timers, msg_level
   PUBLIC :: iqv, iqc, iqi, iqs, iqr, nqtendphy, iqt, ico2, ich4, in2o, io3
   PUBLIC :: iqni, iqg, iqm_max
-  PUBLIC :: iqh, iqnh, iqnr, iqns, iqng, iqnc, inccn, ininpot, ininact, iqgl, iqhl, iqbin, iqb_i, iqb_e, iqb_s
+  PUBLIC :: iqh, iqnh, iqnr, iqns, iqng, iqnc, inccn, ininpot, ininact, iqgl, iqhl
+  PUBLIC :: iqb_water_start, iqb_water_end, iqb_snow_start, iqb_snow_end
+  PUBLIC :: iqb_graupel_start, iqb_graupel_end, iqb_ccn_start, iqb_ccn_end, iqb_length, iqb_last, iqbin
   PUBLIC :: iqtke
   PUBLIC :: grid_generatingCenter     ! non-namelist variables
   PUBLIC :: grid_generatingSubcenter  ! non-namelist variables
@@ -130,10 +132,17 @@ MODULE mo_run_config
     INTEGER :: iqhl      = 0  !<liquid on hail
 
     !For SBM microphysics
-    INTEGER :: iqb_s     = 33
-    INTEGER :: iqb_i     = 1
-    INTEGER :: iqb_e     = 66
-    INTEGER :: iqbin(1:66)= 0  ! water mass of bins
+    INTEGER :: iqb_water_start   = 1   !< first mass-bin of water PSD
+    INTEGER :: iqb_water_end     = 33  !< last mass-bin of water PSD
+    INTEGER :: iqb_snow_start    = 34  !< first mass-bin of snow PSD
+    INTEGER :: iqb_snow_end      = 66  !< last mass-bin of snow PSD
+    INTEGER :: iqb_graupel_start = 67  !< first mass-bin of graupel or hail PSD
+    INTEGER :: iqb_graupel_end   = 99  !< last mass-bin of graupel or hail PSD
+    INTEGER :: iqb_ccn_start     = 100 !< first mass-bin of CCN PSD
+    INTEGER :: iqb_ccn_end       = 132 !< last mass-bin of CCN PSD
+    INTEGER :: iqb_length        = 33  !< number of mass-bins in each PSD
+    INTEGER :: iqb_last          = 132 !< total number of mass-bins
+    INTEGER :: iqbin(1:132)      = 0   !< indeces of mass-bins tracers
 
     ! For TKE advection
     INTEGER :: iqtke     = 0  !< turbulent kinetic energy

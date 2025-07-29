@@ -35,7 +35,7 @@ MODULE mo_nwp_conv_interface
        &                             t_nwp_phy_stochconv, t_ptr_cloud_ensemble
   USE mo_nwp_phy_state,        ONLY: phy_params
   USE mo_run_config,           ONLY: iqv, iqc, iqi, iqr, iqs, nqtendphy, lart
-  USE mo_physical_constants,   ONLY: grav, alf, cvd, cpd, tmelt
+  USE mo_physical_constants,   ONLY: grav, alf, alv, als, cvd, cpd, tmelt
   USE mo_atm_phy_nwp_config,   ONLY: atm_phy_nwp_config
   USE mo_cumaster,             ONLY: cumastrn
   USE mo_ext_data_types,       ONLY: t_external_data
@@ -136,7 +136,7 @@ CONTAINS
     INTEGER  :: jk,jc,jb,jg,jt,l,jc2,jb2   !< block indices
     INTEGER  :: zk850, zk950               !< level indices
     REAL(wp) :: u850, u950, v850, v950     !< zonal and meridional velocity at specific heights
-    REAL(wp) :: ticeini, lfocvd, wfac, cpdocvd, area_norm
+    REAL(wp) :: ticeini, lfocvd, lvocvd, lsocvd, wfac, cpdocvd, area_norm
     INTEGER  :: iqrd, iqsd
     LOGICAL  :: lcompute_lpi               !< compute lpi_con, mlpi_con, koi, lpi_con_max and mlpi_con_max
     LOGICAL  :: lcompute_lfd               !< compute lfd_con, lfd_con_max
@@ -179,6 +179,8 @@ CONTAINS
     i_endblk   = p_patch%cells%end_block(rl_end)
 
     lfocvd  = alf/cvd
+    lvocvd  = alv/cvd
+    lsocvd  = als/cvd
     cpdocvd = cpd/cvd
     ticeini = 256.15_wp
 
@@ -634,6 +636,45 @@ CONTAINS
             ENDIF
           ENDDO
         ENDDO
+
+        ! In case of SBM microphysics, convert qc, qi, qr, qs into qv and calculate the corresponding temperature increment
+        IF (atm_phy_nwp_config(jg)%inwp_gscp == 8) THEN
+          IF (atm_phy_nwp_config(jg)%ldetrain_conv_prec) THEN
+            DO jk = kstart_moist(jg), nlev
+              DO jc = i_startidx, i_endidx
+                prm_nwp_tend%ddt_temp_pconv(jc,jk,jb) = prm_nwp_tend%ddt_temp_pconv(jc,jk,jb) - &
+                  & (lvocvd*prm_nwp_tend%ddt_tracer_pconv(jc,jk,jb,iqc) - &
+                  & lvocvd*prm_nwp_tend%ddt_tracer_pconv(jc,jk,jb,iqr) - &
+                  & lsocvd*prm_nwp_tend%ddt_tracer_pconv(jc,jk,jb,iqi) - &
+                  & lsocvd*prm_nwp_tend%ddt_tracer_pconv(jc,jk,jb,iqs))/p_prog%rho(jc,jk,jb)
+
+                prm_nwp_tend%ddt_tracer_pconv(jc,jk,jb,iqv) = prm_nwp_tend%ddt_tracer_pconv(jc,jk,jb,iqv)+ &
+                                                        & prm_nwp_tend%ddt_tracer_pconv(jc,jk,jb,iqc)+ &
+                                                        & prm_nwp_tend%ddt_tracer_pconv(jc,jk,jb,iqi)+ &
+                                                        & prm_nwp_tend%ddt_tracer_pconv(jc,jk,jb,iqr)+ &
+                                                        & prm_nwp_tend%ddt_tracer_pconv(jc,jk,jb,iqs)
+                prm_nwp_tend%ddt_tracer_pconv(jc,jk,jb,iqc) = 0.0_wp
+                prm_nwp_tend%ddt_tracer_pconv(jc,jk,jb,iqi) = 0.0_wp
+                prm_nwp_tend%ddt_tracer_pconv(jc,jk,jb,iqr) = 0.0_wp
+                prm_nwp_tend%ddt_tracer_pconv(jc,jk,jb,iqs) = 0.0_wp
+              END DO
+            END DO
+          ELSE
+            DO jk = kstart_moist(jg), nlev
+              DO jc = i_startidx, i_endidx
+                prm_nwp_tend%ddt_temp_pconv(jc,jk,jb) = prm_nwp_tend%ddt_temp_pconv(jc,jk,jb) - &
+                  & (lvocvd*prm_nwp_tend%ddt_tracer_pconv(jc,jk,jb,iqc) - &
+                  & lsocvd*prm_nwp_tend%ddt_tracer_pconv(jc,jk,jb,iqi))/p_prog%rho(jc,jk,jb)
+
+                prm_nwp_tend%ddt_tracer_pconv(jc,jk,jb,iqv) = prm_nwp_tend%ddt_tracer_pconv(jc,jk,jb,iqv)+ &
+                                                        & prm_nwp_tend%ddt_tracer_pconv(jc,jk,jb,iqc)+ &
+                                                        & prm_nwp_tend%ddt_tracer_pconv(jc,jk,jb,iqi)
+                prm_nwp_tend%ddt_tracer_pconv(jc,jk,jb,iqc) = 0.0_wp
+                prm_nwp_tend%ddt_tracer_pconv(jc,jk,jb,iqi) = 0.0_wp
+              END DO
+            END DO
+          END IF
+        END IF
 
 !DIR$ IVDEP
         !$ACC LOOP GANG(STATIC: 1) VECTOR PRIVATE(convfac, zk950)

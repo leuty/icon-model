@@ -39,6 +39,7 @@ MODULE mo_advection_utils
   USE mo_var_groups,            ONLY: MAX_GROUPS
   USE mo_advection_config,      ONLY: t_advection_config
   USE mo_comin_config,          ONLY: comin_config
+  USE mo_run_config,            ONLY: ico2
 #ifndef __NO_ICON_COMIN__
   USE iso_c_binding,            ONLY: c_ptr, c_f_pointer
   USE comin_host_interface,     ONLY: comin_request_get_list,            &
@@ -50,6 +51,7 @@ MODULE mo_advection_utils
     &                                 comin_ftnlist_iterator_delete,     &
     &                                 comin_ftnlist_is_end
 #endif
+  USE mo_ccycle_config, ONLY: ccycle_config, CCYCLE_MODE_INTERACTIVE
 
   IMPLICIT NONE
 
@@ -255,7 +257,7 @@ CONTAINS
     &                             iqh, iqnr, iqns, iqng, iqnh, iqnc,           &
     &                             iqgl, iqhl, inccn, ininact, ininpot,         &
     &                             iqtke, iqm_max, ntracer, nqtendphy, nclass_gscp, &
-    &                             iqbin, iqb_i, iqb_e, iqb_s)
+    &                             iqbin, iqb_length, iqb_last)
     INTEGER,                  INTENT(IN)    :: iforcing, n_dom
     LOGICAL,                  INTENT(IN)    :: ltransport
     INTEGER,                  INTENT(IN)    :: inwp_turb(:)
@@ -269,7 +271,7 @@ CONTAINS
       &                                        iqni, iqh, iqnr, iqns, iqng, iqnh, &
       &                                        iqnc, iqgl, iqhl, inccn,           &
       &                                        ininact, ininpot, iqtke,           &
-      &                                        iqb_i, iqb_e, iqb_s
+      &                                        iqb_length, iqb_last
     INTEGER, DIMENSION(:),    INTENT(INOUT) :: iqbin
     INTEGER,                  INTENT(INOUT) :: iqm_max
     INTEGER,                  INTENT(INOUT) :: ntracer
@@ -300,7 +302,21 @@ CONTAINS
            &  'qbin049','qbin050','qbin051','qbin052','qbin053',&
            &  'qbin054','qbin055','qbin056','qbin057','qbin058',&
            &  'qbin059','qbin060','qbin061','qbin062','qbin063',&
-           &  'qbin064','qbin065','qbin066']
+           &  'qbin064','qbin065','qbin066',                    &
+           &  'qbin067','qbin068','qbin069','qbin070','qbin071',&
+           &  'qbin072','qbin073','qbin074','qbin075','qbin076',&
+           &  'qbin077','qbin078','qbin079','qbin080','qbin081',&
+           &  'qbin082','qbin083','qbin084','qbin085','qbin086',&
+           &  'qbin087','qbin088','qbin089','qbin090','qbin091',&
+           &  'qbin092','qbin093','qbin094','qbin095','qbin096',&
+           &  'qbin097','qbin098','qbin099',                    &
+           &  'qbin100','qbin101','qbin102','qbin103','qbin104',&
+           &  'qbin105','qbin106','qbin107','qbin108','qbin109',&
+           &  'qbin110','qbin111','qbin112','qbin113','qbin114',&
+           &  'qbin115','qbin116','qbin117','qbin118','qbin119',&
+           &  'qbin120','qbin121','qbin122','qbin123','qbin124',&
+           &  'qbin125','qbin126','qbin127','qbin128','qbin129',&
+           &  'qbin130','qbin131','qbin132']
 
     ! Check settings of ntracer
     !
@@ -487,13 +503,13 @@ CONTAINS
 
         ntracer = 14
 
-      CASE(8)
+      CASE(8) !SBM microphysics
 
         iqg     = 6  ; advection_config(:)%tracer_names(iqg)     = 'qg'
         iqh     = 7  ; advection_config(:)%tracer_names(iqh)     = 'qh'
 
 
-        DO iqb = iqb_i, iqb_e
+        DO iqb = 1, iqb_last
           iqbin(iqb) = 7+iqb
           DO jg=1,SIZE(advection_config)
             advection_config(jg)%tracer_names(iqbin(iqb)) = qbinname(iqb)
@@ -501,22 +517,24 @@ CONTAINS
         END DO
         !$ACC UPDATE DEVICE(iqbin) ASYNC(1)
 
-        iqni    = 7+iqb_e+1 ; advection_config(:)%tracer_names(iqni)    = 'qni'
-        iqnr    = 7+iqb_e+2 ; advection_config(:)%tracer_names(iqnr)    = 'qnr'
-        iqns    = 7+iqb_e+3 ; advection_config(:)%tracer_names(iqns)    = 'qns'
-        iqng    = 7+iqb_e+4 ; advection_config(:)%tracer_names(iqng)    = 'qng'
-        iqnh    = 7+iqb_e+5 ; advection_config(:)%tracer_names(iqnh)    = 'qnh'
-        iqnc    = 7+iqb_e+6 ; advection_config(:)%tracer_names(iqnc)    = 'qnc'
-        ininact = 7+iqb_e+7 ; advection_config(:)%tracer_names(ininact) = 'ninact'
+        iqni    = 7+iqb_last+1 ; advection_config(:)%tracer_names(iqni)    = 'qni'
+        iqnr    = 7+iqb_last+2 ; advection_config(:)%tracer_names(iqnr)    = 'qnr'
+        iqns    = 7+iqb_last+3 ; advection_config(:)%tracer_names(iqns)    = 'qns'
+        iqng    = 7+iqb_last+4 ; advection_config(:)%tracer_names(iqng)    = 'qng'
+        iqnh    = 7+iqb_last+5 ; advection_config(:)%tracer_names(iqnh)    = 'qnh'
+        iqnc    = 7+iqb_last+6 ; advection_config(:)%tracer_names(iqnc)    = 'qnc'
+        ininact = 7+iqb_last+7 ; advection_config(:)%tracer_names(ininact) = 'ninact'
 
-        nqtendphy = 3     !! number of water species for which
-                          !! convective and turbulent tendencies are
-                          !! stored
-        iqm_max = 7+iqb_s    !! stands for qv,qc,qr,qi,qs and defined before
-        iqt     = 7+iqb_e+8  !! start index of other tracers not related
+        nqtendphy = 7+2*iqb_length  !! number of water species for which
+                             !! convective and turbulent tendencies are
+                             !! stored
+                             !! currently 33 water + 33 ice-snow bins were added to vertical turbulent diffusion
+
+        iqm_max = 7          !! stands for qv,qc,qr,qi,qs and defined before
+        iqt     = 7+iqb_last+8  !! start index of other tracers not related
                              !! at all to moisture
 
-        ntracer = 7+iqb_e+7  !! total number of tracers. Theis order is the following:
+        ntracer = 7+iqb_last+7  !! total number of tracers. Theis order is the following:
                              !! qv, qc, qi, qr, qs, qg, qh,
                              !! 33 mass bins for cloud droplets,
                              !! 33 mass bins for aerosols,
@@ -544,6 +562,14 @@ CONTAINS
           CALL finish(routine, message_text )
         ENDIF
       ENDIF
+
+      IF (ccycle_config(1)%iccycle == CCYCLE_MODE_INTERACTIVE) THEN
+        ntracer = ntracer + 1
+        ico2    = ntracer
+        advection_config(:)%tracer_names(ico2) = 'co2'
+        WRITE (message_text,'(a,i3)') 'Adding CO2 tracer, ico2 = ', ico2
+        CALL message(routine, message_text)
+      END IF
 
       ! Note: Indices for additional tracers are assigned automatically
       ! via add_tracer_ref in mo_nonhydro_state.

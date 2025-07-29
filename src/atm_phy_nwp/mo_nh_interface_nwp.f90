@@ -54,7 +54,7 @@ MODULE mo_nh_interface_nwp
   USE mo_coupling_config,         ONLY: is_coupled_to_ocean, is_coupled_to_waves, is_coupled_to_hydrodisc
   USE mo_parallel_config,         ONLY: nproma, p_test_run, use_physics_barrier
   USE mo_diffusion_config,        ONLY: diffusion_config
-  USE mo_initicon_config,         ONLY: is_iau_active
+  USE mo_initicon_config,         ONLY: is_iau_active, icpl_da_sfcevap
   USE mo_run_config,              ONLY: ntracer, iqv, iqc, iqi, iqs, iqr, iqg, iqtke,  &
     &                                   msg_level, ltimer, timers_level, lart, ldass_lhn
   USE mo_grid_config,             ONLY: l_limited_area
@@ -91,6 +91,7 @@ MODULE mo_nh_interface_nwp
   USE mo_mpi,                     ONLY: my_process_is_mpi_all_parallel, work_mpi_barrier
   USE mo_nwp_diagnosis,           ONLY: nwp_statistics, nwp_opt_diagnostics_2, &
                                     &   nwp_diag_output_1, nwp_diag_output_2
+  USE mo_apt_routines,            ONLY: update_apt_fields
 #ifdef __ICON_ART
   USE mo_art_config,              ONLY: art_config
   USE mo_art_data,                ONLY: p_art_data
@@ -162,6 +163,8 @@ MODULE mo_nh_interface_nwp
   USE mo_nwp_tuning_config,       ONLY: tune_sc_eis
   USE mo_sbm_storage,             ONLY: t_sbm_storage, get_sbm_storage
   USE mo_name_list_output_config, ONLY: is_variable_in_output
+  USE mo_sbm_util,                ONLY: qx_from_bins_diag
+  USE mo_stoch_pattern_generator, ONLY: stochastic_pattern_generator, stochastic_pattern_step
 
   !$ser verbatim USE mo_ser_all,              ONLY: serialize_all
 
@@ -242,10 +245,10 @@ CONTAINS
     ! Local scalars:
 
     INTEGER :: jc,jk,jb,jce,isubs!loop indices
-    INTEGER :: jg,jgc            !domain id
+    INTEGER :: jg                !domain id
 
     LOGICAL :: ltemp, lpres, ltemp_ifc, l_any_fastphys, l_any_slowphys
-    LOGICAL :: lcall_lhn, lcall_lhn_v, lapply_lhn, lcall_lhn_c  !< switches for latent heat nudging
+    LOGICAL :: lcall_lhn, lcall_lhn_v, lapply_lhn               !< switches for latent heat nudging
     LOGICAL :: lcompute_tt_lheat                                !< TRUE: store temperature tendency
                                                                 ! due to grid scale microphysics
                                                                 ! and satad for latent heat nudging
@@ -329,12 +332,6 @@ CONTAINS
 
     jg        = pt_patch%id
 
-    IF (pt_patch%n_childdom > 0) THEN
-      jgc = pt_patch%child_id(jg)
-    ELSE
-      jgc = jg
-    ENDIF
-
     ! number of vertical levels
     nlev   = pt_patch%nlev
     nlevp1 = pt_patch%nlevp1
@@ -377,7 +374,6 @@ CONTAINS
     !
     IF (ldass_lhn .AND. assimilation_config(jg)%lvalid_data .AND. .NOT. linit) THEN
       !
-      IF ( jg == jgc )  CALL assimilation_config(jg)%dass_g%reinitEvents()
       lcall_lhn   = assimilation_config(jg)%dass_lhn%isActive(mtime_datetime)
       lcall_lhn_v = assimilation_config(jg)%dass_lhn_verif%isActive(mtime_datetime)
       IF (msg_level >= 15) CALL assimilation_config(jg)%dass_g%printStatus(mtime_datetime)
@@ -522,6 +518,11 @@ CONTAINS
 
       IF (.NOT. linit) THEN
 
+        ! Update qc,qr,qi,qs,qg after the advection using the mass-bins of SBM microphysics
+        IF (atm_phy_nwp_config(jg)%inwp_gscp == 8) THEN
+          CALL qx_from_bins_diag(pt_prog_rcf%tracer(:,:,jb,:), i_startidx, i_endidx, kstart_moist(jg), nlev)
+        ENDIF
+
         IF (is_iau_active) THEN
 
           ! add analysis increments from data assimilation to qv (during IAU phase)
@@ -590,16 +591,6 @@ CONTAINS
       !!-------------------------------------------------------------------------
       !> Initial saturation adjustment (a second one follows at the end of the microphysics)
       !!-------------------------------------------------------------------------
-
-      ! SBM microphysics
-      ! store snapshots of qv and temp just before saturation adjustment
-      IF (atm_phy_nwp_config(jg)%inwp_gscp == 8) THEN
-        ptr_sbm_storage => get_sbm_storage(patch_id = jg)
-!$OMP PARALLEL
-        CALL copy(pt_prog_rcf%tracer(:,:,:,iqv), ptr_sbm_storage%qv_before_satad, lacc=lacc)
-        CALL copy(pt_diag%temp(:,:,:),           ptr_sbm_storage%temp_before_satad, lacc=lacc)
-!$OMP END PARALLEL
-      ENDIF
 
 
       IF (lcall_phy_jg(itsatad)) THEN
@@ -676,6 +667,83 @@ CONTAINS
 
     IF (timers_level > 2) CALL timer_stop(timer_satad_v_3D)
 
+    !-------------------------------------------------------------------------
+    !  prognostic microphysics and precipitation scheme
+    !-------------------------------------------------------------------------
+
+    IF ( lcall_phy_jg(itgscp) .and. atm_phy_nwp_config(jg)%lmicrophysicsFirst ) THEN
+
+      IF (msg_level >= 15) &
+        & CALL message('mo_nh_interface_nwp:', 'microphysics')
+
+      !>
+      !! Microphysics 1st, turbulence 2nd
+      !!
+
+      IF (timers_level > 1) CALL timer_start(timer_nwp_microphysics)
+
+      !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "microphysics", .TRUE., opt_dt=mtime_datetime)
+      CALL nwp_microphysics ( dt_phy_jg(itfastphy),             & !>input
+                            & lcall_phy_jg(itsatad),            & !>input
+                            & pt_patch, p_metrics,              & !>input
+                            & pt_prog,                          & !>inout
+                            & pt_prog_rcf%tracer,               & !>inout
+                            & pt_prog_now_rcf%tke,              & !>in
+                            & pt_diag ,                         & !>inout
+                            & prm_diag, prm_nwp_tend,           & !>inout
+                            & ext_data,                         & !>in
+                            & lcompute_tt_lheat,                &
+                            & lacc=lacc ) !>in
+
+      !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "microphysics", .FALSE., opt_dt=mtime_datetime)
+      IF (timers_level > 1) CALL timer_stop(timer_nwp_microphysics)
+
+    ENDIF
+
+    !!-------------------------------------------------------------------------
+    !>  stochastic pattern generator
+    !!-------------------------------------------------------------------------
+
+    IF (atm_phy_nwp_config(jg)%lstochastic_pattern_generator) THEN
+
+      IF (msg_level >= 15) CALL message('mo_nh_interface_nwp:', 'stochastic pattern')
+
+      IF (timers_level > 2) CALL timer_start(timer_stoch_pattern_gen)
+
+      ! advance stochastic pattern in time by AR1 process
+      IF ( jg == 1 ) THEN
+        CALL stochastic_pattern_step(dtime=dt_phy_jg(itfastphy))
+      ENDIF
+
+      ! computations on prognostic points
+      rl_start   = grf_bdywidth_c+1
+      rl_end     = min_rlcell_int
+      i_startblk = pt_patch%cells%start_block(rl_start)
+      i_endblk   = pt_patch%cells%end_block(rl_end)
+
+!$OMP PARALLEL
+!$OMP DO PRIVATE(jb,i_startidx,i_endidx) ICON_OMP_DEFAULT_SCHEDULE
+      DO jb = i_startblk, i_endblk
+
+        CALL get_indices_c(pt_patch, jb, i_startblk, i_endblk, &
+             & i_startidx, i_endidx, rl_start, rl_end)
+
+        ! Stochastic pattern generator
+        CALL stochastic_pattern_generator(                   &
+             nproma  = nproma,                                  & ! nproma
+             istart  = i_startidx,                              & ! start index
+             iend    = i_endidx,                                & ! end index
+             spg     = prm_diag%spg(:,jb),                      & ! spatial random patter
+             clat    = pt_patch%cells%center(:,jb)%lat,         & ! latitude
+             clon    = pt_patch%cells%center(:,jb)%lon          & ! longitude
+             )
+      END DO
+!$OMP END DO NOWAIT
+!$OMP END PARALLEL
+
+      IF (timers_level > 2) CALL timer_stop(timer_stoch_pattern_gen)
+
+    END IF
 
     !!-------------------------------------------------------------------------
     !>  turbulent transfer and diffusion and microphysics
@@ -814,6 +882,24 @@ CONTAINS
 
       IF (timers_level > 1) CALL timer_stop(timer_nwp_turbulence)
 
+      ! Update qc,qr,qi,qs,qg after the turbulent diffusion using the mass-bins of SBM microphysics
+      IF (atm_phy_nwp_config(jg)%inwp_gscp == 8) THEN
+        ! computations on prognostic points
+        rl_start = grf_bdywidth_c+1
+        rl_end   = min_rlcell_int
+        i_startblk = pt_patch%cells%start_block(rl_start)
+        i_endblk   = pt_patch%cells%end_block(rl_end)
+!$OMP PARALLEL
+!$OMP DO PRIVATE(jb,i_startidx,i_endidx)
+        DO jb = i_startblk, i_endblk
+          CALL get_indices_c(pt_patch, jb, i_startblk, i_endblk, &
+               & i_startidx, i_endidx, rl_start, rl_end)
+          CALL qx_from_bins_diag(pt_prog_rcf%tracer(:,:,jb,:), i_startidx, i_endidx, kstart_moist(jg), nlev)
+        END DO
+!$OMP END DO NOWAIT
+!$OMP END PARALLEL
+      ENDIF
+
     END IF
 
 #ifndef __NO_ICON_COMIN__
@@ -823,9 +909,9 @@ CONTAINS
     CALL icon_call_callback(EP_ATM_MICROPHYSICS_BEFORE, jg, lacc=lacc)
 #endif
     !-------------------------------------------------------------------------
-    !  prognostic microphysic and precipitation scheme
+    !  prognostic microphysics and precipitation scheme
     !-------------------------------------------------------------------------
-    IF ( lcall_phy_jg(itgscp)) THEN
+    IF ( lcall_phy_jg(itgscp) .and. .not. atm_phy_nwp_config(jg)%lmicrophysicsFirst ) THEN
 
       IF (msg_level >= 15) &
         & CALL message('mo_nh_interface_nwp:', 'microphysics')
@@ -835,6 +921,10 @@ CONTAINS
       !! is not needed at high accuracy in the microphysics scheme
       !! note: after the microphysics the second call to SATAD is within
       !!       the nwp_microphysics routine (first one is above)
+
+      !>
+      !! Microphysics 2nd, Turbulence 1st
+      !!
 
       IF (timers_level > 1) CALL timer_start(timer_nwp_microphysics)
 
@@ -941,8 +1031,7 @@ CONTAINS
       ENDIF
 
 
-      lcall_lhn_c = assimilation_config(jgc)%dass_lhn%isActive(mtime_datetime)
-      lapply_lhn  = (lcall_lhn .OR. lcall_lhn_c) .AND. assimilation_config(jg)%lvalid_data
+      lapply_lhn  = lcall_lhn .AND. assimilation_config(jg)%lvalid_data
 
       IF (lapply_lhn) THEN
 
@@ -1190,7 +1279,14 @@ CONTAINS
 !$OMP END DO NOWAIT
 !$OMP END PARALLEL
 
+    ! update time-dependent adaptive parameter tuning fields
+    ! needs to be called between TERRA and turbtran because surface heat fluxes on tiles are accessed
+    IF (icpl_da_sfcevap >= 6) THEN
+      CALL update_apt_fields (pt_patch, pt_prog, prm_diag, ext_data, linit)
+    ENDIF
+
     IF (timers_level > 1) CALL timer_stop(timer_fast_phys)
+
 #ifndef __NO_ICON_LES__
     IF ( (lcall_phy_jg(itturb) .OR. linit) .AND. ( ANY((/icosmo,igme/)==atm_phy_nwp_config(jg)%inwp_turb) .OR. &
          (ANY((/ismag,iprog/)==atm_phy_nwp_config(jg)%inwp_turb) .AND. (les_config(jg)%isrfc_type==1)) ) ) THEN
@@ -1433,6 +1529,7 @@ CONTAINS
 &              deltaz = p_metrics%ddqz_z_full(:,:,jb)     ,       & !! in:  layer thickness
 &              rho    = pt_prog%rho          (:,:,jb  )   ,       & !! in:  density
 &              rcld   = prm_diag%rcld        (:,:,jb)     ,       & !! in:  standard deviation of saturation deficit
+&              cloud_num = prm_diag%cloud_num(:,jb)       ,       & !! in:  2d cloud droplet number
 &              ldland = ext_data%atm%llsm_atm_c (:,jb)    ,       & !! in:  land/sea mask
 &              ldcum  = prm_diag%locum       (:,jb)       ,       & !! in:  convection on/off
 &              kcbot  = prm_diag%mbas_con    (:,jb)       ,       & !! in:  convective cloud base
@@ -2616,7 +2713,7 @@ CONTAINS
         &                     lturb             = lcall_phy_jg(itturb) .OR. linit, & !in
         &                     dt_loc            = dt_loc,                          & !in
         &                     p_patch           = pt_patch,                        & !inout
-      	&                     p_prog_rcf        = pt_prog_rcf,                     & !inout
+        &                     p_prog_rcf        = pt_prog_rcf,                     & !inout
         &                     p_diag            = pt_diag                          ) !inout
       IF (upatmo_config(jg)%l_status( iUpatmoStat%timer )) CALL timer_stop(timer_upatmo)
     ENDIF
