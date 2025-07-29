@@ -104,11 +104,11 @@ include:
     - git fetch --filter=blob:none --depth=1 --jobs=4 origin "${CI_COMMIT_SHA}"
     - git checkout --quiet FETCH_HEAD
     - git submodule update --init --depth=1 --jobs=4 -- ${SUBMODULES}
+  interruptible: true
   rules:
     - if: $CI_MERGE_REQUEST_ID
       when: always
-    - when: manual
-  interruptible: true
+    - interruptible: false
 
 build:
   extends: .common

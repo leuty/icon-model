@@ -35,8 +35,11 @@ include:
     - spack load /fuvwuhz # cmake@3.26.3%gcc@11.2.0
     - spack load googletest@1.10.0
   interruptible: true
-  tags:
-    - dkrz, hpc, levante
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+      when: always
+    - when: manual
+      interruptible: false
 
 gcc-cpu:
   extends: .common_levante

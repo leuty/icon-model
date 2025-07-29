@@ -143,3 +143,5 @@
     - key: apk-cscs-ci
       paths:
         - ${APK_CACHE_DIR}
+  # We cannot cancel the real job, but at least we release the alpine runner:
+  interruptible: true
