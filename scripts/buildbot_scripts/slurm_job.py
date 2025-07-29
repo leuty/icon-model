@@ -84,7 +84,7 @@ class SlurmJob(BatchJob):
             print("Cannot find jobid to cancel job!")
 
     # check if a job was canceled
-    def wasCanceled(self, timeout=5):
+    def wasCanceled(self, timeout=20):
         if None is not self.jobid:
             checkState = subprocess.Popen(
                 f"sacct -j{self.jobid} -Pn",
