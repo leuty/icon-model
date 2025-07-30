@@ -83,28 +83,18 @@ workflow:
           externals/mtime
 
 include:
+  - .gitlab/ci/git.yml
   - project: "anw_dienste/ci-templates"
     file: ".slurm-ci.yml"
 
 .common:
-  extends: .default
+  extends:
+    - .default
+    - .git_sparse
   variables:
     SCHEDULER_PARAMETERS: >-
       --account=ka1125
       ${EXTRA_SCHEDULER_PARAMETERS}
-    GIT_STRATEGY: empty
-    SPARSE_PATTERNS:
-    SUBMODULES:
-  before_script:
-    - module purge
-    - module load git
-    - git init --quiet .
-    - git sparse-checkout set --no-cone -- ${SPARSE_PATTERNS}
-    - git remote add origin "${CI_REPOSITORY_URL}"
-    - git fetch --filter=blob:none --depth=1 --jobs=4 origin "${CI_COMMIT_SHA}"
-    - git checkout --quiet FETCH_HEAD
-    - git submodule update --init --depth=1 --jobs=4 -- ${SUBMODULES}
-  interruptible: true
   rules:
     - if: $CI_MERGE_REQUEST_ID
       when: always

@@ -13,27 +13,30 @@ workflow:
     - if: $CI_PIPELINE_SOURCE == "parent_pipeline"
 
 include:
+  - .gitlab/ci/git.yml
+  - .gitlab/ci/dkrz/slurm.yml
   - project: 'anw_dienste/ci-templates'
     file: '.slurm-ci.yml'
 
 .common_levante:
-  extends: .default
+  extends:
+    - .default
+    - .slurm_levante
+    - .git_sparse
   variables:
-    GIT_SUBMODULE_STRATEGY: normal
-    GIT_SUBMODULE_DEPTH: 1
-    GIT_SUBMODULE_PATHS: externals/kokkos
-    GIT_SUBMODULE_UPDATE_FLAGS: --jobs=4
-    GIT_DEPTH: 1
-    CTEST_PARALLEL_LEVEL: 8
-    SLURM_OPTIONS: >-
-      --account=ka1125
-      --ntasks=8
-  before_script:
-    - module purge
-    - . /sw/etc/profile.levante && module use /sw/spack-levante/spack/modules && module list
-    - module load git gcc/11.2.0-gcc-11.2.0
-    - spack load /fuvwuhz # cmake@3.26.3%gcc@11.2.0
-    - spack load googletest@1.10.0
+    # git
+    SUBMODULES: externals/kokkos
+    SPARSE_PATTERNS: ragnarok
+    # slurm
+    TEST_TASKS: 8
+    TEST_TIME_LIMIT: "05:00"
+    EXTRA_SCHEDULER_PARAMETERS: --mem=16000
+    # cmake
+    CTEST_PARALLEL_LEVEL: ${TEST_TASKS}
+    CMAKE_BUILD_PARALLEL_LEVEL: ${TEST_TASKS}
+    VERBOSE:
+    CTEST_OUTPUT_ON_FAILURE:
+    ctestOptions: --extra-verbose
   interruptible: true
   rules:
     - if: $CI_MERGE_REQUEST_ID
@@ -44,32 +47,48 @@ include:
 gcc-cpu:
   extends: .common_levante
   variables:
-    SLURM_PARTITION: --partition=shared,compute
-    SCHEDULER_PARAMETERS: "$SLURM_OPTIONS $SLURM_PARTITION --mem=16000"
-  before_script:
-    - !reference [.common_levante, before_script]
-    - export OMP_PROC_BIND=close
-    - export OMP_PLACES=cores
-    - export OMP_NUM_THREADS=8
+    TEST_PARTITION: shared,compute
+    OMP_PROC_BIND: close
+    OMP_PLACES: cores
+    OMP_NUM_THREADS: $TEST_TASKS
+    CXX: g++
+    FC: gfortran
   script:
-    - spack load /42ju4ng # netcdf-cxx4@4.3.1%nvhpc@=24.7
-    - cmake -B build_ragnarok -S ragnarok -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc -DCMAKE_Fortran_COMPILER=gfortran -DKokkos_ENABLE_OPENMP=ON -DKokkos_ENABLE_SERIAL=ON -DRGK_ENABLE_STANDALONE=ON -DRGK_BINDINGS=none -DBUILD_TESTING=ON -DCMAKE_CXX_FLAGS="-g -O0 -mpc64"
-    - cmake --build build_ragnarok --parallel
-    - cd build_ragnarok
-    - ctest $ctestDebugOptions
+    - module load gcc/11.2.0-gcc-11.2.0
+    - spack load /fuvwuhz # cmake@3.26.3%gcc@11.2.0
+    - spack load googletest@1.10.0
+    - >
+      cmake -B . -S ${CI_PROJECT_DIR}/ragnarok
+      -DKokkos_ENABLE_OPENMP=ON
+      -DKokkos_ENABLE_SERIAL=ON
+      -DRGK_ENABLE_STANDALONE=ON
+      -DRGK_BINDINGS=none
+      -DBUILD_TESTING=ON
+      -DCMAKE_BUILD_TYPE=Debug
+    - cmake --build .
+    - ctest $ctestOptions
 
 nvhpc-gpu:
   extends: .common_levante
   variables:
-    SLURM_PARTITION: --partition=gpu-devel,gpu
-    SCHEDULER_PARAMETERS: "$SLURM_OPTIONS --partition=gpu --gpus=1 --mem=16000"
-  before_script:
-    - !reference [.common_levante, before_script]
+    TEST_PARTITION: gpu-devel,gpu
+    EXTRA_SCHEDULER_PARAMETERS: "--mem=16000 --gpus=1"
+    CXX: nvc++
+    FC: nvfortran
   script:
-    - spack load /42ju4ng # netcdf-cxx4@4.3.1%nvhpc@=24.7
-    - module load nvhpc/24.7-gcc-11.2.0 cdo
-    - export LD_LIBRARY_PATH=/sw/spack-levante/gcc-11.2.0-bcn7mb/lib64:$LD_LIBRARY_PATH
-    - cmake -B build_ragnarok -S ragnarok -DCMAKE_CXX_COMPILER=nvc++ -DCMAKE_C_COMPILER=nvc -DCMAKE_Fortran_COMPILER=nvfortran -DKokkos_ENABLE_CUDA=ON -DKokkos_ARCH_AMPERE80=ON -DRGK_ENABLE_STANDALONE=ON -DRGK_BINDINGS=none -DBUILD_TESTING=ON -DCMAKE_CXX_FLAGS="-g -O0" -DCMAKE_CUDA_ARCHITECTURES=80
-    - cmake --build build_ragnarok --parallel
-    - cd build_ragnarok
-    - ctest $ctestDebugOptions
+    - module load gcc/11.2.0-gcc-11.2.0
+    - spack load /fuvwuhz # cmake@3.26.3%gcc@11.2.0
+    - spack load googletest@1.10.0
+    - module load nvhpc/24.7-gcc-11.2.0
+    - export LD_LIBRARY_PATH="/sw/spack-levante/gcc-11.2.0-bcn7mb/lib64:$LD_LIBRARY_PATH"
+    - >
+      cmake -B . -S ${CI_PROJECT_DIR}/ragnarok
+      -DKokkos_ENABLE_CUDA=ON
+      -DKokkos_ARCH_AMPERE80=ON
+      -DRGK_ENABLE_STANDALONE=ON
+      -DRGK_BINDINGS=none
+      -DBUILD_TESTING=ON
+      -DCMAKE_CUDA_ARCHITECTURES=80
+      -DCMAKE_BUILD_TYPE=Debug
+    - cmake --build .
+    - ctest
