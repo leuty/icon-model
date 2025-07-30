@@ -8842,6 +8842,74 @@ iforcing=3, \\ ICON configure'd with \verb+--enable-emvorado+, \\ \squeezeme{syn
 Defined and used in: \verb+src/namelists/mo_synradar_nml.f90+
 
 %------------------------------------------------------------------------------
+% testbed_nml:
+%------------------------------------------------------------------------------
+\subsection{testbed\_nml}
+
+Configuration for ICON's testbed mode. The testbed is independent of the other model components for atmosphere, ocean,
+etc. It is primarily used for unit, function, and performance testing of infrastructure components.
+
+\begin{longtab}
+
+%\hline
+testbed\_model &
+I& 0 & &
+Type of testbed model (non-zero to activate testbed): \\
+0: Null model                                         \\
+3: Test jitter model                                  \\
+4: Test mpi halo communication                        \\
+6: Test netcdf reading                                \\
+8: Test mpi gather communication                      \\
+9: Test mpi exchange communication                    \\
+10: Benchmark mpi multi-field exchange communication  \\
+11: Test mpi sync\_patch communication                &
+\tabularnewline
+
+%\hline
+testbed\_iterations &
+I& 10 & &
+Number of iterations to run testbed (if applicable)
+\tabularnewline
+
+%\hline
+calculate\_iterations &
+I& 10 & &
+Number of iterations to run calculate step (if applicable)
+\tabularnewline
+
+%\hline
+no\_of\_blocks &
+I& 16 & &
+Number of blocks in field(if testbed\_model==3)
+\tabularnewline
+
+%\hline
+no\_of\_layers &
+I& 80 & &
+Number of vertical layers in field(if testbed\_model==3)
+\tabularnewline
+
+%\hline
+testfile\_3D\_file &
+C& ' ' & &
+Filename of 3D input file in first entry, and variable name in second entry
+(if testbed\_model==6)
+\tabularnewline
+
+%\hline
+testfile\_2D\_file &
+C& ' ' & &
+Array: first entry is filename of 2D input file,
+and second entry is a variable name (if testbed\_model==6)
+\tabularnewline
+
+%\hline
+\end{longtab}
+
+Defined and used in: \verb+src/namelists/mo_icon_testbed_nml.f90+. The testbed 'driver'
+is in: \verb+src/testbed/mo_icon_testbed.f90+.
+
+%------------------------------------------------------------------------------
 % time_nml
 %------------------------------------------------------------------------------
 \subsection{time\_nml}
