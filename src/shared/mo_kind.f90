@@ -9,8 +9,12 @@
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
 
-! Module determines kinds for different precisions
-! Number model from which the SELECTED_*\\_KIND are requested: <br>
+! Module determines kind type parameters for different floating
+! point precisions and integer ranges using either numerical
+! requirements or a standard intrinsic module for interoperability
+! with C.
+!
+! Example for numerical characteristics:
 !
 ! @f{tabular}{{r@{\hspace*{3em}}c@{\hspace*{3em}}c}
 !                     &4 byte REAL     &8 byte REAL        \\\
@@ -24,28 +28,23 @@
 !  Most likely this are the only possible models.
 
 MODULE mo_kind
-
+  USE, INTRINSIC :: iso_c_binding, ONLY: c_float, c_double
   IMPLICIT NONE
 
   PRIVATE
-
+  PUBLIC :: sp, dp, qp, wp, xwp, vp, i1, i2, i4, i8
+  PUBLIC :: check_numerical_requirements
   !--------------------------------------------------------------------
   !
   ! Floating point section
   ! ----------------------
   !
-  INTEGER, PARAMETER :: ps =   6
-  INTEGER, PARAMETER :: rs =  37
-  !
-  INTEGER, PARAMETER :: pd =  12
-  INTEGER, PARAMETER :: rd = 307
-  !
-  INTEGER, PARAMETER :: pq = 30
-  !
-  INTEGER, PARAMETER :: sp = SELECTED_REAL_KIND(ps,rs) !< single precision
-  INTEGER, PARAMETER :: dp = SELECTED_REAL_KIND(pd,rd) !< double precision
+  ! portable floating point kind type parameters: sp, dp
+  INTEGER, PARAMETER :: sp = c_float                   !< single precision
+  INTEGER, PARAMETER :: dp = c_double                  !< double precision
 
 #ifdef __HAVE_QUAD_PRECISION
+  INTEGER, PARAMETER :: pq = 30
   INTEGER, PARAMETER :: qp = SELECTED_REAL_KIND(pq)    !< quad precision
 #else
   INTEGER, PARAMETER :: qp = -1                        !< quad precision
@@ -87,8 +86,20 @@ MODULE mo_kind
   !
   INTEGER, PARAMETER :: wi = i4                       !< selected working precission
   !
-  PUBLIC :: sp, dp, qp, wp, xwp, vp, i1, i2, i4, i8
   !
   !--------------------------------------------------------------------
+CONTAINS
+  !
+  ! check numerical requirements for real(sp) and real(dp)
+  !
+  ! return true if and only if all checks are passed
+  !
+  FUNCTION check_numerical_requirements() RESULT(is_okay)
+    REAL(sp), PARAMETER :: one_sp = 1.0
+    REAL(dp), PARAMETER :: one_dp = 1.0
+    LOGICAL :: is_okay
+    is_okay = PRECISION(one_sp) >= 6  .AND. RANGE(one_sp) >= 37 .AND. &
+         &    PRECISION(one_dp) >= 12 .AND. RANGE(one_dp) >= 307
+  END FUNCTION check_numerical_requirements
 
 END MODULE mo_kind

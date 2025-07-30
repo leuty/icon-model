@@ -232,7 +232,7 @@ MODULE mo_mpi
   USE omp_lib, ONLY: omp_get_max_threads, omp_set_num_threads
 #endif
 
-  USE mo_kind, ONLY: i4, i8, dp, sp, wp
+  USE mo_kind, ONLY: i4, i8, dp, sp, wp, check_numerical_requirements
   USE mo_io_units,       ONLY: nerr
   USE mo_impl_constants, ONLY: pio_type_async, pio_type_cdipio
   USE mtime,             ONLY: datetime, max_datetime_str_len, datetimeToString, &
@@ -2688,6 +2688,11 @@ CONTAINS
 
 #endif
 
+    ! check floating point precision and range:
+    IF (.NOT. check_numerical_requirements()) THEN
+      WRITE (nerr,'(a,a)') routine, ' check_numerical_requirements failed.'
+      CALL abort_mpi
+    ENDIF
 
     is_global_mpi_parallel = global_mpi_size > 1
 
