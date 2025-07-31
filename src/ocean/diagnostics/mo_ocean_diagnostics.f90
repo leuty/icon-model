@@ -111,6 +111,7 @@ MODULE mo_ocean_diagnostics
   PUBLIC :: calc_moc
   PUBLIC :: calc_psi
   PUBLIC :: diag_heat_salt_tendency
+  PUBLIC :: get_level_index_by_depth
 
   INTERFACE calc_moc
 ! 2023-11 dzo-DKRZ: Temporary until the difference in atlantic_moc and global_moc between both functions is solved
@@ -3619,7 +3620,7 @@ CONTAINS
   !!
 
   FUNCTION get_level_index_by_depth(patch_3d, depth) RESULT(level_index)
-
+    !$ACC ROUTINE SEQ
 
     TYPE(t_patch_3d ),TARGET, INTENT(in)     :: patch_3D
     REAL(dp), INTENT(in) :: depth

@@ -90,6 +90,7 @@ MODULE mo_hamocc_nml
   LOGICAL, PUBLIC :: l_PDM_settling   = .FALSE.   ! PDM scheme for particle settling
   LOGICAL, PUBLIC :: l_init_bgc       = .FALSE.   ! initialise state variables with cold start values
   LOGICAL, PUBLIC :: l_limit_sal      = .TRUE.    ! limit salinity to min. 25 psu?
+  LOGICAL, PUBLIC :: l_hamocc_vertint = .FALSE.   ! compute vertically-integrated output
 
   REAL(wp), PUBLIC :: denit_sed, disso_po
   REAL(wp), PUBLIC :: cycdec, cya_growth_max
@@ -159,7 +160,8 @@ MODULE mo_hamocc_nml
     &  doc_remin_q10,&
     &  l_poc_q10,&
     &  poc_remin_tref,&
-    &  poc_remin_q10
+    &  poc_remin_q10,&
+    &  l_hamocc_vertint
 
 CONTAINS
   !>

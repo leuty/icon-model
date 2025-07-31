@@ -27,6 +27,7 @@ MODULE mo_hamocc_types
 
   PUBLIC :: t_hamocc_diag
   PUBLIC :: t_hamocc_monitor
+  PUBLIC :: t_hamocc_vertint
   PUBLIC :: t_hamocc_state
   PUBLIC :: t_hamocc_tend
   PUBLIC :: t_hamocc_sed
@@ -88,6 +89,21 @@ MODULE mo_hamocc_types
 
 
   END TYPE t_hamocc_monitor
+
+  TYPE t_hamocc_vertint
+    !--------------------------------------------
+    ! dimension: (nproma, nblks_e)
+    REAL(wp), POINTER :: dic(:,:)
+    REAL(wp), POINTER :: alk(:,:)
+    REAL(wp), POINTER :: phy(:,:)
+    REAL(wp), POINTER :: npp(:,:)
+    REAL(wp), POINTER :: phoc(:,:)
+    REAL(wp), POINTER :: graz(:,:)
+    REAL(wp), POINTER :: zoomor(:,:)
+    REAL(wp), POINTER :: bacfra(:,:)
+    REAL(wp), POINTER :: remina(:,:)
+    REAL(wp), POINTER :: delcar(:,:)
+  END TYPE t_hamocc_vertint
 
   TYPE t_hamocc_diag
     !--------------------------------------------
@@ -245,6 +261,7 @@ MODULE mo_hamocc_types
     REAL(wp), POINTER ::  wcal(:,:,:)
 
     TYPE(t_hamocc_monitor) :: monitor
+    TYPE(t_hamocc_vertint) :: vertint
   END TYPE t_hamocc_tend
 
  TYPE t_hamocc_agg  ! mm: agg
