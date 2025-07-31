@@ -14,7 +14,7 @@
 ###   Configure wrapper for ATOS System at ECMWF/Bologna (From 2020 procurement)  ###
 ###       Atos Sequana XH2000                                                     ###
 ###       Red Hat Enterprise Linux                                                ###
-###       Compiler: intel 2021.4                                                  ###
+###       Compiler: intel 2025.0                                                  ###
 #####################################################################################
 
 set -eu
@@ -22,7 +22,7 @@ set -eu
 SCRIPT_DIR=$(cd "$(dirname "$0")">/dev/null; pwd)
 ICON_DIR=$(cd "${SCRIPT_DIR}/../..">/dev/null; pwd)
 
-MODULES='prgenv/intel intel/2021.4.0 hpcx-openmpi hdf5 netcdf4 intel-mkl/19.0.5 ecmwf-toolbox aec libfyaml'
+MODULES='prgenv/intel-llvm intel/2025.0 hpcx-openmpi hdf5 netcdf4 intel-mkl/19.0.5 ecmwf-toolbox aec libfyaml'
 #MODULES+=' python3/3.12.9-01'
 
 ################################################################################
