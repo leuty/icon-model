@@ -21,7 +21,7 @@ MODULE mo_wave_forcing
   USE mo_io_units,                 ONLY: filename_max
   USE mo_model_domain,             ONLY: t_patch
   USE mo_reader_sst_sic,           ONLY: t_sst_sic_reader
-  USE mo_interpolate_time,         ONLY: t_time_intp
+  USE mo_interpolate_time,         ONLY: t_time_intp_transient
   USE mo_fortran_tools,            ONLY: copy, DO_DEALLOCATE
   USE mtime,                       ONLY: datetime
   USE mo_wave_td_update,           ONLY: update_ice_free_mask, &
@@ -51,16 +51,16 @@ MODULE mo_wave_forcing
     REAL(wp), ALLOCATABLE :: vosc_raw (:,:,:,:)  ! meridional ocean surface current at centers ( m/s )
 
     ! reader
-    TYPE(t_sst_sic_reader) :: uv10_reader
+    TYPE(t_sst_sic_reader) :: u10_reader, v10_reader
     TYPE(t_sst_sic_reader) :: sic_reader
     TYPE(t_sst_sic_reader) :: slh_reader
-    TYPE(t_sst_sic_reader) :: osc_reader
+    TYPE(t_sst_sic_reader) :: uosc_reader, vosc_reader
 
     ! time interpolator
-    TYPE(t_time_intp) :: u10_intp, v10_intp
-    TYPE(t_time_intp) :: sic_intp
-    TYPE(t_time_intp) :: slh_intp
-    TYPE(t_time_intp) :: uosc_intp, vosc_intp
+    TYPE(t_time_intp_transient) :: u10_intp, v10_intp
+    TYPE(t_time_intp_transient) :: sic_intp
+    TYPE(t_time_intp_transient) :: slh_intp
+    TYPE(t_time_intp_transient) :: uosc_intp, vosc_intp
 
     ! forcing flags
     LOGICAL :: l_wind_exist, l_ice_exist, l_slh_exist, l_osc_exist
@@ -152,9 +152,10 @@ CONTAINS
 
     ! Initialize reader and time interpolator
     IF (self%l_wind_exist) THEN
-      CALL self%uv10_reader%init(p_patch, wave_forc_wind_file)
-      CALL self%u10_intp   %init(self%uv10_reader, destination_time, "u_10m")
-      CALL self%v10_intp   %init(self%uv10_reader, destination_time, "v_10m")
+      CALL self%u10_reader%init(p_patch, wave_forc_wind_file)
+      CALL self%v10_reader%init(p_patch, wave_forc_wind_file)
+      CALL self%u10_intp  %init(self%u10_reader, destination_time, "u_10m")
+      CALL self%v10_intp  %init(self%v10_reader, destination_time, "v_10m")
     END IF
 
     IF (self%l_ice_exist) THEN
@@ -168,9 +169,10 @@ CONTAINS
     END IF
 
     IF (self%l_osc_exist) THEN
-      CALL self%osc_reader%init(p_patch, wave_forc_osc_file)
-      CALL self%uosc_intp  %init(self%osc_reader, destination_time, "UOSC")
-      CALL self%vosc_intp  %init(self%osc_reader, destination_time, "VOSC")
+      CALL self%uosc_reader%init(p_patch, wave_forc_osc_file)
+      CALL self%vosc_reader%init(p_patch, wave_forc_osc_file)
+      CALL self%uosc_intp  %init(self%uosc_reader, destination_time, "UOSC")
+      CALL self%vosc_intp  %init(self%vosc_reader, destination_time, "VOSC")
     END IF
 
   END SUBROUTINE read_wave_forcing__init
@@ -340,10 +342,16 @@ CONTAINS
     self%p_patch => NULL()
 
     ! Destruct reader
-    IF (self%l_wind_exist) CALL self%uv10_reader%deinit()
+    IF (self%l_wind_exist) THEN
+      CALL self%u10_reader%deinit()
+      CALL self%v10_reader%deinit()
+    END IF
     IF (self%l_ice_exist)  CALL self%sic_reader%deinit()
     IF (self%l_slh_exist)  CALL self%slh_reader%deinit()
-    IF (self%l_osc_exist)  CALL self%osc_reader%deinit()
+    IF (self%l_osc_exist) THEN
+      CALL self%uosc_reader%deinit()
+      CALL self%vosc_reader%deinit()
+    END IF
 
     CALL DO_DEALLOCATE(self%u10m_raw)
     CALL DO_DEALLOCATE(self%v10m_raw)

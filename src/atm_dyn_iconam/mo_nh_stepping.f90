@@ -50,7 +50,6 @@ MODULE mo_nh_stepping
     &                                    timer_iconam_aes, timer_dace_coupling, timer_rrg_interp, &
     &                                    timer_coupling
   USE mo_ext_data_state,           ONLY: ext_data
-  USE mo_radiation_config,         ONLY: irad_aero, iRadAeroCAMSclim, iRadAeroCAMStd
   USE mo_limarea_config,           ONLY: latbc_config
   USE mo_model_domain,             ONLY: p_patch, t_patch, p_patch_local_parent
   USE mo_time_config,              ONLY: t_time_config
@@ -124,7 +123,7 @@ MODULE mo_nh_stepping
   USE mo_ensemble_pert_config,     ONLY: use_ensemble_pert, compute_ensemble_pert
   USE mo_aerosol_sources_types,    ONLY: p_fire_source_info
   USE mo_aerosol_sources,          ONLY: inquire_fire2d_data
-  USE mo_nwp_aerosol,              ONLY: cams_reader, cams_intp
+  USE mo_nwp_aerosol,              ONLY: nwp_aerosol_alloc, nwp_aerosol_dealloc
 #endif
   USE mo_iau,                      ONLY: compute_iau_wgt
 #ifndef __NO_AES__
@@ -168,8 +167,7 @@ MODULE mo_nh_stepping
 #endif
 
   USE mo_reader_sst_sic,           ONLY: t_sst_sic_reader
-  USE mo_reader_cams,              ONLY: t_cams_reader
-  USE mo_interpolate_time,         ONLY: t_time_intp
+  USE mo_interpolate_time,         ONLY: t_time_intp_transient
   USE mo_nh_init_nest_utils,       ONLY: initialize_nest
   USE mo_hydro_adjust,             ONLY: hydro_adjust_const_thetav
   USE mo_initicon_types,           ONLY: t_pi_atm
@@ -237,7 +235,7 @@ MODULE mo_nh_stepping
     &                                    upatmoRestartAttributesDeallocate
 #endif
   USE mo_icon2dace,                ONLY: mec_Event, init_dace_op, run_dace_op, dace_op_init
-  USE mo_extpar_config,            ONLY: generate_td_filename
+  USE mo_extpar_config,            ONLY: generate_filename
   USE mo_nudging_config,           ONLY: nudging_config, l_global_nudging, indg_type
   USE mo_nwp_tuning_config,        ONLY: itune_gust_diag
   USE mo_nudging,                  ONLY: nudging_interface
@@ -298,12 +296,12 @@ MODULE mo_nh_stepping
   PUBLIC :: perform_nh_stepping
 
 #ifndef __NO_NWP__
-  TYPE(t_sst_sic_reader), ALLOCATABLE, TARGET :: sst_reader(:)
-  TYPE(t_sst_sic_reader), ALLOCATABLE, TARGET :: sic_reader(:)
-  TYPE(t_time_intp),      ALLOCATABLE         :: sst_intp(:)
-  TYPE(t_time_intp),      ALLOCATABLE         :: sic_intp(:)
-  REAL(wp),               ALLOCATABLE         :: sst_dat(:,:,:,:)
-  REAL(wp),               ALLOCATABLE         :: sic_dat(:,:,:,:)
+  TYPE(t_sst_sic_reader),      ALLOCATABLE, TARGET :: sst_reader(:)
+  TYPE(t_sst_sic_reader),      ALLOCATABLE, TARGET :: sic_reader(:)
+  TYPE(t_time_intp_transient), ALLOCATABLE         :: sst_intp(:)
+  TYPE(t_time_intp_transient), ALLOCATABLE         :: sic_intp(:)
+  REAL(wp),                    ALLOCATABLE         :: sst_dat(:,:,:,:)
+  REAL(wp),                    ALLOCATABLE         :: sic_dat(:,:,:,:)
 #endif
 
   TYPE t_datetime_ptr
@@ -401,10 +399,7 @@ MODULE mo_nh_stepping
       ENDDO
     END IF
 
-    IF (irad_aero == iRadAeroCAMSclim .OR. irad_aero == iRadAeroCAMStd ) THEN
-      ALLOCATE(cams_reader(n_dom))
-      ALLOCATE(cams_intp(n_dom))
-    END IF
+    CALL nwp_aerosol_alloc
 
     IF (sstice_mode == SSTICE_INST) THEN
       ALLOCATE(sst_reader(n_dom))
@@ -414,28 +409,14 @@ MODULE mo_nh_stepping
       DO jg = 1, n_dom
         month = mtime_current%date%month
         year = mtime_current%date%year
-        sst_td_file= generate_td_filename(sst_td_filename,                &
-           &                             getModelBaseDir(),               &
-           &                             TRIM(p_patch(jg)%grid_filename), &
-           &                             month, year                      )
-        ci_td_file= generate_td_filename(ci_td_filename,                  &
-           &                             getModelBaseDir(),               &
-           &                             TRIM(p_patch(jg)%grid_filename), &
-           &                             month, year                      )
-
-        IF(is_mpi_workroot) THEN
-
-          INQUIRE (FILE=sst_td_file, EXIST=l_exist)
-          IF (.NOT.l_exist) THEN
-            CALL finish(routine,'Instant SST data file is not found.')
-          ENDIF
-
-          INQUIRE (FILE=ci_td_file, EXIST=l_exist)
-          IF (.NOT.l_exist) THEN
-            CALL finish(routine,'Instant sea-ice data file is not found.')
-          ENDIF
-
-        ENDIF
+        sst_td_file = generate_filename(sst_td_filename,                 &
+           &                            getModelBaseDir(),               &
+           &                            TRIM(p_patch(jg)%grid_filename), &
+           &                            nroot, p_patch(jg)%level, jg     )
+        ci_td_file = generate_filename(ci_td_filename,                  &
+           &                           getModelBaseDir(),               &
+           &                           TRIM(p_patch(jg)%grid_filename), &
+           &                           nroot, p_patch(jg)%level, jg     )
 
         CALL sst_reader(jg)%init(p_patch(jg), sst_td_file)
         CALL sst_intp(jg)%init(sst_reader(jg), mtime_current, "SST")
@@ -782,14 +763,6 @@ MODULE mo_nh_stepping
 
   CALL deallocate_nh_stepping
 
-#ifndef __NO_NWP__
-  IF (ALLOCATED(sst_reader)) DEALLOCATE(sst_reader)
-  IF (ALLOCATED(sic_reader)) DEALLOCATE(sic_reader)
-  IF (ALLOCATED(sst_intp)) DEALLOCATE(sst_intp)
-  IF (ALLOCATED(sic_intp)) DEALLOCATE(sic_intp)
-  IF (ALLOCATED(cams_reader)) DEALLOCATE(cams_reader)
-  IF (ALLOCATED(cams_intp)) DEALLOCATE(cams_intp)
-#endif
   END SUBROUTINE perform_nh_stepping
   !-------------------------------------------------------------------------
 
@@ -3652,21 +3625,23 @@ MODULE mo_nh_stepping
   ENDIF
 
 #ifndef __NO_NWP__
+  IF (ALLOCATED(sst_intp)) DEALLOCATE(sst_intp)
+  IF (ALLOCATED(sic_intp)) DEALLOCATE(sic_intp)
+
   IF (ALLOCATED(sst_reader)) THEN
     DO jg = 1, n_dom
       CALL sst_reader(jg)%deinit
     ENDDO
+    DEALLOCATE(sst_reader)
   ENDIF
   IF (ALLOCATED(sic_reader)) THEN
     DO jg = 1, n_dom
       CALL sic_reader(jg)%deinit
     ENDDO
+    DEALLOCATE(sic_reader)
   ENDIF
-  IF (ALLOCATED(cams_reader)) THEN
-    DO jg = 1, n_dom
-      CALL cams_reader(jg)%deinit
-    ENDDO
-  ENDIF
+
+  CALL nwp_aerosol_dealloc
 #endif
   END SUBROUTINE deallocate_nh_stepping
   !-------------------------------------------------------------------------

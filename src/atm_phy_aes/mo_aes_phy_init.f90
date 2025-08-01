@@ -100,7 +100,7 @@ MODULE mo_aes_phy_init
 
   ! for 6hourly sst and ice data
   USE mo_reader_sst_sic,       ONLY: t_sst_sic_reader
-  USE mo_interpolate_time,     ONLY: t_time_intp
+  USE mo_interpolate_time,     ONLY: t_time_intp_transient
 
 #ifndef __NO_RTE_RRTMGP__
   USE mo_rte_rrtmgp_setup,     ONLY: rte_rrtmgp_basic_setup
@@ -115,14 +115,15 @@ MODULE mo_aes_phy_init
 
   PUBLIC  :: init_aes_phy_params, init_aes_phy_external, init_aes_phy_field
   PUBLIC  :: init_o3_lcariolle
-  PUBLIC  :: sst_intp, sic_intp, sst_sic_reader
+  PUBLIC  :: sst_intp, sic_intp
 
   CHARACTER(len=*)      , PARAMETER           :: modname = 'mo_aes_phy_init'
-  TYPE(t_sst_sic_reader), ALLOCATABLE, TARGET :: sst_sic_reader(:)
-  TYPE(t_time_intp),      ALLOCATABLE         :: sst_intp(:)
-  TYPE(t_time_intp),      ALLOCATABLE         :: sic_intp(:)
-  REAL(wp),               ALLOCATABLE         :: sst_dat(:,:,:,:)
-  REAL(wp),               ALLOCATABLE         :: sic_dat(:,:,:,:)
+  TYPE(t_sst_sic_reader),      ALLOCATABLE, TARGET :: sst_reader(:)
+  TYPE(t_time_intp_transient), ALLOCATABLE         :: sst_intp(:)
+  TYPE(t_sst_sic_reader),      ALLOCATABLE, TARGET :: sic_reader(:)
+  TYPE(t_time_intp_transient), ALLOCATABLE         :: sic_intp(:)
+  REAL(wp),                    ALLOCATABLE         :: sst_dat(:,:,:,:)
+  REAL(wp),                    ALLOCATABLE         :: sic_dat(:,:,:,:)
 
 CONTAINS
   !>
@@ -304,7 +305,8 @@ CONTAINS
 
     ! Allocate memory for 6hourly-prescribed sst and sic data
     IF (ANY(aes_phy_config(:)%lsstice)) THEN
-      ALLOCATE(sst_sic_reader(ng))
+      ALLOCATE(sst_reader(ng))
+      ALLOCATE(sic_reader(ng))
       ALLOCATE(sst_intp(ng))
       ALLOCATE(sic_intp(ng))
     END IF
@@ -730,9 +732,10 @@ CONTAINS
             filename = 'sst-sic-runmean_G.nc'
           END IF
 
-          CALL sst_sic_reader(jg)%init(p_patch(jg), filename)
+          CALL sst_reader(jg)%init(p_patch(jg), filename)
+          CALL sic_reader(jg)%init(p_patch(jg), filename)
 
-          CALL sst_intp(jg)%init(sst_sic_reader(jg), mtime_current, "SST")
+          CALL sst_intp(jg)%init(sst_reader(jg), mtime_current, "SST")
           CALL sst_intp(jg)%intp(mtime_current, sst_dat, lacc=.FALSE.)
 
           ! set sea surface temperature
@@ -740,7 +743,7 @@ CONTAINS
             prm_field(jg)%ts_tile(:,:,iwtr) = sst_dat(:,1,:,1)
           END WHERE
 
-          CALL sic_intp(jg)%init(sst_sic_reader(jg), mtime_current, "SIC")
+          CALL sic_intp(jg)%init(sic_reader(jg), mtime_current, "SIC")
           CALL sic_intp(jg)%intp(mtime_current, sic_dat, lacc=.FALSE.)
           prm_field(jg)%seaice(:,:) = sic_dat(:,1,:,1)
           prm_field(jg)%seaice(:,:) = MERGE(0.99_wp, prm_field(jg)%seaice(:,:), prm_field(jg)%seaice(:,:) > 0.99_wp)

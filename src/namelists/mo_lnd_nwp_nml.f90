@@ -26,6 +26,7 @@ MODULE mo_lnd_nwp_nml
   USE mo_restart_nml_and_att, ONLY: open_tmpfile, store_and_close_namelist,  &
     &                               open_and_restore_namelist, close_tmpfile
   USE mo_nml_annotate,        ONLY: temp_defaults, temp_settings
+  USE mtime,                  ONLY: max_timedelta_str_len
 
   USE mo_lnd_nwp_config,      ONLY: config_nlev_snow          => nlev_snow         , &
     &                               config_ntiles             => ntiles_lnd        , &
@@ -72,6 +73,7 @@ MODULE mo_lnd_nwp_nml
     &                               config_lana_rho_snow      => lana_rho_snow     , &
     &                               config_lsnowtile          => lsnowtile         , &
     &                               config_sstice_mode        => sstice_mode       , &
+    &                               config_sst_file_interval  => sst_file_interval , &
     &                               config_sst_td_filename    => sst_td_filename   , &
     &                               config_ci_td_filename     => ci_td_filename    , &
     &                               config_zml_soil           => zml_soil          , &
@@ -152,6 +154,7 @@ CONTAINS
     INTEGER ::  itype_oskin_cold  !> forecast with ocean cold skin
 
     CHARACTER(LEN=filename_max) :: sst_td_filename, ci_td_filename
+    CHARACTER(LEN=max_timedelta_str_len) :: sst_file_interval
 
    LOGICAL ::           &
          lseaice,        & !> forecast with sea ice model
@@ -190,6 +193,7 @@ CONTAINS
          &               lana_rho_snow, l2lay_rho_snow                        , &
          &               lsnowtile, itype_snowevap                            , &
          &               sstice_mode                                          , &
+         &               sst_file_interval                                    , &
          &               sst_td_filename                                      , &
          &               ci_td_filename, cwimax_ml, c_soil, c_soil_urb        , &
          &               czbot_w_so, cr_bsmin, lcuda_graph_lnd                , &
@@ -207,6 +211,7 @@ CONTAINS
                                ! is modified by the sea ice model
                                ! default names for the time dependent SST and CI ext param files
                                ! if sstice=SSTICE_CLIM, <year> is substituted by "CLIM"
+    sst_file_interval = "P1M"
     sst_td_filename = "<path>SST_<year>_<month>_<gridfile>"
     ci_td_filename = "<path>CI_<year>_<month>_<gridfile>"
 
@@ -462,6 +467,7 @@ CONTAINS
     config_l2lay_rho_snow     = l2lay_rho_snow
     config_lsnowtile          = lsnowtile
     config_sstice_mode        = sstice_mode
+    config_sst_file_interval  = sst_file_interval
     config_sst_td_filename    = sst_td_filename
     config_ci_td_filename     = ci_td_filename
     config_nlev_soil          = nlev_soil

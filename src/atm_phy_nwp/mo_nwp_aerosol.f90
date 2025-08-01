@@ -20,7 +20,7 @@ MODULE mo_nwp_aerosol
   USE mo_kind,                    ONLY: wp, rp
   USE mo_exception,               ONLY: finish, message, message_text
   USE mo_model_domain,            ONLY: t_patch
-  USE mo_grid_config,             ONLY: nroot
+  USE mo_grid_config,             ONLY: n_dom, nroot
   USE mo_ext_data_types,          ONLY: t_external_data
   USE mo_nonhydro_types,          ONLY: t_nh_diag
   USE mo_nwp_phy_types,           ONLY: t_nwp_phy_diag
@@ -31,7 +31,7 @@ MODULE mo_nwp_aerosol
   USE mo_impl_constants_grf,      ONLY: grf_bdywidth_c
   USE mo_physical_constants,      ONLY: rd, grav, cpd, rdv, o_m_rdv
   USE mo_reader_cams,             ONLY: t_cams_reader
-  USE mo_interpolate_time,        ONLY: t_time_intp, intModeLinearMonthlyClim, intModeLinear
+  USE mo_interpolate_time,        ONLY: t_time_intp, t_time_intp_monthlyclim, t_time_intp_transient
   USE mo_io_units,                ONLY: filename_max
   USE mo_fortran_tools,           ONLY: init, set_acc_host_or_device, assert_acc_device_only
   USE mo_util_string,             ONLY: int2string, associate_keyword, t_keyword_list, with_keywords
@@ -72,11 +72,13 @@ MODULE mo_nwp_aerosol
   PUBLIC :: nwp_aerosol_interface
   PUBLIC :: nwp_aerosol_cleanup
   PUBLIC :: nwp_aerosol_init
+  PUBLIC :: nwp_aerosol_alloc
+  PUBLIC :: nwp_aerosol_dealloc
   PUBLIC :: cams_reader
   PUBLIC :: cams_intp
 
   TYPE(t_cams_reader),      ALLOCATABLE, TARGET :: cams_reader(:)
-  TYPE(t_time_intp),        ALLOCATABLE         :: cams_intp(:)
+  CLASS(t_time_intp),       ALLOCATABLE         :: cams_intp(:)
 
   ! Local memory for aerosol fields.
   ! These are only allocated for certain aerosol options in the scope of the radiation.
@@ -88,6 +90,37 @@ MODULE mo_nwp_aerosol
     &  locmem_ssa_sw(:,:,:,:)   !< SW aerosol single scattering albedo
 
 CONTAINS
+
+  SUBROUTINE nwp_aerosol_alloc
+
+    ALLOCATE(cams_reader(n_dom))
+
+    SELECT CASE (irad_aero)
+    CASE (iRadAeroCAMSclim)
+      ALLOCATE(t_time_intp_monthlyclim :: cams_intp(n_dom))
+    CASE (iRadAeroCAMStd)
+      ALLOCATE(t_time_intp_transient :: cams_intp(n_dom))
+    CASE DEFAULT
+    END SELECT
+
+  END SUBROUTINE nwp_aerosol_alloc
+
+  SUBROUTINE nwp_aerosol_dealloc
+    INTEGER :: jg
+
+    IF (ALLOCATED(cams_intp)) THEN
+      DEALLOCATE(cams_intp)
+    END IF
+
+    IF (ALLOCATED(cams_reader)) THEN
+      DO jg = 1, n_dom
+        CALL cams_reader(jg)%deinit
+      END DO
+
+      DEALLOCATE(cams_reader)
+    END IF
+
+  END SUBROUTINE nwp_aerosol_dealloc
 
   !---------------------------------------------------------------------------------------
   !! This subroutine uploads CAMS aerosols and updates them once a day
@@ -103,19 +136,46 @@ CONTAINS
     CHARACTER(LEN=filename_max)         :: &
       &  cams_aero_td_file                         !< CAMS file names
 
+    CHARACTER(len=*), PARAMETER :: routine = modname // '::nwp_aerosol_init'
+
+
+
     jg     = p_patch%id
 
     cams_aero_td_file = generate_cams_filename(TRIM(cams_aero_filename), nroot, p_patch%level, p_patch%id)
 
-    IF (irad_aero == iRadAeroCAMSclim) THEN
-      CALL message  ('nwp_aerosol_init opening CAMS 3D climatology file: ', TRIM(cams_aero_td_file))
-      CALL cams_reader(jg)%init(p_patch, TRIM(cams_aero_td_file))
-      CALL cams_intp(jg)%init(cams_reader(jg), mtime_datetime, '', intModeLinearMonthlyClim)
-    ELSEIF (irad_aero == iRadAeroCAMStd) THEN
-      CALL message  ('nwp_aerosol_init opening CAMS forecast file: ', TRIM(cams_aero_td_file))
-      CALL cams_reader(jg)%init(p_patch, TRIM(cams_aero_td_file))
-      CALL cams_intp(jg)%init(cams_reader(jg), mtime_datetime, '', intModeLinear)
-    ENDIF
+    IF (ALLOCATED(cams_intp)) THEN
+#if defined(_CRAYFTN)
+      ! Cray Fortran cannot parse CALL cams_intp(jg)%init(...)
+      SELECT TYPE (cams_intp)
+      TYPE IS (t_time_intp_monthlyclim)
+        CALL message  ('nwp_aerosol_init opening CAMS 3D climatology file: ', TRIM(cams_aero_td_file))
+        CALL cams_reader(jg)%init(p_patch, TRIM(cams_aero_td_file))
+      TYPE IS (t_time_intp_transient)
+        CALL message  ('nwp_aerosol_init opening CAMS forecast file: ', TRIM(cams_aero_td_file))
+        CALL cams_reader(jg)%init(p_patch, TRIM(cams_aero_td_file))
+      CLASS DEFAULT
+        CALL finish(routine, 'Internal error: unknown interpolator for CAMS aerosol.')
+      END SELECT
+
+      CALL init_interp(cams_intp(jg))
+#else
+      SELECT TYPE (cams_intp)
+      TYPE IS (t_time_intp_monthlyclim)
+        CALL message  ('nwp_aerosol_init opening CAMS 3D climatology file: ', TRIM(cams_aero_td_file))
+        CALL cams_reader(jg)%init(p_patch, TRIM(cams_aero_td_file))
+        CALL cams_intp(jg)%init(cams_reader(jg), mtime_datetime, '')
+
+      TYPE IS (t_time_intp_transient)
+        CALL message  ('nwp_aerosol_init opening CAMS forecast file: ', TRIM(cams_aero_td_file))
+        CALL cams_reader(jg)%init(p_patch, TRIM(cams_aero_td_file))
+        CALL cams_intp(jg)%init(cams_reader(jg), mtime_datetime, '')
+
+      CLASS DEFAULT
+        CALL finish(routine, 'Internal error: unknown interpolator for CAMS aerosol.')
+      END SELECT
+#endif
+    END IF
 
     CONTAINS
 
@@ -133,6 +193,19 @@ CONTAINS
 
         result_str = TRIM(with_keywords(keywords, TRIM(filename_in)))
       END FUNCTION generate_cams_filename
+
+#if defined(_CRAYFTN)
+      SUBROUTINE init_interp (interp)
+        CLASS(t_time_intp), INTENT(OUT) :: interp
+
+        SELECT TYPE (interp)
+        TYPE IS (t_time_intp_monthlyclim)
+          CALL interp%init(cams_reader(jg), mtime_datetime, '')
+        TYPE IS (t_time_intp_transient)
+          CALL interp%init(cams_reader(jg), mtime_datetime, '')
+        END SELECT
+      END SUBROUTINE init_interp
+#endif
 
   END SUBROUTINE nwp_aerosol_init
 

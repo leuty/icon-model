@@ -21,6 +21,7 @@ MODULE mo_lnd_nwp_config
   USE mo_nwp_sfc_tiles,      ONLY: t_tile_list, setup_tile_list
   USE mo_exception,          ONLY: message, message_text, finish
   USE mo_coupling_config,    ONLY: is_coupled_to_ocean
+  USE mtime,                 ONLY: max_timedelta_str_len
 
 
   IMPLICIT NONE
@@ -45,7 +46,7 @@ MODULE mo_lnd_nwp_config
   PUBLIC :: lterra_urb, lurbalb, itype_ahf, itype_kbmo, itype_eisa
   PUBLIC :: lstomata, l2tls, lana_rho_snow
   PUBLIC :: isub_water, isub_lake, isub_seaice
-  PUBLIC :: sstice_mode, sst_td_filename, ci_td_filename
+  PUBLIC :: sstice_mode, sst_file_interval, sst_td_filename, ci_td_filename
   PUBLIC :: tile_list
   PUBLIC :: groups_smi
   PUBLIC :: czbot_w_so
@@ -115,6 +116,7 @@ MODULE mo_lnd_nwp_config
   REAL(wp)::  czbot_w_so       !< thickness of the hydraulical active soil layer [m]
 
   CHARACTER(LEN=filename_max) :: sst_td_filename, ci_td_filename
+  CHARACTER(LEN=max_timedelta_str_len) :: sst_file_interval
 
   LOGICAL :: lcuda_graph_lnd  !< activate cuda graph
 

@@ -4439,14 +4439,25 @@ Maximum sea-ice thickness (for coupled runs assure consistency with seaice\_limi
 \tabularnewline
 
 %\hline
+sst\_file\_interval &
+C&
+&
+&
+Interval of SST/CI files as ISO 8601 duration.
+Default is "P1M" (1 month). &
+sstice\_mode=6
+\tabularnewline
+
+%\hline
 sst\_td\_filename &
 C&
 &
 &
 Filename of SST input files for time dependent SST.
-Default is "$<$path$>$SST\_$<$year$>$\_<month>\_$<$gridfile$>$". May contain the
+Default is "$<$path$>$SST\_$<$year$>$\_$<$month$>$\_$<$gridfile$>$". May contain the
 keyword $<$path$>$ which will be substituted by model\_base\_dir \newline
-In case sstice\_mode=6, SST data for all time steps in the current simulation should be prepared in one single file, variable should be named SST in this file. &
+In case sstice\_mode=6, keywords for extpar files and $<$day$>$, $<$hh$>$, $<$mm$>$, $<$ss$>$ are also available.
+NetCDF variable should be named SST. &
 sstice\_mode=3,4,5,6
 \tabularnewline
 
@@ -4458,7 +4469,8 @@ C&
 Filename of sea ice fraction input files for time dependent sea ice fraction.
 Default is "$<$path$>$CI\_$<$year$>$\_$<$month$>$\_$<$gridfile$>$". May contain
 the keyword $<$path$>$ which will be substituted by model\_base\_dir \newline
-In case sstice\_mode=6, sea ice data for all time steps in the current simulation should be prepared in one single file, variable should be named SIC in this file. &
+In case sstice\_mode=6, keywords for extpar files and $<$day$>$, $<$hh$>$, $<$mm$>$, $<$ss$>$ are also available.
+NetCDF variable should be named SIC. &
 sstice\_mode=3,4,5,6
 \tabularnewline
 
