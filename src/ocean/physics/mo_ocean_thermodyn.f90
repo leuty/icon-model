@@ -62,7 +62,7 @@ MODULE mo_ocean_thermodyn
   PUBLIC :: convert_insitu2pot_temp_func
   PUBLIC :: calc_neutralslope_coeff_func_onColumn_UNESCO
   PUBLIC :: calc_neutralslope_coeff_func_onColumn
-  PUBLIC :: calc_neutralslope_coeff_func_onColumn_elem
+  PUBLIC :: calc_neutralslope_coeff_func_elem
 
   REAL(wp), PARAMETER :: eosmdjwfnum(0:11) = (/                                 &
     & 9.99843699e+02_wp,  7.35212840e+00_wp, -5.45928211e-02_wp,                 &
@@ -389,7 +389,8 @@ CONTAINS
     DO jb = all_cells%start_block, all_cells%end_block
       CALL get_index_range(all_cells, jb, start_index, end_index)
 
-      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+      !$ACC LOOP GANG VECTOR
       DO jc = start_index, end_index
 
         pressure_hyd(jc,1,jb) = rho(jc,1,jb)*z_grav_rho_inv*&
@@ -400,9 +401,21 @@ CONTAINS
         !! momentum eqn
         phy(jc, 1, jb) = 0.0_wp - &
             & stretch_c(jc, jb)*patch_3D%p_patch_1d(1)%constantPrismCenters_Zdistance(jc, 1, jb)
+#ifdef __LVECTOR__
+      ENDDO
+      !$ACC END PARALLEL
+
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+      !$ACC LOOP SEQ
+      DO jk = 2, MAXVAL(patch_3d%p_patch_1d(1)%dolic_c(start_index:end_index,jb))
+        !$ACC LOOP GANG VECTOR
+        DO jc = start_index, end_index
+          IF ( jk > patch_3d%p_patch_1d(1)%dolic_c(jc,jb) ) CYCLE
+#else
 
        !$ACC LOOP SEQ
         DO jk = 2, patch_3d%p_patch_1d(1)%dolic_c(jc,jb)
+#endif
 
           pressure_hyd(jc,jk,jb) = pressure_hyd(jc,jk-1,jb) + 0.5_wp*(rho(jc,jk,jb)+rho(jc,jk-1,jb))&
             &*z_grav_rho_inv*stretch_c(jc, jb)*patch_3D%p_patch_1d(1)%constantPrismCenters_Zdistance(jc,jk,jb)
@@ -413,7 +426,7 @@ CONTAINS
 
         END DO
       END DO
-      !$ACC END PARALLEL LOOP
+      !$ACC END PARALLEL
     END DO
     !$ACC WAIT(1)
 !ICON_OMP_END_DO
@@ -2023,7 +2036,8 @@ CONTAINS
 
   END FUNCTION calc_neutralslope_coeff_func_onColumn
 
-  FUNCTION calc_neutralslope_coeff_func_onColumn_elem(t,s,p,variant) result(coeff)
+  FUNCTION calc_neutralslope_coeff_func_elem(t,s,p,variant) result(coeff)
+!NEC$ always_inline
     !$ACC ROUTINE SEQ
     !-----------------------------------------------------------------
     ! REFERENCES:
@@ -2046,8 +2060,6 @@ CONTAINS
 
     ! local variables, following the naming of the FESOM implementation
     REAL(wp):: aob, t1, t2, t3, t4, s35, s35sq, s1, s2, s3, p1, p2, p3
-
-    INTEGER :: level
 
     !  polynomial parameter for calculation of saline contraction coeff beta
     REAL(wp), PARAMETER :: &
@@ -2130,7 +2142,7 @@ CONTAINS
       coeff = aob * coeff
     END IF
 
-  END FUNCTION calc_neutralslope_coeff_func_onColumn_elem
+  END FUNCTION calc_neutralslope_coeff_func_elem
 
 
   !-------------------------------------------------------------------------
@@ -2291,14 +2303,26 @@ CONTAINS
 !ICON_OMP_DO PRIVATE(start_index, end_index, jc, jk) ICON_OMP_DEFAULT_SCHEDULE
       DO jb = all_cells%start_block, all_cells%end_block
         CALL get_index_range(all_cells, jb, start_index, end_index)
-        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+#ifdef __LVECTOR__
+        !$ACC LOOP SEQ
+        DO jk=1, MAXVAL( patch_3d%p_patch_1d(1)%dolic_c(start_index:end_index,jb) )
+          !$ACC LOOP GANG VECTOR
+          DO jc = start_index, end_index
+            IF (jk <= patch_3d%p_patch_1d(1)%dolic_c(jc,jb)) THEN ! operate on wet ocean points only
+#else
+        !$ACC LOOP GANG VECTOR
         DO jc = start_index, end_index
           DO jk=1, patch_3d%p_patch_1d(1)%dolic_c(jc,jb) ! operate on wet ocean points only
+#endif
             rhopot(jc,jk,jb) = calc_potential_density_mpiom_elemental( &
               & tracer(jc,jk,jb,1), tracer(jc,jk,jb,2))
+#ifdef __LVECTOR__
+            ENDIF
+#endif
           END DO
         END DO
-        !$ACC END PARALLEL LOOP
+        !$ACC END PARALLEL
       END DO
       !$ACC WAIT(1)
 !ICON_OMP_END_DO NOWAIT

@@ -926,6 +926,27 @@ ENDDO
              & * patch_3D%p_patch_1D(1)%constantPrismCenters_invZdistance(jc,start_level,blockNo)
 
           ! 1b) ocean interior
+#ifdef __LVECTOR__
+        ENDIF
+      END DO
+      !$ACC END PARALLEL LOOP
+
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
+      DO jk = start_level+1, MAXVAL(patch_3D%p_patch_1D(1)%dolic_c(start_index:end_index,blockNo))
+        DO jc = start_index, end_index
+          IF ( jk > patch_3D%p_patch_1D(1)%dolic_c(jc,blockNo) .OR. &
+               patch_3D%p_patch_1D(1)%dolic_c(jc,blockNo) < min_dolic) CYCLE
+            z_adv_u_i(jc,jk)%x =  vertical_velocity(jc,jk,blockNo) * z_adv_u_i(jc,jk)%x
+        ENDDO
+      ENDDO
+      !$ACC END PARALLEL LOOP
+
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+      DO jc = start_index, end_index
+        fin_level = patch_3D%p_patch_1D(1)%dolic_c(jc,blockNo)
+        IF(fin_level >= min_dolic) z_adv_u_i(jc,fin_level+1)%x = 0.0_wp
+      ENDDO
+#else
           DO jk = start_level+1, fin_level
             z_adv_u_i(jc,jk)%x =  vertical_velocity(jc,jk,blockNo) * z_adv_u_i(jc,jk)%x
           END DO
@@ -935,6 +956,7 @@ ENDDO
 
         ENDIF
       END DO
+#endif
       !$ACC END PARALLEL LOOP
       !$ACC WAIT(1)
 
