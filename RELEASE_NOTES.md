@@ -55,6 +55,7 @@ Climate: ICON-Land
   - First implementation allowing anthropogenic land cover change with QUINCY biogeophysics processes
   - Enable running the agriculture process in QUINCY also when only running biogeophysical processes
   - Different code updates reducing the number of restart variables in QUINCY runs
+  - Enable reading of vegetation and biogeochemical soil states from input file for QUINCY
 - Use a common interface for QUINCY and JSBACH
 - Updated inline documentation of hydrology process
 - Fixes:
