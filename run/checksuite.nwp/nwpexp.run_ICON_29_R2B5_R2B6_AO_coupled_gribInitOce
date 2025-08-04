@@ -1667,7 +1667,8 @@ ICON_COMPONENT2_VH_procs=$mpi_oce_io_procs
 # run the model!
 # ----------------------------------------------------------------------
 
-rm -f finish.status
+rm -f finish_atmo.status
+rm -f finish_ocean.status
 date
 
 $START_MODEL
@@ -1680,7 +1681,7 @@ fi
 
 date
 
-if [ -r finish.status ] ; then
+if [ -r finish_atmo.status ] && [ -r finish_ocean.status ]; then
   check_final_status 0
 else
   check_final_status -1
@@ -1688,10 +1689,16 @@ fi
 #
 #-----------------------------------------------------------------------------
 #
-finish_status=`cat finish.status`
-echo $finish_status
+finish_status_atm=`cat finish_atmo.status`
+finish_status_atm="${finish_status_atm# }"
+finish_status_oce=`cat finish_ocean.status`
+finish_status_oce="${finish_status_oce# }"
+
+echo "${finish_status_atm}"
+echo "${finish_status_oce}"
 echo "============================"
-echo "Script run successfully: $finish_status"
+echo "Script run (atmo) successfully: $finish_status_atm"
+echo "Script run (oce) successfully: $finish_status_oce"
 echo "============================"
 
 #-----------------------------------------------------------------------------
@@ -1712,7 +1719,7 @@ namelist_list=""
 #-----------------------------------------------------------------------------
 # check if we have to restart, ie resubmit
 #   Note: this is a different mechanism from checking the restart
-if [ $finish_status = "RESTART" ] ; then
+if [ "${finish_status_atm}" = "RESTART" ] || [ "${finish_status_oce}" = "RESTART" ] ; then
   echo "restart next experiment..."
   this_script="${RUNSCRIPTDIR}/${job_name}"
   echo 'this_script: ' "$this_script"
@@ -1770,7 +1777,7 @@ fi
 
 #-----------------------------------------------------------------------------
 
-if [ ${finish_status} == 'OK' ]; then
+if [ "${finish_status_atm}" = 'OK' -a "${finish_status_oce}" = 'OK' ] ; then
   EXIT_STATUS=0
 else
   EXIT_STATUS=1

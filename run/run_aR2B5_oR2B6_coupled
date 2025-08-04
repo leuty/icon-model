@@ -242,8 +242,8 @@ ocean_refinement="R02B06"
 
 # namelist files
 # --------------
-atm_namelist=NAMELIST_${EXPNAME}_atm
-oce_namelist=NAMELIST_${EXPNAME}_ocean
+atmo_namelist=NAMELIST_${EXPNAME}_atm
+ocean_namelist=NAMELIST_${EXPNAME}_ocean
 
 #--------------------------------------------------------------------------------------------------
 #
@@ -346,14 +346,14 @@ atm_inc_rank=1
 # I.2 Fill model list
 # -------------------
 
-namelist_list[0]="$atm_namelist"
+namelist_list[0]="$atmo_namelist"
 modelname_list[0]="atmo"
 modeltype_list[0]=1
 minrank_list[0]=$atm_min_rank
 maxrank_list[0]=$atm_max_rank
 incrank_list[0]=$atm_inc_rank
 
-namelist_list[1]="$oce_namelist"
+namelist_list[1]="$ocean_namelist"
 modelname_list[1]="ocean"
 modeltype_list[1]=2
 minrank_list[1]=$oce_min_rank
@@ -570,7 +570,7 @@ fi
 # ------------------------
 # For a complete list see Namelist_overview and Namelist_overview.pdf
 
-cat > ${atm_namelist} << EOF
+cat > ${atmo_namelist} << EOF
 !
 &coupling_mode_nml
  coupled_to_ocean        = .TRUE.
@@ -923,7 +923,7 @@ EOF
 
 
 if [[ "$pi_control" == "yes" ]]; then
-   cat >> ${atm_namelist} << EOF
+   cat >> ${atmo_namelist} << EOF
 &radiation_nml
  irad_o3                 = 79
  irad_aero               = 12                   ! 6: default, 12: Kinne aerosols (Trang) 1850
@@ -946,7 +946,7 @@ if [[ "$pi_control" == "yes" ]]; then
 EOF
 
 else
-   cat >> ${atm_namelist} << EOF
+   cat >> ${atmo_namelist} << EOF
 &radiation_nml
  irad_o3                 = 79
  irad_aero               = 6                ! 6: default, 12: Kinne aerosols (Trang)
@@ -1146,7 +1146,7 @@ fi
 # ocean namelist
 # --------------
 
-cat > ${oce_namelist} << EOF
+cat > ${ocean_namelist} << EOF
 !
 &coupling_mode_nml
  coupled_to_atmo             = .TRUE.
@@ -1178,7 +1178,7 @@ cat > ${oce_namelist} << EOF
 EOF
 
 # output of fixed geometry
-cat >> ${oce_namelist} << EOF
+cat >> ${ocean_namelist} << EOF
 !--------------------------------------------------------------------------------
 ! OUTPUT pyICON: ICON-O fixed geometry
 !--------------------------------------------------------------------------------
@@ -1202,7 +1202,7 @@ cat >> ${oce_namelist} << EOF
 EOF
 
 if [[ "$output_oce_def" == "yes" ]]; then
-   cat >> ${oce_namelist} << EOF
+   cat >> ${ocean_namelist} << EOF
 !--------------------------------------------------------------------------------
 ! OUTPUT pyICON: ICON-O 3D Output
 !--------------------------------------------------------------------------------
@@ -1224,7 +1224,7 @@ EOF
 fi
 
 if [[ "$output_oce_ice" == "yes" ]]; then
-  cat >> ${oce_namelist} <<EOF
+  cat >> ${ocean_namelist} <<EOF
 !--------------------------------------------------------------------------------
 ! OUTPUT pyICON: ICON-O ice and snow output
 !--------------------------------------------------------------------------------
@@ -1246,7 +1246,7 @@ EOF
 fi
 
 if [[ "$output_oce_mon" == "yes" ]]; then
-   cat >> ${oce_namelist} << EOF
+   cat >> ${ocean_namelist} << EOF
 !--------------------------------------------------------------------------------
 ! OUTPUT pyICON: ICON-O Output monitoring
 !--------------------------------------------------------------------------------
@@ -1268,7 +1268,7 @@ EOF
 fi
 
 if [[ "$output_oce_moc" == "yes" ]]; then
-   cat >> ${oce_namelist} << EOF
+   cat >> ${ocean_namelist} << EOF
 !--------------------------------------------------------------------------------
 ! OUTPUT pyICON: ICON-O AMOC
 !--------------------------------------------------------------------------------
@@ -1290,7 +1290,7 @@ EOF
 fi
 
 if [[ "$output_oce_dbg" == "yes" ]]; then
-  cat >> ${oce_namelist} <<EOF
+  cat >> ${ocean_namelist} <<EOF
 !--------------------------------------------------------------------------------
 ! OUTPUT pyICON: ICON-O Output debug
 !--------------------------------------------------------------------------------
@@ -1318,7 +1318,7 @@ EOF
 fi
 
 
-cat >> ${oce_namelist} << EOF
+cat >> ${ocean_namelist} << EOF
 &dbg_index_nml
   idbg_mxmn                  = 4                                ! initialize MIN/MAX  debug output
   idbg_val                   = 0                                ! initialize one cell debug output
@@ -1470,7 +1470,7 @@ cat >> ${oce_namelist} << EOF
 /
 EOF
 
-cat >> ${oce_namelist} << EOF
+cat >> ${ocean_namelist} << EOF
 &ocean_forcing_nml
   iforc_oce                                  = 14          ! ocean forcing: 14 from coupling via YAC
   type_surfRelax_Temp                        = -1          ! -1: use net surface heat flux from atmosphere
@@ -1495,7 +1495,7 @@ EOF
 
 if [[ "$initialiseOcean" == "fromRestart" ]] || [[ "$initialiseOcean" == "fromRestartwithHamocc" ]]; then
 
-  cat >> ${oce_namelist} << EOF
+  cat >> ${ocean_namelist} << EOF
 &ocean_initialConditions_nml
   initial_salinity_type                      = 0                ! 0: none, 1: read S from initial_state.nc
   initial_temperature_type                   = 0                ! 0: none, 1: read T from initial_state.nc
@@ -1506,7 +1506,7 @@ EOF
 else
 
   if [[ "$initialiseOcean" == "fromClimatology" ]]; then
-    cat >> ${oce_namelist} << EOF
+    cat >> ${ocean_namelist} << EOF
 &ocean_initialConditions_nml
   initial_salinity_type                      = 1                ! 0: none, 1: read S from initial_state.nc
   initial_temperature_type                   = 1                ! 0: none, 1: read T from initial_state.nc
@@ -1515,7 +1515,7 @@ else
 EOF
   else
     if [[ "$initialiseOcean" == "coldStart" ]]; then
-      cat >> ${oce_namelist} << EOF
+      cat >> ${ocean_namelist} << EOF
 &ocean_initialConditions_nml
   initial_salinity_type                      = 200              ! 0: none, 1: read S from initial_state.nc
   initial_temperature_type                   = 200              ! 0: none, 1: read T from initial_state.nc
@@ -1527,7 +1527,7 @@ EOF
 /
 EOF
     else
-      cat >> ${oce_namelist} << EOF
+      cat >> ${ocean_namelist} << EOF
 &ocean_initialConditions_nml
   initial_salinity_type                      = 0                ! 0: none, 1: read S from initial_state.nc
   initial_temperature_type                   = 0                ! 0: none, 1: read T from initial_state.nc
@@ -1538,7 +1538,7 @@ EOF
   fi
 fi
 
-cat >> ${oce_namelist} << EOF
+cat >> ${ocean_namelist} << EOF
 &ocean_diagnostics_nml
   diagnostics_level                          = 1
   diagnose_for_horizontalVelocity            = .FALSE.
@@ -1553,7 +1553,7 @@ cat >> ${oce_namelist} << EOF
 /
 EOF
 
-add_required_file ${basedir}/run/${oce_namelist} ./
+add_required_file ${basedir}/run/${ocean_namelist} ./
 
 #-----------------------------------------------------------------------------
 #
@@ -1633,9 +1633,9 @@ if [ x$namelist_list = x ]; then
   minrank_list[0]=0
   maxrank_list[0]=65535
   incrank_list[0]=1
-  if [ x$atm_namelist != x ]; then
+  if [ x$atmo_namelist != x ]; then
     # this is the atmo model
-    namelist_list[0]="$atm_namelist"
+    namelist_list[0]="$atmo_namelist"
     modelname_list[0]="atmo"
     modeltype_list[0]=1
     run_atmo="true"
@@ -1700,7 +1700,7 @@ fi
 # fill some checks
 
 run_atmo=${run_atmo="false"}
-if [ x$atm_namelist != x ]; then
+if [ x$atmo_namelist != x ]; then
   run_atmo="true"
 fi
 run_ocean=${run_ocean="false"}
@@ -1947,7 +1947,8 @@ end_hduser_ctl
 # run the model!
 # ----------------------------------------------------------------------
 
-rm -f finish.status
+rm -f finish_atmo.status
+rm -f finish_ocean.status
 date
 
 export VE_ERRCTL_ALLOCATE=MSG
@@ -2013,7 +2014,7 @@ excl_num_oce=$(( mpi_oce_procs - split_num_oce ))
 
 date
 
-if [ -r finish.status ] ; then
+if [ -r finish_atmo.status ] && [ -r finish_ocean.status ] ; then
   check_final_status 0
 else
   check_final_status -1
@@ -2021,10 +2022,17 @@ fi
 #
 #-----------------------------------------------------------------------------
 #
-finish_status=`cat finish.status`
-echo $finish_status
+#Read the finish_status files and cut off whitespaces.
+"${finish_status_atm}"=`cat finish_atmo.status`
+finish_status_atm="${finish_status_atm# }"
+"${finish_status_oce}"=`cat finish_ocean.status`
+finish_status_oce="${finish_status_oce# }"
+
+echo "${finish_status_atm}"
+echo "${finish_status_oce}"
 echo "============================"
-echo "Script run successfully: $finish_status"
+echo "Script run (atmo) successfully: $finish_status_atm"
+echo "Script run (oce) successfully: $finish_status_oce"
 echo "============================"
 
 #-----------------------------------------------------------------------------
@@ -2045,7 +2053,7 @@ namelist_list=""
 #-----------------------------------------------------------------------------
 # check if we have to restart, ie resubmit
 #   Note: this is a different mechanism from checking the restart
-if [ $finish_status = "RESTART" ] ; then
+if [ "${finish_status_atm}" = "RESTART" ] || [ "${finish_status_oce}" = "RESTART" ]; then
   echo "restart next experiment..."
   this_script="${RUNSCRIPTDIR}/${job_name}"
   echo 'this_script: ' "$this_script"

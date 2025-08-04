@@ -668,11 +668,23 @@ ${START} ${MODEL}
 #%  endif
 date
 
+#%    if WITH_ATMO is set and WITH_OCEAN is set:
+
+if [ -r finish_atmo.status -a -r finish_ocean.status ] ; then
+  check_final_status 0 "${START} ${MODEL}"
+else
+  check_final_status -1 "${START} ${MODEL}"
+fi
+
+#%    else
+
 if [ -r finish.status ] ; then
   check_final_status 0 "${START} ${MODEL}"
 else
   check_final_status -1 "${START} ${MODEL}"
 fi
+
+#%    endif
 
 #% set atmo_restart = namelists.NAMELIST_atm.run_nml.restart_filename
 #% set ocean_restart = namelists.NAMELIST_oce.run_nml.restart_filename
@@ -728,11 +740,26 @@ rm -rfv %{land_restart|replace('<rsttime>', '${start_stamp}Z')}
 #
 #-----------------------------------------------------------------------------
 #
+#%   if WITH_ATMO is set and WITH_OCEAN is set:
+finish_status_atm=`cat finish_atmo.status`
+finish_status_atm="${finish_status_atm# }"
+finish_status_oce=`cat finish_ocean.status`
+finish_status_oce="${finish_status_oce# }"
+
+echo "${finish_status_atm}"
+echo "${finish_status_oce}"
+echo "============================"
+echo "Script run (atmo) successfully: $finish_status_atm"
+echo "Script run (oce) successfully: $finish_status_oce"
+echo "============================"
+#%   else
 finish_status=`cat finish.status`
+finish_status="${finish_status# }"
 echo $finish_status
 echo "============================"
 echo "Script run successfully: $finish_status"
 echo "============================"
+#%   endif
 
 #%  if WITH_OBGC is set:
 #-----------------------------------------------------------------------------
