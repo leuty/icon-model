@@ -14,6 +14,10 @@
 MODULE mo_name_list_output_printvars
 
   USE, INTRINSIC :: ISO_C_BINDING, ONLY: c_char
+
+! enable the following line to print out data on the GRIB2 shortName:
+! #define GRIBAPI
+
 #ifdef GRIBAPI
   USE mo_cdi,                               ONLY: streamOpenWrite, FILETYPE_GRB2, gridCreate,                &
     &                                             GRID_UNSTRUCTURED, TAXIS_ABSOLUTE,                         &
@@ -201,9 +205,11 @@ CONTAINS
     INTEGER,                INTENT(IN) :: i_lctype, print_patch_id
 
     CHARACTER(*), PARAMETER :: routine = modname//"::print_var_list"
+    INTEGER,      PARAMETER :: descr_str_len = 128
     INTEGER,      PARAMETER :: max_str_len = cdi_max_name + 1 + 128 + vname_len + 99
     CHARACTER(*), PARAMETER :: varprefix = "\varname{", CR = " \\[0.5em]"
     CHARACTER(*), PARAMETER :: descrprefix = "\vardescr{"
+    CHARACTER(*), PARAMETER :: unitprefix = "\varunit{"
     INTEGER,      PARAMETER :: PREF = LEN_TRIM(varprefix) + 1
 #ifdef GRIBAPI
     TYPE(t_level_selection),  POINTER              :: tmp_level_selection => NULL()
@@ -216,7 +222,7 @@ CONTAINS
     INTEGER                                        :: i, iv, nout_vars, iout_var, ierrstat
     CHARACTER(kind=c_char, LEN = cdi_max_name + 1) :: vname
     CHARACTER(LEN=max_str_len), ALLOCATABLE        :: out_vars(:)
-    CHARACTER(len=128)                             :: descr_string
+    CHARACTER(len=descr_str_len)                   :: descr_string, unit_string
     TYPE(t_vl_register_iter) :: vl_iter
     ! ---------------------------------------------------------------------------
 
@@ -298,14 +304,21 @@ CONTAINS
           vname = varprefix//TRIM(vname)//"}"
         END IF
 
-        descr_string = this_cf%long_name
+        descr_string = this_cf%long_name(1:descr_str_len)
         ! upcase first letter of description string:
         descr_string(1:1) = toupper(descr_string(1:1))
 
+        unit_string = this_cf%units
+        IF (LEN_TRIM(unit_string) == 0) THEN
+         unit_string = "N/A"
+        ELSE
+         unit_string = unitprefix//TRIM(unit_string)//"}"
+        END IF
+
         iout_var = iout_var + 1
-        WRITE (out_vars(iout_var),'(8a)') varprefix, &
-          & tolower(get_var_basename(info)), "} & ", &
-          & TRIM(vname), ' & ', descrprefix, TRIM(descr_string), "}"
+        WRITE (out_vars(iout_var),'(9a)') varprefix, &
+         & tolower(get_var_basename(info)), "} & ", &
+         & TRIM(vname), ' & ', descrprefix, TRIM(descr_string), "} & ", TRIM(unit_string)
       ENDDO
     ENDDO
 #ifdef GRIBAPI
