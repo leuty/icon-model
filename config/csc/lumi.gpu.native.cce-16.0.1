@@ -53,7 +53,7 @@ ICON_CFLAGS='-O3'
 ICON_BUNDLED_CFLAGS='-O2'
 
 FC='ftn'
-FCFLAGS="-hadd_paren -Ktrap=divz,ovf,inv -hflex_mp=intolerant -hfp1 -g"
+FCFLAGS="-hacc_model=auto_async_none -hadd_paren -Ktrap=divz,ovf,inv -hflex_mp=intolerant -hfp1 -hipa0"
 
 HIPFLAGS='--offload-arch=gfx90a -g -O3'
 
@@ -95,7 +95,7 @@ MPI_LAUNCH='srun'
 # LD_LIBRARY_PATH variable for the configure scripts and test suites of the
 # bundled libraries to work. Therefore, we configure ICON with --disable-rpaths
 # to avoid duplicate RPATH entries in the ICON executable:
-EXTRA_CONFIG_ARGS='--disable-rpaths --disable-mpi-checks --enable-mpi-gpu --enable-gpu=openacc+hip --enable-grib2 --enable-dim-swap --enable-fcgroup-O0 --enable-fcgroup-O1 --enable-fcgroup-DIAG'
+EXTRA_CONFIG_ARGS='--disable-rpaths --disable-mpi-checks --disable-mpi-gpu --enable-gpu=openacc+hip --enable-grib2 --enable-dim-swap --enable-fcgroup-O0 --enable-fcgroup-O1 --enable-fcgroup-DIAG'
 
 ################################################################################
 

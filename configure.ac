@@ -511,15 +511,6 @@ AC_ARG_ENABLE([intel-consistency],
      [enable_intel_consistency=yes])],
   [enable_intel_consistency=auto])
 
-AC_ARG_ENABLE([hip-overrides],
-  [AS_HELP_STRING([--enable-hip-overrides],
-     [enable HIP overrides, which improves the performance on AMD GPUs by
-suppressing the HIP event handling in the Cray OpenACC runtime
-@<:@default=auto@:>@])],
-  [AS_IF([test x"$enableval" != xno && test x"$enableval" != xauto],
-     [enable_hip_overrides=yes])],
-  [enable_hip_overrides=auto])
-
 AC_ARG_ENABLE([pgi-inlib],
   [AS_HELP_STRING([--enable-pgi-inlib],
      [enable PGI/NVIDIA cross-file function inlining via an inline library
@@ -717,14 +708,6 @@ trying to configure with the single precision as the working precision and dnl
 the mixed precision dycore: either disable the single precision dnl
 (--disable-single-precision) or disable the mixed precision dycore dnl
 (--disable-mixed-precision)])])])
-
-AS_IF(
-  [test "x$enable_hip_overrides" = xyes && test "x$icon_gpu_secondary" != xhip],
-  [AC_MSG_ERROR([unsupported combination of the configure options: you are dnl
-trying to configure with the HIP overrides enabled but the GPU support is dnl
-disabled or the secondary GPU compiler is not HIP: either disable the HIP dnl
-overrides (--disable-hip-overrides) or enable the GPU support with HIP dnl
-(e.g. --enable-gpu=openacc+hip)])])
 
 AS_VAR_IF([enable_jsbach], [no],
   [AS_VAR_IF([enable_jsbach_hd], [yes],
@@ -948,14 +931,6 @@ enabled because $FC is recognized as the Intel Fortran compiler: disable dnl
 the directives if required (--disable-intel-consistency)])
       enable_intel_consistency=yes],
      [enable_intel_consistency=no])])
-
-AS_IF([test "x$enable_hip_overrides" = xauto],
-  [AS_IF([test x"$FC_VENDOR$icon_gpu_secondary" = xcrayhip],
-     [AC_MSG_NOTICE([HIP overrides are enabled because $FC is recognized as dnl
-Cray and the secondary GPU compiler is HIP: disable the overrides if dnl
-required (--disable-hip-overrides)])
-      enable_hip_overrides=yes],
-     [enable_hip_overrides=no])])
 
 AS_VAR_IF([enable_pgi_inlib], [auto],
   [AS_VAR_IF([FC_VENDOR], [portland],
@@ -3293,10 +3268,6 @@ for icon_bundled_name in m4_join([ ], icon_supported_bundled_python); do
   AS_VAR_IF([icon_${icon_bundled_name}_python], [yes],
     [AS_VAR_SET([AS_TR_CPP([${icon_bundled_name}_PYTHON_ENABLED])], [''])])
 done
-
-AS_VAR_IF([enable_hip_overrides], [yes],
-  [AC_SUBST([HIP_OVERRIDES_ENABLED], [''])],
-  [AC_SUBST([HIP_OVERRIDES_ENABLED], ['#'])])
 
 AS_VAR_IF([enable_pgi_inlib], [yes],
   [AC_SUBST([PGI_INLIB_ENABLED], [''])
