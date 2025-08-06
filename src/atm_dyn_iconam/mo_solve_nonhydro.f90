@@ -2373,7 +2373,7 @@ MODULE mo_solve_nonhydro
         DO jk = 2, nlev
 !DIR$ IVDEP
 !$NEC ivdep
-          !$ACC LOOP GANG VECTOR PRIVATE(z_gamma, z_a, z_c, z_b, z_g)
+          !$ACC LOOP GANG(STATIC: 1) VECTOR PRIVATE(z_gamma, z_a, z_c, z_b, z_g)
           DO jc = i_startidx, i_endidx
             z_gamma = dtime*cpd*p_nh%metrics%vwind_impl_wgt(jc,jb)*    &
               p_nh%diag%theta_v_ic(jc,jk,jb)/p_nh%metrics%ddqz_z_half(jc,jk,jb)
@@ -2389,13 +2389,11 @@ MODULE mo_solve_nonhydro
               -z_a*p_nh%prog(nnew)%w(jc,jk-1,jb))*z_g
           ENDDO
         ENDDO
-        !$ACC END PARALLEL
 
-        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
         !$ACC LOOP SEQ
         DO jk = nlev-1, 2, -1
 !DIR$ IVDEP
-          !$ACC LOOP GANG VECTOR
+          !$ACC LOOP GANG(STATIC: 1) VECTOR
           DO jc = i_startidx, i_endidx
             p_nh%prog(nnew)%w(jc,jk,jb) = p_nh%prog(nnew)%w(jc,jk,jb)&
               &             +p_nh%prog(nnew)%w(jc,jk+1,jb)*z_q(jc,jk)

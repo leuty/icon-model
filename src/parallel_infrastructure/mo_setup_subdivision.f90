@@ -26,10 +26,6 @@
 ! calls need to be executed before requested remote data can be
 ! accessed.
 
-#ifdef __PGI
-!pgi$g opt=1
-#endif
-
 MODULE mo_setup_subdivision
   !
   !-------------------------------------------------------------------------

@@ -16,9 +16,6 @@
 ! #ifdef __xlC__
 ! @PROCESS HOT
 ! #endif
-#ifdef __PGI
-!pgi$g opt=0
-#endif
 
 MODULE mo_intp_state
 !-------------------------------------------------------------------------

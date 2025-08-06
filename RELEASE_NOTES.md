@@ -117,11 +117,14 @@ NWP: TERRA and other surface issues
 - Configure CUDA/HIP C++ compiler and flags
 - Pass ICON_LDFLAGS to the Fortran compiler only
 - Fixes for disable switches --disable-aes and --disable-jsbach
+- Added NVHPC/OpenMPI config wrapper for jupiter
+- Added INTEL/MPI-4.1.5 config wrapper for levante
 - Fixes for the quad-precision handling
 
 #### Miscellaneous
 
 - Some OpenACC optimizations and fixes
+- Cleaned up obsolete workarounds for NVHPC/PGI compiler (OpenACC and OpenMP)
 - Updated document on how to run HAMOCC (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/770)
 - Add bubble documentation as template for experiment configurations (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/805)
 - Add documentation about future nested buildbot configuration (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/864)

@@ -798,10 +798,7 @@ CONTAINS
 
       ! Assign initial values for some components of the "field" and
       ! "tend" state vectors.
-#ifndef __PGI
-!FIXME: PGI + OpenMP produce error in this routine... check correctness of parallel code
 !$OMP PARALLEL WORKSHARE
-#endif
       !
       ! constant-in-time fields
       ! initial and re-start
@@ -811,9 +808,7 @@ CONTAINS
       field% areacella(:,  :) = p_patch% cells%   area(:,:)
       field%    coriol(:,  :) = p_patch% cells%    f_c(:,:)
       !
-#ifndef __PGI
 !$OMP END PARALLEL WORKSHARE
-#endif
       ! in case of restart, reset output fields of unused parameterizations,
       ! to their intial value
       !

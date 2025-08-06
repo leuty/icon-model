@@ -17,10 +17,6 @@
 ! #ifdef __xlC__
 ! @PROCESS HOT
 ! #endif
-#ifdef __PGI
-!pgi$g opt=1
-#endif
-
 !----------------------------
 #include "omp_definitions.inc"
 !----------------------------
