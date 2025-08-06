@@ -6331,10 +6331,21 @@ run\_nml:iforcing = inwp;  lshallowconv\_only = .FALSE.; lgrayzone\_deepconv = .
 
 \hline
 tune\_detrainment\_profile&
-R&
-0.0&
+R(2)&
+1.0, 0.0&
 &
-prefactor in RH-dependent detrainment profile, recommended range is $1.7$ to $1.9$ &
+prefactor in RH-dependent detrainment profile, formulated as $\mathrm{tunefac(1)} - \mathrm{tunefac(2)}*\mathrm{RH}$; difference between first and second
+value should be between 0.75 and 1 &
+run\_nml:iforcing = inwp;
+\tabularnewline
+
+\hline
+tune\_entrainment\_profile&
+R(2)&
+1.3, 1.0&
+&
+prefactor in RH-dependent entrainment profile, formulated as $\mathrm{tunefac(1)} - \mathrm{tunefac(2)}*\mathrm{RH}$; difference between first and second
+value should be about 0.3 &
 run\_nml:iforcing = inwp;
 \tabularnewline
 

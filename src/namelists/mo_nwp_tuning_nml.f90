@@ -54,6 +54,7 @@ MODULE mo_nwp_tuning_nml
     &                               config_tune_rmfdeps_land     => tune_rmfdeps_land,     &
     &                               config_tune_rmfdeps_ocean    => tune_rmfdeps_ocean,    &
     &                               config_tune_detrainment_profile => tune_detrainment_profile, &
+    &                               config_tune_entrainment_profile => tune_entrainment_profile, &
     &                               config_tune_rcucov           => tune_rcucov,           &
     &                               config_tune_rhebc_land_trop  => tune_rhebc_land_trop,  &
     &                               config_tune_rhebc_ocean_trop => tune_rhebc_ocean_trop, &
@@ -187,7 +188,10 @@ MODULE mo_nwp_tuning_nml
     &  tune_rmfdeps_ocean
 
   REAL(wp) :: &                    !< prefactor in RH-dependent detrainment profile
-    &  tune_detrainment_profile
+    &  tune_detrainment_profile(2)
+
+  REAL(wp) :: &                    !< prefactor in RH-dependent entrainment profile
+    &  tune_entrainment_profile(2)
 
   REAL(wp) :: &                    !< Convective area fraction
     &  tune_rcucov
@@ -350,7 +354,7 @@ MODULE mo_nwp_tuning_nml
     &                      tune_minsso_gwd, tune_dursun_scaling, tune_sbmccn,     &
     &                      itune_slopecorr, tune_gustlim_agl, tune_gustlim_fac,   &
     &                      tune_urbahf, tune_urbisa, tune_box_ice, tune_supsat_limfac, &
-    &                      tune_grzdc_offset, itune_vis_diag
+    &                      tune_grzdc_offset, itune_vis_diag, tune_entrainment_profile
 
 CONTAINS
 
@@ -458,7 +462,10 @@ CONTAINS
     tune_rmfdeps_ocean = 0.15_wp
 
     !> prefactor in RH-dependent detrainment profile
-    tune_detrainment_profile = 0.0_wp
+    tune_detrainment_profile(:) =  (/1._wp, 0._wp/)
+
+    !> prefactor in RH-dependent entrainment profile
+    tune_entrainment_profile(:) =  (/1.3_wp, 1._wp/)
 
     !> Convective area fraction used for computing evaporation below cloud base (original IFS value 0.05)
     tune_rcucov      = 0.05_wp
@@ -661,6 +668,7 @@ CONTAINS
     config_tune_rmfdeps_land     = tune_rmfdeps_land
     config_tune_rmfdeps_ocean    = tune_rmfdeps_ocean
     config_tune_detrainment_profile = tune_detrainment_profile
+    config_tune_entrainment_profile = tune_entrainment_profile
     config_tune_rcucov           = tune_rcucov
     config_tune_rhebc_land_trop  = tune_rhebc_land_trop
     config_tune_rhebc_ocean_trop = tune_rhebc_ocean_trop
