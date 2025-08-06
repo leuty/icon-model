@@ -36,6 +36,10 @@ MODULE mo_lnd_nwp_nml
     &                               config_frsea_thrhld       => frsea_thrhld      , &
     &                               config_hice_min           => hice_min          , &
     &                               config_hice_max           => hice_max          , &
+    &                               config_albsi_snow_max     => albsi_snow_max    , &
+    &                               config_albsi_snow_min     => albsi_snow_min    , &
+    &                               config_albsi_max          => albsi_max         , &
+    &                               config_albsi_min          => albsi_min         , &
     &                               config_lseaice            => lseaice           , &
     &                               config_lprog_albsi        => lprog_albsi       , &
     &                               config_lbottom_hflux      => lbottom_hflux     , &
@@ -125,6 +129,10 @@ CONTAINS
     REAL(wp)::  frsea_thrhld      !< fraction threshold for creating a sea grid point
     REAL(wp)::  hice_min          !< minimum sea-ice thickness [m]
     REAL(wp)::  hice_max          !< maximum sea-ice thickness [m]
+    REAL(wp)::  albsi_snow_max    !< maximum albedo of snow over sea ice [-]
+    REAL(wp)::  albsi_snow_min    !< minimum albedo of snow over sea ice [-]
+    REAL(wp)::  albsi_max         !< maximum albedo of sea ice [-]
+    REAL(wp)::  albsi_min         !< minimum albedo of sea ice [-]
     LOGICAL ::  lbottom_hflux     !< use simple parameterization for heat flux through sea ice bottom
     REAL(wp)::  max_toplaydepth   !< maximum depth of uppermost snow layer for multi-layer snow scheme
     INTEGER ::  itype_trvg        !< type of vegetation transpiration parameterization
@@ -179,6 +187,7 @@ CONTAINS
          &               frlnd_thrhld, frlndtile_thrhld, frlake_thrhld        , &
          &               frsea_thrhld, lmelt_var, lmulti_snow                 , &
          &               hice_min, hice_max, lbottom_hflux                    , &
+         &               albsi_snow_max, albsi_snow_min, albsi_max, albsi_min , &
          &               itype_trvg, idiag_snowfrac, max_toplaydepth          , &
          &               itype_evsl                                           , &
          &               itype_lndtbl                                         , &
@@ -229,6 +238,10 @@ CONTAINS
                              ! tile for a grid point
     hice_min       = 0.05_wp ! minimum sea-ice thickness [m]
     hice_max       = 3.0_wp  ! maximum sea-ice thickness [m]
+    albsi_snow_max = 0.80_wp ! Maximum albedo of snow over sea ice
+    albsi_snow_min = 0.50_wp ! Minimum albedo of snow over sea ice
+    albsi_max      = 0.70_wp ! Maximum albedo of sea ice
+    albsi_min      = 0.48_wp ! Minimum albedo of sea ice
     lbottom_hflux  = .FALSE. ! true: use simple parameterization for heat flux through sea ice bottom
     lmelt          = .TRUE.  ! soil model with melting process
     lmelt_var      = .TRUE.  ! freezing temperature dependent on water content
@@ -430,6 +443,10 @@ CONTAINS
     config_frsea_thrhld       = frsea_thrhld
     config_hice_min           = hice_min
     config_hice_max           = hice_max
+    config_albsi_snow_min     = albsi_snow_min
+    config_albsi_snow_max     = albsi_snow_max
+    config_albsi_min          = albsi_min
+    config_albsi_max          = albsi_max
     config_lbottom_hflux      = lbottom_hflux
     config_lseaice            = lseaice
     config_lprog_albsi        = lprog_albsi
@@ -473,6 +490,8 @@ CONTAINS
     config_nlev_soil          = nlev_soil
     config_czbot_w_so         = czbot_w_so
     config_lcuda_graph_lnd    = lcuda_graph_lnd
+
+    !$ACC UPDATE DEVICE(config_albsi_min, config_albsi_max)
 
     !-----------------------------------------------------
     ! 6. Store the namelist for restart

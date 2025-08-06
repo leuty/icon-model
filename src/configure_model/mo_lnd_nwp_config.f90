@@ -36,6 +36,7 @@ MODULE mo_lnd_nwp_config
   ! VARIABLES
   PUBLIC :: dzsoil, zml_soil, depth_hl, nlev_soil, nlev_snow, ibot_w_so, ntiles_total, ntiles_lnd, ntiles_water
   PUBLIC :: frlnd_thrhld, frlndtile_thrhld, frlake_thrhld, frsea_thrhld, frsi_min, hice_min, hice_max
+  PUBLIC :: albsi_snow_min, albsi_snow_max, albsi_min, albsi_max
   PUBLIC :: lseaice, lprog_albsi, lbottom_hflux, llake, loskin, itype_oskin_warm, itype_oskin_cold
   PUBLIC :: lmulti_snow, lsnowtile, max_toplaydepth, lmelt, lmelt_var
   PUBLIC :: itype_trvg, itype_evsl, itype_lndtbl, l2lay_rho_snow
@@ -70,6 +71,10 @@ MODULE mo_lnd_nwp_config
   REAL(wp)::  frsi_min           !< minimum sea-ice fraction  [-]
   REAL(wp)::  hice_min           !< minimum sea-ice thickness [m]
   REAL(wp)::  hice_max           !< maximum sea-ice thickness [m]
+  REAL(wp)::  albsi_snow_max     !< maximum albedo of snow over sea ice [-]
+  REAL(wp)::  albsi_snow_min     !< minimum albedo of snow over sea ice [-]
+  REAL(wp)::  albsi_max          !< maximum albedo of sea ice [-]
+  REAL(wp)::  albsi_min          !< minimum albedo of sea ice [-]
   LOGICAL ::  lbottom_hflux      !< use simple parameterization for heat flux through sea ice bottom
   INTEGER ::  itype_trvg         !< type of vegetation transpiration parameterization
   INTEGER ::  itype_evsl         !< type of parameterization of bare soil evaporation (see Schulz and Vogel 2020)
@@ -132,6 +137,7 @@ MODULE mo_lnd_nwp_config
   REAL(wp), ALLOCATABLE :: dzsoil(:)     !< soil layer thickness
   REAL(wp), ALLOCATABLE :: depth_hl(:)   !< depths of half levels
 
+  !$ACC DECLARE CREATE(albsi_max, albsi_min)
 !  END TYPE t_nwp_lnd_config
 
   !>

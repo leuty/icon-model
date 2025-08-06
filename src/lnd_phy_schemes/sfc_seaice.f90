@@ -122,11 +122,11 @@ MODULE sfc_seaice
                                  & lbottom_hflux      , &  !< use parameterization for heat flux through sea ice bottom
                                  & frsi_min           , &  !< minimum sea-ice fraction  [-]
                                  & hice_min           , &  !< minimum sea-ice thickness [m]
-                                 & hice_max                !< maximum sea-ice thickness [m]
-
-  USE sfc_terra_data,        ONLY:                      &
-                                 & csalb              , &  !< solar albedo for different soil types
-                                 & ist_seaice              !< ID of soiltype "sea ice"
+                                 & hice_max           , &  !< maximum sea-ice thickness [m]
+                                 & albsi_snow_max     , &  !< maximum albedo of snow over sea ice [-]
+                                 & albsi_snow_min     , &  !< minimum albedo of snow over sea ice [-]
+                                 & albsi_max          , &  !< maximum albedo of sea ice [-]
+                                 & albsi_min               !< minimum albedo of sea ice [-]
 
   USE mo_coupling_config,    ONLY: is_coupled_to_ocean     !< TRUE for coupled ocean-atmosphere runs
 
@@ -159,10 +159,6 @@ MODULE sfc_seaice
                                                          !< formula for the sea-ice albedo relaxation time scale [K]
     &  rdelt_taualbsi =                               &  !< reciprocal of the temperature range in the interpolation
     &    1._wp/(tf_fresh-t_taualbsi_min)            , &  !< formula for the sea-ice albedo relaxation time scale [K^{-1}]
-    &  albsi_snow_max = 0.80_wp                     , &  !< maximum albedo of snow over sea ice [-]
-    &  albsi_snow_min = 0.50_wp                     , &  !< minimum albedo of snow over sea ice [-]
-    &  c1_albsi_snow  =                               &  !< constant in the expression for albedo
-    &    1._wp-albsi_snow_min/albsi_snow_max        , &  !< of snow over sea ice [-]
     &  c2_albsi_snow  = 136.6_wp/tf_fresh           , &  !< constant in the expression for albedo
                                                          !< of snow over sea ice [K^{-1}]
     &  c_tausi_snow   = 1._wp/5._wp                 , &  !< constant used to define the relaxation time scale towards
@@ -571,6 +567,7 @@ CONTAINS
     REAL (wp) ::                &
               &  albsi_e      , &  !< equilibrium sea-ice albedo [-]
               &  albsi_snow_e , &  !< equilibrium albedo of snow over sea ice [-]
+              &  c1_albsi_snow, &  !< for use in the expression for albedo of snow over sea ice
               &  taualbsi     , &  !< relaxation time scale for sea-ice albedo [s]
               &  rtaualbsisn  , &  !< reciprocal of relaxation time scale for snow-over-ice albedo [s^{-1}]
               &  albsi_e_wghtd     !< weighted equilibrium albedo (storage variable) [-]
@@ -584,6 +581,9 @@ CONTAINS
 
     ! Reciprocal of the time step
     r_dtime = 1._wp/dtime
+
+    ! For use in the expression for albedo of snow over sea ice
+    c1_albsi_snow  = 1._wp-albsi_snow_min/albsi_snow_max
 
     ! If fac_bottom_hflx is provided, adaptive tuning of the parameter(s)
     ! of the temperature profile within the ice and of the heat flux from water to ice is used
@@ -1056,12 +1056,11 @@ CONTAINS
     !  Start calculations
     !-----------------------------------------------------------------------------------------------
 
-    alb_seaice_equil = csalb(ist_seaice) * ( 1.0_wp - 0.3143_wp * EXP(-0.35_wp*(tf_fresh-t_ice)) )
+    alb_seaice_equil = albsi_max-(albsi_max-albsi_min)*EXP(-0.35_wp*(tf_fresh-t_ice))
 
+    ! albsi_max and albsi_min are defined in the namelist (mo_lnd_nwp_nml).
     ! A derived constant 0.35 is equal to 95.6/tf_fresh, where tf_fresh=273.15 K,
     ! and has a dimensions of K^{-1}.
-    ! A derived constant 0.3143 is equal to (albsi_max-albsi_min)/albsi_max,
-    ! where albsi_max=csalb(ist_seaice)=0.7 and albsi_min=0.48.
 
     !-----------------------------------------------------------------------------------------------
     !  End calculations
