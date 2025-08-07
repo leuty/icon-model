@@ -11,17 +11,18 @@
 .git_sparse:
   variables:
     GIT_STRATEGY: empty
+    SOURCE_DIR: ${CI_PROJECT_DIR}
     SPARSE_PATTERNS:
     SUBMODULES:
   before_script:
     - module purge
     - module load git
-    - git init --quiet .
-    - git sparse-checkout set --no-cone -- ${SPARSE_PATTERNS}
-    - git remote add origin "${CI_REPOSITORY_URL}"
-    - git fetch --filter=blob:none --depth=1 --jobs=4 origin "${CI_COMMIT_SHA}"
-    - git checkout --quiet FETCH_HEAD
-    - git submodule update --init --depth=1 --jobs=4 -- ${SUBMODULES}
+    - git init --quiet "${SOURCE_DIR}"
+    - git -C "${SOURCE_DIR}" sparse-checkout set --no-cone -- ${SPARSE_PATTERNS}
+    - git -C "${SOURCE_DIR}" remote add origin "${CI_REPOSITORY_URL}"
+    - git -C "${SOURCE_DIR}" fetch --filter=blob:none --depth=1 --jobs=4 origin "${CI_COMMIT_SHA}"
+    - git -C "${SOURCE_DIR}" checkout --quiet FETCH_HEAD
+    - git -C "${SOURCE_DIR}" submodule update --init --depth=1 --jobs=4 -- ${SUBMODULES}
 
 .git_jacamar:
   variables:
