@@ -2968,7 +2968,6 @@ CONTAINS
           delta_ice(cell,blk) = SUM(ice%hi(cell,:,blk)*ice%conc(cell,:,blk))
           delta_snow(cell,blk) = SUM(ice%hs(cell,:,blk)*ice%conc(cell,:,blk))
 
-          !$ACC LOOP SEQ
           DO level = 1,subset%vertical_levels(cell,blk)
             delta_thetao(cell,level,blk) = thetao(cell,level,blk)
             delta_so(cell,level,blk) = so(cell,level,blk)
@@ -3006,7 +3005,6 @@ CONTAINS
                * ( tmelt - tref )  )                                                      &
                - ( rhosnic * snthk * entmel )) * dti
 
-          !$ACC LOOP SEQ
           DO level = 1,subset%vertical_levels(cell,blk)
 
             IF (vert_cor_type .EQ. 1) THEN
@@ -3102,7 +3100,6 @@ CONTAINS
              * ice%zUnderIce(cell,blk)
 
 
-        !$ACC LOOP SEQ
         DO level=2,subset%vertical_levels(cell,blk)
 
           ! 2023-07 dzo-DKRZ: The following MERGE command does not work as intended with NVIDIA compiler
@@ -3308,7 +3305,6 @@ CONTAINS
           tauyv(cell,blk) = topbc_windstress_v(cell,blk) * V(cell,1,blk)
 
 
-        !$ACC LOOP SEQ
         DO level=1,subset%vertical_levels(cell,blk)
 
 

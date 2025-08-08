@@ -1120,9 +1120,8 @@ subroutine integrate_tke_block( &
       enddo
     enddo
 
-    !$ACC LOOP SEQ
+    !$ACC LOOP GANG VECTOR COLLAPSE(2)
     do k = 1, max_n + 1
-      !$ACC LOOP GANG VECTOR
       do jc = si, ei
         if (k <= nlev(jc) + 1) then
           mxl(jc,k) = max(mxl(jc,k),mxl_min)
@@ -1148,9 +1147,8 @@ subroutine integrate_tke_block( &
       enddo
     enddo
 
-    !$ACC LOOP SEQ
+    !$ACC LOOP GANG VECTOR COLLAPSE(2)
     do k = 2, max_n + 1
-      !$ACC LOOP GANG VECTOR
       do jc = si, ei
         if (k <= nlev(jc) + 1) then
           zzw(jc) = zzw(jc) + dzw(jc,k-1)
@@ -1244,10 +1242,8 @@ subroutine integrate_tke_block( &
   ke = 0.0_wp
   !$ACC END KERNELS
 
-  !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-  !$ACC LOOP SEQ
+  !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
   do k = 1, max_n
-    !$ACC LOOP GANG(STATIC: 1) VECTOR
     do jc = si, ei
       if (k <= nlev(jc)) then
         kp1 = min(k+1,nlev(jc))
@@ -1257,6 +1253,7 @@ subroutine integrate_tke_block( &
       endif
     enddo
   enddo
+  !$ACC END PARALLEL LOOP
 
 ! !--- c is lower diagonal of matrix
 ! !$ACC LOOP GANG(STATIC:1) VECTOR
@@ -1268,6 +1265,7 @@ subroutine integrate_tke_block( &
 !   enddo
 ! enddo
 
+  !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
   !$ACC LOOP GANG(STATIC: 1) VECTOR
   do jc = si, ei
     if (nlev(jc) > 0) then
@@ -1276,9 +1274,8 @@ subroutine integrate_tke_block( &
   enddo
 
   !--- b is main diagonal of matrix
-  !$ACC LOOP SEQ
+  !$ACC LOOP GANG(STATIC: 1) VECTOR COLLAPSE(2)
   do k = 2, max_n
-    !$ACC LOOP GANG(STATIC: 1) VECTOR
     do jc = si, ei
       if (k <= nlev(jc)) then
         b_dif(jc,k) = ke(jc,k-1)/( dzt(jc,k)*dzw(jc,k-1) ) + ke(jc,k)/( dzt(jc,k)*dzw(jc,k) )
@@ -1287,9 +1284,8 @@ subroutine integrate_tke_block( &
   enddo
 
   !--- a is upper diagonal of matrix
-  !$ACC LOOP SEQ
+  !$ACC LOOP GANG(STATIC: 1) VECTOR COLLAPSE(2)
   do k= 2, max_n + 1
-    !$ACC LOOP GANG(STATIC: 1) VECTOR
     do jc = si, ei
       if (k <= nlev(jc) + 1) then
         a_dif(jc,k) = ke(jc,k-1)/( dzt(jc,k)*dzw(jc,k-1) )
@@ -1407,9 +1403,8 @@ subroutine integrate_tke_block( &
   ! --- diagnose implicite tendencies (only for diagnostics)
   ! vertical diffusion of TKE
   !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-  !$ACC LOOP SEQ
+  !$ACC LOOP GANG(STATIC: 1) VECTOR COLLAPSE(2)
   do k=2,max_n
-    !$ACC LOOP GANG(STATIC: 1) VECTOR
     do jc = si, ei
       if (k <= nlev(jc)) then
         tke_Tdif(jc,k) = a_dif(jc,k)*tke_new(jc,k-1) - b_dif(jc,k)*tke_new(jc,k) + c_dif(jc,k)*tke_new(jc,k+1)

@@ -305,7 +305,6 @@ CONTAINS
     DO jc = startIndex, endIndex
 
 ! !CDIR NODEP
-      !$ACC LOOP SEQ
       DO thisLevel = secondLevel, cells_noOfLevels(jc) - 1
 
         levelAbove    = thisLevel - 1                 ! index of top half thisLevel
@@ -355,7 +354,6 @@ CONTAINS
       cell_levels = cells_noOfLevels(jc)
 
 ! !CDIR NODEP
-      !$ACC LOOP SEQ
       DO thisLevel = secondLevel, cell_levels - 2
         levelAbove  = thisLevel - 1
         levelBelow  = thisLevel + 1
@@ -459,7 +457,6 @@ CONTAINS
         !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
         !$ACC LOOP GANG VECTOR
         DO jc = startIndex, endIndex
-          !$ACC LOOP SEQ
           DO thisLevel = secondLevel, cells_noOfLevels(jc)-1
             z_face_up(jc, thisLevel)  = z_face(jc, thisLevel    )
             z_face_low(jc,thisLevel)  = z_face(jc, thisLevel + 1)

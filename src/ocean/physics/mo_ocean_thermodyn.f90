@@ -283,7 +283,6 @@ CONTAINS
         ic2=patch_2D%edges%cell_idx(je,jb,2)
         ib2=patch_2D%edges%cell_blk(je,jb,2)
 
-        !$ACC LOOP SEQ
         DO jk = 1, patch_3d%p_patch_1d(1)%dolic_e(je,jb)
           !! For each edge, we can determine for the bottom layer only
           !! what the shallower cell is by comparing
@@ -445,7 +444,6 @@ CONTAINS
           ic2=patch_2D%edges%cell_idx(je,jb,2)
           ib2=patch_2D%edges%cell_blk(je,jb,2)
 
-        !$ACC LOOP SEQ
         DO jk = 1, patch_3d%p_patch_1d(1)%dolic_e(je,jb)
           !! For each edge, we can determine for the bottom layer only
           !! what the shallower cell is by comparing
