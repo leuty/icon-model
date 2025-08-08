@@ -24,9 +24,9 @@ MODULE mo_interface_aes_rad
   USE mo_aes_phy_config,       ONLY: aes_phy_tc
   USE mo_aes_rad_config,       ONLY: aes_rad_config
   USE mo_aes_phy_memory,       ONLY: t_aes_phy_field, prm_field
-  USE mo_snow_ice_reff,        ONLY: ice_reff_moss, snow_reff_funeedles, snow_x, ice_x
-  USE mo_run_config,           ONLY: iqs, iqi
-  USE mo_aes_graupel,          ONLY: snow_number, snow_lambda, ice_number
+  USE mo_snow_ice_reff,        ONLY: ice_reff_moss, ice_x
+  USE mo_run_config,           ONLY: iqi
+  USE mo_aes_graupel,          ONLY: ice_number
 
 #ifndef __NO_RTE_RRTMGP__
   USE mo_rte_rrtmgp_radiation, ONLY: rte_rrtmgp_radiation
@@ -125,12 +125,6 @@ CONTAINS
           !$ACC PARALLEL LOOP GANG VECTOR COLLAPSE(2) DEFAULT(PRESENT) ASYNC(1)
           DO i2=1,nlev
             DO i1=jcs,jce
-               !calculate reff of snow here (further down, the variables are per m^2 instead of m^3)
-               field%acsnc(i1,i2,jb) = snow_number(field%ta(i1,i2,jb), field%rho(i1,i2,jb)*field%qtrc_phy(i1,i2,jb,iqs))
-               field%acsnc(i1,i2,jb) = field%acsnc(i1,i2,jb) / snow_lambda(field%rho(i1,i2,jb)*field%qtrc_phy(i1,i2,jb,iqs), field%acsnc(i1,i2,jb))
-               field%x_snow(i1,i2,jb) = snow_x(field%ta(i1,i2,jb), field%rho(i1,i2,jb),field%qtrc_phy(i1,i2,jb,iqs))
-               field%reff_snow(i1,i2,jb) = snow_reff_funeedles(field%ta(i1,i2,jb), field%rho(i1,i2,jb), field%qtrc_phy(i1,i2,jb,iqs))
-
                !calculate reff of ice here (further down, the variables are per m^2 instead of m^3)
                !diagnose cloud ice number concentration first
                field%acinc(i1,i2,jb) = ice_number(field%ta(i1,i2,jb), field%rho(i1,i2,jb)) * field%rho(i1,i2,jb)
@@ -146,7 +140,6 @@ CONTAINS
               & loglac         = loglac                    ,&!< in  glacier mask (logical)
               & this_datetime  = datetime                  ,&!< in  actual time step
               & pcos_mu0       = field%cosmu0_rt(:,jb)     ,&!< in  solar zenith angle
-              & daylght_frc    = field%daylght_frc_rt(:,jb),&!in daylight fraction
               & alb_vis_dir    = field%albvisdir(:,jb)     ,&!< in  surface albedo for visible range, direct
               & alb_nir_dir    = field%albnirdir(:,jb)     ,&!< in  surface albedo for near IR range, direct
               & alb_vis_dif    = field%albvisdif(:,jb)     ,&!< in  surface albedo for visible range, diffuse
@@ -165,9 +158,6 @@ CONTAINS
               & xv_ozn         = field%o3(:,:,jb)          ,&!< out ozone volume mixing ratio [mol/mol]
               !
               & reff_ice       = field%reff_ice(:,:,jb)    ,&!< in   effective radius of cloud ice [m]
-              & tau_ice        = field% tau_ice(:,:,jb)    ,&!< inout cloud ice optical depth integrated over all bands
-              & reff_snow      = field%reff_snow(:,:,jb)   ,&!< in   effective radius of snow [m]
-              & tau_snow       = field% tau_snow(:,:,jb)   ,&!< inout snow optical depth integrated over all bands
               & cdnc           = field% acdnc(:,:,jb)      ,&!< in   cloud droplet number conc
               !
               & lw_dnw_clr     = field%rldcs_rt(:,:,jb)    ,&!< out  Clear-sky net longwave  at all levels
@@ -227,9 +217,6 @@ CONTAINS
           !
           ! total cloud cover diagnostics
           field%aclcov(:,:)      = 0.0_wp !< out  total cloud cover
-          ! cloud ice and snow optical depth integrated over all bands
-          field%tau_ice(:,:,:) = 0.0_wp
-          field%tau_snow(:,:,:) = 0.0_wp
           !$ACC END KERNELS
           !
           ! LW clear sky

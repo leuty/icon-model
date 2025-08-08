@@ -42,7 +42,7 @@ MODULE mo_rte_rrtmgp_radiation
                                      psctm,                                    &
                                      ssi_factor
   USE mo_solar_parameters,    ONLY: solar_parameters
-  USE mo_cloud_gas_profiles,  ONLY: gas_profiles, cloud_profiles, snow_profiles
+  USE mo_cloud_gas_profiles,  ONLY: gas_profiles, cloud_profiles
   USE mo_radiation_general,   ONLY: nbndsw
 
   USE mo_rte_rrtmgp_interface,ONLY : rte_rrtmgp_interface
@@ -282,7 +282,6 @@ MODULE mo_rte_rrtmgp_radiation
     & loglac         ,&!< in  fraction of land covered by glaciers
     & this_datetime  ,&!< in  actual time step
     & pcos_mu0       ,&!< in  cosine of solar zenith angle
-    & daylght_frc    ,&!< in  daylight fraction; with diurnal cycle 0 or 1, with zonal mean in [0,1]
     & alb_vis_dir    ,&!< in  surface albedo for visible range, direct
     & alb_nir_dir    ,&!< in  surface albedo for near IR range, direct
     & alb_vis_dif    ,&!< in  surface albedo for visible range, diffuse
@@ -301,9 +300,6 @@ MODULE mo_rte_rrtmgp_radiation
     & xv_ozn         ,&!< out ozone volume mixing ratio [mol/mol]
     !
     & reff_ice       ,&!< inout  effective radius of cloud ice (Fu needles) [m]
-    & tau_ice        ,&!< inout  cloud ice optical depth, integrated over all bands
-    & reff_snow      ,&!< inout  effective radius of snow (Fu needles) [m]
-    & tau_snow       ,&!< inout  snow optical depth, integrated over all bands
     & cdnc           ,&!< in  cloud droplet number concentration
     !
     & lw_dnw_clr     ,&!< out clear-sky downward longwave  at all levels
@@ -344,7 +340,6 @@ MODULE mo_rte_rrtmgp_radiation
 
     REAL(wp), INTENT(IN)    :: &
     & pcos_mu0(:),         & !< cosine of solar zenith angle
-    & daylght_frc(:),      & !< daylight fraction; with diurnal cycle 0 or 1, with zonal mean in [0,1]
     & alb_vis_dir(:),      & !< surface albedo for visible range and direct light
     & alb_nir_dir(:),      & !< surface albedo for NIR range and direct light
     & alb_vis_dif(:),      & !< surface albedo for visible range and diffuse light
@@ -363,9 +358,6 @@ MODULE mo_rte_rrtmgp_radiation
     REAL(wp), INTENT(INOUT) :: &
     & cinhoml_2d(:),    & !< 2d-field for the cloud liquid water inhomogeneity
     & reff_ice(:,:),    & !< effective radius of cloud ice [m]
-    & tau_ice(:,:),     & !< optical depth of cloud ice, integraded over all bands
-    & reff_snow(:,:),   & !< effective radius of snow [m]
-    & tau_snow(:,:),    & !< optical depth snow, integrated over all bands
     & xv_ozn(:,:)         !< ozone volume mixing ratio  [mol/mol]
 
     REAL(wp), TARGET, INTENT(INOUT)   :: &
@@ -403,7 +395,6 @@ MODULE mo_rte_rrtmgp_radiation
     & xvmr_vap(nproma,klev),           & !< water vapor volume mixing ratio
     & xm_liq(nproma,klev),             & !< cloud water mass in layer [kg/m2]
     & xm_ice(nproma,klev),             & !< cloud ice   mass in layer [kg/m2]
-    & xm_snw(nproma,klev),             & !< snow        mass in layer [kg/m2]
     & xvmr_co2(nproma,klev),           & !< CO2 volume mixing ratio
     & xvmr_o3(nproma,klev),            & !< O3  volume mixing ratio
     & xvmr_o2(nproma,klev),            & !< O2  volume mixing ratio
@@ -419,7 +410,7 @@ MODULE mo_rte_rrtmgp_radiation
     INTEGER   :: jl, jk
 
     !$ACC DATA PRESENT(xv_ozn) &
-    !$ACC   CREATE(pp_sfc, tk_hl, xm_liq, xm_ice, xc_frc, xm_snw) &
+    !$ACC   CREATE(pp_sfc, tk_hl, xm_liq, xm_ice, xc_frc) &
     !$ACC   CREATE(xvmr_vap, xvmr_co2, xvmr_o3, xvmr_o2, xvmr_ch4) &
     !$ACC   CREATE(xvmr_n2o, xvmr_cfc)
 
@@ -448,14 +439,11 @@ MODULE mo_rte_rrtmgp_radiation
          &                klev,         xq_trc, xm_air,                   &
          &                xm_liq,       xm_ice,         xc_frc            )
 
-    CALL snow_profiles  ( jg,           jcs,            jce,              &
-         &                klev,         xq_trc, xm_air, xm_snw            )
-
     CALL rte_rrtmgp_interface(jg, jb, jcs, jce, nproma, klev             ,&
       aes_rad_config(jg)%irad_aero                                       ,&
       aes_rad_config(jg)%lrad_aero_diag   ,is_coupled_to_aero()          ,&
       psctm(jg), ssi_factor, loland, loglac, this_datetime               ,&
-      pcos_mu0        ,daylght_frc                                       ,&
+      pcos_mu0                                                           ,&
       alb_vis_dir     ,alb_nir_dir     ,alb_vis_dif     ,alb_nir_dif     ,&
       emissivity                                                         ,&
       zf              ,zh              ,dz                               ,&
@@ -463,8 +451,8 @@ MODULE mo_rte_rrtmgp_radiation
       tk_sfc          ,tk_fl           ,tk_hl                            ,&
       cinhoml_2d                                                         ,&
       xvmr_vap        ,xm_liq          ,xm_ice                           ,&
-      reff_ice        ,tau_ice         ,reff_snow       ,tau_snow        ,&
-      cdnc            ,xc_frc          ,xm_snw                           ,&
+      reff_ice                                                           ,&
+      cdnc            ,xc_frc                                            ,&
       xvmr_co2        ,xvmr_ch4        ,xvmr_n2o        ,xvmr_cfc        ,&
       xvmr_o3         ,xvmr_o2                                           ,&
       lw_upw          ,lw_upw_clr      ,lw_dnw          ,lw_dnw_clr      ,&

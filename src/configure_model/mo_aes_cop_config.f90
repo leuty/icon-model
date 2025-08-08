@@ -53,7 +53,6 @@ MODULE mo_aes_cop_config
      !
      ! cloud inhomogeneity factors
      REAL(wp) :: cinhomi            ! ice clouds
-     REAL(wp) :: cinhoms            ! snow
      REAL(wp) :: cinhoml_cf         ! liquid water cumuliform clouds
      REAL(wp) :: cinhoml_sf         ! liquid water stratiform clouds
      REAL(wp) :: cinhoml_lts_height ! height (m) used for computing the stability of the lower troposphere
@@ -93,7 +92,6 @@ CONTAINS
     !
     ! cloud inhomogeneity factors
     aes_cop_config(:)% cinhomi     = 0.80_wp
-    aes_cop_config(:)% cinhoms     = 0.80_wp
     aes_cop_config(:)% cinhoml_cf  = 0.40_wp
     aes_cop_config(:)% cinhoml_sf  = 0.80_wp
     aes_cop_config(:)% cinhoml_jk  = 0
@@ -173,7 +171,6 @@ CONTAINS
        CALL print_value('    aes_cop_config('//TRIM(cg)//')% cn2sea   ',aes_cop_config(jg)% cn2sea  )
        CALL message    ('','')
        CALL print_value('    aes_cop_config('//TRIM(cg)//')% cinhomi    ',aes_cop_config(jg)% cinhomi )
-       CALL print_value('    aes_cop_config('//TRIM(cg)//')% cinhoms    ',aes_cop_config(jg)% cinhoms )
        CALL print_value('    aes_cop_config('//TRIM(cg)//')% cinhoml_cf ',aes_cop_config(jg)% cinhoml_cf )
        CALL message    ('','')
        IF (aes_cop_config(jg)% cinhoml_sf /= aes_cop_config(jg)% cinhoml_cf) THEN

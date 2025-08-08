@@ -142,7 +142,6 @@ MODULE mo_timer
   PUBLIC :: timer_rte_lw_clrsky
   PUBLIC :: timer_clouds_bnd_lw
   PUBLIC :: timer_cloud_optics_lw
-  PUBLIC :: timer_snow_bnd_lw
   PUBLIC :: timer_rte_lw_allsky
   PUBLIC :: timer_atmos_sw
   PUBLIC :: timer_k_dist_sw
@@ -150,7 +149,6 @@ MODULE mo_timer
   PUBLIC :: timer_rte_sw_clrsky
   PUBLIC :: timer_clouds_bnd_sw
   PUBLIC :: timer_cloud_optics_sw
-  PUBLIC :: timer_snow_bnd_sw
   PUBLIC :: timer_rte_sw_allsky
 
   ! nwp physics
@@ -444,7 +442,6 @@ MODULE mo_timer
   INTEGER :: timer_rte_lw_clrsky
   INTEGER :: timer_clouds_bnd_lw
   INTEGER :: timer_cloud_optics_lw
-  INTEGER :: timer_snow_bnd_lw
   INTEGER :: timer_rte_lw_allsky
   INTEGER :: timer_atmos_sw
   INTEGER :: timer_k_dist_sw
@@ -452,7 +449,6 @@ MODULE mo_timer
   INTEGER :: timer_rte_sw_clrsky
   INTEGER :: timer_clouds_bnd_sw
   INTEGER :: timer_cloud_optics_sw
-  INTEGER :: timer_snow_bnd_sw
   INTEGER :: timer_rte_sw_allsky
 
   INTEGER :: timer_omp_radiation
@@ -785,7 +781,6 @@ CONTAINS
        timer_rte_lw_clrsky      = new_timer("rte_lw_clrsky")
        timer_clouds_bnd_lw      = new_timer("clouds_bnd_lw")
        timer_cloud_optics_lw    = new_timer("cloud_optics_lw")
-       timer_snow_bnd_lw        = new_timer("snow_bnd_lw")
        timer_rte_lw_allsky      = new_timer("rte_lw_allsky")
        timer_atmos_sw           = new_timer("atmos_sw")
        timer_k_dist_sw          = new_timer("k_dist_sw")
@@ -793,7 +788,6 @@ CONTAINS
        timer_rte_sw_clrsky      = new_timer("rte_sw_clrsky")
        timer_clouds_bnd_sw      = new_timer("clouds_bnd_sw")
        timer_cloud_optics_sw    = new_timer("cloud_optics_sw")
-       timer_snow_bnd_sw        = new_timer("snow_bnd_sw")
        timer_rte_sw_allsky      = new_timer("rte_sw_allsky")
        !
        ! diagnostics

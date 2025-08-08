@@ -362,7 +362,6 @@ cat > ${atmo_namelist} << EOF
 /
 &aes_cop_nml
  aes_cop_config(1)%cinhomi    = 0.6
- aes_cop_config(1)%cinhoms    = 0.6
  aes_cop_config(1)%cinhoml_cf = ${cinhoml_cf}
  aes_cop_config(1)%cinhoml_sf = 0.725
  aes_cop_config(1)%cn1lnd   = 50.0
