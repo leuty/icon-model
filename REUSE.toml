@@ -63,6 +63,7 @@ path = [
   "config.h.in",
   "config/**/*_TAG*",
   "config/**/*_ENV_TAG",
+  "run/tolerance/PROBTEST_TAG",
   "run/tolerance/hashes/*",
   "schedulers/ecmwf/gen/mapfile_vlist.txt",
   "scripts/**/TAG",

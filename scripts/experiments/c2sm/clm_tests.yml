@@ -13,13 +13,15 @@ tests:
     machines:
       - name: balfrin
       - name: santis
-    refgen: ['balfrin_cpu_nvidia','balfrin_cpu_nvidia_mixed']
+    refgen: ['balfrin_cpu_nvidia','balfrin_cpu_nvidia_mixed','santis_cpu_nvhpc']
     tags: ['atm', 'merge2rc','probtest']
     checksuite_modes:
       - balfrin: 't'
-      - santis: 'b'
+      - santis: 'bt'
     ensemble_num:
       - balfrin_cpu_nvidia: [1,5,14,25,27,33,36,44]
       - balfrin_cpu_nvidia_mixed: [22,18,37,44,3,25]
+      - santis_cpu_nvhpc: [1,2,4,13,23,28,39,41]
     tolerance_factor:
-    - balfrin: 10
+      - balfrin: 10
+      - santis: 5

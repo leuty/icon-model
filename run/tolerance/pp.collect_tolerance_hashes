@@ -51,6 +51,7 @@ IFS=',' read -ra experiments <<< "${tolerance_experiments}"
 
 declare -A experiment_hashes
 
+all_failed=true
 for exp in "${experiments[@]}"; do
     reference_file_name="${basedir}/${exp}_reference.csv"
     tolerance_file_name="${basedir}/${exp}_tolerance.csv"
@@ -66,12 +67,14 @@ for exp in "${experiments[@]}"; do
 
         # leave a log message
         echo "${builder} ${date_str} ${origin} ${git_commit}" >> "${reference_dir}/sources.log"
+        all_failed=false
     else
         experiment_hashes[$exp]="NO TOLERANCE FILE WAS CREATED. RETRY FOR THIS EXPERIMENT AND UPDATE LINE"
-        echo "WARNING: Tolerance generation failded for ${exp}"
+        echo "WARNING: Tolerance generation failed for ${exp}"
     fi
 
 done
+$all_failed && { echo "ERROR: The member selection failed for all experiments."; exit 1; }
 
 # sort keys
 declare -a sorted_keys
@@ -116,6 +119,7 @@ else # update requested
     echo ""
     echo "Please update the following ${#sorted_keys[@]} line(s) in '${hash_path}/${builder}'."
     echo "If any of the experiments is not yet in the list, please add it in alphabetical order"
+    echo ""
     for exp in "${sorted_keys[@]}"; do
         experiment_hash=${experiment_hashes[$exp]}
         echo "\"$exp\": $experiment_hash"

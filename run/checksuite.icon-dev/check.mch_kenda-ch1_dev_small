@@ -54,9 +54,7 @@ export FACTOR=$("${basedir}/scripts/experiments/get_param_for_exp_by_machine" --
 #--------------------------------------------------------------------------------
 #
 # 2. Launch the checksuite from run/
-
-reference_dir=$(cat $basedir/run/tolerance_reference)
-
+#
 rundir=`pwd`
 cd checksuite.icon-dev
 

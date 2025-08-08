@@ -9,8 +9,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ---------------------------------------------------------------
 include:
-  - scripts/cscs_ci/remote.yml
-  - scripts/cscs_ci/recipes.yml
+  - .gitlab/ci/cscs/remote.yml
+  - .gitlab/ci/cscs/recipes.yml
 
 create-pipeline:
   extends: .santis_create_common

@@ -18,6 +18,14 @@
     - mkdir -p "${APK_CACHE_DIR}"
     - apk --cache-dir "${APK_CACHE_DIR}" --update-cache add py3-ratelim py3-requests py3-retry py3-yaml python3
     - apk --cache-dir "${APK_CACHE_DIR}" cache clean
+  tags:
+    - alpine
+  # Dont want parent job to timeout before child job finishes
+  timeout: 6h
+  cache:
+    - key: apk-cscs-ci
+      paths:
+        - ${APK_CACHE_DIR}
   script:
     - |
       python3 - <<\_EOF
@@ -30,25 +38,25 @@
       import retry
       import yaml
 
-
       def get_status_description(status):
           return f"{status}: {http.client.responses.get(status, 'Unknown status')}"
 
-
-      def trigger_ci(builder, ci_sha, ci_tag, ci_token):
+      def trigger_ci(builder, ci_sha, ci_tag, ci_token, experiments=None):
           url = "https://cicd-ext-mw.cscs.ch/ci/pipeline/trigger"
           headers = {"Content-Type": "application/x-yaml"}
-          data = yaml.dump(
-              {
-                  "ref": f"sha:{ci_sha}",
-                  "pipeline": builder,
-                  "variables": {
-                      "TAG": ci_tag,
-                      # Do not report back the status (we will fetch it ourselves):
-                      "CSCS_NOTIFICATION_CONTEXT": "__discard-notification",
-                  },
-              }
-          )
+          data = {
+              "ref": f"sha:{ci_sha}",
+              "pipeline": builder,
+              "variables": {
+                  "TAG": ci_tag,
+                  # Do not report back the status (we will fetch it ourselves):
+                  "CSCS_NOTIFICATION_CONTEXT": "__discard-notification",
+              },
+          }
+          if experiments:
+              data["variables"]["CSCS_CI_EXPERIMENTS"] = experiments
+          data = yaml.dump(data)
+          print(f"Triggering CSCS CI with\n---\n{data}\n---", flush=True)
           auth = tuple(ci_token.split(":"))
 
           response = requests.post(url, headers=headers, data=data, auth=auth)
@@ -70,7 +78,6 @@
                   f"Failed to trigger CSCS CI"
                   f" ({get_status_description(response.status_code)})"
               )
-
 
       def wait_for_ci(status_url, poll_timeout=30, max_failed_requests=3):
           trigger_success = {"triggered_successfully"}
@@ -122,24 +129,58 @@
               elif pipeline_status in pipeline_failure:
                   return False
 
-
       builder = os.environ.get("CSCS_CI_BUILDER")
       ci_sha = os.environ.get("CSCS_CI_COMMIT_SHA")
       ci_tag = os.environ.get("CSCS_CI_TAG")
       ci_token = os.environ.get("CSCS_CI_TOKEN")
+      experiments = os.environ.get("CSCS_CI_EXPERIMENTS")
       print(
           f"Triggering {builder} for {ci_sha} ({ci_tag})",
           flush=True,
       )
-      status_url = trigger_ci(builder, ci_sha, ci_tag, ci_token)
+      if experiments:
+          print(f"Experiments: {experiments}", flush=True)
+      status_url = trigger_ci(builder, ci_sha, ci_tag, ci_token, experiments=experiments)
       pipeline_succeeded = wait_for_ci(status_url)
       exit(0 if pipeline_succeeded else 1)
       _EOF
-  tags:
-    - alpine
-  # Dont want parent job to timeout before child job finishes
-  timeout: 6h
-  cache:
-    - key: apk-cscs-ci
-      paths:
-        - ${APK_CACHE_DIR}
+
+cpu:
+  extends: .common_cscs_ci
+  variables:
+    CSCS_CI_TAG: merge2rc
+    CSCS_CI_BUILDER: santis-cpu
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+      when: always
+      interruptible: true
+    - when: manual
+  interruptible: false
+
+gpu:
+  extends: .common_cscs_ci
+  variables:
+    CSCS_CI_TAG: merge2rc
+    CSCS_CI_BUILDER: santis-gpu
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+      when: always
+      interruptible: true
+    - when: manual
+  interruptible: false
+
+cpu_tolerance:
+  extends: .common_cscs_ci
+  variables:
+    CSCS_CI_TAG: tolerance
+    CSCS_CI_BUILDER: santis-cpu
+  when: manual
+  interruptible: true
+
+cpu_select_members:
+  extends: .common_cscs_ci
+  variables:
+    CSCS_CI_TAG: select-members
+    CSCS_CI_BUILDER: santis-cpu
+  when: manual
+  interruptible: true

@@ -12,6 +12,7 @@ import os
 import shutil
 import subprocess
 import sys
+import warnings
 
 import yaml
 
@@ -62,8 +63,11 @@ class ExperimentTestCollection:
             self.supported_machines_CSCS_CI
         )
 
-    def get_items_by_tag(self, tag_name):
+    def get_items_by_tag(self, tag_name, mode):
         items_by_tag = []
+        # select-members and tolerance use a common tag and run under the probtest mode
+        if mode == "probtest":
+            tag_name = mode
         for item in self.items["tests"]:
             if tag_name in item["tags"]:
                 items_by_tag.append(item)
@@ -74,21 +78,27 @@ class ExperimentTestCollection:
     def get_items_by_name(self, name):
         return {"tests": [self.get_item_by_name(name)]}
 
+    def get_items_by_names(self, name):
+        return {"tests": [self.get_item_by_name(n.strip()) for n in name]}
+
     def get_item_by_name(self, name):
         item_by_name = next(
             (i for i in self.items["tests"] if i["name"] == name), None
         )
         if not item_by_name:
-            raise Exception(f"Entry with name {name} not found in items")
+            warnings.warn(
+                f"Entry with name {name} not found in items. Using default values.",
+                UserWarning,
+            )
         return item_by_name
 
     def print_file_ids_for_exp(self, name):
         # print to stdout for usage in bash scripts
-        print(self._get_file_ids_for_exp_as_string(name))
+        print(self.get_file_ids_for_exp_as_string(name))
 
     def print_param_for_exp_by_machine(self, exp, param, bb_name):
         # print to stdout for usage in bash scripts
-        print(self._get_param_for_exp_by_machine_as_string(exp, param, bb_name))
+        print(self.get_param_for_exp_by_machine_as_string(exp, param, bb_name))
 
     def print_checksuite_param_for_exp(self, param, exp):
         # print to stdout for usage in bash scripts
@@ -228,8 +238,9 @@ class ExperimentTestCollection:
             )
         )
 
-        tolexp = self.get_item_by_name(name).get("tolerance")
-        # use default value because no 'tolerance' section in yml
+        exp_data = self.get_item_by_name(name)
+        tolexp = exp_data.get("tolerance") if exp_data else None
+        # use default value if there is no 'tolerance' section in yml
         if tolexp is None:
             return default
         else:
@@ -243,13 +254,14 @@ class ExperimentTestCollection:
             )
             return actual if actual is not None else default
 
-    def _get_file_ids_for_exp_as_string(self, name):
+    def get_file_ids_for_exp_as_string(self, name):
         return " ".join(self._get_file_ids_for_exp_as_list(name))
 
     def _get_file_ids_for_exp_as_list(self, name):
         file_ids = self.defaults["file_id"]
-        tolexp = self.get_item_by_name(name).get("tolerance")
-        if tolexp is not None:
+        exp_data = self.get_item_by_name(name)
+        tolexp = exp_data.get("tolerance") if exp_data else None
+        if tolexp:
             file_id_list = tolexp.get("file_id")
             if file_id_list is not None:
                 file_ids = []
@@ -261,10 +273,10 @@ class ExperimentTestCollection:
                             )
         return file_ids
 
-    def _get_ensemble_num_for_exp_as_string(self, name, bb_name):
-        return ",".join(map(str, self._get_ensemble_num_for_exp(name, bb_name)))
+    def get_ensemble_num_for_exp_as_string(self, name, bb_name):
+        return ",".join(map(str, self.get_ensemble_num_for_exp(name, bb_name)))
 
-    def _get_ensemble_num_for_exp(self, name, bb_name):
+    def get_ensemble_num_for_exp(self, name, bb_name):
         num = self.defaults["ensemble_num"]
         test_item = self.get_item_by_name(name)
         if test_item is not None:
@@ -276,8 +288,8 @@ class ExperimentTestCollection:
                         break
         return num
 
-    def _get_param_for_exp_by_machine_as_string(self, exp, param, bb_name):
-        return self._get_param_for_exp_by_machine(exp, param, bb_name)
+    def get_param_for_exp_by_machine_as_string(self, exp, param, bb_name):
+        return str(self._get_param_for_exp_by_machine(exp, param, bb_name))
 
     def _get_checksuite_param_for_exp_as_string(self, param, exp):
         return " ".join(self._get_checksuite_param_for_exp(param, exp))
@@ -317,21 +329,18 @@ class ExperimentTestCollection:
 
 
 class BuildBotInterface(ExperimentTestCollection):
-    def __init__(self, list_name):
+    def __init__(self, tag_name):
         super().__init__()
-        self.list_name = list_name
+        self.tag_name = tag_name
         self.bb_name = os.getenv("BB_NAME")
         if not self.bb_name:
             raise Exception("Environment variable BB_NAME is not set")
 
     def items_to_bb(self):
         self.items["tests"] = self._get_experiments_with_supported_machines()
-        if (
-            self.list_name == "tolerance"
-            or self.list_name == "tolerance-update"
-        ):
+        if self.tag_name == "tolerance" or self.tag_name == "tolerance-update":
             self._register_tolerance_list()
-        elif self.list_name == "select-members":
+        elif self.tag_name == "select-members":
             self._register_select_members_list()
         else:
             self._register_default_list()
@@ -462,7 +471,7 @@ class BuildBotInterface(ExperimentTestCollection):
             None,
             machines,
             runflags,
-            self.list_name,
+            self.tag_name,
         )
 
     def _add_dep_to_bb_list(
@@ -483,13 +492,13 @@ class BuildBotInterface(ExperimentTestCollection):
             None,
             None,
             machines,
-            self.list_name,
+            self.tag_name,
         )
 
     def _remove_from_bb_list(
         self, experiment_name, builders=None, machines=None
     ):
-        rmexp(experiment_name, builders, None, None, machines, self.list_name)
+        rmexp(experiment_name, builders, None, None, machines, self.tag_name)
 
     def _convert_types_for_bb(self, runflags=None):
         if runflags:
@@ -565,7 +574,7 @@ class BuildBotInterface(ExperimentTestCollection):
             os.path.join(os.path.dirname(__file__), "../..")
         )
         # Add probtest ensemble runs
-        member_ids = self._get_ensemble_num_for_exp_as_string(
+        member_ids = self.get_ensemble_num_for_exp_as_string(
             exp["name"], self.bb_name
         )
         perturbed_experiments = self._add_probtest_ensemble_for_member_ids(
@@ -631,7 +640,7 @@ class CscsCiInterface(ExperimentTestCollection):
     def __init__(self):
         super().__init__()
 
-    def get_items_for_builder(self, builder):
+    def get_items_for_builder(self, builder, mode):
         supported_builders = {
             "santis": set(("santis_cpu_nvhpc", "santis_gpu_nvhpc"))
         }
@@ -644,31 +653,70 @@ class CscsCiInterface(ExperimentTestCollection):
                 # only consider the builder we are currently interested in
                 if name not in builder:
                     continue
-                if "include_only" in machine:
-                    if builder in machine["include_only"]:
-                        items.append(exp)
-                elif "exclude" in machine:
-                    if (
-                        builder not in machine["exclude"]
-                        and builder in supported_builders[name]
-                    ):
-                        items.append(exp)
-                else:
-                    if builder in supported_builders[name]:
-                        items.append(exp)
+                elif (
+                    "include_only" in machine
+                    and builder not in machine["include_only"]
+                ):
+                    continue
+                elif "exclude" in machine and builder in machine["exclude"]:
+                    continue
+                elif builder not in supported_builders[name]:
+                    continue
+                elif ("gpu" in builder) and (mode == "probtest"):
+                    continue
+                items.append(exp)
+
         return {"tests": items}
 
-    def items_to_cscs_ci(self, builder):
+    def items_to_cscs_ci(self, builder, tag_name, mode):
         pipeline = self._gen_header()
-
         pipeline["Build ICON"] = self._gen_step_build(builder)
+        basedir = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "../..")
+        )
 
         for test in self.items["tests"]:
             pipeline[f'{test["name"]}'] = self._gen_step_build_for_test(
                 test, builder
             )
+            if mode == "probtest":
+                pipeline.update(
+                    self._gen_step_build_for_probtest(test, builder, tag_name)
+                )
 
-        with open("pipeline.yml", "w") as outfile:
+        if mode == "probtest":
+            tests = self.items["tests"]
+            pipeline.update(
+                {
+                    f"collect_tolerance_hashes": {
+                        "extends": ".collect_tolerance_hashes_santis",
+                        "variables": {
+                            "BB_NAME": builder,
+                            "tolerance_experiments": " ".join(
+                                test["name"] for test in tests
+                            ),
+                        },
+                    }
+                }
+            )
+            if tag_name == "select-members":
+                tests = self.items["tests"]
+                pipeline.update(
+                    {
+                        f"collect_selected_members": {
+                            "extends": ".collect_selected_members_santis",
+                            "variables": {
+                                "BB_NAME": builder,
+                                "BB_SYSTEM": "santis",
+                                "tolerance_experiments": " ".join(
+                                    test["name"] for test in tests
+                                ),
+                            },
+                        }
+                    }
+                )
+
+        with open(os.path.join(basedir, "pipeline.yml"), "w") as outfile:
             yaml.dump(
                 pipeline,
                 outfile,
@@ -689,14 +737,69 @@ class CscsCiInterface(ExperimentTestCollection):
     def _gen_header(self):
         return {
             "include": [
-                "scripts/cscs_ci/remote.yml",
-                "scripts/cscs_ci/recipes.yml",
+                ".gitlab/ci/cscs/remote.yml",
+                ".gitlab/ci/cscs/recipes.yml",
             ],
             "variables": {
                 "GIT_DEPTH": 1,
             },
-            "stages": ["build", "run"],
+            "stages": ["build", "run", "post"],
         }
+
+    def _gen_step_build_for_probtest(self, test, builder, tag_name):
+        member_type = "mixed" if "mixed" in builder else "double"
+
+        if tag_name.startswith("tolerance"):
+            ensemble_num = self.get_ensemble_num_for_exp(test["name"], builder)
+            pipeline_name = "create_tolerance"
+        elif tag_name == "select-members":
+            ensemble_num = list(range(1, 50))
+            pipeline_name = "select_members"
+
+        output = {
+            test["name"]: {
+                "extends": ".run_ensemble_member_santis",
+                "variables": {"EXPERIMENT": test["name"]},
+            }
+        }
+
+        output.update(
+            {
+                f'{test["name"]}_member_id_{num}': {
+                    "extends": ".run_ensemble_member_santis",
+                    "variables": {
+                        "EXPERIMENT": test["name"],
+                        "MEMBER_NAME": f'{test["name"]}_member_id_{num}',
+                        "MEMBER_ID": num,
+                        "PERTURB_AMPLITUDE": self._get_perturb_amplitude(
+                            test["name"], member_type
+                        ),
+                    },
+                }
+                for num in ensemble_num
+            }
+        )
+
+        output.update(
+            {
+                f'{test["name"]}_{pipeline_name}': {
+                    "extends": f".{pipeline_name}_santis",
+                    "variables": {
+                        "EXPERIMENT": test["name"],
+                        "BB_NAME": builder,
+                    },
+                    "needs": [
+                        f'{test["name"]}',
+                        *[
+                            f'{test["name"]}_member_id_{num}'
+                            for num in ensemble_num
+                        ],
+                    ],
+                }
+            }
+        )
+
+        return output
 
     def _gen_step_build_for_test(self, test, builder):
         return {
@@ -709,37 +812,52 @@ class CscsCiInterface(ExperimentTestCollection):
         }
 
 
+def set_mode(tag_name):
+    # The tags "tolerance", "select-members" and "tolerance-update" have common functionality
+    # and use the same tag "probtest" in the yaml lists.
+    if (
+        tag_name == "tolerance"
+        or tag_name == "select-members"
+        or tag_name == "tolerance-update"
+    ):
+        mode = "probtest"
+    else:
+        mode = "run_test"
+    return mode
+
+
 # main entrypoint for CSCS CI
 def register_experiments_for_cscs_ci(tag_name, builder, exp=None):
+    mode = set_mode(tag_name)
     cci = CscsCiInterface()
     if exp:
-        cci.items = cci.get_items_by_name(exp)
-    else:
-        cci.items = cci.get_items_by_tag(tag_name)
+        if isinstance(exp, list):
+            cci.items = cci.get_items_by_names(exp)
+        else:
+            cci.items = cci.get_items_by_name(exp)
 
-    cci.items = cci.get_items_for_builder(builder)
-    cci.items_to_cscs_ci(builder)
+    cci.items = cci.get_items_by_tag(tag_name, mode)
+
+    cci.items = cci.get_items_for_builder(builder, mode)
+    if not cci.items["tests"]:
+        raise Exception(
+            "No tests left after filtering, check GitLab CI variables CSCS_CI_EXPERIMENTS and CSCS_CI_TAG"
+        )
+
+    cci.items_to_cscs_ci(builder, tag_name, mode)
 
 
 # main entrypoint for BuildBot
-def register_experiments_for_bb(list_name, exp=None):
+def register_experiments_for_bb(tag_name, exp=None):
 
-    bbi = BuildBotInterface(list_name)
+    bbi = BuildBotInterface(tag_name)
     # only keep entry with name of single_exp
     if exp:
         bbi.items = bbi.get_items_by_name(exp)
 
-    # The lists 'tolerance' and 'select-members' and 'tolerance-update' have the same tag
-    if (
-        list_name == "tolerance"
-        or list_name == "select-members"
-        or list_name == "tolerance-update"
-    ):
-        tag_name = "probtest"
-    else:
-        tag_name = list_name
-    # only keep the relevant entries for list list_name
-    bbi.items = bbi.get_items_by_tag(tag_name)
+    mode = set_mode(tag_name)
+    # only keep the relevent entries for the tag
+    bbi.items = bbi.get_items_by_tag(tag_name, mode)
 
     bbi.items_to_bb()
 

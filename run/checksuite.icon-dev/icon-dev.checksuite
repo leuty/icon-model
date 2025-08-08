@@ -387,7 +387,9 @@ function tolerance_check
 
     cd $MODEL_DIR
     builder=$(echo "${BB_NAME}" | tr '[:upper:]' '[:lower:]')
-    run/tolerance/check_tolerance "$EXPERIMENT" "${builder/_gpu/_cpu}" "$MODEL_DIR1" "$EXP_BASE" "$FACTOR"
+    reference_builder=${builder/_gpu/_cpu}
+
+    run/tolerance/check_tolerance "$EXPERIMENT" "$reference_builder" "$MODEL_DIR1" "$EXP_BASE" "$FACTOR"
     return $?
 }
 

@@ -373,36 +373,21 @@ Generate and publish HTML:
     - if: $CI_PIPELINE_SOURCE == "push"
   manual_confirmation: This job updates the GitLab Pages of the current project
 
-# CSCS test infrastructure adapter
-include: .gitlab/ci/cscs-ci.yml
-
-cscs-ci/santis_cpu:
+santis:
   stage: system
   needs: []
-  extends: .common_cscs_ci
-  variables:
-    CSCS_CI_BUILDER: santis-cpu
+  trigger:
+    include: .gitlab/ci/cscs/santis.yml
+    strategy: depend
   rules:
+    - if: $CSCS_CI_INACTIVE_BUILDERS =~ "/(^|,)santis/"
+      when: never
     - if: $CI_PIPELINE_SOURCE == "web"
       when: manual
-    - if: $CSCS_CI_INACTIVE_BUILDERS =~ "/(^|,)santis-cpu(,|$)/"
-      when: never
+      interruptible: false
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       when: manual
-
-cscs-ci/santis_gpu:
-  stage: system
-  needs: []
-  extends: .common_cscs_ci
-  variables:
-    CSCS_CI_BUILDER: santis-gpu
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "web"
-      when: manual
-    - if: $CSCS_CI_INACTIVE_BUILDERS =~ "/(^|,)santis-gpu(,|$)/"
-      when: never
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-      when: manual
+  interruptible: true
 
 .common_levante:
   stage: system

@@ -14,7 +14,12 @@ import sys
 
 import click
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "experiments"))
+sys.path.insert(
+    0,
+    os.path.join(
+        os.path.dirname(__file__), "..", "..", "..", "scripts", "experiments"
+    ),
+)
 from yaml_experiment_test_processor import register_experiments_for_cscs_ci
 
 
@@ -23,7 +28,8 @@ from yaml_experiment_test_processor import register_experiments_for_cscs_ci
 @click.option("--builder", "builder", type=str, required=True)
 @click.option("--experiment", "exp", type=str)
 def main(tag, builder, exp=None):
-    register_experiments_for_cscs_ci(tag, builder, exp)
+    experiments = exp.split(",") if exp else None
+    register_experiments_for_cscs_ci(tag, builder, experiments)
 
 
 if __name__ == "__main__":

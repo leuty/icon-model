@@ -32,7 +32,7 @@ machine=balfrin
 ./addbuilder alps_mch_test_gpu --machine $machine --build_script="./config/buildbot/alps_mch_test_gpu" --builderflags="Active" --list $listname
 
 # add bench experiments
-./../experiments/addexp_from_yml --list $listname
+./../experiments/addexp_from_yml --tag $listname
 
 add_store_performance_exp () {
     exp=$1

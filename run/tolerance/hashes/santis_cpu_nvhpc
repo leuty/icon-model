@@ -1,0 +1,7 @@
+--- # ICON probtest tolerance data
+# This file can be parsed using yaml
+# Data is stored in <icon_data_rootFolder>/buildbot_data/ref/<experiment_hash>
+icon_data_rootFolder: /capstor/store/cscs/userlab/d126/pool/data/ICON/
+builder: santis_cpu_nvhpc
+# The list below maps each experiment to its current experiment_hash
+"c2sm_clm_r13b03_seaice": 4f1a262db5540fb8b7e0889b85ee30e24b2a7199
