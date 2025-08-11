@@ -1085,7 +1085,7 @@ CONTAINS
 
         fr_nir_sfc_diff(jc) = MIN(1._wp, fr_nir_sfc_diff(jc) + diff_frac_corr)
         fr_vis_sfc_diff(jc) = MIN(1._wp, fr_vis_sfc_diff(jc) + diff_frac_corr)
-        fr_vis_sfc_diff(jc) = MIN(1._wp, fr_par_sfc_diff(jc) + diff_frac_corr)
+        fr_par_sfc_diff(jc) = MIN(1._wp, fr_par_sfc_diff(jc) + diff_frac_corr)
 
         trsol_dn_sfc_diff(jc) = MIN(ecrad_flux%sw_dn(jc,nlev+1)/cosmu0(jc), trsol_dn_sfc_diff(jc) + &
             & diff_frac_corr * ecrad_flux%sw_dn(jc,nlev+1)/cosmu0(jc))
