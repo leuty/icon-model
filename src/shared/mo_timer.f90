@@ -52,7 +52,9 @@ MODULE mo_timer
        &    timer_icon_comm_ircv, timer_icon_comm_fillsend, timer_icon_comm_fillandsend, &
        &    timer_icon_comm_barrier_2, timer_icon_comm_send
   PUBLIC :: timer_barrier
-
+#ifdef _OPENACC
+  PUBLIC :: timer_gpu_mem_use
+#endif
   PUBLIC :: timer_integrate_nh
   PUBLIC :: timer_solve_nh, timer_solve_nh_veltend, timer_solve_nh_cellcomp, timer_solve_nh_edgecomp, &
        &    timer_solve_nh_vnupd, timer_solve_nh_vimpl, timer_solve_nh_exch
@@ -322,7 +324,9 @@ MODULE mo_timer
        &     timer_icon_comm_ircv, timer_icon_comm_fillsend,timer_icon_comm_fillandsend,   &
        &     timer_icon_comm_barrier_2, timer_icon_comm_send
   INTEGER :: timer_barrier
-
+#ifdef _OPENACC
+  INTEGER :: timer_gpu_mem_use
+#endif
   INTEGER :: timer_nh_hdiffusion
 
   INTEGER :: timer_integrate_nh
@@ -670,6 +674,9 @@ CONTAINS
     IF (.NOT. ltimer)  return
 
     timer_barrier  = new_timer("mpi_barrier")
+#ifdef _OPENACC
+    timer_gpu_mem_use = new_timer("gpu_mem_use")
+#endif
     timer_exch_data = new_timer("exch_data")
     timer_exch_data_rv = new_timer("exch_data_rv")
     timer_exch_data_async = new_timer("exch_data_async")
