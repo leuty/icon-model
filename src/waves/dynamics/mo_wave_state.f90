@@ -538,7 +538,7 @@ CONTAINS
 
     cf_desc    = t_cf_var('hrms_frac', '-', 'square ratio (Hrms / Hmax)**2', datatype_flt)
     grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
-    CALL add_var(p_diag_list, 'hrmc_frac', p_diag%hrms_frac,          &
+    CALL add_var(p_diag_list, 'hrms_frac', p_diag%hrms_frac,          &
          & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
          & ldims=shape2d_c)
 
