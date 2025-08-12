@@ -42,6 +42,7 @@ MODULE mo_ext_data_state
     &                              OPERATOR(+)
   USE mo_parallel_config,    ONLY: nproma
   USE mo_io_config,          ONLY: lnetcdf_flt64_output
+  USE mo_gribout_config,     ONLY: gribout_config
   USE mo_grid_config,        ONLY: n_dom
   USE mo_run_config,         ONLY: iforcing
   USE mo_initicon_config,    ONLY: icpl_da_seaice, icpl_da_snowalb
@@ -50,7 +51,7 @@ MODULE mo_ext_data_state
   USE mo_atm_phy_nwp_config, ONLY: iprog_aero, atm_phy_nwp_config
   USE mo_radiation_config,   ONLY: irad_o3, albedo_type, islope_rad
   USE mo_extpar_config,      ONLY: ext_atm_attr, ext_o3_attr, itype_vegetation_cycle, itype_lwemiss
-  USE mo_cdi,                ONLY: DATATYPE_PACK16, DATATYPE_FLT32, DATATYPE_FLT64,     &
+  USE mo_cdi,                ONLY: DATATYPE_PACK16, DATATYPE_PACK24, DATATYPE_FLT32, DATATYPE_FLT64,     &
     &                              TSTEP_CONSTANT, TSTEP_MAX, TSTEP_AVG, TSTEP_INSTANT, &
     &                              GRID_UNSTRUCTURED
   USE mo_zaxis_type,         ONLY: ZA_REFERENCE, ZA_LAKE_BOTTOM, ZA_SURFACE, &
@@ -174,8 +175,9 @@ CONTAINS
     INTEGER :: shape3d_c(3)
     INTEGER :: shape3d_sfc(3), shape3d_sfc_sec(3), shape3d_nt(3), shape3d_ntw(3)
 
-    INTEGER :: ibits         !< "entropy" of horizontal slice
-    INTEGER :: datatype_flt  !< floating point accuracy in NetCDF output
+    INTEGER :: ibits             !< "entropy" of horizontal slice
+    INTEGER :: DATATYPE_PACK_VAR !< variable "entropy" for some horizontal slices
+    INTEGER :: datatype_flt      !< floating point accuracy in NetCDF output
 
     INTEGER          :: jsfc
     CHARACTER(LEN=2) :: csfc
@@ -193,6 +195,15 @@ CONTAINS
     ! get patch ID
     jg = p_patch%id
     ibits = DATATYPE_PACK16   ! "entropy" of horizontal slice
+
+    IF (gribout_config(jg)%lgribout_24bit) THEN  ! analysis
+      ! higher accuracy for atmospheric thermodynamic fields
+      DATATYPE_PACK_VAR = DATATYPE_PACK24
+    ELSE
+      ! standard accuracy for atmospheric thermodynamic fields
+      DATATYPE_PACK_VAR = DATATYPE_PACK16
+    ENDIF
+
 
     ! number of vertical levels
     nlev = p_patch%nlev
@@ -328,7 +339,7 @@ CONTAINS
     ! topography_c  p_ext_atm%topography_c(nproma,nblks_c)
     cf_desc    = t_cf_var('surface_height', 'm', &
       &                   'geometric height of the earths surface above sea level', datatype_flt)
-    grib2_desc = grib2_var( 0, 3, 6, ibits, GRID_UNSTRUCTURED, GRID_CELL)  &
+    grib2_desc = grib2_var( 0, 3, 6, DATATYPE_PACK_VAR, GRID_UNSTRUCTURED, GRID_CELL)  &
       &           + t_grib2_int_key("typeOfSecondFixedSurface", 101)
     CALL add_var( p_ext_atm_list, 'topography_c', p_ext_atm%topography_c,  &
       &           GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc,             &
