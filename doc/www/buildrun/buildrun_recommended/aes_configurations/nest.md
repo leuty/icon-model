@@ -14,7 +14,7 @@ Estimated runtime (for resources indicated above):
 : It takes 25 minutes on one Levante compute node (2xAMD 7763, 256 Gb main memory) to simulate 7 days, for a setup combining MPI for inter-node parallelisation and OpenMP for multi-threading. The same case was tested on one Levante GPU node (4xA100, 160Gb + 2x AMD 7763 CPU; 128 cores in total, 512 GB/1024 GB main memory) and completed 7 days in 16 minutes.
 
 Sources:
-: {{ '[Config]({}/run/exp.atm_cph_nest_R2B4)'.format(base_url) }} for `make_runscripts`.
+: {{ '[Config]({}/run/checksuite.atm/test_nest.config)'.format(base_url) }} for `mkexp`. It was build from the older script {{ '[Config]({}/run/exp.atm_cph_nest_R2B4)'.format(base_url) }} which used `make_runscripts`.
 
 Analysis/postprocessing:
 : (under development).

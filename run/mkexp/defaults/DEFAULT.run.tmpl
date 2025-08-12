@@ -471,9 +471,13 @@ EOF
 # jsbach namelist
 # ---------------
 
-cat > NAMELIST_lnd << EOF
-%{format_namelist(namelists.NAMELIST_lnd)}
+#%  for namelist in namelists.sections:
+#%    if namelist.startswith('NAMELIST_lnd'):
+cat > %{namelist} << EOF
+%{format_namelist(namelists[namelist])}
 EOF
+#%    endif
+#%  endfor
 
 #%  endif
 #%  if WITH_OCEAN is set:
