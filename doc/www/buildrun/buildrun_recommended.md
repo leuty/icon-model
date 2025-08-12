@@ -33,6 +33,11 @@ These configurations are supported by the Max Planck Institute for Meteorology. 
 [AMIP](ref_buildrun_amip):
 : This configuration follows the Atmospheric Model Intercomparison Project (AMIP) protocol. In this configuration, ICON solves the fluid dynamics equations in the atmosphere on the entire Globe using horizontal grid spacing of 40 km and finer. The atmosphere is coupled to a 1-D land module and to a non-dynamical ocean and sea ice. This means that sea surface temperature and sea ice area is prescribed. The atmosphere is vertically discretized in 90 levels, and the land is represented by 5 soil layers.
 
+### Coupled configurations
+
+[Coupled AES](ref_buildrun_aes_coupled):
+: Unified coupled atmosphere/ocean configuration based on a simplified version of the [nextGEMS](https://nextgems-h2020.eu/) experiments. The full version is currenty under development.
+
 ## NWP Use Cases
 
 The use cases for NWP (Numerical Weather Prediction) are available on the [DKRZ Swiftbrowser](https://swiftbrowser.dkrz.de/public/dkrz_4d992e1b-f237-4258-a2bc-138ca6a1cf59/icon-model-use-cases/).
