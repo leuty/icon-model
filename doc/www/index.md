@@ -13,6 +13,8 @@ buildrun/buildrun_recommended/aes_configurations/bubble.md
 buildrun/buildrun_recommended/aes_configurations/nest.md
 buildrun/buildrun_recommended/aes_configurations/amip.md
 buildrun/buildrun_recommended/aes_configurations/coupled.md
+buildrun/buildrun_recommended/aes_configurations/aquaplanet.md
+
 tools/tools.md
 tools/ecflow-ecmwf.md
 atmosphere/atmosphere.md
@@ -43,7 +45,8 @@ Information on the changes are available in the {{ '[**Release Notes**]({}/RELEA
 [](ref_buildrun_recommconf)  
 [](ref_buildrun_bubble)  
 [](ref_buildrun_nest)  
-[](ref_buildrun_aes_coupled)  
+[](ref_buildrun_aes_coupled)
+[](ref_buildrun_aquaplanet)
 :::
 
 :::{grid-item-card}

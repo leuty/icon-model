@@ -24,6 +24,9 @@ There will be no support from the ICON partners for configurations that are not 
 
 These configurations are supported by the Max Planck Institute for Meteorology. AES (Atmosphere in the Earth System) indicates the use of AES physics, which is designed for high-performance computing platforms and simulations with horizontal grids of 10 km or less on a variety of domains. The AES configurations can be generated using {{ '[mkexp]({}/doc/www/buildrun/buildrun_running.md)'.format(base_url) }}.
 
+[Aquaplanet](ref_buildrun_aquaplanet)
+: This configuration runs the ICON atomspheric component in interaction with an idealized ocean (e.g., SST-QOBS). This set-up allows a fast integration to achieve a climate mean state in comparisson to AMIP simulations.
+
 [Bubble](ref_buildrun_bubble):
 : This is a simple idealized case used for code development.  It simulates a buoyant, slab symmetric, bubble, on a small bi-periodic domain. The short simulation time (120 min, 240 timesteps) and the small domain (160 cells) allows output to be written at every timestep and grid point. The slab-symmetric setupt makes it easy to visualize.
 
