@@ -36,10 +36,15 @@ These configurations are supported by the Max Planck Institute for Meteorology. 
 [AMIP](ref_buildrun_amip):
 : This configuration follows the Atmospheric Model Intercomparison Project (AMIP) protocol. In this configuration, ICON solves the fluid dynamics equations in the atmosphere on the entire Globe using horizontal grid spacing of 40 km and finer. The atmosphere is coupled to a 1-D land module and to a non-dynamical ocean and sea ice. This means that sea surface temperature and sea ice area is prescribed. The atmosphere is vertically discretized in 90 levels, and the land is represented by 5 soil layers.
 
+[RCE](ref_buildrun_rce):
+: This configuration is intended to study the Radiative Convective Equilibrium (RCE) achieved in ICON. RCE is an important conceptualization for understanding climate. RCE inquires about the thermodynamical equilibrium that a moist atmosphere would attain under constant incoming solar radiation, and is the result of a balance between the latent heating by condensation and the long-wave radiative cooling of the atmosphere. Simulated times in the order of 200 days give insight into how RCE is achieved in ICON. For the purposes of code development this case is run for 6 simulated hours.
+
+
 ### Coupled configurations
 
 [Coupled AES](ref_buildrun_aes_coupled):
 : Unified coupled atmosphere/ocean configuration based on a simplified version of the [nextGEMS](https://nextgems-h2020.eu/) experiments. The full version is currenty under development.
+
 
 ## NWP Use Cases
 
