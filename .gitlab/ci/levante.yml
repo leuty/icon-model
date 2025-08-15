@@ -65,14 +65,14 @@ workflow:
         CONFIG_ARGS: >-
           --disable-art
           --disable-comin
-          --disable-coupling
+          --enable-coupling
           --disable-ecrad
-          --disable-jsbach
+          --enable-jsbach
           --disable-les
           --disable-nwp
-          --disable-ocean
+          --enable-ocean
           --disable-quincy
-          --disable-rte-rrtmgp
+          --enable-rte-rrtmgp
           --disable-upatmo
           --disable-waves
           --disable-yaxt
@@ -83,7 +83,11 @@ workflow:
           externals/cdi
           externals/fortran-support
           externals/iconmath
+          externals/jsbach
           externals/mtime
+          externals/rte-rrtmgp
+          externals/yac
+          externals/yaxt
 
 include:
   - .gitlab/ci/git.yml
@@ -110,7 +114,7 @@ build:
     EXTRA_SCHEDULER_PARAMETERS: >-
       --partition=shared
       --ntasks=${JOB_COUNT}
-      --time=10:00
+      --time=15:00
     SHMEM_DIR: /dev/shm/icon-${CI_JOB_NAME}-${CI_JOB_ID}
     SOURCE_DIR: ${SHMEM_DIR}/icon
     BUILD_DIR: ${SOURCE_DIR}
@@ -175,19 +179,26 @@ build:
   extends: .common
   needs: [build]
   variables:
+    MKEXP_NAME: ${CI_JOB_NAME}
+    MKEXP_DIR: run/examples
+    MKEXP_FILE: ${MKEXP_DIR}/${MKEXP_NAME}.config
+    MKEXP_EXTRA_ARGS:
+    REQUIRED_NODES: 1
     CPU_SCHEDULER_PARAMETERS: >-
       --partition=compute
       --time=05:00
+      --nodes=${REQUIRED_NODES}
     GPU_SCHEDULER_PARAMETERS: >-
       --partition=gpu
       --gpus=4
       --time=05:00
     SPARSE_PATTERNS: >-
       /utils/ /run/mkexp/
-      /run/examples/${CI_JOB_NAME}.config
+      /${MKEXP_FILE}
       /run/dict.iconam.mpim
       /run/add_run_routines
-    SUBMODULES: utils/mkexp
+      /data
+    SUBMODULES: utils/mkexp externals/jsbach
     PYTHONPATH: ${CI_PROJECT_DIR}/externals/mtime/build/python
     MKEXP_PATH: ${CI_PROJECT_DIR}/run
   before_script:
@@ -195,8 +206,28 @@ build:
     - sed -i "s|@CI_PROJECT_DIR@|${CI_PROJECT_DIR}|g" run/SETUP.config
     - module load python3
   script:
-    - utils/mkexp/mkexp run/examples/${CI_JOB_NAME}.config WORK_ROOT='$MODEL_ROOT' DATA_ROOT='$MODEL_ROOT'
+    - >-
+      utils/mkexp/mkexp "${MKEXP_FILE}"
+      WORK_ROOT='$MODEL_ROOT' DATA_ROOT='$MODEL_ROOT'
+      EXP_ID="${CI_JOB_NAME}"
+      jobs.run.nodes="${REQUIRED_NODES}"
+      ${MKEXP_EXTRA_ARGS}
     - ./experiments/${CI_JOB_NAME}/scripts/${CI_JOB_NAME}.run_start
 
 bubble:
   extends: .common_mkexp_run
+
+aes_coupled:
+  extends: .common_mkexp_run
+  rules:
+    - if: $BUILDER_NAME != "levante_intel_hybrid"
+      when: never
+    - !reference [.common, rules]
+  variables:
+    REQUIRED_NODES: 4
+    MKEXP_DIR: run/checksuite.icon-dev
+    MKEXP_NAME: test_aes_coupled
+    # TODO: re-enable restart test when fixed
+    MKEXP_EXTRA_ARGS: >-
+      EXP_OPTIONS=output/coupled_test,serial,test/suite
+      jobs.run_restart_start...hide=true
