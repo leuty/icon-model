@@ -44,10 +44,6 @@ Information on the changes are available in the {{ '[**Release Notes**]({}/RELEA
 [](ref_buildrun_gridextpar)  
 [](ref_buildrun_icbc)  
 [](ref_buildrun_recommconf)  
-[](ref_buildrun_bubble)  
-[](ref_buildrun_nest)  
-[](ref_buildrun_aes_coupled)  
-[](ref_buildrun_aquaplanet)
 :::
 
 :::{grid-item-card}

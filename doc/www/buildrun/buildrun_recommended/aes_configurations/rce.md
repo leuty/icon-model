@@ -14,7 +14,7 @@ Estimated runtime (for resources indicated above):
 : It takes 5 minutes for 4 simulated hours on one Levante node (2xAMD 7763, 256 Gb main memory). It takes 15 hours for 200 simulated days on two Levante nodes.
 
 Sources:
-: {{ '[Config]({}/run/aes_rce.config)'.format(base_url) }} for `mkexp`.
+: {{ '[Config]({}/run/checksuite.atm/test_aes_rce.config)'.format(base_url) }} for `mkexp`.
 
 ## Description
 This model configuration follows the small domain configuration described in [Wing et al., 2018](https://doi.org/10.1029/2020MS002138). On the horizontal, the setup consist of a doubly periodic domain [bi-periodic domain](https://easy.gems.dkrz.de/Processing/playing_with_triangles/toroidal_grids.html) on a 100km by 100km square domain, with a resolution of 1 km. The vertical dimension is discretized by means of 75 levels extending to 33947 meters.
