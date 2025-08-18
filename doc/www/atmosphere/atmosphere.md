@@ -7,6 +7,7 @@ art/art.md
 ecrad/ecrad_overview.md
 miscellaneous/miscellaneous_nwp.md
 sbm/sbm_overview.md
+miscellaneous/tuning_nwp.md
 ```
 
 The ICON atmosphere model predicts the spatio-temporal evolution
@@ -143,6 +144,11 @@ More detailed descriptions of some of above options are available here:
 ::::
 
 You can find a brief overview on the NWP physics package in chapter 3 of the **{term}`ICON Tutorial 2024`**.
+
+:::{admonition} Tuning ICON NWP Physics
+:class: admonition-icontheme
+A set of sensitive and important tuning parameters is provided in **[this description](ref_atmosphere_tuning)**.
+:::
 
 ### Glossary of Namelist Parameters
 
