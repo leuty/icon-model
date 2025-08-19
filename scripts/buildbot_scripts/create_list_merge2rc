@@ -401,18 +401,24 @@ $addexp "checksuite.icon-dev/check.dwd_art_dustrad_R2B4N5" --builders "horeka_gc
 $addexp "checksuite.infrastructure/checkICON/exp.check_icon" --builders "horeka_gpu_nvhpc horeka_cpu_nvhpc horeka_gcc horeka_intel" --list ${listname}
 
 # LUMI at CSC
-$addexp "exp.atm_tracer_Hadley_R2B4"                       --builders 'lumi_cpu' --list $listname --runflags "queue=debug"
-$addexp "exp.atm_tracer_Hadley_R2B4"                       --builders 'lumi_gpu' --list $listname --runflags "queue=dev-g"
-$addexp "checksuite.icon-dev/check.aes_amip_test"          --builders "lumi_cpu" --list $listname --runflags "queue=debug"
-$addexp "checksuite.icon-dev/check.aes_amip_test"          --builders "lumi_gpu" --list $listname --runflags "queue=dev-g"
-$addexp "checksuite.icon-dev/check.aes_amip_pfts_test"          --builders "lumi_cpu" --list $listname --runflags "queue=debug"
-$addexp "checksuite.icon-dev/check.aes_amip_pfts_test"          --builders "lumi_gpu" --list $listname --runflags "queue=dev-g"
-$addexp "checksuite.icon-dev/check.atm_bubble_test"        --builders "lumi_cpu" --list $listname --runflags "queue=debug ntasks=16"
-$addexp "checksuite.icon-dev/check.atm_bubble_test"        --builders "lumi_gpu" --list $listname --runflags "queue=dev-g ntasks=16"
-$addexp "checksuite.icon-dev/check.atm_qubicc_nofor"       --builders "lumi_cpu" --list $listname --runflags "queue=debug"
-$addexp "checksuite.icon-dev/check.atm_qubicc_nofor"       --builders "lumi_gpu" --list $listname --runflags "queue=dev-g"
-$addexp "checksuite.icon-dev/check.atm_heldsuarez"          --builders "lumi_cpu" --list $listname --runflags "queue=debug"
-$addexp "checksuite.icon-dev/check.atm_heldsuarez"          --builders "lumi_gpu" --list $listname --runflags "queue=dev-g"
+# Tests for both CPU and GPU
+for experiment in \
+  exp.atm_tracer_Hadley_R2B4 \
+  checksuite.icon-dev/check.aes_amip_test \
+  checksuite.icon-dev/check.aes_amip_pfts_test \
+  checksuite.icon-dev/check.atm_bubble_test \
+  checksuite.icon-dev/check.atm_heldsuarez \
+  checksuite.icon-dev/check.atm_qubicc            \
+  checksuite.icon-dev/check.atm_qubicc_grb        \
+  checksuite.icon-dev/check.atm_qubicc_nofor      \
+  checksuite.icon-dev/check.atm_qubicc_onlyfor    \
+  checksuite.icon-dev/check.atm_qubicc_pfts       \
+  checksuite.icon-dev/check.atm_qubicc_tmx        \
+  checksuite.icon-dev/check.atm_qubicc_test_aero
+do
+$addexp $experiment --builders 'lumi_cpu' --list ${listname} --runflags="queue=debug"
+$addexp $experiment --builders 'lumi_gpu' --list ${listname} --runflags="queue=dev-g"
+done
 
 $addexp "checksuite.ocean_internal/ShallowWater/exp.ocean_WilliamsonTestCase2_Hex"  --builders "lumi_cpu" --list $listname --runflags "queue=debug"
 $addexp "checksuite.ocean_internal/omip/exp.test_ocean_zstar_omip_10days"           --builders "lumi_cpu" --list $listname --runflags "queue=debug"
