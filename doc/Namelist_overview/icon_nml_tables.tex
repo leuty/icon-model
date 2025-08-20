@@ -3069,6 +3069,22 @@ Scale factor for RBF reconstruction at vertices&
 \tabularnewline
 
 %\hline
+lrbf\_read &
+L& .FALSE. & &
+Flag. If .TRUE. then the RBF coefficients are read from file
+R(rbf\_coeffs\_ROOT\_dom<i\_dom>.nc) instead of reconstructing. Coefficients
+are only read from file if scaling parameters, and gridsize are equal to those
+in input file. Else the model fails.&
+\tabularnewline
+
+%\hline
+lrbf\_write &
+L& .FALSE. & &
+Flag. If .TRUE. then the RBF coefficients are written to file
+R(rbf\_coeffs\_ROOT\_dom<i\_dom>.nc).&
+\tabularnewline
+
+%\hline
 support\_baryctr\_intp &
 L& .FALSE. & &
 Flag. If .FALSE. barycentric interpolation is replaced by a

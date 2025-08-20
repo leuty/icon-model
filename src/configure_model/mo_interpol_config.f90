@@ -34,6 +34,7 @@ MODULE mo_interpol_config
   PUBLIC :: rbf_scale_mode_ll                                                   !< variables
   PUBLIC :: support_baryctr_intp                                                !< variables
   PUBLIC :: lreduced_nestbdry_stencil                                           !< variables
+  PUBLIC :: lrbf_read, lrbf_write                                               !< variables
   PUBLIC :: configure_interpolation                                             !< subroutine
 
   PUBLIC :: t_lsq_set
@@ -124,6 +125,10 @@ MODULE mo_interpol_config
     ! Flag. If .TRUE. then the nest boundary points are taken out from
     ! the lat-lon interpolation stencil.
     LOGICAL :: lreduced_nestbdry_stencil
+
+    ! Reading/writing rbf coefficients from file
+    LOGICAL :: lrbf_read                  ! Read RBF coefficients from file
+    LOGICAL :: lrbf_write                 ! Write RBF coefficients to file
 
   !END TYPE t_interpol_config
   !>
