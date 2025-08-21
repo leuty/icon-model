@@ -401,13 +401,13 @@ $addexp "checksuite.icon-dev/check.dwd_art_dustrad_R2B4N5" --builders "horeka_gc
 $addexp "checksuite.infrastructure/checkICON/exp.check_icon" --builders "horeka_gpu_nvhpc horeka_cpu_nvhpc horeka_gcc horeka_intel" --list ${listname}
 
 # LUMI at CSC
-# Tests for both CPU and GPU
+## Tests for both CPU and GPU
 for experiment in \
-  exp.atm_tracer_Hadley_R2B4 \
-  checksuite.icon-dev/check.aes_amip_test \
-  checksuite.icon-dev/check.aes_amip_pfts_test \
-  checksuite.icon-dev/check.atm_bubble_test \
-  checksuite.icon-dev/check.atm_heldsuarez \
+  exp.atm_tracer_Hadley_R2B4                      \
+  checksuite.icon-dev/check.aes_amip_test         \
+  checksuite.icon-dev/check.aes_amip_pfts_test    \
+  checksuite.icon-dev/check.atm_bubble_test       \
+  checksuite.icon-dev/check.atm_heldsuarez        \
   checksuite.icon-dev/check.atm_qubicc            \
   checksuite.icon-dev/check.atm_qubicc_grb        \
   checksuite.icon-dev/check.atm_qubicc_nofor      \
@@ -416,12 +416,12 @@ for experiment in \
   checksuite.icon-dev/check.atm_qubicc_tmx        \
   checksuite.icon-dev/check.atm_qubicc_test_aero
 do
-$addexp $experiment --builders 'lumi_cpu' --list ${listname} --runflags="queue=debug"
-$addexp $experiment --builders 'lumi_gpu' --list ${listname} --runflags="queue=dev-g"
+  $addexp $experiment --builders "lumi_cpu lumi_gpu" --list $listname
 done
 
-$addexp "checksuite.ocean_internal/ShallowWater/exp.ocean_WilliamsonTestCase2_Hex"  --builders "lumi_cpu" --list $listname --runflags "queue=debug"
-$addexp "checksuite.ocean_internal/omip/exp.test_ocean_zstar_omip_10days"           --builders "lumi_cpu" --list $listname --runflags "queue=debug"
+## Tests for CPU-only
+$addexp "checksuite.ocean_internal/ShallowWater/exp.ocean_WilliamsonTestCase2_Hex"  --builders "lumi_cpu" --list $listname
+$addexp "checksuite.ocean_internal/omip/exp.test_ocean_zstar_omip_10days"           --builders "lumi_cpu" --list $listname
 
 # Communication tests
 $addexp checksuite.infrastructure/testbed/exp.icon-testbed_communication_yaxt --builders 'levante_gpu_nvhpc' --list $listname
@@ -431,13 +431,11 @@ $addexp checksuite.infrastructure/testbed/exp.icon-testbed_communication_orig --
 
 # Sync tests
 for builder in levante_gcc levante_intel_hybrid levante_cpu_nvhpc levante_gpu_nvhpc levante_aurora levante_nag \
-               dwd_nec_coupling mpimacc_gcc
+               lumi_cpu lumi_gpu dwd_nec_coupling mpimacc_gcc
 do
     $addexp "checksuite.infrastructure/testbed/exp.icon-testbed_sync" --builders "${builder}" --list ${listname}
 done
 $addexp "checksuite.infrastructure/testbed/exp.icon-testbed_sync" --builders "breeze_gcc breeze_intel" --list ${listname} --runflags "mpi_procs_pernode=4"
-$addexp "checksuite.infrastructure/testbed/exp.icon-testbed_sync" --builders "lumi_gpu"                --list ${listname} --runflags "queue=dev-g"
-$addexp "checksuite.infrastructure/testbed/exp.icon-testbed_sync" --builders "lumi_cpu"                --list ${listname} --runflags "queue=debug"
 
 # Activate all single-precision builders as build-only (exception dwd_nec_sp disabled)
 SINGLE_PRECISION_BUILDERS="levante_gcc_sp levante_intel_hybrid_sp levante_nag_sp levante_gpu_nvhpc_sp lumi_cpu_sp mpimac_gcc_sp"
