@@ -15,6 +15,7 @@ buildrun/buildrun_recommended/aes_configurations/amip.md
 buildrun/buildrun_recommended/aes_configurations/coupled.md
 buildrun/buildrun_recommended/aes_configurations/aquaplanet.md
 buildrun/buildrun_recommended/aes_configurations/rce.md
+buildrun/buildrun_recommended/oes_configurations/omip.md
 
 tools/tools.md
 tools/ecflow-ecmwf.md

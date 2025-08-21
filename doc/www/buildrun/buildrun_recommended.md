@@ -46,6 +46,14 @@ These configurations are supported by the Max Planck Institute for Meteorology. 
 : Unified coupled atmosphere/ocean configuration based on a simplified version of the [nextGEMS](https://nextgems-h2020.eu/) experiments. The full version is currenty under development.
 
 
+## OES Configurations
+
+The OES (Ocean in the Earth System) configurations are supported by the Max Planck Institute for Meteorology.
+
+[OMIP](ref_buildrun_omip):
+: This is a close-to-production configuration for ICON's ocean model componed used for code development. It can be regarded as the main ocean configuration that enables all major available features as far as they can be activated simultaneously.
+
+
 ## NWP Use Cases
 
 The use cases for NWP (Numerical Weather Prediction) are available on the [DKRZ Swiftbrowser](https://swiftbrowser.dkrz.de/public/dkrz_4d992e1b-f237-4258-a2bc-138ca6a1cf59/icon-model-use-cases/).
