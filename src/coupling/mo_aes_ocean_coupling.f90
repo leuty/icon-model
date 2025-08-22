@@ -88,13 +88,16 @@ MODULE mo_aes_ocean_coupling
   USE mo_exception           ,ONLY: finish
 
   USE mo_coupling_utils      ,ONLY: cpl_put_field, cpl_get_field, &
-                                    cpl_get_field_collection_size
+                                    cpl_get_field_collection_size, &
+                                    cpl_get_field_datetime
 
   USE mo_util_dbg_prnt       ,ONLY: dbg_print
   USE mo_dbg_nml             ,ONLY: idbg_mxmn, idbg_val
   USE mo_physical_constants  ,ONLY: amd, amco2
   USE mo_physical_constants  ,ONLY: cvd, cpd
   USE mo_fortran_tools       ,ONLY: init
+  USE mtime                  ,ONLY: datetime, OPERATOR(<)
+  USE mo_time_config         ,ONLY: time_config
 
   USE mo_exception,           ONLY: message, message_text
 
@@ -321,6 +324,7 @@ CONTAINS
     REAL(wp), ALLOCATABLE :: get_buffer(:,:)      ! buffer for incomming data
     LOGICAL :: received_data                      ! indicates whether a get
                                                   ! operation received data
+
     CHARACTER(LEN=*), PARAMETER :: &
       routine = str_module // ':interface_aes_ocean_nested'
 
@@ -1511,8 +1515,31 @@ CONTAINS
 #else
     LOGICAL :: lacc = .FALSE.
 #endif
+
+    LOGICAL, SAVE :: lcheck_for_timelag = .TRUE.
+    TYPE(datetime)  :: curr_datetime_umfl
+
     CHARACTER(LEN=*), PARAMETER :: &
       routine = str_module // ':interface_aes_ocean'
+
+    IF(lcheck_for_timelag .AND. time_config%timeshift%dt_shift .eq. 0) &
+      lcheck_for_timelag = .FALSE.
+
+    ! A component may execute timesteps for dates before the actual
+    ! start of this simulation (e.g. due to IAU). These timesteps are currently
+    ! not considered for coupling, which is why they are skipped here.
+    ! The first actual coupling timestep usually is a start_date + lag * field_timestep.
+    IF (lcheck_for_timelag) THEN
+
+      ! query current timestamps of source/target fields
+      curr_datetime_umfl = cpl_get_field_datetime(routine, out_field_ids%umfl )
+
+      ! skip data exchange as long as the model timestamp lags behind the field timestamp.
+      lcheck_for_timelag = (time_config%tc_current_date < curr_datetime_umfl)
+
+      IF (lcheck_for_timelag) RETURN
+
+    ENDIF !lcheck_for_timelag
 
     IF (n_dom > 1) THEN
       CALL interface_aes_ocean_nested(p_patch(:),lacc)
