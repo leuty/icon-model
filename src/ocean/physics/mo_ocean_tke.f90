@@ -489,7 +489,7 @@ CONTAINS
             ! Axell (2002); results in deeper MLDs and better spatial MLD pattern.
             DO jk = 2, levels
               IF ( ( depth_CellInterface(jc,jk,blockNo)*s_c(jc,blockNo) <= hlc(jc,blockNo) )  &
-                   .AND. ( patch_3D%wet_c(jc,jk,blockNo) .EQ. 1 ) ) THEN
+                   .AND. ( patch_3D%wet_c(jc,jk,blockNo) .EQ. 1 ) .AND. (hlc(jc,blockNo) .NE. 0) ) THEN
                 wlc(jc,jk,blockNo) = clc * u_stokes(jc,blockNo)*SIN(pi*depth_CellInterface(jc,jk,blockNo)/hlc(jc,blockNo))
               ELSE
                 wlc(jc,jk,blockNo) = 0.0_wp
@@ -895,7 +895,7 @@ CONTAINS
             DO jk = 2, levels
 !              IF ( depth_CellInterface(jc,jk,blockNo)*s_c(jc,blockNo) <= hlc(jc,blockNo) ) THEN
               IF ( ( depth_CellInterface(jc,jk,blockNo)*s_c(jc,blockNo) <= hlc(jc,blockNo) )  &
-                   .AND. ( patch_3D%wet_c(jc,jk,blockNo) .EQ. 1 ) ) THEN
+                   .AND. ( patch_3D%wet_c(jc,jk,blockNo) .EQ. 1 ) .AND. ( hlc(jc,blockNo) .NE. 0 ) ) THEN
                 wlc(jc,jk,blockNo) = clc * u_stokes(jc,blockNo)*SIN(pi*depth_CellInterface(jc,jk,blockNo)/hlc(jc,blockNo))
               ELSE
                 wlc(jc,jk,blockNo) = 0.0_wp
@@ -1327,7 +1327,7 @@ CONTAINS
         DO jk = 2, max_levels
           DO jc = start_index, end_index
             IF ( ( depth_CellInterface(jc,jk,blockNo)*s_c(jc,blockNo) - e_c(jc,blockNo) <= hlc(jc,blockNo) )  &
-                .AND. ( patch_3D%wet_c(jc,jk,blockNo) .EQ. 1 ) ) then
+                .AND. ( patch_3D%wet_c(jc,jk,blockNo) .EQ. 1 ) .AND. hlc(jc,blockNo) .NE. 0 ) THEN
               wlc(jc,jk,blockNo) = clc * u_stokes(jc,blockNo)*SIN(pi*depth_CellInterface(jc,jk,blockNo)/hlc(jc,blockNo))
             ELSE
               wlc(jc,jk,blockNo) = 0.0_wp
