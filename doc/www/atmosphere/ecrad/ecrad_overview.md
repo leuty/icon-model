@@ -25,6 +25,102 @@ By activating **{term}`lredgrid_phys``=.true.`** and specifying the correspondin
 
 For a more detailed description of the reduced radiation grid implementation, see {term}`ICON Tutorial 2024`.
 
+
+(ref_atmosphere_ecrad_outputVars)=
+# Radiation output variables
+
+  These lists should provide a quick overview on output variables for radiation.
+  The variables are defined in {{ '[`mo_nwp_phy_state`]({}/src/atm_phy_nwp/mo_nwp_phy_state.f90)'.format(base_url) }}.
+  Diagnostic ouput variables are often computed in {{ '[`mo_nwp_diagnosis`]({}/src/atm_phy_nwp/mo_nwp_diagnosis.f90)'.format(base_url) }}.
+  The diagnostic derived type is defined in {{ '[`mo_nwp_phy_types`]({}/src/atm_phy_nwp/mo_nwp_phy_types.f90)'.format(base_url) }}.
+
+  Net fluxes are defined as downward positive.
+
+## Shortwave
+
+   Some shortwave output variables exist without and with orographic shading (1) and with slope-dependent and orographic shading (2).
+   The variables ending on either `_os` or `_tan_os` are defined depending on the namelist parameter `islope_rad(dom)` in the `radiation_nml`.
+
+<a name="fradswback">
+
+   | icon variable name | grib2 name<sup><a href="#frad1">1</a></sup>  | direction | specifics      | acc.<sup><a href="#frad2">2</a></sup>        | location      | Description |
+   |--------------------|-------------|-----------|----------------|-------------|---------------|-------------------|
+   | asob_s             | asob_s      | net       |                | x           | surface       | Surface net solar radiation since model start |
+   | asob_t             | asob_t      | net       |                | x           | TOA           | TOA net solar radiation since model start |
+   | asobclr_s          | asob_s_cs   | net       | clear-sky      | x           | surface       | Clear-sky surface net solar radiation since model start |
+   | asod_s             | asod_s      | down      |                | x           | surface       | Surface down solar rad. since model start |
+   | asod_s_os          |             | down      |                | x           | surface (1)   | Surface down solar rad. incl. orographic shading since model start |
+   | asod_s_tan_os      |             | down      |                | x           | surface (2)   | Surface down solar rad. incl. slope-dependent and orographic shading since model start |
+   | asod_t             | asod_t      | down      |                | x           | TOA           | Top down solar radiation |
+   | asodifd_s          | aswdif_s    | down      | diffuse        | x           | surface       | Surface down solar diff. rad. since model start |
+   | asodifu_s          | asdifu_s    | up        | diffuse        | x           | surface       | Surface up solar diff. rad.  since model start|
+   | asodifu_s_os       |             | up        | diffuse        | x           | surface (1)   | Surface up solar diff. incl. orographic shading since model start |
+   | asodifu_s_tan_os   |             | up        | diffuse        | x           | surface (2)   | Surface up solar diff. incl. slope-dependent and orographic shading since model start |
+   | asodird_s          | aswdir_s    | down      | direct         | x           | surface       | Surface down solar direct rad. since model start |
+   | asodird_s_os       |             | down      | direct         | x           | surface (1)   | Surface down solar direct rad. incl. orographic shading since model start |
+   | asodird_s_tan_os   |             | down      | direct         | x           | surface (2)   | Surface down solar direct rad. incl. slope-dependent and orographic shading since model start |
+   | asou_t             | uswrf       | up        |                | x           | TOA           | Top up solar radiation since model start |
+   | sob_s_t_*<sup><a href="#frad3">3</a></sup>| sobs_rad  | net | |             | surface, tile | tile-based shortwave net flux at surface |
+   | sob_s              | sobs_rad    | net       |                |             | surface       | shortwave net flux at surface |
+   | sob_s_os           |             | net       |                |             | surface (1)   | shortwave net flux at surface incl. orographic shading |
+   | sob_s_tan_os       |             | net       |                |             | surface (2)   | shortwave net flux at surface incl. slope-dependent and orgraphic shading |
+   | sob_t              | sobt_rad    | net       |                |             | TOA           | shortwave net flux at TOA |
+   | sobclr_s           | sobs_rad    | net       | clear-sky      |             | surface       | net shortwave clear-sky flux at surface |
+   | sod_t              | sodt_rad    | down      |                |             | surface       | downward shortwave flux at TOA |
+   | sodifd_s           | swdifds_rad | down      | diffuse        |             | surface       | shortwave diffuse downward flux at surface |
+   | sou_s              | swdifus_rad | up        |                |             | surface       | shortwave upward flux at surface |
+   | sou_s_os           |             | up        |                |             | surface (1)   | shortwave upward flux at surface incl. orographic shading |
+   | sou_s_tan_os       |             | up        |                |             | surface (2)   | shortwave upward flux at surface incl. slope-dependent and orographic shading |
+   | sou_t              | uswrf       | up        |                |             | TOA           | shortwave upward flux at TOA |
+   | swflx_dn_clr       | -           | down      | clear-sky      |             | 3d            | shortwave downward clear-sky flux |
+   | swflx_dn           | -           | down      |                |             | 3d            | shortwave downward flux |
+   | swflx_up_clr       | -           | up        | clear_sky      |             | 3d            | shortwave upward clear-sky flux |
+   | swflx_up           | -           | up        |                |             | 3d            | shortwave upward flux |
+   | trsolall           | -           | net       | transmissivity |             | 3d            | shortwave net transmissivity |
+
+
+## Thermal
+
+   | icon variable name | grib2 name<sup><a href="#frad1">1</a></sup>  | direction | specifics      | acc.<sup><a href="#frad2">2</a></sup>        | location | Description |
+   |--------------------|-------------|-----------|----------------|-------------|----------|-------------------|
+   | athb_s             | athb_s      | net       |                | x           | surface  | surface net thermal radiation since model start |
+   | athb_t             | athb_t      | net       |                | x           | TOA      | TOA net thermal radiation since model start |
+   | athbclr_s          | athb_s_cs   | net       | clear-sky      | x           | surface  | clear-sky surface net thermal radiation since model start |
+   | athd_s             | athd_s      | down      |                | x           | surface  | Surface down thermal radiation since model start |
+   | athu_s             | athu_s      | up        |                | x           | surface  | Surface up thermal radiation since model start |
+   | lwflx_dn_clr       | -           | down      | clear-sky      |             | 3d       | longwave downward clear-sky flux |
+   | lwflx_dn           | -           | down      |                |             | 3d       | longwave downward flux |
+   | lwflx_up_clr       | -           | up        | clear-sky      |             | 3d       | longwave upward clear-sky flux |
+   | lwflx_up           | -           | up        |                |             | 3d       | longwave upward flux |
+   | lwflxall           | nlwrf       | net       |                |             | 3d       | longwave net flux |
+   | thb_s_t_*          | thbs_rad    | net       |                |             | surface  | tile-based longwave net flux at surface |
+   | thb_s              | thbs_rad    | net       |                |             | surface  | longwave net flux at surface |
+   | thb_t              | thbt_rad    | net       |                |             | TOA      | thermal net flux at TOA |
+   | thbclr_s           | thbt_rad_cs | net       | clear-sky      |             | surface  | net longwave clear-sky flux at surface |
+   | thu_s              | thus_rad    | up        |                |             | surface  | longwave upward flux at surface |
+
+## Diagnostic for bands PAR, VIS, NIR
+   The bands for diagnostic output are:
+   - PAR : photosynthetically active flux ({math}`400 - 700 nm`)
+   - VIS : visible ({math}`300 - 700 nm`)
+   - NIR : near-infrared ({math}`0.7 - 5 \mu m`)
+
+   | icon variable name    | grib2 name<sup><a href="#frad1">1</a></sup> | direction | specifics   | acc.<sup><a href="#frad2">2</a></sup> | location    | Description |
+   |-----------------------|-----------|-----------|------------------|-------------|-------------|-------------------|
+   | aswflx_par_sfc        | apab_s    | down      |                  | x           | surface     | Downward PAR flux |
+   | aswflx_par_sfc_tan_os |           | down      |                  | x           | surface (2) | Downward PAR flux incl. slope-dependent and orographic shading |
+   | fr_nir_sfc_diff       | -         | down      | diffuse fraction |             | surface     | diffuse fraction of downward near-infrared flux at surface |
+   | fr_par_sfc_diff       | -         | down      | diffuse fraction |             | surface     | diffuse fraction of downward photosynthetically active flux at surface |
+   | fr_vis_sfc_diff       | -         | down      | diffuse fraction |             | surface     | diffuse fraction of downward visible flux at surface |
+   | swflx_nir_sfc         |           | down      |                  |             | surface     | downward near-infrared flux at surface |
+   | swflx_par_sfc         |           | down      |                  |             | surface     | downward photosynthetically active flux at surface |
+   | swflx_par_sfc_tan_os  |           | down      |                  |             | surface (2) | downward photosynthetically active flux at surface incl. slope-dependent and orographic shading |
+   | swflx_vis_sfc         |           | down      |                  |             | surface     | downward visible flux at surface |
+
+1. <a name="frad1"/>The grib2 names in the table refer to the short names resulting from the DWD grib definition files.<a href="#fradswback">{octicon}`undo;1em;pst-color-secondary`</a>
+2. <a name="frad2"/>Output variables starting with the letter `a` are likely "accumulated" since model start. Depending on the switch {term}`lflux_avg`, they contain either averages since model start (`lflux_avg=.true.`) or accumulated values.<a href="#fradswback">{octicon}`undo;1em;pst-color-secondary`</a>
+3. <a name="frad3"/>The asterisk stands for the number of the surface tile.<a href="#fradswback">{octicon}`undo;1em;pst-color-secondary`</a>
+
 (ref_atmosphere_ecrad_aerosol)=
 # Aerosol Input Options
 
@@ -135,6 +231,9 @@ radiation_grid_filename
 
 latm_above_top
   (`&nwp_phy_nml`) Adds an extra layer at the model top to account for the incoming long-wave radiation if set to `.TRUE.`{material-regular}`settings;1em;pst-color-secondary`.
+
+lflux_avg
+  (`&io_nml`) If `.true.`, radiative fluxes are averaged since model start instead of accumulated. Default: `.true.`
 
 irad_aero
   (`&radiation_nml`) Specify aerosol input for radiation. **0:** None, **3:** externally specified (e.g. [](ref_tools_comin)) **6:** {material-regular}`settings;1em;pst-color-secondary` Tegen climatology, **7:** CAMS 3D climatology, **8:** CAMS 3D forecasted, **9:** [](ref_atmosphere_art), **12:** tropospheric Kinne climatology (constant in time), **13:** tropospheric Kinne climatology (time-dependent), **14:** volcanic stratospheric aerosols for CMIP6 (time dependent), **15:** combination of 13 and 14, **18:** tropospheric natural Kinne climatology + volcanic stratospheric aerosols + anthropogenic 'simple plumes' (time-dependent), **19:** as 18 without volcanic stratospheric aerosols
