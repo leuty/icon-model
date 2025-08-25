@@ -54,7 +54,7 @@ MODULE mo_nh_torus_exp
   USE mo_nh_vert_interp_les,  ONLY: vert_intp_linear_1d
   USE mo_grid_config,         ONLY: l_scm_mode
   USE mo_scm_nml,             ONLY: i_scm_netcdf, scm_sfc_temp, scm_sfc_qv, scm_sfc_mom, lscm_icon_ini, &
-     &                              lscm_ls_forcing_ini, lat_scm, lon_scm
+     &                              lscm_ls_forcing_ini, lat_scm, lon_scm, scm_init_filename
   USE mo_lnd_nwp_config,      ONLY: nlev_soil
   USE mo_ext_data_types,      ONLY: t_external_data
   USE mo_read_interface,      ONLY: nf
@@ -919,11 +919,11 @@ MODULE mo_nh_torus_exp
 
     !-------------------------------------------------------------------------
 
-    CALL message(TRIM(routine), 'READING FROM SOUNDING!')
+    CALL message(routine, 'READING FROM SOUNDING!')
 
     !open netcdf
-    CALL nf (nf90_open('init_SCM.nc', NF90_NOWRITE, fileid), &
-      & TRIM(routine)//'   File init_SCM.nc cannot be opened (profile)')
+    CALL nf (nf90_open(TRIM(scm_init_filename), NF90_NOWRITE, fileid), &
+      & TRIM(routine)//'   SCM init file cannot be opened (profile)')
 
     CALL nf (nf90_inq_dimid(fileid, 'lev', dimid), routine)
     CALL nf (nf90_inquire_dimension(fileid, dimid, len = klev), routine)
@@ -987,7 +987,7 @@ MODULE mo_nh_torus_exp
     nf_status  = nf90_inq_varid (fileid, 'o3IN', varid)
     nf_status2 = nf90_get_var   (fileid, varid , tempf)
     IF (nf_status /= nf90_noerr) THEN
-      CALL message (routine,'O3 not available in init_SCM.nc.  It will be set to 0.')
+      CALL message (routine,'O3 not available in SCM init file.  It will be set to 0.')
       o3s=0.0_wp
     ELSE
       o3s=tempf(:,1)
@@ -1048,7 +1048,7 @@ MODULE mo_nh_torus_exp
 
     !Check if the file is written in descending order
     IF(zs(1) < zs(klev)) THEN
-         CALL finish (TRIM(routine), 'Writing souding data in descending order!')
+         CALL finish (routine, 'Writing souding data in descending order!')
     ENDIF
 
     !Now perform interpolation to grid levels assuming:
@@ -1121,11 +1121,11 @@ MODULE mo_nh_torus_exp
 
     !-------------------------------------------------------------------------
 
-    CALL message(TRIM(routine), 'READING FROM SOUNDING!')
+    CALL message(routine, 'READING FROM SOUNDING!')
 
     !open netcdf
-    CALL nf (nf90_open('init_SCM.nc', NF90_NOWRITE, fileid), &
-      & TRIM(routine)//'   File init_SCM.nc cannot be opened (profile)')
+    CALL nf (nf90_open(TRIM(scm_init_filename), NF90_NOWRITE, fileid), &
+      & TRIM(routine)//'   SCM init file cannot be opened (profile)')
 
     CALL nf (nf90_inq_dimid(fileid, 'lev', dimid), routine)
     CALL nf (nf90_inquire_dimension(fileid, dimid, len = klev), routine)
@@ -1193,7 +1193,7 @@ MODULE mo_nh_torus_exp
     nf_status  = nf90_inq_varid (fileid, 'o3', varid)
     nf_status2 = nf90_get_var   (fileid, varid , tempf)
     IF (nf_status /= nf90_noerr) THEN
-      CALL message (routine,'O3 not available in init_SCM.nc.  It will be set to 0.')
+      CALL message (routine,'O3 not available in SCM init file.  It will be set to 0.')
       o3s=0.0_wp
     ELSE
       o3s=tempf(1,1,klev:1:-1,1)
@@ -1260,7 +1260,7 @@ MODULE mo_nh_torus_exp
 
     !Check if the file is written in descending order
     IF(zs(1) < zs(klev)) THEN
-         CALL finish (TRIM(routine), 'Writing souding data in descending order!')
+         CALL finish (routine, 'Writing souding data in descending order!')
     ENDIF
 
     !Now perform interpolation to grid levels assuming:
@@ -1658,10 +1658,10 @@ MODULE mo_nh_torus_exp
 
     !--------------------------------------------------
 
-    CALL message(TRIM(routine), 'READING INITIAL SOIL PROFILE!')
+    CALL message(routine, 'READING INITIAL SOIL PROFILE!')
 
-    CALL nf (nf90_open('init_SCM.nc', NF90_NOWRITE, fileid), &
-      & TRIM(routine)//'   File init_SCM.nc cannot be opened (soil)')
+    CALL nf (nf90_open(TRIM(scm_init_filename), NF90_NOWRITE, fileid), &
+      & TRIM(routine)//'   SCM init file cannot be opened (soil)')
 
     CALL nf (nf90_inq_dimid(fileid, 'nt', dimid), routine)
     CALL nf (nf90_inquire_dimension(fileid, dimid, len = nt), routine)
@@ -1688,7 +1688,7 @@ MODULE mo_nh_torus_exp
 !       write(*,*) 't_so_in', t_so_in
         DEALLOCATE(tempf)
       ELSE
-        WRITE(*,*) 'T_SO in init_SCM.nc not enough levels: levTsoil= ', levTsoil, &
+        WRITE(*,*) 'T_SO in SCM init file not enough levels: levTsoil= ', levTsoil, &
                    '  nlev_soil+1= ', nlev_soil+1, '  ... cold start'
         t_so_in   = 0.0_wp
       END IF
@@ -1703,7 +1703,7 @@ MODULE mo_nh_torus_exp
 !       write(*,*) 'w_so_in', w_so_in
         DEALLOCATE(tempf)
       ELSE
-        WRITE(*,*) 'W_SO in init_SCM.nc not enough levels: levWsoil= ', levWsoil, &
+        WRITE(*,*) 'W_SO in SCM init file not enough levels: levWsoil= ', levWsoil, &
                    '  nlev_soil= ', nlev_soil, '  ... cold start'
         w_so_in   = 0.0_wp
       END IF
@@ -1738,7 +1738,7 @@ MODULE mo_nh_torus_exp
 
     !--------------------------------------------------
 
-    CALL message(TRIM(routine), &
+    CALL message(routine, &
     'READING INITIAL SOIL PROFILE not implemented for unified format')
 
   END SUBROUTINE read_soil_profile_nc_uf
@@ -1760,10 +1760,10 @@ MODULE mo_nh_torus_exp
     REAL(wp):: tmp_nf(1)
 
     !--------------------------------------------------
-    CALL message(TRIM(routine), 'READING lat/lon FOR SCM')
+    CALL message(routine, 'READING lat/lon FOR SCM')
 
-    CALL nf (nf90_open('init_SCM.nc', NF90_NOWRITE, fileid), &
-      & TRIM(routine)//'   File init_SCM.nc cannot be opened (lat/lon)')
+    CALL nf (nf90_open(TRIM(scm_init_filename), NF90_NOWRITE, fileid), &
+      & TRIM(routine)//'   SCM init file cannot be opened (lat/lon)')
 
     CALL nf (nf90_inq_varid(fileid, 'latitude', varid) , routine)
     CALL nf (nf90_get_var(fileid, varid, tmp_nf), routine)
@@ -1801,10 +1801,10 @@ MODULE mo_nh_torus_exp
 
     !--------------------------------------------------
 
-    CALL message(TRIM(routine), 'READING lat/lon FOR SCM')
+    CALL message(routine, 'READING lat/lon FOR SCM')
 
-    CALL nf (nf90_open('init_SCM.nc', NF90_NOWRITE, fileid), &
-      & TRIM(routine)//'   File init_SCM.nc cannot be opened (lat/lon)')
+    CALL nf (nf90_open(TRIM(scm_init_filename), NF90_NOWRITE, fileid), &
+      & TRIM(routine)//'   SCM init file cannot be opened (lat/lon)')
 
     CALL nf (nf90_inq_dimid(fileid, 'lat', dimid), routine)
     CALL nf (nf90_inquire_dimension(fileid, dimid, len = lat), routine)
@@ -1833,10 +1833,9 @@ MODULE mo_nh_torus_exp
 
   !--------------------------------------------------
   ! read external parameters from SCM netCDF file
-
   SUBROUTINE read_ext_scm_nc (num_lcc,soiltyp_scm,fr_land_scm,plcov_mx_scm,lai_mx_scm, &
                               rootdp_scm,rsmin_scm,z0_scm,topo_scm,emis_rad_scm,&
-                              lu_class_fr,lctype_scm)
+                              lu_class_fr)
 
     INTEGER , INTENT(IN)  :: num_lcc          ! number of landcover classes
     INTEGER , INTENT(OUT) :: soiltyp_scm      ! soil type
@@ -1849,7 +1848,6 @@ MODULE mo_nh_torus_exp
     REAL(wp), INTENT(OUT) :: topo_scm         ! height above sea level
     REAL(wp), INTENT(OUT) :: emis_rad_scm     ! emisivity
     REAL(wp), INTENT(OUT) :: lu_class_fr(:)   ! land use classes fractions
-    CHARACTER(len=max_char_length),INTENT(OUT) ::lctype_scm !data source for land use
     INTEGER :: nCLU
 
     INTEGER :: varid
@@ -1862,18 +1860,17 @@ MODULE mo_nh_torus_exp
 
     !-------------------------------------------------
 
-    CALL message(TRIM(routine), 'READING EXTERNAL DATA FOR SCM')
-    lctype_scm=""
+    CALL message(routine, 'READING EXTERNAL DATA FOR SCM')
 
-    CALL nf (nf90_open('init_SCM.nc', NF90_NOWRITE, fileid), &
-      & TRIM(routine)//'   File init_SCM.nc cannot be opened (external)')
+    CALL nf (nf90_open(TRIM(scm_init_filename), NF90_NOWRITE, fileid), &
+      & TRIM(routine)//'   SCM init file cannot be opened (external)')
 
     CALL nf (nf90_inq_dimid(fileid, 'nclass_lu', dimid), routine)
     CALL nf (nf90_inquire_dimension(fileid, dimid, len = nCLU), routine)
 
     IF (nCLU .NE. num_lcc) THEN
       CALL finish( 'testcases/mo_nh_torus_exp.f90',&
-      'Number of LU classes in init_SCM.nc does not match num_lcc')
+      'Number of LU classes in SCM init file does not match num_lcc')
     ENDIF
 
     CALL nf (nf90_inq_varid(fileid, 'FR_LAND',   varid), routine)
@@ -1908,7 +1905,6 @@ MODULE mo_nh_torus_exp
      emis_rad_scm = tmp_nf(1)
     CALL nf (nf90_inq_varid(fileid, 'LU_CLASS_FRACTION', varid), routine)
     CALL nf (nf90_get_var(fileid, varid,lu_class_fr), routine)
-    CALL nf (nf90_get_att(fileid, varid, 'lctype', lctype_scm), routine)
 
     IF ( get_my_global_mpi_id() == 0 ) THEN
       print *,TRIM(routine),'  printing external surface parameters for SCM'
@@ -1961,7 +1957,7 @@ MODULE mo_nh_torus_exp
 
     !------------------------------------------------
 
-    CALL message(TRIM(routine), &
+    CALL message(routine, &
       'READING EXTERNAL DATA FOR SCM not implemented for unified format')
 
     lctype_scm= "GLOBCOVER2009"
@@ -1969,8 +1965,8 @@ MODULE mo_nh_torus_exp
 !    z0_scm    = 0.035_wp
 
 
-    CALL nf (nf90_open('init_SCM.nc', NF90_NOWRITE, fileid), &
-      & TRIM(routine)//'   File init_SCM.nc cannot be opened (external)')
+    CALL nf (nf90_open(TRIM(scm_init_filename), NF90_NOWRITE, fileid), &
+      & TRIM(routine)//'   SCM init file cannot be opened (external)')
 
     CALL nf (nf90_inquire_attribute(fileid, varid, 'z0', attnum = attid), routine)
     CALL nf (nf90_get_att(fileid, varid, 'z0', z0_scm), routine)
