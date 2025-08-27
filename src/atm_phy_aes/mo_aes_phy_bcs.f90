@@ -105,6 +105,7 @@ CONTAINS
     &                     mtime_old,    &
     &                     dtadv_loc    ) ! out
 
+    USE mo_physical_constants, ONLY: tf_salt
     ! Arguments
 
     TYPE(t_patch)  , TARGET   ,INTENT(in)    :: patch          !< description of this grid
@@ -207,7 +208,7 @@ CONTAINS
           !$ACC LOOP GANG VECTOR COLLAPSE(2)
           DO jb = jbs, jbe
             DO jc = jcs, jce
-              IF (sst_dat(jc,1,jb,1) > 0.0_wp) THEN
+              IF (sst_dat(jc,1,jb,1) > 0.0_wp .AND. field%sftof(jc,jb) > 0._wp) THEN
                 field%ts_tile(jc,jb,iwtr) = sst_dat(jc,1,jb,1)
               END IF
             END DO
@@ -223,11 +224,17 @@ CONTAINS
           !$ACC LOOP GANG VECTOR COLLAPSE(2)
           DO jb = jbs, jbe
             DO jc = jcs, jce
-              field%seaice(jc,jb) = sic_dat(jc,1,jb,1)   !160:164
-              field%seaice(jc,jb) = MERGE(0.99_wp, field%seaice(jc,jb),  &
-                                              & field%seaice(jc,jb) > 0.99_wp)
-              field%seaice(jc,jb) = MERGE(0.0_wp, field%seaice(jc,jb),  &
-                                              & field%seaice(jc,jb) <= 0.01_wp)
+              IF (field%sftof(jc,jb) > 0._wp) THEN
+                field%seaice(jc,jb) = sic_dat(jc,1,jb,1)   !160:164
+                field%seaice(jc,jb) = MERGE(0.99_wp, field%seaice(jc,jb),  &
+                                                & field%seaice(jc,jb) > 0.99_wp)
+                field%seaice(jc,jb) = MERGE(0.0_wp, field%seaice(jc,jb),  &
+                                                & field%seaice(jc,jb) <= 0.01_wp)
+                field%ts_tile(jc,jb,iwtr) = MERGE(tf_salt, MAX(field%ts_tile(jc,jb,iwtr), tf_salt), &
+                                                & field%seaice(jc,jb) > 0.0_wp)
+              ELSE
+                field%seaice(jc,jb) = 0.0_wp
+              END IF
             END DO
           END DO
           !$ACC END PARALLEL

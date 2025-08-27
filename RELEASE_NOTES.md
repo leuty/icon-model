@@ -18,6 +18,7 @@ AES Physics:
 - Fixes for:
   - GPU port of solar_parameters() (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/776)
   - tropopause height calculation when using vertical nesting, and initialises tmix with nested mesh dt_loc (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/858)
+  - Implemented additional checks and fixes for using 6-hourly SST/SIC data
 
 NWP Physics:
 
