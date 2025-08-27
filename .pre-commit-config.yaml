@@ -86,7 +86,11 @@ repos:
             # Apply to selected directories only:
             ragnarok |
             test/unit-tests
-          )/.*\.([fF]\d*|incf?)$
+          )/.*\.([fF]\d*|incf?)$ |
+          ^(
+            # Apply to selected files only:
+            src/shr_horizontal/mo_rbf_coefficients_io.f90
+          )$
   - repo: https://github.com/fsfe/reuse-tool
     rev: v5.0.2
     hooks:

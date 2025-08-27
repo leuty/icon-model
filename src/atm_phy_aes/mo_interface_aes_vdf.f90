@@ -46,6 +46,8 @@ MODULE mo_interface_aes_vdf
   USE mo_impl_constants      ,ONLY: min_rlcell_int, max_dom
   USE mo_loopindices         ,ONLY: get_indices_c
   USE mo_nh_testcases_nml    ,ONLY: is_dry_cbl, isrfc_type
+  USE mo_fortran_tools       ,ONLY: init
+
 
 #ifndef __NO_JSBACH__
   USE mo_jsb_time            ,ONLY: is_time_ltrig_rad_m1
@@ -283,11 +285,9 @@ CONTAINS
     !$ACC   CREATE(qnc_hori_tend, qni_hori_tend) ASYNC(1)
 
     IF ( is_dry_cbl ) THEN
-      !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1)
-      field% qtrc_phy(:,:,:,iqv) = 0._wp
-      field% qtrc_phy(:,:,:,iqi) = 0._wp
-      field% qtrc_phy(:,:,:,iqc) = 0._wp
-      !$ACC END KERNELS
+      CALL init(field% qtrc_phy(:,:,:,iqv), lacc=.TRUE.)
+      CALL init(field% qtrc_phy(:,:,:,iqi), lacc=.TRUE.)
+      CALL init(field% qtrc_phy(:,:,:,iqc), lacc=.TRUE.)
     END IF
 
     !$NOser verbatim zaa = 0._wp

@@ -40,7 +40,8 @@ MODULE mo_run_nml
                          & config_restart_filename  => restart_filename, &
                          & config_profiling_output => profiling_output, &
                          & config_check_uuid_gracefully => check_uuid_gracefully, &
-                         & cfg_modelTimeStep => modelTimeStep
+                         & cfg_modelTimeStep => modelTimeStep,        &
+                         & config_disable_print_gpu_mem => l_disable_print_gpu_mem
 #ifdef HAVE_RADARFWO
   USE radar_data_namelist, ONLY: radar_config_radarnmlfile => radarnmlfile
 #endif
@@ -52,7 +53,7 @@ MODULE mo_run_nml
   USE mo_io_units,       ONLY: nnml, nnml_output
   USE mo_namelist,       ONLY: position_nml, positioned, open_nml, close_nml
   USE mo_mpi,            ONLY: my_process_is_stdio
-  USE mo_master_control,      ONLY: use_restart_namelists
+  USE mo_master_control, ONLY: use_restart_namelists
   USE mo_util_string,    ONLY: one_of
   USE mo_nml_annotate,   ONLY: temp_defaults, temp_settings
 
@@ -136,6 +137,9 @@ CONTAINS
     !> substition patterns)
     CHARACTER(len=MAX_CHAR_LENGTH) :: restart_filename
 
+    !> default is GPU memory usage is enabled
+    LOGICAL :: l_disable_print_gpu_mem
+
     NAMELIST /run_nml/ ltestcase, ldynamics, iforcing, ltransport,     &
       &                ntracer, lart, ldass_lhn, luse_radarfwo,        &
       &                radarnmlfile, ltimer,                           &
@@ -144,7 +148,8 @@ CONTAINS
       &                logmaxrss_all, msg_level, test_mode, output,    &
       &                msg_timestamp, debug_check_level,               &
       &                restart_filename, profiling_output,             &
-      &                check_uuid_gracefully, modelTimeStep
+      &                check_uuid_gracefully, modelTimeStep,           &
+      &                l_disable_print_gpu_mem
 
 
     !------------------------------------------------------------
@@ -194,6 +199,8 @@ CONTAINS
     restart_filename = "<gridfile>_restart_<mtype>_<rsttime>.<extension>"
     profiling_output = config_profiling_output
     check_uuid_gracefully = .FALSE.
+
+    l_disable_print_gpu_mem = .FALSE.
 
     !------------------------------------------------------------------
     ! If this is a resumed integration, overwrite the defaults above
@@ -293,6 +300,8 @@ CONTAINS
     config_check_uuid_gracefully = check_uuid_gracefully
 
     cfg_modelTimeStep       = modelTimeStep
+
+    config_disable_print_gpu_mem = l_disable_print_gpu_mem
 
     IF (TRIM(output(1)) /= "default") THEN
       config_output(:) = output(:)

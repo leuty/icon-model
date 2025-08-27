@@ -52,6 +52,11 @@ include:
       - ${PYVENV}
     policy: pull
   interruptible: true
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+      when: always
+    - when: manual
+      interruptible: false
 
 .common_levante:
   extends: .common
@@ -66,8 +71,6 @@ include:
     - module purge
     - module load git gcc/11.2.0-gcc-11.2.0 python3
     - !reference [.common, before_script]
-  tags:
-    - levante, hpc, dkrz
 
 .common_levante_gcc:
   extends: .common_levante

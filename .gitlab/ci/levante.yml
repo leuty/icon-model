@@ -22,6 +22,7 @@ workflow:
           --disable-comin
           --disable-coupling
           --disable-ecrad
+          --disable-fcgroup-DACE
           --disable-jsbach
           --disable-les
           --disable-nwp
@@ -31,6 +32,7 @@ workflow:
           --disable-upatmo
           --disable-yaxt
           --enable-bundled-python=mtime
+          --enable-separate-mods
         BUILD_SUBMODULES: >-
           externals/cdi
           externals/fortran-support
@@ -50,6 +52,7 @@ workflow:
           --disable-upatmo
           --enable-bundled-python=mtime
           --enable-les
+          --enable-separate-mods
         BUILD_SUBMODULES: >-
           externals/cdi
           externals/fortran-support
@@ -62,14 +65,14 @@ workflow:
         CONFIG_ARGS: >-
           --disable-art
           --disable-comin
-          --disable-coupling
+          --enable-coupling
           --disable-ecrad
-          --disable-jsbach
+          --enable-jsbach
           --disable-les
           --disable-nwp
-          --disable-ocean
+          --enable-ocean
           --disable-quincy
-          --disable-rte-rrtmgp
+          --enable-rte-rrtmgp
           --disable-upatmo
           --disable-waves
           --disable-yaxt
@@ -80,35 +83,29 @@ workflow:
           externals/cdi
           externals/fortran-support
           externals/iconmath
+          externals/jsbach
           externals/mtime
+          externals/rte-rrtmgp
+          externals/yac
+          externals/yaxt
 
 include:
+  - .gitlab/ci/git.yml
   - project: "anw_dienste/ci-templates"
     file: ".slurm-ci.yml"
 
 .common:
-  extends: .default
+  extends:
+    - .default
+    - .git_sparse
   variables:
     SCHEDULER_PARAMETERS: >-
       --account=ka1125
       ${EXTRA_SCHEDULER_PARAMETERS}
-    GIT_STRATEGY: empty
-    SPARSE_PATTERNS:
-    SUBMODULES:
-  before_script:
-    - module purge
-    - module load git
-    - git init --quiet .
-    - git sparse-checkout set --no-cone -- ${SPARSE_PATTERNS}
-    - git remote add origin "${CI_REPOSITORY_URL}"
-    - git fetch --filter=blob:none --depth=1 --jobs=4 origin "${CI_COMMIT_SHA}"
-    - git checkout --quiet FETCH_HEAD
-    - git submodule update --init --depth=1 --jobs=4 -- ${SUBMODULES}
+  interruptible: true
   rules:
     - if: $CI_MERGE_REQUEST_ID
-      when: always
-    - when: manual
-  interruptible: true
+    - interruptible: false
 
 build:
   extends: .common
@@ -117,7 +114,10 @@ build:
     EXTRA_SCHEDULER_PARAMETERS: >-
       --partition=shared
       --ntasks=${JOB_COUNT}
-      --time=20:00
+      --time=15:00
+    SHMEM_DIR: /dev/shm/icon-${CI_JOB_NAME}-${CI_JOB_ID}
+    SOURCE_DIR: ${SHMEM_DIR}/icon
+    BUILD_DIR: ${SOURCE_DIR}
     SPARSE_PATTERNS: >-
       /configure /utils/ /*.in /run/*.in /src/ /support/ /config/dkrz/
     SUBMODULES: ${BUILD_SUBMODULES}
@@ -127,9 +127,45 @@ build:
       --output-sync=target
       V=1
   script:
-    - ( set -x; "${CI_PROJECT_DIR}/config/dkrz/${CONFIG_WRAPPER}" ${CONFIG_ARGS} )
-    - make
-    - sed -i "s|${CI_PROJECT_DIR}|@CI_PROJECT_DIR@|g" run/SETUP.config
+    # We put the whole script into a single subshell to be able to trap the EXIT
+    # pseudo-signal, which we need to copy the job artifacts to
+    # ${CI_PROJECT_DIR} (where GitLab can find them) and to clean up the
+    # /dev/shm directory regardless of whether the job succeeds.
+    - |
+      # Configure and build
+      time (
+        set -e
+        finalize ()
+        {
+          rsync "${BUILD_DIR}/" \
+            --include='/bin/icon' \
+            --include='/externals/mtime/build/python/mtime/**' \
+            --include='/run/SETUP.config' \
+            --include='*/' \
+            --include='CMakeCache.txt' \
+            --include='config.log' \
+            --exclude='*' \
+            "${CI_PROJECT_DIR}" \
+            --archive \
+            --compress \
+            --copy-unsafe-links \
+            --human-readable \
+            --prune-empty-dirs \
+            --verbose
+          rm -rf "${SHMEM_DIR}"
+        }
+        trap finalize EXIT
+
+        set -x
+
+        mkdir -p "${BUILD_DIR}"
+
+        ( cd "${BUILD_DIR}" && "${SOURCE_DIR}/config/dkrz/${CONFIG_WRAPPER}" ${CONFIG_ARGS} )
+
+        make -C "${BUILD_DIR}"
+
+        sed -i "s|${BUILD_DIR}|@CI_PROJECT_DIR@|g" "${BUILD_DIR}/run/SETUP.config"
+      )
   artifacts:
     when: always
     paths:
@@ -143,19 +179,26 @@ build:
   extends: .common
   needs: [build]
   variables:
+    MKEXP_NAME: ${CI_JOB_NAME}
+    MKEXP_DIR: run/examples
+    MKEXP_FILE: ${MKEXP_DIR}/${MKEXP_NAME}.config
+    MKEXP_EXTRA_ARGS:
+    REQUIRED_NODES: 1
     CPU_SCHEDULER_PARAMETERS: >-
       --partition=compute
       --time=05:00
+      --nodes=${REQUIRED_NODES}
     GPU_SCHEDULER_PARAMETERS: >-
       --partition=gpu
       --gpus=4
       --time=05:00
     SPARSE_PATTERNS: >-
       /utils/ /run/mkexp/
-      /run/examples/${CI_JOB_NAME}.config
+      /${MKEXP_FILE}
       /run/dict.iconam.mpim
       /run/add_run_routines
-    SUBMODULES: utils/mkexp
+      /data
+    SUBMODULES: utils/mkexp externals/jsbach
     PYTHONPATH: ${CI_PROJECT_DIR}/externals/mtime/build/python
     MKEXP_PATH: ${CI_PROJECT_DIR}/run
   before_script:
@@ -163,8 +206,28 @@ build:
     - sed -i "s|@CI_PROJECT_DIR@|${CI_PROJECT_DIR}|g" run/SETUP.config
     - module load python3
   script:
-    - utils/mkexp/mkexp run/examples/${CI_JOB_NAME}.config WORK_ROOT='$MODEL_ROOT' DATA_ROOT='$MODEL_ROOT'
+    - >-
+      utils/mkexp/mkexp "${MKEXP_FILE}"
+      WORK_ROOT='$MODEL_ROOT' DATA_ROOT='$MODEL_ROOT'
+      EXP_ID="${CI_JOB_NAME}"
+      jobs.run.nodes="${REQUIRED_NODES}"
+      ${MKEXP_EXTRA_ARGS}
     - ./experiments/${CI_JOB_NAME}/scripts/${CI_JOB_NAME}.run_start
 
 bubble:
   extends: .common_mkexp_run
+
+aes_coupled:
+  extends: .common_mkexp_run
+  rules:
+    - if: $BUILDER_NAME != "levante_intel_hybrid"
+      when: never
+    - !reference [.common, rules]
+  variables:
+    REQUIRED_NODES: 4
+    MKEXP_DIR: run/checksuite.icon-dev
+    MKEXP_NAME: test_aes_coupled
+    # TODO: re-enable restart test when fixed
+    MKEXP_EXTRA_ARGS: >-
+      EXP_OPTIONS=output/coupled_test,serial,test/suite
+      jobs.run_restart_start...hide=true

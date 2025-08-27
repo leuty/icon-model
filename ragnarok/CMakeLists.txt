@@ -23,6 +23,13 @@ project(
 
 option(BUILD_SHARED_LIBS "Build shared libraries" ON)
 
+option(RGK_ENABLE_STANDALONE "Build standalone" OFF)
+
+set(RGK_BINDINGS
+    "none"
+    CACHE STRING "At the moment, none is supported."
+)
+
 # KokkosConfig.cmake overrides the CMAKE_CXX_EXTENSIONS cache variable. We do
 # not want our targets (some of which might not even depend on Kokkos) to be
 # affected by that. Below, we save the current value of the variable (in case

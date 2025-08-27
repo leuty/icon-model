@@ -816,7 +816,6 @@ CONTAINS
       DO jb = all_cells%start_block, all_cells%end_block
         CALL get_index_range(all_cells, jb, i_startidx_c, i_endidx_c)
         !$ACC PARALLEL DEFAULT(PRESENT) PRIVATE(dz_old, dz_new, z_change) ASYNC(1) IF(lzacc)
-        !$ACC LOOP SEQ
         DO jc = i_startidx_c, i_endidx_c
           IF (dolic_c(jc,jb) > 0) THEN
 
@@ -857,7 +856,6 @@ CONTAINS
             ENDDO
 
             !! Loop through T and S
-            !$ACC LOOP SEQ
             DO jt = 1,2
 
               IF (p_oce_sfc%top_dilution_coeff(jc,jb) > 1.0_wp) THEN
