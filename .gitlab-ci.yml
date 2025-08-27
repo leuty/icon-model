@@ -86,6 +86,8 @@ Licenses:
       See also ${CI_PROJECT_URL}/-/blob/${CI_DEFAULT_BRANCH}/CONTRIBUTING.md#coding-style.\n${DEFAULT}"
         exit 1
       }
+    # The check_license.py script does not ignore git submodules:
+    - git submodule --quiet deinit --force --all 2>/dev/null
     - ${CI_PROJECT_DIR}/scripts/ci_scripts/check_license.py
 
 Coding Style:
