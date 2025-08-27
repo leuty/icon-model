@@ -1608,13 +1608,11 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
     i_endblk   = p_patch%cells%end_blk(rl_end,i_nchdom)
 
 
-#ifndef __PGI
-!FIXME: PGI + OpenMP produce deadlock in this loop. Compiler bug suspected
 !$OMP PARALLEL DO PRIVATE(jb,jk,i_startidx,i_endidx,ic,jc,jt, &
 !$OMP            ltkeinp_loc,igz0inp_loc,nlevcm,l_hori,nzprv,zvari,zrhon, &
 !$OMP            l_lake,l_sice, &
 !$OMP            ierrstat, errormsg, eroutine) ICON_OMP_DEFAULT_SCHEDULE
-#endif
+
     DO jb = i_startblk, i_endblk
 
       CALL get_indices_c(p_patch, jb, i_startblk, i_endblk, &
@@ -1833,9 +1831,6 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
       ENDDO
 
     ENDDO  ! jb
-#ifndef __PGI
-!$OMP END PARALLEL DO
-#endif
 
     tdc%iinit=-1 !initialization has passed
 

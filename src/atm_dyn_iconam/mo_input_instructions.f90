@@ -29,6 +29,7 @@ MODULE mo_input_instructions
       &                              print_table, finalize_table
     USE mo_var_list_register_utils, ONLY: vlr_group
     USE mo_ocean_nml,          ONLY: lread_ana_oce
+    USE mo_dictionary,         ONLY: t_dictionary
     IMPLICIT NONE
     PRIVATE
 
@@ -412,7 +413,7 @@ CONTAINS
       CALL add_to_list(outGroup, outGroupSize,                                          &
       &    str_list2=(/'to           ','so           ','zos          ','conc         ', &
       &                'u            ','v            ','vn           ','stretch_c    ', &
-      &                'hi           ','hs           '/))
+      &                'hi           ','hs           ','SWPT         '/))
 
     END SUBROUTINE collectGroupOceFgOpt
 
@@ -565,7 +566,6 @@ CONTAINS
             ! may be non-associated.
             IF (ASSOCIATED(curInstruction) .AND. curInstruction%lOptionalFg) THEN
                 curInstruction%lOptionalFg = .FALSE.
-
                 WRITE(message_text,'(a,a,a,i2)') 'Transform ',TRIM(ana_varnames_dict%get( &
                  &                                initicon_config(p_patch%id)%fg_checklist(ivar), linverse=.TRUE.)), &
                  &                               ' into a mandatory first guess field for DOM', p_patch%id
@@ -925,11 +925,12 @@ CONTAINS
     END FUNCTION readInstructionList_fetchStatus
 
 
-    FUNCTION readInstructionListOce_make(p_patch, init_mode_oce) RESULT(resultVar)
+    FUNCTION readInstructionListOce_make(p_patch, init_mode_oce, ana_varnames_dict_oce) RESULT(resultVar)
         TYPE(t_patch), INTENT(IN) :: p_patch
         INTEGER, INTENT(IN) :: init_mode_oce
         ! the resulting list of variable names to be READ together with flags defining which input file may be used
         TYPE(t_readInstructionList), POINTER :: resultVar
+        TYPE (t_dictionary), INTENT(IN) :: ana_varnames_dict_oce
 
         ! local variables
         CHARACTER(LEN = *), PARAMETER :: routine = modname//':readInstructionListOce_make'
@@ -978,16 +979,16 @@ CONTAINS
         DO ivar=1,SIZE(initicon_config(p_patch%id)%fg_checklist)
           IF (initicon_config(p_patch%id)%fg_checklist(ivar) == ' ') EXIT
 
-          curInstruction => resultVar%findInstruction(TRIM(ana_varnames_dict%get( &
-          &                                                  initicon_config(p_patch%id)%fg_checklist(ivar), &
-          &                                                  linverse=.TRUE.)), opt_expand=.FALSE.)
+          curInstruction => resultVar%findInstruction(TRIM(ana_varnames_dict_oce%get( &
+          &                                                      initicon_config(p_patch%id)%fg_checklist(ivar), &
+          &                                                      linverse=.TRUE.)), opt_expand=.FALSE.)
           ! Note that depending on the Namelist settings, not every field listed in
           ! fg_checklist is part of the instruction list. Therefore, curInstruction
           ! may be non-associated.
           IF (ASSOCIATED(curInstruction) .AND. curInstruction%lOptionalFg) THEN
             curInstruction%lOptionalFg = .FALSE.
 
-            WRITE(message_text,'(a,a,a,i2)') 'Transform ',TRIM(ana_varnames_dict%get( &
+            WRITE(message_text,'(a,a,a,i2)') 'Transform ',TRIM(ana_varnames_dict_oce%get( &
             &                                initicon_config(p_patch%id)%fg_checklist(ivar), linverse=.TRUE.)), &
             &                               ' into a mandatory first guess field for DOM', p_patch%id
             CALL message(routine, message_text)
@@ -1002,12 +1003,12 @@ CONTAINS
           DO ivar=1,SIZE(initicon_config(p_patch%id)%ana_checklist)
             IF (initicon_config(p_patch%id)%ana_checklist(ivar) == ' ') EXIT
 
-            curInstruction => resultVar%findInstruction(TRIM(ana_varnames_dict%get( &
+            curInstruction => resultVar%findInstruction(TRIM(ana_varnames_dict_oce%get( &
             &                                                      initicon_config(p_patch%id)%ana_checklist(ivar), &
             &                                                      linverse=.TRUE.)))
             curInstruction%lReadAna = .TRUE.
             curInstruction%lRequireAna = .TRUE.
-            WRITE(message_text,'(a,a,a,i2)') 'Transform ',TRIM(ana_varnames_dict%get( &
+            WRITE(message_text,'(a,a,a,i2)') 'Transform ',TRIM(ana_varnames_dict_oce%get( &
             &                                initicon_config(p_patch%id)%ana_checklist(ivar), linverse=.TRUE.)), &
             &                               ' into a mandatory analysis field for DOM', p_patch%id
             CALL message(routine, message_text)

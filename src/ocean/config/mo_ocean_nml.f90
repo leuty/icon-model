@@ -16,7 +16,7 @@ MODULE mo_ocean_nml
   USE mo_kind,               ONLY: wp, sp
   USE mo_exception,          ONLY: message, warning, message_text, finish
   USE mo_impl_constants,     ONLY: max_char_length, INIT_FROM_RESTART, vname_len, &
-      &                            max_var_ml
+      &                            max_var_ml, MODE_DWDANA_OCE, MODE_IAU_OCE, max_dom
   USE mo_io_units,           ONLY: nnml, nnml_output
   USE mo_namelist,           ONLY: position_nml, positioned, open_nml, close_nml
   USE mo_mpi,                ONLY: my_process_is_stdio
@@ -33,6 +33,7 @@ MODULE mo_ocean_nml
        &                       getTimeDeltaFromDateTime, getTotalSecondsTimeDelta
   USE mo_master_config,      ONLY: my_model_do_restart
   USE mo_time_config,        ONLY: set_tc_timeshift
+  USE mo_initicon_config,    ONLY: dwdana_filename
 
   USE mo_cdi,                ONLY: cdiInqMissval
 
@@ -926,6 +927,10 @@ MODULE mo_ocean_nml
   ! Variables of that type contain a list of all mandatory input fields
   ! This list can include a subset or the entire set of mandatory fields.
 
+  TYPE t_check_input_oce
+    CHARACTER(LEN=vname_len) :: list(max_var_ml)
+  END TYPE t_check_input_oce
+
   LOGICAL  :: use_file_initialConditions  = .false.
   REAL(wp) :: initial_temperature_top     = 16.0_wp    ! reference temperature used for initialization in testcase 46
   REAL(wp) :: initial_temperature_bottom  = 16.0_wp    ! reference temperature used for initialization in testcase 46
@@ -972,8 +977,16 @@ MODULE mo_ocean_nml
   INTEGER  :: init_mode_oce = 1
   LOGICAL  :: lread_ana_oce = .false.
   LOGICAL  :: lconsistency_checks_oce = .true.
-  CHARACTER(LEN=vname_len) :: check_fg_oce(max_var_ml) = " "
-  CHARACTER(LEN=vname_len) :: check_ana_oce(max_var_ml) = " "
+  TYPE(t_check_input_oce) :: check_ana_oce(max_dom)   ! list of mandatory analysis fields.
+                                             ! This list can include a subset or the
+                                             ! entire set of default analysis fields.
+
+  TYPE(t_check_input_oce) :: check_fg_oce(max_dom)   ! All first guess input fields are declared 'optional'
+                                            ! in ICON-O. By adding them to this list, they will become
+                                            ! mandatory, meaning that the model aborts if any of these
+                                            ! fields is missing. On default this list is empty, meaning
+                                            ! that optional first guess fields experience a cold-start
+                                            ! initialization if they are missing. The model does not abort.
   CHARACTER(LEN= max_char_length) :: ana_varnames_map_file_oce = " "
 
 
@@ -1151,8 +1164,9 @@ MODULE mo_ocean_nml
 
   ! NAMELIST/ocean_run_nml/ ignore_land_points
 
-  INTEGER :: i_status, istat
+  INTEGER :: i_status, istat, jg
   INTEGER :: iunit
+  INTEGER :: z_go_init(2)   ! for consistency check
 #if defined(_CRAYFTN) && _RELEASE_MAJOR <= 19
   !Dummy variable needed for a workaround for namelist reading issue on LUMI
   LOGICAL :: l_dummy
@@ -1334,6 +1348,11 @@ MODULE mo_ocean_nml
 
     use_bc_SAL_potential = use_tides_SAL
     CALL message(method_name, "use_bc_SAL_potential acitvated")
+
+    DO jg=1,max_dom
+    check_fg_oce(jg)%list(:) = ''
+    check_ana_oce(jg)%list(:) = ''
+    ENDDO
 
     CALL position_nml ('ocean_initialConditions_nml', status=i_status)
     IF (my_process_is_stdio()) THEN
@@ -1534,6 +1553,22 @@ IF ( dt_shift_oce > 0._wp ) THEN
   CALL finish(method_name,message_text)
 ELSE
   CALL set_tc_timeshift(dt_shift_oce)
+ENDIF
+
+IF ( use_initicono ) THEN
+  z_go_init = (/MODE_DWDANA_OCE,MODE_IAU_OCE/)
+  IF (ALL(z_go_init /= init_mode_oce)) THEN
+    CALL finish( TRIM(method_name),                         &
+      &  'Invalid initialization mode. init_mode_oce must be 1 or 2')
+  ENDIF
+
+  ! Check whether an analysis file is provided, if lread_ana=.TRUE.
+  IF (lread_ana_oce) THEN
+    IF (ana_filename ==' ') THEN
+    CALL finish( TRIM(method_name),                         &
+      &  'oce_ana_filename required, but missing.')
+    ENDIF
+  ENDIF
 ENDIF
 
     ! write the contents of the namelist to an ASCII file

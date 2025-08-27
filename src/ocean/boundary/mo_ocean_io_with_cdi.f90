@@ -49,7 +49,7 @@ MODULE mo_oce_io_with_cdi
 
   !variables
 
-  PUBLIC :: ana_varnames_dict
+  PUBLIC :: ana_varnames_dict_oce
 
   !functions
 
@@ -75,7 +75,7 @@ MODULE mo_oce_io_with_cdi
 
   ! dictionary which maps internal variable names onto
   ! GRIB2 shortnames or NetCDF var names.
-  TYPE (t_dictionary) :: ana_varnames_dict
+  TYPE (t_dictionary) :: ana_varnames_dict_oce
 
 
   TYPE :: t_fetchParams
@@ -108,17 +108,19 @@ CONTAINS
 
 
     CHARACTER(LEN = *), PARAMETER :: routine = modname//':init_oce'
-    INTEGER :: ist
+    INTEGER :: ist, jg
     TYPE(t_readInstructionListPtr) :: inputInstructions(n_dom)
 
     ! Allocate initicono data type
     ALLOCATE (initicono(n_dom), stat=ist)
     IF (ist /= SUCCESS)  CALL finish(routine,'allocation for initicon-oce failed')
 
-    CALL construct_initicono(initicono(n_dom), patch_3d)
+    DO jg=1,n_dom
+      CALL construct_initicono(initicono(jg), patch_3d%p_patch_2D(jg))
+    END DO
 
     ! Read IN the dictionary for the variable names (IF we need it)
-    CALL initVarnamesDict(ana_varnames_dict)
+    CALL initVarnamesDict(ana_varnames_dict_oce, .FALSE.)
 
     ! -----------------------------------------------
     ! make the CDI aware of some custom GRIB keys
@@ -133,13 +135,12 @@ CONTAINS
     CALL cdiDefAdditionalKey("tileIndex")
     CALL cdiDefAdditionalKey("tileAttribute")
 
-
-
     ! -----------------------------------------------
     ! generate analysis/FG input instructions
     ! -----------------------------------------------
-
-    inputInstructions(1)%ptr => readInstructionListOce_make(patch_3d%p_patch_2D(1), init_mode_oce)
+    DO jg=1,n_dom
+      inputInstructions(jg)%ptr => readInstructionListOce_make(patch_3d%p_patch_2D(jg), init_mode_oce, ana_varnames_dict_oce)
+    END DO
 
     ! -----------------------------------------------
     ! READ AND process the input DATA
@@ -155,18 +156,20 @@ CONTAINS
 
     ! read and initialize ICON prognostic fields
     !
-    CALL read_dwdfg_oce(patch_3d, inputInstructions, ocean_state, p_sea_ice, read_initicono)
-    IF(lread_ana_oce) CALL read_dwdana_oce(patch_3d, inputInstructions, ocean_state, p_sea_ice, read_initicono)
+    CALL read_dwdfg_oce(patch_3d%p_patch_2D(:), inputInstructions, ocean_state, p_sea_ice, read_initicono)
+    IF(lread_ana_oce) CALL read_dwdana_oce(patch_3d%p_patch_2D(:), inputInstructions, ocean_state, p_sea_ice, read_initicono)
 
     CALL deallocate_initicono(initicono)
 
     DEALLOCATE (initicono, stat=ist)
     IF (ist /= success) CALL finish(routine,'deallocation for initicon-o failed')
 
-    IF(my_process_is_stdio()) CALL inputInstructions(1)%ptr%printSummary(1)
-    CALL inputInstructions(1)%ptr%destruct()
-    DEALLOCATE(inputInstructions(1)%ptr, stat=ist)
-    IF(ist /= success) CALL finish(routine,'deallocation of an input instruction list failed')
+    DO jg=1,n_dom
+      IF(my_process_is_stdio()) CALL inputInstructions(jg)%ptr%printSummary(jg)
+      CALL inputInstructions(jg)%ptr%destruct()
+      DEALLOCATE(inputInstructions(jg)%ptr, stat=ist)
+      IF(ist /= success) CALL finish(routine,'deallocation of an input instruction list failed')
+    ENDDO
 
   END SUBROUTINE init_oce
 
@@ -185,7 +188,7 @@ CONTAINS
     CALL initicono(1)%finalize()
 
     ! destroy variable name dictionaries:
-    CALL ana_varnames_dict%finalize()
+    CALL ana_varnames_dict_oce%finalize()
 
   END SUBROUTINE deallocate_initicono
 
@@ -203,17 +206,17 @@ CONTAINS
   !! nonfull blocks.
 
 
-  SUBROUTINE construct_initicono(initicono, patch_3d)
+  SUBROUTINE construct_initicono(initicono, p_patch)
 
     TYPE(t_initicono_state), INTENT(INOUT) :: initicono
-    TYPE(t_patch_3d)                       :: patch_3d
+    TYPE(t_patch)                          :: p_patch
 
     ! Local variables: loop control and dimensions
     INTEGER :: nlev, nblks_c, nblks_e
 
-    nlev = patch_3d%p_patch_2D(1)%nlev
-    nblks_c = patch_3d%p_patch_2D(1)%nblks_c
-    nblks_e = patch_3d%p_patch_2D(1)%nblks_e
+    nlev = p_patch%nlev
+    nblks_c = p_patch%nblks_c
+    nblks_e = p_patch%nblks_e
 
     !WS 2017-04-12:  ORDERED was added here to work around a CCE 8.5.5 bug
     !$OMP ORDERED
@@ -351,8 +354,8 @@ CONTAINS
   END SUBROUTINE construct_initicono
 
   ! Read the data from the first-guess file.
-  SUBROUTINE read_dwdfg_oce(patch_3d, inputInstructions, ocean_state, p_sea_ice, read_initicono)
-    TYPE(t_patch_3d), INTENT(INOUT) :: patch_3d
+  SUBROUTINE read_dwdfg_oce(p_patch, inputInstructions, ocean_state, p_sea_ice, read_initicono)
+    TYPE(t_patch), INTENT(INOUT) :: p_patch(:)
     TYPE(t_readInstructionListPtr) :: inputInstructions(n_dom)
     TYPE(t_hydro_ocean_state), INTENT(INOUT) :: ocean_state(:)
     TYPE(t_sea_ice), INTENT(INOUT) :: p_sea_ice
@@ -370,13 +373,14 @@ CONTAINS
         CALL finish(routine, "assertion failed: unknown ocean init_mode")
     END SELECT
 
-    ! Create a request list for all the relevant variable names.
-    requestList => InputRequestList_create()
-    CALL inputInstructions(1)%ptr%fileRequests(requestList, lIsFg = .TRUE.)
-
     DO jg = 1, n_dom
+
+      ! Create a request list for all the relevant variable names.
+      requestList => InputRequestList_create()
+      CALL inputInstructions(jg)%ptr%fileRequests(requestList, lIsFg = .TRUE.)
+
       fgFilename_str(jg) = " "
-      fgFilename_str(jg) = fgFilename(patch_3d%p_patch_2D(jg))
+      fgFilename_str(jg) = fgFilename(p_patch(jg))
 
       IF (my_process_is_stdio()) THEN
         ! consistency check: check for duplicate file names which may
@@ -398,15 +402,15 @@ CONTAINS
       ENDIF  ! p_io
       IF (ana_varnames_map_file /= ' ') THEN
 
-        CALL requestList%readFile(patch_3d%p_patch_2D(jg), TRIM(fgFilename_str(jg)), .TRUE., &
-        &                       opt_dict = ana_varnames_dict)
+        CALL requestList%readFile(p_patch(jg), TRIM(fgFilename_str(jg)), .TRUE., &
+        &                       opt_dict = ana_varnames_dict_oce)
       ELSE
-        CALL requestList%readFile(patch_3d%p_patch_2D(jg), TRIM(fgFilename_str(jg)), .TRUE.)
+        CALL requestList%readFile(p_patch(jg), TRIM(fgFilename_str(jg)), .TRUE.)
       END IF
       IF(my_process_is_stdio()) THEN
         CALL requestList%printInventory()
         IF(lconsistency_checks_oce) THEN
-          CALL requestList%checkRuntypeAndUuids([CHARACTER(LEN=1)::], gridUuids(patch_3d%p_patch_2D), lIsFg=.TRUE., &
+          CALL requestList%checkRuntypeAndUuids([CHARACTER(LEN=1)::], gridUuids(p_patch), lIsFg=.TRUE., &
           &  lHardCheckUuids=.NOT.check_uuid_gracefully)
         END IF
       END IF
@@ -422,8 +426,8 @@ CONTAINS
   END SUBROUTINE read_dwdfg_oce
 
   ! Read data from analysis files.
-  SUBROUTINE read_dwdana_oce(patch_3d, inputInstructions, ocean_state, p_sea_ice, read_initicono)
-    TYPE(t_patch_3d), INTENT(INOUT) :: patch_3d
+  SUBROUTINE read_dwdana_oce(p_patch, inputInstructions, ocean_state, p_sea_ice, read_initicono)
+    TYPE(t_patch), INTENT(INOUT) :: p_patch(:)
     TYPE(t_readInstructionListPtr) :: inputInstructions(n_dom)
     TYPE(t_hydro_ocean_state), INTENT(INOUT), TARGET :: ocean_state(:)
     TYPE(t_sea_ice), TARGET, INTENT(INOUT) :: p_sea_ice
@@ -457,7 +461,7 @@ CONTAINS
     ! Scan the input files AND distribute the relevant variables across the processes.
     DO jg = 1, n_dom
       anaFilename_str(jg) = ""
-      anaFilename_str(jg) = anaFilename(patch_3d%p_patch_2D(jg))
+      anaFilename_str(jg) = anaFilename(p_patch(jg))
 
       IF (my_process_is_stdio()) THEN
         ! consistency check: check for duplicate file names which may
@@ -479,10 +483,10 @@ CONTAINS
           CALL message(routine, 'read oce_ANA fields from '//TRIM(anaFilename_str(jg)))
         ENDIF  ! p_io
         IF (ana_varnames_map_file /= ' ') THEN
-          CALL requestList%readFile(patch_3d%p_patch_2D(jg), TRIM(anaFilename_str(jg)), .FALSE., &
-          &                       opt_dict = ana_varnames_dict)
+          CALL requestList%readFile(p_patch(jg), TRIM(anaFilename_str(jg)), .FALSE., &
+          &                       opt_dict = ana_varnames_dict_oce)
         ELSE
-          CALL requestList%readFile(patch_3d%p_patch_2D(jg), TRIM(anaFilename_str(jg)), .FALSE.)
+          CALL requestList%readFile(p_patch(jg), TRIM(anaFilename_str(jg)), .FALSE.)
         END IF
       END IF
     END DO
@@ -499,18 +503,18 @@ CONTAINS
           CASE DEFAULT
             incrementsList = [CHARACTER(LEN=1) :: ]
         END SELECT
-        CALL requestList%checkRuntypeAndUuids(incrementsList, gridUuids(patch_3d%p_patch_2D), lIsFg = .FALSE., &
+        CALL requestList%checkRuntypeAndUuids(incrementsList, gridUuids(p_patch), lIsFg = .FALSE., &
           &    lHardCheckUuids = .NOT.check_uuid_gracefully)
 #else
         SELECT CASE(init_mode_oce)
           CASE(MODE_IAU_OCE)
             incrementsList_IAU_OCE = (/'u  ', 'v  ', 'to', 'so ', 'zos' /)
-            CALL requestList%checkRuntypeAndUuids(incrementsList_IAU_OCE, gridUuids(patch_3d%p_patch_2D), lIsFg = .FALSE., &
+            CALL requestList%checkRuntypeAndUuids(incrementsList_IAU_OCE, gridUuids(p_patch), lIsFg = .FALSE., &
               &    lHardCheckUuids = .NOT.check_uuid_gracefully)
             write(0,*) "incrementsList_IAU_OCE: ", incrementsList_IAU_OCE
           CASE DEFAULT
             incrementsList_DEFAULT = (/' '/)
-            CALL requestList%checkRuntypeAndUuids(incrementsList_DEFAULT, gridUuids(patch_3d%p_patch_2D), lIsFg = .FALSE., &
+            CALL requestList%checkRuntypeAndUuids(incrementsList_DEFAULT, gridUuids(p_patch), lIsFg = .FALSE., &
               &    lHardCheckUuids = .NOT.check_uuid_gracefully)
         END SELECT
 #endif
@@ -520,7 +524,7 @@ CONTAINS
     SELECT CASE(init_mode_oce)
       CASE(MODE_DWDANA_OCE, MODE_IAU_OCE)
         IF(lread_ana_oce) CALL fetch_dwdana_oce(requestList, ocean_state, initicono, inputInstructions, read_initicono)
-          !IF(lread_ana_oce) CALL fetch_dwdana_seaice(requestList, p_sea_ice, initicono, inputInstructions, read_initicono)
+        IF(lread_ana_oce) CALL fetch_dwdana_seaice(requestList, p_sea_ice, initicono, inputInstructions, read_initicono)
     END SELECT
 
     ! Cleanup.

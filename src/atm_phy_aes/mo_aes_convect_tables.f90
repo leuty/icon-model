@@ -466,7 +466,8 @@ CONTAINS
   END SUBROUTINE fetch_ua_spline
   !----------------------------------------------------------------------------
   SUBROUTINE fetch_ua_spline_async(jcs,size,kidx,idx,zalpha,table,ua,dua)
-    INTEGER,            INTENT(in)  :: jcs, size, kidx
+    INTEGER,            INTENT(in)  :: jcs, size
+    INTEGER,            INTENT(inout)  :: kidx ! kidx is in device, use inout to avoid copyin
     INTEGER,            INTENT(in)  :: idx(size)
     REAL(wp),           INTENT(in)  :: zalpha(size)
     REAL(wp),           INTENT(in)  :: table(1:2,lucupmin-2:lucupmax+1)
@@ -476,7 +477,7 @@ CONTAINS
     INTEGER :: jl
 
     !$ACC DATA COPYIN(kidx) ASYNC(1)
-    !$ACC PARALLEL DEFAULT(PRESENT) NO_CREATE(dua) ASYNC(1)
+    !$ACC PARALLEL PRESENT(kidx) DEFAULT(PRESENT) NO_CREATE(dua) ASYNC(1)
     !$ACC LOOP GANG VECTOR PRIVATE(x, dx, ddx, a, b, c, d, bxa)
     DO jl = jcs,kidx
       x = zalpha(jl)
@@ -1189,7 +1190,8 @@ SUBROUTINE prepare_ua_index_spline(jg, name, jcs, size, temp, idx, zalpha, &
   SUBROUTINE lookup_ua_list_spline(name, jcs, size, kidx, list, temp, ua, dua, &
     &                              klev, kblock, kblock_size)
     CHARACTER(len=*),   INTENT(in)  :: name
-    INTEGER,            INTENT(in)  :: jcs, size, kidx
+    INTEGER,            INTENT(in)  :: jcs, size
+    INTEGER,            INTENT(inout)  :: kidx  ! kidx is in device, use inout to avoid copyin
     INTEGER,            INTENT(in)  :: list(:)
     REAL(wp),           INTENT(in)  :: temp(:)
     REAL(wp), OPTIONAL, INTENT(out) :: ua(:), dua(:)
@@ -1214,7 +1216,7 @@ SUBROUTINE prepare_ua_index_spline(jg, name, jcs, size, temp, idx, zalpha, &
     ! first compute all lookup indices and check if they are all within allowed bounds
 
 !IBM* ASSERT(NODEPS)
-    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+    !$ACC PARALLEL PRESENT(kidx) DEFAULT(PRESENT) ASYNC(1)
     !$ACC LOOP GANG VECTOR PRIVATE(jl, ztshft, ztt) PRIVATE(zinbounds)
     DO nl = jcs, kidx
       jl = list(nl)

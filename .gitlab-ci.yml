@@ -15,6 +15,9 @@ workflow:
     - if: $CI_PROJECT_PATH == "icon/icon-model"
       when: never
     - if: $CI_PIPELINE_SOURCE == "push"
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      auto_cancel:
+        on_new_commit: none
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_PIPELINE_SOURCE == "web"
       auto_cancel:
@@ -70,11 +73,12 @@ stages:
           - .pre-commit-config.yaml
       paths:
         - ${PRE_COMMIT_HOME}
+  interruptible: true
   rules:
     - if: $CI_PIPELINE_SOURCE == "web"
       when: manual
+      interruptible: false
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-  interruptible: true
 
 Licenses:
   extends: .common_pre_commit
@@ -144,11 +148,12 @@ General Style:
   tags:
     # Choose a runner with GNU find, GNU grep and bash:
     - conda
+  interruptible: true
   rules:
     - if: $CI_PIPELINE_SOURCE == "web"
       when: manual
+      interruptible: false
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-  interruptible: true
 
 Autoconf:
   stage: basic
@@ -225,9 +230,11 @@ Autoconf:
       - ${AUTOCONF_PATCH}
     expire_in: 1 week
     when: on_failure
+  interruptible: true
   rules:
     - if: $CI_PIPELINE_SOURCE == "web"
       when: manual
+      interruptible: false
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
         - config.h.in
@@ -237,7 +244,6 @@ Autoconf:
         - utils/config.guess
         - utils/config.sub
         - utils/install-sh
-  interruptible: true
 
 Iconbot:
   stage: basic
@@ -254,13 +260,14 @@ Iconbot:
     - python3 "${ICONBOT_DIR}/src/notifier/config.py" "${ICONBOT_CONFIG}"
   tags:
     - sphinx
+  interruptible: true
   rules:
     - if: $CI_PIPELINE_SOURCE == "web"
       when: manual
+      interruptible: false
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
         - ${ICONBOT_CONFIG}
-  interruptible: true
 
 Granules:
   stage: test
@@ -268,9 +275,11 @@ Granules:
   trigger:
     include: .gitlab/ci/granules.yml
     strategy: depend
+  interruptible: true
   rules:
     - if: $CI_PIPELINE_SOURCE == "web"
       when: manual
+      interruptible: false
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
         - .gitlab/ci/granules.yml
@@ -289,6 +298,23 @@ Granules:
         - src/shared/mo_impl_constants_grf.f90
         - test/microphysics_1mom_schemes/**/*
 
+Ragnarok:
+  stage: test
+  needs: []
+  trigger:
+    include: .gitlab/ci/ragnarok.yml
+    strategy: depend
+  interruptible: true
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "web"
+      when: manual
+      interruptible: false
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - .gitlab/ci/ragnarok.yml
+        - externals/kokkos
+        - ragnarok/**/*
+
 Namelist Overview:
   stage: documentation
   needs: []
@@ -303,15 +329,16 @@ Namelist Overview:
     paths:
       - doc/Namelist_overview/Namelist_overview.pdf
     expire_in: 1 day
+  interruptible: true
   rules:
     - if: $CI_PIPELINE_SOURCE == "web"
       when: manual
+      interruptible: false
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
         - doc/Namelist_overview/*.tex
   tags:
     - latex, dkrz
-  interruptible: true
 
 .common_html:
   extends: .ci_dir
@@ -354,22 +381,25 @@ Generate HTML:
   script:
     - !reference [.common_html, script]
     - echo "${REVIEW_URL}"
+  interruptible: true
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
       when: never
     - if: $CI_PIPELINE_SOURCE == "web"
       when: manual
+      interruptible: false
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-  interruptible: true
 
 Generate and publish HTML:
   extends: .common_html
   pages: true
+  interruptible: true
   rules:
     - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
       when: never
     - if: $CI_PIPELINE_SOURCE == "web"
       when: manual
+      interruptible: false
     - if: $CI_PIPELINE_SOURCE == "push"
   manual_confirmation: This job updates the GitLab Pages of the current project
 
@@ -379,15 +409,18 @@ santis:
   trigger:
     include: .gitlab/ci/cscs/santis.yml
     strategy: depend
+  interruptible: true
   rules:
     - if: $CSCS_CI_INACTIVE_BUILDERS =~ "/(^|,)santis/"
       when: never
+    - if: $ICON_TEST_SCHEDULE == "nightly"
+      when: always
+      interruptible: false
     - if: $CI_PIPELINE_SOURCE == "web"
       when: manual
       interruptible: false
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       when: manual
-  interruptible: true
 
 .common_levante:
   stage: system
@@ -406,6 +439,7 @@ levante_gcc:
   rules:
     - if: $CI_PIPELINE_SOURCE == "web"
       when: manual
+      interruptible: false
     - if: $ICON_INACTIVE_BUILDERS =~ "/(^|,)levante_gcc(,|$)/"
       when: never
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
@@ -416,6 +450,7 @@ levante_gpu_nvhpc:
   rules:
     - if: $CI_PIPELINE_SOURCE == "web"
       when: manual
+      interruptible: false
     - if: $ICON_INACTIVE_BUILDERS =~ "/(^|,)levante_gpu_nvhpc(,|$)/"
       when: never
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
@@ -426,6 +461,7 @@ levante_intel_hybrid:
   rules:
     - if: $CI_PIPELINE_SOURCE == "web"
       when: manual
+      interruptible: false
     - if: $ICON_INACTIVE_BUILDERS =~ "/(^|,)levante_intel_hybrid(,|$)/"
       when: never
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"

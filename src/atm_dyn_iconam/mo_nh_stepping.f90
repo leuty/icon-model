@@ -41,14 +41,25 @@ MODULE mo_nh_stepping
   USE mo_parallel_config,          ONLY: nproma, num_prefetch_proc, proc0_offloading
   USE mo_run_config,               ONLY: ltestcase, dtime, nsteps, ldynamics, ltransport,   &
     &                                    ntracer, iforcing, msg_level, test_mode,           &
-    &                                    output_mode, lart, luse_radarfwo, ldass_lhn
+    &                                    output_mode, lart, luse_radarfwo, ldass_lhn,       &
+    &                                    l_disable_print_gpu_mem
   USE mo_advection_config,         ONLY: advection_config
+#ifdef _OPENACC
+  USE mo_timer,                    ONLY: ltimer, timers_level, timer_start, timer_stop,        &
+    &                                    timer_total, timer_model_init, timer_nudging,         &
+    &                                    timer_bdy_interp, timer_feedback, timer_nesting,      &
+    &                                    timer_integrate_nh, timer_nh_diagnostics,             &
+    &                                    timer_iconam_aes, timer_dace_coupling, timer_rrg_interp, &
+    &                                    timer_gpu_mem_use,                                    &
+    &                                    timer_coupling
+#else
   USE mo_timer,                    ONLY: ltimer, timers_level, timer_start, timer_stop,        &
     &                                    timer_total, timer_model_init, timer_nudging,         &
     &                                    timer_bdy_interp, timer_feedback, timer_nesting,      &
     &                                    timer_integrate_nh, timer_nh_diagnostics,             &
     &                                    timer_iconam_aes, timer_dace_coupling, timer_rrg_interp, &
     &                                    timer_coupling
+#endif
   USE mo_ext_data_state,           ONLY: ext_data
   USE mo_radiation_config,         ONLY: irad_aero, iRadAeroCAMSclim, iRadAeroCAMStd
   USE mo_limarea_config,           ONLY: latbc_config
@@ -1892,8 +1903,12 @@ MODULE mo_nh_stepping
     JSTEP_LOOP: DO jstep = 1, num_steps
 
 #ifdef _OPENACC
-      CALL printGPUMem("GPU mem usage")
-      CALL message('',message_text)
+      IF (.NOT. l_disable_print_gpu_mem) THEN
+        CALL timer_start(timer_gpu_mem_use)
+        CALL printGPUMem("GPU mem usage")
+        CALL timer_stop(timer_gpu_mem_use)
+        CALL message('',message_text)
+      ENDIF
 #endif
 
 #ifndef __NO_ICON_COMIN__

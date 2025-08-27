@@ -39,11 +39,11 @@ export TYPES='atm_2d_P1D_ml atm_3d_qp_ml'
 # DATES is a list of dates identifying the files <EXPNAME>_<TYPE>_<DATE>.nc
 # to be checked.
 #
-export DATES='19790101T000000Z 19790101T000040Z 19790101T000120Z 19790101T000200Z 19790101T000240Z 19790101T000320Z 19790101T000400Z'
+export DATES='20200101T000000Z 20200101T000040Z 20200101T000120Z 20200101T000200Z 20200101T000240Z 20200101T000320Z 20200101T000400Z'
 
 # RESTART_DATE defines the date and time from which restarts should be performed.
 #
-export RESTART_DATE='19790101T000200Z'
+export RESTART_DATE='20200101T000200Z'
 
 # REFERENCE model directory and reference experiment for update test
 # (abs. path or relative paths w.r.t. <model dir>/run, e.g. .../icon-dev/run)
@@ -61,7 +61,7 @@ export MD='u'
 #--------------------------------------------------------------------------------
 #
 # 3. Launch the checksuite from run/
-reference_dir=2025-07-13.icon-mpim.a009ba62634a
+reference_dir=2025-08-08.icon-mpim.d1bfb963610c
 
 [[ ! -z $BB_NAME ]] && builder=$(echo ${BB_NAME} | tr '[:upper:]' '[:lower:]')
 export REFERENCE=$icon_data_rootFolder/buildbot_data/ref/${reference_dir}/${builder}

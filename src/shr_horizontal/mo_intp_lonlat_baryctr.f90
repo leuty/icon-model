@@ -16,9 +16,6 @@
   @PROCESS smp=noopt
   @PROCESS noopt
 #endif
-#ifdef __PGI
-  !pgi$g opt=1
-#endif
 
   MODULE mo_intp_lonlat_baryctr
     !-------------------------------------------------------------------------

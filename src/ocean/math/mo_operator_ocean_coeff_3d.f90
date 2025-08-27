@@ -265,7 +265,6 @@ CONTAINS
           sinLat = SIN(position_local(this_index,blockNo)%lat)
           cosLat = COS(position_local(this_index,blockNo)%lat)
 
-          !$ACC LOOP SEQ
           DO level = 1, levels(this_index,blockNo)
             cartesian_x = vector(this_index,level,blockNo)%x(1)
             cartesian_y = vector(this_index,level,blockNo)%x(2)

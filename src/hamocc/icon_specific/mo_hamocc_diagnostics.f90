@@ -27,6 +27,7 @@ MODULE mo_hamocc_diagnostics
    USE mo_hamocc_nml, ONLY: io_stdo_bgc, l_cyadyn, l_N_cycle
    USE mo_dynamics_config,     ONLY: nold
    USE mo_ocean_nml,   ONLY: n_zlev,no_tracer
+   USE mo_ocean_diagnostics, ONLY: get_level_index_by_depth
    USE mo_bgc_constants, ONLY:  n2tgn, c2gtc, kilo
    USE mo_memory_bgc, ONLY: p2gtc, totalarea
    USE mo_control_bgc, ONLY: dtbgc, bgc_nproma, bgc_zlevs
@@ -47,7 +48,7 @@ IMPLICIT NONE
 
 PRIVATE
 
-PUBLIC:: get_inventories, get_monitoring,get_omz
+PUBLIC:: get_inventories, get_monitoring, get_vertint, get_omz
 
 
 CONTAINS
@@ -592,6 +593,105 @@ END SUBROUTINE get_omz
 
   END SUBROUTINE get_monitoring
 
+  SUBROUTINE get_vertint(hamocc_state, tracer, pddpo, p_patch_3d, lacc)
+
+    TYPE(t_hamocc_state) :: hamocc_state
+    REAL(wp), INTENT(IN) :: pddpo(:,:,:)
+    REAL(wp), INTENT(IN) :: tracer(:,:,:,:)
+    TYPE(t_patch_3d),TARGET, INTENT(in)   :: p_patch_3d
+    LOGICAL, INTENT(IN), OPTIONAL :: lacc
+
+    TYPE(t_patch), POINTER :: patch_2d
+    TYPE(t_subset_range), POINTER :: owned_cells
+    LOGICAL :: lzacc
+
+    CALL set_acc_host_or_device(lzacc, lacc)
+
+    patch_2d => p_patch_3d%p_patch_2d(1)
+    owned_cells    => patch_2d%cells%owned
+
+    IF (isRegistered('dic_i')) THEN
+      CALL calc_integ3d(p_patch_3d, &
+        &                   pddpo, &
+        &                   tracer(:,:,:,isco212), &
+        &                   hamocc_state%p_tend%vertint%dic(:,:), &
+        &                   lzacc)
+    END IF
+
+    IF (isRegistered('alk_i')) THEN
+      CALL calc_integ3d(p_patch_3d, &
+        &                   pddpo, &
+        &                   tracer(:,:,:,ialkali), &
+        &                   hamocc_state%p_tend%vertint%alk(:,:), &
+        &                   lzacc)
+    END IF
+
+    IF (isRegistered('phy_i')) THEN
+      CALL calc_integ3d(p_patch_3d, &
+        &                   pddpo, &
+        &                   tracer(:,:,:,iphy), &
+        &                   hamocc_state%p_tend%vertint%phy(:,:), &
+        &                   lzacc)
+    END IF
+
+    IF (isRegistered('npp_i')) THEN
+      CALL calc_integ3d(p_patch_3d, &
+        &                   pddpo, &
+        &                   hamocc_state%p_tend%npp(:,:,:), &
+        &                   hamocc_state%p_tend%vertint%npp(:,:), &
+        &                   lzacc)
+    END IF
+
+    IF (isRegistered('pho_cya_i')) THEN
+      CALL calc_integ3d(p_patch_3d, &
+        &                   pddpo, &
+        &                   hamocc_state%p_tend%phoc(:,:,:), &
+        &                   hamocc_state%p_tend%vertint%phoc(:,:), &
+        &                   lzacc)
+    END IF
+
+    IF (isRegistered('grazing_i')) THEN
+      CALL calc_integ3d(p_patch_3d, &
+        &                   pddpo, &
+        &                   hamocc_state%p_tend%graz(:,:,:), &
+        &                   hamocc_state%p_tend%vertint%graz(:,:), &
+        &                   lzacc)
+    END IF
+
+    IF (isRegistered('zoomor_i')) THEN
+      CALL calc_integ3d(p_patch_3d, &
+        &                   pddpo, &
+        &                   hamocc_state%p_tend%zoomor(:,:,:), &
+        &                   hamocc_state%p_tend%vertint%zoomor(:,:), &
+        &                   lzacc)
+    END IF
+
+    IF (isRegistered('bacfra_i')) THEN
+      CALL calc_integ3d(p_patch_3d, &
+        &                   pddpo, &
+        &                   hamocc_state%p_tend%bacfra(:,:,:), &
+        &                   hamocc_state%p_tend%vertint%bacfra(:,:), &
+        &                   lzacc)
+    END IF
+
+    IF (isRegistered('remina_i')) THEN
+      CALL calc_integ3d(p_patch_3d, &
+        &                   pddpo, &
+        &                   hamocc_state%p_tend%remina(:,:,:), &
+        &                   hamocc_state%p_tend%vertint%remina(:,:), &
+        &                   lzacc)
+    END IF
+
+    IF (isRegistered('delcar_i')) THEN
+      CALL calc_integ3d(p_patch_3d, &
+        &                   pddpo, &
+        &                   hamocc_state%p_tend%delcar(:,:,:), &
+        &                   hamocc_state%p_tend%vertint%delcar(:,:), &
+        &                   lzacc)
+    END IF
+
+  END SUBROUTINE get_vertint
+
 SUBROUTINE get_inventories(hamocc_state,ssh,pddpo, tracer, p_patch_3d, weathering_flag, flux_flag, lacc)
 
 USE mo_memory_bgc,      ONLY: rnit,rn2, ro2bal,rcar,ralk
@@ -1103,5 +1203,47 @@ ENDIF
 
 
 END SUBROUTINE
+
+ SUBROUTINE calc_integ3d(patch_3d, pddpo, pfield3d, field, lacc)
+
+    TYPE(t_patch_3d), TARGET, INTENT(in)  :: patch_3d
+
+    REAL(wp), TARGET    :: pfield3d(:,:,:)
+    REAL(wp), ALLOCATABLE :: tmp(:)
+    REAL(wp), INTENT(IN), TARGET:: pddpo(:,:,:)
+    REAL(wp), INTENT(OUT):: field(:,:)
+
+    TYPE(t_subset_range), POINTER :: subset
+
+    LOGICAL, INTENT(IN), OPTIONAL :: lacc
+
+    INTEGER  :: blk, cell, cellStart,cellEnd, level
+    LOGICAL  :: lzacc
+
+    ALLOCATE(tmp(n_zlev))
+
+    CALL set_acc_host_or_device(lzacc, lacc)
+
+    subset => patch_3d%p_patch_2d(1)%cells%owned
+    !$OMP PARALLEL DO PRIVATE(cellstart,cellend,blk,cell,level,tmp) SCHEDULE(dynamic)
+    DO blk = subset%start_block, subset%end_block
+      CALL get_index_range(subset, blk, cellStart, cellEnd)
+      !$ACC PARALLEL LOOP GANG DEFAULT(PRESENT) PRIVATE(tmp) ASYNC(1) IF(lzacc)
+      DO cell = cellStart, cellEnd
+       !$ACC LOOP SEQ
+        DO level=1,subset%vertical_levels(cell,blk)
+          tmp(level) = pfield3d(cell,level,blk) * pddpo(cell,level,blk) * patch_3d%wet_halo_zero_c(cell,level,blk)
+        END DO
+
+        field(cell,blk) = SUM(tmp(1:MIN(get_level_index_by_depth(patch_3d, 90.0_wp),subset%vertical_levels(cell,blk))))
+
+      END DO ! cell
+      !$ACC END PARALLEL LOOP
+    END DO !block
+    !$ACC WAIT(1)
+    !ICON_OMP_END_PARALLEL_DO
+    DEALLOCATE(tmp)
+
+  END SUBROUTINE calc_integ3d
 
 END MODULE mo_hamocc_diagnostics

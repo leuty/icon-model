@@ -62,7 +62,7 @@ MODULE mo_ocean_layers
   USE mo_physical_constants,  ONLY: clw
   USE mo_ocean_surface_types, ONLY: t_ocean_surface
   USE mo_ocean_thermodyn,     ONLY: calc_neutralslope_coeff_func_onColumn, &
-    &                               calc_neutralslope_coeff_func_onColumn_elem
+    &                               calc_neutralslope_coeff_func_elem
   USE mo_fortran_tools,       ONLY: set_acc_host_or_device
 
 #include "add_var_acc_macro.inc"
@@ -687,11 +687,11 @@ CONTAINS
             ! FIXME: use salinity instead of salinityColumn?
 #ifdef _OPENACC
             DO level = 1, levels
-              neutral_coeff(level, 1) = calc_neutralslope_coeff_func_onColumn_elem( &
+              neutral_coeff(level, 1) = calc_neutralslope_coeff_func_elem( &
                 & ocean_state%p_prog(nold(1))%tracer(jc,level,blockNo,1), &
                 & ocean_state%p_prog(nold(1))%tracer(jc,level,blockNo,2), &
                 & 2000.0_wp, variant=1)
-              neutral_coeff(level, 2) = calc_neutralslope_coeff_func_onColumn_elem( &
+              neutral_coeff(level, 2) = calc_neutralslope_coeff_func_elem( &
                 & ocean_state%p_prog(nold(1))%tracer(jc,level,blockNo,1), &
                 & ocean_state%p_prog(nold(1))%tracer(jc,level,blockNo,2), &
                 & 2000.0_wp, variant=2)

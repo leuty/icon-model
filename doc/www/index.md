@@ -11,6 +11,12 @@ This website contains a collection of ICON documentation including references to
 buildrun/buildrun_quickstart.md
 buildrun/buildrun_recommended/aes_configurations/bubble.md
 buildrun/buildrun_recommended/aes_configurations/nest.md
+buildrun/buildrun_recommended/aes_configurations/amip.md
+buildrun/buildrun_recommended/aes_configurations/coupled.md
+buildrun/buildrun_recommended/aes_configurations/aquaplanet.md
+buildrun/buildrun_recommended/aes_configurations/rce.md
+buildrun/buildrun_recommended/oes_configurations/omip.md
+
 tools/tools.md
 tools/ecflow-ecmwf.md
 atmosphere/atmosphere.md
@@ -39,7 +45,7 @@ Information on the changes are available in the {{ '[**Release Notes**]({}/RELEA
 [](ref_buildrun_environments)  
 [](ref_buildrun_gridextpar)  
 [](ref_buildrun_icbc)  
-[](ref_buildrun_recommconf)
+[](ref_buildrun_recommconf)  
 :::
 
 :::{grid-item-card}
@@ -78,7 +84,7 @@ Information on the changes are available in the {{ '[**Release Notes**]({}/RELEA
 ^^^
 [](ref_land_schemes)  
 [](ref_land_cover_change)  
-[](ref_land_biogeochem)
+[](ref_land_biogeochem)  
 :::
 
 :::{grid-item-card}
@@ -86,7 +92,7 @@ Information on the changes are available in the {{ '[**Release Notes**]({}/RELEA
 ^^^
 [](ref_infrastructure_parallelization)  
 [](ref_infrastructure_io)  
-[](ref_infrastructure_testing)
+[](ref_infrastructure_testing)  
 :::
 
 :::{grid-item-card}
@@ -94,7 +100,7 @@ Information on the changes are available in the {{ '[**Release Notes**]({}/RELEA
 ^^^
 [](ref_literature_tutorials)  
 [](ref_literature_technical)  
-[](ref_literature_science)
+[](ref_literature_science)  
 :::
 
 ::::

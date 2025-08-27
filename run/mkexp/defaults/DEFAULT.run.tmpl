@@ -33,11 +33,15 @@ UTILS_DIR=%{MODEL_DIR}/utils
 PATH=$UTILS_DIR:$PATH
 
 # Support log style output
-pipe=%{EXP_ID}_%{JOB.id}_$$.pipe
-mkfifo $pipe
-trap "cd $PWD && rm -f $pipe" EXIT
-%{JOB.python3} $UTILS_DIR/timewarp $pipe &
-exec > $pipe 2>&1
+if ! ${TIMEWARP_IS_RUNNING_:-false}
+then
+    pipe=%{EXP_ID}_%{JOB.id}_$$.pipe
+    mkfifo $pipe
+    trap "cd $PWD && rm -f $pipe" EXIT
+    %{JOB.python3} $UTILS_DIR/timewarp $pipe &
+    exec > $pipe 2>&1
+    export TIMEWARP_IS_RUNNING_=true
+fi
 
 #% do VARIABLES_.add('MODEL_DIR')
 #% do VARIABLES_.add('SCRIPT_DIR')
@@ -82,7 +86,7 @@ icon_variables expand_plan --variables=$MODEL_DIR/run/standard_options/hiopy/var
 #
 # OpenMP environment variables
 # ----------------------------
-#%  set threads_per_task = JOB.threads_per_task|d(1)|int
+#%  set threads_per_task = JOB.threads_per_task|d(JOB.default_threads_per_task)|d(1)|int
 export OMP_NUM_THREADS=%{threads_per_task}
 export ICON_THREADS=$OMP_NUM_THREADS
 #
@@ -101,8 +105,12 @@ gpus_per_node=%{JOB.gpus_per_node|d(SLURM_GPUS_ON_NODE)}
 mpi_procs_pernode=$(( gpus_per_node + io_procs_pernode))
 #%  else
 cpus_per_task=%{threads_per_task if JOB.hardware_threads is set else 2*threads_per_task}
+#%    if JOB.cpus_per_node is defined:
+cpus_per_node=%{JOB.cpus_per_node}
+#%    else:
 slurm_cpus_per_node=${SLURM_JOB_CPUS_PER_NODE%%\(*}
-cpus_per_node=${slurm_cpus_per_node:-%{JOB.cpus_per_node|d(1)}}
+cpus_per_node=${slurm_cpus_per_node:-%{JOB.default_cpus_per_node|d(1)}}
+#%    endif
 mpi_procs_pernode=$((cpus_per_node/cpus_per_task))
 #%  endif
 
@@ -463,9 +471,13 @@ EOF
 # jsbach namelist
 # ---------------
 
-cat > NAMELIST_lnd << EOF
-%{format_namelist(namelists.NAMELIST_lnd)}
+#%  for namelist in namelists.sections:
+#%    if namelist.startswith('NAMELIST_lnd'):
+cat > %{namelist} << EOF
+%{format_namelist(namelists[namelist])}
 EOF
+#%    endif
+#%  endfor
 
 #%  endif
 #%  if WITH_OCEAN is set:
