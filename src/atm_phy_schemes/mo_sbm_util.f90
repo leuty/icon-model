@@ -961,8 +961,8 @@ MODULE mo_sbm_util
     REAL(KIND=wp) :: dgr, dkl, q, qmin, qmax, e, x, e1, e2, sin1, cos1
     REAL(KIND=wp), PARAMETER :: eps=1.0e-30_wp,pi=3.1415927_wp
 
-    dgr=dmax1(deta,dksi)
-    dkl=dmin1(deta,dksi)
+    dgr=max(deta,dksi)
+    dkl=min(deta,dksi)
     q=0.5_wp*(0.5_wp*dkl+0.5_wp*dgr)
     qmin=250.0e-4_wp
     qmax=500.0e-4_wp
@@ -973,8 +973,8 @@ MODULE mo_sbm_util
       e = ecoalochs(dgr,dkl, vr1_breakup)
     ELSE IF(q>=qmin.AND.q<qmax) THEN
       x=(q-qmin)/(qmax-qmin)
-      sin1=dsin(pi/2.0_wp*x)
-      cos1=dcos(pi/2.0_wp*x)
+      sin1=sin(pi/2.0_wp*x)
+      cos1=cos(pi/2.0_wp*x)
       e1=ecoalochs(dgr, dkl, vr1_breakup)
       e2=ecoallowlist(dgr, dkl, vr1_breakup)
       e=cos1**2*e1+sin1**2*e2
@@ -983,7 +983,7 @@ MODULE mo_sbm_util
     ELSE
       e=0.999_wp
     END IF
-    ecoaldiam=dmax1(dmin1(1.0_wp,e),eps)
+    ecoaldiam=max(min(1.0_wp,e),eps)
 
     RETURN
   END FUNCTION ecoaldiam
@@ -1010,7 +1010,7 @@ MODULE mo_sbm_util
       qq0=1.0_wp+(dkl/dgr)
       qq1=aka/qq0**2
       qq2=akb*sigma*(et**2)/(sc+epsi)
-      ecl=qq1*dexp(-qq2)
+      ecl=qq1*exp(-qq2)
     ELSE
       ecl=0.0_wp
     END IF
@@ -1034,7 +1034,7 @@ MODULE mo_sbm_util
     p=r_s/r_l
     vtl=fall_veloc_drop_beard(d_l,vr1_breakup)
     vts=fall_veloc_drop_beard(d_s,vr1_breakup)
-    dv=dabs(vtl-vts)
+    dv=abs(vtl-vts)
     IF (dv<fpmin) dv=fpmin
     weber_number=r_s*dv**2/sigma
     pa1=1.0_wp+p
@@ -1058,8 +1058,8 @@ MODULE mo_sbm_util
     sigma=72.8_wp         ! surf. tension,(h2o,20C)=7.28e-2 n/m
                          ! [sigma]=g/s^2
     ak10=rho*pi/12.0_wp
-    dgr=dmax1(dgr,epsf)
-    dkl=dmax1(dkl,epsf)
+    dgr=max(dgr,epsf)
+    dkl=max(dkl,epsf)
     dgka2=(dgr**2)+(dkl**2)
     dgka3=(dgr**3)+(dkl**3)
     IF (dgr/=dkl) THEN
@@ -1263,19 +1263,19 @@ MODULE mo_sbm_util
 
     IF (i_break_method==1) THEN
       DO kr=1,nkr
-        prob(kr)=2.94e-7*dexp(34.0_wp*dropradii(kr))
+        prob(kr)=2.94e-7*exp(34.0_wp*dropradii(kr))
       END DO
     ELSE IF  (i_break_method==2) THEN
       DO kr=1,nkr
-        prob(kr)=0.155e-3*dexp(1.466_wp*10.0_wp*dropradii(kr))
+        prob(kr)=0.155e-3*exp(1.466_wp*10.0_wp*dropradii(kr))
       END DO
     END IF
 
     DO j=ikr_spon_break,nkr
       DO i=1,j-1
         !2 methods of breakup calculation (Sriavstava 1971 and Kamra et al, 1991):
-        gain_var(j,i)=(145.37_wp/xl_dp(i))*(dropradii(i)/dropradii(j))*dexp(-7.0_wp*dropradii(i)/dropradii(j))
-        nnd(j,i)=gamma*dexp(-gamma*diameter(i))/(1-dexp(-gamma*diameter(j)))
+        gain_var(j,i)=(145.37_wp/xl_dp(i))*(dropradii(i)/dropradii(j))*exp(-7.0_wp*dropradii(i)/dropradii(j))
+        nnd(j,i)=gamma*exp(-gamma*diameter(i))/(1-exp(-gamma*diameter(j)))
       END DO
     END DO
 

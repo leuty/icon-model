@@ -3848,9 +3848,9 @@ MODULE mo_sbm_main
                 del2*dt-pw*del1*dt/rw+pw*dyn1*dt/(rw*rw)+ &
                 pw*del1/(rw*rw)-pw*dyn1/(rw*rw*rw)
         RETURN
-        ! in case dabs(rw*dt)>1.0e-6
+        ! in case abs(rw*dt)>1.0e-6
       ELSE
-        ! in case dabs(rw*dt)<=1.0e-6
+        ! in case abs(rw*dt)<=1.0e-6
         expr=expm1(-rw*dt)
         del1n=del1+del1*expr+(dyn1/rw)*(0.0_wp-expr)
         del2n=pw*del1*expr/rw-pw*dyn1*dt/rw-pw*dyn1*expr/(rw*rw)+dyn2*dt+del2
@@ -3876,9 +3876,9 @@ MODULE mo_sbm_main
                  del1*dt-ri*del2*dt/pi_+ri*dyn2*dt/(pi_*pi_)+ &
                  ri*del2/(pi_*pi_)-ri*dyn2/(pi_*pi_*pi_)
         RETURN
-        ! in case dabs(pi_*dt)>1.0e-6
+        ! in case abs(pi_*dt)>1.0e-6
       ELSE
-        ! in case dabs(pi_*dt)<=1.0e-6
+        ! in case abs(pi_*dt)<=1.0e-6
         expp=expm1(-pi_*dt)
         del2n=del2+del2*expp-expp*dyn2/pi_
         del2int=-del2*expp/pi_+dyn2*dt/pi_+dyn2*expp/(pi_*pi_)
@@ -3924,9 +3924,9 @@ MODULE mo_sbm_main
         del2n=c12*expg+c22*expb+g32/g2
         del2int=c12*expg/gama-c22*expb/beta+(c22/beta-c12/gama)+g32*dt/g2
         RETURN
-        ! in case dabs(gama*dt)>1.0e-6
+        ! in case abs(gama*dt)>1.0e-6
       ELSE
-        ! in case dabs(gama*dt)<=1.0e-6
+        ! in case abs(gama*dt)<=1.0e-6
         IF (ABS(ri/rw)>epsil) THEN
           IF (ABS(rw/ri)>epsil) THEN
             alfa=SQRT((rw-pi_)*(rw-pi_)+4.0_wp*pw*ri)
@@ -3972,9 +3972,9 @@ MODULE mo_sbm_main
             a5del2int=g32/g2*(gama/alfa-1.0_wp)*(gama*dt*dt/2.0_wp)
 
             del2int=a1del2int+a2del2int+a3del2int+a4del2int+a5del2int
-            ! in case dabs(rw/ri)>1e-12
+            ! in case abs(rw/ri)>1e-12
           ELSE
-            ! in case dabs(rw/ri)<=1e-12
+            ! in case abs(rw/ri)<=1e-12
             x=-2.0_wp*rw*pi_+rw*rw+4.0_wp*pw*ri
 
             alfa=pi_*(1+(x/pi_)/2.0_wp-(x/pi_)*(x/pi_)/8.0_wp)
@@ -3995,12 +3995,12 @@ MODULE mo_sbm_main
                     (gama*dt+gama*gama*dt*dt/2.0_wp))
             del2int=c12*expg/gama-c22*expb/beta+(c22/beta)+g32/g2*dt*(gama/alfa)+ &
                     g32/g2*(gama/alfa-1.0_wp)*(gama*dt*dt/2.0_wp)
-            ! in case dabs(rw/ri)<=1e-12
+            ! in case abs(rw/ri)<=1e-12
           END IF
           ! alfa/beta 2
-          ! in case dabs(ri/rw)>1e-12
+          ! in case abs(ri/rw)>1e-12
         ELSE
-          ! in case dabs(ri/rw)<=1e-12
+          ! in case abs(ri/rw)<=1e-12
           x=-2.0_wp*rw*pi_+pi_*pi_+4.0_wp*pw*ri
 
           alfa=rw*(1.0_wp+(x/rw)/2.0_wp-(x/rw)*(x/rw)/8.0_wp)
@@ -4022,9 +4022,9 @@ MODULE mo_sbm_main
           del2int=c12*expg/gama-c22*expb/beta+c22/beta+g32/g2*dt*(gama/alfa)+ &
                    g32/g2*(gama/alfa-1.0_wp)*(gama*dt*dt/2.0_wp)
           ! alfa/beta
-          ! in case dabs(ri/rw)<=1e-12
+          ! in case abs(ri/rw)<=1e-12
         END IF
-        ! in case dabs(gama*dt)<=1e-6
+        ! in case abs(gama*dt)<=1e-6
       END IF
       ! water and ice                                                 (end)
       ! in case isym1/=0.AND.isym2/=0
