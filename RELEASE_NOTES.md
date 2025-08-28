@@ -88,6 +88,7 @@ Climate: ICON-Land
 - Surface water ponds (if enabled) modify the top layer soil heat capacity
 - Land initial files: Update for soil and root depth (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/837)
 - Revision of phase change in snow, surface water and top layer soil storages
+- Update of snow density parametrization to include a dependency on mean snow temperature
 
 NWP: TERRA and other surface issues
 
