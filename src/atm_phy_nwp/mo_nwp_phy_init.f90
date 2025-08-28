@@ -915,15 +915,9 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
 #endif
   END SELECT
 
-  ! cloud_num_fac is used in clim_cdnc, but is only available after the 1st call of init_slowphys
-  ! however, clim_cdnc has to be called once before the 1st call of init_slowphys
-  IF (atm_phy_nwp_config(jg)%lscale_cdnc .AND. linit_mode) THEN
-    prm_diag%cloud_num_fac(:,:) = 1._wp
-  ENDIF
-
   ! Monthly MODIS cdnc climatology: The time interpolation has been done in mo_ext_data_init.
   ! Here we just have to set prm_diag%cloud_num from ext_data%atm%cdnc
-  IF (atm_phy_nwp_config(jg)%icpl_aero_gscp == 3) THEN
+  IF (atm_phy_nwp_config(jg)%icpl_aero_gscp == 3 .AND. linit_mode) THEN
     CALL set_cdnc_from_extdata(p_patch, ext_data, prm_diag)
   ENDIF
 
@@ -1086,8 +1080,9 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
           ! Volcanic aerosol from CMIP6
           CALL read_bc_aeropt_cmip6_volc(ini_date, ecrad_conf%n_bands_lw, ecrad_conf%n_bands_sw)
         ENDIF
-        IF (ANY( irad_aero == (/iRadAeroKinneVolcSP,iRadAeroKinneSP/) )) THEN
-          ! Simple plume anthropogenic aerosol
+        ! If Simple Plume aerosol is required or cdnc scaling factor is needed (e.g. in case picontrol)
+        IF ( ANY( irad_aero == (/iRadAeroKinneVolcSP,iRadAeroKinneSP/) ) .OR. ( atm_phy_nwp_config(jg)%scale_cdnc_mode /= 0 )) THEN
+          ! Read in the simple plume anthropogenic aerosol input data:
           CALL setup_bc_aeropt_splumes
         ENDIF
         !

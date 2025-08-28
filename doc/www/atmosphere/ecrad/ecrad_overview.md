@@ -192,6 +192,20 @@ Known limitations of the new 49R2 climatology include that the "far field" aeros
 The IFS is run with an additional artificial small constant background term to get the best results.
 :::
 
+(ref_atmosphere_ecrad_cdnc)=
+# Cloud droplet number concentration (cdnc)
+
+Climatological data of cloud droplet number concentration from external parameter file can be used in ICON when namelist parameter icpl\_aero\_gscp is set to 3.
+The external parameter file must then contain the field **cdnc** and can be generated with **[Extpar](https://docs.icon-model.org/tools/tools.html#ref-tools-gridextpargui)**.
+When using the external cdnc, it is advisable to set:
+- icpl\_aero\_conv=1: simple coupling between auto-conversion (in convection scheme) and aerosol
+
+The external climatological cdnc can be scaled when setting namelist parameter scale_cdnc_mode to 1 or 2, and providing the necessary input file for the Simple Plume model in the run directory:
+
+- scale_cdnc_mode = 0 (default): no scaling, the cdnc used by ICON will be the same regardless of the simulation year.
+- scale_cdnc_mode = 1: apply year-dependent scaling of cdnc using the scale factor from Simple Plume model (e.g. for experiments in historical period after 1850 or climate projections).
+- scale_cdnc_mode = 2: apply constant scaling of cdnc to year 1850 (e.g. for pre-industrial experiment)
+
 (ref_atmosphere_ecrad_fsd)=
 # Condensate heterogeneity - the FSD parameter
 

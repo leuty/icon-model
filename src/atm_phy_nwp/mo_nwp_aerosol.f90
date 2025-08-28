@@ -51,7 +51,7 @@ MODULE mo_nwp_aerosol
   USE mo_aerosol_util,            ONLY: aerdis
   USE mo_bc_aeropt_kinne,         ONLY: read_bc_aeropt_kinne, set_bc_aeropt_kinne
   USE mo_bc_aeropt_cmip6_volc,    ONLY: read_bc_aeropt_cmip6_volc, add_bc_aeropt_cmip6_volc
-  USE mo_bc_aeropt_splumes,       ONLY: add_bc_aeropt_splumes
+  USE mo_bc_aeropt_splumes,       ONLY: add_bc_aeropt_splumes, cloud_num_scaling_factor
   USE mo_coupling_config,         ONLY: is_coupled_to_aero
   USE mo_bcs_time_interpolation,  ONLY: t_time_interpolation_weights,         &
     &                                   calculate_time_interpolation_weights
@@ -249,6 +249,7 @@ CONTAINS
       &  od_sw(:,:,:,:),       & !< Shortwave optical thickness
       &  ssa_sw(:,:,:,:),      & !< Shortwave asymmetry factor
       &  g_sw(:,:,:,:)           !< Shortwave single scattering albedo
+
     LOGICAL, OPTIONAL, INTENT(in) :: lacc ! If true, use openacc
 ! Local variables
 #ifdef __ICON_ART
@@ -505,11 +506,12 @@ CONTAINS
             &                    ssa_sw(:,:,jb,:), g_sw(:,:,jb,:), cloud_num_fac(:),   &
             &                    lacc=lzacc)
 
-          IF ( atm_phy_nwp_config(pt_patch%id)%lscale_cdnc ) THEN
+          IF ( atm_phy_nwp_config(pt_patch%id)%scale_cdnc_mode /= 0 ) THEN
 #ifdef _OPENACC
-            IF (lzacc) CALL finish(routine, "lscale_cdnc not ported to OpenACC.")
+            IF (lzacc) CALL finish(routine, "scale_cdnc_mode not ported to OpenACC.")
 #endif
-            prm_diag%cloud_num_fac(:,jb) = cloud_num_fac(:)
+            ! scale the cdnc with the scaling factor:
+            prm_diag%cloud_num(:,jb) = cloud_num_fac(:) *  ext_data%atm%cdnc(:,jb)
           ENDIF
 
           IF ( var_in_output(jg)%aod_550nm ) THEN
@@ -709,18 +711,17 @@ CONTAINS
       &  od_lw(:,:,:), od_sw(:,:,:),       & !< LW/SW optical thickness
       &  ssa_sw(:,:,:), g_sw(:,:,:),       & !< SW asymmetry factor, SW single scattering albedo
       &  cloud_num_fac(:)                    !< Scaling factor for Cloud Droplet Number Concentration;
-                                             !< if lscale_cdnc, cloud_num_fac = x_cdnc / x_cdnc_ref
+                                             !< cdnc is scaled if scale_cdnc_mode /= 0
     ! Local variables
-    TYPE(datetime), POINTER ::             &
-      & mtime_2005                           !< local copy of mtime_datetime, used for x_cdnc scaling
     REAL(wp) ::                            &
       &  od_lw_vr (nproma,nlev,nbands_lw), & !< LW optical thickness of aerosols    (vertically reversed)
       &  od_sw_vr (nproma,nlev,nbands_sw), & !< SW aerosol optical thickness        (vertically reversed)
       &  g_sw_vr  (nproma,nlev,nbands_sw), & !< SW aerosol asymmetry factor         (vertically reversed)
       &  ssa_sw_vr(nproma,nlev,nbands_sw)    !< SW aerosol single scattering albedo (vertically reversed)
-    REAL(wp) ::                            &
-      &  x_cdnc(nproma),                   & !< Scale factor for Cloud Droplet Number Concentration
-      &  x_cdnc_ref(nproma)                  !< x_cdnc for the reference year 2005
+    TYPE(datetime), POINTER :: &
+      &  mtime_local,                      & !< local time variable to get x_cdnc
+      &  mtime_ref                           !< reference time in 2005 to get x_cdnc_ref
+
     INTEGER ::                             &
       &  jk, jc, jwl                         !< Loop indices
     CHARACTER(len=*), PARAMETER :: &
@@ -730,7 +731,7 @@ CONTAINS
 
     CALL set_acc_host_or_device(lzacc, lacc)
 
-    !$ACC DATA CREATE(od_lw_vr, od_sw_vr, g_sw_vr, ssa_sw_vr, x_cdnc) IF(lzacc)
+    !$ACC DATA CREATE(od_lw_vr, od_sw_vr, g_sw_vr, ssa_sw_vr) IF(lzacc)
 
     !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
     !$ACC LOOP SEQ
@@ -777,44 +778,36 @@ CONTAINS
     END IF
 
     ! Simple plumes
-    IF (ANY( irad_aero == (/iRadAeroKinneVolcSP,iRadAeroKinneSP/) )) THEN
-
-      IF (atm_phy_nwp_config(jg)%lscale_cdnc) THEN
-#ifdef _OPENACC
-        CALL finish(routine, "lscale_cdnc not ported to OpenACC.")
-#endif
-        ! get x_cdnc_ref; the simple plume scheme uses 2005 as reference year
-        mtime_2005 => newDatetime(mtime_datetime)
-        mtime_2005%date%year = 2005
-        CALL add_bc_aeropt_splumes(jg, 1, i_endidx, nproma, nlev, jb,  &
-          &                        nbands_sw, mtime_2005,              &
-          &                        zf(:,:), dz(:,:), zh(:,nlev+1),     &
-          &                        wavenum1_sw(:), wavenum2_sw(:),     &
-          &                        od_sw_vr(:,:,:), ssa_sw_vr(:,:,:),  &
-          &                        g_sw_vr (:,:,:), x_cdnc_ref(:)     )
-
-        CALL deallocateDatetime(mtime_2005)
-      END IF
-
+    IF ( ANY( irad_aero == (/iRadAeroKinneVolcSP,iRadAeroKinneSP/) ) ) THEN
+      ! Add the anthropogenic aerosol optical properties on top of the background aerosol
       CALL add_bc_aeropt_splumes(jg, i_startidx, i_endidx, nproma, nlev, jb,  &
         &                        nbands_sw, mtime_datetime,          &
         &                        zf(:,:), dz(:,:), zh(:,nlev+1),     & ! in
         &                        wavenum1_sw(:), wavenum2_sw(:),     & ! in
         &                        od_sw_vr(:,:,:), ssa_sw_vr(:,:,:),  & ! inout
-        &                        g_sw_vr (:,:,:), x_cdnc(:),         & ! inout
+        &                        g_sw_vr (:,:,:),                    & ! inout
+        &                        lacc=lzacc                          )
+    END IF
+
+    IF (atm_phy_nwp_config(jg)%scale_cdnc_mode /= 0) THEN
+      ! set the reference year as 2005:
+      mtime_ref => newDatetime(mtime_datetime)
+      mtime_ref%date%year = 2005
+
+      ! Set the time variable to calculate x_cdnc to year 1850
+      ! when constant cdnc scaling to year 1850 is required (e.g. in picontrol experiment type)
+      mtime_local => newDatetime(mtime_datetime)
+      IF (atm_phy_nwp_config(jg)%scale_cdnc_mode == 2) mtime_local%date%year = 1850
+
+      ! Get the cloud droplet number scaling factor:
+      CALL cloud_num_scaling_factor(jg, i_startidx, i_endidx, nproma, nlev, jb,  &
+        &                        mtime_ref, mtime_local,             & ! in
+        &                        zf(:,:), dz(:,:), zh(:,nlev+1),     & ! in
+        &                        cloud_num_fac(:),                   & ! out
         &                        lacc=lzacc                          )
 
-      IF (atm_phy_nwp_config(jg)%lscale_cdnc) THEN
-#ifdef _OPENACC
-        CALL finish(routine, "lscale_cdnc not ported to OpenACC.")
-#endif
-        ! apply scaling with safety limits:
-        DO jc = i_startidx, i_endidx
-          cloud_num_fac(jc) = x_cdnc(jc) / MAX(1e-6_wp, x_cdnc_ref(jc))
-          cloud_num_fac(jc) = MIN(MAX(0.1_wp, cloud_num_fac(jc)),3._wp)
-        END DO
-
-      END IF
+      CALL deallocateDatetime(mtime_ref)
+      CALL deallocateDatetime(mtime_local)
 
     END IF
 

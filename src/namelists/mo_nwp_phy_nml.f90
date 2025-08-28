@@ -86,7 +86,7 @@ MODULE mo_nwp_phy_nml
   INTEGER  :: itype_z0           !! type of roughness length data
   INTEGER  :: itype_satpres_coeffs  !! set of coefficients for saturation pressure
   INTEGER  :: icpl_aero_gscp     !! type of aerosol-microphysics coupling
-  LOGICAL  :: lscale_cdnc        !! switch to activate the scaling of external CDNCs
+  INTEGER  :: scale_cdnc_mode    !! mode of the scaling of external CDNCs
   INTEGER  :: icpl_aero_ice      !! type of aerosol-ice nucleation coupling
   INTEGER  :: icpl_aero_conv     !! type of coupling between aerosols and convection scheme
   INTEGER  :: iprog_aero         !! type of prognostic aerosol
@@ -146,7 +146,7 @@ MODULE mo_nwp_phy_nml
     &                    lconv_cdnc_interp, itype_parcel_ascent,     &
     &                    lmicrophysicsFirst,                         &
     &                    lsbm_coupled, lcuda_graph_turb_tran,        &
-    &                    lscale_cdnc, lvariable_rain_n0,             &
+    &                    scale_cdnc_mode, lvariable_rain_n0,         &
     &                    itype_dissip_heat,                          &
     &                    lstochastic_pattern_generator,              &
     &                    spg_length_scale, spg_time_scale,           &
@@ -278,8 +278,10 @@ CONTAINS
                         ! 3 = like 1 but using the cdnc from external parameter
 
     ! scaling of external CDNCs (only for icpl_aero_gscp = 3), mainly for climate projections
-    lscale_cdnc = .FALSE.  ! FALSE - no scaling
-                           ! TRUE  - scaling according to the temporal evolution of the simple plumes
+    scale_cdnc_mode = 0  ! 0 - off, no scaling
+                         ! 1 - scaling according to the temporal evolution of the simple plumes for the calendar year
+                         ! 2 - scaling to the year 1850 and keeping the same scaling for the whole experiment (for picontrol
+                         ! experiment)
 
     ! coupling between aersols and ice nucleation
     icpl_aero_ice = 0   ! 0 = Cooper (1986)
@@ -583,7 +585,7 @@ CONTAINS
       atm_phy_nwp_config(jg)%lvariable_rain_n0 = lvariable_rain_n0
       atm_phy_nwp_config(jg)%mu_snow         = mu_snow
       atm_phy_nwp_config(jg)%icpl_aero_gscp  = icpl_aero_gscp
-      atm_phy_nwp_config(jg)%lscale_cdnc     = lscale_cdnc
+      atm_phy_nwp_config(jg)%scale_cdnc_mode = scale_cdnc_mode
       atm_phy_nwp_config(jg)%icalc_reff      = icalc_reff (jg)
       atm_phy_nwp_config(jg)%icpl_rad_reff   = icpl_rad_reff (jg)
       atm_phy_nwp_config(jg)%ithermo_water   = ithermo_water(jg)

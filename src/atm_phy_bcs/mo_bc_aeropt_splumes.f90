@@ -26,13 +26,15 @@ MODULE mo_bc_aeropt_splumes
   USE mo_model_domain,         ONLY: p_patch
   USE mo_fortran_tools,        ONLY: assert_acc_device_only
   USE mo_math_constants,       ONLY: rad2deg
-  USE mtime,                   ONLY: datetime, getDayOfYearFromDateTime, &
-       &                             getNoOfDaysInYearDateTime
+  USE mtime,                   ONLY: datetime, getDayOfYearFromDateTime,     &
+       &                             getNoOfDaysInYearDateTime,              &
+                                     deallocateDatetime
+  USE mo_atm_phy_nwp_config,   ONLY: atm_phy_nwp_config
 
   IMPLICIT NONE
 
   PRIVATE
-  PUBLIC                  :: setup_bc_aeropt_splumes, add_bc_aeropt_splumes
+  PUBLIC                  :: setup_bc_aeropt_splumes, add_bc_aeropt_splumes, cloud_num_scaling_factor
 
   INTEGER, PARAMETER      ::     &
        nplumes   = 9            ,& !< Number of plumes
@@ -482,7 +484,7 @@ MODULE mo_bc_aeropt_splumes
      & jcs            ,jce            ,nproma         ,klev           ,jb          ,&
      & nb_sw          ,this_datetime  ,zf             ,dz             ,z_sfc       ,&
      & sw_wv1         ,sw_wv2         ,aod_sw_vr      ,ssa_sw_vr      ,asy_sw_vr   ,&
-     & x_cdnc         ,lacc                                                         )
+     & lacc                                                                         )
     !
     ! --- 0.1 Variables passed through argument list
     INTEGER, INTENT(IN) ::            &
@@ -508,8 +510,6 @@ MODULE mo_bc_aeropt_splumes
          aod_sw_vr(nproma,klev,nb_sw) ,& !< Aerosol shortwave optical depth
          ssa_sw_vr(nproma,klev,nb_sw) ,& !< Aerosol single scattering albedo
          asy_sw_vr(nproma,klev,nb_sw)    !< Aerosol asymmetry parameter
-    REAL(wp), INTENT(OUT), OPTIONAL:: &
-         x_cdnc(nproma)                  !< Scale factor for Cloud Droplet Number Concentration
 
     LOGICAL, OPTIONAL, INTENT(IN) :: lacc !< OpenACC flag.
 
@@ -535,7 +535,8 @@ MODULE mo_bc_aeropt_splumes
          dz_vr(nproma,klev)          ,& !< level thickness [m], vertically reversed
          sp_aod_vr(nproma,klev)      ,& !< simple plume aerosol optical depth, vertically reversed
          sp_ssa_vr(nproma,klev)      ,& !< simple plume single scattering albedo, vertically reversed
-         sp_asy_vr(nproma,klev)         !< simple plume asymmetry factor, vertically reversed indexing
+         sp_asy_vr(nproma,klev)      ,& !< simple plume asymmetry factor, vertically reversed indexing
+         x_cdnc(nproma)                 !< Scale factor for Cloud Droplet Number Concentration
 
     CALL assert_acc_device_only('add_bc_aeropt_splumes',lacc)
     !
@@ -547,7 +548,7 @@ MODULE mo_bc_aeropt_splumes
 
     IF (this_datetime%date%year > 1850) THEN
 
-      !$ACC DATA CREATE(time_weight, time_weight_bg, aod_550, lon_sp, lat_sp, z_fl_vr, dz_vr) &
+      !$ACC DATA CREATE(time_weight, time_weight_bg, aod_550, lon_sp, lat_sp, z_fl_vr, dz_vr, x_cdnc) &
       !$ACC   CREATE(sp_aod_vr, sp_ssa_vr, sp_asy_vr)
 
       !
@@ -647,6 +648,135 @@ MODULE mo_bc_aeropt_splumes
     END IF
 
   END SUBROUTINE add_bc_aeropt_splumes
+
+  ! Scale factor to scale the external climatogical data of cloud droplet number
+  ! Called when atm_phy_nwp_config(jg)%scale_cdnc_mode /= 0
+  SUBROUTINE cloud_num_scaling_factor( jg                                          ,&
+     & jcs            ,jce            ,nproma         ,klev        ,jb             ,&
+     & mtime_ref      ,mtime_local    ,zf             ,dz          ,z_sfc          ,&
+     & cloud_num_fac  ,lacc                                                         )
+    !
+    INTEGER, INTENT(IN) ::            &
+         jg                          ,& !< domain index
+         jcs                         ,& !< start index in current block
+         jce                         ,& !< end index in current block
+         nproma                      ,& !< block dimension
+         klev                        ,& !< number of full levels
+         jb                             !< index for current block
+
+    TYPE(datetime), POINTER, INTENT (IN)      ::   &
+         mtime_local                 ,& !< local time variable to get x_cdnc
+         mtime_ref                      !< reference time in 2005 to get x_cdnc_ref
+
+    REAL(wp), INTENT (IN)        :: &
+         zf(nproma,klev),           & !< geometric height at full level [m]
+         dz(nproma,klev),           & !< geometric height thickness     [m]
+         z_sfc(nproma)                !< geometric height of surface    [m]
+
+    REAL(wp), INTENT(OUT)        :: &
+         cloud_num_fac(nproma)        !< Cloud droplet number scaling factor for the current day
+
+    LOGICAL, OPTIONAL, INTENT(IN) :: lacc !< OpenACC flag.
+
+    ! Local variables
+    INTEGER ::                        &
+         jk                          ,& !< index for looping over vertical dimension
+         jki                         ,& !< index for looping over vertical dimension for reversing
+         jl                             !< index for looping over block
+
+    REAL(wp) ::                       &
+         time_weight(nfeatures,nplumes)    ,&
+         time_weight_bg(nfeatures,nplumes) ,&
+         aod_550(nproma,klev,nplumes)      ,&
+         lon_sp(nproma)              ,& !< longitude passed to sp
+         lat_sp(nproma)              ,& !< latitude passed to sp
+         z_fl_vr(nproma,klev)        ,& !< level height [m], vertically reversed indexing (1=lowest level)
+         dz_vr(nproma,klev)          ,& !< level thickness [m], vertically reversed
+         x_cdnc(nproma)              ,& !< Scale factor for Cloud Droplet Number Concentration from Simple Plumes for current day
+         x_cdnc_ref(nproma)             !< same as above for reference year
+
+    CALL assert_acc_device_only('cloud_num_scaling_factor',lacc)
+    !
+    ! ----------
+    !
+    ! initialize input data (by calling setup at first instance)
+    !
+    IF (.NOT.sp_initialized) CALL setup_bc_aeropt_splumes
+
+    !$ACC DATA CREATE(time_weight, time_weight_bg, aod_550, lon_sp, lat_sp, z_fl_vr, dz_vr, x_cdnc, x_cdnc_ref)
+
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+        !$ACC LOOP SEQ
+        DO jk=1,klev
+          jki=klev-jk+1
+          !$ACC LOOP GANG(STATIC: 1) VECTOR
+          DO jl=jcs,jce
+            dz_vr  (jl,jk) = dz(jl,jki)
+            z_fl_vr(jl,jk) = zf(jl,jki)
+          END DO
+        END DO
+
+        !$ACC LOOP GANG(STATIC: 1) VECTOR
+        DO jl=jcs,jce
+          lon_sp(jl) = p_patch(jg)%cells%center(jl,jb)%lon * rad2deg
+          lat_sp(jl) = p_patch(jg)%cells%center(jl,jb)%lat * rad2deg
+        END DO
+      !$ACC END PARALLEL
+
+    ! -----------------------------------------
+    ! Calculate the reference x_cdnc_ref
+    !------------------------------------------
+
+    ! get time weights for the same day as the current day but in reference year:
+    CALL set_time_weight(mtime_ref, time_weight, time_weight_bg)
+
+    ! get x_cdnc_ref for the same day in reference year:
+    CALL sp_plume_profile_550( &
+          & nlevels=klev, &
+          & jcs=jcs, &
+          & jce=jce, &
+          & nproma=nproma, &
+          & time_weight=time_weight(:,:), &
+          & time_weight_bg=time_weight_bg(:,:), &
+          & z=z_fl_vr(:,:), &
+          & dz=dz_vr(:,:), &
+          & oro=z_sfc(:), &
+          & lon=lon_sp(:), &
+          & lat=lat_sp(:), &
+          & aod_550=aod_550(:,:,:), &
+          & dNovrN=x_cdnc_ref(:) &
+          )
+
+    ! -----------------------------------------
+    ! Calculate the x_cdnc for the current time
+    !------------------------------------------
+
+    ! get time weights for mtime_local
+    CALL set_time_weight(mtime_local, time_weight, time_weight_bg)
+
+    ! get x_cdnc for current time:
+    CALL sp_plume_profile_550( &
+          & nlevels=klev, &
+          & jcs=jcs, &
+          & jce=jce, &
+          & nproma=nproma, &
+          & time_weight=time_weight(:,:), &
+          & time_weight_bg=time_weight_bg(:,:), &
+          & z=z_fl_vr(:,:), &
+          & dz=dz_vr(:,:), &
+          & oro=z_sfc(:), &
+          & lon=lon_sp(:), &
+          & lat=lat_sp(:), &
+          & aod_550=aod_550(:,:,:), &
+          & dNovrN=x_cdnc(:) &
+        )
+
+    cloud_num_fac(:) = x_cdnc(:) / MAX(1e-6_wp, x_cdnc_ref(:))
+    cloud_num_fac(:) = MIN(MAX(0.1_wp, cloud_num_fac(:)),3._wp)
+
+    !$ACC END DATA
+
+  END SUBROUTINE cloud_num_scaling_factor
 
   SUBROUTINE read_1d_wrapper(ifile_id,                 variable_name,        &
                            & alloc_array,              file_name,            &

@@ -5462,14 +5462,22 @@ More advanced options are in preparation&
 currently only for inwp\_gscp = 1
 \tabularnewline
 
-lscale\_cdnc&
-L&
-.FALSE.&
+scale\_cdnc\_mode&
+I&
+0&
 &
-.TRUE.: scaling of external (MODIS) cdnc with a time varying 2-dimensional factor derived from the simple plume scheme. It is advisable to turn the scaling off at least for the years 2000-2020. &
-climate projections using\\
+Controls scaling of external climatological cloud droplet number concentration (CDNC) data. Only effective if external CDNC is used. \\
+0: No scaling applied; external CDNC is used as provided. \\
+1: Apply time-varying, spatially resolved scaling factors derived from the simple plume scheme during the model run. The scaling field varies daily in time and 2D in space, and is applied according to the experiment’s actual (simulation) year. \\
+Note: For years 2000–2020, it is usually preferable to disable scaling (mode 0), since MODIS data are available for those years directly. \\
+2: Apply constant scaling of external CDNC to represent pre-industrial conditions. All years are scaled to 1850 values, using spatially varying scaling factors. \\
+&
+Climate projections using\\
 icpl\_aero\_gscp = 3\\
-irad\_aero = 18,19
+irad\_aero = 18,19 \\
+Picontrol experiments using \\
+icpl\_aero\_gscp = 3\\
+irad\_aero = 12
 \tabularnewline
 
 icpl\_aero\_ice&
@@ -5629,7 +5637,8 @@ I&
 0&
  &
 0: off \\
-1: simple coupling between autoconversion and Tegen aerosol climatology; requires irad\_aero=6 or 7 &
+1: simple coupling between autoconversion (in convection scheme) and aerosol climatology; requires irad\_aero=6, 7, 12, 13, 14, 15, 18, 19 &
+when irad\_aero=12, 13, 14, 15, 18, 19 (Kinne aerosol), icpl\_aero\_conv=1 should be used with iclp\_aero\_gscp=3 (external cloud droplet number)
 \tabularnewline
 
 

@@ -391,13 +391,17 @@ CONTAINS
             CALL finish(routine,'aerosol-precipitation coupling requires irad_aero=6,7,8,9,12,13,14,15,18 or 19')
           ENDIF
 
-          ! reset lscale_cdnc to .false. if the SP scheme or icpl_aero_gscp = 3 (or both) are not set
-          IF ( atm_phy_nwp_config(jg)%lscale_cdnc .AND. atm_phy_nwp_config(jg)%icpl_aero_gscp /= 3 ) THEN
-            IF ( .NOT. ANY ( irad_aero ==  (/iRadAeroKinneVolcSP, iRadAeroKinneSP/) ) ) THEN
-              atm_phy_nwp_config(jg)%lscale_cdnc = .false.
-              CALL message(routine,'cdnc scaling is only effective in combination with the simple plumes &
-                                   &(irad_aero=18,19) and icpl_aero_gscp = 3; reset lscale_cdnc to .false.')
-            ENDIF
+          ! The coupling aerosol-convection requires cloud_num, which Kinne aerosol does not have. Therefore, aerosol-convection
+          ! coupling can only be used if external cdnc is provided:
+          IF ( ANY ( irad_aero ==  (/iRadAeroConstKinne, iRadAeroKinne, iRadAeroVolc,          &
+                         &  iRadAeroKinneVolc, iRadAeroKinneVolcSP, iRadAeroKinneSP/) ) .AND.  &
+            &  ( icpl_aero_conv > 0 ) .AND. ( atm_phy_nwp_config(jg)%icpl_aero_gscp /= 3 ) ) THEN
+            CALL finish(routine,'aerosol-precipitation coupling with Kinne aerosol requires external cdnc')
+          ENDIF
+
+          ! cdnc scaling factor must be used with external cdnc
+          IF ( atm_phy_nwp_config(jg)%scale_cdnc_mode /= 0 .AND. atm_phy_nwp_config(jg)%icpl_aero_gscp /= 3 ) THEN
+            CALL finish(routine,'cdnc scaling is only effective in combination with and icpl_aero_gscp = 3')
           ENDIF
 
           ! CDNC-based interpolation in convection scheme only useful with MODIS CDNC

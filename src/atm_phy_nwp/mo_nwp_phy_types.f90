@@ -99,7 +99,6 @@ MODULE mo_nwp_phy_types
       &   acdnc(:,:,:),        & !! cloud droplet number concentration                   [1/m**3]
       &   cape    (:,:),       & !! convective available energy
       &   cloud_num(:,:),      & !! 2D cloud droplet number concentration for simple aerosol-cloud coupling [1/m**3]
-      &   cloud_num_fac(:,:),  & !! scaling factor for cloud_num, can be used for icpl_aero_gscp = 3 and lscale_cdnc = true
       &   conv_eis(:,:),       & !! estimated inversion strength
       &   con_gust(:,:),       & !! convective gusts near surface
       &   con_udd(:,:,:,:),    & !!(nproma,nlev,nblks,8) convective up/downdraft fields
