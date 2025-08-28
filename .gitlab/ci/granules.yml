@@ -51,12 +51,10 @@ include:
     paths:
       - ${PYVENV}
     policy: pull
-  interruptible: true
   rules:
-    - if: $CI_MERGE_REQUEST_ID
-      when: always
+    - if: $ICON_CI_PARENT_PIPELINE_SOURCE == "merge_request_event"
+      interruptible: true
     - when: manual
-      interruptible: false
 
 .common_levante:
   extends: .common
@@ -121,6 +119,4 @@ Create Tolerance Microphysics 1-moment:
       - reference.patch
     expire_in: 1 week
     expose_as: 'Reference Git Patch'
-  rules:
-    - when: manual
-  allow_failure: true
+  when: manual

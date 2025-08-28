@@ -8,6 +8,10 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ---------------------------------------------------------------
 
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "parent_pipeline"
+
 .common_cscs_ci:
   variables:
     APK_CACHE_DIR: ${CI_PROJECT_DIR}/.ci_dir/apk-cache
@@ -151,23 +155,17 @@ cpu:
     CSCS_CI_TAG: merge2rc
     CSCS_CI_BUILDER: santis-cpu
   rules:
-    - if: $CI_MERGE_REQUEST_ID
-      when: always
+    - if: $ICON_CI_PARENT_PIPELINE_SOURCE == "merge_request_event"
       interruptible: true
+    - if: $ICON_TEST_SCHEDULE == "nightly"
     - when: manual
-  interruptible: false
 
 gpu:
   extends: .common_cscs_ci
   variables:
     CSCS_CI_TAG: merge2rc
     CSCS_CI_BUILDER: santis-gpu
-  rules:
-    - if: $CI_MERGE_REQUEST_ID
-      when: always
-      interruptible: true
-    - when: manual
-  interruptible: false
+  rules: !reference [cpu, rules]
 
 cpu_tolerance:
   extends: .common_cscs_ci
@@ -176,6 +174,8 @@ cpu_tolerance:
     CSCS_CI_BUILDER: santis-cpu
   when: manual
   interruptible: true
+  rules:
+    - if: $ICON_CI_PARENT_PIPELINE_SOURCE != "schedule"
 
 cpu_select_members:
   extends: .common_cscs_ci
@@ -184,3 +184,4 @@ cpu_select_members:
     CSCS_CI_BUILDER: santis-cpu
   when: manual
   interruptible: true
+  rules: !reference [cpu_tolerance, rules]

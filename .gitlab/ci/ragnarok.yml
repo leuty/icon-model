@@ -37,12 +37,10 @@ include:
     VERBOSE:
     CTEST_OUTPUT_ON_FAILURE:
     ctestOptions: --extra-verbose
-  interruptible: true
   rules:
-    - if: $CI_MERGE_REQUEST_ID
-      when: always
+    - if: $ICON_CI_PARENT_PIPELINE_SOURCE == "merge_request_event"
+      interruptible: true
     - when: manual
-      interruptible: false
 
 gcc-cpu:
   extends: .common_levante

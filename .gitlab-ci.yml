@@ -271,8 +271,13 @@ Iconbot:
       changes:
         - ${ICONBOT_CONFIG}
 
+.common_trigger:
+  variables:
+    ICON_CI_PARENT_PIPELINE_SOURCE: ${CI_PIPELINE_SOURCE}
+
 Granules:
   stage: test
+  extends: .common_trigger
   needs: []
   trigger:
     include: .gitlab/ci/granules.yml
@@ -302,6 +307,7 @@ Granules:
 
 Ragnarok:
   stage: test
+  extends: .common_trigger
   needs: []
   trigger:
     include: .gitlab/ci/ragnarok.yml
@@ -407,6 +413,7 @@ Generate and publish HTML:
 
 santis:
   stage: system
+  extends: .common_trigger
   needs: []
   trigger:
     include: .gitlab/ci/cscs/santis.yml
@@ -418,9 +425,15 @@ santis:
       interruptible: false
     - if: $CSCS_CI_INACTIVE_BUILDERS =~ "/(^|,)santis/"
       when: never
-    - if: $ICON_TEST_SCHEDULE == "nightly"
-      when: always
+    - if: $CI_PIPELINE_SOURCE == "schedule"
       interruptible: false
+      variables:
+        ICON_TEST_SCHEDULE: ${ICON_TEST_SCHEDULE}
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - .gitlab/ci/cscs/**/*
+        - scripts/cscs_ci/**/*
+      when: manual
     - if: >-
         $CI_PIPELINE_SOURCE == "merge_request_event" &&
           $CI_MERGE_REQUEST_PROJECT_PATH != "icon/icon-mpim"
@@ -428,6 +441,7 @@ santis:
 
 .common_levante:
   stage: system
+  extends: .common_trigger
   needs: []
   variables:
     BUILDER_NAME: ${CI_JOB_NAME}

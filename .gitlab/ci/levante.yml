@@ -104,7 +104,7 @@ include:
       ${EXTRA_SCHEDULER_PARAMETERS}
   interruptible: true
   rules:
-    - if: $CI_MERGE_REQUEST_ID
+    - if: $ICON_CI_PARENT_PIPELINE_SOURCE == "merge_request_event"
     - interruptible: false
 
 build:
