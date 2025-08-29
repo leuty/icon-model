@@ -126,6 +126,7 @@ NWP: TERRA and other surface issues
 - Added 158, 49, 5 and 2.1 km AMIP template with AES physics for mkexp (cpu + gpu, distributed IO)
 - Added 49km AMIP BuildBot test with AES physics on one Levante GPU
 - Support more ocean setups and output options in omip run script template (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/644)
+- Add mkexp support for CUDA graph utilization in jsbach on Levante gpu partition (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/934)
 
 #### Building
 

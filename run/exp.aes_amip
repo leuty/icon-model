@@ -91,6 +91,10 @@ elif [ ${grid_refinement} == R02B04 ] ; then
 
 fi
 
+if [ ${builder} == bullx_gpu_pgi ] ; then
+   use_cuda_vdf=true
+fi
+
 # domain globe
 grids_folder=${icon_data_poolFolder}/${grid_id}
 grid_label=G
@@ -289,6 +293,7 @@ cat > ${atmo_namelist} << EOF
  aes_vdf_config(1)%energy_type        = 2   ! Only used for tmx
  aes_vdf_config(1)%dissipation_factor = 1.3 ! Only used for tmx
  aes_vdf_config(1)%louis_constant_b   = 3.2 ! !automatically scaled in tmx
+ aes_vdf_config(1)%lcuda_graph_vdf = .${use_cuda_vdf:-false}. ! Use CUDA graph to speed up execution
 /
 &aes_cov_nml
  aes_cov_config(1)%cqx        = 1.e-6
