@@ -313,6 +313,18 @@ CONTAINS
     IF (is_restart_var .AND. (.NOT. ANY(data_type == (/REAL_T, SINGLE_T, INT_T/)))) &
       & CALL finish(routine, 'unsupported data_type for "'//TRIM(varname)//'": '// &
         & 'data_type of restart variables must be floating-point or integer type.')
+
+    SELECT CASE(data_type)
+    CASE(REAL_T)
+      IF (ANY([PRESENT(p5_s), PRESENT(missval_s), PRESENT(initval_s), PRESENT(resetval_s)])) THEN
+        CALL finish(routine, "data_type=REAL_T but parameters for SINGLE_T present")
+      ENDIF
+    CASE(SINGLE_T)
+      IF (ANY([PRESENT(p5_r), PRESENT(missval_r), PRESENT(initval_r), PRESENT(resetval_r)])) THEN
+        CALL finish(routine, "data_type=SINGLE_T but parameters for REAL_T present")
+      ENDIF
+    END SELECT
+
     ALLOCATE(new_elem)
     CALL inherit_var_list_metadata(list, new_elem%info)
     ! init local fields
