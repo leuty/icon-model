@@ -14,7 +14,7 @@
 # EXCLAIM Aquaplanet setup (R02B04) for BUILDBOT tests using NWP physics. Radiation is done
 # on original grid
 
-# Date: 16 June. Authors:  Anurag Dipankar, David Leutwyler, Abishek Gopal and Praveen Pothapakula
+# Date: 16 June 2023. Authors:  Anurag Dipankar, David Leutwyler, Abishek Gopal and Praveen Pothapakula
 #
 #=============================================================================
 #=============================================================================
@@ -54,11 +54,12 @@ input_folder="${testingFolder_prefix}/testing-input-data/c2sm/ape_R02B04"
 
 # horizontal grid(s)
 # ------------------
-atmo_dyn_grid=${input_folder}/icon_grid_0013_R02B04_R.nc
+atmo_dyn_grid=${input_folder}/icon_grid_0012_R02B04_G.nc
 
 # start and end date+time
 start_date=${start_date:="2000-01-01T00:00:00Z"}
 end_date=${end_date:="2000-01-01T00:00:30Z"}
+start_output=${start_output:="2000-01-01T00:00:02Z"}
 
 # restart intervals (set in master namelist)
 # ---------------------------
@@ -71,10 +72,10 @@ restart_interval="P1D"
 #output_bounds="0.,10000000.,600"
 #steps_per_file=6
 
-atm_file_interval="PT10S"
-atm_file_interval_2d="PT10S"
-atm_file_interval_3d="PT10S"
-atm_file_interval_pl="PT10S"
+atm_file_interval="PT2S"
+atm_file_interval_2d="PT2S"
+atm_file_interval_3d="PT2S"
+atm_file_interval_pl="PT2S"
 
 atm_output_interval="PT2S"
 atm_output_interval_2d="PT2S"
@@ -264,7 +265,7 @@ izenith                     =                          3         ! zenith angle 
  output_filename             =              '${EXPNAME}_atm_2d'  ! file name base
  filetype                    =                               5   ! output format 5:NetCDFv4
  filename_format             = "<output_filename>_<datetime2>"   ! Output filename format
- output_start                =                 "${start_date}"
+ output_start                =               "${start_output}"
  output_end                  =                   "${end_date}"
  output_interval             =     "${atm_output_interval_2d}"
  file_interval               =      "${atm_file_interval_2d}"
@@ -289,7 +290,7 @@ izenith                     =                          3         ! zenith angle 
  output_filename             =             '${EXPNAME}_atm_3d_pl'! file name base
  filetype                    =                               5   ! output format: 2=GRIB2, 4=NetCDFv2, 5=NetCDFv4
  filename_format             = "<output_filename>_<datetime2>"
- output_start                =                 "${start_date}"
+ output_start                =               "${start_output}"
  output_end                  =                   "${end_date}"
  output_interval             =     "${atm_output_interval_pl}"
  file_interval               =       "${atm_file_interval_pl}"
@@ -302,7 +303,3 @@ izenith                     =                          3         ! zenith angle 
  pl_varlist                  = 'geopot', 'temp','u', 'v', 'w', 'qv', 'qc', 'qi'
 /
 EOF
-#---------------------------------------------------------------
-# add standard atmo_non-hydrostatic_files
-. ${thisdir}/add_required_atmo_non-hydrostatic_files
-#----------------------------------------------------------------------------------

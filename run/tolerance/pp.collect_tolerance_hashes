@@ -49,10 +49,13 @@ umask 0022
 # generating iterable array of builders
 IFS=',' read -ra experiments <<< "${tolerance_experiments}"
 
+# Sort experiments in alphabetic order
+sorted_experiments=($(for exp in "${experiments[@]}"; do echo $exp; done | sort))
+
 declare -A experiment_hashes
 
 all_failed=true
-for exp in "${experiments[@]}"; do
+for exp in "${sorted_experiments[@]}"; do
     reference_file_name="${basedir}/${exp}_reference.csv"
     tolerance_file_name="${basedir}/${exp}_tolerance.csv"
 

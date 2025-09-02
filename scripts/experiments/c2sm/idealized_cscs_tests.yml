@@ -9,15 +9,12 @@
 # ------------------------------------------
 
 tests:
-  - name: atm_heldsuarez_test
-    tags: ['merge2rc']
-
   - name: exclaim_ape_R02B04
-    tags: ['merge2rc']
+    tags: ['merge2rc','probtest']
     machines:
       - name: santis
+    refgen: ['santis_cpu_nvhpc']
     checksuite_modes:
-      - santis: 'br'
-
-  - name: atm_tracer_Hadley
-    tags: ['merge2rc']
+      - santis: 'rt'
+    ensemble_num:
+      - santis_cpu_nvhpc: [1,3,27]

@@ -13,11 +13,14 @@ tests:
     machines:
       - name: horeka
         include_only: ['horeka_cpu_nvhpc','horeka_gpu_nvhpc']
-    refgen: ['horeka_cpu_nvhpc']
+      - name: santis
+    refgen: ['horeka_cpu_nvhpc','santis_cpu_nvhpc']
     tags: ['merge2rc','probtest']
     checksuite_modes:
       - horeka: 't'
+      - santis: 't'
     ensemble_num:
-    - horeka_cpu_nvhpc: [1,47,19,37,13,42,45,16,12,29,30,18,8,40,24]
+      - horeka_cpu_nvhpc: [1,47,19,37,13,42,45,16,12,29,30,18,8,40,24]
+      - santis_cpu_nvhpc: [1,2,3,6,14,15,16,23,26,31,32,36,40,49]
     tolerance_factor:
-    - horeka: 10
+      - horeka: 10

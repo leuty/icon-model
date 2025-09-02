@@ -73,6 +73,7 @@ start_header()
 
     set_default use_ecrad_isolver 0 # Default: McICA (not for OpenACC)
     set_default use_proc0_shift 0 # VH offloading mode: off
+    set_default use_num_io_procs 1
 
     cat >> "$output_script" << EOF
 #-----------------------------------------------------------------------------
@@ -1276,6 +1277,7 @@ set_run_target_alps_mch_gpu()
     set_default use_nproma 0
     set_default use_nblocks_c 1
     set_default use_prefetch_procs 0
+    set_default use_num_io_procs 1
     use_OMP_SCHEDULE="static,1"
 
     is_serial_run="no"
@@ -1359,6 +1361,7 @@ set_run_target_alps_mch_cpu()
     set default use_nproma_sub 8
     set_default use_nblocks_c 0
     set_default use_nodes 1
+    set_default use_num_io_procs 1
     use_OMP_SCHEDULE="static,12"
 
     is_serial_run="no"
@@ -1992,6 +1995,13 @@ set_run_target_santis_gpu()
     set_default use_num_io_procs 0
     set_default use_account_no "$(id -gn)"
     use_OMP_SCHEDULE="static,1"
+
+    case $job_name in
+        *dwd_run_ICON_09_R2B4N5_EPS.run*|*dwd_run_ICON_09_R2B4N5_EPS_member_id*)
+                use_nproma=8000
+                use_nproma_sub=0
+            ;;
+    esac
 
     is_serial_run="no"
 

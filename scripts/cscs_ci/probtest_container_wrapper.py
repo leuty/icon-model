@@ -27,10 +27,13 @@ sys.path.insert(0, str(icon_dir / "scripts/experiments"))
 from yaml_experiment_test_processor import ExperimentTestCollection
 
 # Set probtest container executable
-probtest_container = (
-    "srun --container-writable --environment=probtest conda run --name probtest"
-)
+probtest_container = "srun --container-writable --environment=probtest"
 probtest = "/probtest/probtest.py"
+# Full bash command that runs inside the container
+probtest_conda = (
+    f"source /opt/conda/miniconda/etc/profile.d/conda.sh && "
+    f"conda activate probtest"
+)
 
 # Set EDF_PATH if not set to know the path to the toml file
 if "EDF_PATH" not in os.environ:
@@ -45,6 +48,20 @@ def get_env_var(var_name):
         )
     else:
         return os.environ[var_name]
+
+
+# Two different names are used for the reference file.
+# Ensure that the required one is available and copy in case it is not.
+def check_ref_file(experiment, build_dir):
+    reference_file_path = build_dir / f"stats_{experiment}_ref.csv"
+    if not os.path.exists(reference_file_path):
+        alt_reference_file_path = build_dir / f"{experiment}_reference.csv"
+        if os.path.exists(alt_reference_file_path):
+            shutil.copy(alt_reference_file_path, reference_file_path)
+        else:
+            raise FileNotFoundError(
+                f"No reference file at {reference_file_path} or {alt_reference_file_path}"
+            )
 
 
 def update_member_runscript(
@@ -102,28 +119,24 @@ def generate_stats_file(
     if not stats_file_path:
         stats_file_path = build_dir / f"stats_{experiment}.csv"
 
-    # Initialize probtest
-    probtest_init = probtest + " init " + file_id
-
-    # Generate statistics file
+    # Commands to run inside container
+    probtest_init = f"{probtest} init {file_id}"
     probtest_stats = (
-        probtest
-        + " stats"
-        + " --no-ensemble"
-        + " --stats-file-name "
-        + str(stats_file_path)
-        + " --model-output-dir "
-        + str(model_output_dir)
+        f"{probtest} stats --no-ensemble "
+        f"--stats-file-name {stats_file_path} "
+        f"--model-output-dir {model_output_dir}"
     )
 
     subprocess.run(
-        f'{probtest_container} bash -c "{probtest_init}  && {probtest_stats}"',
+        f'{probtest_container} bash -c "{probtest_conda} && {probtest_init} && {probtest_stats}"',
         check=True,
         shell=True,
     )
 
 
-def generate_tolerance_file(etc, experiment, build_dir, file_id=None):
+def generate_tolerance_file(
+    etc, experiment, build_dir, file_id=None, member_ids=None
+):
     """Generates the tolerance file from the stats files of an ensemble run using members specified in YAML files."""
     bb_name = get_env_var("BB_NAME")
     reference_builder = bb_name.replace("_gpu", "_cpu")
@@ -135,9 +148,10 @@ def generate_tolerance_file(etc, experiment, build_dir, file_id=None):
         file_id = "--file-id " + file_id[0][0] + " " + file_id[0][1]
 
     # Get ensemble member numbers
-    member_ids = etc.get_ensemble_num_for_exp_as_string(
-        experiment, reference_builder
-    )
+    if not member_ids:
+        member_ids = etc.get_ensemble_num_for_exp_as_string(
+            experiment, reference_builder
+        )
 
     # Initialize probtest
     probtest_init = (
@@ -153,6 +167,10 @@ def generate_tolerance_file(etc, experiment, build_dir, file_id=None):
     # Generate tolerance file
     stats_file_path = build_dir / f"stats_{experiment}_{{member_id}}.csv"
     tolerance_file_path = build_dir / f"{experiment}_tolerance.csv"
+
+    # Ensure correct reference file is available
+    check_ref_file(experiment, build_dir)
+
     probtest_tolerance = (
         probtest
         + " tolerance"
@@ -163,7 +181,7 @@ def generate_tolerance_file(etc, experiment, build_dir, file_id=None):
     )
 
     subprocess.run(
-        f'{probtest_container} bash -c "{probtest_init}  && {probtest_tolerance}"',
+        f'{probtest_container} bash -c "{probtest_conda} && {probtest_init} && {probtest_tolerance}"',
         check=True,
         shell=True,
     )
@@ -190,8 +208,11 @@ def run_tolerance_check(
 
     # Mount input, references and tolerances files in probtest container
     probtest_toml = EDF_PATH / f"probtest.toml"
+    probtest_toml_mounts = EDF_PATH / f"probtest_mounts.toml"
     if not os.path.exists(probtest_toml):
         raise FileNotFoundError(f"File not found: {probtest_toml}")
+    else:
+        shutil.copy(probtest_toml, probtest_toml_mounts)
 
     input_file = Path(input_file_cur).resolve()
     reference_file = Path(input_file_ref).resolve()
@@ -217,7 +238,7 @@ def run_tolerance_check(
             str(mount_entry_ref),
             str(mount_entry_tol),
         ]
-    with probtest_toml.open("w") as f:
+    with probtest_toml_mounts.open("w") as f:
         toml.dump(config_mounts, f)
 
     # Get file IDs from YAML files if not given
@@ -247,15 +268,15 @@ def run_tolerance_check(
         + str(factor)
     )
 
+    # Use toml file with mounts
+    probtest_container_mounts = (
+        "srun --container-writable --environment=probtest_mounts"
+    )
     subprocess.run(
-        f'{probtest_container} bash -c "{probtest_init}  && {probtest_check}"',
+        f'{probtest_container_mounts} bash -c "{probtest_conda} && {probtest_init} && {probtest_check}"',
         check=True,
         shell=True,
     )
-
-    # Make sure to remove mounts from toml file again
-    with probtest_toml.open("w") as f:
-        toml.dump(config, f)
 
 
 def select_members(etc, experiment, build_dir, file_id):
@@ -277,6 +298,9 @@ def select_members(etc, experiment, build_dir, file_id):
     )
     tolerance_file_path = build_dir / f"{experiment}_tolerance.csv"
     reference_file_path = build_dir / f"stats_{experiment}_ref.csv"
+
+    # Ensure correct reference file is available
+    check_ref_file(experiment, build_dir)
 
     # Select members
     probtest_select = (
@@ -310,7 +334,7 @@ def select_members(etc, experiment, build_dir, file_id):
     )
 
     subprocess.run(
-        f'{probtest_container} bash -c "{probtest_init}  && {probtest_select} && {probtest_tolerance}"',
+        f'{probtest_container} bash -c "{probtest_conda} && {probtest_init}  && {probtest_select} && {probtest_tolerance}"',
         check=True,
         shell=True,
     )
@@ -505,7 +529,7 @@ def main(
             etc, experiment, build_dir, member_name, stats_file_path, file_id
         )
     elif task == "tolerance":
-        generate_tolerance_file(etc, experiment, build_dir, file_id)
+        generate_tolerance_file(etc, experiment, build_dir, file_id, member_ids)
     elif task == "check":
         run_tolerance_check(
             etc,

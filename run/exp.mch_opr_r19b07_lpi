@@ -114,7 +114,7 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
  nproma                      =                   ${nproma}        ! loop chunk length
  nblocks_c                   =                   ${nblocks_c}     ! loop number of cell blocks
  p_test_run                  =                     .FALSE.        ! .TRUE. means verification run for MPI parallelization
- num_io_procs                =                          1         ! number of I/O processors
+ num_io_procs                =            ${num_io_procs}         ! number of I/O processors
  num_restart_procs           =                          0         ! number of restart processors
  num_prefetch_proc           =                          1         ! number of processors for LBC prefetching
  iorder_sendrecv             =                          3         ! sequence of MPI send/receive calls
@@ -359,8 +359,8 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
   'ddt_qv_turb','ddt_qc_turb','ddt_qv_conv','ddt_qc_conv','ddt_tke','ddt_tke_pconv','ddt_tke_hsh','qv_s',
   'runoff_g','plantevap','t_snow','rho_snow','h_snow','freshsnow','ddt_vn_adv','exner','lpi','lpi_max',
   'ddt_qv_gscp', 'ddt_qc_gscp', 'ddt_qi_gscp','ddt_qr_gscp','ddt_qs_gscp','ddt_qg_gscp',
-  'dhail_mx','dhail_av', 'dhail_sd','wup_mask','wdur'
- ! 'theta_v' ! removed theta_v for the time being, as it does not pass the tolerance test (though errors are very small)
+  'dhail_mx','dhail_av', 'dhail_sd','wup_mask','wdur',
+  'theta_v'
 /
 
 ! radiation_nml: radiation scheme ---------------------------------------------

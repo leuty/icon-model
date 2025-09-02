@@ -664,6 +664,8 @@ class CscsCiInterface(ExperimentTestCollection):
                     continue
                 elif ("gpu" in builder) and (mode == "probtest"):
                     continue
+                elif (mode == "probtest") and builder not in exp["refgen"]:
+                    continue
                 items.append(exp)
 
         return {"tests": items}

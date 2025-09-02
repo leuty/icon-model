@@ -26,8 +26,7 @@ include:
   script:
     - export EDF_PATH=$(pwd)
     - PROBTEST_TAG=$(cat $EDF_PATH/run/tolerance/PROBTEST_TAG)
-    - enroot import docker://c2sm/probtest:${PROBTEST_TAG}
-    - echo "image = \"$(pwd)/c2sm+probtest+${PROBTEST_TAG}.sqsh\"" > probtest.toml
+    - echo "image = 'c2sm/probtest:${PROBTEST_TAG}'" > probtest.toml
     - echo "mounts = [ \"$(pwd)\" ]" >> probtest.toml
     - echo "workdir = \"$(pwd)\"" >> probtest.toml
     - echo "writable = true" >> probtest.toml
@@ -38,11 +37,19 @@ include:
 
 .check_with_uenv:
   script:
-    - uenv run ${UENV_VERSION} --view modules -- bash -c "module load nvhpc cdo && ./check.${EXPERIMENT}.run"
+    - uenv run ${UENV_VERSION} --view modules,default -- bash -c '
+        source ./../.venv/bin/activate &&
+        module load nvhpc cdo &&
+        ./check.${EXPERIMENT}.run 2>&1 | tee LOG.check.${EXPERIMENT}.run.o ;
+        exit_code=${PIPESTATUS[0]} ;
+        exit $exit_code'
 
 .run_probtest:
   script:
-    - uenv run ${UENV_VERSION} -- python3 scripts/cscs_ci/probtest_container_wrapper.py $PROBTEST_TASK $EXPERIMENT
+    - uenv run ${UENV_VERSION} --view modules,default -- bash -c '
+        source ./.venv/bin/activate &&
+        module load nvhpc cdo &&
+        python3 scripts/cscs_ci/probtest_container_wrapper.py $PROBTEST_TASK $EXPERIMENT'
 
 .santis_create_common:
   extends: .container-runner-lightweight-zen2
@@ -77,9 +84,11 @@ include:
   extends: .baremetal-runner-santis-gh200
   stage: build
   timeout: 3h
+  after_script:
+    - cp build-linux-*/spack-build-out.txt .
   artifacts:
     paths:
-    - ./**/spack-build-out.txt
+    - spack-build-out.txt
     - config.log
     - run/**/*
     - scripts/**/*
@@ -100,9 +109,9 @@ include:
     acx_cv_host_fqdn: santis
 
 .build_santis_cpu_nvhpc:
+  extends: .build_common_santis
   variables:
     CONFIG: santis.cpu.nvhpc
-  extends: .build_common_santis
   before_script:
     - !reference [.setup_uenv, script]
   script:
@@ -135,6 +144,10 @@ include:
   variables:
     GIT_STRATEGY: none
     SLURM_TIMELIMIT: '00:10:00'
+  artifacts:
+    paths:
+      - run/LOG*
+    when: always
 
 .run_ensemble_member_santis:
   extends: .baremetal-runner-santis-gh200

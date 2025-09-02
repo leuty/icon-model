@@ -61,7 +61,7 @@ experiments:
     restart_date: ['20210620T120100Z']
     tolerance:
       file_id:
-        - NetCDF: ['*lfff0*c', '*lfff0*p', '*lfff0*z', '*lffm0*', '*lffmf0*0', '*_atm_3d*.nc']
+        - NetCDF: ['*lfff0*c', '*lfff0*p', '*lfff0*z', '*lffm0*', '*_atm_3d*.nc']
   - name: mch_icon-ch2
     check: checksuite.icon-dev/check.mch_icon-ch2
     types: ['void']
