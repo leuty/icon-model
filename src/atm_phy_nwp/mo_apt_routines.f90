@@ -23,7 +23,7 @@ MODULE mo_apt_routines
   USE mo_nwp_phy_types,       ONLY: t_nwp_phy_diag
   USE mo_nwp_lnd_types,       ONLY: t_wtr_prog, t_lnd_diag, t_lnd_prog
   USE mo_ext_data_types,      ONLY: t_external_data
-  USE mo_nonhydro_types,      ONLY: t_nh_prog, t_nh_diag, t_nh_state
+  USE mo_nonhydro_types,      ONLY: t_nh_prog, t_nh_diag, t_nh_state, t_nh_metrics
   USE mo_intp_data_strc,      ONLY: t_int_state
   USE mo_model_domain,        ONLY: t_patch
   USE mo_impl_constants,      ONLY: min_rlcell_int, min_rlcell
@@ -46,8 +46,8 @@ MODULE mo_apt_routines
   USE mo_master_config,       ONLY: isRestart
   USE mo_initicon_types,      ONLY: t_initicon_state
   USE mo_initicon_config,     ONLY: icpl_da_sfcevap, dt_ana, icpl_da_snowalb, icpl_da_landalb, icpl_da_skinc, &
-                                    icpl_da_sfcfric, icpl_da_tkhmin, icpl_da_seaice, scalfac_da_sfcfric
-
+                                    icpl_da_sfcfric, icpl_da_tkhmin, icpl_da_seaice, scalfac_da_sfcfric,      &
+                                    dt_filt
   USE mo_nwp_tuning_config,   ONLY: itune_slopecorr
 
 
@@ -79,17 +79,22 @@ MODULE mo_apt_routines
     TYPE(t_initicon_state)        ,INTENT(INOUT) :: initicon(:)
     TYPE(t_readInstructionListPtr),INTENT(IN)    :: inputInstructions(:)
 
-    TYPE(t_nh_diag) , POINTER :: p_diag
-    TYPE(t_nh_prog),  POINTER :: p_prog_now
+    TYPE(t_nh_diag),    POINTER :: p_diag
+    TYPE(t_nh_prog),    POINTER :: p_prog_now
+    TYPE(t_nh_metrics), POINTER :: p_metrics
 
-    INTEGER :: jg, jb, jc, nlev
+    INTEGER :: jg, jb, jc, jk, nlev
     INTEGER :: rl_start, rl_end
     INTEGER :: i_startidx, i_endidx, i_startblk, i_endblk
 
 
-    REAL(wp) :: rh_inc(nproma), localtime_fac, dtfac
+    REAL(wp) :: rh_inc(nproma), localtime_fac, dtfac, dtfac2, v_pbl(nproma), dz_int(nproma), wfac_vinc(nproma)
 
   !-------------------------------------------------------------------------
+
+    ! weighting factor for filtering time scales (default 2.5 days for all)
+    dtfac      = dt_ana/(dt_filt(1)*86400._wp)
+    dtfac2     = dt_ana/(dt_filt(2)*86400._wp) ! t_avginc, rh_avginc
 
     DO jg = 1, n_dom
 
@@ -97,6 +102,7 @@ MODULE mo_apt_routines
 
       p_diag      => p_nh_state(jg)%diag
       p_prog_now  => p_nh_state(jg)%prog(nnow(jg))
+      p_metrics   => p_nh_state(jg)%metrics
 
       nlev      = p_patch(jg)%nlev
 
@@ -105,9 +111,6 @@ MODULE mo_apt_routines
 
       i_startblk = p_patch(jg)%cells%start_block(rl_start)
       i_endblk   = p_patch(jg)%cells%end_block(rl_end)
-
-      ! weighting factor for standard filtering time scale of 2.5 days
-      dtfac      = dt_ana/216000._wp
 
       ! interpolate wind and its increments to mass points
       IF (icpl_da_sfcfric >= 1) THEN
@@ -118,7 +121,7 @@ MODULE mo_apt_routines
 
 
 !$OMP PARALLEL
-!$OMP DO PRIVATE(jb,jc,i_startidx,i_endidx,rh_inc,localtime_fac)
+!$OMP DO PRIVATE(jb,jc,jk,i_startidx,i_endidx,rh_inc,localtime_fac,v_pbl,dz_int,wfac_vinc)
       DO jb = i_startblk, i_endblk
 
         CALL get_indices_c(p_patch(jg), jb, i_startblk, i_endblk, &
@@ -134,21 +137,21 @@ MODULE mo_apt_routines
             ENDDO
           ENDIF
         ELSE IF (icpl_da_sfcevap >= 3) THEN
-          ! Calculate time-filtered T assimilation increment at lowest model level (time scale 2.5 days);
+          ! Calculate time-filtered T assimilation increment at lowest model level (default time scale 2.5 days);
           ! this serves as a proxy for the averaged T2M bias
           DO jc = i_startidx, i_endidx
             p_diag%t_avginc(jc,jb) = p_diag%t_avginc(jc,jb) + &
-              dtfac*(initicon(jg)%atm_inc%temp(jc,nlev,jb)-p_diag%t_avginc(jc,jb))
+              dtfac2*(initicon(jg)%atm_inc%temp(jc,nlev,jb)-p_diag%t_avginc(jc,jb))
           ENDDO
         ENDIF
 
         IF (icpl_da_sfcevap >= 2) THEN
-          ! Calculate time-filtered RH assimilation increment at lowest model level (time scale 2.5 days);
+          ! Calculate time-filtered RH assimilation increment at lowest model level (default time scale 2.5 days);
           ! this serves as a proxy for the averaged RH2M bias
           DO jc = i_startidx, i_endidx
             rh_inc(jc) = initicon(jg)%atm_inc%qv(jc,nlev,jb)/ &
               spec_humi(sat_pres_water(p_diag%temp(jc,nlev,jb)),p_diag%pres_sfc(jc,jb))
-            p_diag%rh_avginc(jc,jb) = p_diag%rh_avginc(jc,jb) + dtfac*(rh_inc(jc)-p_diag%rh_avginc(jc,jb))
+            p_diag%rh_avginc(jc,jb) = p_diag%rh_avginc(jc,jb) + dtfac2*(rh_inc(jc)-p_diag%rh_avginc(jc,jb))
           ENDDO
         ENDIF
 
@@ -157,15 +160,36 @@ MODULE mo_apt_routines
           DO jc = i_startidx, i_endidx
             localtime_fac = COS(p_patch(jg)%cells%center(jc,jb)%lon + pi2/86400._wp *                           &
               (time_config%tc_exp_startdate%time%hour*3600._wp+time_config%tc_exp_startdate%time%minute*60._wp) )
-            p_diag%t_wgt_avginc(jc,jb) = p_diag%t_wgt_avginc(jc,jb) + &
-              dtfac*(initicon(jg)%atm_inc%temp(jc,nlev,jb)*localtime_fac-p_diag%t_wgt_avginc(jc,jb))
+            p_diag%t_wgt_avginc(jc,jb) = p_diag%t_wgt_avginc(jc,jb) + dtfac*ABS(localtime_fac) *         &
+              (initicon(jg)%atm_inc%temp(jc,nlev,jb)*SIGN(1._wp,localtime_fac)-p_diag%t_wgt_avginc(jc,jb))
           ENDDO
+        ENDIF
+
+        IF (icpl_da_sfcfric >= 3) THEN
+          v_pbl(:) = 0._wp
+          dz_int(:) = 0._wp
+          ! compute average wind speed in the lowest 1000 m AGL; wind speed increments occurring at
+          ! wind speeds below 7.5 m/s get smaller weight
+          DO jk = 1, nlev
+            DO jc = i_startidx, i_endidx
+              IF (p_metrics%z_ifc(jc,jk,jb)-p_metrics%z_ifc(jc,nlev+1,jb) < 1000._wp) THEN
+                v_pbl(jc) = v_pbl(jc) + p_metrics%ddqz_z_full(jc,jk,jb) * &
+                  SQRT(p_diag%u(jc,jk,jb)**2 + p_diag%v(jc,jk,jb)**2)
+                dz_int(jc) = dz_int(jc) + p_metrics%ddqz_z_full(jc,jk,jb)
+              ENDIF
+            ENDDO
+          ENDDO
+          DO jc = i_startidx, i_endidx
+            wfac_vinc(jc) = MIN(1._wp, v_pbl(jc)/dz_int(jc)/7.5_wp)
+          ENDDO
+        ELSE
+          wfac_vinc(:) = 1._wp
         ENDIF
 
         IF (icpl_da_sfcfric >= 1) THEN
           ! weighted wind speed increment for adaptive surface friction
           DO jc = i_startidx, i_endidx
-            p_diag%vabs_avginc(jc,jb) = p_diag%vabs_avginc(jc,jb) + dtfac * (                     &
+            p_diag%vabs_avginc(jc,jb) = p_diag%vabs_avginc(jc,jb) + dtfac * wfac_vinc(jc) * (     &
               SQRT( (p_diag%u(jc,nlev,jb)+initicon(jg)%atm_inc%u(jc,nlev,jb))**2 +                &
                     (p_diag%v(jc,nlev,jb)+initicon(jg)%atm_inc%v(jc,nlev,jb))**2 ) -              &
               SQRT(p_diag%u(jc,nlev,jb)**2 + p_diag%v(jc,nlev,jb)**2) - p_diag%vabs_avginc(jc,jb) )

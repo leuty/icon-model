@@ -2742,7 +2742,8 @@ Coupling between data assimilation and model parameters controlling surface fric
 1: on; requires assimilation of 10m-winds and cycling a time-filtered assimilation increment of absolute wind speed at the lowest model level;
 moreover, it is strongly recommended to use extpar data with full SSO information (generated in Feb. 2022 or later). Coupling is masked in large
 parts of Russia where the assimilation of 10m winds is blacklisted in the operational settings of 2022 \\
-2: on without masking over Russia, to be combined with 10m wind assimilation without blacklisting &
+2: on without masking over Russia, to be combined with 10m wind assimilation without blacklisting \\
+3: same as 2, but reduced weight of assimilation increments occurring at PBL wind speeds below 7.5 m/s &
 init\_mode=5
 \tabularnewline
 
@@ -2760,6 +2761,14 @@ Coupling between data assimilation and near-surface reduction profile for minimu
 0: off \\
 1: on &
 init\_mode=5, icpl\_da\_sfcevap $>$ 2 and icpl\_da\_skinc $>$ 0
+\tabularnewline
+
+dt\_filt&
+R(2) & 2.5 & days &
+Filtering time scale for filtered assimilation increments used for adaptive parameter tuning. \\
+1st value: standard time scale \\
+2nd value: time scale for t\_avginc and rh\_avginc (recommended tuning 5 days) &
+all icpl\_da options
 \tabularnewline
 
 
