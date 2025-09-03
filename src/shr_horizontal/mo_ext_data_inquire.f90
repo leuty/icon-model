@@ -34,6 +34,7 @@ MODULE mo_ext_data_inquire
     &                              gridInqUUID
   USE mo_util_cdi,           ONLY: get_cdi_varID, test_cdi_varID, has_filetype_netcdf
   USE mo_util_uuid,          ONLY: OPERATOR(==), uuid_unparse
+  USE mo_scm_nml,            ONLY: i_scm_netcdf, scm_init_filename
   USE mo_netcdf_errhandler,  ONLY: nf
   USE mo_netcdf
   USE mo_mpi,                ONLY: p_io, p_comm_work_test, p_comm_work, my_process_is_mpi_workroot, &
@@ -79,10 +80,9 @@ CONTAINS
       !------------------------------------------------!
       IF ( itopo == 1 ) THEN
         CALL inquire_extpar_file(p_patch, ext_atm_attr)
-
-        ! Debug printput
-        IF ( msg_level >= 10 ) THEN
-          CALL ext_atm_attr%print_values
+      ELSE
+        IF (l_scm_mode) THEN
+          CALL inquire_scm_file(p_patch, ext_atm_attr)
         ENDIF
       END IF
 
@@ -91,13 +91,14 @@ CONTAINS
       !------------------------------------------------!
       IF ( irad_o3 == io3_clim .OR. irad_o3 == io3_ape ) THEN
         CALL inquire_o3_file(p_patch, irad_o3, ext_o3_attr)
-
-        ! Debug printput
-        IF ( msg_level >= 10 ) THEN
-          CALL ext_o3_attr%print_values
-        ENDIF
       ENDIF
-    ENDIF
+
+      ! Debug printout
+      IF ( msg_level >= 10 ) THEN
+        CALL ext_atm_attr%print_values
+        CALL ext_o3_attr%print_values
+      ENDIF
+    ENDIF  ! iforcing
 
   END SUBROUTINE inquire_external_files
 
@@ -109,8 +110,8 @@ CONTAINS
   !
   !-------------------------------------------------------------------------
   SUBROUTINE inquire_extpar_file(p_patch, attr)
-    TYPE(t_patch),        INTENT(IN ) :: p_patch
-    TYPE(t_ext_atm_attr), INTENT(OUT) :: attr    ! file attributes
+    TYPE(t_patch),        INTENT(IN )   :: p_patch
+    TYPE(t_ext_atm_attr), INTENT(INOUT) :: attr    ! file attributes
 
     ! local variables
     CHARACTER(len=*), PARAMETER :: routine = modname//'::inquire_extpar_file'
@@ -353,6 +354,82 @@ CONTAINS
   END SUBROUTINE inquire_extpar_file
 
 
+
+  !-------------------------------------------------------------------------
+  ! Opens SCM file for the atmosphere and inquires file attributes.
+  ! Relevant attributes are stored in an object of type t_ext_atm_attr.
+  !
+  !-------------------------------------------------------------------------
+  SUBROUTINE inquire_scm_file(p_patch, attr)
+    TYPE(t_patch),        INTENT(IN )   :: p_patch
+    TYPE(t_ext_atm_attr), INTENT(INOUT) :: attr    ! file attributes
+
+    CHARACTER(len=*), PARAMETER :: &
+      routine = modname//':inquire_scm_file'
+
+    LOGICAL :: l_exist
+    INTEGER :: varid
+    INTEGER :: fileid     !< id number of netcdf file
+    CHARACTER(len=max_char_length) :: lctype_scm
+    INTEGER :: i_lctype
+    INTEGER :: mpi_comm
+
+    ! Determine which data source has been used to generate the
+    ! external perameters
+    IF (my_process_is_mpi_workroot()) THEN
+
+      IF (i_scm_netcdf==1) THEN
+
+        CALL message(routine, "extpar_file = "//TRIM(scm_init_filename))
+
+        INQUIRE (FILE=TRIM(scm_init_filename), EXIST=l_exist)
+        IF (.NOT.l_exist) THEN
+          WRITE(message_text,'(a,a,a)') 'SCM init file ', TRIM(scm_init_filename),' is not found.'
+          CALL finish(routine, message_text)
+        ENDIF
+
+        CALL nf (nf90_open(TRIM(scm_init_filename), NF90_NOWRITE, fileid), &
+          & TRIM(routine)//'   SCM init file cannot be opened (external)')
+        CALL nf (nf90_inq_varid(fileid, 'LU_CLASS_FRACTION', varid), routine)
+        CALL nf (nf90_get_att(fileid, varid, 'lctype', lctype_scm), routine)
+        CALL nf (nf90_close(fileid), routine)
+
+        IF (TRIM(lctype_scm) .EQ. "GLC2000") THEN
+          i_lctype = GLC2000
+        ELSE IF (TRIM(lctype_scm) .EQ. "GLOBCOVER2009" ) THEN
+          i_lctype = GLOBCOVER2009
+        ELSE
+          CALL finish(routine,'Unknown landcover data source')
+        ENDIF
+      ELSE
+        i_lctype = -1
+      ENDIF
+    ENDIF ! my_process_is_mpi_workroot()
+
+    IF(p_test_run) THEN
+      mpi_comm = p_comm_work_test
+    ELSE
+      mpi_comm = p_comm_work
+    ENDIF
+
+    !
+    ! broadcast file attributes from I-Pe to WORK Pes
+    !
+    CALL p_bcast(i_lctype, p_io, mpi_comm)
+
+    ! fill file attribute object
+    attr%have_inquired = .TRUE.                  ! document successful file inquiry
+    attr%id            = p_patch%id
+    attr%extpar_file   = TRIM(scm_init_filename)
+    attr%nclass_lu     = num_lcc
+    attr%i_lctype      = i_lctype
+    ! nmonths_ext is used in the allocation of aerosol variables (e.g. aer_bc)
+    ! set to 1 as default for idealised SCM cases that don't read extpar files
+    attr%nmonths_ext   = 1
+
+  END SUBROUTINE inquire_scm_file
+
+
   !-------------------------------------------------------------------------
   ! Opens climatological O3 file and inquires file attributes.
   ! Relevant attributes are stored in an object of type t_ext_o3_attr.
@@ -363,9 +440,9 @@ CONTAINS
     CHARACTER(len=*), PARAMETER :: &
       routine = modname//':inquire_o3_file'
 
-    TYPE(t_patch),       INTENT(IN)  :: p_patch
-    INTEGER,             INTENT(IN)  :: irad_o3
-    TYPE(t_ext_o3_attr), INTENT(OUT) :: attr
+    TYPE(t_patch),       INTENT(IN)    :: p_patch
+    INTEGER,             INTENT(IN)    :: irad_o3
+    TYPE(t_ext_o3_attr), INTENT(INOUT) :: attr
 
     ! local
     INTEGER :: jg
@@ -480,8 +557,8 @@ CONTAINS
 
 
     ! fill file attribute object
-    attr%have_inquired = .TRUE.     ! document successful file inquiry
-    attr%id            = jg
+    attr%have_inquired = .TRUE.           ! document successful file inquiry
+    attr%id            = p_patch%id
     attr%nlev_o3       = nlev_o3
     attr%nmonths       = nmonths
     attr%levelname     = TRIM(levelname)

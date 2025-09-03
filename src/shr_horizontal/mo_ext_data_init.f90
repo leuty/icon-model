@@ -120,7 +120,6 @@ CONTAINS
     REAL(wp) :: topo_scm                          ! topographic height
     REAL(wp) :: emis_rad_scm                      ! emissivity
     REAL(wp) :: lu_class_fr_scm(num_lcc)          ! lu_class_fraction
-    CHARACTER(len=max_char_length) :: lctype_scm  ! type of data source for land use
 
     INTEGER :: jg, ilcc
     ! dictionary which maps internal variable names onto
@@ -149,10 +148,6 @@ CONTAINS
       read_netcdf_parallel = .TRUE.
     END IF
 
-    IF (i_scm_netcdf > 0) THEN
-      ext_atm_attr(1:n_dom)%nclass_lu = num_lcc ! 3rd dim of lu_class_fraction, has to agree with num_lcc
-    ENDIF
-
 
     !-------------------------------------------------------------------------
     !  Read the external parameter data
@@ -176,7 +171,7 @@ CONTAINS
           !read external parameters from netCDF file
           ! TODO: read external parameters for unified SCM formal 'uf'
           CALL read_ext_scm_nc(num_lcc,soiltyp_scm,fr_land_scm,plcov_mx_scm,lai_mx_scm,rootdp_scm, &
-            &                  rsmin_scm,z0_scm,topo_scm,emis_rad_scm,lu_class_fr_scm,lctype_scm)
+            &                  rsmin_scm,z0_scm,topo_scm,emis_rad_scm,lu_class_fr_scm)
           DO jg = 1, n_dom
             !set external parameters
             ext_data(jg)%atm%fr_land(:,:)     = fr_land_scm  ! land fraction
@@ -198,14 +193,6 @@ CONTAINS
             DO ilcc=1, num_lcc
               ext_data(jg)%atm%lu_class_fraction(:,:,ilcc) = lu_class_fr_scm(ilcc) ! fraction of LU class
             ENDDO
-            IF (TRIM(lctype_scm) .EQ. "GLC2000") THEN
-              ext_atm_attr(jg)%i_lctype = GLC2000
-            ELSE IF (TRIM(lctype_scm) .EQ. "GLOBCOVER2009" ) THEN
-              ext_atm_attr(jg)%i_lctype = GLOBCOVER2009
-            ELSE
-              CALL finish(routine,'Unknown landcover data source')
-            ENDIF
-            !ext_data(jg)%atm%i_lc_water        = 21
 
             !Special setup for tiles
             ext_data(jg)%atm%soiltyp_t(:,:,:) = soiltyp_scm ! soil type
@@ -219,7 +206,6 @@ CONTAINS
             ext_data(jg)%atm%fr_land(:,:)     = 0._wp       ! land fraction
             ext_data(jg)%atm%llsm_atm_c(:,:)  = .FALSE.     ! land-sea mask
             ext_data(jg)%atm%llake_c(:,:)     = .FALSE.     ! lake mask
-!
             ext_data(jg)%atm%urb_isa(:,:)     = 0._wp       ! impervious surface area fraction of the urban canopy
             IF (lterra_urb) THEN
               ext_data(jg)%atm%urb_ai(:,:)      = 2._wp       ! surface area index of the urban canopy
@@ -233,7 +219,6 @@ CONTAINS
               ext_data(jg)%atm%urb_hcon(:,:)    = 0.767_wp    ! thermal conductivity of urban material
               ext_data(jg)%atm%ahf(:,:)         = 0._wp       ! anthropogenic heat flux
             ENDIF
-!
             ext_data(jg)%atm%plcov_mx(:,:)    = 0.5_wp      ! plant cover
             ext_data(jg)%atm%lai_mx(:,:)      = 3._wp       ! max Leaf area index
             ext_data(jg)%atm%rootdp(:,:)      = 1._wp       ! root depth
@@ -242,16 +227,13 @@ CONTAINS
             ext_data(jg)%atm%soiltyp(:,:)     = 8           ! soil type
             ext_data(jg)%atm%z0(:,:)          = 0.001_wp    ! roughness length
             ext_data(jg)%atm%topography_c(:,:)= 0.0_wp      ! topographic height
-            ext_atm_attr(jg)%i_lctype         = GLOBCOVER2009
 
-            !Special setup for tiles
+            ! Special setup for tiles
             ext_data(jg)%atm%soiltyp_t(:,:,:) = 8           ! soil type
             ext_data(jg)%atm%frac_t(:,:,:)    = 0._wp       ! set all tiles to 0
             ext_data(jg)%atm%frac_t(:,:,isub_water) = 1._wp ! set only ocean to 1
             ext_data(jg)%atm%lc_class_t(:,:,:) = 1          ! land cover class
-
           END DO
-
         ENDIF
 
         IF (l_scm_mode) THEN

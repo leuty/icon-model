@@ -49,6 +49,7 @@ MODULE mo_nwp_tuning_config
   PUBLIC :: tune_rmfdeps_land
   PUBLIC :: tune_rmfdeps_ocean
   PUBLIC :: tune_detrainment_profile
+  PUBLIC :: tune_entrainment_profile
   PUBLIC :: tune_rcucov
   PUBLIC :: tune_rhebc_land_trop
   PUBLIC :: tune_rhebc_ocean_trop
@@ -182,7 +183,10 @@ MODULE mo_nwp_tuning_config
     &  tune_rmfdeps_ocean
 
   REAL(wp) :: &                    !< prefactor in RH-dependent detrainment profile
-    &  tune_detrainment_profile
+    &  tune_detrainment_profile(2)
+
+  REAL(wp) :: &                    !< prefactor in RH-dependent entrainment profile
+    &  tune_entrainment_profile(2)
 
   REAL(wp) :: &                    !< Convective area fraction
     &  tune_rcucov

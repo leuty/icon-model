@@ -21,7 +21,7 @@ MODULE mo_scm_nml
   USE mo_exception,            ONLY: message, finish
   USE mo_namelist,             ONLY: position_nml, POSITIONED, open_nml, close_nml
   USE mo_impl_constants,       ONLY: MAX_CHAR_LENGTH
-  USE mo_io_units,             ONLY: nnml, nnml_output
+  USE mo_io_units,             ONLY: nnml, nnml_output, filename_max
   USE mo_master_control,       ONLY: use_restart_namelists
   USE mo_mpi,                  ONLY: my_process_is_stdio
   USE mo_restart_nml_and_att,  ONLY: open_tmpfile, store_and_close_namelist,     &
@@ -33,7 +33,7 @@ MODULE mo_scm_nml
 
   PUBLIC ::  read_scm_namelist, scm_sfc_temp, scm_sfc_qv, scm_sfc_mom, i_scm_netcdf,   &
   & lon_scm, lat_scm, lscm_read_tke, lscm_read_z0, lscm_icon_ini, lscm_ls_forcing_ini, &
-  & lscm_random_noise
+  & lscm_random_noise, scm_init_filename
 
   !----------------------------------!
   ! scm_nml namelist variables       !
@@ -71,6 +71,8 @@ MODULE mo_scm_nml
   REAL(wp) :: lon_scm      ! fix latitude and longitude for computations depending
   REAL(wp) :: lat_scm      ! on geographical coordinates on torus geometry
 
+  ! additional non-namelist parameter
+  CHARACTER(LEN=filename_max) :: scm_init_filename   ! SCM external parameter filename
 
 CONTAINS
 
@@ -99,6 +101,9 @@ CONTAINS
     lscm_icon_ini    = .FALSE. ! read initial conditions produced by ICON
     lscm_random_noise= .FALSE. ! initialize with random noise - for LEM runs
    !i_scm_netcdf               ! defaults set in mo_nml_crosscheck
+
+    ! SCM external parameter filename (currently hardcoded)
+    scm_init_filename="init_SCM.nc"
 
     !------------------------------------------------------------------
     ! 2. If this is a resumed integration, overwrite the defaults above

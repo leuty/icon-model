@@ -1852,7 +1852,7 @@ CONTAINS
        IF(zeta > 1._wp)THEN !Zeng etal 1997 J. Clim
          psi    = -bsm*LOG(zeta) - zeta + 1
          psi0   = -bsm*LOG(zeta0) - zeta0 + 1
-         factor = (LOG(L/z0) + bsh - psi + psi0  ) / ckap
+         factor = (LOG(L/z0) + bsm - psi + psi0  ) / ckap
        ELSE
          psi  = -bsm*zeta
          psi0 = -bsm*zeta0

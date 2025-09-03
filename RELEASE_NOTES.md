@@ -25,8 +25,10 @@ NWP Physics:
 - enable reading and interpolating ozone and Kinne aerosol data using YAC (icon-nwp!1716)
 - Tuning changes for better prediction of fog / low stratus (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1762)
 - Extension of adaptive parameter tuning to reduce cold/moist bias around sunset (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1774)
+- Improved tuning of filtering time scales for adaptive parameter tuning (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1831)
 - Modified shallow cloud cover as function of cloud droplet number (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1730)
 - New deep convection options to improve precipitation in the tropics (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1778)
+- Use cdnc scaling factor of the year 1850 in picontrol mode (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1789)
 - Fixes:
   - Inconsistent initialization time step length in vdiff interface and jsbach
   - Make ecRad compilable with Cray 17.0.1 for AMD GPUs (https://gitlab.dkrz.de/icon/icon/-/merge_requests/648)
@@ -51,6 +53,7 @@ NWP Physics:
 ### ICON-Waves
 
 - Implementation of Stokes depth diagnostic (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1782)
+- new diagnostic: peak wavenumber (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1828)
 
 ### Soil and Surface
 
@@ -97,6 +100,7 @@ NWP: TERRA and other surface issues
 
 - Optimization of synchronization between atmosphere and ocean in coupled configurations (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/799)
 - Expose valid_masks in output_coupling (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/719)
+- Implement component-specific finish.status files (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1748)
 
 ### Externals
 
@@ -114,6 +118,7 @@ NWP: TERRA and other surface issues
 - Add infrastructure for unit testing
 - Remove usage of t_char_workaround (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/883)
 - Stochastic pattern generator based on spherical harmonics (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1708)
+- refactor SST(SIC reader and time interpolation classes  (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1777)
 
 #### Scripting and testing
 

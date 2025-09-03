@@ -4,8 +4,8 @@
 icon_data_rootFolder: /capstor/store/cscs/userlab/d126/pool/data/ICON/
 builder: santis_cpu_nvhpc
 # The list below maps each experiment to its current experiment_hash
-"c2sm_clm_r13b03_seaice": 4f1a262db5540fb8b7e0889b85ee30e24b2a7199
-"dwd_run_ICON_09_R2B4N5_EPS": ab11622f7967fb6494feedc4d0e49f937eec6a43
+"c2sm_clm_r13b03_seaice": 750ded26b01563036963a99b0728ddcbe0a33ac2
+"dwd_run_ICON_09_R2B4N5_EPS": d7059bfe52550d0a862fd14e4d7499817e09e7d7
 "exclaim_ape_R02B04": d389560eac1e950d31b2cf6bd86f3842cf4a6fd8
 "mch_icon-ch1_small": 5ff547f7f92f56b71647e0bc78a22ffaf1653343
 "mch_icon-ch2_small": 5d96c7de71b8860aaee1f197f4ca75ecf7c3c1bb

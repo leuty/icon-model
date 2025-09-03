@@ -161,7 +161,7 @@ rad_refinement="R02B03"
 
 # namelist files
 # --------------
-atm_namelist=NAMELIST_${EXPNAME}_atm
+atmo_namelist=NAMELIST_${EXPNAME}_atm
 wave_namelist=NAMELIST_${EXPNAME}_wave
 
 #--------------------------------------------------------------------------------------------------
@@ -260,7 +260,7 @@ echo "wave_min_rank="$wave_min_rank "wave_max_rank="$wave_max_rank
 # I.2 Fill model list
 # -------------------
 #
-namelist_list[0]="$atm_namelist"
+namelist_list[0]="$atmo_namelist"
 modelname_list[0]="atmo"
 modeltype_list[0]=1
 minrank_list[0]=$atm_min_rank
@@ -416,7 +416,7 @@ dynamics_parent_grid_id="${dynamics_parent_grid_id},"
 # For a complete list see Namelist_overview and Namelist_overview.pdf
 #
 
-cat > ${atm_namelist} << EOF
+cat > ${atmo_namelist} << EOF
 !
 &coupling_mode_nml
  coupled_to_waves        = .TRUE.
@@ -806,9 +806,9 @@ if [ x$namelist_list = x ]; then
   minrank_list[0]=0
   maxrank_list[0]=65535
   incrank_list[0]=1
-  if [ x$atm_namelist != x ]; then
+  if [ x$atmo_namelist != x ]; then
     # this is the atmo model
-    namelist_list[0]="$atm_namelist"
+    namelist_list[0]="$atmo_namelist"
     modelname_list[0]="atmo"
     modeltype_list[0]=1
     run_atmo="true"
@@ -878,7 +878,7 @@ fi
 # fill some checks
 
 run_atmo=${run_atmo="false"}
-if [ x$atm_namelist != x ]; then
+if [ x$atmo_namelist != x ]; then
   run_atmo="true"
 fi
 run_ocean=${run_ocean="false"}
@@ -1049,7 +1049,8 @@ echo "mpi procs: total=$mpi_total_procs waves=${ICON_COMPONENT2_VE_procs} atmo=t
 # run the model!
 # ----------------------------------------------------------------------
 
-rm -f finish.status
+rm -f finish_atmo.status
+rm -f finish_waves.status
 date
 
 
@@ -1068,7 +1069,7 @@ fi
 
 date
 
-if [ -r finish.status ] ; then
+if [ -r finish_atmo.status -a -r finish_waves.status ] ; then
   check_final_status 0
 else
   check_final_status -1
@@ -1076,10 +1077,17 @@ fi
 #
 #-----------------------------------------------------------------------------
 #
-finish_status=`cat finish.status`
-echo $finish_status
+#Read the finish_status files and cut off whitespaces.
+finish_status_atm=`cat finish_atmo.status`
+finish_status_atm="${finish_status_atm# }"
+finish_status_w=`cat finish_waves.status`
+finish_status_w="${finish_status_w# }"
+
+echo "${finish_status_atm}"
+echo "${finish_status_w}"
 echo "============================"
-echo "Script run successfully: $finish_status"
+echo "Script run (atmo) successfully: $finish_status_atm"
+echo "Script run (waves) successfully: $finish_status_w"
 echo "============================"
 
 #-----------------------------------------------------------------------------
@@ -1100,7 +1108,7 @@ namelist_list=""
 #-----------------------------------------------------------------------------
 # check if we have to restart, ie resubmit
 #   Note: this is a different mechanism from checking the restart
-if [ $finish_status = "RESTART" ] ; then
+if [ "${finish_status_atm}" = "RESTART" -o "${finish_status_w}" = "RESTART" ]; then
   echo "restart next experiment..."
   this_script="${RUNSCRIPTDIR}/${job_name}"
   echo 'this_script: ' "$this_script"
@@ -1127,7 +1135,7 @@ fi
 
 #-----------------------------------------------------------------------------
 
-if [ ${finish_status} == 'OK' ]; then
+if [ "${finish_status_atm}" = 'OK' -a "${finish_status_w}" = 'OK' ] ; then
   EXIT_STATUS=0
 else
   EXIT_STATUS=1

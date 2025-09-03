@@ -28,12 +28,13 @@ PROGRAM icon
   USE mo_exception,           ONLY: message_text, message, finish, enable_logging
   USE mo_io_units,            ONLY: filename_max
   USE mo_mpi,                 ONLY: start_mpi , stop_mpi, my_process_is_global_root,    &
-    &                               my_process_is_stdio
+    &                               my_process_is_stdio, my_process_is_mpi_workroot
   USE mo_master_init,         ONLY: init_master_control
   USE mo_master_control,      ONLY: get_my_namelist_filename, get_my_process_type,      &
     &                               atmo_process, ocean_process, ps_radiation_process,  &
     &                               hamocc_process, jsbach_process, icon_output_process,&
     &                               wave_process
+  USE mo_coupling_config,     ONLY: is_coupled_run
 #ifndef __NO_ICON_TESTBED__
   USE mo_master_control,      ONLY: testbed_process
 #endif
@@ -275,7 +276,62 @@ PROGRAM icon
 
   IF (ASSOCIATED(time_config%tc_exp_stopdate) .AND. ASSOCIATED(time_config%tc_stopdate)) THEN
     ! write the control.status file
-    IF (my_process_is_global_root()) THEN
+    IF(is_coupled_run()) THEN
+      !Write the file for each component to make sure no component crashes between the last MPI command and here.
+      SELECT CASE (my_process_component)
+
+#ifndef __NO_ICON_ATMO__
+        CASE (atmo_process)
+          IF(my_process_is_mpi_workroot()) THEN
+            OPEN (500, FILE="finish_atmo.status")
+            IF ((time_config%tc_exp_stopdate > time_config%tc_stopdate) .AND. time_config%tc_write_restart) THEN
+              WRITE(500,*) "RESTART"
+            ELSE
+              WRITE(500,*) "OK"
+            ENDIF
+            CLOSE(500)
+          ENDIF
+#endif
+
+#ifndef __NO_ICON_OCEAN__
+        CASE (ocean_process)
+          IF(my_process_is_mpi_workroot()) THEN
+            OPEN (500, FILE="finish_ocean.status")
+            IF ((time_config%tc_exp_stopdate > time_config%tc_stopdate) .AND. time_config%tc_write_restart) THEN
+              WRITE(500,*) "RESTART"
+            ELSE
+              WRITE(500,*) "OK"
+            ENDIF
+            CLOSE(500)
+          ENDIF
+
+        CASE (hamocc_process)
+          IF(my_process_is_mpi_workroot()) THEN
+            OPEN (500, FILE="finish_hamocc.status")
+            IF ((time_config%tc_exp_stopdate > time_config%tc_stopdate) .AND. time_config%tc_write_restart) THEN
+              WRITE(500,*) "RESTART"
+            ELSE
+              WRITE(500,*) "OK"
+            ENDIF
+            CLOSE(500)
+          ENDIF
+#endif
+
+#ifndef __NO_ICON_WAVES__
+        CASE (wave_process)
+          IF(my_process_is_mpi_workroot()) THEN
+            OPEN (500, FILE="finish_waves.status")
+            IF ((time_config%tc_exp_stopdate > time_config%tc_stopdate) .AND. time_config%tc_write_restart) THEN
+              WRITE(500,*) "RESTART"
+            ELSE
+              WRITE(500,*) "OK"
+            ENDIF
+            CLOSE(500)
+          ENDIF
+#endif
+      END SELECT
+
+    ELSEIF (my_process_is_global_root()) THEN
       OPEN (500, FILE="finish.status")
       IF ((time_config%tc_exp_stopdate > time_config%tc_stopdate) .AND. time_config%tc_write_restart) THEN
         WRITE(500,*) "RESTART"

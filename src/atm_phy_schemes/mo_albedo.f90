@@ -32,6 +32,7 @@ MODULE mo_albedo
   USE mo_radiation_config,     ONLY: rad_csalbw, direct_albedo, direct_albedo_water, albedo_whitecap
   USE mo_lnd_nwp_config,       ONLY: ntiles_total, ntiles_water, ntiles_lnd, lterra_urb, lurbalb,  &
     &                                lseaice, lprog_albsi, llake, isub_water, isub_lake,           &
+    &                                albsi_min, albsi_snow_max,               &
     &                                isub_seaice
   USE mo_nwp_tuning_config,    ONLY: tune_albedo_wso
   USE mo_extpar_config,        ONLY: itype_vegetation_cycle
@@ -39,8 +40,8 @@ MODULE mo_albedo
     &                                csalb_snow_min, csalb_snow_max, csalb_p, csalb_snow, &
     &                                ist_seawtr, ist_seaice
   USE mo_physical_constants,   ONLY: tmelt, tf_salt
-  USE sfc_flake_data,          ONLY: albedo_whiteice_ref, albedo_blueice_ref, &
-    &                                c_albice_MR, tpl_T_f, h_Ice_min_flk
+  USE sfc_flake_data,          ONLY: tpl_T_f, h_Ice_min_flk
+  USE sfc_flake,               ONLY: alb_lakeice_equil
   USE mo_impl_constants_grf,   ONLY: grf_bdywidth_c
   USE mo_impl_constants,       ONLY: min_rlcell_int, LSS_JSBACH, LSS_TERRA
   USE sfc_seaice,              ONLY: alb_seaice_equil
@@ -331,7 +332,7 @@ CONTAINS
               ! model crash in this case, we set negative albedo values to 0.
               !
             ENDDO
-          ELSE
+          ELSE PrognosticSeaIceAlbedo
             ! Use diagnostic sea-ice albedo (computed here)
             DO ic = 1, i_count_seaice
               jc = ext_data%atm%list_seaice%idx(ic,jb)
@@ -341,11 +342,6 @@ CONTAINS
               ! the ice is. Use ice temperature at time level nnew
               ! (2-time level scheme in sea ice model).
               prm_diag%albdif_t(jc,jb,isub_seaice) = alb_seaice_equil( wtr_prog%t_ice(jc,jb) )
-              ! gives alb_max = 0.70
-              !       alb_min = 0.43
-              ! compare with Mironov et. al (2012), Tellus
-              !       alb_max = 0.65
-              !       alb_min = 0.40
             ENDDO
           ENDIF PrognosticSeaIceAlbedo
 
@@ -413,11 +409,7 @@ CONTAINS
 
             ! special handling for ice-covered lake points
             IF (wtr_prog%h_ice(jc,jb) > h_Ice_min_flk) THEN
-
-              prm_diag%albdif_t(jc,jb,isub_lake) = albedo_whiteice_ref                      &
-                &              - (albedo_whiteice_ref - albedo_blueice_ref)                 &
-                &              * EXP(-c_albice_MR*(tpl_T_f-lnd_prog%t_g_t(jc,jb,isub_lake)) &
-                &              /tpl_T_f)
+              prm_diag%albdif_t(jc,jb,isub_lake) = alb_lakeice_equil( lnd_prog%t_g_t(jc,jb,isub_lake) )
             ELSE
               prm_diag%albdif_t(jc,jb,isub_lake) = csalb(ist_seawtr)
             ENDIF
@@ -1087,8 +1079,8 @@ CONTAINS
                 ! the constant limits reflect the albedo bounds assumed in the sea-ice scheme;
                 ! in addition, albedo reduction is limited to 10% to avoid strong albedo reduction if a cold bias occurs in the polar night
                 prm_diag%albdif_t(jc,jb,isub_seaice) =                                                &
-                  MAX(0.685_wp*csalb(ist_seaice), 0.9_wp*prm_diag%albdif_t(jc,jb,isub_seaice),        &
-                  MIN(prm_diag%albdif_t(jc,jb,isub_seaice)*prm_diag%snowalb_fac(jc,jb),csalb_snow_max))
+                  MAX(albsi_min, 0.9_wp*prm_diag%albdif_t(jc,jb,isub_seaice),        &
+                  MIN(prm_diag%albdif_t(jc,jb,isub_seaice)*prm_diag%snowalb_fac(jc,jb),albsi_snow_max))
                 ! Moreover, we reset the sea ice albedo to the original value close to the melting point
                 ! in order to avoid potential unwanted impacts on sea ice melt during summer
                 t_fac = MIN(1._wp, MAX(0._wp, 0.5_wp*(tmelt - wtr_prog%t_ice(jc,jb)) ))
@@ -1229,10 +1221,7 @@ CONTAINS
             ! diffuse albedo
             IF (wtr_prog%h_ice(jc,jb) > h_Ice_min_flk) THEN
               lfrozenwater = .TRUE.
-              prm_diag%albdif_t(jc,jb,isub_lake) = albedo_whiteice_ref                      &
-                &              - (albedo_whiteice_ref - albedo_blueice_ref)                 &
-                &              * EXP(-c_albice_MR*(tpl_T_f-lnd_prog%t_g_t(jc,jb,isub_lake)) &
-                &              /tpl_T_f)
+              prm_diag%albdif_t(jc,jb,isub_lake) = alb_lakeice_equil( lnd_prog%t_g_t(jc,jb,isub_lake) )
             ELSE
               lfrozenwater = .FALSE.
               prm_diag%albdif_t(jc,jb,isub_lake) = csalb(ist_seawtr)

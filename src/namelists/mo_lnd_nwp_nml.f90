@@ -26,6 +26,7 @@ MODULE mo_lnd_nwp_nml
   USE mo_restart_nml_and_att, ONLY: open_tmpfile, store_and_close_namelist,  &
     &                               open_and_restore_namelist, close_tmpfile
   USE mo_nml_annotate,        ONLY: temp_defaults, temp_settings
+  USE mtime,                  ONLY: max_timedelta_str_len
 
   USE mo_lnd_nwp_config,      ONLY: config_nlev_snow          => nlev_snow         , &
     &                               config_ntiles             => ntiles_lnd        , &
@@ -35,6 +36,10 @@ MODULE mo_lnd_nwp_nml
     &                               config_frsea_thrhld       => frsea_thrhld      , &
     &                               config_hice_min           => hice_min          , &
     &                               config_hice_max           => hice_max          , &
+    &                               config_albsi_snow_max     => albsi_snow_max    , &
+    &                               config_albsi_snow_min     => albsi_snow_min    , &
+    &                               config_albsi_max          => albsi_max         , &
+    &                               config_albsi_min          => albsi_min         , &
     &                               config_lseaice            => lseaice           , &
     &                               config_lprog_albsi        => lprog_albsi       , &
     &                               config_lbottom_hflux      => lbottom_hflux     , &
@@ -72,6 +77,7 @@ MODULE mo_lnd_nwp_nml
     &                               config_lana_rho_snow      => lana_rho_snow     , &
     &                               config_lsnowtile          => lsnowtile         , &
     &                               config_sstice_mode        => sstice_mode       , &
+    &                               config_sst_file_interval  => sst_file_interval , &
     &                               config_sst_td_filename    => sst_td_filename   , &
     &                               config_ci_td_filename     => ci_td_filename    , &
     &                               config_zml_soil           => zml_soil          , &
@@ -123,6 +129,10 @@ CONTAINS
     REAL(wp)::  frsea_thrhld      !< fraction threshold for creating a sea grid point
     REAL(wp)::  hice_min          !< minimum sea-ice thickness [m]
     REAL(wp)::  hice_max          !< maximum sea-ice thickness [m]
+    REAL(wp)::  albsi_snow_max    !< maximum albedo of snow over sea ice [-]
+    REAL(wp)::  albsi_snow_min    !< minimum albedo of snow over sea ice [-]
+    REAL(wp)::  albsi_max         !< maximum albedo of sea ice [-]
+    REAL(wp)::  albsi_min         !< minimum albedo of sea ice [-]
     LOGICAL ::  lbottom_hflux     !< use simple parameterization for heat flux through sea ice bottom
     REAL(wp)::  max_toplaydepth   !< maximum depth of uppermost snow layer for multi-layer snow scheme
     INTEGER ::  itype_trvg        !< type of vegetation transpiration parameterization
@@ -152,6 +162,7 @@ CONTAINS
     INTEGER ::  itype_oskin_cold  !> forecast with ocean cold skin
 
     CHARACTER(LEN=filename_max) :: sst_td_filename, ci_td_filename
+    CHARACTER(LEN=max_timedelta_str_len) :: sst_file_interval
 
    LOGICAL ::           &
          lseaice,        & !> forecast with sea ice model
@@ -176,6 +187,7 @@ CONTAINS
          &               frlnd_thrhld, frlndtile_thrhld, frlake_thrhld        , &
          &               frsea_thrhld, lmelt_var, lmulti_snow                 , &
          &               hice_min, hice_max, lbottom_hflux                    , &
+         &               albsi_snow_max, albsi_snow_min, albsi_max, albsi_min , &
          &               itype_trvg, idiag_snowfrac, max_toplaydepth          , &
          &               itype_evsl                                           , &
          &               itype_lndtbl                                         , &
@@ -190,6 +202,7 @@ CONTAINS
          &               lana_rho_snow, l2lay_rho_snow                        , &
          &               lsnowtile, itype_snowevap                            , &
          &               sstice_mode                                          , &
+         &               sst_file_interval                                    , &
          &               sst_td_filename                                      , &
          &               ci_td_filename, cwimax_ml, c_soil, c_soil_urb        , &
          &               czbot_w_so, cr_bsmin, lcuda_graph_lnd                , &
@@ -207,6 +220,7 @@ CONTAINS
                                ! is modified by the sea ice model
                                ! default names for the time dependent SST and CI ext param files
                                ! if sstice=SSTICE_CLIM, <year> is substituted by "CLIM"
+    sst_file_interval = "P1M"
     sst_td_filename = "<path>SST_<year>_<month>_<gridfile>"
     ci_td_filename = "<path>CI_<year>_<month>_<gridfile>"
 
@@ -224,6 +238,10 @@ CONTAINS
                              ! tile for a grid point
     hice_min       = 0.05_wp ! minimum sea-ice thickness [m]
     hice_max       = 3.0_wp  ! maximum sea-ice thickness [m]
+    albsi_snow_max = 0.80_wp ! Maximum albedo of snow over sea ice
+    albsi_snow_min = 0.50_wp ! Minimum albedo of snow over sea ice
+    albsi_max      = 0.70_wp ! Maximum albedo of sea ice
+    albsi_min      = 0.48_wp ! Minimum albedo of sea ice
     lbottom_hflux  = .FALSE. ! true: use simple parameterization for heat flux through sea ice bottom
     lmelt          = .TRUE.  ! soil model with melting process
     lmelt_var      = .TRUE.  ! freezing temperature dependent on water content
@@ -425,6 +443,10 @@ CONTAINS
     config_frsea_thrhld       = frsea_thrhld
     config_hice_min           = hice_min
     config_hice_max           = hice_max
+    config_albsi_snow_min     = albsi_snow_min
+    config_albsi_snow_max     = albsi_snow_max
+    config_albsi_min          = albsi_min
+    config_albsi_max          = albsi_max
     config_lbottom_hflux      = lbottom_hflux
     config_lseaice            = lseaice
     config_lprog_albsi        = lprog_albsi
@@ -462,11 +484,14 @@ CONTAINS
     config_l2lay_rho_snow     = l2lay_rho_snow
     config_lsnowtile          = lsnowtile
     config_sstice_mode        = sstice_mode
+    config_sst_file_interval  = sst_file_interval
     config_sst_td_filename    = sst_td_filename
     config_ci_td_filename     = ci_td_filename
     config_nlev_soil          = nlev_soil
     config_czbot_w_so         = czbot_w_so
     config_lcuda_graph_lnd    = lcuda_graph_lnd
+
+    !$ACC UPDATE DEVICE(config_albsi_min, config_albsi_max)
 
     !-----------------------------------------------------
     ! 6. Store the namelist for restart

@@ -21,6 +21,7 @@ MODULE mo_lnd_nwp_config
   USE mo_nwp_sfc_tiles,      ONLY: t_tile_list, setup_tile_list
   USE mo_exception,          ONLY: message, message_text, finish
   USE mo_coupling_config,    ONLY: is_coupled_to_ocean
+  USE mtime,                 ONLY: max_timedelta_str_len
 
 
   IMPLICIT NONE
@@ -35,6 +36,7 @@ MODULE mo_lnd_nwp_config
   ! VARIABLES
   PUBLIC :: dzsoil, zml_soil, depth_hl, nlev_soil, nlev_snow, ibot_w_so, ntiles_total, ntiles_lnd, ntiles_water
   PUBLIC :: frlnd_thrhld, frlndtile_thrhld, frlake_thrhld, frsea_thrhld, frsi_min, hice_min, hice_max
+  PUBLIC :: albsi_snow_min, albsi_snow_max, albsi_min, albsi_max
   PUBLIC :: lseaice, lprog_albsi, lbottom_hflux, llake, loskin, itype_oskin_warm, itype_oskin_cold
   PUBLIC :: lmulti_snow, lsnowtile, max_toplaydepth, lmelt, lmelt_var
   PUBLIC :: itype_trvg, itype_evsl, itype_lndtbl, l2lay_rho_snow
@@ -45,7 +47,7 @@ MODULE mo_lnd_nwp_config
   PUBLIC :: lterra_urb, lurbalb, itype_ahf, itype_kbmo, itype_eisa
   PUBLIC :: lstomata, l2tls, lana_rho_snow
   PUBLIC :: isub_water, isub_lake, isub_seaice
-  PUBLIC :: sstice_mode, sst_td_filename, ci_td_filename
+  PUBLIC :: sstice_mode, sst_file_interval, sst_td_filename, ci_td_filename
   PUBLIC :: tile_list
   PUBLIC :: groups_smi
   PUBLIC :: czbot_w_so
@@ -69,6 +71,10 @@ MODULE mo_lnd_nwp_config
   REAL(wp)::  frsi_min           !< minimum sea-ice fraction  [-]
   REAL(wp)::  hice_min           !< minimum sea-ice thickness [m]
   REAL(wp)::  hice_max           !< maximum sea-ice thickness [m]
+  REAL(wp)::  albsi_snow_max     !< maximum albedo of snow over sea ice [-]
+  REAL(wp)::  albsi_snow_min     !< minimum albedo of snow over sea ice [-]
+  REAL(wp)::  albsi_max          !< maximum albedo of sea ice [-]
+  REAL(wp)::  albsi_min          !< minimum albedo of sea ice [-]
   LOGICAL ::  lbottom_hflux      !< use simple parameterization for heat flux through sea ice bottom
   INTEGER ::  itype_trvg         !< type of vegetation transpiration parameterization
   INTEGER ::  itype_evsl         !< type of parameterization of bare soil evaporation (see Schulz and Vogel 2020)
@@ -115,6 +121,7 @@ MODULE mo_lnd_nwp_config
   REAL(wp)::  czbot_w_so       !< thickness of the hydraulical active soil layer [m]
 
   CHARACTER(LEN=filename_max) :: sst_td_filename, ci_td_filename
+  CHARACTER(LEN=max_timedelta_str_len) :: sst_file_interval
 
   LOGICAL :: lcuda_graph_lnd  !< activate cuda graph
 
@@ -130,6 +137,7 @@ MODULE mo_lnd_nwp_config
   REAL(wp), ALLOCATABLE :: dzsoil(:)     !< soil layer thickness
   REAL(wp), ALLOCATABLE :: depth_hl(:)   !< depths of half levels
 
+  !$ACC DECLARE CREATE(albsi_max, albsi_min)
 !  END TYPE t_nwp_lnd_config
 
   !>

@@ -22,7 +22,7 @@ MODULE mo_cuparameters
     tune_texc, tune_qexc, tune_rhebc_land_trop, tune_rhebc_ocean_trop, tune_rcucov_trop, tune_gkdrag, &
     tune_gkwake, tune_gfrcrit, tune_grcrit, tune_rprcon, tune_rdepths, tune_minsso, tune_blockred, &
     tune_eiscrit, tune_gkdrag_enh, tune_grcrit_enh, tune_minsso_gwd, tune_grzdc_offset, &
-    tune_rmfdeps_land, tune_rmfdeps_ocean, tune_detrainment_profile
+    tune_rmfdeps_land, tune_rmfdeps_ocean, tune_detrainment_profile, tune_entrainment_profile
 
   IMPLICIT NONE
 
@@ -328,7 +328,8 @@ MODULE mo_cuparameters
   ! REAL(KIND=jprb) :: rtau0 -> moved into phy_params because it is resolution-dependent
   INTEGER         :: icapdcycl
   REAL(KIND=jprb) :: rcpecons
-  REAL(KIND=jprb) :: rdetrain
+  REAL(KIND=jprb) :: rdetrain(2), rentrain(2)
+!$ACC DECLARE CREATE(rdetrain, rentrain)
   ! REAL(KIND=jprb) :: rcucov
   REAL(KIND=jprb) :: rtaumel
   ! REAL(KIND=jprb) :: rhebc
@@ -521,7 +522,7 @@ MODULE mo_cuparameters
   PUBLIC :: sugwd
   PUBLIC :: dr_hook
   PUBLIC :: lhook
-  PUBLIC :: rdetrain
+  PUBLIC :: rdetrain, rentrain
   PUBLIC :: vdiv, vexp, vrec, vlog
 ! shallow stochastic convection
   PUBLIC :: k_wei, alpha_mf, beta_mf, mean_mf, m0, C1, kinv, active_fraction, mavg1,nclds
@@ -1272,8 +1273,10 @@ phy_params%entrorg = tune_entrorg
 IF (lshallow_only .AND. .NOT. lrestune_off .OR. lgrayzone_deepconv ) &
    phy_params%entrorg = phy_params%entrorg*MAX(1._jprb,SQRT(5.e3_jprb/MAX(2.e3_jprb,rsltn)))
 
-! parameter for RH-dependent detrainment
-rdetrain = tune_detrainment_profile
+! parameter for RH-dependent detrainment and entrainment
+rdetrain(:) = tune_detrainment_profile(:)
+rentrain(:) = tune_entrainment_profile(:)
+!$ACC UPDATE DEVICE(rdetrain, rentrain)
 
 ! resolution-dependent settings for 'excess values' of temperature and QV used for convection triggering (test parcel ascent)
 

@@ -33,7 +33,7 @@ MODULE mo_cuascn
     &                        entshalp ,rmfcmin,          &
     &                        rmflic   ,rmflia ,rvdifts  ,&
     &                        rmfcmax, rlmin, rdetrain,   &
-    &                        lhook,   dr_hook, lmfglac
+    &                        lhook,   dr_hook, lmfglac, rentrain
 
 
   USE mo_adjust ,ONLY: cuadjtq
@@ -891,11 +891,8 @@ DO jk=klev-1,ktdia+2,-1
               ! which has been calculated above with organised entrainment
               zkedke=pkineu(jl,jk)/MAX(1.e-10_JPRB,pkineu(jl,jk+1))
               zkedke=MAX(1.e-30_JPRB,MIN(1.0_JPRB,zkedke))
-              zmfun=SQRT(zkedke)
-              IF (rdetrain > 1.0_JPRB) THEN
-                ! suggestion by P. Bechtold (2013-11-21) with RH-dependent detrainment
-                zmfun = (rdetrain-MIN(1.0_JPRB,pqen(JL,JK)/pqsen(JL,JK)))*zmfun
-              END IF
+              ! suggestion by P. Bechtold (2013-11-21) with (optionally) RH-dependent detrainment
+              zmfun = (rdetrain(1)-rdetrain(2)*MIN(1.0_JPRB,pqen(JL,JK)/pqsen(JL,JK)))*SQRT(zkedke)
               zdmfde(jl)=MAX(zdmfde(jl),pmfu(jl,jk+1)*(1.0_JPRB-zmfun))
               plude(jl,jk)=plu(jl,jk+1)*zdmfde(jl)
               pmfu(jl,jk)=pmfu(jl,jk+1)+zdmfen(jl)-zdmfde(jl)! Mass flux is same as layer below, minus detraiment
@@ -918,7 +915,7 @@ DO jk=klev-1,ktdia+2,-1
               !*********************************************************************************
               !Guenthers new entrainment profile shape
               zentr_prof = MERGE((pqsen(jl,jk)/pqsen(jl,ikb))**2, (pqsen(jl,jk)/pqsen(jl,ikb))**3, lgrz_deepconv)
-              zoentr(jl)=zentrorg(jl)*(1.3_JPRB-MIN(1.0_JPRB,pqen(jl,jk-1)/pqsen(jl,jk-1)))*&
+              zoentr(jl)=zentrorg(jl)*(rentrain(1)-rentrain(2)*MIN(1.0_JPRB,pqen(jl,jk-1)/pqsen(jl,jk-1)))*&
                 &(pgeoh(jl,jk-1)-pgeoh(jl,jk))*zrg*MIN(1.0_JPRB,zentr_prof)
               zoentr(jl)=MIN(0.4_JPRB,zoentr(jl))*pmfu(jl,jk)
             ELSE

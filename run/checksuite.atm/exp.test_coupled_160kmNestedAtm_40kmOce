@@ -65,10 +65,10 @@ radTimeStep_l2="$atmTimeStep_l2"
 
 # namelist files
 # --------------
-atm_namelist=NAMELIST_${EXPNAME}_atm
+atmo_namelist=NAMELIST_${EXPNAME}_atm
 # jsbach_namelist=NAMELIST_${EXPNAME}_lnd
 jsbach_namelist=""
-oce_namelist=NAMELIST_${EXPNAME}_oce
+ocean_namelist=NAMELIST_${EXPNAME}_oce
 
 #--------------------------------------------------------------------------------------------------
 
@@ -101,7 +101,7 @@ oce_inc_rank=1
 # I.2 Fill model list
 # -------------------
 #
-namelist_list[0]="$atm_namelist"
+namelist_list[0]="$atmo_namelist"
 modelname_list[0]="atmo"
 modeltype_list[0]=1
 minrank_list[0]=$atm_min_rank
@@ -109,7 +109,7 @@ maxrank_list[0]=$atm_max_rank
 incrank_list[0]=$atm_inc_rank
 rank_group_size_list[0]=1
 #
-namelist_list[1]="$oce_namelist"
+namelist_list[1]="$ocean_namelist"
 modelname_list[1]="ocean"
 modeltype_list[1]=2
 minrank_list[1]=$oce_min_rank
@@ -244,7 +244,7 @@ m_levels='14,21,25,29,31,35,38,41,46,51,55,58,63,67,71,74,76,78,80,81,83,84,85,8
 
 # atmosphere namelist
 # -------------------
-cat > ${atm_namelist} << EOF
+cat > ${atmo_namelist} << EOF
 !
 &coupling_mode_nml
   coupled_to_ocean = .true.
@@ -499,7 +499,7 @@ EOF
 #
 if [[ "$output_atm_vgrid" == "yes" ]]; then
   #
-  cat >> ${atm_namelist} << EOF
+  cat >> ${atmo_namelist} << EOF
 &output_nml
  output_filename  = "${EXPNAME}_atm_vgrid"
  filename_format  = "<output_filename>_<levtype_l>"
@@ -518,7 +518,7 @@ fi
 #
 if [[ "$output_atm_2d_hiopy" == "yes" ]]; then
   #
-  cat >> ${atm_namelist} << EOF
+  cat >> ${atmo_namelist} << EOF
 &output_nml
  output_filename  = "${EXPNAME}_atm_2d_ml"
  filename_format  = "<output_filename>_<datetime2>_DOM<physdom>"
@@ -542,7 +542,7 @@ fi
 
 if [[ "$output_atm_fluxes" == "yes" ]]; then
   #
-  cat >> ${atm_namelist} << EOF
+  cat >> ${atmo_namelist} << EOF
 &output_nml
  output_filename  = "${EXPNAME}_atm_2d_fluxes"
  filename_format  = "<output_filename>_<datetime2>_DOM<physdom>"
@@ -566,7 +566,7 @@ fi
 #
 if [[ "$output_atm_3d" == "yes" ]]; then
   #
-  cat >> ${atm_namelist} << EOF
+  cat >> ${atmo_namelist} << EOF
 &output_nml
  output_filename  = "${EXPNAME}_atm_3d_P1D_1"
  filename_format  = "<output_filename>_<datetime2>"
@@ -624,7 +624,7 @@ fi
 #
 if [[ "$output_atm_2d_minmax" == "yes" ]]; then
   #
-  cat >> ${atm_namelist} << EOF
+  cat >> ${atmo_namelist} << EOF
 &output_nml
  output_filename  = "${EXPNAME}_atm_2d_min_P1D"
  filename_format  = "<output_filename>_<datetime2>"
@@ -656,7 +656,7 @@ fi
 #
 if [[ "$output_lnd" == "yes" ]]; then
   #
-  cat >> ${atm_namelist} << EOF
+  cat >> ${atmo_namelist} << EOF
 &output_nml
  output_filename  = "${EXPNAME}_lnd_2d_mean_PT3H"
  filename_format  = "<output_filename>_<datetime2>"
@@ -711,7 +711,7 @@ add_link_file ${basedir}/data/ECHAM6_CldOptProps_rrtmgp_sw.nc              ./rrt
 
 # namelist files
 # --------------
-add_required_file ${thisdir}/${atm_namelist}                               ./
+add_required_file ${thisdir}/${atmo_namelist}                               ./
 # add_required_file ${thisdir}/${jsbach_namelist}                            ./
 
 # dictionary file for output variable names
@@ -744,7 +744,7 @@ add_link_file ${atmo_grid_folder}/${gridname}_bc_ozone_ape.nc         ./bc_ozone
 
 # Parameters for all output files
 # -------------------------------
-cat >> ${atm_namelist} << EOF
+cat >> ${atmo_namelist} << EOF
 &io_nml
  output_nml_dict  = "${dict_file}"
  netcdf_dict      = "${dict_file}"
@@ -770,7 +770,7 @@ oce_file_interval=$atm_file_interval
 # ocean namelist
 # --------------
 
-cat > ${oce_namelist} << EOF
+cat > ${ocean_namelist} << EOF
 !
 &coupling_mode_nml
   coupled_to_atmo            = .true.
@@ -804,7 +804,7 @@ cat > ${oce_namelist} << EOF
 /
 EOF
 #
-cat >> ${oce_namelist} << EOF
+cat >> ${ocean_namelist} << EOF
 &dbg_index_nml
   idbg_mxmn                  = 9                                ! initialize MIN/MAX  debug output
   idbg_val                   = 0                                ! initialize one cell debug output
@@ -953,7 +953,7 @@ EOF
 #
 if [[ "$output_oce" == "yes" ]]; then
   #
-  cat >> ${oce_namelist} << EOF
+  cat >> ${ocean_namelist} << EOF
 &output_nml
  output_filename  = "${EXPNAME}_oce_toplev"
  filename_format  = "<output_filename>_<datetime2>"
@@ -1008,7 +1008,7 @@ fi
 
 if [[ "$output_oce_mon" == "yes" ]]; then
   #
-  cat >> ${oce_namelist} << EOF
+  cat >> ${ocean_namelist} << EOF
 &output_nml ! 'oce_mon'
     output_filename  = '${EXPNAME}_oce_mon'
     filename_format  = '<output_filename>_<datetime2>'
@@ -1044,7 +1044,7 @@ if [[ "$output_oce_mon" == "yes" ]]; then
 EOF
 fi
 
-cat >> ${oce_namelist} << EOF
+cat >> ${ocean_namelist} << EOF
 &ocean_diagnostics_nml
   diagnostics_level                          = 1
   diagnose_for_horizontalVelocity            = .FALSE.
@@ -1059,7 +1059,7 @@ cat >> ${oce_namelist} << EOF
 /
 EOF
 
-add_required_file ${thisdir}/${oce_namelist} ./
+add_required_file ${thisdir}/${ocean_namelist} ./
 
 #-----------------------------------------------------------------------------
 # Ocean grid

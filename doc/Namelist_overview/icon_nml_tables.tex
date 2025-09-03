@@ -2742,7 +2742,8 @@ Coupling between data assimilation and model parameters controlling surface fric
 1: on; requires assimilation of 10m-winds and cycling a time-filtered assimilation increment of absolute wind speed at the lowest model level;
 moreover, it is strongly recommended to use extpar data with full SSO information (generated in Feb. 2022 or later). Coupling is masked in large
 parts of Russia where the assimilation of 10m winds is blacklisted in the operational settings of 2022 \\
-2: on without masking over Russia, to be combined with 10m wind assimilation without blacklisting &
+2: on without masking over Russia, to be combined with 10m wind assimilation without blacklisting \\
+3: same as 2, but reduced weight of assimilation increments occurring at PBL wind speeds below 7.5 m/s &
 init\_mode=5
 \tabularnewline
 
@@ -2760,6 +2761,14 @@ Coupling between data assimilation and near-surface reduction profile for minimu
 0: off \\
 1: on &
 init\_mode=5, icpl\_da\_sfcevap $>$ 2 and icpl\_da\_skinc $>$ 0
+\tabularnewline
+
+dt\_filt&
+R(2) & 2.5 & days &
+Filtering time scale for filtered assimilation increments used for adaptive parameter tuning. \\
+1st value: standard time scale \\
+2nd value: time scale for t\_avginc and rh\_avginc (recommended tuning 5 days) &
+all icpl\_da options
 \tabularnewline
 
 
@@ -4439,14 +4448,56 @@ Maximum sea-ice thickness (for coupled runs assure consistency with seaice\_limi
 \tabularnewline
 
 %\hline
+albsi\_snow\_max &
+R&
+0.8&
+&
+Maximum albedo of snow over sea ice  & lseaice=.TRUE.
+\tabularnewline
+
+%\hline
+albsi\_snow\_min &
+R&
+0.5&
+&
+Minimum albedo of snow over sea ice  & lseaice=.TRUE.
+\tabularnewline
+
+%\hline
+albsi\_max &
+R&
+0.7&
+&
+Maximum albedo of sea ice  & lseaice=.TRUE.
+\tabularnewline
+
+%\hline
+albsi\_min &
+R&
+0.48&
+&
+Minimum albedo of sea ice  & lseaice=.TRUE.
+\tabularnewline
+
+sst\_file\_interval &
+C&
+&
+&
+Interval of SST/CI files as ISO 8601 duration.
+Default is "P1M" (1 month). &
+sstice\_mode=6
+\tabularnewline
+
+%\hline
 sst\_td\_filename &
 C&
 &
 &
 Filename of SST input files for time dependent SST.
-Default is "$<$path$>$SST\_$<$year$>$\_<month>\_$<$gridfile$>$". May contain the
+Default is "$<$path$>$SST\_$<$year$>$\_$<$month$>$\_$<$gridfile$>$". May contain the
 keyword $<$path$>$ which will be substituted by model\_base\_dir \newline
-In case sstice\_mode=6, SST data for all time steps in the current simulation should be prepared in one single file, variable should be named SST in this file. &
+In case sstice\_mode=6, keywords for extpar files and $<$day$>$, $<$hh$>$, $<$mm$>$, $<$ss$>$ are also available.
+NetCDF variable should be named SST. &
 sstice\_mode=3,4,5,6
 \tabularnewline
 
@@ -4458,7 +4509,8 @@ C&
 Filename of sea ice fraction input files for time dependent sea ice fraction.
 Default is "$<$path$>$CI\_$<$year$>$\_$<$month$>$\_$<$gridfile$>$". May contain
 the keyword $<$path$>$ which will be substituted by model\_base\_dir \newline
-In case sstice\_mode=6, sea ice data for all time steps in the current simulation should be prepared in one single file, variable should be named SIC in this file. &
+In case sstice\_mode=6, keywords for extpar files and $<$day$>$, $<$hh$>$, $<$mm$>$, $<$ss$>$ are also available.
+NetCDF variable should be named SIC. &
 sstice\_mode=3,4,5,6
 \tabularnewline
 
@@ -5419,14 +5471,22 @@ More advanced options are in preparation&
 currently only for inwp\_gscp = 1
 \tabularnewline
 
-lscale\_cdnc&
-L&
-.FALSE.&
+scale\_cdnc\_mode&
+I&
+0&
 &
-.TRUE.: scaling of external (MODIS) cdnc with a time varying 2-dimensional factor derived from the simple plume scheme. It is advisable to turn the scaling off at least for the years 2000-2020. &
-climate projections using\\
+Controls scaling of external climatological cloud droplet number concentration (CDNC) data. Only effective if external CDNC is used. \\
+0: No scaling applied; external CDNC is used as provided. \\
+1: Apply time-varying, spatially resolved scaling factors derived from the simple plume scheme during the model run. The scaling field varies daily in time and 2D in space, and is applied according to the experiment’s actual (simulation) year. \\
+Note: For years 2000–2020, it is usually preferable to disable scaling (mode 0), since MODIS data are available for those years directly. \\
+2: Apply constant scaling of external CDNC to represent pre-industrial conditions. All years are scaled to 1850 values, using spatially varying scaling factors. \\
+&
+Climate projections using\\
 icpl\_aero\_gscp = 3\\
-irad\_aero = 18,19
+irad\_aero = 18,19 \\
+Picontrol experiments using \\
+icpl\_aero\_gscp = 3\\
+irad\_aero = 12
 \tabularnewline
 
 icpl\_aero\_ice&
@@ -5586,7 +5646,8 @@ I&
 0&
  &
 0: off \\
-1: simple coupling between autoconversion and Tegen aerosol climatology; requires irad\_aero=6 or 7 &
+1: simple coupling between autoconversion (in convection scheme) and aerosol climatology; requires irad\_aero=6, 7, 12, 13, 14, 15, 18, 19 &
+when irad\_aero=12, 13, 14, 15, 18, 19 (Kinne aerosol), icpl\_aero\_conv=1 should be used with iclp\_aero\_gscp=3 (external cloud droplet number)
 \tabularnewline
 
 
@@ -6319,10 +6380,21 @@ run\_nml:iforcing = inwp;  lshallowconv\_only = .FALSE.; lgrayzone\_deepconv = .
 
 \hline
 tune\_detrainment\_profile&
-R&
-0.0&
+R(2)&
+1.0, 0.0&
 &
-prefactor in RH-dependent detrainment profile, recommended range is $1.7$ to $1.9$ &
+prefactor in RH-dependent detrainment profile, formulated as $\mathrm{tunefac(1)} - \mathrm{tunefac(2)}*\mathrm{RH}$; difference between first and second
+value should be between 0.75 and 1 &
+run\_nml:iforcing = inwp;
+\tabularnewline
+
+\hline
+tune\_entrainment\_profile&
+R(2)&
+1.3, 1.0&
+&
+prefactor in RH-dependent entrainment profile, formulated as $\mathrm{tunefac(1)} - \mathrm{tunefac(2)}*\mathrm{RH}$; difference between first and second
+value should be about 0.3 &
 run\_nml:iforcing = inwp;
 \tabularnewline
 

@@ -1,6 +1,15 @@
 (ref_atmosphere)=
 # Atmosphere Overview
 
+```{toctree}
+:hidden:
+art/art.md
+ecrad/ecrad_overview.md
+miscellaneous/miscellaneous_nwp.md
+sbm/sbm_overview.md
+miscellaneous/tuning_nwp.md
+```
+
 The ICON atmosphere model predicts the spatio-temporal evolution
 of the atmospheric state in terms of the prognostic variables
 virtual potential temperature, 3D wind, total air density
@@ -113,23 +122,34 @@ More detailed descriptions of some of above options are available here:
 :gutter: 1 1 1 2
 
 :::{grid-item-card}
-**Radiation (ecRad)**
+**[Radiation (ecRad)](ref_atmosphere_ecrad)**
 ^^^
-[](ref_atmosphere_ecrad)  
 [](ref_atmosphere_ecrad_redgrid)  
-[](ref_atmosphere_ecrad_aerosol)  
+[](ref_atmosphere_ecrad_aerosol)
+[](ref_atmosphere_ecrad_cdnc)
 [FSD Parameter](ref_atmosphere_ecrad_fsd)
 :::
 
 :::{grid-item-card}
 **Microphysics**
 ^^^
-[Spectral Bin Microphysics (SBM)](ref_sbm_overview)  
-[](ref_sbm_implementation)  
+[Spectral Bin Microphysics (SBM)](ref_sbm_overview)\
+[](ref_sbm_implementation)
+:::
+
+:::{grid-item-card}
+**[Miscellaneous](ref_atm_nwpmisc)**
+^^^
+[External SST/SIC](ref_sstsic_ext)
 :::
 ::::
 
 You can find a brief overview on the NWP physics package in chapter 3 of the **{term}`ICON Tutorial 2024`**.
+
+:::{admonition} Tuning ICON NWP Physics
+:class: admonition-icontheme
+A set of sensitive and important tuning parameters is provided in **[this description](ref_atmosphere_tuning)**.
+:::
 
 ### Glossary of Namelist Parameters
 

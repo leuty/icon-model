@@ -257,10 +257,6 @@ CONTAINS
 
           prm_diag%cloud_num(jc,jb) = ext_data%atm%cdnc(jc,jb)
 
-          ! scaling of external cdnc with a scaling factor derived from the simple plumes
-          IF ( atm_phy_nwp_config(p_patch%id)%lscale_cdnc ) THEN
-              prm_diag%cloud_num(jc,jb) = prm_diag%cloud_num_fac(jc,jb) * prm_diag%cloud_num(jc,jb)
-          ENDIF
         ENDDO
 
     ENDDO

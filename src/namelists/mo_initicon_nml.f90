@@ -58,6 +58,7 @@ MODULE mo_initicon_nml
     & config_scalfac_da_sfcfric  => scalfac_da_sfcfric,  &
     & config_icpl_da_tkhmin      => icpl_da_tkhmin,      &
     & config_icpl_da_seaice      => icpl_da_seaice,      &
+    & config_dt_filt             => dt_filt,             &
     & config_itype_sma           => itype_sma,           &
     & config_dt_ana              => dt_ana,              &
     & config_adjust_tso_tsnow    => adjust_tso_tsnow,    &
@@ -155,6 +156,8 @@ CONTAINS
 
   INTEGER  :: icpl_da_seaice   ! Coupling between data assimilation and sea ice
 
+  REAL(wp) :: dt_filt(2)       ! Filtering time scales (days)
+
   INTEGER  :: itype_sma        ! Type of soil moisture analysis used
 
   REAL(wp) :: dt_ana           ! Time interval of assimilation cycle [s] (relevant for icpl_da_sfcevap >= 2)
@@ -250,7 +253,7 @@ CONTAINS
                           icpl_da_sfcfric, lcouple_ocean_coldstart,         &
                           icpl_da_tkhmin, icpl_da_seaice, fire2d_filename,  &
                           scalfac_da_sfcfric, smi_relax_timescale,          &
-                          icpl_da_landalb, itype_sma
+                          icpl_da_landalb, itype_sma, dt_filt
 
   !------------------------------------------------------------
   ! 2.0 set up the default values for initicon
@@ -341,6 +344,8 @@ CONTAINS
 
   icpl_da_seaice   = 0  ! Coupling between data assimilation and sea ice
                         ! 0: off, 1:adjustment of t_seaice to filtered DA increment, 2: 1+ adaptive tuning of bottom heat flux
+
+  dt_filt(:)       = 2.5_wp ! Filtering time scales used for time-filtered DA increments (default 2.5 days for all)
 
   adjust_tso_tsnow = .FALSE. ! If .TRUE., apply T increments for lowest model level also to snow and upper soil layers
 
@@ -483,6 +488,7 @@ CONTAINS
   config_scalfac_da_sfcfric  = scalfac_da_sfcfric
   config_icpl_da_tkhmin      = icpl_da_tkhmin
   config_icpl_da_seaice      = icpl_da_seaice
+  config_dt_filt             = dt_filt
   config_itype_sma           = itype_sma
   config_dt_ana              = dt_ana
   config_adjust_tso_tsnow    = adjust_tso_tsnow

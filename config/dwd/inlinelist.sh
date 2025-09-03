@@ -42,6 +42,8 @@ INLINE_LIST_ICON=(
   src/atm_phy_schemes/turb_utilities.f90
   src/configure_model/mo_parallel_config.f90
   src/lnd_phy_nwp/mo_nwp_sfc_interp.f90
+  src/lnd_phy_schemes/sfc_flake.f90
+  src/lnd_phy_schemes/sfc_seaice.f90
   src/parallel_infrastructure/mo_extents.f90
   src/shared/mo_statistics.f90
   src/shared/mo_loopindices.f90

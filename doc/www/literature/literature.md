@@ -25,6 +25,11 @@ The DOI and ISSN referenced series **[Reports on ICON](https://www.icon-model.or
 (ref_literature_technical)=
 ## Technical Documentation
 
+:::{glossary}
+Reinert et al. 2025
+  Reinert, D., and Coauthors (2025): DWD Database Reference for the Global and Regional ICON and ICON-EPS Forecasting System. <https://www.dwd.de/SharedDocs/downloads/DE/modelldokumentationen/nwv/icon/icon_dbbeschr_aktuell.pdf>
+:::
+
 (ref_literature_science)=
 ## Scientific Documentation
 
@@ -37,6 +42,9 @@ Ahlgrimm et al. 2016
 
 Ahlgrimm et al. 2017
   Ahlgrimm, M. and Forbes, R.M. (2017): Regime dependence of ice cloud heterogeneity - a convective life-cycle effect? Q.J.R. Meteorol. Soc., 143: 3259-3268. <https://doi.org/10.1002/qj.3178>
+
+Avgoustoglou et al. 2020
+  Avgoustoglou, E., A. Voudouri, I. Carmona, E. Bucchignani, Y. Levy, and J. M. Bettems (2020): A methodology towards the hierarchy of COSMO parameter calibration tests via the domain sensitivity over the Mediterranean area: Final Report. COSMO technical report 42, <https://doi.org/10.5676/DWD_pub/nwv/cosmo-tr_42>.
 
 Barker et al. 2003
   Barker, H. W., G. L. Stephens, P. T. Partain, and Coauthors (2003): Assessing 1D atmospheric solar radiative transfer models: Interpretation and handling of unresolved clouds. J. Clim., 16 (16), 2676-2699.

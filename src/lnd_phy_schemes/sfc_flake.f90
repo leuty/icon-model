@@ -182,28 +182,32 @@ MODULE sfc_flake
 ! FLake-specific parameters are in fact parameters in empirical approximation formulae
 ! for some physical properties of different media (e.g. snow).
 !_cdm<
-  USE sfc_flake_data, ONLY: &
+  USE sfc_flake_data, ONLY:  &
     ! flake parameters and physical constants
-!_nu    &  tpl_grav          , & !< Acceleration due to gravity [m s^{-2}]
-    &  tpl_T_r           , & !< Temperature of maximum density of fresh water [K]
-!_nu    &  tpl_T_f           , & !< Fresh water freezing point [K]
-    &  tpl_a_T           , & !< Constant in the fresh-water equation of state [K^{-2}]
-!_nu    &  tpl_rho_w_r       , & !< Maximum density of fresh water [kg m^{-3}]
-!_nu    &  tpl_rho_I         , & !< Density of ice [kg m^{-3}]
-    &  tpl_rho_S_min     , & !< Minimum snow density [kg m^{-3}]
-    &  tpl_rho_S_max     , & !< Maximum snow density [kg m^{-3}]
-    &  tpl_Gamma_rho_S   , & !< Empirical parameter [kg m^{-4}]
-                             !< in the expression for the snow density
-!_nu    &  tpl_L_f           , & !< Latent heat of fusion  [J kg^{-1}]
-!_nu    &  tpl_c_w           , & !< Specific heat of water [J kg^{-1} K^{-1}]
-!_nu    &  tpl_c_I           , & !< Specific heat of ice   [J kg^{-1} K^{-1}]
-!_nu    &  tpl_c_S           , & !< Specific heat of snow  [J kg^{-1} K^{-1}]
-    &  tpl_kappa_w       , & !< Molecular heat conductivity of water        [J m^{-1} s^{-1} K^{-1}]
-!_nu    &  tpl_kappa_I       , & !< Molecular heat conductivity of ice          [J m^{-1} s^{-1} K^{-1}]
-    &  tpl_kappa_S_min   , & !< Minimum molecular heat conductivity of snow [J m^{-1} s^{-1} K^{-1}]
-    &  tpl_kappa_S_max   , & !< Maximum molecular heat conductivity of snow [J m^{-1} s^{-1} K^{-1}]
-    &  tpl_Gamma_kappa_S     !< Empirical parameter in expression for the
+!_nu    &  tpl_grav            , & !< Acceleration due to gravity [m s^{-2}]
+    &  tpl_T_r             , & !< Temperature of maximum density of fresh water [K]
+!_nu    &  tpl_T_f             , & !< Fresh water freezing point [K]
+    &  tpl_a_T             , & !< Constant in the fresh-water equation of state [K^{-2}]
+!_nu    &  tpl_rho_w_r         , & !< Maximum density of fresh water [kg m^{-3}]
+!_nu    &  tpl_rho_I           , & !< Density of ice [kg m^{-3}]
+    &  tpl_rho_S_min       , & !< Minimum snow density [kg m^{-3}]
+    &  tpl_rho_S_max       , & !< Maximum snow density [kg m^{-3}]
+    &  tpl_Gamma_rho_S     , & !< Empirical parameter [kg m^{-4}]
+                               !< in the expression for the snow density
+!_nu    &  tpl_L_f             , & !< Latent heat of fusion  [J kg^{-1}]
+!_nu    &  tpl_c_w             , & !< Specific heat of water [J kg^{-1} K^{-1}]
+!_nu    &  tpl_c_I             , & !< Specific heat of ice   [J kg^{-1} K^{-1}]
+!_nu    &  tpl_c_S             , & !< Specific heat of snow  [J kg^{-1} K^{-1}]
+    &  tpl_kappa_w         , & !< Molecular heat conductivity of water        [J m^{-1} s^{-1} K^{-1}]
+!_nu    &  tpl_kappa_I         , & !< Molecular heat conductivity of ice          [J m^{-1} s^{-1} K^{-1}]
+    &  tpl_kappa_S_min     , & !< Minimum molecular heat conductivity of snow [J m^{-1} s^{-1} K^{-1}]
+    &  tpl_kappa_S_max     , & !< Maximum molecular heat conductivity of snow [J m^{-1} s^{-1} K^{-1}]
+    &  tpl_Gamma_kappa_S   , & !< Empirical parameter in expression for the
                              !< snow heat conductivity [J m^{-2} s^{-1} K^{-1}]
+    &  albedo_whiteice_ref , & !< blue ice albedo [-]
+    &  albedo_blueice_ref  , & !< white ice albedo [-]
+    &  c_albice_MR             !< constant in the interpolation formula for the ice albedo [-]
+
 !_cdm>
 ! Most physical constants are taken from the ICON module "mo_physical_constants"
 ! rather than from the FLake module "sfc_flake_data".
@@ -276,7 +280,8 @@ MODULE sfc_flake
   PUBLIC ::                       &
          &  flake_coldinit      , & ! procedure (cold start initialization)
          &  flake_init          , & ! procedure (initialization)
-         &  flake_interface         ! procedure (time stepping)
+         &  flake_interface     , & ! procedure (time stepping)
+         &  alb_lakeice_equil       ! procedure (equilibrium lake-ice albedo)
 
 !234567890023456789002345678900234567890023456789002345678900234567890023456789002345678900234567890
 
@@ -657,12 +662,7 @@ CONTAINS
 
   END SUBROUTINE flake_init
 
-!===================================================================================================
-!  End of the lake parameterization scheme FLake initialization
-!---------------------------------------------------------------------------------------------------
-
-
-
+!234567890023456789002345678900234567890023456789002345678900234567890023456789002345678900234567890
 
   !>
   !! Coldstart for lake parameterization scheme Flake.
@@ -809,11 +809,11 @@ CONTAINS
     END DO  ! End of loop over grid boxes with lakes
     !$ACC END PARALLEL
 
+    !-----------------------------------------------------------------------------------------------
+    !  End calculations
+    !===============================================================================================
 
   END SUBROUTINE flake_coldinit
-
-
-
 
 !234567890023456789002345678900234567890023456789002345678900234567890023456789002345678900234567890
 
@@ -1548,8 +1548,6 @@ CONTAINS
       ENDIF
     ENDIF
 
-
-
     !-----------------------------------------------------------------------------------------------
     !  End calculations
     !===============================================================================================
@@ -1561,7 +1559,7 @@ CONTAINS
 
 END SUBROUTINE flake_interface
 
-!===================================================================================================
+!234567890023456789002345678900234567890023456789002345678900234567890023456789002345678900234567890
 
 !_cdm>
 ! All program units below (SUBROUTINE, FUNCTION) are identical within ICON and COSMO
@@ -1577,8 +1575,6 @@ END SUBROUTINE flake_interface
 
 !===================================================================================================
 
-!==============================================================================
-!==============================================================================
 !------------------------------------------------------------------------------
 
 SUBROUTINE flake_radflux ( depth_w, albedo_water, albedo_ice, albedo_snow,       &
@@ -1842,9 +1838,7 @@ REAL (KIND = wp),     INTENT(OUT)  :: &
 
 END SUBROUTINE flake_radflux
 
-!==============================================================================
-!==============================================================================
-!------------------------------------------------------------------------------
+!234567890023456789002345678900234567890023456789002345678900234567890023456789002345678900234567890
 
 SUBROUTINE flake_driver ( depth_w, depth_bs, T_bs, par_Coriolis,       &
                           extincoef_water_typ,                         &
@@ -2877,9 +2871,7 @@ END IF
 
 END SUBROUTINE flake_driver
 
-!==============================================================================
-!==============================================================================
-!------------------------------------------------------------------------------
+!234567890023456789002345678900234567890023456789002345678900234567890023456789002345678900234567890
 
 REAL (KIND = wp)     FUNCTION flake_buoypar (T_water)
 
@@ -2914,9 +2906,7 @@ REAL (KIND = wp)    , INTENT(IN) :: &
 
 END FUNCTION flake_buoypar
 
-!==============================================================================
-!==============================================================================
-!------------------------------------------------------------------------------
+!234567890023456789002345678900234567890023456789002345678900234567890023456789002345678900234567890
 
 REAL (KIND = wp)     FUNCTION flake_snowdensity (hz_snow)
 
@@ -2955,9 +2945,7 @@ REAL (KIND = wp)    , INTENT(IN) :: &
 
 END FUNCTION flake_snowdensity
 
-!==============================================================================
-!==============================================================================
-!------------------------------------------------------------------------------
+!234567890023456789002345678900234567890023456789002345678900234567890023456789002345678900234567890
 
 REAL (KIND = wp)     FUNCTION flake_snowheatconduct (hz_snow)
 
@@ -2998,9 +2986,32 @@ END FUNCTION flake_snowheatconduct
 
 !234567890023456789002345678900234567890023456789002345678900234567890023456789002345678900234567890
 
-!---------------------------------------------------------------------------------------------------
-!  End of FLake interface
-!===================================================================================================
+!>
+!! Equilibrium lake-ice albedo is computed as function of the lake-ice surface temperature.
+!!
+
+REAL (wp) FUNCTION alb_lakeice_equil ( t_ice )
+  !$ACC ROUTINE SEQ
+
+  IMPLICIT NONE
+
+  ! Procedure arguments
+
+  REAL(wp), INTENT(IN) :: t_ice       !< temperature of ice upper surface [K]
+
+
+  !=================================================================================================
+  !  Start calculations
+  !-------------------------------------------------------------------------------------------------
+
+    alb_lakeice_equil = albedo_whiteice_ref - (albedo_whiteice_ref - albedo_blueice_ref) &
+     &                * EXP(-c_albice_MR*(tpl_T_f-t_ice)/tpl_T_f)
+
+  !-------------------------------------------------------------------------------------------------
+  !  End calculations
+  !=================================================================================================
+
+END FUNCTION alb_lakeice_equil
 
 !234567890023456789002345678900234567890023456789002345678900234567890023456789002345678900234567890
 
