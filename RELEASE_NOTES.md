@@ -69,6 +69,7 @@ Climate: ICON-Land
   - Different code updates reducing the number of restart variables in QUINCY runs
   - Enable reading of vegetation and biogeochemical soil states from input file for QUINCY
   - Use the JSBACH soil physics processes with the QUINCY (vegetation and soil) biogeochemistry
+  - Improve nitrogen cycle of QUINCY biogeochemistry
 - Use a common interface for QUINCY and JSBACH
 - Updated inline documentation of hydrology process
 - Fixes:
