@@ -103,7 +103,7 @@ MODULE mo_nh_stepping
     &                                    i2daero_anthro, i2daero_fire, setup_nwp_diag_events
   USE mo_nwp_phy_state,            ONLY: prm_diag, prm_nwp_tend, phy_params, prm_nwp_stochconv, prm_nwp_diag_list
   USE mo_lnd_nwp_config,           ONLY: nlev_soil, nlev_snow, sstice_mode, sst_td_filename, &
-    &                                    ci_td_filename, frsi_min
+    &                                    ci_td_filename, frsi_min, sst_file_interval
   USE mo_nwp_lnd_state,            ONLY: p_lnd_state
   USE mo_opt_nwp_diagnostics,      ONLY: compute_field_dbz3d_lin
   USE mo_nwp_gpu_util,             ONLY: gpu_d2h_nh_nwp, gpu_h2d_nh_nwp, devcpy_nwp, hostcpy_nwp, gpu_d2h_dace
@@ -419,7 +419,7 @@ MODULE mo_nh_stepping
            &                           TRIM(p_patch(jg)%grid_filename), &
            &                           nroot, p_patch(jg)%level, jg     )
 
-        CALL sst_reader(jg)%init(p_patch(jg), sst_td_file)
+        CALL sst_reader(jg)%init(p_patch(jg), sst_td_file, sst_file_interval)
         CALL sst_intp(jg)%init(sst_reader(jg), mtime_current, "SST")
         CALL sst_intp(jg)%intp(mtime_current, sst_dat, lacc=.FALSE.)
 
@@ -427,7 +427,7 @@ MODULE mo_nh_stepping
           p_lnd_state(jg)%diag_lnd%t_seasfc(:,:) = sst_dat(:,1,:,1)
         END WHERE
 
-        CALL sic_reader(jg)%init(p_patch(jg), ci_td_file)
+        CALL sic_reader(jg)%init(p_patch(jg), ci_td_file, sst_file_interval)
         CALL sic_intp(jg)%init(sic_reader(jg), mtime_current, "SIC")
         CALL sic_intp(jg)%intp(mtime_current, sic_dat, lacc=.FALSE.)
 

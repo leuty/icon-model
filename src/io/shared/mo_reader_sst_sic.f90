@@ -11,11 +11,13 @@
 
 MODULE mo_reader_sst_sic
 
-  USE mo_kind,                    ONLY: wp, i8
+  USE, INTRINSIC :: iso_c_binding, ONLY: c_int64_t
+
+  USE mo_kind,                    ONLY: wp
   USE mo_parallel_config,         ONLY: nproma
   USE mo_exception,               ONLY: finish
   USE mo_reader_abstract,         ONLY: t_abstract_reader
-  USE mo_reader_util,             ONLY: read_timestamps_from_netcdf
+  USE mo_reader_util,             ONLY: read_timestamps_from_netcdf, shift_time, divide_time
   USE mo_io_units,                ONLY: FILENAME_MAX
   USE mo_model_domain,            ONLY: t_patch
   USE mo_netcdf_errhandler,       ONLY: nf
@@ -24,7 +26,7 @@ MODULE mo_reader_sst_sic
        &                                datetime, newdatetime, deallocatedatetime,        &
        &                                datetimeToString, max_datetime_str_len,           &
        &                                timedelta, newTimedelta, moduloTimedelta,         &
-       &                                deallocateTimedelta,                              &
+       &                                deallocateTimedelta, getDateTimeFromJulianDay,    &
        &                                OPERATOR(+), OPERATOR(-), OPERATOR(*),            &
        &                                OPERATOR(>), ASSIGNMENT(=)
   USE mo_mpi,                     ONLY: my_process_is_stdio, my_process_is_mpi_workroot, &
@@ -176,7 +178,9 @@ CONTAINS
     to%filename = from%filename
     to%last_netcdf_error = from%last_netcdf_error
     to%timebase = from%timebase
-    to%times = from%times
+    IF (ALLOCATED(from%times)) THEN
+      to%times = from%times
+    END IF
   END SUBROUTINE sst_sic_file_assign
 
 
@@ -202,11 +206,18 @@ CONTAINS
   END SUBROUTINE
 
 
+  !> Initialize a SST/SIC reader for the given patch.
+  !!
+  !! The filename pattern supports the replacements `<year>`, `<month>`, `<day>`, `<hh>`,
+  !! `<mm>`, `<ss>`, referring to the current simulation time. The file interval gives
+  !! the interval after which the next file gets opened, anchored at the start of the
+  !! current simulation year. E.g., with an interval of 'P30D', a new file will be opened
+  !! YYYY-01-31 00:00:00, YYYY-03-02 00:00:00, etc.
   SUBROUTINE sst_sic_reader_init(this, p_patch, filename_pattern, file_interval)
     CLASS(t_sst_sic_reader),    INTENT(inout) :: this
-    TYPE(t_patch),      TARGET, INTENT(in   ) :: p_patch
-    CHARACTER(len=*),           INTENT(in   ) :: filename_pattern
-    CHARACTER(len=*), OPTIONAL, INTENT(in   ) :: file_interval
+    TYPE(t_patch),      TARGET, INTENT(in   ) :: p_patch !< Domain patch.
+    CHARACTER(len=*),           INTENT(in   ) :: filename_pattern !< Filename pattern.
+    CHARACTER(len=*), OPTIONAL, INTENT(in   ) :: file_interval !< File interval as ISO 8601 duration.
 
     TYPE(timedelta), POINTER :: td
 
@@ -224,18 +235,24 @@ CONTAINS
 
   END SUBROUTINE sst_sic_reader_init
 
+  !> Move reader to specific timestamp.
+  !! The move will open the file that is supposed to contain the timestamp, e.g. for an interval
+  !! of 'P30D' and a timestamp of 2022-03-01 12:00:00, the file for 2022-01-31 00:00:00 will be
+  !! opened because it should contain timestamps up to 2022-03-02 00:00:00, exclusive.
+  !! The reader points to the last step in the file that is earlier than the target timestamp.
+  !!
+  !! If the file cannot be opened, the reader is left in an invalid state from which it can only
+  !! recover by performing another `goto` operation.
   SUBROUTINE sst_sic_reader_goto (this, target_datetime)
     CLASS(t_sst_sic_reader), INTENT(INOUT) :: this
-    TYPE(datetime), INTENT(IN) :: target_datetime
-
-    CHARACTER(len=*), PARAMETER :: routine = 'sst_sic_reader_goto'
+    TYPE(datetime), INTENT(IN) :: target_datetime !< Target timestamp.
 
     CHARACTER(len=FILENAME_MAX) :: filename
     CHARACTER(len=max_datetime_str_len) :: target_datetime_str
     TYPE(datetime) :: base
     TYPE(julianday) :: jd
 
-    INTEGER(i8) :: quot, rem
+    INTEGER(c_int64_t) :: quot
     INTEGER :: i, ntimes
 
     CALL getJulianDayFromDatetime(target_datetime, jd)
@@ -252,8 +269,8 @@ CONTAINS
     base%time%ms = 0
 
     ! Round down to the nearest multiple of the file interval.
-    rem = moduloTimedelta(target_datetime - base, this%file_interval, quot)
-    base = base + quot * this%file_interval
+    CALL divide_time(base, target_datetime, this%file_interval, quot)
+    CALL getDatetimeFromJulianDay(shift_time(base, this%file_interval, quot), base)
 
     filename = generate_filename(this%filename_pattern, base)
 
@@ -272,18 +289,9 @@ CONTAINS
 
     this%index = i - 1
 
-    IF (i > ntimes) THEN
-      IF (ntimes > 1) THEN
-        ! Check if the target date is within the last time step.
-        IF (jd + (this%file%times(ntimes-1) - this%file%times(ntimes)) > this%file%times(ntimes)) THEN
-          CALL datetimeToString(target_datetime, target_datetime_str)
-          CALL finish(routine, 'File "' // TRIM(filename) // '" did not contain time ' // target_datetime_str)
-        END IF
-      END IF
-    END IF
-
   END SUBROUTINE sst_sic_reader_goto
 
+  !> Get the current file step's timestamp as julian day.
   FUNCTION sst_sic_reader_get_julian_day (this) RESULT(jd)
     CLASS(t_sst_sic_reader), INTENT(IN) :: this
     TYPE(julianday) :: jd
@@ -291,6 +299,7 @@ CONTAINS
     jd = this%file%times(this%index)
   END FUNCTION sst_sic_reader_get_julian_day
 
+  !> Get the data associated with the current file step.
   SUBROUTINE sst_sic_reader_read (this, varname, dat)
     CLASS(t_sst_sic_reader), INTENT(INOUT) :: this
     CHARACTER(len=*), INTENT(IN) :: varname
@@ -310,6 +319,11 @@ CONTAINS
 
   END SUBROUTINE sst_sic_reader_read
 
+  !> Move the reader to the next file step.
+  !! If the file is exhausted, opens the next file in the sequence.
+  !!
+  !! If the next file does not exist, the reader is in an invalid state, from which it can recover
+  !! by either a `prev` or a `goto` operation.
   SUBROUTINE sst_sic_reader_next (this)
     CLASS(t_sst_sic_reader), INTENT(INOUT) :: this
 
@@ -337,10 +351,16 @@ CONTAINS
     END IF
   END SUBROUTINE sst_sic_reader_next
 
+  !> Move the reader to the previous file step.
+  !! If the file is exhausted, opens the previous file in the sequence.
+  !!
+  !! If the previous file does not exist, the reader is in an invalid state from which it can
+  !! recover by either a `next` or a `goto` operation.
   SUBROUTINE sst_sic_reader_prev (this)
     CLASS(t_sst_sic_reader), INTENT(INOUT) :: this
 
     TYPE(datetime) :: next_timebase
+    TYPE(timedelta) :: interval
 
     IF (this%file%is_open()) THEN
       IF (this%index > 1) THEN
@@ -349,7 +369,11 @@ CONTAINS
       END IF
     END IF
 
-    next_timebase = this%file%timebase + this%file_interval * (-1)
+    ! mtime timedelta does not support `-`.
+    interval = this%file_interval
+    interval%sign = '-'
+
+    next_timebase = this%file%timebase + interval
 
     this%file = t_sst_sic_file( &
         & generate_filename(this%filename_pattern, next_timebase), &
@@ -364,6 +388,8 @@ CONTAINS
     END IF
   END SUBROUTINE sst_sic_reader_prev
 
+  !> Check if the reader is valid, returning the last encountered error if the reader is currently
+  !! invalid.
   FUNCTION sst_sic_reader_is_valid (this, msg) RESULT(valid)
     CLASS(t_sst_sic_reader), INTENT(IN) :: this
     CHARACTER(len=*), INTENT(OUT), OPTIONAL :: msg
