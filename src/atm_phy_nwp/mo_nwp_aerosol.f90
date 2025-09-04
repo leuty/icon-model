@@ -36,11 +36,12 @@ MODULE mo_nwp_aerosol
   USE mo_fortran_tools,           ONLY: init, set_acc_host_or_device, assert_acc_device_only
   USE mo_util_string,             ONLY: int2string, associate_keyword, t_keyword_list, with_keywords
 ! ICON configuration
-  USE mo_atm_phy_nwp_config,      ONLY: atm_phy_nwp_config, iprog_aero, icpl_aero_conv
+  USE mo_atm_phy_nwp_config,      ONLY: atm_phy_nwp_config, i2daero_dust, i2daero_seas, i2daero_anthro,     &
+    &                                   icpl_aero_conv
   USE mo_run_config,              ONLY: iqv
   USE mo_thdyn_functions,         ONLY: sat_pres_water
   USE mo_radiation_config,        ONLY: irad_aero, iRadAeroConstKinne, iRadAeroKinne, iRadAeroCAMSclim,     &
-                                    &   iRadAeroCAMStd, iRadAeroVolc, iRadAeroKinneVolc, iRadAeroART, &
+                                    &   iRadAeroCAMStd, iRadAeroVolc, iRadAeroKinneVolc, iRadAeroART,       &
                                     &   iRadAeroKinneVolcSP, iRadAeroKinneSP, iRadAeroTegen,                &
                                     &   iRadAeroExternal, cams_aero_filename
   USE mo_nwp_tuning_config,       ONLY: tune_sc_eis
@@ -967,9 +968,9 @@ CONTAINS
       &  time_weight                         !< Temporal weighting factor
     REAL(wp), TARGET, INTENT(inout)     :: &
       &  aerosol(:,:),                     & !< Aerosol field incl. temporal interpolation
-      &  aercl_ss(:), aercl_or(:),         & !< Climatological fields for relaxation (iprog_aero > 0)
-      &  aercl_bc(:), aercl_su(:),         & !< Climatological fields for relaxation (iprog_aero > 0)
-      &  aercl_du(:)                         !< Climatological fields for relaxation (iprog_aero > 0)
+      &  aercl_ss(:), aercl_or(:),         & !< Climatological fields for relaxation (i2daero_seas/i2daero_anthro > 0)
+      &  aercl_bc(:), aercl_su(:),         & !< Climatological fields for relaxation (i2daero_anthro > 0)
+      &  aercl_du(:)                         !< Climatological fields for relaxation (i2daero_dust > 0)
     REAL(wp), INTENT(inout)             :: &
       &  zaeq1(:,:), zaeq2(:,:),           & !< organics, sea salt
       &  zaeq3(:,:), zaeq4(:,:),           & !< dust, black carbon
@@ -993,6 +994,12 @@ CONTAINS
       &  zptrop (nproma), zdtdz(nproma),   &
       &  zlatfac(nproma), zstrfac,         &
       &  zpblfac, zslatq, tunefac_pbl, rh, humidity_fac
+    REAL(wp), POINTER                   :: &
+      &  climaero_ss(:),                   &
+      &  climaero_org(:),                  &
+      &  climaero_bc(:),                   &
+      &  climaero_so4(:),                  &
+      &  climaero_du(:)
     REAL(wp), PARAMETER                 :: &
       & ztrbga = 0.03_wp  / (101325.0_wp - 19330.0_wp), &
       ! original value for zstbga of 0.045 is much higher than recently published climatologies
@@ -1003,51 +1010,50 @@ CONTAINS
       &  lzacc                               !< non-optional version of lacc
 
     ! increase aerosol enhancement in stable PBLs with prognostic aersosol
-    tunefac_pbl = MERGE(1._wp, 2._wp, iprog_aero <= 1)
+    tunefac_pbl = MERGE(1._wp, 2._wp, i2daero_anthro == 0)
 
     CALL set_acc_host_or_device(lzacc, lacc)
 
-    !$ACC DATA CREATE(zsign, zvdaes, zvdael, zvdaeu, zvdaed) &
+    !$ACC DATA CREATE(climaero_ss, climaero_org, climaero_bc, climaero_so4, climaero_du) &
+    !$ACC   CREATE(zsign, zvdaes, zvdael, zvdaeu, zvdaed) &
     !$ACC   CREATE(zaeqdo, zaequo, zaeqlo, zaeqsuo, zaeqso, zptrop) &
     !$ACC   CREATE(zdtdz, zlatfac) IF(lzacc)
 
-    SELECT CASE(iprog_aero)
-      CASE(0) ! Purely climatological aerosol
-        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-        !$ACC LOOP GANG VECTOR
-        DO jc = istart, iend
-          aerosol(jc,iss)  = aer_ss_mo1  (jc) + ( aer_ss_mo2  (jc) - aer_ss_mo1  (jc) ) * time_weight
-          aerosol(jc,iorg) = aer_org_mo1 (jc) + ( aer_org_mo2 (jc) - aer_org_mo1 (jc) ) * time_weight
-          aerosol(jc,ibc)  = aer_bc_mo1  (jc) + ( aer_bc_mo2  (jc) - aer_bc_mo1  (jc) ) * time_weight
-          aerosol(jc,iso4) = aer_so4_mo1 (jc) + ( aer_so4_mo2 (jc) - aer_so4_mo1 (jc) ) * time_weight
-          aerosol(jc,idu)  = aer_dust_mo1(jc) + ( aer_dust_mo2(jc) - aer_dust_mo1(jc) ) * time_weight
-        ENDDO
-        !$ACC END PARALLEL
-      CASE(1) ! Simple prognostic for dust
-        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-        !$ACC LOOP GANG VECTOR
-        DO jc = istart, iend
-          aerosol(jc,iss)  = aer_ss_mo1  (jc) + ( aer_ss_mo2  (jc) - aer_ss_mo1  (jc) ) * time_weight
-          aerosol(jc,iorg) = aer_org_mo1 (jc) + ( aer_org_mo2 (jc) - aer_org_mo1 (jc) ) * time_weight
-          aerosol(jc,ibc)  = aer_bc_mo1  (jc) + ( aer_bc_mo2  (jc) - aer_bc_mo1  (jc) ) * time_weight
-          aerosol(jc,iso4) = aer_so4_mo1 (jc) + ( aer_so4_mo2 (jc) - aer_so4_mo1 (jc) ) * time_weight
-          aercl_du(jc)     = aer_dust_mo1(jc) + ( aer_dust_mo2(jc) - aer_dust_mo1(jc) ) * time_weight
-        ENDDO
-        !$ACC END PARALLEL
-      CASE(2,3) ! Simple prognostic for all species
-        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-        !$ACC LOOP GANG VECTOR
-        DO jc = istart, iend
-          aercl_ss(jc)     = aer_ss_mo1  (jc) + ( aer_ss_mo2  (jc) - aer_ss_mo1  (jc) ) * time_weight
-          aercl_or(jc)     = aer_org_mo1 (jc) + ( aer_org_mo2 (jc) - aer_org_mo1 (jc) ) * time_weight
-          aercl_bc(jc)     = aer_bc_mo1  (jc) + ( aer_bc_mo2  (jc) - aer_bc_mo1  (jc) ) * time_weight
-          aercl_su(jc)     = aer_so4_mo1 (jc) + ( aer_so4_mo2 (jc) - aer_so4_mo1 (jc) ) * time_weight
-          aercl_du(jc)     = aer_dust_mo1(jc) + ( aer_dust_mo2(jc) - aer_dust_mo1(jc) ) * time_weight
-        ENDDO
-        !$ACC END PARALLEL
-      CASE DEFAULT
-        CALL finish(routine,'iprog_aero setting not implemented')
-    END SELECT
+    IF (i2daero_dust == 1) THEN
+      climaero_du => aercl_du(:)
+    ELSE
+      climaero_du => aerosol(:,idu)
+    ENDIF
+
+    IF (i2daero_seas == 1) THEN
+      climaero_ss => aercl_ss(:)
+    ELSE
+      climaero_ss => aerosol(:,iss)
+    ENDIF
+
+    IF (i2daero_anthro == 1) THEN
+      climaero_org => aercl_or(:)
+      climaero_bc  => aercl_bc(:)
+      climaero_so4 => aercl_su(:)
+    ELSE
+      climaero_org => aerosol(:,iorg)
+      climaero_bc  => aerosol(:,ibc)
+      climaero_so4 => aerosol(:,iso4)
+    ENDIF
+
+    !$ACC UPDATE DEVICE(climaero_ss, climaero_org, climaero_bc, climaero_so4, climaero_du)
+
+!DIR$ IVDEP
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+    !$ACC LOOP GANG VECTOR
+    DO jc = istart, iend
+      climaero_ss (jc) = aer_ss_mo1  (jc) + ( aer_ss_mo2  (jc) - aer_ss_mo1  (jc) ) * time_weight
+      climaero_org(jc) = aer_org_mo1 (jc) + ( aer_org_mo2 (jc) - aer_org_mo1 (jc) ) * time_weight
+      climaero_bc (jc) = aer_bc_mo1  (jc) + ( aer_bc_mo2  (jc) - aer_bc_mo1  (jc) ) * time_weight
+      climaero_so4(jc) = aer_so4_mo1 (jc) + ( aer_so4_mo2 (jc) - aer_so4_mo1 (jc) ) * time_weight
+      climaero_du (jc) = aer_dust_mo1(jc) + ( aer_dust_mo2(jc) - aer_dust_mo1(jc) ) * time_weight
+    ENDDO
+    !$ACC END PARALLEL
 
     !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
     !$ACC LOOP GANG VECTOR COLLAPSE(2)
@@ -1108,7 +1114,7 @@ CONTAINS
         ! PBL stability factor; enhance organic, sulfate and black carbon aerosol for stable stratification;
         ! account for particle growth in nearly saturated air
         rh = qv(jc,jk)*pres(jc,jk)/((rdv+o_m_rdv*qv(jc,jk))*sat_pres_water(temp(jc,jk)))
-        humidity_fac = MERGE(0._wp, 20._wp*MAX(0._wp,rh-0.8_wp), iprog_aero <= 1)
+        humidity_fac = MERGE(0._wp, 20._wp*MAX(0._wp,rh-0.8_wp), i2daero_anthro == 0)
         zpblfac = 1._wp + tunefac_pbl*MIN(1.5_wp,1.e2_wp*MAX(0._wp, zdtdz(jc) + grav/cpd)) + humidity_fac
 
         zaeq1(jc,jk) = (1._wp-zstrfac)*MAX(zpblfac*(zaeqln-zaeqlo(jc)), ztrbga*zlatfac(jc)*dpres_mc(jc,jk))

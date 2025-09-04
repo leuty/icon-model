@@ -38,7 +38,7 @@ MODULE mo_nwp_reff_interface
   USE mo_impl_constants_grf,   ONLY: grf_bdywidth_c
   USE mo_loopindices,          ONLY: get_indices_c
   USE mo_nonhydrostatic_config,ONLY: kstart_moist
-  USE mo_atm_phy_nwp_config,   ONLY: atm_phy_nwp_config, iprog_aero, icpl_aero_ice
+  USE mo_atm_phy_nwp_config,   ONLY: atm_phy_nwp_config, i2daero_dust, i2daero_seas, i2daero_anthro, icpl_aero_ice
   USE mo_radiation_config,     ONLY: irad_aero, iRadAeroTegen, iRadAeroCAMSclim, iRadAeroCAMStd
   USE mo_nwp_tuning_config,    ONLY: tune_zceff_min, tune_v0snow, tune_zvz0i, tune_icesedi_exp, tune_zcsg, tune_dice_conv
 
@@ -109,8 +109,8 @@ MODULE mo_nwp_reff_interface
     END SELECT
 
     IF ( ANY ( atm_phy_nwp_config(jg)%icpl_aero_gscp == (/1, 3/) ) ) THEN  ! Only defined if aerosol coupling is on
-      IF (iprog_aero == 0) THEN  ! Take CCN from cloud_num or acdnc
-        available_acdnc = .true.
+      IF ( ALL( (/i2daero_dust, i2daero_seas, i2daero_anthro/) == 0) ) THEN
+        available_acdnc = .true. ! Take CCN from cloud_num or acdnc
       ELSE  ! Not yet developed fucntion
         WRITE (message_text,*) 'Warnning Reff: 1 mom cannot generate cloud droplet &
                             &numbers for current options and icpl_aero_gscp=1.     &

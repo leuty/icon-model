@@ -59,7 +59,7 @@ MODULE mo_nwp_gscp_interface
                                      iqni, iqg, iqh, iqnr, iqns,               &
                                      iqng, iqnh, iqnc, inccn, ininpot, ininact,&
                                      iqgl, iqhl, ldass_lhn, iqb_last
-  USE mo_atm_phy_nwp_config,   ONLY: atm_phy_nwp_config, iprog_aero
+  USE mo_atm_phy_nwp_config,   ONLY: atm_phy_nwp_config, i2daero_dust, i2daero_seas, i2daero_anthro
   USE mo_radiation_config,     ONLY: irad_aero, iRadAeroTegen, iRadAeroCAMSclim, iRadAeroCAMStd
   USE microphysics_1mom_schemes,ONLY: graupel_run, cloudice_run, kessler_run, cloudice2mom_run, get_cloud_number
   USE mo_2mom_mcrph_driver,    ONLY: two_moment_mcrph
@@ -313,7 +313,7 @@ CONTAINS
 
         ELSE IF (atm_phy_nwp_config(jg)%icpl_aero_gscp == 1) THEN
 
-          IF (iprog_aero == 0) THEN
+          IF ( ALL( (/i2daero_dust, i2daero_seas, i2daero_anthro/) == 0 ) ) THEN
             !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
             !$ACC LOOP GANG VECTOR
             DO jc=i_startidx,i_endidx

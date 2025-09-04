@@ -392,7 +392,6 @@ cat > NAMELIST_${EXPID} << EOF
   icpl_aero_gscp  = 0   ! 1 not possible in combination with the Kinne aerosols (alternative: 3)
   icpl_aero_conv  = 0
   icpl_o3_tp       = 1
-  iprog_aero       = 0
   dt_rad    = 2400
   dt_conv   = 800
   dt_sso    = 1600

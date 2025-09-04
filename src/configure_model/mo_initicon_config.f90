@@ -227,7 +227,7 @@ MODULE mo_initicon_config
   INTEGER(i8) :: pinit_seed = 0_i8
   REAL(wp) :: pinit_amplitude = 0._wp
 
-  CHARACTER(LEN=filename_max) :: & !< Filename that contains wildfire precursor emissions (2d-aerosol, iprog_aero=3)
+  CHARACTER(LEN=filename_max) :: & !< Filename that contains wildfire precursor emissions (2d-aerosol, i2daero_fire == 1)
     &  fire2d_filename             !< Allowed keywords: <species>, <gridfile>, <nroot>, <nroot0>, <jlev>, <idom>, <yyyymmdd>
 
 CONTAINS

@@ -2938,7 +2938,7 @@ C & 'gfas2d\_emi\_ \\ <species>\_ \\ <gridfile>\_ \\ <yyyymmdd>.nc' & &
 Wildfire emission data sets for the <species> bc, oc and so2. Possible keywords: <species>, <gridfile>, <nroot>, <nroot0>, <jlev>, <idom>, <yyyymmdd>
 &
 Requires:
-iprog\_aero = 3
+i2daero\_fire = 1
 \tabularnewline
 
 \end{longtab}
@@ -5650,16 +5650,42 @@ I&
 when irad\_aero=12, 13, 14, 15, 18, 19 (Kinne aerosol), icpl\_aero\_conv=1 should be used with iclp\_aero\_gscp=3 (external cloud droplet number)
 \tabularnewline
 
-
-iprog\_aero &
+i2daero\_anthro &
 I&
 0&
  &
-0: off \\
-1: simple prognostic aerosol scheme for mineral dust, based on 2D aerosol optical depth fields of Tegen climatology \\
-2: as option 1, but for all 5 aerosol types. Requires fields emi\_bc, emi\_oc and emi\_so2 in the extpar dataset \\
-3: as option 2, but including wildfire emissions for bc, oc and so2. Emission data set can be specified with fire2d\_filename (\&initicon\_nml)
-& irad\_aero=6.
+0: off\\
+1: simple prognostic aerosol scheme for anthropogenic species
+& irad\_aero=6
+\tabularnewline
+
+i2daero\_fire &
+I&
+0&
+ &
+0: off\\
+1: add wild fire emissions from file to black carbon, organic carbon and sulfate.\\
+Requires i2daero\_anthro=1 and fire2d\_filename.
+2: add wild fire emissions from file to black carbon, organic carbon and sulfate from seasonal climatology. Requires the fields bcfire\_clim, ocfire\_clim and so2fire\_clim in the external data.
+& irad\_aero=6
+\tabularnewline
+
+i2daero\_dust &
+I&
+0&
+ &
+0: off\\
+1: simple prognostic aerosol scheme for mineral dust
+& irad\_aero=6
+\tabularnewline
+
+i2daero\_seas &
+I&
+0&
+ &
+0: off\\
+1: simple prognostic aerosol scheme for sea salt
+& irad\_aero=6
 \tabularnewline
 
 icpl\_o3\_tp&

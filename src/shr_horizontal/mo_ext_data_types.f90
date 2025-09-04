@@ -309,6 +309,12 @@ MODULE mo_ext_data_types
     REAL(wp), POINTER ::   &   !< Sulfur dioxide emission for 2D-aerosol [ kg m-2 s-1 ]
       &  emi_so2(:,:)          ! index1=1,nproma, index2=1,nblks_c
 
+    REAL(wp), POINTER ::   &   !< Ammonium emission for 2D-aerosol [ kg m-2 s-1 ]
+      &  emi_nh3(:,:)          ! index1=1,nproma, index2=1,nblks_c
+
+    REAL(wp), POINTER ::   &   !< Nitrogen oxides emission for 2D-aerosol [ kg m-2 s-1 ]
+      &  emi_nox(:,:)          ! index1=1,nproma, index2=1,nblks_c
+
     REAL(wp), POINTER ::   &   !< Black Carbon emission from wildfires for 2D-aerosol [ kg m-2 s-1 ]
       &  bcfire(:,:)           ! index1=1,nproma, index2=1,nblks_c
 
@@ -317,6 +323,15 @@ MODULE mo_ext_data_types
 
     REAL(wp), POINTER ::   &   !< Sulfur dioxide emission from wildfires for 2D-aerosol [ kg m-2 s-1 ]
       &  so2fire(:,:)          ! index1=1,nproma, index2=1,nblks_c
+
+    REAL(wp), POINTER ::   &   !< Black Carbon emission from wildfires for 2D-aerosol (climatological) [ kg m-2 s-1 ]
+      &  bcfire_clim(:,:,:)    ! index1=1,nproma, index2=1,nblks_c, index3=nseasons
+
+    REAL(wp), POINTER ::   &   !< Organic Carbon emission from wildfires for 2D-aerosol (climatological) [ kg m-2 s-1 ]
+      &  ocfire_clim(:,:,:)    ! index1=1,nproma, index2=1,nblks_c, index3=nseasons
+
+    REAL(wp), POINTER ::   &   !< Sulfur dioxide emission from wildfires for 2D-aerosol (climatological) [ kg m-2 s-1 ]
+      &  so2fire_clim(:,:,:)   ! index1=1,nproma, index2=1,nblks_c, index3=nseasons
 
     REAL(wp), POINTER ::   &   !< longwave surface emissivity             [ ]
       &  emis_rad(:,:)         ! index1=1,nproma, index2=1,nblks_c

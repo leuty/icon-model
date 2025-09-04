@@ -41,7 +41,8 @@ MODULE mo_nwp_phy_init
   USE mo_fortran_tools,       ONLY: copy
   USE mo_run_config,          ONLY: ltestcase, iqv, iqc, inccn, ininpot, msg_level, dtime
   USE mo_atm_phy_nwp_config,  ONLY: atm_phy_nwp_config, lrtm_filename,               &
-    &                               cldopt_filename, icpl_aero_conv, icpl_aero_ice, iprog_aero
+    &                               cldopt_filename, icpl_aero_conv, icpl_aero_ice,  &
+    &                               i2daero_dust, i2daero_seas, i2daero_anthro
   USE mo_extpar_config,       ONLY: ext_o3_attr, itype_vegetation_cycle
 
   !radiation
@@ -2003,7 +2004,7 @@ END SUBROUTINE init_nwp_phy
 
       CALL get_indices_c(p_patch, jb, i_startblk, i_endblk, i_startidx, i_endidx, rl_start, rl_end)
 
-      IF (iprog_aero == 0) THEN
+      IF ( ALL((/i2daero_dust, i2daero_seas, i2daero_anthro/) == 0) ) THEN
         DO jc = i_startidx, i_endidx
 
           prm_diag%aerosol(jc,iss,jb) = ext_data%atm_td%aer_ss(jc,jb,imo1) + &

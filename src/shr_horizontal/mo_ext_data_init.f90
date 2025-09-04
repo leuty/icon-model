@@ -33,7 +33,7 @@ MODULE mo_ext_data_init
                                    isub_seaice, isub_lake, sstice_mode, sst_td_filename,            &
                                    ci_td_filename, itype_lndtbl, c_soil, c_soil_urb, cskinc,        &
                                    lterra_urb, itype_eisa, cr_bsmin, itype_evsl, itype_ahf, rsmin_fac
-  USE mo_atm_phy_nwp_config, ONLY: atm_phy_nwp_config, iprog_aero
+  USE mo_atm_phy_nwp_config, ONLY: atm_phy_nwp_config, i2daero_anthro, i2daero_fire
   USE mo_extpar_config,      ONLY: itopo, itype_lwemiss, extpar_filename, generate_filename,    &
     &                              generate_td_filename, extpar_varnames_map_file,              &
     &                              n_iter_smooth_topo, itype_vegetation_cycle, read_nc_via_cdi, &
@@ -943,10 +943,17 @@ CONTAINS
         CALL copy(src=ext_data(jg)%atm%sso_stdh, dest=ext_data(jg)%atm%sso_stdh_raw, lacc=.FALSE.)
 !$OMP END PARALLEL
 
-        IF ( iprog_aero > 1) THEN
+        IF ( i2daero_anthro == 1) THEN
           CALL read_extdata('emi_bc',  arr2d=ext_data(jg)%atm%emi_bc )
           CALL read_extdata('emi_oc',  arr2d=ext_data(jg)%atm%emi_oc )
           CALL read_extdata('emi_so2', arr2d=ext_data(jg)%atm%emi_so2)
+          CALL read_extdata('emi_nh3', arr2d=ext_data(jg)%atm%emi_nh3)
+          CALL read_extdata('emi_nox', arr2d=ext_data(jg)%atm%emi_nox)
+        ENDIF
+        IF ( i2daero_fire == 2) THEN
+          CALL read_extdata('bcfire',  arr3d=ext_data(jg)%atm%bcfire_clim,  ltime=.FALSE.)
+          CALL read_extdata('ocfire',  arr3d=ext_data(jg)%atm%ocfire_clim,  ltime=.FALSE.)
+          CALL read_extdata('so2fire', arr3d=ext_data(jg)%atm%so2fire_clim, ltime=.FALSE.)
         ENDIF
         ! Read time dependent data
         IF (ANY (irad_aero == (/iRadAeroTegen, iRadAeroART, iRadAeroCAMSclim, iRadAeroCAMStd/))) THEN

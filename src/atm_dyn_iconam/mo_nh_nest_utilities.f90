@@ -43,7 +43,7 @@ MODULE mo_nh_nest_utilities
   USE mo_nwp_phy_types,       ONLY: t_nwp_phy_diag
   USE mo_prepadv_types,       ONLY: t_prepare_adv
   USE mo_nonhydrostatic_config,ONLY: ndyn_substeps_var
-  USE mo_atm_phy_nwp_config,  ONLY: iprog_aero
+  USE mo_atm_phy_nwp_config,  ONLY: i2daero_dust, i2daero_seas, i2daero_anthro
   USE mo_impl_constants,      ONLY: SUCCESS, min_rlcell_int, min_rledge_int, min_rlcell, min_rledge, inwp
   USE mo_loopindices,         ONLY: get_indices_c, get_indices_e
   USE mo_impl_constants_grf,  ONLY: grf_bdyintp_start_c, grf_bdyintp_end_c, grf_bdywidth_c, &
@@ -1026,7 +1026,8 @@ CONTAINS
 
     ENDIF
 
-    IF (ltransport .AND. iprog_aero >= 1 .AND. iforcing == inwp) THEN
+    IF (ltransport .AND. iforcing == inwp &
+      & .AND. ANY( (/i2daero_dust, i2daero_seas, i2daero_anthro/) > 0 ) ) THEN
      CALL interpol_scal_grf (p_pp=p_pp, p_pc=p_pc, p_grf=p_grf%p_dom(i_chidx), nfields=1, lacc=.TRUE., &
       f3din1=prm_diag(jg)%aerosol, f3dout1=prm_diag(jgc)%aerosol, &
       llimit_nneg=(/.TRUE./), lnoshift=.TRUE., nlev_ex=SIZE(prm_diag(jgc)%aerosol,2))

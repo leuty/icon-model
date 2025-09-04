@@ -62,14 +62,15 @@ MODULE mo_nh_interface_nwp
   USE mo_physical_constants,      ONLY: rd, rd_o_cpd, vtmpc1, p0ref, rcvd, cvd, cvv, grav
 
   USE mo_nh_diagnose_pres_temp,   ONLY: diagnose_pres_temp, diag_pres, diag_temp, calc_qsum
-  USE mo_atm_phy_nwp_config,      ONLY: atm_phy_nwp_config, iprog_aero, itype_dissip_heat
+  USE mo_atm_phy_nwp_config,      ONLY: atm_phy_nwp_config, i2daero_dust, i2daero_seas, &
+    &                                   i2daero_anthro, i2daero_fire, itype_dissip_heat
   USE mo_iau,                     ONLY: iau_update_tracer
   USE mo_util_phys,               ONLY: tracer_add_phytend, inversion_height_index
   USE mo_lnd_nwp_config,          ONLY: ntiles_total, ntiles_water
   USE mo_cover_koe,               ONLY: cover_koe, cover_koe_config
   USE mo_satad,                   ONLY: satad_v_3D, satad_v_3D_gpu
   USE mo_thdyn_functions,         ONLY: latent_heat_sublimation
-  USE mo_aerosol_util,            ONLY: prog_aerosol_2D
+  USE mo_aerosol_util,            ONLY: prog_aerosol_2D_anthro, prog_aerosol_2D_dust, prog_aerosol_2D_seas
   USE mo_radiation,               ONLY: radheat, pre_radiation_nwp
   USE mo_radiation_config,        ONLY: irad_aero, irad_o3, iRadAeroTegen, iRadAeroCAMSclim, iRadAeroCAMStd, iRadAeroART
   USE mo_nwp_gw_interface,        ONLY: nwp_gwdrag
@@ -1248,36 +1249,55 @@ CONTAINS
         CALL diag_pres (pt_prog, pt_diag, p_metrics, jb, i_startidx, i_endidx, 1, nlev, &
           &             lacc=lacc)
       ENDIF
-
-      IF (iprog_aero >= 1 .AND. .NOT. linit) THEN
-#ifdef _OPENACC
-        CALL finish('mo_nh_interface_nwp:','prog_aerosol_2D not available on GPU')
-#endif
-        CALL prog_aerosol_2D (i_startidx, i_endidx, jg, nproma, nlev, dt_loc, iprog_aero,                &
-          &                   prm_diag%aerosol(:,:,jb),prm_diag%aercl_ss(:,jb),prm_diag%aercl_or(:,jb),  &
-          &                   prm_diag%aercl_bc(:,jb),prm_diag%aercl_su(:,jb),prm_diag%aercl_du(:,jb),   &
-          &                   pt_prog%exner(:,:,jb),pt_diag%temp(:,:,jb),pt_prog_rcf%tracer(:,:,jb,iqv), &
-          &                   prm_diag%cosmu0(:,jb),                                                     &
-          &                   prm_diag%rain_gsp_rate(:,jb),prm_diag%snow_gsp_rate(:,jb),                 &
-          &                   prm_diag%rain_con_rate(:,jb),prm_diag%snow_con_rate(:,jb),                 &
-          &                   ext_data%atm%soiltyp(:,jb), ext_data%atm%plcov_t(:,jb,:),                  &
-          &                   ext_data%atm%frac_t(:,jb,:),                                               &
-          &                   lnd_prog_now%w_so_t(:,1,jb,:), lnd_prog_now%w_so_ice_t(:,1,jb,:),          &
-          &                   lnd_diag%h_snow_t(:,jb,:), lnd_diag%t_seasfc(:,jb),                        &
-          &                   ext_data%atm%lc_class_t(:,jb,:),                                           &
-          &                   pt_prog%rho(:,nlev,jb), prm_diag%tcm_t(:,jb,:),                            &
-          &                   pt_diag%u(:,nlev,jb), pt_diag%v(:,nlev,jb), prm_diag%sp_10m(:,jb),         &
-          &                   ext_data%atm%emi_bc(:,jb), ext_data%atm%emi_oc(:,jb),                      &
-          &                   ext_data%atm%emi_so2(:,jb), ext_data%atm%bcfire(:,jb),                     &
-          &                   ext_data%atm%ocfire(:,jb), ext_data%atm%so2fire(:,jb),                     &
-          &                   ext_data%atm%idx_lst_t(:,jb,:),                                            &
-          &                   ext_data%atm%gp_count_t(jb,:), ext_data%atm%list_seawtr%ncount(jb),        &
-          &                   ext_data%atm%list_seawtr%idx(:,jb))
-      ENDIF
-
     ENDDO
 !$OMP END DO NOWAIT
 !$OMP END PARALLEL
+
+    IF ( ANY( (/i2daero_dust, i2daero_seas, i2daero_anthro/) > 0) .AND. .NOT. linit) THEN
+      IF (ltimer) CALL timer_start(timer_phys_2daero)
+#ifdef _OPENACC
+      CALL finish('mo_nh_interface_nwp:','prog_aerosol_2D not available on GPU')
+#endif
+      IF ( i2daero_dust > 0 ) THEN
+        CALL prog_aerosol_2D_dust(pt_patch, dt_loc, &
+          &         pt_diag%u(:,:,:), pt_diag%v(:,:,:), pt_prog%rho(:,:,:), &
+          &         prm_diag%rain_gsp_rate, prm_diag%snow_gsp_rate, &
+          &         prm_diag%rain_con_rate, prm_diag%snow_con_rate, &
+          &         prm_diag%aercl_du, ext_data%atm%plcov_t, ext_data%atm%frac_t, &
+          &         lnd_prog_now%w_so_t(:,:,:,:), lnd_prog_now%w_so_ice_t(:,:,:,:), &
+          &         lnd_diag%h_snow_t, prm_diag%tcm_t, &
+          &         ext_data%atm%soiltyp, ext_data%atm%lc_class_t, &
+          &         ext_data%atm%idx_lst_t, ext_data%atm%gp_count_t, &
+          &         prm_diag%aerosol)
+      ENDIF
+
+      IF ( i2daero_seas > 0 ) THEN
+        CALL prog_aerosol_2D_seas(pt_patch, nproma, dt_loc, &
+          &         prm_diag%sp_10m, lnd_diag%t_seasfc, &
+          &         prm_diag%rain_gsp_rate, prm_diag%snow_gsp_rate, &
+          &         prm_diag%rain_con_rate, prm_diag%snow_con_rate, &
+          &         prm_diag%aercl_ss, ext_data%atm%frac_t, &
+          &         ext_data%atm%llsm_atm_c, ext_data%atm%list_seawtr%ncount, &
+          &         ext_data%atm%list_seawtr%idx, &
+          &         prm_diag%aerosol)
+      ENDIF
+
+      IF ( i2daero_anthro > 0) THEN
+        CALL prog_aerosol_2D_anthro(pt_patch, mtime_datetime, &
+          &         nproma, nlev, i2daero_anthro, i2daero_fire, &
+          &         dt_loc, pt_prog%exner, pt_diag%temp, &
+          &         pt_prog_rcf%tracer(:,:,:,iqv), prm_diag%cosmu0, &
+          &         prm_diag%rain_gsp_rate, prm_diag%snow_gsp_rate, &
+          &         prm_diag%rain_con_rate, prm_diag%snow_con_rate, &
+          &         prm_diag%aercl_or, prm_diag%aercl_bc, prm_diag%aercl_su, &
+          &         ext_data%atm%emi_bc, ext_data%atm%emi_oc, ext_data%atm%emi_so2, &
+          &         ext_data%atm%emi_nh3, ext_data%atm%emi_nox, &
+          &         ext_data%atm%bcfire, ext_data%atm%ocfire, ext_data%atm%so2fire, &
+          &         ext_data%atm%bcfire_clim, ext_data%atm%ocfire_clim, ext_data%atm%so2fire_clim, &
+          &         prm_diag%aerosol)
+      ENDIF
+      IF (ltimer) CALL timer_stop(timer_phys_2daero)
+    ENDIF
 
     ! update time-dependent adaptive parameter tuning fields
     ! needs to be called between TERRA and turbtran because surface heat fluxes on tiles are accessed
@@ -2490,7 +2510,7 @@ CONTAINS
 
       IF (timers_level > 10) CALL timer_start(timer_phys_sync_tracers)
 
-      IF (diffusion_config(jg)%lhdiff_w .AND. iprog_aero >= 1) THEN
+      IF (diffusion_config(jg)%lhdiff_w .AND. ANY( (/i2daero_dust, i2daero_seas, i2daero_anthro/) > 0 ) ) THEN
         CALL sync_patch_array_mult(SYNC_C, pt_patch, ntracer_sync+4, lacc=lacc, f3din1=pt_diag%tempv, f3din2=pt_prog%w, &
                                    f3din3=pt_diag%exner_pr, f3din4=prm_diag%aerosol,                         &
                                    f4din=pt_prog_rcf%tracer(:,:,:,1:ntracer_sync))

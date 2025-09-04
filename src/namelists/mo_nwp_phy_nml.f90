@@ -31,7 +31,10 @@ MODULE mo_nwp_phy_nml
     &                               config_lrtm_filename   => lrtm_filename,   &
     &                               config_cldopt_filename => cldopt_filename, &
     &                               config_icpl_aero_conv  => icpl_aero_conv,  &
-    &                               config_iprog_aero      => iprog_aero,      &
+    &                               config_i2daero_dust    => i2daero_dust,    &
+    &                               config_i2daero_seas    => i2daero_seas,    &
+    &                               config_i2daero_anthro  => i2daero_anthro,  &
+    &                               config_i2daero_fire    => i2daero_fire,    &
     &                               config_icpl_o3_tp      => icpl_o3_tp,      &
     &                               config_itype_dissip_heat => itype_dissip_heat, &
     &                               config_icpl_aero_ice   => icpl_aero_ice,   &
@@ -89,7 +92,10 @@ MODULE mo_nwp_phy_nml
   INTEGER  :: scale_cdnc_mode    !! mode of the scaling of external CDNCs
   INTEGER  :: icpl_aero_ice      !! type of aerosol-ice nucleation coupling
   INTEGER  :: icpl_aero_conv     !! type of coupling between aerosols and convection scheme
-  INTEGER  :: iprog_aero         !! type of prognostic aerosol
+  INTEGER  :: i2daero_dust       !! 2D-Aerosol: Activate dust advection, sinks & sources
+  INTEGER  :: i2daero_seas       !! 2D-Aerosol: Activate sea salt advection, sinks & sources
+  INTEGER  :: i2daero_anthro     !! 2D-Aerosol: Activate bc/oc/so4 aerosol advection, sinks & sources
+  INTEGER  :: i2daero_fire       !! 2D-Aerosol: Activate wildfire sinks & sources (additional to i2daero_anthro)
   INTEGER  :: icpl_o3_tp         !! type of ozone-tropopause coupling
   INTEGER  :: itype_dissip_heat  !! Options for the calculation of dissipative heating
   REAL(wp) :: qi0, qc0           !! variables for hydci_pp
@@ -136,7 +142,8 @@ MODULE mo_nwp_phy_nml
     &                    latm_above_top, itype_z0, mu_rain,          &
     &                    mu_snow, icapdcycl, icpl_aero_conv,         &
     &                    lrtm_filename, cldopt_filename, icpl_o3_tp, &
-    &                    iprog_aero, lshallowconv_only,lstoch_expl,  &
+    &                    i2daero_dust, i2daero_seas, i2daero_anthro, &
+    &                    i2daero_fire, lshallowconv_only,lstoch_expl,&
     &                    lvvcouple, lvv_shallow_deep,lstoch_spinup,  &
     &                    lrestune_off,nclds,                         &
     &                    lmflimiter_off, lstoch_sde,lstoch_deep,     &
@@ -292,10 +299,10 @@ CONTAINS
                         ! 1 = specify thresholds (QC and cloud thickness) for precip initiation depending on aerosol climatology instead of land-sea mask
 
     ! type of prognostic aerosol
-    iprog_aero = 0  ! 0 = pure climatology
-                    ! 1 = very simple prognostic scheme based on advection of and relaxation towards climatology for mineral dust
-                    ! 2 = very simple prognostic scheme based on advection of and relaxation towards climatology for all species
-                    ! 3 = very simple prognostic scheme based on advection of and relaxation towards climatology for all species including wildfires
+    i2daero_dust   = 0  ! Mineral dust:           0 = pure climatology, 1 = 2d-advection, sinks & sources
+    i2daero_seas   = 0  ! Sea Salt:               0 = pure climatology, 1 = 2d-advection, sinks & sources
+    i2daero_anthro = 0  ! OC/BC/Sulfate:          0 = pure climatology, 1 = 2d-advection, sinks & sources
+    i2daero_fire   = 0  ! Wildfire OC/BC/Sulfate: 0 = pure climatology, 1 = 2d-advection, sinks & sources
 
     ! coupling between ozone and the tropopause
     icpl_o3_tp = 1      ! 0 = none
@@ -603,7 +610,10 @@ CONTAINS
     config_lrtm_filename         = TRIM(lrtm_filename)
     config_cldopt_filename       = TRIM(cldopt_filename)
     config_icpl_aero_conv        = icpl_aero_conv
-    config_iprog_aero            = iprog_aero
+    config_i2daero_dust          = i2daero_dust
+    config_i2daero_seas          = i2daero_seas
+    config_i2daero_anthro        = i2daero_anthro
+    config_i2daero_fire          = i2daero_fire
     config_icpl_o3_tp            = icpl_o3_tp
     config_itype_dissip_heat     = itype_dissip_heat
     config_lcuda_graph_turb_tran = lcuda_graph_turb_tran

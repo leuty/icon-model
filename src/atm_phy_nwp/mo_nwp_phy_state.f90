@@ -73,7 +73,8 @@ USE mo_run_config,          ONLY: nqtendphy, iqv, iqc, iqi, iqr, iqs, iqg, iqh, 
 USE mo_exception,           ONLY: message, finish !,message_text
 USE mo_model_domain,        ONLY: t_patch, p_patch, p_patch_local_parent
 USE mo_grid_config,         ONLY: n_dom, n_dom_start, nexlevs_rrg_vnest
-USE mo_atm_phy_nwp_config,  ONLY: atm_phy_nwp_config, icpl_aero_conv, iprog_aero
+USE mo_atm_phy_nwp_config,  ONLY: atm_phy_nwp_config, icpl_aero_conv, &
+  &                               i2daero_dust, i2daero_seas, i2daero_anthro
 USE mo_turbdiff_config,     ONLY: turbdiff_config, t_turbdiff_config
 USE mo_initicon_config,     ONLY: icpl_da_sfcevap, icpl_da_snowalb, icpl_da_landalb, icpl_da_skinc, icpl_da_seaice
 USE mo_radiation_config,    ONLY: irad_aero, iRadAeroTegen, iRadAeroART, iRadAeroNone, &
@@ -343,7 +344,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
     CHARACTER(len=8)  :: meaning
     CHARACTER(len=10) :: varunits  ! variable units, depending on "lflux_avg"
     INTEGER :: a_steptype
-    LOGICAL :: lrestart, lrestart_flux
+    LOGICAL :: lrestart, lrestart_flux, lread_fromfg
 
     LOGICAL :: lradiance, lcloudy
     INTEGER :: ichan, idiscipline, icategory, inumber, &
@@ -2783,7 +2784,8 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
 
     IF (ANY (irad_aero == (/iRadAeroTegen, iRadAeroART, iRadAeroCAMSclim, iRadAeroCAMStd/))) THEN ! Tegen aerosol climatology, time-interpolated values
                                                     ! (needed as state fields for coupling with microphysics and convection)
-      IF (atm_phy_nwp_config(k_jg)%icpl_aero_gscp > 1 .OR. icpl_aero_conv > 1 .OR. iprog_aero > 0) THEN
+      IF (atm_phy_nwp_config(k_jg)%icpl_aero_gscp > 1 .OR. icpl_aero_conv > 1 .OR. &
+        &  ANY( (/i2daero_dust, i2daero_seas, i2daero_anthro/) > 0) ) THEN
         lrestart = .TRUE.
       ELSE
         lrestart = .FALSE.
@@ -2842,37 +2844,43 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
 
       ALLOCATE(diag%aerosol_ptr(nclass_aero))
       DO k = 1, nclass_aero
+        lread_fromfg = .FALSE.
         SELECT CASE (k)
         CASE (iss)
           caer='ss'
           constituentType = 62008
           cf_desc    = t_cf_var('aer_'//caer, '', &
             &                   'sea salt aerosol', DATATYPE_FLT32)
+          IF (i2daero_dust > 0) lread_fromfg = .TRUE.
         CASE (iorg)
           caer='or'
           constituentType = 62010
           cf_desc    = t_cf_var('aer_'//caer, '', &
             &                   'organic aerosol', DATATYPE_FLT32)
+          IF (i2daero_seas > 0) lread_fromfg = .TRUE.
         CASE (ibc)
           caer='bc'
           constituentType = 62009
           cf_desc    = t_cf_var('aer_'//caer, '', &
             &                   'black carbon aerosol', DATATYPE_FLT32)
+          IF (i2daero_anthro > 0) lread_fromfg = .TRUE.
         CASE (iso4)
           caer='su'
           constituentType = 62006
           cf_desc    = t_cf_var('aer_'//caer, '', &
             &                   'total sulfate aerosol', DATATYPE_FLT32)
+          IF (i2daero_anthro > 0) lread_fromfg = .TRUE.
         CASE (idu)
           caer='du'
           constituentType = 62001
           cf_desc    = t_cf_var('aer_'//caer, '', &
             &                   'total soil dust aerosol', DATATYPE_FLT32)
+          IF (i2daero_anthro > 0) lread_fromfg = .TRUE.
         END SELECT
 
         grib2_desc = grib2_var(0, 20, 102, ibits, GRID_UNSTRUCTURED, GRID_CELL)   &
           &           + t_grib2_int_key("constituentType", constituentType)
-        IF (iprog_aero > 1 .OR. iprog_aero == 1 .AND. k == idu) THEN
+        IF (lread_fromfg) THEN
           CALL add_ref( diag_list, 'aerosol',                                    &
                 & 'aer_'//TRIM(caer), diag%aerosol_ptr(k)%p_2d,                  &
                 & GRID_UNSTRUCTURED_CELL, ZA_SURFACE,                            &
@@ -2881,7 +2889,10 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
                 & ldims=shape2d, lrestart=lrestart, opt_var_ref_pos = 2,         &
                 & var_class=CLASS_CHEM,                                          &
                 & in_group=groups("dwd_fg_sfc_vars","mode_iau_fg_in",            &
-                & "mode_iau_old_fg_in","mode_dwd_fg_in")                         )
+                & "mode_iau_old_fg_in","mode_dwd_fg_in"),                        &
+                & hor_interp=create_hor_interp_metadata(                         &
+                &    hor_intp_type=HINTP_TYPE_LONLAT_BCTR,                       &
+                &    fallback_type=HINTP_TYPE_LONLAT_RBF )                       )
         ELSE
           CALL add_ref( diag_list, 'aerosol',                                    &
                 & 'aer_'//TRIM(caer), diag%aerosol_ptr(k)%p_2d,                  &
@@ -2889,7 +2900,10 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
                 & cf_desc,                                                       &
                 & grib2_desc, ref_idx=k,                                         &
                 & ldims=shape2d, lrestart=lrestart, opt_var_ref_pos = 2,         &
-                & var_class=CLASS_CHEM                                           )
+                & var_class=CLASS_CHEM,                                          &
+                & hor_interp=create_hor_interp_metadata(                         &
+                &    hor_intp_type=HINTP_TYPE_LONLAT_BCTR,                       &
+                &    fallback_type=HINTP_TYPE_LONLAT_RBF )                       )
         ENDIF
       ENDDO
 

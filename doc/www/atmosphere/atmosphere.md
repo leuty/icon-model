@@ -6,6 +6,7 @@
 art/art.md
 ecrad/ecrad_overview.md
 miscellaneous/miscellaneous_nwp.md
+miscellaneous/miscnwp_2daerosol.md
 sbm/sbm_overview.md
 miscellaneous/tuning_nwp.md
 ```
@@ -140,7 +141,8 @@ More detailed descriptions of some of above options are available here:
 :::{grid-item-card}
 **[Miscellaneous](ref_atm_nwpmisc)**
 ^^^
-[External SST/SIC](ref_sstsic_ext)
+[External SST/SIC](ref_sstsic_ext)\
+[2D Aerosol](ref_miscnwp_2daero)
 :::
 ::::
 
