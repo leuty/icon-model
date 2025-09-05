@@ -22,13 +22,9 @@ project(
 )
 
 option(BUILD_SHARED_LIBS "Build shared libraries" ON)
+option(BUILD_TESTING "Build tests" ON)
 
-option(RGK_ENABLE_STANDALONE "Build standalone" OFF)
-
-set(RGK_BINDINGS
-    "none"
-    CACHE STRING "At the moment, none is supported."
-)
+include(CTest)
 
 # KokkosConfig.cmake overrides the CMAKE_CXX_EXTENSIONS cache variable. We do
 # not want our targets (some of which might not even depend on Kokkos) to be
@@ -147,5 +143,28 @@ endif()
 
 add_subdirectory(src)
 
-# Allow for 'make test' even if the tests are disabled:
-enable_testing()
+if(BUILD_TESTING)
+  find_package(GTest)
+  if(NOT GTest_FOUND)
+    message(CHECK_START "Fetching external GTest")
+    include(FetchContent)
+    FetchContent_Declare(
+      googletest
+      URL https://github.com/google/googletest/releases/download/v1.16.0/googletest-1.16.0.tar.gz
+      URL_HASH MD5=9a75eb2ac97300cdb8b65b1a5833f411
+    )
+    # Function to avoid namespace pollution:
+    function(configure_googletest)
+      set(BUILD_GMOCK OFF)
+      set(INSTALL_GTEST OFF)
+      set(gtest_disable_pthreads ON)
+      FetchContent_MakeAvailable(googletest)
+    endfunction()
+    configure_googletest()
+    message(CHECK_PASS "done")
+  endif()
+  add_subdirectory(test)
+else()
+  # Allow for 'make test' even if the tests are disabled:
+  enable_testing()
+endif()

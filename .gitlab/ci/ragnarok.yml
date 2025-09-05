@@ -42,51 +42,28 @@ include:
       interruptible: true
     - when: manual
 
-gcc-cpu:
+levante-cpu:
   extends: .common_levante
   variables:
     TEST_PARTITION: shared,compute
     OMP_PROC_BIND: close
     OMP_PLACES: cores
     OMP_NUM_THREADS: $TEST_TASKS
-    CXX: g++
-    FC: gfortran
   script:
-    - module load gcc/11.2.0-gcc-11.2.0
-    - spack load /fuvwuhz # cmake@3.26.3%gcc@11.2.0
-    - spack load googletest@1.10.0
     - >
       cmake -B . -S ${CI_PROJECT_DIR}/ragnarok
-      -DKokkos_ENABLE_OPENMP=ON
-      -DKokkos_ENABLE_SERIAL=ON
-      -DRGK_ENABLE_STANDALONE=ON
-      -DRGK_BINDINGS=none
-      -DBUILD_TESTING=ON
-      -DCMAKE_BUILD_TYPE=Debug
+      -C ragnarok/cmake/caches/levante_cpu.cmake
     - cmake --build .
     - ctest $ctestOptions
 
-nvhpc-gpu:
+levante-gpu:
   extends: .common_levante
   variables:
     TEST_PARTITION: gpu-devel,gpu
     EXTRA_SCHEDULER_PARAMETERS: "--mem=16000 --gpus=1"
-    CXX: nvc++
-    FC: nvfortran
   script:
-    - module load gcc/11.2.0-gcc-11.2.0
-    - spack load /fuvwuhz # cmake@3.26.3%gcc@11.2.0
-    - spack load googletest@1.10.0
-    - module load nvhpc/24.7-gcc-11.2.0
-    - export LD_LIBRARY_PATH="/sw/spack-levante/gcc-11.2.0-bcn7mb/lib64:$LD_LIBRARY_PATH"
     - >
       cmake -B . -S ${CI_PROJECT_DIR}/ragnarok
-      -DKokkos_ENABLE_CUDA=ON
-      -DKokkos_ARCH_AMPERE80=ON
-      -DRGK_ENABLE_STANDALONE=ON
-      -DRGK_BINDINGS=none
-      -DBUILD_TESTING=ON
-      -DCMAKE_CUDA_ARCHITECTURES=80
-      -DCMAKE_BUILD_TYPE=Debug
+      -C ragnarok/cmake/caches/levante_gpu.cmake
     - cmake --build .
     - ctest

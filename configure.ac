@@ -3100,8 +3100,8 @@ RAGNAROK library @<:@default=$ICON_BUNDLED_HIPFLAGS@:>@])dnl
      [-DCMAKE_HIP_STANDARD_LIBRARIES="$LIBS"],
      [-DCMAKE_BUILD_TYPE=None],
      [-DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH"],
-     [-DBUILD_SHARED_LIBS=OFF], [-DCMAKE_CUDA_ARCHITECTURES=OFF],
-     [-DCMAKE_HIP_ARCHITECTURES=OFF])
+     [-DBUILD_SHARED_LIBS=OFF], [-DBUILD_TESTING=OFF],
+     [-DCMAKE_CUDA_ARCHITECTURES=OFF], [-DCMAKE_HIP_ARCHITECTURES=OFF])
    icon_bundled_config_after_config([ragnarok/build], [externals/kokkos/build])
    AS_VAR_APPEND([bundled_includes],
      ["${FC_MOD_IN}ragnarok/build/src/icon_bridge/mod "])
