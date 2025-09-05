@@ -1,0 +1,19 @@
+# ICON
+#
+# ---------------------------------------------------------------
+# Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+# Contact information: icon-model.org
+# See AUTHORS.TXT for a list of authors
+# See LICENSES/ for license information
+# SPDX-License-Identifier: BSD-3-Clause
+# ---------------------------------------------------------------
+
+# Sets environment variable ICON_CI_UTILS_GIT_IGNORE_PATH that points to a
+# directory ignored by git.
+#
+# Useful for jobs that generate artifacts or caches, but are sensitive to
+# untracked files in the repository clone.
+#
+.utils:git:ignore:
+  variables:
+    ICON_CI_UTILS_GIT_IGNORE_PATH: ${CI_PROJECT_DIR}/.ci_dir

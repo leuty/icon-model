@@ -13,6 +13,7 @@ version = 1
 [[annotations]]
 # Documentation and its source files:
 path = [
+  ".gitlab/ci/**/README.md",
   "AUTHORS.TXT",
   "CONTRIBUTING.md",
   "README.md",
@@ -34,8 +35,8 @@ path = [
   "scripts/postprocessing/climplot/climplot.help",
   "scripts/postprocessing/tools/mjo_analysis_suite/mjo_analysis_procedure.pdf",
   "src/**/README*",
-  "utils/log-plotting/README.md",
   "test/unit-tests/README.md",
+  "utils/log-plotting/README.md",
   "utils/plotems/doc/CHANGES.txt",
   "vertical_coord_tables/README",
 ]

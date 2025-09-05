@@ -1,0 +1,60 @@
+# ICON
+#
+# ---------------------------------------------------------------
+# Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+# Contact information: icon-model.org
+# See AUTHORS.TXT for a list of authors
+# See LICENSES/ for license information
+# SPDX-License-Identifier: BSD-3-Clause
+# ---------------------------------------------------------------
+
+include:
+  - local: .gitlab/ci/utils/log.yml
+  - local: .gitlab/ci/utils/pip.yml
+
+# Implements the common template for jobs that generate the ICON documentation
+# HTML pages.
+#
+# The output of the job (i.e. the directory containing the HTML pages) is stored
+# to the relative path (with respect to $CI_PROJECT_DIR) specified in the
+# ICON_CI_COMMON_HTML_OUTPUT_REL_PATH variable (defaults to `public`) and
+# uploaded as an artifact. The ICON_CI_COMMON_HTML_ARTIFACT_URL variable is set
+# to the URL pointing to the index.html file in the GitLab artifact storage.
+# The value of the variable is printed to the job log.
+#
+.common:html:
+  extends:
+    - .utils:log
+    - .utils:pip
+  variables:
+    ICON_CI_COMMON_HTML_OUTPUT_REL_PATH: public
+    ICON_CI_COMMON_HTML_ARTIFACT_URL: >-
+      https://${CI_PAGES_HOSTNAME}/-/${CI_PROJECT_NAME}/-/jobs/${CI_JOB_ID}/artifacts/${ICON_CI_COMMON_HTML_OUTPUT_REL_PATH}/index.html
+    ICON_CI_UTILS_PIP_PACKAGES: >-
+      myst-parser pydata-sphinx-theme sphinx sphinx-design
+  before_script:
+    - !reference [.utils:log, before_script]
+    - !reference [.utils:pip, before_script]
+  script:
+    - |
+      icon_ci_log_section_start 'Generating HTML pages' 'collapsed=false'
+      (
+        set -ux
+        # Do not tolerate warnings:
+        #  1) --fail-on-warning ensures a non-zero exit status of the command
+        #     if any warnings are encountered;
+        #  2) --keep-going ensures that all warnings are reported to the job
+        #     log, not only the first one.
+        sphinx-build --fail-on-warning --keep-going --builder html doc/www \
+          "${ICON_CI_COMMON_HTML_OUTPUT_REL_PATH}"
+      ) 2>&1
+      icon_ci_log_section_end
+      icon_ci_log_info_msg "${ICON_CI_COMMON_HTML_ARTIFACT_URL}"
+  tags:
+    - sphinx
+  artifacts:
+    paths:
+      - ${ICON_CI_COMMON_HTML_OUTPUT_REL_PATH}
+  rules:
+    changes:
+      - doc/www/**/*

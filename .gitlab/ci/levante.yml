@@ -94,6 +94,9 @@ include:
   - project: "anw_dienste/ci-templates"
     file: ".slurm-ci.yml"
 
+default:
+  interruptible: true
+
 .common:
   extends:
     - .default
@@ -102,7 +105,6 @@ include:
     SCHEDULER_PARAMETERS: >-
       --account=ka1125
       ${EXTRA_SCHEDULER_PARAMETERS}
-  interruptible: true
   rules:
     - if: $ICON_CI_PARENT_PIPELINE_SOURCE == "merge_request_event"
     - interruptible: false
