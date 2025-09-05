@@ -8,138 +8,63 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ---------------------------------------------------------------
 
+include:
+  - local: .gitlab/ci/common/dkrz.yml
+  # Generate builder rules and warning jobs:
+  - local: .gitlab/ci/utils/builder-rules.yml
+    inputs: {builder: levante_gcc, warning-stage: build}
+  - local: .gitlab/ci/utils/builder-rules.yml
+    inputs: {builder: levante_intel_hybrid, warning-stage: build}
+  - local: .gitlab/ci/utils/builder-rules.yml
+    inputs: {builder: levante_gpu_nvhpc, warning-stage: build}
+  - local: .gitlab/ci/utils/builder-rules.yml
+    inputs: {builder: levante_nag, warning-stage: build}
+
 workflow:
-  name: ${BUILDER_NAME}
   rules:
     - if: $CI_PIPELINE_SOURCE != "parent_pipeline"
       when: never
-    - if: $BUILDER_NAME == "levante_gcc"
-      variables:
-        EXTRA_SCHEDULER_PARAMETERS: ${CPU_SCHEDULER_PARAMETERS}
-        CONFIG_WRAPPER: levante.gcc
-        CONFIG_ARGS: >-
-          --disable-art
-          --disable-comin
-          --disable-coupling
-          --disable-ecrad
-          --disable-fcgroup-DACE
-          --disable-jsbach
-          --disable-les
-          --disable-nwp
-          --disable-ocean
-          --disable-quincy
-          --disable-rte-rrtmgp
-          --disable-upatmo
-          --disable-yaxt
-          --enable-bundled-python=mtime
-          --enable-separate-mods
-        BUILD_SUBMODULES: >-
-          externals/cdi
-          externals/fortran-support
-          externals/iconmath
-          externals/mtime
-    - if: $BUILDER_NAME == "levante_gpu_nvhpc"
-      variables:
-        EXTRA_SCHEDULER_PARAMETERS: ${GPU_SCHEDULER_PARAMETERS}
-        CONFIG_WRAPPER: levante.gpu.nvhpc
-        CONFIG_ARGS: >-
-          --disable-coupling
-          --disable-jsbach
-          --disable-nwp
-          --disable-ocean
-          --disable-quincy
-          --disable-rte-rrtmgp
-          --disable-upatmo
-          --enable-bundled-python=mtime
-          --enable-les
-          --enable-separate-mods
-        BUILD_SUBMODULES: >-
-          externals/cdi
-          externals/fortran-support
-          externals/iconmath
-          externals/mtime
-    - if: $BUILDER_NAME == "levante_intel_hybrid"
-      variables:
-        EXTRA_SCHEDULER_PARAMETERS: ${CPU_SCHEDULER_PARAMETERS}
-        CONFIG_WRAPPER: levante.intel
-        CONFIG_ARGS: >-
-          --disable-art
-          --disable-comin
-          --enable-coupling
-          --disable-ecrad
-          --enable-jsbach
-          --disable-les
-          --disable-nwp
-          --enable-ocean
-          --disable-quincy
-          --enable-rte-rrtmgp
-          --disable-upatmo
-          --disable-waves
-          --disable-yaxt
-          --enable-bundled-python=mtime
-          --enable-openmp
-          --enable-separate-mods
-        BUILD_SUBMODULES: >-
-          externals/cdi
-          externals/fortran-support
-          externals/iconmath
-          externals/jsbach
-          externals/mtime
-          externals/rte-rrtmgp
-          externals/yac
-          externals/yaxt
+    - if: $ICON_CI_PARENT_PIPELINE_SOURCE == "merge_request_event"
+    - if: $ICON_CI_PARENT_PIPELINE_SOURCE == "web"
+      auto_cancel:
+        on_new_commit: none
 
-include:
-  - .gitlab/ci/git.yml
-  - project: "anw_dienste/ci-templates"
-    file: ".slurm-ci.yml"
+stages:
+  - build
+  - run
 
 default:
   interruptible: true
 
-.common:
-  extends:
-    - .default
-    - .git_sparse
+.build:
+  extends: .common:dkrz:jacamar
+  stage: build
   variables:
-    SCHEDULER_PARAMETERS: >-
-      --account=ka1125
-      ${EXTRA_SCHEDULER_PARAMETERS}
-  rules:
-    - if: $ICON_CI_PARENT_PIPELINE_SOURCE == "merge_request_event"
-    - interruptible: false
-
-build:
-  extends: .common
-  variables:
-    JOB_COUNT: 32
-    EXTRA_SCHEDULER_PARAMETERS: >-
-      --partition=shared
-      --ntasks=${JOB_COUNT}
-      --time=15:00
-    SHMEM_DIR: /dev/shm/icon-${CI_JOB_NAME}-${CI_JOB_ID}
-    SOURCE_DIR: ${SHMEM_DIR}/icon
-    BUILD_DIR: ${SOURCE_DIR}
-    SPARSE_PATTERNS: >-
-      /configure /utils/ /*.in /run/*.in /src/ /support/ /config/dkrz/
-    SUBMODULES: ${BUILD_SUBMODULES}
+    ICON_CI_COMMON_DKRZ_SLURM_NTASKS: 32
+    ICON_CI_UTILS_GIT_CLONE_PATH: ${ICON_CI_COMMON_DKRZ_SHMEM_PATH}/icon
+    ICON_CI_UTILS_GIT_SPARSE_PATTERNS: >-
+      /configure /utils/ /*.in /run/*.in /src/ /support/ /config/
+    GIT_SUBMODULE_PATHS: >-
+      externals/cdi externals/fortran-support externals/iconmath externals/mtime
+      ${ICON_CI_CONFIG_EXTRA_SUBMODULE_PATHS}
+    ICON_CI_CONFIG_REL_PATH: configure
     MAKEFLAGS: >-
-      --jobs=${JOB_COUNT}
+      --jobs=${ICON_CI_COMMON_DKRZ_SLURM_NTASKS}
       --no-print-directory
       --output-sync=target
       V=1
   script:
-    # We put the whole script into a single subshell to be able to trap the EXIT
-    # pseudo-signal, which we need to copy the job artifacts to
-    # ${CI_PROJECT_DIR} (where GitLab can find them) and to clean up the
-    # /dev/shm directory regardless of whether the job succeeds.
+    # We put the entire script into a single subshell to trap the EXIT
+    # pseudo-signal, which we need to copy the job artifacts to $CI_PROJECT_DIR
+    # (where GitLab can find them) and to clean up the
+    # $ICON_CI_COMMON_DKRZ_SHMEM_PATH directory, regardless of whether the job
+    # succeeds.
     - |
-      # Configure and build
+      icon_ci_log_section_start 'Configuring and building ICON' 'collapsed=false'
       time (
-        set -e
         finalize ()
         {
-          rsync "${BUILD_DIR}/" \
+          rsync "${ICON_CI_UTILS_GIT_CLONE_PATH}/" \
             --include='/bin/icon' \
             --include='/externals/mtime/build/python/mtime/**' \
             --include='/run/SETUP.config' \
@@ -154,20 +79,30 @@ build:
             --human-readable \
             --prune-empty-dirs \
             --verbose
-          rm -rf "${SHMEM_DIR}"
+          rm -rf "${ICON_CI_COMMON_DKRZ_SHMEM_PATH}"
         }
         trap finalize EXIT
 
-        set -x
+        set -ux
 
-        mkdir -p "${BUILD_DIR}"
+        cd "${ICON_CI_UTILS_GIT_CLONE_PATH}"
 
-        ( cd "${BUILD_DIR}" && "${SOURCE_DIR}/config/dkrz/${CONFIG_WRAPPER}" ${CONFIG_ARGS} )
+        "${ICON_CI_UTILS_GIT_CLONE_PATH}/${ICON_CI_CONFIG_REL_PATH}" \
+          --disable-acm-license --disable-aes --disable-art --disable-art-gpl \
+          --disable-atmo --disable-comin --disable-coupling --disable-dace \
+          --disable-ecrad --disable-emvorado --disable-hd --disable-jsbach \
+          --disable-jsbach-hd --disable-les --disable-nwp --disable-ocean \
+          --disable-openmp --disable-quincy --disable-ragnarok \
+          --disable-rte-rrtmgp --disable-rttov --disable-upatmo \
+          --disable-waves --disable-yaxt --enable-bundled-python=mtime \
+          --enable-mpi --enable-separate-mods ${ICON_CI_CONFIG_EXTRA_ARGS-}
 
-        make -C "${BUILD_DIR}"
+        make
 
-        sed -i "s|${BUILD_DIR}|@CI_PROJECT_DIR@|g" "${BUILD_DIR}/run/SETUP.config"
-      )
+        sed -i "s|${ICON_CI_UTILS_GIT_CLONE_PATH}|@CI_PROJECT_DIR@|g" \
+          "${ICON_CI_UTILS_GIT_CLONE_PATH}/run/SETUP.config"
+      ) 2>&1
+      icon_ci_log_section_end
   artifacts:
     when: always
     paths:
@@ -177,59 +112,131 @@ build:
       - externals/mtime/build/python/mtime
       - run/SETUP.config
 
-.common_mkexp_run:
-  extends: .common
-  needs: [build]
+.run:
+  extends: .common:dkrz:jacamar
+  stage: run
   variables:
-    MKEXP_NAME: ${CI_JOB_NAME}
-    MKEXP_DIR: run/examples
-    MKEXP_FILE: ${MKEXP_DIR}/${MKEXP_NAME}.config
-    MKEXP_EXTRA_ARGS:
-    REQUIRED_NODES: 1
-    CPU_SCHEDULER_PARAMETERS: >-
-      --partition=compute
-      --time=05:00
-      --nodes=${REQUIRED_NODES}
-    GPU_SCHEDULER_PARAMETERS: >-
-      --partition=gpu
-      --gpus=4
-      --time=05:00
-    SPARSE_PATTERNS: >-
-      /utils/ /run/mkexp/
-      /${MKEXP_FILE}
-      /run/dict.iconam.mpim
-      /run/add_run_routines
-      /data
-    SUBMODULES: utils/mkexp externals/jsbach
-    PYTHONPATH: ${CI_PROJECT_DIR}/externals/mtime/build/python
+    ICON_CI_COMMON_DKRZ_SLURM_PARTITION: compute
+    ICON_CI_COMMON_DKRZ_SLURM_NTASKS: 256
+    ICON_CI_UTILS_GIT_SPARSE_PATTERNS: >-
+      /utils/ /run/mkexp/ /${ICON_CI_MKEXP_CONFIG_REL_PATH}
+      /run/dict.iconam.mpim /run/add_run_routines /data
+    GIT_SUBMODULE_PATHS: utils/mkexp externals/jsbach
     MKEXP_PATH: ${CI_PROJECT_DIR}/run
   before_script:
-    - !reference [.common, before_script]
-    - sed -i "s|@CI_PROJECT_DIR@|${CI_PROJECT_DIR}|g" run/SETUP.config
+    - !reference [.common:dkrz:jacamar, before_script]
     - module load python3
+    - |
+      icon_ci_log_section_start "Preparing experiment '${CI_JOB_NAME}'"
+      (
+        set -ux
+
+        sed -i "s|@CI_PROJECT_DIR@|${CI_PROJECT_DIR}|g" run/SETUP.config
+
+        ./utils/mkexp/mkexp "${ICON_CI_MKEXP_CONFIG_REL_PATH}" \
+          WORK_ROOT='$MODEL_ROOT' DATA_ROOT='$MODEL_ROOT' \
+          EXP_ID="${CI_JOB_NAME_SLUG}" \
+          jobs.run.nodes="${ICON_CI_COMMON_DKRZ_SLURM_NNODES}" \
+          ${ICON_CI_MKEXP_EXTRA_ARGS-}
+      ) 2>&1
+      icon_ci_log_section_end
   script:
-    - >-
-      utils/mkexp/mkexp "${MKEXP_FILE}"
-      WORK_ROOT='$MODEL_ROOT' DATA_ROOT='$MODEL_ROOT'
-      EXP_ID="${CI_JOB_NAME}"
-      jobs.run.nodes="${REQUIRED_NODES}"
-      ${MKEXP_EXTRA_ARGS}
-    - ./experiments/${CI_JOB_NAME}/scripts/${CI_JOB_NAME}.run_start
-
-bubble:
-  extends: .common_mkexp_run
-
-aes_coupled:
-  extends: .common_mkexp_run
+    - |
+      icon_ci_log_section_start "Running experiment '${CI_JOB_NAME}'" 'collapsed=false'
+      (
+        set -ux
+        ./experiments/${CI_JOB_NAME_SLUG}/scripts/${CI_JOB_NAME_SLUG}.run_start
+      ) 2>&1
+      icon_ci_log_section_end
   rules:
-    - if: $BUILDER_NAME != "levante_intel_hybrid"
-      when: never
-    - !reference [.common, rules]
+    - if: $ICON_CI_PARENT_PIPELINE_SOURCE == "merge_request_event"
+    - if: $ICON_CI_PARENT_PIPELINE_SOURCE == "web"
+
+.aes:bubble:
   variables:
-    REQUIRED_NODES: 4
-    MKEXP_DIR: run/checksuite.icon-dev
-    MKEXP_NAME: test_aes_coupled
+    ICON_CI_MKEXP_CONFIG_REL_PATH: run/examples/bubble.config
+
+aes:bubble:gcc:build:
+  extends:
+    - .build
+    - .aes:bubble
+    - .utils:builder-rules:web-manual:levante_gcc
+  variables:
+    ICON_CI_CONFIG_REL_PATH: config/dkrz/levante.gcc
+    ICON_CI_CONFIG_EXTRA_ARGS: --enable-atmo --enable-aes
+
+aes:bubble:gcc:run:
+  extends:
+    - .run
+    - .aes:bubble
+    - .utils:builder-rules:web-default:levante_gcc
+  needs: [aes:bubble:gcc:build]
+
+aes:bubble:intel:build:
+  extends:
+    - .build
+    - .aes:bubble
+    - .utils:builder-rules:web-manual:levante_intel_hybrid
+  variables:
+    ICON_CI_COMMON_DKRZ_SLURM_TIMELIMIT: "10:00"
+    ICON_CI_CONFIG_REL_PATH: config/dkrz/levante.intel
+    ICON_CI_CONFIG_EXTRA_ARGS: --enable-atmo --enable-aes --enable-openmp
+
+aes:bubble:intel:run:
+  extends:
+    - .run
+    - .aes:bubble
+    - .utils:builder-rules:web-default:levante_intel_hybrid
+  needs: [aes:bubble:intel:build]
+
+aes:bubble:gpu:build:
+  extends:
+    - .build
+    - .aes:bubble
+    - .utils:builder-rules:web-manual:levante_gpu_nvhpc
+  variables:
+    ICON_CI_COMMON_DKRZ_SLURM_TIMELIMIT: "10:00"
+    ICON_CI_CONFIG_REL_PATH: config/dkrz/levante.gpu.nvhpc
+    # Enable Large-Eddy Simulation to work around a bug
+    # (see https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/706#note_351521):
+    ICON_CI_CONFIG_EXTRA_ARGS: --enable-atmo --enable-aes --enable-les
+
+aes:bubble:gpu:run:
+  extends:
+    - .run
+    - .aes:bubble
+    - .utils:builder-rules:web-default:levante_gpu_nvhpc
+  needs: [aes:bubble:gpu:build]
+  variables:
+    ICON_CI_COMMON_DKRZ_SLURM_PARTITION: gpu
+    ICON_CI_COMMON_DKRZ_SLURM_NTASKS: 4
+    ICON_CI_COMMON_DKRZ_SLURM_GPUS_PER_NODE: 4
+    ICON_CI_MKEXP_CONFIG_REL_PATH: run/examples/bubble.config
+
+aes:coupled:cpu:build:
+  extends:
+    - .build
+    - .utils:builder-rules:web-manual:levante_intel_hybrid
+  variables:
+    ICON_CI_COMMON_DKRZ_SLURM_TIMELIMIT: "15:00"
+    ICON_CI_CONFIG_REL_PATH: config/dkrz/levante.intel
+    ICON_CI_CONFIG_EXTRA_ARGS: >-
+      --enable-atmo --enable-aes --enable-rte-rrtmgp
+      --enable-ocean --enable-jsbach --enable-jsbach-hd
+      --enable-coupling --enable-openmp
+    ICON_CI_CONFIG_EXTRA_SUBMODULE_PATHS: >-
+      externals/jsbach externals/rte-rrtmgp externals/yac externals/yaxt
+
+aes:coupled:cpu:run:
+  extends:
+    - .run
+    - .utils:builder-rules:web-default:levante_intel_hybrid
+  needs: [aes:coupled:cpu:build]
+  variables:
+    ICON_CI_COMMON_DKRZ_SLURM_NNODES: 4
+    ICON_CI_COMMON_DKRZ_SLURM_NTASKS: 1024
+    ICON_CI_MKEXP_CONFIG_REL_PATH: run/checksuite.icon-dev/test_aes_coupled.config
     # TODO: re-enable restart test when fixed
-    MKEXP_EXTRA_ARGS: >-
+    ICON_CI_MKEXP_EXTRA_ARGS: >-
       EXP_OPTIONS=output/coupled_test,serial,test/suite
       jobs.run_restart_start...hide=true

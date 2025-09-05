@@ -16,17 +16,12 @@ include:
   - local: .gitlab/ci/common/html.yml
 
 workflow:
-  auto_cancel:
-    on_new_commit: interruptible
   rules:
     - if: $CI_PROJECT_PATH == "icon/icon-model"
       when: never
     - if: $CI_PIPELINE_SOURCE == "push"
-    - if: $CI_PIPELINE_SOURCE == "schedule"
-      auto_cancel:
-        on_new_commit: none
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_PIPELINE_SOURCE == "web"
+    - if: $CI_PIPELINE_SOURCE == "web" || $CI_PIPELINE_SOURCE == "schedule"
       auto_cancel:
         on_new_commit: none
 
@@ -34,6 +29,9 @@ stages:
   - basic
   - test
   - system
+
+variables:
+  ICON_CI_PARENT_PIPELINE_SOURCE: ${CI_PIPELINE_SOURCE}
 
 default:
   interruptible: true
@@ -305,13 +303,8 @@ Generate and publish HTML:
       changes: !reference [.common:html, rules, changes]
   manual_confirmation: This job updates the GitLab Pages of the current project
 
-.common_trigger:
-  variables:
-    ICON_CI_PARENT_PIPELINE_SOURCE: ${CI_PIPELINE_SOURCE}
-
 Granules:
   stage: test
-  extends: .common_trigger
   needs: []
   trigger:
     include: .gitlab/ci/granules.yml
@@ -339,7 +332,6 @@ Granules:
 
 Ragnarok:
   stage: test
-  extends: .common_trigger
   needs: []
   trigger:
     include: .gitlab/ci/ragnarok.yml
@@ -355,7 +347,6 @@ Ragnarok:
 
 santis:
   stage: system
-  extends: .common_trigger
   needs: []
   trigger:
     include: .gitlab/ci/cscs/santis.yml
@@ -363,8 +354,6 @@ santis:
   rules:
     - if: $CI_PIPELINE_SOURCE == "web"
       when: manual
-    - if: $CSCS_CI_INACTIVE_BUILDERS =~ "/(^|,)santis/"
-      when: never
     - if: $CI_PIPELINE_SOURCE == "schedule"
       variables:
         ICON_TEST_SCHEDULE: ${ICON_TEST_SCHEDULE}
@@ -378,44 +367,14 @@ santis:
           $CI_MERGE_REQUEST_PROJECT_PATH != "icon/icon-mpim"
       when: manual
 
-.common_levante:
+levante:
   stage: system
-  extends: .common_trigger
   needs: []
-  variables:
-    BUILDER_NAME: ${CI_JOB_NAME}
   trigger:
     include: .gitlab/ci/levante.yml
     strategy: depend
-  inherit:
-    variables: false
-
-levante_gcc:
-  extends: .common_levante
   rules:
     - if: $CI_PIPELINE_SOURCE == "web"
       when: manual
-    - if: $ICON_INACTIVE_BUILDERS =~ "/(^|,)levante_gcc(,|$)/"
-      when: never
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-      when: manual
-
-levante_gpu_nvhpc:
-  extends: .common_levante
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "web"
-      when: manual
-    - if: $ICON_INACTIVE_BUILDERS =~ "/(^|,)levante_gpu_nvhpc(,|$)/"
-      when: never
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-      when: manual
-
-levante_intel_hybrid:
-  extends: .common_levante
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "web"
-      when: manual
-    - if: $ICON_INACTIVE_BUILDERS =~ "/(^|,)levante_intel_hybrid(,|$)/"
-      when: never
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       when: manual

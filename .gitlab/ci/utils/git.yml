@@ -17,3 +17,140 @@
 .utils:git:ignore:
   variables:
     ICON_CI_UTILS_GIT_IGNORE_PATH: ${CI_PROJECT_DIR}/.ci_dir
+
+# Implements a before_script that clones the project repository
+# $CI_REPOSITORY_URL to any specified path $ICON_CI_UTILS_GIT_CLONE_PATH. In
+# contrast to the standard $GIT_CLONE_PATH, $ICON_CI_UTILS_GIT_CLONE_PATH does
+# not have to point to a subdirectory of $CI_BUILDS_DIR.
+#
+# By default, the before_script prepares the build directory in the same way as
+# GitLab runners normally do when the GIT_STRATEGY is set to 'clone'. The script
+# also supports the following standard variables
+# (see https://docs.gitlab.com/ci/runners/configure_runners/#configure-runner-behavior-with-variables):
+#   - GIT_SUBMODULE_STRATEGY (defaults to `none`);
+#   - GIT_CHECKOUT (defaults to `true`);
+#   - GIT_FETCH_EXTRA_FLAGS (defaults to `--quiet`);
+#   - GIT_SUBMODULE_UPDATE_FLAGS (defaults to an empty string);
+#   - GIT_DEPTH (defaults to `20`);
+#   - GIT_SUBMODULE_DEPTH (defaults to `$GIT_DEPTH`);
+#   - GIT_SUBMODULE_PATHS (defaults to an empty string).
+#
+# The main difference of the default behaviour is that all git operations are
+# run as part of the job, which means that jobs that extend the template must
+# ensure that their runtime environments enable the git command.
+#
+# The default behaviour of the script can be altered with the following
+# variables:
+#   - ICON_CI_UTILS_GIT_CLONE_PATH (defaults to `$CI_PROJECT_DIR`): path to the
+#     directory to clone the repository in. The directory does not have to exist
+#     before running the script, but must be empty if it does.
+#   - ICON_CI_UTILS_GIT_REPOSITORY_URL (defaults to `$CI_REPOSITORY_URL`): URL
+#     of the repository to clone.
+#   - ICON_CI_UTILS_GIT_REFSPECS (defaults to the real list of specs generated
+#     by GitLab, which slightly differs from the documented at
+#     https://docs.gitlab.com/ci/pipelines/#ref-specs-for-runners): a
+#     space-separated list of git refspecs to fetch.
+#   - ICON_CI_UTILS_GIT_SPARSE_PATTERNS (defaults to an empty string): a
+#     space-separated list of patterns for the sparse checkout in non-cone mode
+#     (see https://git-scm.com/docs/git-sparse-checkout).
+#
+.utils:git:clone_any_path:
+  variables:
+    GIT_STRATEGY: empty
+  before_script:
+    - |
+      # !reference [.utils:git:clone_any_path, before_script]
+      (
+        set -u
+
+        # Default values:
+        GIT_SUBMODULE_STRATEGY=${GIT_SUBMODULE_STRATEGY:-none}
+        GIT_CHECKOUT=${GIT_CHECKOUT:-true}
+        GIT_FETCH_EXTRA_FLAGS=${GIT_FETCH_EXTRA_FLAGS:---quiet}
+        GIT_SUBMODULE_UPDATE_FLAGS=${GIT_SUBMODULE_UPDATE_FLAGS:-}
+        GIT_DEPTH=${GIT_DEPTH:-20}
+        GIT_SUBMODULE_DEPTH=${GIT_SUBMODULE_DEPTH:-${GIT_DEPTH}}
+        GIT_SUBMODULE_PATHS=${GIT_SUBMODULE_PATHS:-}
+        ICON_CI_UTILS_GIT_CLONE_PATH=${ICON_CI_UTILS_GIT_CLONE_PATH:-${CI_PROJECT_DIR}}
+        ICON_CI_UTILS_GIT_REPOSITORY_URL=${ICON_CI_UTILS_GIT_REPOSITORY_URL:-${CI_REPOSITORY_URL}}
+        ICON_CI_UTILS_GIT_REFSPECS=${ICON_CI_UTILS_GIT_REFSPECS:-" \
+          +refs/pipelines/${CI_PIPELINE_ID}:refs/pipelines/${CI_PIPELINE_ID} \
+          ${CI_COMMIT_BRANCH:+"+refs/heads/${CI_COMMIT_BRANCH}:refs/remotes/origin/${CI_COMMIT_BRANCH}"} \
+          ${CI_COMMIT_TAG:+"+refs/tags/${CI_COMMIT_TAG}:refs/tags/${CI_COMMIT_TAG}"} \
+        "}
+        ICON_CI_UTILS_GIT_SPARSE_PATTERNS=${ICON_CI_UTILS_GIT_SPARSE_PATTERNS:-}
+        test recursive = "${GIT_SUBMODULE_STRATEGY}" && \
+          submodule_recursive_flag='--recursive' || \
+          submodule_recursive_flag=
+
+        # Sanity checks:
+        git --version 2>/dev/null || {
+          icon_ci_log_error_msg 'ERROR: git command is not available'
+          exit 1
+        }
+        test ! -d "${ICON_CI_UTILS_GIT_CLONE_PATH}" || {
+          git_toplevel=$(git -C "${ICON_CI_UTILS_GIT_CLONE_PATH}" rev-parse --show-toplevel 2>/dev/null)
+          test "${ICON_CI_UTILS_GIT_CLONE_PATH}" != "${git_toplevel}"
+        } || {
+          icon_ci_log_error_msg "ERROR: '${ICON_CI_UTILS_GIT_CLONE_PATH}' is an existing git repository"
+          exit 1
+        }
+
+        icon_ci_log_section_start \
+          "Cloning '${ICON_CI_UTILS_GIT_REPOSITORY_URL}' to '${ICON_CI_UTILS_GIT_CLONE_PATH}'"
+
+        icon_ci_log_info_msg "Fetching changes with git depth set to ${GIT_DEPTH}..."
+        (
+          set -x
+          git -c 'init.defaultBranch=none' init --template='' "${ICON_CI_UTILS_GIT_CLONE_PATH}"
+          git -C "${ICON_CI_UTILS_GIT_CLONE_PATH}" \
+            remote add origin "${ICON_CI_UTILS_GIT_REPOSITORY_URL}"
+          git -C "${ICON_CI_UTILS_GIT_CLONE_PATH}" \
+            fetch origin --no-recurse-submodules ${ICON_CI_UTILS_GIT_REFSPECS} \
+            --depth "${GIT_DEPTH}" ${GIT_FETCH_EXTRA_FLAGS}
+        ) 2>&1
+
+        test -z "${ICON_CI_UTILS_GIT_SPARSE_PATTERNS}" && {
+          icon_ci_log_info_msg 'Skipping sparse checkout configuration'
+        } || (
+          icon_ci_log_info_msg 'Applying sparse checkout configuration...'
+          set -x
+          git -C "${ICON_CI_UTILS_GIT_CLONE_PATH}" \
+            sparse-checkout set --no-cone -- ${ICON_CI_UTILS_GIT_SPARSE_PATTERNS}
+        ) 2>&1
+
+        test false = "${GIT_CHECKOUT}" && {
+          icon_ci_log_info_msg 'Skipping Git checkout'
+        } || (
+          icon_ci_log_info_msg \
+            "Checking out ${CI_COMMIT_SHORT_SHA} as detached HEAD (ref is ${CI_COMMIT_REF_NAME})..."
+          set -x
+          git -C "${ICON_CI_UTILS_GIT_CLONE_PATH}" \
+            -c advice.detachedHEAD=false checkout "${CI_COMMIT_SHA}"
+        ) 2>&1
+
+        test none = "${GIT_SUBMODULE_STRATEGY}" && {
+          icon_ci_log_info_msg 'Skipping Git submodule setup'
+        } || (
+          icon_ci_log_info_msg 'Updating/initializing submodules '\
+      ${submodule_recursive_flag:+'recursively '}"with git depth set to ${GIT_SUBMODULE_DEPTH}..."
+          set -x
+          git -C "${ICON_CI_UTILS_GIT_CLONE_PATH}" \
+            submodule update --init ${submodule_recursive_flag} \
+            --depth "${GIT_SUBMODULE_DEPTH}" ${GIT_SUBMODULE_UPDATE_FLAGS} \
+            ${GIT_SUBMODULE_PATHS:+--} ${GIT_SUBMODULE_PATHS}
+        ) 2>&1
+        icon_ci_log_section_end
+      )
+
+# Sets environment variables that speed up the cloning of the project
+# repository, as well as reduce the storage footprint of the operation.
+#
+# Recommended for jobs that make use of the sparse checkout feature implemented
+# in .utils:git:clone_any_path.
+#
+.utils:git:fast_and_small:
+  variables:
+    GIT_DEPTH: 1
+    GIT_FETCH_EXTRA_FLAGS: --quiet --filter=blob:none
+    GIT_SUBMODULE_UPDATE_FLAGS: --jobs=4

@@ -8,47 +8,50 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ---------------------------------------------------------------
 
+include:
+  - local: .gitlab/ci/common/dkrz.yml
+  # Generate builder rules and warning jobs:
+  - local: .gitlab/ci/utils/builder-rules.yml
+    inputs: {builder: levante_gcc}
+  - local: .gitlab/ci/utils/builder-rules.yml
+    inputs: {builder: levante_gpu_nvhpc}
+
 workflow:
   rules:
-    - if: $CI_PIPELINE_SOURCE == "parent_pipeline"
+    - if: $CI_PIPELINE_SOURCE != "parent_pipeline"
+      when: never
+    - if: $ICON_CI_PARENT_PIPELINE_SOURCE == "merge_request_event"
+    - if: $ICON_CI_PARENT_PIPELINE_SOURCE == "web"
+      auto_cancel:
+        on_new_commit: none
 
-include:
-  - .gitlab/ci/git.yml
-  - .gitlab/ci/dkrz/slurm.yml
-  - project: 'anw_dienste/ci-templates'
-    file: '.slurm-ci.yml'
+default:
+  interruptible: true
 
-.common_levante:
-  extends:
-    - .default
-    - .slurm_levante
-    - .git_sparse
+.common:
+  extends: .common:dkrz:jacamar
   variables:
     # git
-    SUBMODULES: externals/kokkos
-    SPARSE_PATTERNS: ragnarok
+    GIT_SUBMODULE_PATHS: externals/kokkos
+    ICON_CI_UTILS_GIT_SPARSE_PATTERNS: /ragnarok/
     # slurm
-    TEST_TASKS: 8
-    TEST_TIME_LIMIT: "05:00"
-    EXTRA_SCHEDULER_PARAMETERS: --mem=16000
+    ICON_CI_COMMON_DKRZ_SLURM_EXTRA_PARAMETERS: --mem=16000
     # cmake
-    CTEST_PARALLEL_LEVEL: ${TEST_TASKS}
-    CMAKE_BUILD_PARALLEL_LEVEL: ${TEST_TASKS}
+    CTEST_PARALLEL_LEVEL: ${ICON_CI_COMMON_DKRZ_SLURM_NTASKS}
+    CMAKE_BUILD_PARALLEL_LEVEL: ${ICON_CI_COMMON_DKRZ_SLURM_NTASKS}
     VERBOSE:
     CTEST_OUTPUT_ON_FAILURE:
     ctestOptions: --extra-verbose
-  rules:
-    - if: $ICON_CI_PARENT_PIPELINE_SOURCE == "merge_request_event"
-      interruptible: true
-    - when: manual
 
 levante-cpu:
-  extends: .common_levante
+  extends:
+    - .common
+    - .utils:builder-rules:web-manual:levante_gcc
   variables:
-    TEST_PARTITION: shared,compute
+    ICON_CI_COMMON_DKRZ_SLURM_PARTITION: shared,compute
     OMP_PROC_BIND: close
     OMP_PLACES: cores
-    OMP_NUM_THREADS: $TEST_TASKS
+    OMP_NUM_THREADS: ${ICON_CI_COMMON_DKRZ_SLURM_NTASKS}
   script:
     - >
       cmake -B . -S ${CI_PROJECT_DIR}/ragnarok
@@ -57,10 +60,12 @@ levante-cpu:
     - ctest $ctestOptions
 
 levante-gpu:
-  extends: .common_levante
+  extends:
+    - .common
+    - .utils:builder-rules:web-manual:levante_gpu_nvhpc
   variables:
-    TEST_PARTITION: gpu-devel,gpu
-    EXTRA_SCHEDULER_PARAMETERS: "--mem=16000 --gpus=1"
+    ICON_CI_COMMON_DKRZ_SLURM_PARTITION: gpu-devel,gpu
+    ICON_CI_COMMON_DKRZ_SLURM_GPUS_PER_NODE: 1
   script:
     - >
       cmake -B . -S ${CI_PROJECT_DIR}/ragnarok

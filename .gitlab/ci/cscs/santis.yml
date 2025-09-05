@@ -8,28 +8,36 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ---------------------------------------------------------------
 
+include:
+  - local: .gitlab/ci/common/alpine.yml
+  # Generate builder rules and warning jobs:
+  - local: .gitlab/ci/utils/builder-rules.yml
+    inputs: {builder: santis_cpu}
+  - local: .gitlab/ci/utils/builder-rules.yml
+    inputs: {builder: santis_gpu}
+
 workflow:
   rules:
-    - if: $CI_PIPELINE_SOURCE == "parent_pipeline"
+    - if: $CI_PIPELINE_SOURCE != "parent_pipeline"
+      when: never
+    - if: $ICON_CI_PARENT_PIPELINE_SOURCE == "merge_request_event"
+    - if: $ICON_CI_PARENT_PIPELINE_SOURCE == "web" || $ICON_CI_PARENT_PIPELINE_SOURCE == "schedule"
+      auto_cancel:
+        on_new_commit: none
+
+default:
+  interruptible: true
 
 .common_cscs_ci:
+  extends: .common:alpine
   variables:
-    APK_CACHE_DIR: ${CI_PROJECT_DIR}/.ci_dir/apk-cache
+    GIT_STRATEGY: none
+    ICON_CI_COMMON_ALPINE_PACKAGES: >-
+      py3-ratelim py3-requests py3-retry py3-yaml python3
     CSCS_CI_COMMIT_SHA: ${CI_COMMIT_SHA}
     CSCS_CI_TAG: merge2rc
-    GIT_STRATEGY: none
-  before_script:
-    - mkdir -p "${APK_CACHE_DIR}"
-    - apk --cache-dir "${APK_CACHE_DIR}" --update-cache add py3-ratelim py3-requests py3-retry py3-yaml python3
-    - apk --cache-dir "${APK_CACHE_DIR}" cache clean
-  tags:
-    - alpine
-  # Dont want parent job to timeout before child job finishes
+  # Wait for the external pipeline to finish:
   timeout: 6h
-  cache:
-    - key: apk-cscs-ci
-      paths:
-        - ${APK_CACHE_DIR}
   script:
     - |
       python3 - <<\_EOF
@@ -155,33 +163,32 @@ cpu:
     CSCS_CI_TAG: merge2rc
     CSCS_CI_BUILDER: santis-cpu
   rules:
-    - if: $ICON_CI_PARENT_PIPELINE_SOURCE == "merge_request_event"
-      interruptible: true
-    - if: $ICON_TEST_SCHEDULE == "nightly"
-    - when: manual
+    - !reference [.utils:builder-rules:web-manual:santis_cpu, rules]
+    - if: $ICON_CI_PARENT_PIPELINE_SOURCE == "schedule" && $ICON_TEST_SCHEDULE == "nightly"
 
 gpu:
   extends: .common_cscs_ci
   variables:
     CSCS_CI_TAG: merge2rc
     CSCS_CI_BUILDER: santis-gpu
-  rules: !reference [cpu, rules]
+  rules:
+    - !reference [.utils:builder-rules:web-manual:santis_gpu, rules]
+    - if: $ICON_CI_PARENT_PIPELINE_SOURCE == "schedule" && $ICON_TEST_SCHEDULE == "nightly"
 
 cpu_tolerance:
-  extends: .common_cscs_ci
+  extends:
+    - .common_cscs_ci
+    - .utils:builder-rules:web-default:santis_cpu
   variables:
     CSCS_CI_TAG: tolerance
     CSCS_CI_BUILDER: santis-cpu
   when: manual
-  interruptible: true
-  rules:
-    - if: $ICON_CI_PARENT_PIPELINE_SOURCE != "schedule"
 
 cpu_select_members:
-  extends: .common_cscs_ci
+  extends:
+    - .common_cscs_ci
+    - .utils:builder-rules:web-default:santis_cpu
   variables:
     CSCS_CI_TAG: select-members
     CSCS_CI_BUILDER: santis-cpu
   when: manual
-  interruptible: true
-  rules: !reference [cpu_tolerance, rules]
