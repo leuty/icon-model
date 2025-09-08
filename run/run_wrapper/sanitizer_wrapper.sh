@@ -40,10 +40,13 @@ fi
 #
 # --print-limit 10  # Limit the printing to 10 issues.
 #
-# Filters (I couldn't get them working)
-#    --filter kernel_substring=mo_
-#    --exclude kernel_substring=mo_communication_orig
-#    --filter kernel_substring=mo_nwp_sfc_interface
+# Filters to control which kernels are checked:
+#    --kernel-name kns=mo_nwp_sfc_interface               <-- kns = kernel name substring, kne = full kernel name
+#    --kernel-name kns=terra                              <-- check only kernels inside TERRA
+#    --kernel-name-exclude kns=mo_communication_orig      <-- to exclude kernels
+# Notes:
+#   - Generally, the function names in which the kernels are located, are substrings in the full kernel name.
+#   - More than one filter can be specified (e.g., --kernel-name kns=terra,kns=sfc)
 #
 #    --check-api-memory-access no \
 #    --check-device-heap no \
