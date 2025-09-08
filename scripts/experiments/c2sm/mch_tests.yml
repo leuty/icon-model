@@ -142,7 +142,7 @@ tests:
       - balfrin: 't'
     refgen: ['balfrin_cpu_nvidia','alps_mch_test_cpu']
     ensemble_num:
-      - balfrin_cpu_nvidia: [15,44,31,18,24]
+      - balfrin_cpu_nvidia: [1,10,32,36,44]
     tolerance_factor:
       - balfrin: 5
   - name: mch_opr_r04b07_nest
@@ -154,7 +154,7 @@ tests:
     checksuite_modes:
       - balfrin: 'rt'
     ensemble_num:
-      - balfrin_cpu_nvidia: [22,36,1,26,4,37]
+      - balfrin_cpu_nvidia: [1,2,15,16,33]
     tolerance_factor:
       - balfrin: 5
   - name: mch_opr_r04b07_performance

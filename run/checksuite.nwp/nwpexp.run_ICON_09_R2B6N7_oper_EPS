@@ -899,7 +899,7 @@ fi
 #          But when you worry you make it double ..."
 # ----------------------------------------------------------------------
 
-refdir="${DATAROOT}/ref_data_exp09/f31a87211e"
+refdir="${DATAROOT}/ref_data_exp09/872354f0c9"
 
 module unload eccodes sx ; module load x86 eccodes/2.28.0-x86-python
 
