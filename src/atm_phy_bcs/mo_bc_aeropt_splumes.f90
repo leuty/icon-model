@@ -23,6 +23,7 @@ MODULE mo_bc_aeropt_splumes
   USE mo_read_interface,       ONLY: openInputFile, read_1D, &
                                    & read_bcast_real_2D, read_bcast_real_3D, &
                                    & closeFile
+  USE mo_read_netcdf_broadcast_2, ONLY: netcdf_dimlen
   USE mo_model_domain,         ONLY: p_patch
   USE mo_fortran_tools,        ONLY: assert_acc_device_only
   USE mo_math_constants,       ONLY: rad2deg
@@ -37,10 +38,10 @@ MODULE mo_bc_aeropt_splumes
   PUBLIC                  :: setup_bc_aeropt_splumes, add_bc_aeropt_splumes, cloud_num_scaling_factor
 
   INTEGER, PARAMETER      ::     &
-       nplumes   = 9            ,& !< Number of plumes
-       nfeatures = 2            ,& !< Number of features per plume
-       ntimes    = 52           ,& !< Number of times resolved per year (52 => weekly resolution)
-       nyears    = 251             !< Number of years of available forcing
+       nplumes   = 9            ,&  !< Number of plumes
+       nfeatures = 2            ,&  !< Number of features per plume
+       ntimes    = 52               !< Number of times resolved per year (52 => weekly resolution)
+  INTEGER                 :: nyears !< Number of years
   CHARACTER(LEN=*), PARAMETER :: cfname = 'MACv2.0-SP_v1.nc'
 
   REAL(wp), ALLOCATABLE ::                    &
@@ -89,6 +90,8 @@ MODULE mo_bc_aeropt_splumes
     INTEGER           :: ifile_id
 
     CALL openInputFile(ifile_id, cfname)
+
+    nyears = netcdf_dimlen(ifile_id,'years')
 
     CALL read_1d_wrapper(ifile_id=ifile_id,        variable_name='plume_lat',&
                        & alloc_array=plume_lat,    file_name=cfname,         &
