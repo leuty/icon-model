@@ -23,7 +23,7 @@ By activating **{term}`lredgrid_phys``=.true.`** and specifying the correspondin
 - Only for the reduced radiation grid, there is an additional option named **{term}`latm_above_top`**. This option adds an extra layer at the top to account for the incoming long-wave radiation. This reduces the biases at the model top significantly.
 - For global domains, there is a load balancing for sunlit and shadowed parts of the earth for the reduced grid.
 
-For a more detailed description of the reduced radiation grid implementation, see {term}`ICON Tutorial 2024`.
+For a more detailed description of the reduced radiation grid implementation, see {term}`ICON Tutorial`.
 
 
 (ref_atmosphere_ecrad_outputVars)=

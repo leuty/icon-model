@@ -10,8 +10,8 @@ Please see also the list of **[reference publications](https://www.icon-model.or
 ## Tutorials
 
 :::{glossary}
-ICON Tutorial 2024
-  F. Prill, D. Reinert, D. Rieger, G. Zängl (2024). Working with the ICON Model, <https://doi.org/10.5676/DWD_pub/nwv/icon_tutorial2024>
+ICON Tutorial
+  F. Prill, D. Reinert, D. Rieger, G. Zängl (2025). Working with the ICON Model, <https://doi.org/10.5676/DWD_pub/nwv/icon_tutorial2025>
 
 ICON-ART User Guide
   <https://www.icon-art.kit.edu/userguide/index.php?title=Main_Page>

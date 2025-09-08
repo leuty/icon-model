@@ -18,7 +18,7 @@ and mass fractions of atmospheric water constituents and trace gases.
 In addition, the model provides a comprehensive set of diagnostic quantities,
 such as surface pressure, wind gusts or potential vorticity
 just to name a few. An extensive, but still incomplete list of available
-output variables is provided in Appendix A of the {term}`ICON Tutorial 2024`.
+output variables is provided in Appendix A of the {term}`ICON Tutorial`.
 
 In mathematical terms, the ICON atmosphere model solves the fully compressible non-hydrostatic
 Navier-Stokes equations on the sphere. The explicitly resolved scales of
@@ -70,7 +70,7 @@ scheme, leading to a discretization which is mass conserving, but not strictly
 energy conserving.
 
 For additional details on the dynamical core, the reader is referred to {term}`Zaengl et al. 2015`
-and Chapter 3 of the {term}`ICON Tutorial 2024`.
+and Chapter 3 of the {term}`ICON Tutorial`.
 
 (ref_atmosphere_tracer_transport)=
 ## Tracer Transport
@@ -87,7 +87,7 @@ in space are applied to construct mass conserving and mass consistent transport 
 If needed, these schemes can be combined with monotonicity or positivity preserving limiters.
 
 More details on the tracer transport module can be found in the ICON reports
-({term}`Reinert 2020`, {term}`Reinert & Zaengl 2021`) and Section 3.6 of the {term}`ICON Tutorial 2024`.
+({term}`Reinert 2020`, {term}`Reinert & Zaengl 2021`) and Section 3.6 of the {term}`ICON Tutorial`.
 
 (ref_atmosphere_physics)=
 ## Physical Parameterizations
@@ -126,8 +126,8 @@ More detailed descriptions of some of above options are available here:
 **[Radiation (ecRad)](ref_atmosphere_ecrad)**
 ^^^
 [](ref_atmosphere_ecrad_redgrid)  
-[](ref_atmosphere_ecrad_aerosol)
-[](ref_atmosphere_ecrad_cdnc)
+[](ref_atmosphere_ecrad_aerosol)  
+[](ref_atmosphere_ecrad_cdnc)  
 [FSD Parameter](ref_atmosphere_ecrad_fsd)
 :::
 
@@ -146,7 +146,7 @@ More detailed descriptions of some of above options are available here:
 :::
 ::::
 
-You can find a brief overview on the NWP physics package in chapter 3 of the **{term}`ICON Tutorial 2024`**.
+You can find a brief overview on the NWP physics package in chapter 3 of the **{term}`ICON Tutorial`**.
 
 :::{admonition} Tuning ICON NWP Physics
 :class: admonition-icontheme

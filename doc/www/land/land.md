@@ -48,7 +48,7 @@ From a numerical point of view TERRA is coupled explicity to the atmosphere.
 TERRA requires a set of external physiographic parameters that hold the information such as e.g. soil type or land-use type.
 To address the issue of spatial soil heterogeneity ICON employs tiles. Tiling is done in land-use space, and TERRA is called separately for each tile. Resulting fluxes from the separate tiles are averaged at a blending height of 10 m and passed to the turbulence scheme.
 
-See also Section 3.8.11 of the {term}`ICON Tutorial 2024`.
+See also Section 3.8.9 of the {term}`ICON Tutorial`.
 
 (ref_icon_land)=
 ## ICON-Land
