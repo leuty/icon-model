@@ -27,6 +27,7 @@ workflow:
 
 stages:
   - basic
+  - unit
   - test
   - system
 
@@ -307,7 +308,8 @@ Granules:
   stage: test
   needs: []
   trigger:
-    include: .gitlab/ci/granules.yml
+    include:
+      - local: .gitlab/ci/granules.yml
     strategy: depend
   rules:
     - if: $CI_PIPELINE_SOURCE == "web"
@@ -330,11 +332,12 @@ Granules:
         - src/shared/mo_impl_constants_grf.f90
         - test/microphysics_1mom_schemes/**/*
 
-Ragnarok:
-  stage: test
+ragnarok:
+  stage: unit
   needs: []
   trigger:
-    include: .gitlab/ci/ragnarok.yml
+    include:
+      - local: .gitlab/ci/ragnarok.yml
     strategy: depend
   rules:
     - if: $CI_PIPELINE_SOURCE == "web"
@@ -349,7 +352,8 @@ santis:
   stage: system
   needs: []
   trigger:
-    include: .gitlab/ci/cscs/santis.yml
+    include:
+      - local: .gitlab/ci/cscs/santis.yml
     strategy: depend
   rules:
     - if: $CI_PIPELINE_SOURCE == "web"
@@ -371,7 +375,8 @@ levante:
   stage: system
   needs: []
   trigger:
-    include: .gitlab/ci/levante.yml
+    include:
+      - local: .gitlab/ci/levante.yml
     strategy: depend
   rules:
     - if: $CI_PIPELINE_SOURCE == "web"
