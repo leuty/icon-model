@@ -243,9 +243,10 @@ MODULE mo_aes_phy_memory
       & x_ice       (:,:,:)=>NULL(),  &!< average mass of ice crystal in kg
       & acinc       (:,:,:)=>NULL(),  &!< cloud ice number concentration [1/m^3]
       & reff_ice    (:,:,:)=>NULL()    !< effective radius of snow in [um]
-    ! arbitrary 2d-field in radiation for output
+    ! cloud inhomogeneity factor
     REAL(wp), POINTER ::      &
-      & cinhoml_2d      (:,:)=>NULL()      !< arbitrary 2d field in radiation for output
+      & lts         (:,:)=>NULL(),    &!< lower troposheric stability [K]
+      & cinhoml     (:,:)=>NULL()      !< cloud liquid water inhomogeneity
     ! aerosol optical properties
     REAL(wp),POINTER ::      &
       & aer_aod_533 (:,:,:)=>NULL(),  &!< aerosol optical depth at 533 nm
@@ -2403,20 +2404,32 @@ CONTAINS
     END IF
 
     !--------------------------------------
-    ! Arbitrary output fields for radiation
+    ! For liquid water cloud inhomogeneity
     !--------------------------------------
 
-    cf_desc    = t_cf_var('cinhoml_2d', '', &
+    cf_desc    = t_cf_var('cinhoml', '', &
                & 'cloud liquid water inhomogeneity', datatype_flt)
     grib2_desc = grib2_var(255,255,255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
-    CALL add_var( field_list, prefix//'cinhoml_2d', field%cinhoml_2d,       &
+    CALL add_var( field_list, prefix//'cinhoml', field%cinhoml,  &
          &        GRID_UNSTRUCTURED_CELL, ZA_SURFACE,            &
          &        cf_desc, grib2_desc,                           &
          &        ldims=shape2d,                                 &
          &        lrestart = .FALSE.,                            &
          &        isteptype=TSTEP_INSTANT,                       &
          &        lopenacc=.TRUE.)
-    __acc_attach(field%cinhoml_2d)
+    __acc_attach(field%cinhoml)
+
+    cf_desc    = t_cf_var('lts', 'K', &
+               & 'lower tropospheric stability', datatype_flt)
+    grib2_desc = grib2_var(255,255,255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+    CALL add_var( field_list, prefix//'lts', field%lts,  &
+         &        GRID_UNSTRUCTURED_CELL, ZA_SURFACE,            &
+         &        cf_desc, grib2_desc,                           &
+         &        ldims=shape2d,                                 &
+         &        lrestart = .FALSE.,                            &
+         &        isteptype=TSTEP_INSTANT,                       &
+         &        lopenacc=.TRUE.)
+    __acc_attach(field%lts)
 
     !-------
     ! Clouds

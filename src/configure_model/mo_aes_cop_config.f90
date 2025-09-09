@@ -53,9 +53,12 @@ MODULE mo_aes_cop_config
      !
      ! cloud inhomogeneity factors
      REAL(wp) :: cinhomi            ! ice clouds
-     REAL(wp) :: cinhoml_cf         ! liquid water cumuliform clouds
+     REAL(wp) :: cinhoml_cfl        ! liquid water cumuliform clouds over land
+     REAL(wp) :: cinhoml_cfo        ! liquid water cumuliform clouds over ocean
      REAL(wp) :: cinhoml_sf         ! liquid water stratiform clouds
-     REAL(wp) :: cinhoml_lts_height ! height (m) used for computing the stability of the lower troposphere
+     REAL(wp) :: cinhoml_lts_height ! height (m) used for computing the lower tropospheric stability (lts)
+     REAL(wp) :: cinhoml_del1       !       del1 = ordinate value of atan2 function for transition from cfl/cfo to cs value
+     REAL(wp) :: cinhoml_del2       ! lts - del2 = abcissae value of ..., lts = del2 -> (cfl/clo + cs)/2
      INTEGER  :: cinhoml_jk         ! level index for blending function of cinhoml cf and sf
      !
      ! freezing/deposition/sublimation for mo_aes_convect_tables:
@@ -92,10 +95,13 @@ CONTAINS
     !
     ! cloud inhomogeneity factors
     aes_cop_config(:)% cinhomi     = 0.80_wp
-    aes_cop_config(:)% cinhoml_cf  = 0.40_wp
+    aes_cop_config(:)% cinhoml_cfl = 0.40_wp
+    aes_cop_config(:)% cinhoml_cfo = 0.40_wp
     aes_cop_config(:)% cinhoml_sf  = 0.80_wp
     aes_cop_config(:)% cinhoml_jk  = 0
     aes_cop_config(:)% cinhoml_lts_height = 3200._wp ! m
+    aes_cop_config(:)% cinhoml_del1 =  2._wp
+    aes_cop_config(:)% cinhoml_del2 = 20._wp
     !
     ! freezing/deposition/sublimation
     aes_cop_config(:)% cthomi   = tmelt-35.0_wp
@@ -123,7 +129,7 @@ CONTAINS
                &      'aes_cop_config('//TRIM(cg)//')% cinhoml_jk must not be set in the namelist!')
        END IF
        !
-       IF (aes_cop_config(jg)% cinhoml_sf /= aes_cop_config(jg)% cinhoml_cf) THEN
+       IF (aes_cop_config(jg)% cinhoml_sf /= aes_cop_config(jg)% cinhoml_cfo) THEN
           !
           aes_cop_config(jg)% cinhoml_jk = SIZE(vct_a)-1
           DO jk = 1,SIZE(vct_a)-1
@@ -171,11 +177,14 @@ CONTAINS
        CALL print_value('    aes_cop_config('//TRIM(cg)//')% cn2sea   ',aes_cop_config(jg)% cn2sea  )
        CALL message    ('','')
        CALL print_value('    aes_cop_config('//TRIM(cg)//')% cinhomi    ',aes_cop_config(jg)% cinhomi )
-       CALL print_value('    aes_cop_config('//TRIM(cg)//')% cinhoml_cf ',aes_cop_config(jg)% cinhoml_cf )
+       CALL print_value('    aes_cop_config('//TRIM(cg)//')% cinhoml_cfl',aes_cop_config(jg)% cinhoml_cfl )
+       CALL print_value('    aes_cop_config('//TRIM(cg)//')% cinhoml_cfo',aes_cop_config(jg)% cinhoml_cfo )
        CALL message    ('','')
-       IF (aes_cop_config(jg)% cinhoml_sf /= aes_cop_config(jg)% cinhoml_cf) THEN
+       IF (aes_cop_config(jg)% cinhoml_sf /= aes_cop_config(jg)% cinhoml_cfo) THEN
           CALL message    ('','with modification to differentiate stratiform and cumuliform clouds:')
           CALL print_value('    aes_cop_config('//TRIM(cg)//')% cinhoml_sf        ',aes_cop_config(jg)% cinhoml_sf )
+          CALL print_value('    aes_cop_config('//TRIM(cg)//')% cinhoml_del1      ',aes_cop_config(jg)% cinhoml_del1 )
+          CALL print_value('    aes_cop_config('//TRIM(cg)//')% cinhoml_del2      ',aes_cop_config(jg)% cinhoml_del2 )
           CALL print_value('    aes_cop_config('//TRIM(cg)//')% cinhoml_lts_height',aes_cop_config(jg)% cinhoml_lts_height )
           CALL print_value('    aes_cop_config('//TRIM(cg)//')% cinhoml_jk        ',aes_cop_config(jg)% cinhoml_jk )
           CALL message    ('','')

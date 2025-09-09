@@ -293,7 +293,8 @@ MODULE mo_rte_rrtmgp_radiation
     & dz             ,&!< in  geometric height thickness of layer [m]
     & pp_hl          ,&!< in  pressure at half levels at t-dt [Pa]
     & pp_fl          ,&!< in  pressure at full levels at t-dt [Pa]
-    & cinhoml_2d     ,&!< 2d-field for the cloud liquid water inhomogeneity
+    & lts            ,&!< out lower troposheric stability  [K]
+    & cinhoml        ,&!< out cloud liquid water inhomogeneity
     & tk_fl          ,&!< in  tk_fl  = temperature at full level at t-dt
     & xm_air         ,&!< in  air mass in layer [kg/m2]
     & xq_trc         ,&!< in  tracer  mass fraction [kg/kg]
@@ -356,7 +357,8 @@ MODULE mo_rte_rrtmgp_radiation
     & xq_trc(:,:,:),    & !< tracer mass fraction [kg/kg]
     & cdnc(:,:)           !< Cloud drop number concentration
     REAL(wp), INTENT(INOUT) :: &
-    & cinhoml_2d(:),    & !< 2d-field for the cloud liquid water inhomogeneity
+    & lts(:),           & !< lower troposheric stability  [K]
+    & cinhoml(:),       & !< cloud liquid water inhomogeneity
     & reff_ice(:,:),    & !< effective radius of cloud ice [m]
     & xv_ozn(:,:)         !< ozone volume mixing ratio  [mol/mol]
 
@@ -449,7 +451,7 @@ MODULE mo_rte_rrtmgp_radiation
       zf              ,zh              ,dz                               ,&
       pp_sfc          ,pp_fl           ,pp_hl                            ,&
       tk_sfc          ,tk_fl           ,tk_hl                            ,&
-      cinhoml_2d                                                         ,&
+      lts             ,cinhoml                                           ,&
       xvmr_vap        ,xm_liq          ,xm_ice                           ,&
       reff_ice                                                           ,&
       cdnc            ,xc_frc                                            ,&

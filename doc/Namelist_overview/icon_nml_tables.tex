@@ -190,14 +190,29 @@ R & 0.8 & &
 ice cloud inhomogeneity factor &
 \tabularnewline
 
-aes\_cop\_config(jg)\% cinhoml\_cf &
+aes\_cop\_config(jg)\% cinhoml\_cfl &
 R & 0.4 & &
-liquid cloud inhomogeneity factor for cumuliform clouds &
+liquid cloud inhomogeneity factor for cumuliform clouds over land &
+\tabularnewline
+
+aes\_cop\_config(jg)\% cinhoml\_cfo &
+R & 0.4 & &
+liquid cloud inhomogeneity factor for cumuliform clouds over ocean &
 \tabularnewline
 
 aes\_cop\_config(jg)\% cinhoml\_sf &
 R & 0.8 & &
 liquid cloud inhomogeneity factor for stratiform clouds &
+\tabularnewline
+
+aes\_cop\_config(jg)\% cinhoml\_del1 &
+R & 2.0 & &
+del1 is the ordinate value of the atan2 function blending between cumuliform and stratiform liquid cloud inhomogeneity factors depending on the lower tropospheric stability (lts) &
+\tabularnewline
+
+aes\_cop\_config(jg)\% cinhoml\_del2 &
+R & 20.0 & &
+lts - del2 is the abscissa value of the atan2 function blending between cumuliform and stratiform liquid cloud inhomogeneity factors, depending on the lower tropospheric stability (lts) &
 \tabularnewline
 
 aes\_cop\_config(jg)\% cinhoml\_lts\_height &

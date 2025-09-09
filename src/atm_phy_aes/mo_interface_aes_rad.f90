@@ -151,7 +151,8 @@ CONTAINS
               & dz             = field%dz(:,:,jb)          ,&!< in  geometric height thickness of layer [m]
               & pp_hl          = field%phalf(:,:,jb)       ,&!< in  pressure at half levels at t-dt [Pa]
               & pp_fl          = field%pfull(:,:,jb)       ,&!< in  pressure at full levels at t-dt [Pa]
-              & cinhoml_2d     = field%cinhoml_2d(:,jb)    ,&!< in  2d-field for the cloud liquid water inhomogeneity
+              & lts            = field%lts(:,jb)           ,&!< out lower troposheric stability  [K]
+              & cinhoml        = field%cinhoml(:,jb)       ,&!< out cloud liquid water inhomogeneity
               & tk_fl          = field%ta(:,:,jb)          ,&!< in  tk_fl  = temperature at full level at t-dt
               & xm_air         = field%mair(:,:,jb)        ,&!< in  air mass in layer [kg/m2]
               & xq_trc         = qtrc_phy                  ,&!< in  tracer  mass fraction [kg/kg]

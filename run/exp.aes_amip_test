@@ -65,7 +65,8 @@ if [ ${grid_refinement} == R02B08 ] ; then
    # namelist variables
    #
    num_restart_procs=10
-   cinhoml_cf=0.3
+   cinhoml_cfl=0.3
+   cinhoml_cfo=0.3
    l_soil_texture=.TRUE.
 
 elif [ ${grid_refinement} == R02B04 ] ; then
@@ -86,7 +87,8 @@ elif [ ${grid_refinement} == R02B04 ] ; then
    # namelist variables
    #
    num_restart_procs=1
-   cinhoml_cf=0.4
+   cinhoml_cfl=0.4
+   cinhoml_cfo=0.4
    l_soil_texture=.TRUE.
 
 fi
@@ -300,7 +302,8 @@ cat > ${atmo_namelist} << EOF
 /
 &aes_cop_nml
  aes_cop_config(1)%cinhomi    = 0.6
- aes_cop_config(1)%cinhoml_cf = ${cinhoml_cf}
+ aes_cop_config(1)%cinhoml_cfl= ${cinhoml_cfl}
+ aes_cop_config(1)%cinhoml_cfo= ${cinhoml_cfo}
  aes_cop_config(1)%cinhoml_sf = 0.725
  aes_cop_config(1)%cn1lnd   = 50.0
  aes_cop_config(1)%cn1sea   = 50.0

@@ -18,7 +18,6 @@ MODULE mo_rte_rrtmgp_interface
   USE mo_bc_aeropt_kinne,            ONLY: set_bc_aeropt_kinne
   USE mo_bc_aeropt_splumes_opt,      ONLY: add_bc_aeropt_splumes_opt
   USE mo_bc_aeropt_cmip6_volc,       ONLY: add_bc_aeropt_cmip6_volc
-  USE mo_aes_cop_config,             ONLY: aes_cop_config
 
   USE mo_optical_props,              ONLY: ty_optical_props_1scl, &
                                            ty_optical_props_2str
@@ -111,7 +110,7 @@ CONTAINS
       & zf              ,zh              ,dz                               ,&
       & pp_sfc          ,pp_fl           ,pp_hl                            ,&
       & tk_sfc          ,tk_fl           ,tk_hl                            ,&
-      & cinhoml_2d                                                         ,&
+      & lts             ,cinhoml                                           ,&
       & xvmr_vap        ,xm_liq          ,xm_ice                           ,&
       & reff_ice                                                           ,&
       & cdnc            ,xc_frc                                            ,&
@@ -178,7 +177,8 @@ CONTAINS
          reff_ice(:,:)      !< cloud ice effective radius in m
 
     REAL(wp), INTENT(INOUT) :: &
-         cinhoml_2d(:)      !< 2d-field for the cloud liquid water inhomogeneity
+         lts(:),          & !< lower tropospheric stability
+         cinhoml(:)         !< cloud liquid water inhomogeneity
 
     REAL(wp), INTENT(OUT)   :: &
       & lw_dnw_clr(:,:),& !< Clear-sky downward longwave  at all levels
@@ -210,8 +210,11 @@ CONTAINS
 
     LOGICAL :: lclrsky_lw, lclrsky_sw
     REAL(wp):: cinhomi
-    REAL(wp):: cinhoml_cf
+    REAL(wp):: cinhoml_cfo ! cumuliform ocean
+    REAL(wp):: cinhoml_cfl ! cumuliform land
     REAL(wp):: cinhoml_sf
+    REAL(wp):: cinhoml_del1
+    REAL(wp):: cinhoml_del2
     INTEGER :: cinhoml_jk
 
     LOGICAL :: use_acc
@@ -343,8 +346,11 @@ CONTAINS
     lclrsky_sw    = aes_rad_config(jg)%lclrsky_sw
     !
     cinhomi         = aes_cop_config(jg)%cinhomi
-    cinhoml_cf      = aes_cop_config(jg)%cinhoml_cf
+    cinhoml_cfo     = aes_cop_config(jg)%cinhoml_cfo
+    cinhoml_cfl     = aes_cop_config(jg)%cinhoml_cfl
     cinhoml_sf      = aes_cop_config(jg)%cinhoml_sf
+    cinhoml_del1    = aes_cop_config(jg)%cinhoml_del1
+    cinhoml_del2    = aes_cop_config(jg)%cinhoml_del2
     cinhoml_jk      = aes_cop_config(jg)%cinhoml_jk
     !
     ! --------------------------------------------------------------------------
@@ -363,7 +369,8 @@ CONTAINS
        CALL rte_rrtmgp_interface_onBlock(                              &
           & lclrsky_lw,        lclrsky_sw,                             &
           & cinhomi,                                                   &
-          & cinhoml_cf,        cinhoml_sf,        cinhoml_jk,          &
+          & cinhoml_cfo,       cinhoml_cfl,       cinhoml_sf,          &
+          & cinhoml_del1,      cinhoml_del2,      cinhoml_jk,          &
           & ncol_needed,       klev,                                   &
           & psctm,             ssi_factor,                             &
           & loland(:),         loglac(:),                              &
@@ -374,7 +381,7 @@ CONTAINS
           & dz(:,:),                                                   &
           & pp_sfc(:),         pp_fl(:,:),        pp_hl(:,:),          &
           & tk_sfc(:),         tk_fl(:,:),        tk_hl(:,:),          &
-          & cinhoml_2d(:),                                             &
+          & lts(:),            cinhoml(:),                             &
           & xvmr_vap(:,:),     xm_liq(:,:),                            &
           & xm_ice(:,:),       reff_ice(:,:),                          &
           & cdnc(:,:),         xc_frc(:,:),                            &
@@ -403,7 +410,8 @@ CONTAINS
         CALL shift_and_call_rte_rrtmgp_interface_onBlock(                &
             & lclrsky_lw,        lclrsky_sw,                             &
             & cinhomi,                                                   &
-            & cinhoml_cf,        cinhoml_sf,        cinhoml_jk,          &
+            & cinhoml_cfo,       cinhoml_cfl,       cinhoml_sf,          &
+            & cinhoml_del1,      cinhoml_del2,      cinhoml_jk,          &
             & jchunk_start,      jchunk_end,                             &
             & klev,                                                      &
             & psctm,             ssi_factor,                             &
@@ -415,7 +423,7 @@ CONTAINS
             & dz(:,:),                                                   &
             & pp_sfc(:),         pp_fl(:,:),        pp_hl(:,:),          &
             & tk_sfc(:),         tk_fl(:,:),        tk_hl(:,:),          &
-            & cinhoml_2d(:),                                             &
+            & lts(:),            cinhoml(:),                             &
             & xvmr_vap(:,:),     xm_liq(:,:),                            &
             & xm_ice(:,:),       reff_ice(:,:),                          &
             & cdnc(:,:),         xc_frc(:,:),                            &
@@ -500,7 +508,8 @@ CONTAINS
   SUBROUTINE rte_rrtmgp_interface_onBlock(                   &
        & lclrsky_lw,     lclrsky_sw,                         &
        & cinhomi,                                            &
-       & cinhoml_cf,     cinhoml_sf,     cinhoml_jk,         &
+       & cinhoml_cfo,    cinhoml_cfl,    cinhoml_sf,         &
+       & cinhoml_del1,   cinhoml_del2,   cinhoml_jk,         &
        & ncol,           klev,                               &
        & psctm,          ssi_factor,                         &
        & laland,         laglac,                             &
@@ -511,7 +520,7 @@ CONTAINS
        & dz,                                                 &
        & pp_sfc,         pp_fl,          pp_hl,              &
        & tk_sfc,         tk_fl,          tk_hl,              &
-       & cinhoml_2d,                                         &
+       & lts,            cinhoml,                            &
        & xvmr_vap,       xm_liq,                             &
        & xm_ice,         reff_ice,                           &
        & cdnc,           cld_frc,                            &
@@ -534,7 +543,8 @@ CONTAINS
     LOGICAL,INTENT(IN)  :: lclrsky_lw                    !< flag for LW clear-sky computations
     LOGICAL,INTENT(IN)  :: lclrsky_sw                    !< flag for SW clear-sky computations
     REAL(wp),INTENT(IN) :: cinhomi                       !< inhomogeneity factor for ice
-    REAL(wp),INTENT(IN) :: cinhoml_cf, cinhoml_sf        !< limiting inhomogeneity for liquid cumulus and stratus
+    REAL(wp),INTENT(IN) :: cinhoml_cfo, cinhoml_cfl, cinhoml_sf !< limiting inhomogeneity for liquid cumulus and stratus
+    REAL(wp),INTENT(IN) :: cinhoml_del1, cinhoml_del2           !< limiting inhomogeneity for liquid cumulus and stratus
     INTEGER,INTENT(IN)  :: cinhoml_jk                    !< level index for blending function of inhoml factors
 
     INTEGER,INTENT(IN)  :: &
@@ -581,7 +591,8 @@ CONTAINS
          reff_ice(:,:)       !< cloud ice effective radius m
 
     REAL (wp), INTENT (INOUT) :: &
-         cinhoml_2d(:)       !< 2d-field for the cloud liquid water inhomogeneity
+         lts(:),           & !< lower tropospheric stability
+         cinhoml(:)          !< cloud liquid water inhomogeneity
 
 
     REAL (wp), TARGET, INTENT (INOUT) ::       &
@@ -660,12 +671,9 @@ CONTAINS
     REAL (wp), PARAMETER :: &
        ccwmin = 1.e-7_wp, &    ! min condensate for lw cloud opacity
        zkap_cont = 1.143_wp, & ! continental (Martin et al. ) breadth param
-       zkap_mrtm = 1.077_wp, & ! maritime (Martin et al.) breadth parameter
-       del1      = 2._wp,    & ! transition factor for inhomogeneity stability scaling
-       del2      = 20._wp      ! cut-overpoint for inhomogeneity stability scaling
+       zkap_mrtm = 1.077_wp    ! maritime (Martin et al.) breadth parameter
     REAL (wp) :: effective_radius
     REAL (wp) :: reimin, reimax, relmin, relmax, zkap
-    REAL (wp) :: lts
     LOGICAL   :: lcldlyr
     !
     !DA TODO: rearrange the data section to reduce memory consumption
@@ -705,20 +713,24 @@ CONTAINS
                   'Droplet minimun size required is bigger than maximum')
     END IF
 
-    IF (cinhoml_sf /= cinhoml_cf) THEN
+    !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(1)
+    DO jl = 1, ncol
+      IF (laland(jl) .AND. .NOT.laglac(jl)) THEN
+        cinhoml(jl) = cinhoml_cfl
+      ELSE
+        cinhoml(jl) = cinhoml_cfo
+      END IF
+    END DO
+    !$ACC END PARALLEL LOOP
+
+    IF (cinhoml_sf /= cinhoml_cfo) THEN
       !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(1)
       DO jl = 1, ncol
-         lts = tk_fl(jl,min(cinhoml_jk,klev))*(1e5_wp/pp_fl(jl,min(cinhoml_jk,klev)))**(rd_o_cpd) &
+         lts(jl) = tk_fl(jl,min(cinhoml_jk,klev))*(1e5_wp/pp_fl(jl,min(cinhoml_jk,klev)))**(rd_o_cpd) &
            & - tk_sfc(jl)*(1e5_wp/pp_sfc(jl))**(rd_o_cpd)
-         cinhoml_2d(jl) = cinhoml_cf + (cinhoml_sf-cinhoml_cf)*(1._wp - atan2(del1,(lts - del2))/pi)
+         cinhoml(jl) = cinhoml(jl) + (cinhoml_sf-cinhoml(jl))*(1._wp - atan2(cinhoml_del1,(lts(jl) - cinhoml_del2))/pi)
       END DO
      !$ACC END PARALLEL LOOP
-     ELSE
-      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(1)
-      DO jl = 1, ncol
-         cinhoml_2d(jl) = cinhoml_cf
-      END DO
-      !$ACC END PARALLEL LOOP
     END IF
     !
     !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
@@ -1091,12 +1103,12 @@ CONTAINS
     ! hack inhom implementation by scaling the condensate water paths
     ! it's important to run this AFTER the longwave
     !!$ACC DATA CREATE(zlwp,ziwp)
-    !!$ACC DATA PRESENT(cinhoml_2d)
+    !!$ACC DATA PRESENT(cinhoml)
     !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
     !$ACC LOOP GANG VECTOR COLLAPSE(2)
     DO j = 1, klev
       DO i = 1, ncol
-        zlwp(i,j) = zlwp(i,j) * cinhoml_2d(i)
+        zlwp(i,j) = zlwp(i,j) * cinhoml(i)
         ziwp(i,j) = ziwp(i,j) * cinhomi
       END DO
     END DO
@@ -1183,7 +1195,8 @@ CONTAINS
   SUBROUTINE shift_and_call_rte_rrtmgp_interface_onBlock(    &
     & lclrsky_lw,     lclrsky_sw,                     &
     & cinhomi,                                        &
-    & cinhoml_cf,     cinhoml_sf,     cinhoml_jk,     &
+    & cinhoml_cfo,    cinhoml_cfl,    cinhoml_sf,     &
+    & cinhoml_del1,   cinhoml_del2,   cinhoml_jk,     &
     & jcs,            jce,                            &
     &                 klev,                           &
     !
@@ -1196,7 +1209,7 @@ CONTAINS
     & dz,                                             &
     & pp_sfc,         pp_fl,          pp_hl,          &
     & tk_sfc,         tk_fl,          tk_hl,          &
-    & cinhoml_2d,                                     &
+    & lts,            cinhoml,                        &
     & xvmr_vap,       xm_liq,                         &
     & xm_ice,         reff_ice,                       &
     & cdnc,           xc_frc,                         &
@@ -1216,7 +1229,8 @@ CONTAINS
  LOGICAL,INTENT(IN)  :: lclrsky_lw                    !< flag for LW clear-sky computations
  LOGICAL,INTENT(IN)  :: lclrsky_sw                    !< flag for SW clear-sky computations
  REAL(wp),INTENT(IN) :: cinhomi                       !< inhomogeneity factor for ice
- REAL(wp),INTENT(IN) :: cinhoml_cf, cinhoml_sf        !< inhomogeneity factor for cumuliform and stratiform liquid
+ REAL(wp),INTENT(IN) :: cinhoml_cfo, cinhoml_cfl, cinhoml_sf !< inhomogeneity factor for cumuliform and stratiform liquid
+ REAL(wp),INTENT(IN) :: cinhoml_del1, cinhoml_del2           !< inhomogeneity factor for cumuliform and stratiform liquid
  INTEGER,INTENT(IN)  :: cinhoml_jk                    !< level index for lts computation
 
  INTEGER,INTENT(IN)  :: &
@@ -1263,7 +1277,8 @@ CONTAINS
       & reff_ice(:,:)       !< effective radius of cloud ice m
 
  REAL (wp), INTENT (INOUT) :: &
-      & cinhoml_2d(:)       !< 2d-field for the cloud liquid water inhomogeneity
+      & lts(:),           & !< lower tropospheric stability
+      & cinhoml(:)          !< cloud liquid water inhomogeneity
 
 
  REAL (wp), TARGET, INTENT (INOUT) ::       &
@@ -1410,7 +1425,8 @@ CONTAINS
   CALL rte_rrtmgp_interface_onBlock(                                                 &
       & lclrsky_lw,               lclrsky_sw,                                        &
       & cinhomi,                                                                     &
-      & cinhoml_cf,               cinhoml_sf,               cinhoml_jk,              &
+      & cinhoml_cfo,              cinhoml_cfl,              cinhoml_sf,              &
+      & cinhoml_del1,             cinhoml_del2,             cinhoml_jk,              &
       & ncol,                     klev,                                              &
       !
       & psctm,                    ssi_factor,                                        &
@@ -1422,7 +1438,7 @@ CONTAINS
       & s_dz(:,:),                                                                   &
       & pp_sfc     (jcs:jce),     s_pp_fl(:,:),             s_pp_hl(:,:),            &
       & tk_sfc     (jcs:jce),     s_tk_fl(:,:),             s_tk_hl(:,:),            &
-      & cinhoml_2d (jcs:jce),                                                        &
+      & lts        (jcs:jce),     cinhoml(jcs:jce),                                  &
       & s_xvmr_vap(:,:),          s_xm_liq(:,:),                                     &
       & s_xm_ice(:,:),            s_reff_ice(:,:),                                   &
       & s_cdnc(:,:),              s_xc_frc(:,:),                                     &
