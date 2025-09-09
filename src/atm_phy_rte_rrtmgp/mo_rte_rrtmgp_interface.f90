@@ -17,7 +17,7 @@ MODULE mo_rte_rrtmgp_interface
   USE mo_parallel_config,            ONLY: nproma_sub
   USE mo_bc_aeropt_kinne,            ONLY: set_bc_aeropt_kinne
   USE mo_bc_aeropt_splumes_opt,      ONLY: add_bc_aeropt_splumes_opt
-   USE mo_bc_aeropt_cmip6_volc,       ONLY: add_bc_aeropt_cmip6_volc
+   USE mo_bc_aeropt_volc,            ONLY: add_bc_aeropt_volc
 
   USE mo_optical_props,              ONLY: ty_optical_props_1scl, &
                                            ty_optical_props_2str
@@ -266,7 +266,7 @@ CONTAINS
         ! irad_aero==13: transient tropospheric aerosol  (Kinne)
         !   - including anthropogenic
         ! irad_aero==18: tropospheric background aerosol (Kinne)
-        !   + stratospheric cmip6 aerosols
+        !   + stratospheric aerosols
         !   + simple plumes
         ! irad_aero==19: tropospheric background aerosol (Kinne)
         !   - no stratospheric aerosols
@@ -295,8 +295,8 @@ CONTAINS
       END IF
 
       IF (irad_aero==18) THEN
-         ! cmip6 volcanic aerosols are added to Kinne background + simple plumes
-         CALL add_bc_aeropt_cmip6_volc(                                  &
+         ! volcanic aerosols are added to Kinne background + simple plumes
+         CALL add_bc_aeropt_volc(                                        &
            & this_datetime,         jg,                jcs,              &
            & jce,                   nproma,            klev,             &
            & jb,                    nbndsw,            nbndlw,           &

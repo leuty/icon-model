@@ -51,7 +51,7 @@ MODULE mo_nwp_aerosol
 ! Aerosol-specific
   USE mo_aerosol_util,            ONLY: aerdis
   USE mo_bc_aeropt_kinne,         ONLY: read_bc_aeropt_kinne, set_bc_aeropt_kinne
-  USE mo_bc_aeropt_cmip6_volc,    ONLY: read_bc_aeropt_cmip6_volc, add_bc_aeropt_cmip6_volc
+  USE mo_bc_aeropt_volc,          ONLY: read_bc_aeropt_volc, add_bc_aeropt_volc
   USE mo_bc_aeropt_splumes,       ONLY: add_bc_aeropt_splumes, cloud_num_scaling_factor
   USE mo_coupling_config,         ONLY: is_coupled_to_aero
   USE mo_bcs_time_interpolation,  ONLY: t_time_interpolation_weights,         &
@@ -682,7 +682,7 @@ CONTAINS
             & CALL read_bc_aeropt_kinne(mtime_datetime, pt_patch, .TRUE., nbands_lw, nbands_sw, &
                                         opt_from_coupler = is_coupled_to_aero())
         IF (ANY(irad_aero == [iRadAeroVolc, iRadAeroKinneVolc, iRadAeroKinneVolcSP])) &
-            & CALL read_bc_aeropt_cmip6_volc(mtime_datetime, nbands_lw, nbands_sw)
+            & CALL read_bc_aeropt_volc(mtime_datetime, nbands_lw, nbands_sw)
       ENDIF
     ENDIF
 
@@ -770,9 +770,9 @@ CONTAINS
 
     ENDIF
 
-    ! Volcanic stratospheric aerosols for CMIP6
+    ! Volcanic stratospheric aerosols
     IF (ANY( irad_aero == (/iRadAeroVolc,iRadAeroKinneVolc,iRadAeroKinneVolcSP/) )) THEN
-      CALL add_bc_aeropt_cmip6_volc(mtime_datetime, jg, i_startidx, i_endidx, nproma, nlev, jb, &
+      CALL add_bc_aeropt_volc(mtime_datetime, jg, i_startidx, i_endidx, nproma, nlev, jb, &
         &                           nbands_sw, nbands_lw, zf(:,:), dz(:,:),            &
         &                           od_sw_vr(:,:,:), ssa_sw_vr(:,:,:),                 &
         &                           g_sw_vr (:,:,:), od_lw_vr(:,:,:), lacc=lzacc       )

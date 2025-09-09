@@ -141,7 +141,7 @@ MODULE mo_nwp_phy_init
 
   USE mo_cover_koe,           ONLY: cover_koe_config
   USE mo_bc_aeropt_kinne,     ONLY: read_bc_aeropt_kinne
-  USE mo_bc_aeropt_cmip6_volc,ONLY: read_bc_aeropt_cmip6_volc
+  USE mo_bc_aeropt_volc,      ONLY: read_bc_aeropt_volc
   USE mo_bc_aeropt_splumes,   ONLY: setup_bc_aeropt_splumes
   USE mo_bc_ozone,            ONLY: read_bc_ozone
   USE mo_bc_solar_irradiance, ONLY: read_bc_solar_irradiance
@@ -1078,8 +1078,8 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
        &                            opt_from_coupler = is_coupled_to_aero())
         ENDIF
         IF (ANY( irad_aero == (/iRadAeroVolc,iRadAeroKinneVolc,iRadAeroKinneVolcSP/) )) THEN
-          ! Volcanic aerosol from CMIP6
-          CALL read_bc_aeropt_cmip6_volc(ini_date, ecrad_conf%n_bands_lw, ecrad_conf%n_bands_sw)
+          ! Volcanic aerosol
+          CALL read_bc_aeropt_volc(ini_date, ecrad_conf%n_bands_lw, ecrad_conf%n_bands_sw)
         ENDIF
         ! If Simple Plume aerosol is required or cdnc scaling factor is needed (e.g. in case picontrol)
         IF ( ANY( irad_aero == (/iRadAeroKinneVolcSP,iRadAeroKinneSP/) ) .OR. ( atm_phy_nwp_config(jg)%scale_cdnc_mode /= 0 )) THEN

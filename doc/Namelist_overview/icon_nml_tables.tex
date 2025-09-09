@@ -548,7 +548,7 @@ Selects source of aerosol types\\
 the file containing the background aerosols data must not contain a year.\\
 13: transient tropospheric aerosol  (Kinne) including anthropogenic
 aerosols\\
-18: tropospheric background aerosol (Kinne, filename without year) + stratospheric cmip6
+18: tropospheric background aerosol (Kinne, filename without year) + stratospheric
 aerosols + simple plumes (parameterized time dependent anthropogenic aerosols)\\
 19: tropospheric background aerosol (Kinne, filename without year), no stratospheric aerosols
 + simple plumes (parameterized time dependent anthropogenic aerosols) &
@@ -8308,12 +8308,12 @@ These fields need to be filled externally (e.g. by a ComIn plugin).\\
 9: ART online aerosol radiation interaction, uses Tegen for aerosols not chosen to be represented in ART {\color{red}for run\_nml/iforcing = 3 (NWP) .AND. itopo =1 .AND. lart=TRUE .AND. iart\_ari=1}\\
 12: tropospheric 'Kinne' aerosols, constant in time\\
 13: total tropospheric 'Kinne' aerosols, time dependent from file \\
-14: volcanic stratospheric aerosols for CMIP6, time dependent from file\\
-15: tropospheric 'Kinne' aerosols + volcanic stratospheric aerosols for CMIP6,
+14: volcanic stratospheric aerosols, time dependent from file\\
+15: tropospheric 'Kinne' aerosols + volcanic stratospheric aerosols,
 time dependent, both from file.
 If the 1850--file of the 'Kinne' aerosols is given, only the natural background from Kinne aerosol is applied.\\
 18: tropospheric natural 'Kinne' aerosols from pre-industry (the 1850--file has to be linked for all
-simulations!) + time dep. volcanic stratospheric aerosols for CMIP6, both from file + param.
+simulations!) + time dep. volcanic stratospheric aerosols, both from file + param.
 time dep. anthropogenic 'simple plumes' \\
 19: tropospheric natural 'Kinne' aerosols from pre-industry
 (the 1850--file has to be linked for all simulations!) +

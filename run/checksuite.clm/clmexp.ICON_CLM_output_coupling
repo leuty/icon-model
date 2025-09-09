@@ -56,8 +56,8 @@ ln -sf $ICONDIR/data//MACv2.0-SP_v1.nc .
 # volcanic aerosols
 # use data from 1979 for both years only for testing
 VOLC_DIR="${icon_data_rootFolder:-/pool/data/ICON}/buildbot_data/nwp/Checksuite_data/data_bbtest19"
-ln -sf ${VOLC_DIR}/bc_aeropt_cmip6_volc_lw_b16_sw_b14_1979.nc bc_aeropt_cmip6_volc_lw_b16_sw_b14_1978.nc
-ln -sf ${VOLC_DIR}/bc_aeropt_cmip6_volc_lw_b16_sw_b14_1979.nc bc_aeropt_cmip6_volc_lw_b16_sw_b14_1979.nc
+ln -sf ${VOLC_DIR}/bc_aeropt_cmip6_volc_lw_b16_sw_b14_1979.nc bc_aeropt_volc_lw_b16_sw_b14_1978.nc
+ln -sf ${VOLC_DIR}/bc_aeropt_cmip6_volc_lw_b16_sw_b14_1979.nc bc_aeropt_volc_lw_b16_sw_b14_1979.nc
 
 # ecRad specific files
 ECRAD_DIR=${ICONDIR}/externals/ecrad/data
