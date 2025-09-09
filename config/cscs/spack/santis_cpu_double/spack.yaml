@@ -11,8 +11,8 @@
 spack:
   specs:
   - cosmo-eccodes-definitions@2.36.0.3
-  - icon @develop %nvhpc +grib2 +eccodes-definitions +ecrad +art ~aes
-    ~jsbach ~ocean ~coupling ~rte-rrtmgp ~loop-exchange ~async-io-rma
+  - icon @develop %nvhpc +grib2 +eccodes-definitions +ecrad +emvorado +art +dace ~aes
+    ~jsbach ~ocean ~coupling ~rte-rrtmgp ~loop-exchange
   view: true
   concretizer:
     unify: true

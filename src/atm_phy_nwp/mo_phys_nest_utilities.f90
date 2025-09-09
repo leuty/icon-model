@@ -274,7 +274,7 @@ SUBROUTINE upscale_rad_input(jg, jgp, nlev_rg, emis_rad,                   &
   TYPE(t_patch),      POINTER     :: p_pp
 
   ! Indices
-  INTEGER :: jb, jc, jk, jk1, i_chidx, i_nchdom, i_startrow, &
+  INTEGER :: ii, jb, jc, jk, jk1, i_chidx, i_nchdom, i_startrow, &
              i_startblk, i_endblk, i_startidx, i_endidx, nblks_c_lp, &
              jf, assoc_hyd, nlevsend, ntotsend, n2d_upsc
 
@@ -880,11 +880,16 @@ SUBROUTINE upscale_rad_input(jg, jgp, nlev_rg, emis_rad,                   &
 
         ! enhance averaged QC and QI in order to be more consistent with cloud cover scheme
         IF (p_clc(jc,jk1,jb) > 0._wp .AND. p_clc(jc,jk1,jb) < 0.95_wp) THEN
-          p_tot_cld(jc,jk1,jb,2:3) =  0.5_wp*(p_tot_cld(jc,jk1,jb,2:3) + SQRT( &
-            tot_cld(iidx(jc,jb,1),jk,iblk(jc,jb,1),2:3)**2*p_fbkwgt(jc,jb,1) + &
-            tot_cld(iidx(jc,jb,2),jk,iblk(jc,jb,2),2:3)**2*p_fbkwgt(jc,jb,2) + &
-            tot_cld(iidx(jc,jb,3),jk,iblk(jc,jb,3),2:3)**2*p_fbkwgt(jc,jb,3) + &
-            tot_cld(iidx(jc,jb,4),jk,iblk(jc,jb,4),2:3)**2*p_fbkwgt(jc,jb,4)  ))
+          ! OpenACC workaround for nvfortran 25.1, which might incorrectly interpret
+          ! array syntax in a non-deterministic way.  Suggestions by Alexeev and Hupp.
+          !$ACC LOOP SEQ
+          DO ii = 2, 3
+            p_tot_cld(jc,jk1,jb,ii) =  0.5_wp*(p_tot_cld(jc,jk1,jb,ii) + SQRT( &
+              tot_cld(iidx(jc,jb,1),jk,iblk(jc,jb,1),ii)**2*p_fbkwgt(jc,jb,1) + &
+              tot_cld(iidx(jc,jb,2),jk,iblk(jc,jb,2),ii)**2*p_fbkwgt(jc,jb,2) + &
+              tot_cld(iidx(jc,jb,3),jk,iblk(jc,jb,3),ii)**2*p_fbkwgt(jc,jb,3) + &
+              tot_cld(iidx(jc,jb,4),jk,iblk(jc,jb,4),ii)**2*p_fbkwgt(jc,jb,4)  ))
+          END DO
         ENDIF
 
       ENDDO

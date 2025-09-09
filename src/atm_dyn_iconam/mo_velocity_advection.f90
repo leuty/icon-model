@@ -495,7 +495,7 @@ MODULE mo_velocity_advection
       !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
       !$ACC LOOP GANG VECTOR
       DO jc = i_startidx, i_endidx
-        z_w_con_c(jc,nlevp1) = 0.0_wp
+        z_w_con_c(jc,nlevp1) = 0.0_vp
       ENDDO
       !$ACC END PARALLEL
 

@@ -11,9 +11,9 @@
 spack:
   specs:
   - cosmo-eccodes-definitions@2.36.0.3
-  - icon @develop %nvhpc +grib2 +eccodes-definitions +ecrad +art gpu=nvidia-90
+  - icon @develop %nvhpc +grib2 +eccodes-definitions +ecrad +emvorado +art +dace gpu=nvidia-90
     +mpi-gpu +realloc-buf ~aes ~jsbach ~ocean ~coupling ~rte-rrtmgp ~loop-exchange
-    ~async-io-rma ~cuda-graphs fflags="-traceback"
+    ~cuda-graphs fflags="-traceback"
   view: true
   concretizer:
     unify: true
