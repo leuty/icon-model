@@ -345,7 +345,6 @@ ragnarok:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
         - .gitlab/ci/ragnarok.yml
-        - externals/kokkos
         - ragnarok/**/*
 
 santis:
