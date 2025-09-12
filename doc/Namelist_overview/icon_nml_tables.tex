@@ -190,14 +190,34 @@ R & 0.8 & &
 ice cloud inhomogeneity factor &
 \tabularnewline
 
-aes\_cop\_config(jg)\% cinhoms &
-R & 0.8 & &
-snow cloud inhomogeneity factor, \newline
+aes\_cop\_config(jg)\% cinhoml\_cfl &
+R & 0.4 & &
+liquid cloud inhomogeneity factor for cumuliform clouds over land &
 \tabularnewline
 
-aes\_cop\_config(jg)\% cinhoml &
+aes\_cop\_config(jg)\% cinhoml\_cfo &
 R & 0.4 & &
-liquid cloud inhomogeneity factor, \newline
+liquid cloud inhomogeneity factor for cumuliform clouds over ocean &
+\tabularnewline
+
+aes\_cop\_config(jg)\% cinhoml\_sf &
+R & 0.8 & &
+liquid cloud inhomogeneity factor for stratiform clouds &
+\tabularnewline
+
+aes\_cop\_config(jg)\% cinhoml\_del1 &
+R & 2.0 & &
+del1 is the ordinate value of the atan2 function blending between cumuliform and stratiform liquid cloud inhomogeneity factors depending on the lower tropospheric stability (lts) &
+\tabularnewline
+
+aes\_cop\_config(jg)\% cinhoml\_del2 &
+R & 20.0 & &
+lts - del2 is the abscissa value of the atan2 function blending between cumuliform and stratiform liquid cloud inhomogeneity factors, depending on the lower tropospheric stability (lts) &
+\tabularnewline
+
+aes\_cop\_config(jg)\% cinhoml\_lts\_height &
+R & 3200. & m &
+height over ocean used to determine the index of the highest level below this height. This model level is used to compute the lower tropospheric stability as a difference of the potential temperature at this level and at the surface to identify stratocumulus areas &
 \tabularnewline
 
 aes\_cop\_config(jg)\% cthomi &
@@ -3072,6 +3092,22 @@ Scale factor for RBF reconstruction at edges&
 rbf\_vec\_scale\_v&
 R(n\_dom)& resolution-dependent& &
 Scale factor for RBF reconstruction at vertices&
+\tabularnewline
+
+%\hline
+lrbf\_read &
+L& .FALSE. & &
+Flag. If .TRUE. then the RBF coefficients are read from file
+R(rbf\_coeffs\_ROOT\_dom<i\_dom>.nc) instead of reconstructing. Coefficients
+are only read from file if scaling parameters, and gridsize are equal to those
+in input file. Else the model fails.&
+\tabularnewline
+
+%\hline
+lrbf\_write &
+L& .FALSE. & &
+Flag. If .TRUE. then the RBF coefficients are written to file
+R(rbf\_coeffs\_ROOT\_dom<i\_dom>.nc).&
 \tabularnewline
 
 %\hline
@@ -9051,6 +9087,74 @@ iforcing=3, \\ ICON configure'd with \verb+--enable-emvorado+, \\ \squeezeme{syn
 \end{longtab}
 
 Defined and used in: \verb+src/namelists/mo_synradar_nml.f90+
+
+%------------------------------------------------------------------------------
+% testbed_nml:
+%------------------------------------------------------------------------------
+\subsection{testbed\_nml}
+
+Configuration for ICON's testbed mode. The testbed is independent of the other model components for atmosphere, ocean,
+etc. It is primarily used for unit, function, and performance testing of infrastructure components.
+
+\begin{longtab}
+
+%\hline
+testbed\_model &
+I& 0 & &
+Type of testbed model (non-zero to activate testbed): \\
+0: Null model                                         \\
+3: Test jitter model                                  \\
+4: Test mpi halo communication                        \\
+6: Test netcdf reading                                \\
+8: Test mpi gather communication                      \\
+9: Test mpi exchange communication                    \\
+10: Benchmark mpi multi-field exchange communication  \\
+11: Test mpi sync\_patch communication                &
+\tabularnewline
+
+%\hline
+testbed\_iterations &
+I& 10 & &
+Number of iterations to run testbed (if applicable)
+\tabularnewline
+
+%\hline
+calculate\_iterations &
+I& 10 & &
+Number of iterations to run calculate step (if applicable)
+\tabularnewline
+
+%\hline
+no\_of\_blocks &
+I& 16 & &
+Number of blocks in field(if testbed\_model==3)
+\tabularnewline
+
+%\hline
+no\_of\_layers &
+I& 80 & &
+Number of vertical layers in field(if testbed\_model==3)
+\tabularnewline
+
+%\hline
+testfile\_3D\_file &
+C& ' ' & &
+Filename of 3D input file in first entry, and variable name in second entry
+(if testbed\_model==6)
+\tabularnewline
+
+%\hline
+testfile\_2D\_file &
+C& ' ' & &
+Array: first entry is filename of 2D input file,
+and second entry is a variable name (if testbed\_model==6)
+\tabularnewline
+
+%\hline
+\end{longtab}
+
+Defined and used in: \verb+src/namelists/mo_icon_testbed_nml.f90+. The testbed 'driver'
+is in: \verb+src/testbed/mo_icon_testbed.f90+.
 
 %------------------------------------------------------------------------------
 % time_nml

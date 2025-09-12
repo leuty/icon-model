@@ -458,24 +458,24 @@ lfeedback=$lfeedback
 /
 &aes_cop_nml
  aes_cop_config(1)%cinhomi =   0.6
- aes_cop_config(1)%cinhoms =   0.6
- aes_cop_config(1)%cinhoml =   0.5
+ aes_cop_config(1)%cinhoml_cfl=   0.5
+ aes_cop_config(1)%cinhoml_cfo=   0.5
  aes_cop_config(1)%cn1lnd  =  50.0
  aes_cop_config(1)%cn1sea  =  50.0
  aes_cop_config(1)%cn2lnd  = 220.0
  aes_cop_config(1)%cn2sea  = 100.0
 
  aes_cop_config(2)%cinhomi =   0.6
- aes_cop_config(2)%cinhoms =   0.6
- aes_cop_config(2)%cinhoml =   0.5
+ aes_cop_config(2)%cinhoml_cfl=   0.5
+ aes_cop_config(2)%cinhoml_cfo=   0.5
  aes_cop_config(2)%cn1lnd  =  50.0
  aes_cop_config(2)%cn1sea  =  50.0
  aes_cop_config(2)%cn2lnd  = 220.0
  aes_cop_config(2)%cn2sea  = 100.0
 
  aes_cop_config(3)%cinhomi =   0.6
- aes_cop_config(3)%cinhoms =   0.6
- aes_cop_config(3)%cinhoml =   0.5
+ aes_cop_config(3)%cinhoml_cfl=   0.5
+ aes_cop_config(3)%cinhoml_cfo=   0.5
  aes_cop_config(3)%cn1lnd  =  50.0
  aes_cop_config(3)%cn1sea  =  50.0
  aes_cop_config(3)%cn2lnd  = 220.0

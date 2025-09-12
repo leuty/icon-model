@@ -18,6 +18,7 @@ AES Physics:
 - Fixes for:
   - GPU port of solar_parameters() (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/776)
   - tropopause height calculation when using vertical nesting, and initialises tmix with nested mesh dt_loc (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/858)
+  - Implemented additional checks and fixes for using 6-hourly SST/SIC data
 
 NWP Physics:
 
@@ -68,7 +69,10 @@ Climate: ICON-Land
   - Bugfix related to soil/surface albedo when snow is present
   - First implementation allowing anthropogenic land cover change with QUINCY biogeophysics processes
   - Enable running the agriculture process in QUINCY also when only running biogeophysical processes
-  - Different code updates reducing the number of restart variables in QUINCY runs
+  - Different code updates reducing the number of restart variables in QUINCY runs (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/925, https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1015)
+  - Enable reading of biogeochemical vegetation and soil states - and optionally product pools - from input file for QUINCY (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/953, https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1011)
+  - Use the JSBACH soil physics processes with the QUINCY (vegetation and soil) biogeochemistry
+  - Improve nitrogen cycle of QUINCY biogeochemistry
 - Use a common interface for QUINCY and JSBACH
 - Updated inline documentation of hydrology process
 - Fixes:
@@ -87,6 +91,8 @@ Climate: ICON-Land
 - Implemented fix for using older restart files when not using skin temperature scheme (TMX or standalone)
 - Surface water ponds (if enabled) modify the top layer soil heat capacity
 - Land initial files: Update for soil and root depth (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/837)
+- Revision of phase change in snow, surface water and top layer soil storages
+- Update of snow density parametrization to include a dependency on mean snow temperature
 
 NWP: TERRA and other surface issues
 
@@ -126,6 +132,7 @@ NWP: TERRA and other surface issues
 - Added 158, 49, 5 and 2.1 km AMIP template with AES physics for mkexp (cpu + gpu, distributed IO)
 - Added 49km AMIP BuildBot test with AES physics on one Levante GPU
 - Support more ocean setups and output options in omip run script template (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/644)
+- Add mkexp support for CUDA graph utilization in jsbach on Levante gpu partition (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/934)
 
 #### Building
 
@@ -134,11 +141,14 @@ NWP: TERRA and other surface issues
 - Configure CUDA/HIP C++ compiler and flags
 - Pass ICON_LDFLAGS to the Fortran compiler only
 - Fixes for disable switches --disable-aes and --disable-jsbach
+- Added NVHPC/OpenMPI config wrapper for jupiter
+- Added INTEL/MPI-4.1.5 config wrapper for levante
 - Fixes for the quad-precision handling
 
 #### Miscellaneous
 
 - Some OpenACC optimizations and fixes
+- Cleaned up obsolete workarounds for NVHPC/PGI compiler (OpenACC and OpenMP)
 - Updated document on how to run HAMOCC (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/770)
 - Add bubble documentation as template for experiment configurations (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/805)
 - Add documentation about future nested buildbot configuration (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/864)

@@ -301,7 +301,7 @@ if [[ "$output_atm_3d" == "yes" ]]; then
                     'rho'     , 'ta'      ,
                     'ua'      , 'va'      , 'wap'     ,
                     'hus'     , 'clw'     , 'cli'     ,
-                    'cl'      , 'tau_snow'
+                    'cl'      ,
 /
 EOF
 fi

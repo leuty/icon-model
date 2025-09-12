@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # ICON
 #
 # ---------------------------------------------------------------
@@ -8,8 +10,6 @@
 # See LICENSES/ for license information
 # SPDX-License-Identifier: BSD-3-Clause
 # ---------------------------------------------------------------
-
-#/bin/bash
 
 # Checks that the input files do not contain:
 #   1) byte sequences that are not valid UTF-8;

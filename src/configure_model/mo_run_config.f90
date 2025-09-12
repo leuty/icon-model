@@ -51,6 +51,7 @@ MODULE mo_run_config
   PUBLIC :: profiling_output, TIMER_MODE_AGGREGATED, TIMER_MODE_DETAILED
   PUBLIC :: check_uuid_gracefully
   PUBLIC :: modelTimeStep
+  PUBLIC :: l_disable_print_gpu_mem
 
     ! Namelist variables
     !
@@ -175,6 +176,9 @@ MODULE mo_run_config
 
     !> namelist parameter (as raw character string):
     CHARACTER(len=max_timedelta_str_len) :: modelTimeStep
+
+    !> namelist parameter to disable printing of GPU memory usage
+    LOGICAL :: l_disable_print_gpu_mem
 
 CONTAINS
   !>

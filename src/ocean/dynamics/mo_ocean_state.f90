@@ -520,8 +520,8 @@ CONTAINS
             & ref_idx=jtrc, &
             & lmiss=use_fillValue, missval=fillValue, initval=fillValue, &
             & ldims=(/nproma,n_zlev,alloc_cell_blocks/), tlev_source=TLEV_NNEW, &
-            & in_group=groups("oce_tr_groups", "dwd_fg_oce_vars","mode_dwd_fg_oce_in",        &
-            &  "mode_dwd_ana_oce_in", "mode_iau_ana_oce_in", "mode_iau_fg_oce_in"))
+            & in_group=groups("oce_tr_groups", "dwd_fg_oce_vars", "mode_dwd_fg_oce_in", &
+            & "mode_dwd_ana_oce_in", "mode_iau_ana_oce_in", "mode_iau_fg_oce_in"))
         END DO
 
         !--------------------------------------------------------------------------
@@ -1361,7 +1361,7 @@ CONTAINS
       & grib2_var(10, 4, 23, DATATYPE_PACK16, GRID_UNSTRUCTURED, grid_cell),&
       & lmiss=use_fillValue, missval=fillValue, initval=fillValue, &
       & ldims=(/nproma,n_zlev,alloc_cell_blocks/),in_group=groups("groups_oce_dde", &
-            "dwd_fg_oce_vars", "mode_dwd_fg_oce_in"), lopenacc=.TRUE.)
+            "dwd_fg_oce_vars", "mode_dwd_fg_oce_in", "mode_dwd_ana_oce_in"), lopenacc=.TRUE.)
     __acc_attach(ocean_state_diag%u)
     ! reconstructed v velocity component
     CALL add_var(ocean_default_list, 'v', ocean_state_diag%v, grid_unstructured_cell, &
@@ -1370,7 +1370,7 @@ CONTAINS
       & grib2_var(10, 4, 24, DATATYPE_PACK16, GRID_UNSTRUCTURED, grid_cell),&
       & lmiss=use_fillValue, missval=fillValue, initval=fillValue, &
       & ldims=(/nproma,n_zlev,alloc_cell_blocks/),in_group=groups("groups_oce_dde", &
-      "dwd_fg_oce_vars", "mode_dwd_fg_oce_in"), lopenacc=.TRUE.)
+      "dwd_fg_oce_vars", "mode_dwd_fg_oce_in", "mode_dwd_ana_oce_in"), lopenacc=.TRUE.)
     __acc_attach(ocean_state_diag%v)
     ! reconstrcuted velocity in cartesian coordinates
     !   CALL add_var(ocean_restart_list, 'p_vn', ocean_state_diag%p_vn, GRID_UNSTRUCTURED_CELL, ZA_DEPTH_BELOW_SEA, &
@@ -1558,8 +1558,8 @@ CONTAINS
       & grib2_var(10, 4, 18, DATATYPE_PACK16, GRID_UNSTRUCTURED, grid_cell), &
       & lmiss=use_fillValue, missval=fillValueSWPT, &
       & ldims=(/nproma,n_zlev,alloc_cell_blocks/), &
-      & in_group=groups("dwd_fg_oce_vars","mode_dwd_fg_oce_in",        &
-      &  "mode_dwd_ana_oce_in", "mode_iau_ana_oce_in", "mode_iau_fg_oce_in"), &
+      & in_group=groups("dwd_fg_oce_vars", "mode_dwd_fg_oce_in", &
+      & "mode_dwd_ana_oce_in", "mode_iau_ana_oce_in", "mode_iau_fg_oce_in"), &
       post_op=post_op(ipost_op_type=POST_OP_OFFSET, arg1=273.15_wp), lopenacc=.TRUE.)
       __acc_attach(ocean_state_diag%SWPT)
 

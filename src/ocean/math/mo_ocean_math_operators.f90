@@ -1541,7 +1541,6 @@ CONTAINS
 
     !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
     DO jc = start_index, end_index
-      !$ACC LOOP SEQ
       DO jk = start_level,patch_3D%p_patch_1d(1)%dolic_c(jc,blockNo) - 1
         vertDeriv_scalar(jc,jk) &
           & = (scalar_in(jc,jk-1) - scalar_in(jc,jk))  &
@@ -3130,7 +3129,6 @@ CONTAINS
 
         ! fill the stencil connectivity
 !NEC$ unroll_complete
-        !$ACC LOOP SEQ
         DO cell_connect = 1, 9
           operators_coefficients%lhs_CellToCell_index(cell_connect,jc,blockNo) = cell_idx(jc,cell_connect)
           operators_coefficients%lhs_CellToCell_block(cell_connect,jc,blockNo) = cell_blk(jc,cell_connect)
@@ -3348,7 +3346,6 @@ CONTAINS
         dc(3) = operators_coefficients%div_coeff(jc, 1, blockNo, 3)
 
         ! fill the stencil connectivity
-        !$ACC LOOP SEQ
         DO cell_connect = 1, 9
           operators_coefficients%lhs_CellToCell_index(cell_connect,jc,blockNo) = cell_idx(cell_connect)
           operators_coefficients%lhs_CellToCell_block(cell_connect,jc,blockNo) = cell_blk(cell_connect)

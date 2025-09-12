@@ -52,7 +52,9 @@ MODULE mo_timer
        &    timer_icon_comm_ircv, timer_icon_comm_fillsend, timer_icon_comm_fillandsend, &
        &    timer_icon_comm_barrier_2, timer_icon_comm_send
   PUBLIC :: timer_barrier
-
+#ifdef _OPENACC
+  PUBLIC :: timer_gpu_mem_use
+#endif
   PUBLIC :: timer_integrate_nh
   PUBLIC :: timer_solve_nh, timer_solve_nh_veltend, timer_solve_nh_cellcomp, timer_solve_nh_edgecomp, &
        &    timer_solve_nh_vnupd, timer_solve_nh_vimpl, timer_solve_nh_exch
@@ -142,7 +144,6 @@ MODULE mo_timer
   PUBLIC :: timer_rte_lw_clrsky
   PUBLIC :: timer_clouds_bnd_lw
   PUBLIC :: timer_cloud_optics_lw
-  PUBLIC :: timer_snow_bnd_lw
   PUBLIC :: timer_rte_lw_allsky
   PUBLIC :: timer_atmos_sw
   PUBLIC :: timer_k_dist_sw
@@ -150,7 +151,6 @@ MODULE mo_timer
   PUBLIC :: timer_rte_sw_clrsky
   PUBLIC :: timer_clouds_bnd_sw
   PUBLIC :: timer_cloud_optics_sw
-  PUBLIC :: timer_snow_bnd_sw
   PUBLIC :: timer_rte_sw_allsky
 
   ! nwp physics
@@ -325,7 +325,9 @@ MODULE mo_timer
        &     timer_icon_comm_ircv, timer_icon_comm_fillsend,timer_icon_comm_fillandsend,   &
        &     timer_icon_comm_barrier_2, timer_icon_comm_send
   INTEGER :: timer_barrier
-
+#ifdef _OPENACC
+  INTEGER :: timer_gpu_mem_use
+#endif
   INTEGER :: timer_nh_hdiffusion
 
   INTEGER :: timer_integrate_nh
@@ -446,7 +448,6 @@ MODULE mo_timer
   INTEGER :: timer_rte_lw_clrsky
   INTEGER :: timer_clouds_bnd_lw
   INTEGER :: timer_cloud_optics_lw
-  INTEGER :: timer_snow_bnd_lw
   INTEGER :: timer_rte_lw_allsky
   INTEGER :: timer_atmos_sw
   INTEGER :: timer_k_dist_sw
@@ -454,7 +455,6 @@ MODULE mo_timer
   INTEGER :: timer_rte_sw_clrsky
   INTEGER :: timer_clouds_bnd_sw
   INTEGER :: timer_cloud_optics_sw
-  INTEGER :: timer_snow_bnd_sw
   INTEGER :: timer_rte_sw_allsky
 
   INTEGER :: timer_omp_radiation
@@ -676,6 +676,9 @@ CONTAINS
     IF (.NOT. ltimer)  return
 
     timer_barrier  = new_timer("mpi_barrier")
+#ifdef _OPENACC
+    timer_gpu_mem_use = new_timer("gpu_mem_use")
+#endif
     timer_exch_data = new_timer("exch_data")
     timer_exch_data_rv = new_timer("exch_data_rv")
     timer_exch_data_async = new_timer("exch_data_async")
@@ -787,7 +790,6 @@ CONTAINS
        timer_rte_lw_clrsky      = new_timer("rte_lw_clrsky")
        timer_clouds_bnd_lw      = new_timer("clouds_bnd_lw")
        timer_cloud_optics_lw    = new_timer("cloud_optics_lw")
-       timer_snow_bnd_lw        = new_timer("snow_bnd_lw")
        timer_rte_lw_allsky      = new_timer("rte_lw_allsky")
        timer_atmos_sw           = new_timer("atmos_sw")
        timer_k_dist_sw          = new_timer("k_dist_sw")
@@ -795,7 +797,6 @@ CONTAINS
        timer_rte_sw_clrsky      = new_timer("rte_sw_clrsky")
        timer_clouds_bnd_sw      = new_timer("clouds_bnd_sw")
        timer_cloud_optics_sw    = new_timer("cloud_optics_sw")
-       timer_snow_bnd_sw        = new_timer("snow_bnd_sw")
        timer_rte_sw_allsky      = new_timer("rte_sw_allsky")
        !
        ! diagnostics

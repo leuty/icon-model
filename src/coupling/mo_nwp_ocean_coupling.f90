@@ -322,11 +322,29 @@ CONTAINS
 
     REAL(wp) :: co2conc
 
-    CHARACTER(LEN=*), PARAMETER :: routine = str_module // ':couple_ocean'
     LOGICAL, SAVE :: lcheck_for_timelag = .TRUE.
     TYPE(datetime)  :: curr_datetime_umfl
 
-    IF(time_config%timeshift%dt_shift .eq. 0) lcheck_for_timelag = .FALSE.
+    CHARACTER(LEN=*), PARAMETER :: routine = str_module // ':couple_ocean'
+
+    IF(lcheck_for_timelag .AND. time_config%timeshift%dt_shift .eq. 0) &
+      lcheck_for_timelag = .FALSE.
+
+    ! A component may execute timesteps for dates before the actual
+    ! start of this simulation (e.g. due to IAU). These timesteps are currently
+    ! not considered for coupling, which is why they are skipped here.
+    ! The first actual coupling timestep usually is a start_date + lag * field_timestep.
+    IF (lcheck_for_timelag) THEN
+
+      ! query current timestamps of source/target fields
+      curr_datetime_umfl = cpl_get_field_datetime(routine, out_field_ids%umfl )
+
+      ! skip data exchange as long as the model timestamp lags behind the field timestamp.
+      lcheck_for_timelag = (time_config%tc_current_date < curr_datetime_umfl)
+
+      IF (lcheck_for_timelag) RETURN
+
+    ENDIF !lcheck_for_timelag
 
     CALL assert_acc_host_only('couple_ocean', lacc)
 
@@ -373,22 +391,6 @@ CONTAINS
       CALL finish(routine, 'ocean velocities are expected but fields &
           &have not been registered with YAC')
     END IF
-
-    ! A component may execute timesteps for dates before the actual
-    ! start of this simulation (e.g. due to IAU). These timesteps are currently
-    ! not considered for coupling, which is why they are skipped here.
-    ! The first actual coupling timestep usually is a start_date + lag * field_timestep.
-    IF (lcheck_for_timelag) THEN
-
-      ! query current timestamps of source/target fields
-      curr_datetime_umfl = cpl_get_field_datetime(routine, out_field_ids%umfl )
-
-      ! skip data exchange as long as the model timestamp lags behind the field timestamp.
-      lcheck_for_timelag = (time_config%tc_current_date < curr_datetime_umfl)
-
-      IF (lcheck_for_timelag) RETURN
-
-    ENDIF !lcheck_for_timelag
 
     !  *****  *****  *****  *****  *****  *****  *****  *****  *****  *****  *****  *****
     !  Send fields from atmosphere to ocean

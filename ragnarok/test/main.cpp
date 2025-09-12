@@ -8,17 +8,18 @@
 // See LICENSES/ for license information
 // SPDX-License-Identifier: BSD-3-Clause
 // ---------------------------------------------------------------
+#include <gtest/gtest.h>
 
-#include <hip/hip_runtime.h>
+#include <Kokkos_Core.hpp>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+int main(int argc, char** argv) {
+  // Initialize Kokkos before any tests run.
+  Kokkos::initialize(argc, argv);
 
-hipError_t hipEventRecord(hipEvent_t, hipStream_t) { return hipSuccess; }
+  ::testing::InitGoogleTest(&argc, argv);
+  int result = RUN_ALL_TESTS();
 
-hipError_t hipStreamWaitEvent(hipStream_t, hipEvent_t, unsigned int) { return hipSuccess; }
-
-#ifdef __cplusplus
+  // Finalize Kokkos after all tests have completed.
+  Kokkos::finalize();
+  return result;
 }
-#endif

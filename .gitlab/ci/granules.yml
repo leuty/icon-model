@@ -10,11 +10,24 @@
 
 workflow:
   rules:
-    - if: $CI_PIPELINE_SOURCE == "parent_pipeline"
+    - if: $CI_PIPELINE_SOURCE != "parent_pipeline"
+      when: never
+    - if: $ICON_CI_PARENT_PIPELINE_SOURCE == "merge_request_event"
+    - if: $ICON_CI_PARENT_PIPELINE_SOURCE == "web"
+      auto_cancel:
+        on_new_commit: none
 
 include:
-  - project: "anw_dienste/ci-templates"
-    file: ".slurm-ci.yml"
+  - project: anw_dienste/ci-templates
+    file: .slurm-ci.yml
+  # Generate builder rules and warning jobs:
+  - local: .gitlab/ci/utils/builder-rules.yml
+    inputs: {builder: levante_gcc}
+  - local: .gitlab/ci/utils/builder-rules.yml
+    inputs: {builder: levante_intel}
+
+default:
+  interruptible: true
 
 .common:
   extends: .default
@@ -51,7 +64,6 @@ include:
     paths:
       - ${PYVENV}
     policy: pull
-  interruptible: true
 
 .common_levante:
   extends: .common
@@ -66,8 +78,6 @@ include:
     - module purge
     - module load git gcc/11.2.0-gcc-11.2.0 python3
     - !reference [.common, before_script]
-  tags:
-    - levante, hpc, dkrz
 
 .common_levante_gcc:
   extends: .common_levante
@@ -89,7 +99,9 @@ include:
     - module load intel-oneapi-compilers/2022.0.1-gcc-11.2.0
 
 GCC Microphysics 1-moment:
-  extends: .common_levante_gcc
+  extends:
+    - .common_levante_gcc
+    - .utils:builder-rules:web-manual:levante_gcc
   script:
     - !reference [.common, script]
     - ctest --output-on-failure
@@ -97,13 +109,17 @@ GCC Microphysics 1-moment:
     policy: pull-push
 
 INTEL Microphysics 1-moment:
-  extends: .common_levante_intel
+  extends:
+    - .common_levante_intel
+    - .utils:builder-rules:web-manual:levante_intel
   script:
     - !reference [.common, script]
     - ctest --output-on-failure
 
 Create Tolerance Microphysics 1-moment:
-  extends: .common_levante_gcc
+  extends:
+    - .common_levante_gcc
+    - .utils:builder-rules:web-default:levante_gcc
   script:
     - !reference [.common, script]
     - make tolerance
@@ -118,6 +134,4 @@ Create Tolerance Microphysics 1-moment:
       - reference.patch
     expire_in: 1 week
     expose_as: 'Reference Git Patch'
-  rules:
-    - when: manual
-  allow_failure: true
+  when: manual

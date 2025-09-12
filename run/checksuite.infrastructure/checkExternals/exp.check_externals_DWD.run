@@ -13,7 +13,7 @@
 # ----------------------------------------------------------------------------
 #PBS -q sx_norm
 #PBS -l elapstim_req=00:35:00
-#PBS --venode=3          # Run up to 3 * 8 = 24 MPI jobs
+#PBS --venode=4          # Run up to 4 * 8 = 32 MPI jobs
 #PBS --venum-lhost=8     # Number of VE per logical host
 #PBS --use-hca=2         # Number of HCA per logical host
 #PBS -T necmpi_hydra
@@ -41,10 +41,11 @@ unset MAKEFLAGS
 set -x
 
 # Build the tests with the highest level of parallelism (limited by the number
-# of the host CPU cores on one node) and then run them with a smaller number of
-# jobs (limited by the number of the vector engine cores on all nodes):
+# of the host CPU cores available on one node) and then run them with a smaller
+# number of jobs (limited by the number of the vector engines available on all
+# allocated nodes):
 time make -C ../vector --jobs=24 --keep-going --no-print-directory --output-sync=target V=1 TESTS= check-bundled && \
-  time make -C ../vector --jobs=4 --keep-going ICON_VERBOSE_TESTS=1 ICON_COLOR_TESTS=always check-bundled
+  time make -C ../vector --jobs=3 --keep-going ICON_VERBOSE_TESTS=1 ICON_COLOR_TESTS=always check-bundled
 
 # Save the exit code of the 'make check-bundled' command:
 exitcode=$?

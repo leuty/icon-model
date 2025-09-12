@@ -131,11 +131,6 @@ MODULE mo_aes_rad_config
      LOGICAL  :: lclrsky_lw
      LOGICAL  :: lclrsky_sw
      !
-! For stratocumulus calculations
-     INTEGER  :: k_lts      ! first level > 3.2km
-     LOGICAL  :: inhom_lts
-     REAL(wp) :: inhom_lts_max
-     !
   END TYPE t_aes_rad_config
 
   !>
@@ -202,10 +197,6 @@ CONTAINS
     aes_rad_config(:)% lclrsky_lw     = .FALSE.
     aes_rad_config(:)% lclrsky_sw     = .FALSE.
     !
-    aes_rad_config(:)% inhom_lts      = .FALSE.
-    aes_rad_config(:)% inhom_lts_max  = 0.8_wp
-    aes_rad_config(:)% k_lts          = 73            ! preliminary, unused
-    !
   END SUBROUTINE init_aes_rad_config
 
   !----
@@ -225,13 +216,12 @@ CONTAINS
     ! Shortcuts to components of aes_rad_config
     !
     LOGICAL , POINTER :: l_orbvsop87, l_sph_symm_irr, ldiur, lyr_perp
-    INTEGER , POINTER :: isolrad, nmonth, yr_perp, k_lts
+    INTEGER , POINTER :: isolrad, nmonth, yr_perp
     REAL(wp), POINTER :: fsolrad, cecc, cobld, clonp
     INTEGER , POINTER :: irad_h2o, irad_co2, irad_ch4, irad_n2o, irad_o3, irad_o2, irad_cfc11, irad_cfc12, irad_aero
     REAL(wp), POINTER ::            vmr_co2,  vmr_ch4,  vmr_n2o,           vmr_o2,  vmr_cfc11,  vmr_cfc12
     REAL(wp), POINTER :: frad_h2o, frad_co2, frad_ch4, frad_n2o, frad_o3, frad_o2
-    LOGICAL , POINTER :: inhom_lts, lrad_aero_diag
-    REAL(wp), POINTER :: inhom_lts_max
+    LOGICAL , POINTER :: lrad_aero_diag
     REAL(wp), POINTER :: frad_cfc11, frad_cfc12
 
     CALL message    ('','')
@@ -284,10 +274,6 @@ CONTAINS
        frad_o2    => aes_rad_config(jg)% frad_o2
        frad_cfc11 => aes_rad_config(jg)% frad_cfc11
        frad_cfc12 => aes_rad_config(jg)% frad_cfc12
-       !
-       inhom_lts  => aes_rad_config(jg)% inhom_lts
-       inhom_lts_max  => aes_rad_config(jg)% inhom_lts_max
-       k_lts      => aes_rad_config(jg)% k_lts
 
        WRITE(cg,'(i0)') jg
        !
