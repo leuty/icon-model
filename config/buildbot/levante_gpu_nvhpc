@@ -30,6 +30,6 @@ makeflags="--jobs=${job_count} --no-print-directory --output-sync=target V=1"
 
 set -x
 
-${icon_dir}/config/dkrz/levante.gpu.nvhpc --disable-openmp --enable-ecrad --enable-testbed --enable-yaxt --enable-comin --enable-bundled-python=comin,mtime --enable-concurrent-mpi-tests PYTHON='/fastdata/mh0156/buildbot/venv/bin/python3' "$@"
+${icon_dir}/config/dkrz/levante.gpu.nvhpc --disable-openmp --enable-ecrad --enable-testbed --enable-yaxt --enable-comin --enable-bundled-python=comin,mtime --enable-concurrent-mpi-tests PYTHON='/work/mh0287/buildbot/venv/bin/python3' "$@"
 
 make ${makeflags}

@@ -136,7 +136,7 @@ $addexp "checksuite.icon-dev/check.waves_R2B4_global_no_forcing"          --buil
 $addexp "checksuite.nwp/nwpexp.run_ICON_23_R2B4_atmo_waves_coupled"       --builders "levante_gcc levante_intel" --list $listname --runflags "queue=compute"
 $addexp "checksuite.nwp/nwpexp.run_ICON_28_R2B6_IAU_atmo_waves_coupled"   --builders "dwd_nec_coupling" --list $listname
 # implementation of coupling the nested atmosphere to the ocean
-$addexp "checksuite.atm/exp.test_coupled_160kmNestedAtm_40kmOce" --builders "levante_gcc_hybrid levante_nag" --list $listname  --runflags "cpu_time=00:10:00 no_of_nodes=2"
+$addexp "checksuite.atm/exp.test_coupled_160kmNestedAtm_40kmOce" --builders "levante_gcc_hybrid levante_nag" --list $listname  --runflags "cpu_time=00:20:00 no_of_nodes=2"
 #-----------------------------------------------------------
 # OES
 # add omip technical tests only with mpi parallelization

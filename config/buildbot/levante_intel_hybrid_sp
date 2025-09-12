@@ -42,7 +42,7 @@ ${icon_dir}/config/dkrz/levante.intel \
   --enable-separate-mods \
   --enable-single-precision \
   --enable-testbed \
-  PYTHON='/fastdata/mh0156/buildbot/venv/bin/python3' \
+  PYTHON='/work/mh0287/buildbot/venv/bin/python3' \
   "$@"
 
 make ${makeflags}
