@@ -43,7 +43,7 @@ ${icon_dir}/config/dkrz/levante.gpu.nvhpc \
   --enable-single-precision \
   --enable-testbed \
   --enable-yaxt \
-  PYTHON='/fastdata/mh0156/buildbot/venv/bin/python3' \
+  PYTHON='/work/mh0287/buildbot/venv/bin/python3' \
   "$@"
 
 make ${makeflags}

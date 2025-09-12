@@ -149,6 +149,7 @@ build:
     GPU_SCHEDULER_PARAMETERS: >-
       --partition=gpu
       --gpus=4
+      --exclusive
       --time=05:00
     SPARSE_PATTERNS: >-
       /utils/ /run/mkexp/
