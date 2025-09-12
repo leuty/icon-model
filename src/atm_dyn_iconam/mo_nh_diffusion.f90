@@ -788,7 +788,8 @@ MODULE mo_nh_diffusion
     ENDIF
 
     ! Compute input quantities for turbulence scheme
-    IF ( diffu_type == 5 .AND. (turbdiff_config(jg)%itype_sher >= 1 .OR. turbdiff_config(jg)%ltkeshs)) THEN
+    IF ( diffu_type == 5 .AND. (turbdiff_config(jg)%itype_sher >= 1 .OR. &
+        & turbdiff_config(jg)%loutshs .OR. turbdiff_config(jg)%a_hshr>0 ) ) THEN
 
 !$OMP PARALLEL PRIVATE(i_startblk,i_endblk)
       rl_start = grf_bdywidth_c+1
@@ -830,10 +831,10 @@ MODULE mo_nh_diffusion
           DO jc = i_startidx, i_endidx
 
             p_nh_diag%div_ic(jc,jk,jb) = p_nh_metrics%wgtfac_c(jc,jk,jb)*div(jc,jk) + &
-              (1._wp-p_nh_metrics%wgtfac_c(jc,jk,jb))*div(jc,jk-1)
+                 (1._wp-p_nh_metrics%wgtfac_c(jc,jk,jb))*div(jc,jk-1)
 
             p_nh_diag%hdef_ic(jc,jk,jb) = (p_nh_metrics%wgtfac_c(jc,jk,jb)*kh_c(jc,jk) + &
-              (1._wp-p_nh_metrics%wgtfac_c(jc,jk,jb))*kh_c(jc,jk-1))**2
+                 (1._wp-p_nh_metrics%wgtfac_c(jc,jk,jb))*kh_c(jc,jk-1))**2
           ENDDO
         ENDDO
         !$ACC END PARALLEL LOOP

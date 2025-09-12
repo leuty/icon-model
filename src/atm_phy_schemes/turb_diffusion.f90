@@ -934,7 +934,7 @@ my_thrd_id = omp_get_thread_num()
 
   !Output required for addit. TKE-sources (STIC-terms) due to shear by NTCs related to:
   loutthcrc=(lcircterm .AND. tdc%loutnst .AND. PRESENT(tket_nstc)) !raw "circulation-term"
-  loutshshr=(ltkeshshr .AND. tdc%loutshs .AND. PRESENT(tket_hshr)) !separated horiz. shear production
+  loutshshr=(ltkeshshr .AND. tdc%loutshs)                          !separated horiz. shear production
   loutmcsso=(ltkemcsso .AND. tdc%loutsso .AND. PRESENT(tket_sso))  !mechanical SSO production
 
   !Consideration of additional TKE-sources due to:
@@ -1385,7 +1385,6 @@ my_thrd_id = omp_get_thread_num()
 
   IF (PRESENT(hdef2)) THEN
 
-!   IF ((tdc%ltkeshs .OR. (tdc%loutshs .AND. PRESENT(tket_hshr))) .AND. PRESENT(hdiv)) THEN
     IF ((ltkeshshr .OR. loutshshr) .AND. PRESENT(hdiv)) THEN
       !Include separated horizontal shear mode:
 

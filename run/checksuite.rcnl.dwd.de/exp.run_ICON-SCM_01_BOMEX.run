@@ -274,7 +274,7 @@ cat > NAMELIST_${EXPNAME} << EOF
  ! use horizontal shear production terms with 1/SQRT(Ri) scaling to prevent unwanted side effects:
  itype_sher    = 0
  ltkeshs       = .false.
- a_hshr        = 2.0
+ a_hshr        = 0.
  !lconst_z0    = .TRUE.
  !const_z0     = 0.035
  icldm_tran    = 2

@@ -35,7 +35,7 @@ MODULE mo_nml_crosscheck
   USE mo_limarea_config,           ONLY: latbc_config, LATBC_TYPE_CONST, LATBC_TYPE_EXT
   USE mo_master_config,            ONLY: isRestart
   USE mo_run_config,               ONLY: nsteps, dtime, iforcing, output_mode,             &
-    &                                    ltransport, ltestcase, ltimer,                    &
+    &                                    ltransport, ltestcase, ltimer, ldynamics,         &
     &                                    activate_sync_timers, timers_level, lart,         &
     &                                    msg_level, luse_radarfwo
   USE mo_dynamics_config,          ONLY: ldeepatmo, lmoist_thdyn
@@ -66,6 +66,7 @@ MODULE mo_nml_crosscheck
     &                                    ecrad_isolver, ecrad_igas_model,                  &
     &                                    ecrad_use_general_cloud_optics
   USE mo_turbdiff_config,          ONLY: turbdiff_config
+  USE mo_diffusion_config,         ONLY: diffusion_config
   USE mo_initicon_config,          ONLY: init_mode, dt_iau, ltile_coldstart, iterate_iau,  &
     &                                    itype_vert_expol
   USE mo_nh_testcases_nml,         ONLY: nh_test_name, layer_thickness
@@ -269,6 +270,16 @@ CONTAINS
         CALL finish( routine, 'scm_sfc_... requires is_ls_forcing=TRUE, but --disable-les has been set')
 #endif
       END IF
+
+      ! SHS production terms in turbdiff cannot be calculated in SCM mode.
+      ! However, if LES is run in "idealised" mode with l_scm_mode and ldynamics=T,
+      ! the shear terms could be optional
+      IF (.NOT. ldynamics) THEN
+        turbdiff_config(1:n_dom)%loutshs = .FALSE.
+        turbdiff_config(1:n_dom)%ltkeshs = .FALSE.
+        turbdiff_config(1:n_dom)%a_hshr  = 0
+        turbdiff_config(1:n_dom)%itype_sher = 0
+      ENDIF
     ELSE
       i_scm_netcdf   = 0
     END IF
@@ -351,6 +362,15 @@ CONTAINS
                       'idealized (horizontally homogeneous) roughness '//&
                       'length z0 selected!')
         ENDIF
+
+        IF (turbdiff_config(jg)%ltkeshs .NEQV. (turbdiff_config(jg)%a_hshr>0)) &
+          &  CALL finish( routine,'Wrong combination of ltkeshs and a_hshr. ltkeshs=.true. must '//  &
+                               'coincide with a_hshr>0, and ltkeshs=.false. must coincide with a_hshr=0.')
+
+        IF ((turbdiff_config(jg)%itype_sher>=1 .OR. (turbdiff_config(jg)%a_hshr>0)) .AND. &
+          & diffusion_config(jg)%hdiff_order/=5) &
+          & CALL finish( routine,'hdiff_order=5 must be selected for horizontal shear term calculations '// &
+                        'requested with a_hshr>0 or itype_sher>=1')
 
         IF (.NOT. ltestcase .AND. atm_phy_nwp_config(jg)%inwp_surface == 0) THEN
           CALL finish( routine,'Real-data applications require using a surface scheme!')

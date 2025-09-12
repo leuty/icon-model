@@ -6861,19 +6861,22 @@ SUBROUTINE new_nwp_phy_tend_list( k_jg, klev,  kblks,   &
                 & in_group=groups("phys_tendencies") )
     __acc_attach(phy_tend%ddt_tke_pconv)
 
-
+    IF ((tdc%ltkeshs .AND. tdc%loutshs)) THEN
     !      phy_tend%ddt_tke_hsh(nproma,nlevp1,nblks)
-    cf_desc    = t_cf_var('ddt_tke_hsh', 'm**2 s**-3'          , &
-         &                'TKE tendency horizonzal shear production', datatype_flt)
-    grib2_desc = grib2_var(0, 19, 221, ibits, GRID_UNSTRUCTURED, GRID_CELL)
-    CALL add_var( phy_tend_list, 'ddt_tke_hsh', phy_tend%ddt_tke_hsh,           &
+      cf_desc    = t_cf_var('ddt_tke_hsh', 'm**2 s**-3'          , &
+           &                'TKE tendency horizonzal shear production', datatype_flt)
+      grib2_desc = grib2_var(0, 19, 221, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( phy_tend_list, 'ddt_tke_hsh', phy_tend%ddt_tke_hsh,           &
                 & GRID_UNSTRUCTURED_CELL, ZA_REFERENCE_HALF, cf_desc, grib2_desc, &
                 & vert_interp=create_vert_interp_metadata(                        &
                 & vert_intp_type=vintp_types("P","Z","I"),                        &
                 & vert_intp_method=VINTP_METHOD_LIN),                             &
                 & ldims=shape3dkp1, lrestart=.FALSE., lopenacc=.TRUE.,            &
                 & in_group=groups("phys_tendencies") )
-    __acc_attach(phy_tend%ddt_tke_hsh)
+      __acc_attach(phy_tend%ddt_tke_hsh)
+    ELSE ! dummy allocation
+      ALLOCATE(phy_tend%ddt_tke_hsh(1,1,kblks))
+    ENDIF
 
 #ifndef __NO_ICON_LES__
 
