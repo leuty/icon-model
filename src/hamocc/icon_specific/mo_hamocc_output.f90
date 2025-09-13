@@ -1688,7 +1688,7 @@
     __acc_attach(hamocc_state_tend%satoxy)
 
     CALL add_var(hamocc_tendency_list, 'HAMOCC_satn2',hamocc_state_tend%satn2,    &
-      & grid_unstructured_cell, za_depth_below_sea,&
+      & grid_unstructured_cell, za_surface,&
       & t_cf_var('satn2','','N2 at saturation', datatype_flt,'satn2'), &
       & grib2_var(255, 255, 255, DATATYPE_PACK16, GRID_UNSTRUCTURED, grid_cell),&
       & ldims=(/nproma,alloc_cell_blocks/),in_group=groups("HAMOCC_TEND"),&
@@ -1696,7 +1696,7 @@
     __acc_attach(hamocc_state_tend%satn2)
 
     CALL add_var(hamocc_tendency_list, 'HAMOCC_satn2o',hamocc_state_tend%satn2o,    &
-      & grid_unstructured_cell, za_depth_below_sea,&
+      & grid_unstructured_cell, za_surface,&
       & t_cf_var('satn2o','','N2O at saturation', datatype_flt,'satn2o'), &
       & grib2_var(255, 255, 255, DATATYPE_PACK16, GRID_UNSTRUCTURED, grid_cell),&
       & ldims=(/nproma,alloc_cell_blocks/),in_group=groups("HAMOCC_TEND"),&
@@ -1704,7 +1704,7 @@
     __acc_attach(hamocc_state_tend%satn2o)
 
     CALL add_var(hamocc_tendency_list, 'HAMOCC_solco2',hamocc_state_tend%solco2,    &
-      & grid_unstructured_cell, za_depth_below_sea,&
+      & grid_unstructured_cell, za_surface,&
       & t_cf_var('solco2','','CO2 solubility', datatype_flt,'solco2'), &
       & grib2_var(255, 255, 255, DATATYPE_PACK16, GRID_UNSTRUCTURED, grid_cell),&
       & ldims=(/nproma,alloc_cell_blocks/),in_group=groups("HAMOCC_TEND"),&
