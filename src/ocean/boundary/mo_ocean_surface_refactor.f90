@@ -1485,7 +1485,7 @@ CONTAINS
         p_oce_sfc%HeatFlux_Total(jc,jb)=p_oce_sfc%TopBC_Temp_vdiff(jc,jb)
 
         ! provide dLWdt for ice_fast as for OMIP
-        atmos_fluxes%dLWdT (jc,jb,:)  = -4._wp*zemiss_def*stbo*(p_ice%tsurf(jc,jb,:)+tmelt)**3
+        atmos_fluxes%dLWdT (jc,:,jb)  = -4._wp*zemiss_def*stbo*(p_ice%tsurf(jc,:,jb)+tmelt)**3
 
         ! provide evaporation from latent heat flux
         p_oce_sfc%FrshFlux_Evaporation(jc,jb) = atmos_fluxes%latw(jc,jb) / (alv*rho_ref)
