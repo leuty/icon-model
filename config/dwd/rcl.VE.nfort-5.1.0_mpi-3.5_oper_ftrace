@@ -100,7 +100,8 @@ CPPFLAGS="${ECCODES_INCLUDE} -I${HDF5_DIR}/include -I${NETCDF_DIR}/include ${ECC
 
 # Fortran compiler wrapper on NEC machine
 FC='mpinfort'
-FCFLAGS="${ECCODES_INCLUDE} -I${HDF5_DIR}/include -I${NETCDF_DIR}/include -I${RTTOV_ROOT}/include/rttov13 -ftrace -fdiag-vector=0 -report-all -no-report-cg -traceback=verbose -O3 -mstack-arrays -msched-block -floop-unroll-completely=8 -floop-unroll-completely-nest=8 -fcse-after-vectorization -mno-vector-fma -fno-associative-math -DUSE_XML2 -USX -D__SX__=__NEC__ -D__COMM_OPT__ -D__BLOCK_GET__ -D_RTTOV_ARCH_VECTOR -DNFORT_BROKEN_INLINES -D__ASL__"
+DBLOCK_GET="${DBLOCK_GET:--D__BLOCK_GET__}" # Workaround to allow undefining for single-precision builds
+FCFLAGS="${ECCODES_INCLUDE} -I${HDF5_DIR}/include -I${NETCDF_DIR}/include -I${RTTOV_ROOT}/include/rttov13 -ftrace -fdiag-vector=0 -report-all -no-report-cg -traceback=verbose -O3 -mstack-arrays -msched-block -floop-unroll-completely=8 -floop-unroll-completely-nest=8 -fcse-after-vectorization -mno-vector-fma -fno-associative-math -DUSE_XML2 -USX -D__SX__=__NEC__ -D__COMM_OPT__ ${DBLOCK_GET} -D_RTTOV_ARCH_VECTOR -DNFORT_BROKEN_INLINES -D__ASL__"
 
 ICON_FCFLAGS="-finline-functions -finline-file=$(join_arr : "${ICON_DIR}/" "${INLINE_LIST_EMVORADO[@]}" "${INLINE_LIST_ICON[@]}" "${INLINE_LIST_ART[@]}" "${INLINE_LIST_DACE[@]}")"
 #

@@ -428,8 +428,8 @@ $addexp "checksuite.infrastructure/testbed/exp.icon-testbed_sync" --builders "br
 $addexp "checksuite.infrastructure/testbed/exp.icon-testbed_sync" --builders "lumi_gpu"                --list ${listname} --runflags "queue=dev-g"
 $addexp "checksuite.infrastructure/testbed/exp.icon-testbed_sync" --builders "lumi_cpu"                --list ${listname} --runflags "queue=debug"
 
-# Activate all single-precision builders as build-only (exception dwd_nec_sp disabled)
-SINGLE_PRECISION_BUILDERS="levante_gcc_sp levante_intel_hybrid_sp levante_nag_sp levante_gpu_nvhpc_sp lumi_cpu_sp mpimac_gcc_sp"
+# Activate all single-precision builders as build-only
+SINGLE_PRECISION_BUILDERS="levante_gcc_sp levante_intel_hybrid_sp levante_nag_sp levante_gpu_nvhpc_sp lumi_cpu_sp mpimac_gcc_sp dwd_nec_sp"
 ./set_builder_flags build_only --builders "${SINGLE_PRECISION_BUILDERS}" --list $listname
 
 #lets see the list
