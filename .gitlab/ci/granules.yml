@@ -18,8 +18,7 @@ workflow:
         on_new_commit: none
 
 include:
-  - project: anw_dienste/ci-templates
-    file: .slurm-ci.yml
+  - local: .gitlab/ci/common/dkrz.yml
   # Generate builder rules and warning jobs:
   - local: .gitlab/ci/utils/builder-rules.yml
     inputs: {builder: levante_gcc}
@@ -30,108 +29,149 @@ default:
   interruptible: true
 
 .common:
-  extends: .default
+  extends: .common:dkrz:jacamar
   variables:
-    GIT_SUBMODULE_STRATEGY: normal
+    ICON_CI_COMMON_DKRZ_SLURM_NTASKS: 32
     GIT_SUBMODULE_PATHS: externals/fortran-support externals/iconmath externals/probtest
-    GIT_SUBMODULE_UPDATE_FLAGS: --jobs=4
-    GIT_CONFIG_COUNT: 1
-    GIT_CONFIG_KEY_0: url.https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.dkrz.de/.insteadOf
-    GIT_CONFIG_VALUE_0: "git@gitlab.dkrz.de:"
-    PYVENV: ${CI_PROJECT_DIR}/venv
-    CONDA_PKGS_DIRS: ${CI_PROJECT_DIR}/.conda/pkgs
-    CONDA_ENVS_DIRS: ${CI_PROJECT_DIR}/.conda/envs
-    CMAKE_EXTRA_ARGS:
-    MAKEFLAGS: --jobs=2 VERBOSE=1
-    CTEST_PARALLEL_LEVEL: 8
+    ICON_CI_UTILS_GIT_CLONE_PATH: ${ICON_CI_COMMON_DKRZ_SHMEM_PATH}/icon
+    ICON_CI_MICROPHYSICS_PYVENV: ${ICON_CI_COMMON_DKRZ_SHMEM_PATH}/venv
+    ICON_CI_MICROPHYSICS_EXTRA_MODULES: gcc/11.2.0-gcc-11.2.0
+    ICON_CI_MICROPHYSICS_BUILD_PATH: ${ICON_CI_COMMON_DKRZ_SHMEM_PATH}/build
+    ICON_CI_MICROPHYSICS_TARGET: all
+    CLICOLOR_FORCE: 1
+    VERBOSE: # any given value is ignored, it's just checked for existence
+    CMAKE_BUILD_PARALLEL_LEVEL: ${ICON_CI_COMMON_DKRZ_SLURM_NTASKS}
+    MAKEFLAGS: --no-print-directory --output-sync=target
+    CTEST_OUTPUT_ON_FAILURE: 1
+    CTEST_PARALLEL_LEVEL: ${ICON_CI_COMMON_DKRZ_SLURM_NTASKS}
   before_script:
+    - !reference [.common:dkrz:jacamar, before_script]
     - |
-      # Initialize Python environment
-      set -eu
-      if test ! -d ${PYVENV}; then
-          mamba env create -f externals/probtest/requirements/environment.yml -p ${PYVENV}
-      fi
-      export PATH="${PYVENV}/bin:${PATH}"
+      # !reference [.common, before_script]
+
+      # We use the following function when trapping the EXIT pseudo-signal to
+      # clean up the $ICON_CI_COMMON_DKRZ_SHMEM_PATH directory, regardless of
+      # whether the job succeeds:
+      finalize ()
+      {
+        rm -rf "${ICON_CI_COMMON_DKRZ_SHMEM_PATH}"
+      }
+
+      (
+        trap finalize EXIT
+        set -u
+
+        icon_ci_log_section_start 'Initializing Python environment'
+        (
+          module --verbose load python3
+          set -x
+          python3 -m venv "${ICON_CI_MICROPHYSICS_PYVENV}"
+          "${ICON_CI_MICROPHYSICS_PYVENV}/bin/python3" \
+            -m pip --no-cache-dir install --upgrade pip
+          "${ICON_CI_MICROPHYSICS_PYVENV}/bin/python3" \
+            -m pip --no-cache-dir install \
+            Jinja2==3.1.6 click==8.2.1 matplotlib==3.10.6 netCDF4==1.7.2 \
+            numpy==2.2.6 pandas==2.3.2 xarray==2025.6.1
+        ) 2>&1
+        icon_ci_log_section_end
+
+        icon_ci_log_section_start "Configuring 'test/microphysics_1mom_schemes'"
+        (
+          module --verbose load ${ICON_CI_MICROPHYSICS_EXTRA_MODULES-}
+          cmake --version
+          set -x
+          cmake \
+            -S "${ICON_CI_UTILS_GIT_CLONE_PATH}/test/microphysics_1mom_schemes" \
+            -B "${ICON_CI_MICROPHYSICS_BUILD_PATH}" \
+            -G 'Unix Makefiles' \
+            -DPython3_EXECUTABLE="${ICON_CI_MICROPHYSICS_PYVENV}/bin/python3"
+        ) 2>&1
+        icon_ci_log_section_end
+
+        icon_ci_log_section_start "Building target '${ICON_CI_MICROPHYSICS_TARGET}'"
+        (
+          set -x
+          cmake \
+            --build "${ICON_CI_MICROPHYSICS_BUILD_PATH}" \
+            --target="${ICON_CI_MICROPHYSICS_TARGET}"
+        ) 2>&1
+        icon_ci_log_section_end
+        trap - EXIT
+      )
   script:
-    - mkdir build
-    - cd build
-    - cmake ../test/microphysics_1mom_schemes ${CMAKE_EXTRA_ARGS}
-    - make
-  cache:
-    key:
-      files:
-        - externals/probtest/requirements/environment.yml
-    paths:
-      - ${PYVENV}
-    policy: pull
+    - |
+      icon_ci_log_section_start 'Running tests' 'collapsed=false'
+      (
+        trap finalize EXIT
+        set -ux
+        ctest --test-dir "${ICON_CI_MICROPHYSICS_BUILD_PATH}"
+      ) 2>&1
+      icon_ci_log_section_end
 
-.common_levante:
-  extends: .common
-  variables:
-    SCHEDULER_PARAMETERS: >-
-      --account=ka1125
-      --partition=shared
-      --nodes=1
-    # jacamar on Levante fetches from scratch each time
-    GIT_DEPTH: 1
-  before_script:
-    - module purge
-    - module load git gcc/11.2.0-gcc-11.2.0 python3
-    - !reference [.common, before_script]
-
-.common_levante_gcc:
-  extends: .common_levante
+GCC Microphysics 1-moment:
+  extends:
+    - .common
+    - .utils:builder-rules:web-manual:levante_gcc
   variables:
     CC: gcc
     FC: gfortran
     CXX: g++
     NetCDF_ROOT: /sw/spack-levante/netcdf-fortran-4.5.3-l2ulgp
 
-.common_levante_intel:
-  extends: .common_levante
+INTEL Microphysics 1-moment:
+  extends:
+    - .common
+    - .utils:builder-rules:web-manual:levante_intel
   variables:
+    # We load the gcc module to make Intel compiler use the correct standard
+    # headers and libraries:
+    ICON_CI_MICROPHYSICS_EXTRA_MODULES: >-
+      gcc/11.2.0-gcc-11.2.0
+      intel-oneapi-compilers/2022.0.1-gcc-11.2.0
     CC: icc
     FC: ifort
     CXX: icpc
     NetCDF_ROOT: /sw/spack-levante/netcdf-fortran-4.5.3-pvmcx6
-  before_script:
-    - !reference [.common_levante, before_script]
-    - module load intel-oneapi-compilers/2022.0.1-gcc-11.2.0
-
-GCC Microphysics 1-moment:
-  extends:
-    - .common_levante_gcc
-    - .utils:builder-rules:web-manual:levante_gcc
-  script:
-    - !reference [.common, script]
-    - ctest --output-on-failure
-  cache:
-    policy: pull-push
-
-INTEL Microphysics 1-moment:
-  extends:
-    - .common_levante_intel
-    - .utils:builder-rules:web-manual:levante_intel
-  script:
-    - !reference [.common, script]
-    - ctest --output-on-failure
 
 Create Tolerance Microphysics 1-moment:
-  extends:
-    - .common_levante_gcc
-    - .utils:builder-rules:web-default:levante_gcc
+  extends: GCC Microphysics 1-moment
+  variables:
+    ICON_CI_MICROPHYSICS_TARGET: tolerance
+    REFERENCE_PATCH: reference.patch
   script:
-    - !reference [.common, script]
-    - make tolerance
-    # build git patch
-    - >
-      git -C ${CI_PROJECT_DIR} diff --patch-with-raw --
-      test/microphysics_1mom_schemes/tolerance
-      test/microphysics_1mom_schemes/reference
-      > ${CI_PROJECT_DIR}/reference.patch
+    - |
+      icon_ci_log_section_start 'Generating patch file with new reference data' 'collapsed=false'
+      (
+        trap finalize EXIT
+        set -u
+
+        (
+          set -x
+          git -C "${ICON_CI_UTILS_GIT_CLONE_PATH}" \
+            diff --ignore-submodules --patch-with-raw -- \
+            test/microphysics_1mom_schemes/tolerance \
+            test/microphysics_1mom_schemes/reference \
+            > "${CI_PROJECT_DIR}/${REFERENCE_PATCH}"
+        ) && {
+          test -s "${REFERENCE_PATCH}" && {
+            icon_ci_log_info_msg \
+              "Download (wait until the job is finished) and apply the \
+      following patch to accept new reference data (see artifacts):
+        ${CI_JOB_URL}/artifacts/raw/${REFERENCE_PATCH}."
+          } || {
+            icon_ci_log_info_msg \
+              'The generated reference data is identical to the one in the repository: no update required.'
+            rm -f "${REFERENCE_PATCH}"
+          }
+        } || {
+          icon_ci_log_error_msg 'Failed to generate a patch file.'
+          rm -f "${CI_PROJECT_DIR}/${REFERENCE_PATCH}"
+          exit 1
+        }
+      ) 2>&1
+      icon_ci_log_section_end
   artifacts:
     paths:
-      - reference.patch
-    expire_in: 1 week
-    expose_as: 'Reference Git Patch'
+      - ${REFERENCE_PATCH}
+    expire_in: 1 day
   when: manual

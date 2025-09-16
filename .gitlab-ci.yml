@@ -28,7 +28,7 @@ workflow:
 stages:
   - basic
   - unit
-  - test
+  - functional
   - system
 
 variables:
@@ -304,8 +304,23 @@ Generate and publish HTML:
       changes: !reference [.common:html, rules, changes]
   manual_confirmation: This job updates the GitLab Pages of the current project
 
-Granules:
-  stage: test
+ragnarok:
+  stage: unit
+  needs: []
+  trigger:
+    include:
+      - local: .gitlab/ci/ragnarok.yml
+    strategy: depend
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "web"
+      when: manual
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - .gitlab/ci/ragnarok.yml
+        - ragnarok/**/*
+
+granules:
+  stage: functional
   needs: []
   trigger:
     include:
@@ -331,21 +346,6 @@ Granules:
         - src/shared/mo_impl_constants.f90
         - src/shared/mo_impl_constants_grf.f90
         - test/microphysics_1mom_schemes/**/*
-
-ragnarok:
-  stage: unit
-  needs: []
-  trigger:
-    include:
-      - local: .gitlab/ci/ragnarok.yml
-    strategy: depend
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "web"
-      when: manual
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-      changes:
-        - .gitlab/ci/ragnarok.yml
-        - ragnarok/**/*
 
 santis:
   stage: system
