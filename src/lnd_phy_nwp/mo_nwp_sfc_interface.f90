@@ -1638,11 +1638,14 @@ CONTAINS
 
       !
       ! Update skin temperature T_g and T_s over ocean
-      !   no skin:    T_g = SST
-      !   oskin:      add warm layer and cold skin
-      !   sst_cl_inc: climatological increment
-      !   (only needed if either SST or skin update)
-      !
+      !   no skin:          T_g = SST
+      !   oskin:            add warm layer and cold skin
+      ! Note on changing t_seasfc (foundation temperature)
+      !   clim. increment:  t_seasfc + sst_cl_inc at 00UTC in sst_add_climatological_incr
+      !                     calculated before nwp_nh_interface
+      !   ocean:            t_seasfc changes in nwp_couple_ocean at end of nwp_nh_interface
+      !                     after ocean: second addition of warm-layer and cold-skin
+      !                                  after t_seasfc update in process_sst_and_seaice
 
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jb,ic,jc,t_g_new)

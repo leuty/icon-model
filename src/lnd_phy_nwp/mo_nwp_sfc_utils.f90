@@ -3159,6 +3159,12 @@ CONTAINS
           jc = list_water_retained%idx(ic,jb)
 
           t_water = t_seasfc(jc,jb)
+
+          ! add cold skin and warm layer increments to t_g and t_sk
+          ! attention: first warm/cold addition in nwp_sfc_interface, here overwritten
+          IF (itype_oskin_cold > 0) t_water = t_water + diag_lnd%sst_cold_skin (jc,jb)
+          IF (itype_oskin_warm > 0) t_water = t_water + diag_lnd%sst_warm_layer(jc,jb)
+
           prog_lnd_now%t_g_t (jc,jb,isub_water)= t_water
           prog_lnd_now%t_s_t (jc,jb,isub_water)= t_water
           prog_lnd_now%t_sk_t(jc,jb,isub_water)= t_water
