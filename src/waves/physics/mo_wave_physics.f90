@@ -1403,11 +1403,11 @@ CONTAINS
       CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,           &
         &                 i_startidx, i_endidx, i_rlstart, i_rlend)
 
-      DO jk = 1,wc%ndepths
+      DO jk = 1,wc%oce_stokes_nlev
         DO jc = i_startidx, i_endidx
           !        last_idx_depth(jc,jb) = 1
           !        DO jk = 1,wc%ndepths
-          IF (wc%stokes_level(jk) <= depth_c(jc,jb)) THEN
+          IF (wc%oce_stokes_mc(jk) <= depth_c(jc,jb)) THEN
             last_idx_depth(jc,jb) = jk
           END IF
         END DO

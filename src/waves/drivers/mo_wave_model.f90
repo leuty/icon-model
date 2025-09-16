@@ -51,8 +51,6 @@ MODULE mo_wave_model
   USE mo_wave_state,              ONLY: p_wave_state, p_wave_state_lists, construct_wave_state
   USE mo_model_domain,            ONLY: p_patch
   USE mo_name_list_output_config, ONLY: use_async_name_list_io
-
-  USE mo_name_list_output_init,   ONLY: parse_variable_groups, output_file, create_vertical_axes
   USE mo_wave,                    ONLY: wave
   USE mo_wave_config,             ONLY: configure_wave, wave_config
 

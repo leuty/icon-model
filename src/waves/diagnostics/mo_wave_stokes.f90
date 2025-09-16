@@ -48,7 +48,7 @@ CONTAINS
   !! Kern E. Kenyon, JGR, Vol 74 NO 28, 1969
   !! O. Breivik, J.-R. Bidlot & P. Janssen (2016) (high-frequency tail)
   !!
-  SUBROUTINE stokes_profile_spectrum(p_patch, wave_config, wave_num_c, depth, stokes_level, last_idx_depth, tracer, u3d_stokes, v3d_stokes)
+  SUBROUTINE stokes_profile_spectrum(p_patch, wave_config, wave_num_c, depth, last_idx_depth, tracer, u3d_stokes, v3d_stokes)
 
     CHARACTER(*), PARAMETER :: routine = modname//'::stokes_profile'
 
@@ -56,7 +56,6 @@ CONTAINS
     TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
     REAL(wp),                    INTENT(IN)    :: wave_num_c(:,:,:)  !< wave number (1/m)
     REAL(wp),                    INTENT(IN)    :: depth(:,:)
-    REAL(wp),                    INTENT(IN)    :: stokes_level(:)
     INTEGER,                     INTENT(IN)    :: last_idx_depth(:,:)
     REAL(wp),                    INTENT(IN)    :: tracer(:,:,:,:) !energy spectral bins
     REAL(wp),                    INTENT(INOUT) :: u3d_stokes(:,:,:)
@@ -87,7 +86,7 @@ CONTAINS
       CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,           &
         &                 i_startidx, i_endidx, i_rlstart, i_rlend)
 
-      DO jk = 1,wc%ndepths
+      DO jk = 1,wc%oce_stokes_nlev
         ! initialisation of si, ci
         DO jc = i_startidx, i_endidx
           si(jc) = 0._wp
@@ -107,7 +106,7 @@ CONTAINS
             akd = ak * MIN(depth(jc,jb),wc%stokes_depth)
 
             ! Stokes drift integrand factor as function of depth
-            fact = 2._wp*grav*ak**2  * COSH(2._wp*akd - 2._wp*ak*MIN(stokes_level(jk),stokes_level(last_idx_depth(jc,jb)))) &
+            fact = 2._wp*grav*ak**2  * COSH(2._wp*akd - 2._wp*ak*MIN(wc%oce_stokes_mc(jk),wc%oce_stokes_mc(last_idx_depth(jc,jb)))) &
               &    / ( pi2*wc%freqs(jf) * SINH(2._wp*akd) ) * wc%DFIM(jf)
 
             si(jc) = fact * si(jc)
@@ -144,7 +143,7 @@ CONTAINS
       DO jk = 1,MAXVAL(last_idx_depth(i_startidx:i_endidx,jb))
         DO jc = i_startidx, i_endidx
           IF (jk <= last_idx_depth(jc,jb)) THEN
-            akcz = -kc(jc)*stokes_level(jk)
+            akcz = -kc(jc)*wc%oce_stokes_mc(jk)
             u3d_stokes(jc,jk,jb) = u3d_stokes(jc,jk,jb) + si(jc)*( EXP(2._wp*akcz) - SQRT(-pi2*akcz)*ERFC(SQRT(-2._wp*akcz)) )
             v3d_stokes(jc,jk,jb) = v3d_stokes(jc,jk,jb) + ci(jc)*( EXP(2._wp*akcz) - SQRT(-pi2*akcz)*ERFC(SQRT(-2._wp*akcz)) )
           END IF
@@ -164,7 +163,7 @@ CONTAINS
   !! Reference:
   !! O. Breivik, J.-R. Bidlot & P. Janssen (2016)
   !!
-  SUBROUTINE stokes_profile_breivik(p_patch, wave_config, wave_num_c, depth, stokes_level, last_idx_depth, tracer, &
+  SUBROUTINE stokes_profile_breivik(p_patch, wave_config, wave_num_c, depth, last_idx_depth, tracer, &
                                   & u_stokes, v_stokes, kbar, T_stokes, u3d_stokes, v3d_stokes)
 
     CHARACTER(*), PARAMETER :: routine = modname//'::stokes_profile'
@@ -173,7 +172,6 @@ CONTAINS
     TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
     REAL(wp),                    INTENT(IN)    :: wave_num_c(:,:,:)  !< wave number (1/m)
     REAL(wp),                    INTENT(IN)    :: depth(:,:)
-    REAL(wp),                    INTENT(IN)    :: stokes_level(:)
     INTEGER,                     INTENT(IN)    :: last_idx_depth(:,:)
     REAL(wp),                    INTENT(IN)    :: tracer(:,:,:,:)    !energy spectral bins
     REAL(wp),                    INTENT(IN)    :: u_stokes(:,:)
@@ -261,7 +259,7 @@ CONTAINS
       DO jk = 1,MAXVAL(last_idx_depth(i_startidx:i_endidx,jb))
         DO jc = i_startidx, i_endidx
           IF (jk <= last_idx_depth(jc,jb)) THEN
-            akbz = -kbar(jc,jb)*stokes_level(jk)
+            akbz = -kbar(jc,jb)*wc%oce_stokes_mc(jk)
             u3d_stokes(jc,jk,jb) = ust(jc)*( EXP(2._wp*akbz) - SQRT(-pi2*akbz)*ERFC(SQRT(-2._wp*akbz)) )
             v3d_stokes(jc,jk,jb) = vst(jc)*( EXP(2._wp*akbz) - SQRT(-pi2*akbz)*ERFC(SQRT(-2._wp*akbz)) )
           END IF
@@ -277,7 +275,7 @@ CONTAINS
       DO jk = 1,MAXVAL(last_idx_depth(i_startidx:i_endidx,jb))
         DO jc = i_startidx, i_endidx
           IF (jk <= last_idx_depth(jc,jb)) THEN
-            akcz = -kc(jc)*stokes_level(jk)
+            akcz = -kc(jc)*wc%oce_stokes_mc(jk)
             u3d_stokes(jc,jk,jb) = u3d_stokes(jc,jk,jb) + si(jc)*( EXP(2._wp*akcz) - SQRT(-pi2*akcz)*ERFC(SQRT(-2._wp*akcz)) )
             v3d_stokes(jc,jk,jb) = v3d_stokes(jc,jk,jb) + ci(jc)*( EXP(2._wp*akcz) - SQRT(-pi2*akcz)*ERFC(SQRT(-2._wp*akcz)) )
           END IF

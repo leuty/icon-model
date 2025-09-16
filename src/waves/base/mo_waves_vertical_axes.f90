@@ -72,15 +72,17 @@ CONTAINS
       &                           opt_name         = "dir",                 &
       &                           opt_unit         = "rad"))
 
-    ! ZA_DEPTH_BELOW_SEA
-    ! vertical axis for 3D fields which are a function of water depth (used for Stokes profile)
-    CALL verticalAxisList%append(vertical_axis(                                &
-      &                           za_type          = ZA_DEPTH_BELOW_SEA,    &
-      &                           in_nlevs         = wc%ndepths,               &
-      &                           levels           = REAL(wc%stokes_level,dp), &
-      &                           level_selection  = level_selection,          &
-      &                           opt_name         = "stokes_level",           &
-      &                           opt_unit         = "m"))
+    IF (ALLOCATED(wc%oce_stokes_mc)) THEN
+      ! ZA_DEPTH_BELOW_SEA
+      ! vertical axis for 3D fields which are a function of water depth (used for Stokes profile)
+      CALL verticalAxisList%append(vertical_axis(                                &
+        &                           za_type          = ZA_DEPTH_BELOW_SEA,    &
+        &                           in_nlevs         = wc%oce_stokes_nlev,               &
+        &                           levels           = REAL(wc%oce_stokes_mc,dp), &
+        &                           level_selection  = level_selection,          &
+        &                           opt_name         = "midpoint of Stokes level",           &
+        &                           opt_unit         = "m"))
+    END IF
 
   END SUBROUTINE setup_zaxes_waves
 

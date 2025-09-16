@@ -67,8 +67,8 @@ CONTAINS
     REAL(wp) :: XINVEPS
 
     REAL(wp) :: ALPHA_CH ! minimum charnock constant (ecmwf cy45r1).
-                         ! 0.0060, if le 30 frequencies changed !@waves todo
-                         ! to 0.0075 in subroutine initmdl !@waves todo
+
+    CHARACTER(LEN=filename_max) :: oce_vct_filename ! name of ocean vertical coordinates file
 
     REAL(wp) :: depth        ! ocean depth (m) if not 0, then constant depth
     REAL(wp) :: depth_min    ! allowed minimum of model depth (m)
@@ -76,7 +76,6 @@ CONTAINS
     INTEGER  :: stokes_method ! 1 - calculation of Stokes profile from the full spectrum
                               ! 2 - calculation based on Breivik (2016)
     REAL(wp) :: stokes_depth ! maximum of Stokes layer depth (m)
-    REAL(wp) :: stokes_th    ! individual depth layer thickness (m)
 
     INTEGER  :: niter_smooth ! number of smoothing iterations for wave bathymetry
     INTEGER  :: nsubs_refrac ! number of susteps in wave refraction
@@ -85,9 +84,6 @@ CONTAINS
     REAL(wp) :: XNLEV   ! WINDSPEED REF. LEVEL.
     REAL(wp) :: BETAMAX ! PARAMETER FOR WIND INPUT (ECMWF CY45R1).
     REAL(wp) :: ZALP    ! SHIFTS GROWTH CURVE (ECMWF CY45R1).
-    !  REAL(wp)  :: ALPHA      ! MINIMUM CHARNOCK CONSTANT (ECMWF CY45R1).
-    ! if LE 30 frequencies changed
-    ! to 0.0075 in subroutine INITMDL
 
     INTEGER :: jtot_tauhf          ! dimension of wave_config%wtauhf. it must be odd !!!
 
@@ -128,7 +124,8 @@ CONTAINS
          ALPHA, FM, GAMMA_wave, SIGMA_A, SIGMA_B, fetch, fetch_min_energy, &
          roair, RNUAIR, RNUAIRM, ROWATER, XEPS, XINVEPS, &
          XKAPPA, XNLEV, BETAMAX, ZALP, jtot_tauhf, ALPHA_CH, &
-         depth, depth_min, depth_max, stokes_method, stokes_depth, stokes_th, niter_smooth, &
+         oce_vct_filename, depth, depth_min, depth_max, &
+         stokes_method, stokes_depth, niter_smooth, &
          linput_sf1, linput_sf2, ldissip_sf, lwave_brk_sf, lnon_linear_sf, lbottom_fric_sf, &
          lwave_stress1, lwave_stress2, peak_u10, peak_v10, peak_lat, peak_lon, &
          impl_fac, nsubs_refrac
@@ -164,12 +161,17 @@ CONTAINS
     jtot_tauhf = 19             !! dimension of wtauhf. it must be odd
     ALPHA_CH   = 0.0075_wp      !! minimum charnock constant (ecmwf cy45r1).
 
+    oce_vct_filename = ''       !! name of ocean vertical coordinates file
+                                !! this file must contain the number of ocean vertical interfaces
+                                !! on the first line oce_nifc (type integer), followed by lines
+                                !! with the interface index (type integer) and interface depth
+                                !! in meters oce_ifc (type real), separated by a space
+
     depth         = 0._wp       !! ocean depth (m) if not 0, then constant depth
     depth_min     = 0.2_wp      !! allowed minimum of model depth (m)
     depth_max     = 999.0_wp    !! allowed maximum of model depth (m)
     stokes_method = 1           !! calculation of Stokes profile from the full spectrum
     stokes_depth  = 50._wp      !! maximum of Stokes layer depth
-    stokes_th     = 2._wp       !! individual depth layer thickness
 
     niter_smooth = 1            !! number of smoothing iterations for wave bathymetry
                                 !! if 0 then no smoothing
@@ -235,11 +237,11 @@ CONTAINS
     !----------------------------------------------------
 
     IF (MOD(jtot_tauhf,2).eq.0) THEN
-      CALL finish(TRIM(routine),'Error: jtot_tauhf must be odd')
+      CALL finish(routine,'Error: jtot_tauhf must be odd')
     END IF
 
     IF ( (impl_fac<0.5_wp) .OR. (impl_fac>1.0_wp)) THEN
-      CALL finish(TRIM(routine),'impl_fac outside permissible range 0.5<=impl_fac<=1.0')
+      CALL finish(routine,'impl_fac outside permissible range 0.5<=impl_fac<=1.0')
     ENDIF
 
     !----------------------------------------------------
@@ -275,15 +277,12 @@ CONTAINS
       wave_config(jg)%ZALP              = ZALP
       wave_config(jg)%jtot_tauhf        = jtot_tauhf
       wave_config(jg)%ALPHA_CH          = ALPHA_CH
+      wave_config(jg)%oce_vct_filename  = TRIM(oce_vct_filename)
       wave_config(jg)%depth             = depth
       wave_config(jg)%depth_min         = depth_min
       wave_config(jg)%depth_max         = depth_max
       wave_config(jg)%stokes_method     = stokes_method
       wave_config(jg)%stokes_depth      = stokes_depth
-      wave_config(jg)%stokes_th         = stokes_th
-      IF ((stokes_depth > 0._wp) .AND. (stokes_th > 0._wp)) THEN
-        wave_config(jg)%ndepths         = INT(stokes_depth/stokes_th)
-      END IF
       wave_config(jg)%niter_smooth      = niter_smooth
       wave_config(jg)%nsubs_refrac      = nsubs_refrac
       wave_config(jg)%forc_file_prefix  = forc_file_prefix

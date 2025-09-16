@@ -152,6 +152,7 @@ CONTAINS
     ! If async IO is in effect, init_name_list_output is a collective call
     ! with the IO procs and effectively starts async IO
     IF (output_mode%l_nml) THEN
+
        ! compute sim_start, sim_end
        sim_step_info%sim_start = time_config%tc_exp_startdate
        sim_step_info%sim_end = time_config%tc_exp_stopdate
@@ -170,6 +171,7 @@ CONTAINS
        CALL init_name_list_output(sim_step_info)
 
        CALL create_vertical_axes(output_file)
+
     END IF
 
     !-------------------------------------------------------!
