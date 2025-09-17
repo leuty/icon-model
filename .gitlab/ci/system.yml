@@ -108,6 +108,8 @@ include:
       /run/dict.iconam.mpim /run/add_run_routines /data
     GIT_SUBMODULE_PATHS: utils/mkexp externals/jsbach
     MKEXP_PATH: ${CI_PROJECT_DIR}/run
+    ICON_CI_MKEXP_WORK_REL_PATH: ${CI_PIPELINE_ID}
+    ICON_CI_MKEXP_RUN_SUBDIR: run_base
   before_script:
     - !reference [.common:dkrz:levante, before_script]
     - |
@@ -121,8 +123,10 @@ include:
 
         ./utils/mkexp/mkexp "${ICON_CI_MKEXP_CONFIG_REL_PATH}" \
           WORK_ROOT='$MODEL_ROOT' DATA_ROOT='$MODEL_ROOT' \
+          WORK_DIR="${CI_PROJECT_DIR}/${ICON_CI_MKEXP_WORK_REL_PATH}" \
           EXP_ID="${CI_JOB_NAME_SLUG}" \
           jobs.run.nodes="${ICON_CI_COMMON_DKRZ_SLURM_NNODES}" \
+          jobs.run.subdir="${ICON_CI_MKEXP_RUN_SUBDIR}" \
           ${ICON_CI_MKEXP_EXTRA_ARGS-}
       ) 2>&1
       icon_ci_log_section_end
@@ -135,6 +139,11 @@ include:
         ./experiments/${CI_JOB_NAME_SLUG}/scripts/${CI_JOB_NAME_SLUG}.run_start
       ) 2>&1
       icon_ci_log_section_end
+  artifacts:
+    name: ${CI_PIPELINE_ID}-${CI_JOB_NAME_SLUG}
+    paths:
+      - ${ICON_CI_MKEXP_WORK_REL_PATH}/${ICON_CI_MKEXP_RUN_SUBDIR}/${CI_JOB_NAME_SLUG}*.nc
+    expire_in: 30mins
   rules: !reference [.build:levante, rules]
 
 aes:bubble:gcc:build:
