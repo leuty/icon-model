@@ -24,9 +24,14 @@ MODULE mo_rbf_coefficients_io
   USE mo_parallel_config, ONLY: nproma
   USE mo_model_domain, ONLY: t_patch
   USE mo_netcdf_errhandler, ONLY: nf
-  USE mo_netcdf, ONLY: NF90_FLOAT, NF90_DOUBLE, NF90_CLOBBER, NF90_GLOBAL, &
+  USE mo_netcdf, ONLY: NF90_CLOBBER, NF90_GLOBAL, NF90_NETCDF4, &
     & nf90_create, nf90_put_att, nf90_enddef, nf90_close, nf90_get_att, nf90_def_dim, &
     & nf90_def_var, nf90_put_var, nf90_noerr
+#ifdef __SINGLE_PRECISION
+  USE mo_netcdf, ONLY: NF90_FLOAT
+#else
+  USE mo_netcdf, ONLY: NF90_DOUBLE
+#endif
   USE mo_communication, ONLY: exchange_data, t_comm_gather_pattern
   USE mo_read_interface, ONLY: openInputFile, closeFile, on_cells, on_edges, &
     &                               on_vertices, t_stream_id, read_3D
@@ -76,7 +81,7 @@ MODULE mo_rbf_coefficients_io
     !< used to populate dims and dimids from all_dims and all_dimids
     INTEGER :: dims(MAX_NDIMS) = -1 !< Dimensions for this 4D array
     INTEGER :: dimids(MAX_NDIMS) = -1 !< netcdf dimids for this 4D array
-    TYPE(t_comm_gather_pattern), POINTER :: p_pat => NULL()
+    INTEGER :: pat_type ! SYNC_C, SYNC_E, SYNC_V used to identify which t_comm_gather_pattern
   END TYPE t_rbf_netcdf_var
 
 CONTAINS
@@ -84,11 +89,9 @@ CONTAINS
   !
   ! Round rbf coefficients to single-precision
   !
-  SUBROUTINE rbf_coefficients_round(ptr_int_state, ptr_patch, jg)
+  SUBROUTINE rbf_coefficients_round(ptr_int_state)
 
     TYPE(t_int_state), INTENT(INOUT) :: ptr_int_state
-    TYPE(t_patch), INTENT(IN) :: ptr_patch
-    INTEGER, INTENT(IN) :: jg
 
     CALL warning('RBF:', 'Rounding RBF coefficients!')
 
@@ -111,7 +114,6 @@ CONTAINS
     INTEGER :: ncid ! Only used on root
     INTEGER :: i
     CHARACTER(len=MAX_LEN_FILENAME) :: filename
-    TYPE(t_comm_gather_pattern), POINTER :: p_pat
     LOGICAL :: is_root ! root proc for gather and io
     CHARACTER(*), PARAMETER :: routine = modname//":rbf_coefficients_write"
 
@@ -124,7 +126,7 @@ CONTAINS
     ! Describing each rbf array
     INTEGER, PARAMETER :: nvars = 4 ! 4:coeffs-only, 15:coeffs+indices
     TYPE(t_rbf_netcdf_var) :: rbf_vars(nvars)
-    TYPE(t_alloc_3d) :: buf_wp(nvars)
+    TYPE(t_alloc_3d), TARGET :: buf_wp(nvars)
     CHARACTER(LEN=UUID_STRING_LENGTH) :: uuid_grid_string
 
     CALL message(routine, 'Writing RBF coefficients')
@@ -149,13 +151,13 @@ CONTAINS
 
     ! Floating-point rbf coefficients only
     CALL allocate_and_pack_into_nlev(ptr_int_state%rbf_vec_coeff_c, buf_wp(1)%a, ptr_patch%nblks_c)
-    CALL init_rbf_netcdf_var(rbf_vars(1), 'rbf_vec_coeff_c', dims_def, ndimids, (/6,9,-1,-1/), 2, ptr_patch%comm_pat_gather_c, ptr_wp=buf_wp(1)%a)
+    CALL init_rbf_netcdf_var(rbf_vars(1), 'rbf_vec_coeff_c', dims_def, ndimids, (/6, 9, -1, -1/), 2, buf_wp(1)%a, SYNC_C)
     CALL allocate_and_pack_into_nlev(ptr_int_state%rbf_c2grad_coeff, buf_wp(2)%a, ptr_patch%nblks_c)
-    CALL init_rbf_netcdf_var(rbf_vars(2), 'rbf_c2grad_coeff', dims_def, ndimids, (/6,12,-1,-1/), 2, ptr_patch%comm_pat_gather_c, ptr_wp=buf_wp(2)%a)
+    CALL init_rbf_netcdf_var(rbf_vars(2), 'rbf_c2grad_coeff', dims_def, ndimids, (/6, 12, -1, -1/), 2, buf_wp(2)%a, SYNC_C)
     CALL allocate_and_pack_into_nlev(ptr_int_state%rbf_vec_coeff_v, buf_wp(3)%a, ptr_patch%nblks_v)
-    CALL init_rbf_netcdf_var(rbf_vars(3), 'rbf_vec_coeff_v', dims_def, ndimids, (/8,11,-1,-1/), 2, ptr_patch%comm_pat_gather_v, ptr_wp=buf_wp(3)%a)
+    CALL init_rbf_netcdf_var(rbf_vars(3), 'rbf_vec_coeff_v', dims_def, ndimids, (/8, 11, -1, -1/), 2, buf_wp(3)%a, SYNC_V)
     CALL allocate_and_pack_into_nlev(ptr_int_state%rbf_vec_coeff_e, buf_wp(4)%a, ptr_patch%nblks_e)
-    CALL init_rbf_netcdf_var(rbf_vars(4), 'rbf_vec_coeff_e', dims_def, ndimids, (/7,3,-1,-1/), 2, ptr_patch%comm_pat_gather_e, ptr_wp=buf_wp(4)%a)
+    CALL init_rbf_netcdf_var(rbf_vars(4), 'rbf_vec_coeff_e', dims_def, ndimids, (/7, 3, -1, -1/), 2, buf_wp(4)%a, SYNC_E)
 
     ! Create all {dimid,varids} and put in rbf_netcdf_var
     IF (is_root) THEN
@@ -165,11 +167,11 @@ CONTAINS
       CALL message(routine, message_text)
 
       ! Create file
-      CALL nf(nf90_create(filename, NF90_CLOBBER, ncid), filename)
+      CALL nf(nf90_create(filename, IOR(NF90_CLOBBER, NF90_NETCDF4), ncid), filename)
 
       ! Create dimids and put in rbf_netcdf_var
       CALL create_nc_dimids(ncid, dims_def, dimnames_def, dimids_def, ndimids)
-      CALL put_dimids_rbf_netcdf_var(ncid, rbf_vars, nvars, dimids_def, ndimids)
+      CALL put_dimids_rbf_netcdf_var(rbf_vars, nvars, dimids_def, ndimids)
 
       ! Create varids and put in rbf_netcdf_var
       CALL create_and_put_nc_varids(ncid, rbf_vars, nvars)
@@ -440,8 +442,7 @@ CONTAINS
 
   END SUBROUTINE create_nc_dimids
 
-  SUBROUTINE put_dimids_rbf_netcdf_var(ncid, rbf_netcdf_vars, nvars, dimids_g, ndimids)
-    INTEGER, INTENT(IN) :: ncid
+  SUBROUTINE put_dimids_rbf_netcdf_var(rbf_netcdf_vars, nvars, dimids_g, ndimids)
     INTEGER, INTENT(IN) :: nvars
     INTEGER, INTENT(IN) :: ndimids !< global number of defined dimensions
     TYPE(t_rbf_netcdf_var), TARGET, INTENT(INOUT) :: rbf_netcdf_vars(nvars)
@@ -462,7 +463,7 @@ CONTAINS
   END SUBROUTINE put_dimids_rbf_netcdf_var
 
   SUBROUTINE init_rbf_netcdf_var(rbf_netcdf_var, varname, dims_def, ndims_def, dim_indices, ndims, &
-    &                            p_pat, ptr_wp)
+    &                            ptr_wp, pat_type)
 
     TYPE(t_rbf_netcdf_var), INTENT(OUT) :: rbf_netcdf_var
 
@@ -472,9 +473,9 @@ CONTAINS
     INTEGER, INTENT(IN) :: dims_def(ndims_def)
     INTEGER, INTENT(IN) :: dim_indices(MAX_NDIMS)
     INTEGER, INTENT(IN) :: ndims
-    TYPE(t_comm_gather_pattern), TARGET, INTENT(IN) :: p_pat
+    INTEGER, INTENT(IN) :: pat_type
     ! Local var
-    INTEGER :: vartype, varid, idim
+    INTEGER :: idim
     CHARACTER(LEN=*), PARAMETER :: routine = modname//":init_rbf_netcdf_var"
 
     ! Integer or real variable
@@ -487,7 +488,7 @@ CONTAINS
     DO idim = 1, ndims
       rbf_netcdf_var%dims(idim) = dims_def(dim_indices(idim))
     END DO
-    rbf_netcdf_var%p_pat => p_pat
+    rbf_netcdf_var%pat_type = pat_type
   END SUBROUTINE init_rbf_netcdf_var
 
   SUBROUTINE gather_and_write_rbf_netcdf_var(ncid, ptr_patch, var, is_root)
@@ -499,26 +500,41 @@ CONTAINS
     CHARACTER(*), PARAMETER :: routine = modname//":gather_and_write_rbf_netcdf_var"
     REAL(wp), ALLOCATABLE :: out_buf_wp(:, :) ! dims [ncells/edges/verts, nlev]
     INTEGER, PARAMETER :: fill_value = -999
+    TYPE(t_comm_gather_pattern), POINTER :: gather_pattern
 
     IF (var%ndims /= 2) CALL finish(routine, "only implimented for (nproma,nlev,nblks)")
 
     ! Allocate buffer on io proc
     IF (is_root) THEN
       ALLOCATE (out_buf_wp(var%dims(1), var%dims(2)))
+    ELSE
+      ALLOCATE (out_buf_wp(0, 0))
     END IF
+
+    ! Choose correct gather_pattern
+    SELECT CASE (var%pat_type)
+    CASE (SYNC_C)
+      gather_pattern => ptr_patch%comm_pat_gather_c
+    CASE (SYNC_E)
+      gather_pattern => ptr_patch%comm_pat_gather_e
+    CASE (SYNC_V)
+      gather_pattern => ptr_patch%comm_pat_gather_v
+    CASE DEFAULT
+      CALL finish(routine, 'Illegal type parameter')
+    END SELECT
 
     ! Cycle each field and do output
     ! 2D deblock gather:
     !INTEGER, INTENT(IN   ) :: in_array(:,:,:)  !! dimension (nproma, nlev, nblk)
     !INTEGER, INTENT(INOUT) :: out_array(:,:)   !! dimension (global length, nlev); only required on root
     CALL exchange_data(in_array=var%ptr_wp(:, :, :), out_array=out_buf_wp(:, :), &
-      &                gather_pattern=var%p_pat, fill_value=REAL(fill_value, KIND=wp))
+      &                gather_pattern=gather_pattern, fill_value=REAL(fill_value, KIND=wp))
 
     ! Output
     IF (is_root) THEN
       CALL nf(nf90_put_var(ncid, var%varid, out_buf_wp), "")
     END IF
-    IF (ALLOCATED(out_buf_wp)) DEALLOCATE (out_buf_wp)
+    DEALLOCATE (out_buf_wp)
 
   END SUBROUTINE gather_and_write_rbf_netcdf_var
 

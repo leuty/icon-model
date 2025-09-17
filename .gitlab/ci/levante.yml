@@ -189,6 +189,27 @@ aes:bubble:intel:run:
     - .utils:builder-rules:web-default:levante_intel_hybrid
   needs: [aes:bubble:intel:build]
 
+aes:bubble:nag:build:
+  extends:
+    - .build
+    - .aes:bubble
+    - .utils:builder-rules:web-manual:levante_nag
+  variables:
+    ICON_CI_CONFIG_REL_PATH: config/dkrz/levante.nag
+    # We know that the bubble test does not work as expected without RTE-RRTMGP,
+    # but we will not enable the feature until ICON learns to fail gracefully.
+    # However, we want other things to be tested when running ICON built with
+    # NAG compiler:
+    ICON_CI_CONFIG_EXTRA_ARGS: --enable-atmo --enable-aes --enable-rte-rrtmgp
+    ICON_CI_CONFIG_EXTRA_SUBMODULE_PATHS: externals/rte-rrtmgp
+
+aes:bubble:nag:run:
+  extends:
+    - .run
+    - .aes:bubble
+    - .utils:builder-rules:web-default:levante_nag
+  needs: [aes:bubble:nag:build]
+
 aes:bubble:gpu:build:
   extends:
     - .build
