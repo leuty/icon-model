@@ -10,25 +10,11 @@
 
 include:
   - local: .gitlab/ci/common/alpine.yml
-  # Generate builder rules and warning jobs:
-  - local: .gitlab/ci/utils/builder-rules.yml
-    inputs: {builder: santis_cpu}
-  - local: .gitlab/ci/utils/builder-rules.yml
-    inputs: {builder: santis_gpu}
+  - local: .gitlab/ci/common/warning.yml
 
-workflow:
-  rules:
-    - if: $CI_PIPELINE_SOURCE != "parent_pipeline"
-      when: never
-    - if: $ICON_CI_PARENT_PIPELINE_SOURCE == "merge_request_event"
-    - if: $ICON_CI_PARENT_PIPELINE_SOURCE == "web" || $ICON_CI_PARENT_PIPELINE_SOURCE == "schedule"
-      auto_cancel:
-        on_new_commit: none
-
-default:
-  interruptible: true
-
-.common_cscs_ci:
+.cscs:common:trigger:
+  stage: external
+  needs: []
   extends: .common:alpine
   variables:
     GIT_STRATEGY: none
@@ -36,6 +22,8 @@ default:
       py3-ratelim py3-requests py3-retry py3-yaml python3
     CSCS_CI_COMMIT_SHA: ${CI_COMMIT_SHA}
     CSCS_CI_TAG: merge2rc
+  # Manual that is allowed to fail by default:
+  when: manual
   # Wait for the external pipeline to finish:
   timeout: 6h
   script:
@@ -157,38 +145,73 @@ default:
       exit(0 if pipeline_succeeded else 1)
       _EOF
 
-cpu:
-  extends: .common_cscs_ci
+.cscs:common:warning:
+  stage: external
+  needs: []
+  extends: .common:warning
   variables:
-    CSCS_CI_TAG: merge2rc
+    ICON_CI_COMMON_WARNING_MESSAGE: >
+      ${CI_JOB_NAME}, see https://icon.gitlab-pages.dkrz.de/ci-tooling/icon-builders-status
+
+.cscs:common:trigger:cpu:
+  extends: .cscs:common:trigger
+  variables:
     CSCS_CI_BUILDER: santis-cpu
   rules:
-    - !reference [.utils:builder-rules:web-manual:santis_cpu, rules]
-    - if: $ICON_CI_PARENT_PIPELINE_SOURCE == "schedule" && $ICON_TEST_SCHEDULE == "nightly"
+    - if: $CI_PIPELINE_SOURCE == "web"
+    - if: $ICON_INACTIVE_BUILDERS =~ "/(^|,)santis_cpu(,|$)/"
+      when: never
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 
-gpu:
-  extends: .common_cscs_ci
+"'santis_cpu' is inactive":
+  extends: .cscs:common:warning
+  rules:
+    - if: $ICON_INACTIVE_BUILDERS !~ "/(^|,)santis_cpu(,|$)/"
+      when: never
+    - if: $CI_PIPELINE_SOURCE == "web"
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+.cscs:common:trigger:gpu:
+  extends: .cscs:common:trigger
   variables:
-    CSCS_CI_TAG: merge2rc
     CSCS_CI_BUILDER: santis-gpu
   rules:
-    - !reference [.utils:builder-rules:web-manual:santis_gpu, rules]
-    - if: $ICON_CI_PARENT_PIPELINE_SOURCE == "schedule" && $ICON_TEST_SCHEDULE == "nightly"
+    - if: $CI_PIPELINE_SOURCE == "web"
+    - if: $ICON_INACTIVE_BUILDERS =~ "/(^|,)santis_gpu(,|$)/"
+      when: never
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 
-cpu_tolerance:
-  extends:
-    - .common_cscs_ci
-    - .utils:builder-rules:web-default:santis_cpu
+"'santis_gpu' is inactive":
+  extends: .cscs:common:warning
+  rules:
+    - if: $ICON_INACTIVE_BUILDERS !~ "/(^|,)santis_gpu(,|$)/"
+      when: never
+    - if: $CI_PIPELINE_SOURCE == "web"
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+cscs/santis_cpu:
+  extends: .cscs:common:trigger:cpu
+  rules:
+    - !reference [.cscs:common:trigger:cpu, rules]
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ICON_TEST_SCHEDULE == "nightly"
+  allow_failure: false
+
+cscs/santis_gpu:
+  stage: external
+  extends: .cscs:common:trigger:gpu
+  rules:
+    - !reference [.cscs:common:trigger:gpu, rules]
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ICON_TEST_SCHEDULE == "nightly"
+  allow_failure: false
+
+cscs/santis_cpu:tolerance:
+  stage: optional
+  extends: .cscs:common:trigger:cpu
   variables:
     CSCS_CI_TAG: tolerance
-    CSCS_CI_BUILDER: santis-cpu
-  when: manual
 
-cpu_select_members:
-  extends:
-    - .common_cscs_ci
-    - .utils:builder-rules:web-default:santis_cpu
+cscs/santis_cpu:select-members:
+  stage: optional
+  extends: .cscs:common:trigger:cpu
   variables:
     CSCS_CI_TAG: select-members
-    CSCS_CI_BUILDER: santis-cpu
-  when: manual

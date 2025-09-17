@@ -13,6 +13,7 @@ include:
     file: .slurm-ci.yml
   - local: .gitlab/ci/utils/log.yml
   - local: .gitlab/ci/utils/git.yml
+  - local: .gitlab/ci/common/warning.yml
 
 # Implements the recommended default template for a job run by the Jacamar
 # GitLab runner on Levante at DKRZ. Sets reasonable default parameters for the
@@ -51,7 +52,7 @@ include:
 #   variables:
 #     ICON_CI_UTILS_GIT_CLONE_PATH: ${ICON_CI_COMMON_DKRZ_SHMEM_PATH}
 #
-.common:dkrz:jacamar:
+.common:dkrz:levante:
   extends:
     - .default
     - .utils:log
@@ -81,3 +82,36 @@ include:
     - module purge
     - module load git
     - !reference [.utils:git:clone_any_path, before_script]
+  rules:
+    # By default, never enable the job if one of the following builders is
+    # deactivated:
+    - if: >-
+        $ICON_INACTIVE_BUILDERS =~ "/(^|,)levante_gcc(,|$)/" ||
+          $ICON_INACTIVE_BUILDERS =~ "/(^|,)levante_gpu_nvhpc(,|$)/" ||
+          $ICON_INACTIVE_BUILDERS =~ "/(^|,)levante_intel(,|$)/" ||
+          $ICON_INACTIVE_BUILDERS =~ "/(^|,)levante_nag(,|$)/"
+      when: never
+
+# A warning job created in the system stage of a merge request pipeline that
+# runs if Levante is down. The job is allowed to fail and always does, which is
+# supposed to bring the developer's attention to the fact that some jobs in the
+# pipeline are disabled. At the same time, the pipeline does not fail.
+#
+Levante is down:
+  extends: .common:warning
+  stage: system
+  needs: []
+  variables:
+    ICON_CI_COMMON_WARNING_MESSAGE: >-
+      Levante is considered down when any of the following builders are deactivated: levante_gcc, levante_gpu_nvhpc, levante_intel, levante_nag (see https://icon.gitlab-pages.dkrz.de/ci-tooling/icon-builders-status)
+  rules:
+    # Currently, we assume that if any of the following builders is inactive,
+    # Levante is down:
+    - if: >-
+        $ICON_INACTIVE_BUILDERS !~ "/(^|,)levante_gcc(,|$)/" &&
+          $ICON_INACTIVE_BUILDERS !~ "/(^|,)levante_gpu_nvhpc(,|$)/" &&
+          $ICON_INACTIVE_BUILDERS !~ "/(^|,)levante_intel(,|$)/" &&
+          $ICON_INACTIVE_BUILDERS !~ "/(^|,)levante_nag(,|$)/"
+      when: never
+    - if: $CI_PIPELINE_SOURCE == "web"
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"

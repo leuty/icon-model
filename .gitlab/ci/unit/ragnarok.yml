@@ -11,25 +11,10 @@
 include:
   - local: .gitlab/ci/utils/log.yml
   - local: .gitlab/ci/common/dkrz.yml
-  # Generate builder rules and warning jobs:
-  - local: .gitlab/ci/utils/builder-rules.yml
-    inputs: {builder: levante_gcc}
-  - local: .gitlab/ci/utils/builder-rules.yml
-    inputs: {builder: levante_gpu_nvhpc}
 
-workflow:
-  rules:
-    - if: $CI_PIPELINE_SOURCE != "parent_pipeline"
-      when: never
-    - if: $ICON_CI_PARENT_PIPELINE_SOURCE == "merge_request_event"
-    - if: $ICON_CI_PARENT_PIPELINE_SOURCE == "web"
-      auto_cancel:
-        on_new_commit: none
-
-default:
-  interruptible: true
-
-.ragnarok:
+.ragnarok:common:
+  stage: unit
+  needs: []
   variables:
     CLICOLOR_FORCE: 1
     VERBOSE: # any given value is ignored, it's just checked for existence
@@ -37,7 +22,7 @@ default:
     GTEST_COLOR: 1
   script:
     - |
-      # !reference [.ragnarok, script]
+      # !reference [.ragnarok:common, script]
       icon_ci_log_section_start 'Configuring Ragnarok' 'collapsed=false'
       ICON_CI_RAGNAROK_BUILD_PATH=${ICON_CI_RAGNAROK_BUILD_PATH:-"${CI_PROJECT_DIR}/build"}
       (
@@ -66,8 +51,8 @@ default:
 
 .ragnarok:levante:
   extends:
-    - .common:dkrz:jacamar
-    - .ragnarok
+    - .common:dkrz:levante
+    - .ragnarok:common
   variables:
     GIT_SUBMODULE_STRATEGY: none
     ICON_CI_COMMON_DKRZ_SLURM_NTASKS: 64
@@ -75,11 +60,16 @@ default:
     ICON_CI_RAGNAROK_CMAKE_EXTRA_ARGS: -C "${ICON_CI_RAGNAROK_CACHE_FILE_PATH}"
     CMAKE_BUILD_PARALLEL_LEVEL: ${ICON_CI_COMMON_DKRZ_SLURM_NTASKS}
     CTEST_PARALLEL_LEVEL: ${ICON_CI_COMMON_DKRZ_SLURM_NTASKS}
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "web"
+      when: manual
+    - !reference [.common:dkrz:levante, rules]
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 
 ragnarok:cpu:serial:
   extends:
     - .utils:log
-    - .ragnarok
+    - .ragnarok:common
   variables:
     CMAKE_BUILD_PARALLEL_LEVEL: 8
     CTEST_PARALLEL_LEVEL: 8
@@ -87,14 +77,12 @@ ragnarok:cpu:serial:
     - docker-any-image
   image: registry.gitlab.dkrz.de/icon/containers/icon-dev
   rules:
-    - if: $ICON_CI_PARENT_PIPELINE_SOURCE == "web"
+    - if: $CI_PIPELINE_SOURCE == "web"
       when: manual
-    - if: $ICON_CI_PARENT_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 
 ragnarok:cpu:openmp:
-  extends:
-    - .ragnarok:levante
-    - .utils:builder-rules:web-manual:levante_gcc
+  extends: .ragnarok:levante
   variables:
     OMP_PROC_BIND: close
     OMP_PLACES: cores
@@ -103,9 +91,7 @@ ragnarok:cpu:openmp:
       ${CI_PROJECT_DIR}/ragnarok/cmake/caches/levante_cpu.cmake
 
 ragnarok:gpu:
-  extends:
-    - .ragnarok:levante
-    - .utils:builder-rules:web-manual:levante_gpu_nvhpc
+  extends: .ragnarok:levante
   variables:
     ICON_CI_COMMON_DKRZ_SLURM_PARTITION: gpu
     ICON_CI_COMMON_DKRZ_SLURM_GPUS_PER_NODE: 1
