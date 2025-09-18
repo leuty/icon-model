@@ -170,6 +170,7 @@ include:
       when: never
     - if: $CI_PIPELINE_SOURCE == "web"
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ICON_CI_TEST_SCHEDULE == "nightly"
 
 .cscs:common:trigger:gpu:
   extends: .cscs:common:trigger
@@ -188,12 +189,13 @@ include:
       when: never
     - if: $CI_PIPELINE_SOURCE == "web"
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ICON_CI_TEST_SCHEDULE == "nightly"
 
 cscs/santis_cpu:
   extends: .cscs:common:trigger:cpu
   rules:
     - !reference [.cscs:common:trigger:cpu, rules]
-    - if: $CI_PIPELINE_SOURCE == "schedule" && $ICON_TEST_SCHEDULE == "nightly"
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ICON_CI_TEST_SCHEDULE == "nightly"
   allow_failure: false
 
 cscs/santis_gpu:
@@ -201,7 +203,7 @@ cscs/santis_gpu:
   extends: .cscs:common:trigger:gpu
   rules:
     - !reference [.cscs:common:trigger:gpu, rules]
-    - if: $CI_PIPELINE_SOURCE == "schedule" && $ICON_TEST_SCHEDULE == "nightly"
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ICON_CI_TEST_SCHEDULE == "nightly"
   allow_failure: false
 
 cscs/santis_cpu:tolerance:
