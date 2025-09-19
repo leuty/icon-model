@@ -368,8 +368,6 @@ cat >> $jsbach_namelist << EOF
   active                  = .FALSE.
   bc_sso_filename         = 'bc_land_sso.nc'
   bc_quincy_soil_filename = 'bc_quincy_soil.nc'
-  spq_nsoil_energy        = ${nsoil_energy}
-  spq_nsoil_water         = ${nsoil_water}
 /
 &q_assimi_nml
   active                  = .TRUE.
@@ -395,6 +393,7 @@ cat >> $jsbach_namelist << EOF
   bc_filename     = 'bc_land_soil.nc'
   ic_filename     = 'ic_land_soil.nc'
   bc_quincy_soil_filename = 'bc_quincy_soil.nc'
+  quincy_nsoil_e          = 0   ! use default from input file
 /
 &jsb_hydro_nml
   bc_filename     = 'bc_land_soil.nc'
@@ -402,6 +401,7 @@ cat >> $jsbach_namelist << EOF
   bc_sso_filename = 'bc_land_sso.nc'
   l_organic       = .TRUE.
   l_soil_texture  = .TRUE.
+  quincy_nsoil_w  = 0    ! use default from input file
 /
 EOF
 

@@ -72,7 +72,7 @@ Climate: ICON-Land
   - Enable running the agriculture process in QUINCY also when only running biogeophysical processes
   - Different code updates reducing the number of restart variables in QUINCY runs (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/925, https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1015)
   - Enable reading of biogeochemical vegetation and soil states - and optionally product pools - from input file for QUINCY (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/953, https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1011)
-  - Use the JSBACH soil physics processes with the QUINCY (vegetation and soil) biogeochemistry
+  - Use the JSBACH soil physics processes with the QUINCY (vegetation and soil) biogeochemistry (icon-mpim!897, icon-mpim!1002)
   - Improve nitrogen cycle of QUINCY biogeochemistry
 - Use a common interface for QUINCY and JSBACH
 - Updated inline documentation of hydrology process
