@@ -108,6 +108,7 @@ NWP: TERRA and other surface issues
 - Optimization of synchronization between atmosphere and ocean in coupled configurations (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/799)
 - Expose valid_masks in output_coupling (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/719)
 - Implement component-specific finish.status files (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1748)
+- Fixes for using vertex-based 3d fields in the output coupling
 
 ### Externals
 

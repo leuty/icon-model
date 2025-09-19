@@ -26,6 +26,7 @@ MODULE mo_output_coupling
   USE mo_zaxis_type          ,ONLY: zaxisTypeList
   USE mo_fortran_tools       ,ONLY: set_acc_host_or_device
   USE mo_impl_constants      ,ONLY: REAL_T
+  USE mo_cdi_constants,       ONLY: GRID_UNSTRUCTURED_CELL, GRID_UNSTRUCTURED_VERT
 
 #ifdef _OPENACC
   USE openacc
@@ -38,6 +39,7 @@ MODULE mo_output_coupling
      INTEGER :: yac_field_id
      TYPE(t_var_ptr) :: var(1:3)
      INTEGER :: tlev_source, var_size
+     INTEGER :: hgrid
      TYPE(t_exposed_var), POINTER :: next => NULL()
   END TYPE t_exposed_var
 
@@ -63,7 +65,6 @@ CONTAINS
 
     USE mo_var_list_register,   ONLY: t_vl_register_iter
     USE mo_var_metadata,        ONLY: get_var_timelevel, get_var_name
-    USE mo_cdi_constants,       ONLY: GRID_UNSTRUCTURED_CELL, GRID_UNSTRUCTURED_VERT
     USE mo_var,                 ONLY: level_type_ml, level_type_pl, level_type_hl, level_type_il
     USE mo_coupling_utils,      ONLY: cpl_get_instance_id
 #ifdef YAC_coupling
@@ -209,6 +210,7 @@ CONTAINS
             IF (.NOT. ASSOCIATED(exposed_var)) THEN
                ALLOCATE(exposed_var)
                exposed_var%var_size = var_size
+               exposed_var%hgrid = vl_iter%cur%p%hgrid(iv)
                IF(tl /= -1) THEN
                   exposed_var%var(tl) = vl_iter%cur%p%vl(iv)
                   exposed_var%tlev_source = elem%info%tlev_source
@@ -579,17 +581,17 @@ CONTAINS
                 CALL finish(str_module, "Unsupported var_ref_pos " // int2string(var_ref_pos) // &
                      " for variable " // TRIM(var_now%p%info%name))
              END SELECT
-             buffer_ptr(1, nn)%p(1:var_size) => buffer(:,nn)
+             buffer_ptr(1, nn)%p(1:var_size) => buffer(1:var_size,nn)
           ENDDO
        END IF
 
        ! The ocean model does not mask land cells hence we set them to NaN manually before coupling to YAC.
-       IF ( PRESENT(valid_mask) ) THEN
+       IF ( PRESENT(valid_mask) .AND. cur_field%hgrid .EQ. GRID_UNSTRUCTURED_CELL ) THEN
           DO nn = 1 , collection_size
              ! Variable data stored in `buffer` or variable - dont overwrite if variable itself
              IF (.NOT. ASSOCIATED(buffer_ptr(1, nn)%p, buffer(:,nn))) THEN
                 buffer(:,nn) = buffer_ptr(1, nn)%p
-                buffer_ptr(1, nn)%p => buffer(:,nn)
+                buffer_ptr(1, nn)%p => buffer(1:var_size,nn)
              ENDIF
 
              ! Duplicate first level of ocean-mask for half-depth fields.
