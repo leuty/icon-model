@@ -196,14 +196,15 @@ cscs/santis_cpu:
   rules:
     - !reference [.cscs:common:trigger:cpu, rules]
     - if: $CI_PIPELINE_SOURCE == "schedule" && $ICON_CI_TEST_SCHEDULE == "nightly"
+      when: on_success
   allow_failure: false
 
 cscs/santis_gpu:
-  stage: external
   extends: .cscs:common:trigger:gpu
   rules:
     - !reference [.cscs:common:trigger:gpu, rules]
     - if: $CI_PIPELINE_SOURCE == "schedule" && $ICON_CI_TEST_SCHEDULE == "nightly"
+      when: on_success
   allow_failure: false
 
 cscs/santis_cpu:tolerance:
