@@ -74,6 +74,7 @@ Climate: ICON-Land
   - Enable reading of biogeochemical vegetation and soil states - and optionally product pools - from input file for QUINCY (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/953, https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1011)
   - Use the JSBACH soil physics processes with the QUINCY (vegetation and soil) biogeochemistry (icon-mpim!897, icon-mpim!1002)
   - Improve nitrogen cycle of QUINCY biogeochemistry
+  - Add namelist options and modify QUINCY biogeochemistry to better represent nutrient interactions
 - Use a common interface for QUINCY and JSBACH
 - Updated inline documentation of hydrology process
 - Fixes:

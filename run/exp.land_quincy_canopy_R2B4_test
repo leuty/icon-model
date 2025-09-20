@@ -144,7 +144,7 @@ quincyModel=canopy                  # canopy, plant, land (different versions of
 output_lnd=basic                    # amount of output: none/basic/medium/full
 force_c_isotopes=.FALSE.
 veg_bnf_scheme=unlimited
-leaf_stoichom_scheme=fixed
+leaf_stoichom_scheme=dynamic
 biomass_alloc_scheme=fixed
 nsoil_energy=5
 nsoil_water=5
@@ -354,6 +354,8 @@ cat >> $jsbach_namelist << EOF
   veg_bnf_scheme       = "${veg_bnf_scheme}"
   leaf_stoichom_scheme = "${leaf_stoichom_scheme}"
   biomass_alloc_scheme = "${biomass_alloc_scheme}"
+  flag_veg_interactive_n = .FALSE.
+  flag_veg_interactive_p = .FALSE.
 /
 &jsb_sb_nml
   active                  = .TRUE.
@@ -363,6 +365,8 @@ cat >> $jsbach_namelist << EOF
   flag_sb_prescribe_po4   = ${flag_P_prescribed}
   sb_nloss_scheme         = "${sb_nloss_scheme}"
   sb_bnf_scheme           = "${sb_bnf_scheme}"
+  flag_sb_interactive_n   = .FALSE.
+  flag_sb_interactive_p   = .FALSE.
 /
 &jsb_spq_nml
   active                  = .FALSE.
@@ -381,6 +385,7 @@ cat >> $jsbach_namelist << EOF
 &jsb_seb_nml
   bc_filename     = 'bc_land_phys.nc'
   ic_filename     = 'ic_land_soil.nc'
+  l_skin_temp     = .TRUE.
 /
 &jsb_sse_nml
   l_heat_cap_dyn  = .TRUE.
