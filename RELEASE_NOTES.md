@@ -75,6 +75,7 @@ Climate: ICON-Land
   - Use the JSBACH soil physics processes with the QUINCY (vegetation and soil) biogeochemistry (icon-mpim!897, icon-mpim!1002)
   - Improve nitrogen cycle of QUINCY biogeochemistry
   - Add namelist options and modify QUINCY biogeochemistry to better represent nutrient interactions
+  - Enabled setting selected calibration vegetation and soil-biogeochemistry parameters via namelist
 - Use a common interface for QUINCY and JSBACH
 - Updated inline documentation of hydrology process
 - Fixes:
