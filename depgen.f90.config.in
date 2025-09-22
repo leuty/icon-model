@@ -67,3 +67,5 @@
 --fc-external-mods=grib_api,eccodes
 #   RAGNAROK:
 --fc-external-mods=mo_ragnarok,mo_ragnarok_support
+#   NEC ASL:
+--fc-external-mods=asl_unified
