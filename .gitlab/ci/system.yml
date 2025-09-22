@@ -9,9 +9,12 @@
 # ---------------------------------------------------------------
 
 include:
+  - local: .gitlab/ci/utils/git.yml
   - local: .gitlab/ci/common/dkrz.yml
+  - local: .gitlab/ci/common/ubuntu.yml
+  - local: .gitlab/ci/common/alpine.yml
 
-.build:levante:
+.system:build:levante:
   extends: .common:dkrz:levante
   stage: system
   needs: []
@@ -37,7 +40,7 @@ include:
     # $ICON_CI_COMMON_DKRZ_SHMEM_PATH directory, regardless of whether the job
     # succeeds.
     - |
-      # !reference [.build:levante, script]
+      # !reference [.system:build:levante, script]
       icon_ci_log_section_start 'Configuring and building ICON' 'collapsed=false'
       time (
         finalize ()
@@ -96,7 +99,7 @@ include:
     - !reference [.common:dkrz:levante, rules]
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 
-.run:levante:
+.system:run:levante:
   extends: .common:dkrz:levante
   stage: system
   needs: []
@@ -113,7 +116,7 @@ include:
   before_script:
     - !reference [.common:dkrz:levante, before_script]
     - |
-      # !reference [.run:levante, before_script]
+      # !reference [.system:run:levante, before_script]
       module --verbose load python3
       icon_ci_log_section_start "Preparing experiment '${CI_JOB_NAME}'"
       (
@@ -132,46 +135,125 @@ include:
       icon_ci_log_section_end
   script:
     - |
-      # !reference [.run:levante, script]
+      # !reference [.system:run:levante, script]
       icon_ci_log_section_start "Running experiment '${CI_JOB_NAME}'" 'collapsed=false'
       (
         set -ux
         ./experiments/${CI_JOB_NAME_SLUG}/scripts/${CI_JOB_NAME_SLUG}.run_start
+        {
+          icon_ci_log_info_msg 'Preparing the environment for the dependent jobs...'
+          {
+            echo "ICON_CI_RUN_JOB_NAME=${CI_JOB_NAME}"
+            echo "ICON_CI_RUN_JOB_OUTPUT_REL_PATH=${ICON_CI_MKEXP_WORK_REL_PATH}/${ICON_CI_MKEXP_RUN_SUBDIR}"
+          } >dependent.env
+        } 2>/dev/null
       ) 2>&1
       icon_ci_log_section_end
   artifacts:
     name: ${CI_PIPELINE_ID}-${CI_JOB_NAME_SLUG}
     paths:
       - ${ICON_CI_MKEXP_WORK_REL_PATH}/${ICON_CI_MKEXP_RUN_SUBDIR}/${CI_JOB_NAME_SLUG}*.nc
+    reports:
+      dotenv: dependent.env
     expire_in: 30mins
-  rules: !reference [.build:levante, rules]
+  rules: !reference [.system:build:levante, rules]
+
+.system:checksum:
+  extends: .utils:git:ignore
+  variables:
+    ICON_CI_CHECKSUM_TABLE_PATH: >-
+      ${CI_PROJECT_DIR}/.gitlab/ci/data/system-checksum-table.yml
+    ICON_CI_CHECKSUM_TMP_PATH: >-
+      ${ICON_CI_UTILS_GIT_IGNORE_PATH}/system-checksums
+
+.system:analyze:
+  stage: system
+  extends:
+    - .common:ubuntu
+    - .system:checksum
+  variables:
+    ICON_CI_COMMON_UBUNTU_PACKAGES: cdo python3-minimal python3-yaml
+  before_script:
+    - |
+      # !reference [.system:analyze, before_script]
+      {
+        # If this job fails for any unexpected reason, the dependent job will
+        # have the required information to report the error:
+        echo "ICON_CI_FAILED_ANALYZE_JOB_NAME=${CI_JOB_NAME}"
+        echo "ICON_CI_FAILED_ANALYZE_JOB_URL=${CI_JOB_URL}"
+      } >dependent.env
+    - !reference [.common:ubuntu, before_script]
+  script:
+    - |
+      # !reference [.system:analyze, script]
+      icon_ci_log_section_start 'Verifying checksums of the model output' 'collapsed=false'
+      (
+        set -u
+        model_output_files=$(find "${ICON_CI_RUN_JOB_OUTPUT_REL_PATH}" -type f | sort)
+        cdo --version
+        set -x
+        calculated_cksum=$(cdo -outputf,'%.17g' ${model_output_files} | sha256sum --text - | cut -d ' ' -f1)
+        expected_cksum=$(python3 -c 'import sys, yaml; print(yaml.safe_load(open(sys.argv[1], "r"))[sys.argv[2]])' "${ICON_CI_CHECKSUM_TABLE_PATH}" "${ICON_CI_RUN_JOB_NAME}") || expected_cksum=unknown
+        mkdir -p "${ICON_CI_CHECKSUM_TMP_PATH}"
+        python3 -c 'import os, sys, yaml; yaml.safe_dump({sys.argv[2]: sys.argv[3]}, open(sys.argv[1], "w"))' "${ICON_CI_CHECKSUM_TMP_PATH}/${CI_JOB_NAME_SLUG}.yml" "${ICON_CI_RUN_JOB_NAME}" "${calculated_cksum}"
+        # We assume that the only reason for the job to fail after this line is
+        # the checksum mismatch, which is an "expected failure" handled by the
+        # dependent jobs. We also want to disable the shell trace with no extra
+        # messages in the log:
+        { set +x; } >dependent.env 2>/dev/null
+        test "${calculated_cksum}" = "${expected_cksum}" && {
+          icon_ci_log_info_msg "The calculated output checksum for \
+      '${ICON_CI_RUN_JOB_NAME}' matches the expected value '${expected_cksum}'"
+        } || {
+          icon_ci_log_error_msg "ERROR: the expected output checksum for \
+      '${ICON_CI_RUN_JOB_NAME}' is '${expected_cksum}', \
+      got '${calculated_cksum}'"
+          exit 1
+        }
+      ) 2>&1
+      icon_ci_log_section_end
+  artifacts:
+    paths:
+      - ${ICON_CI_CHECKSUM_TMP_PATH}/*
+    reports:
+      dotenv: dependent.env
+    when: on_failure
+  rules: !reference [.system:run:levante, rules]
 
 aes:bubble:gcc:build:
-  extends: .build:levante
+  extends: .system:build:levante
   variables:
     ICON_CI_CONFIG_REL_PATH: config/dkrz/levante.gcc
     ICON_CI_CONFIG_EXTRA_ARGS: --enable-atmo --enable-aes
 
 aes:bubble:gcc:run:
-  extends: .run:levante
+  extends: .system:run:levante
   variables:
     ICON_CI_MKEXP_CONFIG_REL_PATH: run/examples/bubble.config
   needs: [aes:bubble:gcc:build]
 
+aes:bubble:gcc:analyze:
+  extends: .system:analyze
+  needs: [aes:bubble:gcc:run]
+
 aes:bubble:cpu:build:
-  extends: .build:levante
+  extends: .system:build:levante
   variables:
     ICON_CI_CONFIG_REL_PATH: config/dkrz/levante.intel
     ICON_CI_CONFIG_EXTRA_ARGS: --enable-atmo --enable-aes --enable-openmp
 
 aes:bubble:cpu:run:
-  extends: .run:levante
+  extends: .system:run:levante
   variables:
     ICON_CI_MKEXP_CONFIG_REL_PATH: run/examples/bubble.config
   needs: [aes:bubble:cpu:build]
 
+aes:bubble:cpu:analyze:
+  extends: .system:analyze
+  needs: [aes:bubble:cpu:run]
+
 aes:bubble:nag:build:
-  extends: .build:levante
+  extends: .system:build:levante
   variables:
     ICON_CI_CONFIG_REL_PATH: config/dkrz/levante.nag
     # We know that the bubble test does not work as expected without RTE-RRTMGP,
@@ -182,13 +264,17 @@ aes:bubble:nag:build:
     ICON_CI_CONFIG_EXTRA_SUBMODULE_PATHS: externals/rte-rrtmgp
 
 aes:bubble:nag:run:
-  extends: .run:levante
+  extends: .system:run:levante
   variables:
     ICON_CI_MKEXP_CONFIG_REL_PATH: run/examples/bubble.config
   needs: [aes:bubble:nag:build]
 
+aes:bubble:nag:analyze:
+  extends: .system:analyze
+  needs: [aes:bubble:nag:run]
+
 aes:bubble:gpu:build:
-  extends: .build:levante
+  extends: .system:build:levante
   variables:
     ICON_CI_CONFIG_REL_PATH: config/dkrz/levante.gpu.nvhpc
     # Enable Large-Eddy Simulation to work around a bug
@@ -196,7 +282,7 @@ aes:bubble:gpu:build:
     ICON_CI_CONFIG_EXTRA_ARGS: --enable-atmo --enable-aes --enable-les
 
 aes:bubble:gpu:run:
-  extends: .run:levante
+  extends: .system:run:levante
   needs: [aes:bubble:gpu:build]
   variables:
     ICON_CI_COMMON_DKRZ_SLURM_PARTITION: gpu
@@ -205,8 +291,12 @@ aes:bubble:gpu:run:
     ICON_CI_COMMON_DKRZ_SLURM_EXTRA_PARAMETERS: --exclusive
     ICON_CI_MKEXP_CONFIG_REL_PATH: run/examples/bubble.config
 
+aes:bubble:gpu:analyze:
+  extends: .system:analyze
+  needs: [aes:bubble:gpu:run]
+
 aes:coupled:cpu:build:
-  extends: .build:levante
+  extends: .system:build:levante
   variables:
     ICON_CI_CONFIG_REL_PATH: config/dkrz/levante.intel
     ICON_CI_CONFIG_EXTRA_ARGS: >-
@@ -217,7 +307,7 @@ aes:coupled:cpu:build:
       externals/jsbach externals/rte-rrtmgp externals/yac externals/yaxt
 
 aes:coupled:cpu:run:
-  extends: .run:levante
+  extends: .system:run:levante
   needs: [aes:coupled:cpu:build]
   variables:
     ICON_CI_COMMON_DKRZ_SLURM_NNODES: 4
@@ -227,3 +317,115 @@ aes:coupled:cpu:run:
     ICON_CI_MKEXP_EXTRA_ARGS: >-
       EXP_OPTIONS=output/coupled_test,serial,test/suite
       jobs.run_restart_start...hide=true
+
+aes:coupled:cpu:analyze:
+  extends: .system:analyze
+  needs: [aes:coupled:cpu:run]
+
+generate-checksum-table:
+  stage: system
+  needs:
+    - aes:bubble:cpu:analyze
+    - aes:bubble:gcc:analyze
+    - aes:bubble:gpu:analyze
+    - aes:bubble:nag:analyze
+    - aes:coupled:cpu:analyze
+  extends:
+    - .common:alpine
+    - .system:checksum
+  variables:
+    ICON_CI_COMMON_ALPINE_PACKAGES: yq-go
+  script:
+    - |
+      # !reference [generate-checksum-table, script]
+      test -z "${ICON_CI_FAILED_ANALYZE_JOB_NAME-}" || {
+        icon_ci_log_error_msg \
+          "ERROR: job '${ICON_CI_FAILED_ANALYZE_JOB_NAME}' failed for unknown \
+      reasons (see ${ICON_CI_FAILED_ANALYZE_JOB_URL})"
+        exit 1
+      }
+      icon_ci_log_section_start 'Generating the model output checksum table' 'collapsed=false'
+      (
+        set -u
+        test -e "${ICON_CI_CHECKSUM_TABLE_PATH}" || (
+          dir=$(dirname "${ICON_CI_CHECKSUM_TABLE_PATH}")
+          set -x
+          mkdir -p "${dir}"
+          touch "${ICON_CI_CHECKSUM_TABLE_PATH}"
+        )
+
+        set -x
+        yq --inplace eval-all \
+          '. as $item ireduce ({}; . * $item ) | sort_keys(..)' \
+          "${ICON_CI_CHECKSUM_TABLE_PATH}" \
+          "${ICON_CI_CHECKSUM_TMP_PATH}"/*
+      ) 2>&1
+      icon_ci_log_section_end
+  when: on_failure
+  artifacts:
+    paths:
+      - ${ICON_CI_CHECKSUM_TABLE_PATH}
+  rules: !reference [.system:analyze, rules]
+
+Accept new checksum table:
+  stage: system
+  needs: [generate-checksum-table]
+  extends:
+    - .common:alpine
+    - .system:checksum
+  variables:
+    ICON_CI_COMMON_ALPINE_PACKAGES: git
+  script:
+    - |
+      # !references [Accept new checksum table, script]
+      (
+        set -u
+
+        branch=${CI_MERGE_REQUEST_SOURCE_BRANCH_NAME:-${CI_COMMIT_BRANCH:-}}
+        test -n "${branch}" || {
+          icon_ci_log_error_msg "ERROR: '${CI_JOB_NAME}' can only run for \
+      merge request and branch pipelines, i.e. when either the \
+      CI_MERGE_REQUEST_SOURCE_BRANCH_NAME or the CI_COMMIT_BRANCH variable is \
+      set"
+          exit 1
+        }
+
+        test "${CI_PROJECT_ID}" = "${CI_MERGE_REQUEST_SOURCE_PROJECT_ID:-${CI_PROJECT_ID}}" || {
+          icon_ci_log_error_msg "ERROR: '${CI_JOB_NAME}' does not support \
+      pipelines from fork projects"
+          exit 1
+        }
+
+        icon_ci_log_section_start "Pushing changes to '${branch}'" 'collapsed=false'
+        (
+          set -x
+          git add --force -- "${ICON_CI_CHECKSUM_TABLE_PATH}"
+          git \
+            -c user.name="${GITLAB_USER_NAME}" \
+            -c user.email="${GITLAB_USER_EMAIL}" \
+            commit \
+              --no-verify --no-post-rewrite --quiet \
+              --message "update ${ICON_CI_CHECKSUM_TABLE_PATH##*/}
+
+      ${CI_JOB_URL}"
+          git push \
+            --no-recurse-submodules --no-verify --quiet \
+            origin "HEAD:refs/heads/${branch}"
+        ) 2>&1
+        icon_ci_log_section_end
+      )
+  when: manual
+  interruptible: false
+  rules:
+    - if: $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME == null && $CI_COMMIT_BRANCH == null
+      when: never
+    # For a better integration with the Buildbot, all ICON forks are configured
+    # with ci_allow_fork_pipelines_to_run_in_parent_project=false, which also
+    # means that the repository clone created for this job is always the one we
+    # want to push the changes to. Hence, the following condition is expected to
+    # be always false, but we keep it as an additional protection level:
+    - if: $CI_MERGE_REQUEST_SOURCE_PROJECT_ID && $CI_PROJECT_ID != $CI_MERGE_REQUEST_SOURCE_PROJECT_ID
+      when: never
+    - !reference [generate-checksum-table, rules]
+  manual_confirmation: >-
+    This job will create a new commit on the branch. Make sure to pull it before adding any further commits.

@@ -56,14 +56,15 @@ SPDX-License-Identifier = "CC-BY-4.0"
 [[annotations]]
 # "Unimportant" technical files:
 path = [
+  ".gitlab/ci/data/system-checksum-table.yml",
   ".gitlab/issue_templates/bug-report.md",
   ".gitlab/issue_templates/build-failure-report.md",
   ".gitlab/issue_templates/feature-request.md",
   ".gitlab/merge_request_templates/default.md",
   ".gitlab/merge_request_templates/nwp-feature.md",
   "config.h.in",
-  "config/**/*_TAG*",
   "config/**/*_ENV_TAG",
+  "config/**/*_TAG*",
   "run/tolerance/PROBTEST_TAG",
   "run/tolerance/hashes/*",
   "schedulers/ecmwf/gen/mapfile_vlist.txt",
