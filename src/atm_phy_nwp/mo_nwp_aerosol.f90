@@ -456,6 +456,7 @@ CONTAINS
 ! Kinne aerosol
 !---------------------------------------------------------------------------------------
       CASE(iRadAeroConstKinne, iRadAeroKinne, iRadAeroVolc, iRadAeroKinneVolc, iRadAeroKinneVolcSP, iRadAeroKinneSP)
+        !$ACC DATA CREATE(cloud_num_fac) IF(lzacc)
 
         rl_start   = grf_bdywidth_c-1
         rl_end     = min_rlcell_int
@@ -508,11 +509,13 @@ CONTAINS
             &                    lacc=lzacc)
 
           IF ( atm_phy_nwp_config(pt_patch%id)%scale_cdnc_mode /= 0 ) THEN
-#ifdef _OPENACC
-            IF (lzacc) CALL finish(routine, "scale_cdnc_mode not ported to OpenACC.")
-#endif
             ! scale the cdnc with the scaling factor:
-            prm_diag%cloud_num(:,jb) = cloud_num_fac(:) *  ext_data%atm%cdnc(:,jb)
+            !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+            !$ACC LOOP GANG VECTOR
+            DO jc = i_startidx,i_endidx
+              prm_diag%cloud_num(jc,jb) = cloud_num_fac(jc) * ext_data%atm%cdnc(jc,jb)
+            END DO
+            !$ACC END PARALLEL
           ENDIF
 
           IF ( var_in_output(jg)%aod_550nm ) THEN
@@ -532,6 +535,8 @@ CONTAINS
 !$OMP END DO NOWAIT
 !$OMP END PARALLEL
 
+        !$ACC WAIT
+        !$ACC END DATA
       ! CAMS climatology/forecasted aerosols
       CASE(iRadAeroCAMSclim,iRadAeroCAMStd)
 

@@ -369,8 +369,9 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
  efdt_min_raylfric  = 7200.
  itype_z0         = 2
  icapdcycl        = 3
- icpl_aero_conv   = 0
+ icpl_aero_conv   = 1
  icpl_aero_gscp   = 3
+ scale_cdnc_mode  = 2
  icpl_o3_tp       = 1
  dt_rad           = 2400
  dt_conv          = 800

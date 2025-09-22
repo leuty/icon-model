@@ -774,8 +774,13 @@ MODULE mo_bc_aeropt_splumes
           & dNovrN=x_cdnc(:) &
         )
 
-    cloud_num_fac(:) = x_cdnc(:) / MAX(1e-6_wp, x_cdnc_ref(:))
-    cloud_num_fac(:) = MIN(MAX(0.1_wp, cloud_num_fac(:)),3._wp)
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+    !$ACC LOOP GANG(STATIC: 1) VECTOR
+    DO jl = jcs, jce
+      cloud_num_fac(jl) = x_cdnc(jl) / MAX(1e-6_wp, x_cdnc_ref(jl))
+      cloud_num_fac(jl) = MIN(MAX(0.1_wp, cloud_num_fac(jl)),3._wp)
+    END DO
+    !$ACC END PARALLEL
 
     !$ACC END DATA
 
