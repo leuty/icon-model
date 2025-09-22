@@ -15,4 +15,13 @@ MY_DIR=$(cd "$(dirname "$0")"; pwd)
 
 source "${MY_DIR}/dwd_fcns.sh"
 
+# In order to avoid out-of memory errors during compilation in single-precision
+# in the routines
+# - src/atm_phy_schemes/mo_lrtm_taumol.f90 (for RRTM)
+# - externals/ecrad/ifsrrtm/rrtm_taumol5.F90 (for ecrad)
+# we must increase the stacksize and virtual memory.
+ulimit -s unlimited
+ulimit -v 16777216
+ulimit -a
+
 build_dwd "$(basename ${BASH_SOURCE[0]})"
