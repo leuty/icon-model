@@ -108,6 +108,7 @@ NWP: TERRA and other surface issues
 - Switch to CDI 2.5.2.1
 - Switch to HD v5.2.4
 - Switch to probtest v1.1
+- Switch to YAC v3.9.2
 
 ### Infrastructure
 
