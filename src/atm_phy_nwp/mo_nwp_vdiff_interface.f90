@@ -905,6 +905,23 @@ CONTAINS
           )
 #endif
 
+        ! Diagnose surface stress (in N/m**2). This is a mixed-time flux.
+        CALL get_surface_stress ( &
+            & ics=ics, &
+            & ice=ice, &
+            & delta_time=delta_time, &
+            & prefactor_exchange=prefactor_exchange(:,i_blk), &
+            & exchange_coeff_m_sfc=mem%exchange_coeff_m_sfc(:,i_blk,:), &
+            & uv_acoef=uv_acoef(:,:), &
+            & u_bcoef=u_bcoef(:,:), &
+            & v_bcoef=v_bcoef(:,:), &
+            & ocean_u=ocean_u(:,i_blk), &
+            & ocean_v=ocean_v(:,i_blk), &
+            & zero=zero2d(:,1), &
+            & umfl_sft=flx_mom_u_sft(:,i_blk,:), &
+            & vmfl_sft=flx_mom_v_sft(:,i_blk,:) &
+          )
+
         ! condhf_ice and meltpot_ice are unallocated for uncoupled runs.
         IF (lis_coupled_to_ocean) THEN
           p_condhf_ice_blk => diag_lnd%condhf_ice(:,i_blk)
@@ -923,8 +940,10 @@ CONTAINS
             & ext_data=ext_data, &
             & rain=rain_srf(:,i_blk), &
             & snow=snow_srf(:,i_blk), &
-            & latent_hflx_ice_old=mem%flx_heat_latent_sft(:,i_blk,SFT_SICE), &
-            & sensible_hflx_ice_old=mem%flx_heat_sensible_sft(:,i_blk,SFT_SICE), &
+            & latent_hflx_sft_old=mem%flx_heat_latent_sft(:,i_blk,:), &
+            & sensible_hflx_sft_old=mem%flx_heat_sensible_sft(:,i_blk,:), &
+            & flx_mom_u_sft=flx_mom_u_sft(:,i_blk,:), &
+            & flx_mom_v_sft=flx_mom_v_sft(:,i_blk,:), &
             & flx_rad=flx_rad, &
             & sea_state=mem%sea_state, &
             & cos_zenith_angle=phy_diag%cosmu0(:,i_blk), &
@@ -961,23 +980,6 @@ CONTAINS
             & alb=alb, &
             & prog_wtr_new=prog_wtr_new, &
             & lacc=.TRUE. &
-          )
-
-        ! Diagnose surface stress (in N/m**2). This is a mixed-time flux.
-        CALL get_surface_stress ( &
-            & ics=ics, &
-            & ice=ice, &
-            & delta_time=delta_time, &
-            & prefactor_exchange=prefactor_exchange(:,i_blk), &
-            & exchange_coeff_m_sfc=mem%exchange_coeff_m_sfc(:,i_blk,:), &
-            & uv_acoef=uv_acoef(:,:), &
-            & u_bcoef=u_bcoef(:,:), &
-            & v_bcoef=v_bcoef(:,:), &
-            & ocean_u=ocean_u(:,i_blk), &
-            & ocean_v=ocean_v(:,i_blk), &
-            & zero=zero2d(:,1), &
-            & umfl_sft=flx_mom_u_sft(:,i_blk,:), &
-            & vmfl_sft=flx_mom_v_sft(:,i_blk,:) &
           )
 
         ! Including Q_snowcanopymelt here gives a slightly different flux from what JSBACH sees,
