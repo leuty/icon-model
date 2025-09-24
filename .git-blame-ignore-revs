@@ -13,3 +13,7 @@
 # Additionally, all text files do not contain trailing empty lines and
 # whitespaces anymore.
 1aa7f74dd348a21f2dfe1caa8a0c0513e1cb1a4e
+
+# Switch to the updated Google C++ Style Guide:
+# https://google.github.io/styleguide/cppguide.html#Pointer_and_Reference_Expressions
+e4331fed29082d46c02b442f5b971ad986ddbe20
