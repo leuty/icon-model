@@ -18,12 +18,17 @@ MODULE mo_wave_forcing
 
   USE mo_kind,                     ONLY: wp
   USE mo_exception,                ONLY: finish, warning, message, message_text
+  USE mo_impl_constants,           ONLY: SUCCESS
   USE mo_io_units,                 ONLY: filename_max
   USE mo_model_domain,             ONLY: t_patch
+  USE mo_master_config,            ONLY: getModelBaseDir
+  USE mo_grid_config,              ONLY: n_dom, nroot
+  USE mo_run_config,               ONLY: msg_level
+  USE mo_wave_config,              ONLY: t_wave_config, generate_filename
   USE mo_reader_sst_sic,           ONLY: t_sst_sic_reader
   USE mo_interpolate_time,         ONLY: t_time_intp_transient
   USE mo_fortran_tools,            ONLY: copy, DO_DEALLOCATE
-  USE mtime,                       ONLY: datetime
+  USE mtime,                       ONLY: datetime, datetimeToString, MAX_DATETIME_STR_LEN
   USE mo_wave_td_update,           ONLY: update_ice_free_mask, &
     &                                    update_speed_and_direction
   USE mo_mpi,                      ONLY: my_process_is_mpi_workroot, p_io, p_bcast, &
@@ -65,6 +70,8 @@ MODULE mo_wave_forcing
     ! forcing flags
     LOGICAL :: l_wind_exist, l_ice_exist, l_slh_exist, l_osc_exist
 
+    ! initialization flag
+    LOGICAL :: isInit = .FALSE.
   CONTAINS
 
    PROCEDURE :: init               => read_wave_forcing__init
@@ -74,8 +81,17 @@ MODULE mo_wave_forcing
   END TYPE t_read_wave_forcing
 
 
-  PUBLIC  :: t_read_wave_forcing
+  !
+  ! note that the following TARGET attribute is essential! Otherwise the pointer to the
+  ! specific reader inside the time interpolator object (this%reader in time_intp_intp)
+  ! will lose its association status.
+  TYPE(t_read_wave_forcing), ALLOCATABLE, TARGET :: reader_wave_forcing(:)
 
+  PUBLIC  :: t_read_wave_forcing
+  PUBLIC  :: reader_wave_forcing
+
+  PUBLIC  :: construct_reader_wave_forcing
+  PUBLIC  :: destruct_reader_wave_forcing
 
 CONTAINS
 
@@ -175,6 +191,8 @@ CONTAINS
       CALL self%vosc_intp  %init(self%vosc_reader, destination_time, "VOSC")
     END IF
 
+    ! update initialization flag
+    self%isInit = .TRUE.
   END SUBROUTINE read_wave_forcing__init
 
 
@@ -244,6 +262,20 @@ CONTAINS
     REAL(wp),                INTENT(INOUT) :: sp_osc(:,:)              ! ocean surface current velocity
     REAL(wp),                INTENT(INOUT) :: dir_osc(:,:)             ! ocean surface current direction [rad]
     INTEGER,                 INTENT(INOUT) :: ice_free_mask_c(:,:)     ! ice mask
+
+    ! local
+    CHARACTER(LEN=MAX_DATETIME_STR_LEN) :: destination_time_string
+
+    ! Sanity check
+    IF (.NOT. self%isInit) THEN
+      CALL finish(routine, "Error: Forcing state reader has not been initialized!")
+    ENDIF
+
+    IF (msg_level > 12) THEN
+      CALL datetimeToString(destination_time, destination_time_string)
+      WRITE(message_text,'(a,a)') 'Update forcing data for ', TRIM(destination_time_string)
+      CALL message(routine, message_text)
+    ENDIF
 
     ! get new forcing data (read from file)
     CALL self%get_new_rawdata(destination_time)
@@ -359,6 +391,81 @@ CONTAINS
     CALL DO_DEALLOCATE(self%slh_raw)
     CALL DO_DEALLOCATE(self%uosc_raw)
 
+    self%isInit=.FALSE.
   END SUBROUTINE read_wave_forcing__deinit
+
+
+  !>
+  !! Wrapper for forcing reader construction
+  !!
+  SUBROUTINE construct_reader_wave_forcing (p_patch, wave_config, tc_start_date)
+    TYPE(t_patch),           INTENT(IN) :: p_patch(:)
+    TYPE(t_wave_config),     INTENT(IN) :: wave_config(:)
+    TYPE(datetime), POINTER, INTENT(IN) :: tc_start_date
+
+    ! local
+    INTEGER :: jg, jlev
+    INTEGER :: ierrstat
+    CHARACTER(LEN=filename_max) :: wave_forc_wind_fn(n_dom) ! forc_file_prefix+'_wind' for U and V 10 meter wind (m/s)
+    CHARACTER(LEN=filename_max) :: wave_forc_ice_fn(n_dom)  ! forc_file_prefix+'_ice'  for sea ice concentration (fraction of 1)
+    CHARACTER(LEN=filename_max) :: wave_forc_slh_fn(n_dom)  ! forc_file_prefix+'_slh'  for sea level height (m)
+    CHARACTER(LEN=filename_max) :: wave_forc_osc_fn(n_dom)  ! forc_file_prefix+'_osc'  for U and V ocean surface currents (m/s)
+
+    CHARACTER(len=*), PARAMETER :: routine = modname//':construct_reader_wave_forcing'
+
+    IF (msg_level > 6) THEN
+      CALL message(routine,'Construct wave forcing reader for standalone run')
+    ENDIF
+
+    ALLOCATE(reader_wave_forcing(n_dom), STAT=ierrstat)
+    IF (ierrstat /= SUCCESS) CALL finish(routine, 'Allocation failed for reader_wave_forcing')
+
+    DO jg = 1, n_dom
+
+      jlev = p_patch(jg)%level
+
+      wave_forc_wind_fn(jg) = generate_filename(TRIM(wave_config(jg)%forc_file_prefix)//"_wind.nc",&
+        &                 getModelBaseDir(), nroot, jlev, jg)
+      wave_forc_ice_fn(jg)  = generate_filename(TRIM(wave_config(jg)%forc_file_prefix)//"_ice.nc", &
+        &                 getModelBaseDir(), nroot, jlev, jg)
+      wave_forc_slh_fn(jg)  = generate_filename(TRIM(wave_config(jg)%forc_file_prefix)//"_slh.nc", &
+        &                 getModelBaseDir(), nroot, jlev, jg)
+      wave_forc_osc_fn(jg)  = generate_filename(TRIM(wave_config(jg)%forc_file_prefix)//"_osc.nc", &
+        &                 getModelBaseDir(), nroot, jlev, jg)
+
+      ! initialize reader of external forcing data
+      CALL reader_wave_forcing(jg)%init(p_patch             = p_patch(jg),             & !in
+        &                               destination_time    = tc_start_date,           & !in
+        &                               wave_forc_wind_file = wave_forc_wind_fn(jg),   & !in
+        &                               wave_forc_ice_file  = wave_forc_ice_fn(jg),    & !in
+        &                               wave_forc_slh_file  = wave_forc_slh_fn(jg),    & !in
+        &                               wave_forc_osc_file  = wave_forc_osc_fn(jg) )     !in
+    ENDDO
+
+  END SUBROUTINE
+
+
+  !>
+  !! Wrapper for forcing reader destruction
+  !!
+  SUBROUTINE destruct_reader_wave_forcing ()
+
+    INTEGER :: jg
+    INTEGER :: ierrstat
+    CHARACTER(len=*), PARAMETER :: routine = modname//':destruct_reader_wave_forcing'
+
+    IF (msg_level > 6) THEN
+      CALL message(routine,'Destruct wave forcing reader')
+    ENDIF
+
+    IF (ALLOCATED(reader_wave_forcing)) THEN
+      DO jg=1,n_dom
+        CALL reader_wave_forcing(jg)%deinit()
+      ENDDO
+      DEALLOCATE(reader_wave_forcing, STAT=ierrstat)
+      IF (ierrstat /= SUCCESS) CALL finish(routine, 'Deallocation failed for reader_wave_forcing')
+    ENDIF
+
+  END SUBROUTINE
 
 END MODULE mo_wave_forcing

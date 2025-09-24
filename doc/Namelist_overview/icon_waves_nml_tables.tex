@@ -73,6 +73,9 @@ Defined and used in: \verb+src/waves/config/mo_energy_propagation_nml.f90+
  dt\_shift    & R   & 0.       &  s   & time interval by which the actual model start date (tc\_start\_date)
                                         is shifted backwards in time. &
 \tabularnewline
+ init\_mode   & I   & 2        &      & 1 (MODE\_ANA): read wave energy spectrum from analysis file\\
+                                        2 (MODE\_COLD): initialize wave energy spectrum by analytic parameterization (currently JONSWAP)&
+\tabularnewline
 \end{longtab}
 
 Defined and used in: \verb+src/waves/config/mo_initwave_nml.f90+

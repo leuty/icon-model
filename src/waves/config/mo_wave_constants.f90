@@ -34,5 +34,14 @@ MODULE mo_wave_constants
   REAL(wp), PARAMETER :: CONSD = -CDIS * pi2**9 / grav**4 !! dissipation constant for deep water
   REAL(wp), PARAMETER :: CONSS = -CDIS * pi2 !! dissipation constant for shallow water
 
+  !
+  ! Implementation constants
+  !
+
+  ! Model initialization
+  INTEGER, PARAMETER :: MODE_ANA  = 1  ! read wave energy spectrum from analysis file
+  INTEGER, PARAMETER :: MODE_COLD = 2  ! model coldstart:
+                                       ! initialize wave energy spectrum by analytic parameterization
+                                       ! (such as JONSWAP)
 
 END MODULE mo_wave_constants

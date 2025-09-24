@@ -25,8 +25,10 @@ MODULE mo_initwave_nml
     &                                     open_and_restore_namelist, close_tmpfile
   USE mo_mpi,                       ONLY: my_process_is_stdio
   USE mo_nml_annotate,              ONLY: temp_defaults, temp_settings
+  USE mo_impl_constants,            ONLY: max_dom
+  USE mo_wave_constants,            ONLY: MODE_COLD
   USE mo_time_config,               ONLY: set_tc_timeshift
-  ! USE mo_initwave_config,           ONLY: initwave_config
+  USE mo_initwave_config,           ONLY: initwave_config
 
   IMPLICIT NONE
 
@@ -54,22 +56,26 @@ CONTAINS
 
     INTEGER :: istat, funit
     INTEGER :: iunit
+    INTEGER :: jg
 
-    REAL(wp) :: dt_shift      !< time interval by which the actual start date (tc_start_date)
-                              !< is shifted backwards in time. [s]
+    REAL(wp):: dt_shift      !< time interval by which the actual start date (tc_start_date)
+                             !< is shifted backwards in time. [s]
+    INTEGER :: init_mode     !< MODE_ANA : read wave energy spectrum from analysis file
+                             !< MODE_COLD: initialize by analytic wind-speed based parameterization
+                             !             (such as JONSWAP)
 
     CHARACTER(len=*), PARAMETER ::  &
       &  routine = 'mo_initwave_nml: read_initwave_nml'
 
-    NAMELIST /initwave_nml/ dt_shift
+    NAMELIST /initwave_nml/ dt_shift, init_mode
 
     !-----------------------
     ! 1. default settings
     !-----------------------
 
-    dt_shift = 0._wp     ! no shift backwards in time.
-                         ! => tc_current_date = tc_start_date at model start
-
+    dt_shift  = 0._wp     ! no shift backwards in time.
+                          ! => tc_current_date = tc_start_date at model start
+    init_mode = MODE_COLD ! coldstart from JONSWAP
 
     IF (my_process_is_stdio()) THEN
       iunit = temp_defaults()
@@ -110,6 +116,9 @@ CONTAINS
     !----------------------------------------------------
     ! 5. Fill the configuration state
     !----------------------------------------------------
+    DO jg = 1,max_dom
+      initwave_config(jg)%init_mode = init_mode
+    ENDDO
 
     ! transfer dt_shift to time_config state
     CALL set_tc_timeshift(dt_shift)

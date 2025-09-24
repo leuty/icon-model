@@ -18,7 +18,9 @@
 # global weather forecast (ICON-NWP) coupled to ICON-wave.
 # The system is set up on the R2B4 atmospheric grid with reduced radiation
 # grid and the R2B4 waves 'water-only' grid.
-
+# The wave energy spectrum is initialized analytically (JONSWAP), while the atmosphere
+# model starts from IFS analysis.
+#
 # The purpose is the technical testing of the coupled setup.
 #
 # Mikhail Dobrynin 23.06.2023
@@ -740,6 +742,10 @@ cat > ${wave_namelist} <<EOF
   itopo = 0
   extpar_filename = '${wave_extpar}'
  /
+&initwave_nml
+ init_mode       = 2       ! coldstart: initialize wave energy spectrum by
+                           ! analytic parameterization (JONSWAP)
+/
  &wave_nml
   ndirs       = ${nd}   ! number of directions
   nfreqs      = ${nf}   ! number of frequencies

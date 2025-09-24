@@ -17,6 +17,8 @@
 # The experiment writes checkpoint files asychronously, and restarts from the
 # latest checkpoint file, in order to check the correctness of the restart
 # functionality.
+# - analytic JONSWAP spectrum is used for initialization
+# - JONWAP spectrum is based on a realistic atmospheric wind field, read from file
 #
 # Mikhail Dobrynin, Daniel Reinert 2024
 #
@@ -220,6 +222,10 @@ cat > ${wave_namelist} << EOF
 &extpar_nml
  itopo = 0 !do not read atmospheric exp file
  extpar_filename = '${wave_extpar}'
+/
+&initwave_nml
+ init_mode       = 2       ! coldstart: initialize wave energy spectrum by
+                           ! analytic parameterization (JONSWAP)
 /
 &wave_nml
  ndirs       = ${nd}   ! number of directions

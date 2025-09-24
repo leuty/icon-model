@@ -20,12 +20,13 @@ MODULE mo_wave_adv_exp
   USE mo_math_constants,       ONLY: pi, pi2, deg2rad, dbl_eps
   USE mo_impl_constants,       ONLY: MAX_CHAR_LENGTH, min_rlcell
   USE mo_loopindices,          ONLY: get_indices_c
+  USE mo_wave_td_update,       ONLY: update_ice_free_mask
 
   IMPLICIT NONE
 
   PRIVATE
 
-  PUBLIC :: init_wind_adv_test
+  PUBLIC :: init_analytic_forcing
 
   CHARACTER(LEN=*), PARAMETER :: modname = 'mo_wave_adv_exp'
 
@@ -33,7 +34,12 @@ MODULE mo_wave_adv_exp
 
 CONTAINS
 
-  SUBROUTINE init_wind_adv_test(p_patch, wave_config, p_forcing)
+  !
+  ! Prescribe time-constant analytic wind forcing.
+  ! This routine initializes the following forcing fields:
+  ! u10m, v10m, sp10m, dir10m, sea_ice_c, ice_free_mask
+  !
+  SUBROUTINE init_analytic_forcing(p_patch, wave_config, p_forcing)
 
     CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER ::  &
          &  routine = modname//'::init_wind_adv_test'
@@ -81,17 +87,26 @@ CONTAINS
 
         ! calculate U and V wind components and ensure nonzero values in order to
         ! avoid division by zero in the following ATAN2 function
-        p_forcing%u10m(jc,jb) = MAX(1._wp + COS(pi*d1) * wc%peak_u10, dbl_eps)
-        p_forcing%v10m(jc,jb) = MAX(1._wp + COS(pi*d1) * wc%peak_v10, dbl_eps)
+        p_forcing%u10m(jc,jb)  = MAX(1._wp + COS(pi*d1) * wc%peak_u10, dbl_eps)
+        p_forcing%v10m(jc,jb)  = MAX(1._wp + COS(pi*d1) * wc%peak_v10, dbl_eps)
         p_forcing%sp10m(jc,jb) = SQRT(p_forcing%u10m(jc,jb)**2 + p_forcing%v10m(jc,jb)**2)
-        ! 45 degree towards NE
-        p_forcing%dir10m(jc,jb) = ATAN2(p_forcing%u10m(jc,jb),p_forcing%v10m(jc,jb))
+        ! 45 degree towards NE for the default case peak_u10=peak_v10
+        ! Note that o degrees points toward North.
+        p_forcing%dir10m(jc,jb)= ATAN2(p_forcing%u10m(jc,jb),p_forcing%v10m(jc,jb))
         IF (p_forcing%dir10m(jc,jb) < 0._wp) p_forcing%dir10m(jc,jb) = p_forcing%dir10m(jc,jb) + pi2
+        ! no seaice
+        p_forcing%sea_ice_c = 0._wp
       END DO ! cell loop
     END DO
 !$OMP END DO NOWAIT
 !$OMP END PARALLEL
 
-  END SUBROUTINE init_wind_adv_test
+     ! compute mask of ice-free points
+     CALL update_ice_free_mask(                       &
+       &     p_patch       = p_patch,                 & ! IN
+       &     sea_ice_c     = p_forcing%sea_ice_c,     & ! IN
+       &     ice_free_mask = p_forcing%ice_free_mask_c) ! OUT
+
+  END SUBROUTINE init_analytic_forcing
 
 END MODULE mo_wave_adv_exp

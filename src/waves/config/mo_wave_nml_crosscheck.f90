@@ -15,6 +15,8 @@
 MODULE mo_wave_crosscheck
 
   USE mo_exception,         ONLY: message, finish
+  USE mo_wave_constants,    ONLY: MODE_ANA
+  USE mo_master_config,     ONLY: isInitFromRestart
   USE mo_parallel_config,   ONLY: check_parallel_configuration
   USE mo_coupling_config,   ONLY: is_coupled_to_atmo
   USE mo_run_config,        ONLY: nsteps, ldynamics, ntracer, num_lev, ltestcase
@@ -24,6 +26,7 @@ MODULE mo_wave_crosscheck
        &                          compute_restart_settings,                         &
        &                          compute_date_settings
   USE mo_wave_config,       ONLY: wave_config
+  USE mo_initwave_config,   ONLY: initwave_config
 
   IMPLICIT NONE
 
@@ -75,6 +78,10 @@ CONTAINS
           CALL finish(routine,'Error: For standalone runs reading of forcing data from file is mandatory')
         ENDIF
       ENDDO
+    ENDIF
+
+    IF (isInitFromRestart() .AND. ANY(initwave_config(1:n_dom)%init_mode /= MODE_ANA)) THEN
+      CALL finish(routine,'Model initialization from restart file requires init_mode=1 (MODE_ANA)')
     ENDIF
 
     IF (ANY(num_lev(1:n_dom).ne.1)) THEN
