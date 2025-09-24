@@ -26,6 +26,28 @@ option(BUILD_TESTING "Build tests" ON)
 
 include(CTest)
 
+if(BUILD_TESTING)
+  find_package(GTest)
+  if(NOT GTest_FOUND)
+    message(CHECK_START "Fetching external GTest")
+    include(FetchContent)
+    FetchContent_Declare(
+      GTest
+      URL https://github.com/google/googletest/releases/download/v1.16.0/googletest-1.16.0.tar.gz
+      URL_HASH MD5=9a75eb2ac97300cdb8b65b1a5833f411
+    )
+    # Function to avoid namespace pollution:
+    function(configure_gtest)
+      set(BUILD_GMOCK OFF)
+      set(INSTALL_GTEST OFF)
+      set(gtest_disable_pthreads ON)
+      FetchContent_MakeAvailable(GTest)
+    endfunction()
+    configure_gtest()
+    message(CHECK_PASS "done")
+  endif()
+endif()
+
 # KokkosConfig.cmake overrides the CMAKE_CXX_EXTENSIONS cache variable. We do
 # not want our targets (some of which might not even depend on Kokkos) to be
 # affected by that. Below, we save the current value of the variable (in case
@@ -141,30 +163,14 @@ if(Kokkos_ENABLE_COMPILE_AS_CMAKE_LANGUAGE)
   endif()
 endif()
 
-add_subdirectory(src)
+add_library(ragnarok)
 
-if(BUILD_TESTING)
-  find_package(GTest)
-  if(NOT GTest_FOUND)
-    message(CHECK_START "Fetching external GTest")
-    include(FetchContent)
-    FetchContent_Declare(
-      googletest
-      URL https://github.com/google/googletest/releases/download/v1.16.0/googletest-1.16.0.tar.gz
-      URL_HASH MD5=9a75eb2ac97300cdb8b65b1a5833f411
-    )
-    # Function to avoid namespace pollution:
-    function(configure_googletest)
-      set(BUILD_GMOCK OFF)
-      set(INSTALL_GTEST OFF)
-      set(gtest_disable_pthreads ON)
-      FetchContent_MakeAvailable(googletest)
-    endfunction()
-    configure_googletest()
-    message(CHECK_PASS "done")
-  endif()
-  add_subdirectory(test)
-else()
-  # Allow for 'make test' even if the tests are disabled:
+add_subdirectory(common)
+add_subdirectory(support)
+
+target_link_libraries(ragnarok PUBLIC ragnarok_support)
+
+# Allow for 'make test' even if the tests are disabled:
+if(NOT BUILD_TESTING)
   enable_testing()
 endif()

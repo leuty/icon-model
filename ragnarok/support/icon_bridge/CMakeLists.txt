@@ -9,7 +9,4 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ---------------------------------------------------------------
 
-add_library(ragnarok)
-
-add_subdirectory(icon_bridge)
-target_link_libraries(ragnarok PRIVATE icon_bridge)
+add_subdirectory(src)

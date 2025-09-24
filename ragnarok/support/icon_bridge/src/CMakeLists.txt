@@ -23,7 +23,6 @@ add_library(
   ${kokkos_dependents}
   f2c_support.cpp
   f2c_support.hpp
-  icon_bridge.hpp
   icon_exception.cpp
   icon_exception.hpp
   icon_sync.hpp
@@ -49,7 +48,9 @@ if(BUILD_SHARED_LIBS)
 endif()
 
 target_include_directories(
-  icon_bridge PUBLIC $<BUILD_INTERFACE:${Fortran_MODULE_DIRECTORY}>
+  icon_bridge
+  PUBLIC
+    $<BUILD_INTERFACE:$<$<COMPILE_LANGUAGE:Fortran>:${Fortran_MODULE_DIRECTORY}>>
 )
 
 target_link_libraries(icon_bridge PUBLIC Kokkos::kokkos)
