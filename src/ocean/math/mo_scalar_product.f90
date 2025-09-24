@@ -1218,7 +1218,6 @@ CONTAINS
 
 #if defined(__LVECTOR__) && !defined(__LVEC_BITID__)
 #else
-        !$ACC LOOP SEQ
         DO level = startLevel, MIN(dolic_c(cell_index,blockNo), endLevel)
 #endif
 
@@ -3202,7 +3201,6 @@ CONTAINS
     DO jc = start_cell_index, end_cell_index
       end_level  = patch_3D%p_patch_1d(1)%dolic_c(jc,blockNo)
 !       IF ( end_level >=min_dolic ) THEN
-        !$ACC LOOP SEQ
         DO level = start_level, end_level
           vec_center(jc,level)%x &
           & = (prism_center_distance(jc,level)   * vec_top(jc,level)%x    &

@@ -54,7 +54,7 @@ CONTAINS
     INTEGER, INTENT(IN) :: root, comm
 
     CALL dict%dic%bcast(root, comm)
-    CALL dict%dic%output(inverse=dict%idic)
+    CALL dict%idic%bcast(root, comm)
   END SUBROUTINE dict_bcast
 
   SUBROUTINE dict_init(dict, lcase_sensitive)

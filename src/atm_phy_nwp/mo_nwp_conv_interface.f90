@@ -252,14 +252,10 @@ CONTAINS
     ! compute lfd_con(_max) only if all relevant fields are allocated (non-dummy).
     lcompute_lfd = SIZE(prm_diag%lfd_con_max,1) * SIZE(prm_diag%lfd_con,1) > 0
 
-#ifndef __PGI
-!FIXME: PGI + OpenMP produce deadlock in this loop. Compiler bug suspected
 !$OMP PARALLEL DO PRIVATE(jb,jc,jk,jt,i_startidx,i_endidx,z_omega_p,z_plitot,z_qhfl,z_shfl,z_dtdqv,&
 !$OMP            z_dtdt,z_dtdt_sv,zk850,zk950,u850,u950,v850,v950,wfac,z_ddspeed,convfac,nconv, &
 !$OMP            iseed,presmean,umean,vmean,qvmean,tempmean,qhfl_avg,shfl_avg,l,jc2,jb2,area_norm, &
 !$OMP            p_pres,p_u,p_v,p_qv,p_temp,p_qhfl_avg,p_shfl_avg,p_cloud_ensemble), ICON_OMP_GUIDED_SCHEDULE
-#endif
-
     DO jb = i_startblk, i_endblk
 
       CALL get_indices_c(p_patch, jb, i_startblk, i_endblk, &
@@ -737,9 +733,7 @@ CONTAINS
 
     ENDDO  ! jb
     !$ACC WAIT(1)
-#ifndef __PGI
 !$OMP END PARALLEL DO
-#endif
 
     IF ( ALLOCATED( ptr_conv_tracer_tend_comin) ) DEALLOCATE(ptr_conv_tracer_tend_comin)
     IF ( ALLOCATED( ptr_conv_tracer_comin) )      DEALLOCATE(ptr_conv_tracer_comin)

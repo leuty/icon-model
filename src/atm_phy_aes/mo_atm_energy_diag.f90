@@ -472,7 +472,7 @@ CONTAINS
     !> Compute internal, horizontal and vertical kinetic, geopotential and total energy density (J/m3)
     !
     IF (lein .OR. leinvi .OR. leto .OR. letovi) THEN
-       ein = atm_energy_diag_ein(                                        & !< internal energy density
+       CALL atm_energy_diag_ein(                                         & !< internal energy density
             &                    jcs, jce, jks, jke,                     & !< domain indices
             &                    rho,                                    & !< mass density
             &                    temp,                                   & !< air temperature
@@ -481,75 +481,85 @@ CONTAINS
             &                    qi,                                     & !< mass fraction in air of cloud ice
             &                    qr,                                     & !< mass fraction in air of rain
             &                    qs,                                     & !< mass fraction in air of snow
-            &                    qg)                                       !< mass fraction in air of graupel
+            &                    qg,                                     & !< mass fraction in air of graupel
+            &                    ein)
     END IF
     !
     IF (lekh .OR. lekhvi .OR. leto .OR. letovi) THEN
-       ekh = atm_energy_diag_ekh(                                        & !< horizontal kinetic energy density
+       CALL atm_energy_diag_ekh(                                         & !< horizontal kinetic energy density
             &                    jcs, jce, jks, jke,                     & !< domain indices
             &                    rho,                                    & !< mass density
             &                    u,                                      & !< zonal velocity
-            &                    v)                                        !< meridional velocity
+            &                    v,                                      & !< meridional velocity
+            &                    ekh)
     END IF
     !
     IF (lekv .OR. lekvvi .OR. leto .OR. letovi) THEN
-       ekv = atm_energy_diag_ekv(                                        & !< vertical kinetic energy density
+       CALL atm_energy_diag_ekv(                                         & !< vertical kinetic energy density
             &                    jcs, jce, jks, jke,                     & !< domain indices
             &                    rho,                                    & !< mass density
-            &                    w)                                        !< vertical velocity
+            &                    w,                                      & !< vertical velocity
+            &                    ekv)
     END IF
     !
     IF (legp .OR. legpvi .OR. leto .OR. letovi) THEN
-       egp = atm_energy_diag_egp(                                        & !< geopotential energy density
+       CALL atm_energy_diag_egp(                                         & !< geopotential energy density
             &                    jcs, jce, jks, jke,                     & !< domain indices
             &                    rho,                                    & !< mass density
-            &                    geopot)                                   !< geopotential
+            &                    geopot,                                 & !< geopotential
+            &                    egp)
     END IF
     !
     IF (leto .OR. letovi) THEN
-       eto = atm_energy_diag_eto(                                        & !< total energy density
+       CALL atm_energy_diag_eto(                                         & !< total energy density
             &                    jcs, jce, jks, jke,                     & !< domain indices
             &                    ein,                                    & !< internal energy density
             &                    ekh,                                    & !< horizontal kinetic energy density
             &                    ekv,                                    & !< vertical kinetic energy density
-            &                    egp)                                      !< geopotential energy density
+            &                    egp,                                    & !< geopotential energy density
+            &                    eto)
     END IF
 
     !> Compute vertical integrals: energy density (J/m3) -> energy content (J/m2)
     !
     IF (leinvi) THEN
-       einvi = atm_energy_vint(                                          & !< internal energy content
+       CALL atm_energy_vint(                                             & !< internal energy content
             &                  jcs, jce, jks, jke,                       & !< domain indices
             &                  dz,                                       & !< layer thickness
-            &                  ein)                                        !< internal energy density
+            &                  ein,                                      & !< internal energy density
+            &                  einvi)
     END IF
     !
     IF (lekhvi) THEN
-       ekhvi = atm_energy_vint(                                          & !< horizontal kinetic energy content
+       CALL atm_energy_vint(                                             & !< horizontal kinetic energy content
             &                  jcs, jce, jks, jke,                       & !< domain indices
             &                  dz,                                       & !< layer thickness
-            &                  ekh)                                        !< horizontal kinetic energy density
+            &                  ekh,                                      & !< horizontal kinetic energy density
+            &                  ekhvi)
     END IF
     !
     IF (lekvvi) THEN
-       ekvvi = atm_energy_vint(                                          & !< vertical kinetic energy content
+       CALL atm_energy_vint(                                             & !< vertical kinetic energy content
             &                  jcs, jce, jks, jke,                       & !< domain indices
             &                  dz,                                       & !< layer thickness
-            &                  ekv)                                        !< vertical kinetic energy density
+            &                  ekv,                                      & !< vertical kinetic energy density
+            &                  ekvvi)
     END IF
     !
     IF (legpvi) THEN
-       egpvi = atm_energy_vint(                                          & !< geopotential energy content
+       CALL atm_energy_vint(                                             & !< geopotential energy content
             &                  jcs, jce, jks, jke,                       & !< domain indices
             &                  dz,                                       & !< layer thickness
-            &                  egp)                                        !< geopotential energy density
+            &                  egp,                                      & !< geopotential energy density
+            &                  egpvi)
     END IF
     !
     IF (letovi) THEN
-       etovi = atm_energy_vint(                                          & !< total energy content
+       CALL atm_energy_vint(                                             & !< total energy content
             &                  jcs, jce, jks, jke,                       & !< domain indices
             &                  dz,                                       & !< layer thickness
-            &                  eto)                                        !< total energy density
+            &                  eto,                                      & !< total energy density
+            &                  etovi)
     END IF
 
   END SUBROUTINE atm_energy_diag
@@ -1044,7 +1054,7 @@ CONTAINS
 
   !-------------------------------------------------------------------
 
-  PURE FUNCTION atm_energy_diag_ein(jcs, jce, jks, jke, &
+  PURE SUBROUTINE atm_energy_diag_ein(jcs, jce, jks, jke, &
        &                            rho,                &
        &                            ta,                 &
        &                            qv,                 &
@@ -1052,8 +1062,8 @@ CONTAINS
        &                            qi,                 &
        &                            qr,                 &
        &                            qs,                 &
-       &                            qg)                 &
-       &                     RESULT(ein)
+       &                            qg,                 &
+       &                            ein)
 
     INTEGER , INTENT(in)         :: jcs, jce, jks, jke                  !< domain indices
 
@@ -1065,8 +1075,7 @@ CONTAINS
     REAL(wp), INTENT(in)         :: qr(:,:)                             !< (kg/kg)  mass fraction in air of rain
     REAL(wp), INTENT(in)         :: qs(:,:)                             !< (kg/kg)  mass fraction in air of snow
     REAL(wp), INTENT(in)         :: qg(:,:)                             !< (kg/kg)  mass fraction in air of graupel
-
-    REAL(wp)                     :: ein(SIZE(rho,1),SIZE(rho,2))        !< (J/m3)  internal  energy density
+    REAL(wp), INTENT(out)        :: ein(:,:)                            !< (J/m3)  internal  energy density
 
     INTEGER                      :: jc, jk                              !< loop indices
 
@@ -1093,23 +1102,22 @@ CONTAINS
 
     !$ACC END DATA
 
-  END FUNCTION atm_energy_diag_ein
+  END SUBROUTINE atm_energy_diag_ein
 
   !-------------------------------------------------------------------
 
-  PURE FUNCTION atm_energy_diag_ekh(jcs, jce, jks, jke, &
+  PURE SUBROUTINE atm_energy_diag_ekh(jcs, jce, jks, jke, &
        &                            rho,                &
        &                            ua,                 &
-       &                            va)                 &
-       &                     RESULT(ekh)
+       &                            va,                 &
+       &                            ekh)
 
     INTEGER , INTENT(in)         :: jcs, jce, jks, jke                  !< domain indices
 
     REAL(wp), INTENT(in)         :: rho(:,:)                            !< (kg/m3) mass density
     REAL(wp), INTENT(in)         :: ua(:,:)                             !< (m/s)   zonal velocity
     REAL(wp), INTENT(in)         :: va(:,:)                             !< (m/s)   meridional velocity
-
-    REAL(wp)                     :: ekh(SIZE(rho,1),SIZE(rho,2))        !< (J/m3)  horizontal kinetic energy density
+    REAL(wp), INTENT(out)        :: ekh(:,:)                            !< (J/m3)  horizontal kinetic energy density
 
     INTEGER                      :: jc, jk                              !< loop indices
 
@@ -1138,21 +1146,20 @@ CONTAINS
 
     !$ACC END DATA
 
-  END FUNCTION atm_energy_diag_ekh
+  END SUBROUTINE atm_energy_diag_ekh
 
   !-------------------------------------------------------------------
 
-  PURE FUNCTION atm_energy_diag_ekv(jcs, jce, jks, jke, &
+  PURE SUBROUTINE atm_energy_diag_ekv(jcs, jce, jks, jke, &
        &                            rho,                &
-       &                            wa)                 &
-       &                     RESULT(ekv)
+       &                            wa,                 &
+       &                            ekv)
 
     INTEGER , INTENT(in)         :: jcs, jce, jks, jke                  !< domain indices
 
     REAL(wp), INTENT(in)         :: rho(:,:)                            !< (kg/m3) mass density
     REAL(wp), INTENT(in)         :: wa(:,:)                             !< (m/s)   vertical velocity, at half level
-
-    REAL(wp)                     :: ekv(SIZE(rho,1),SIZE(rho,2))        !< (J/m3)  vertical kinetic energy density
+    REAL(wp), INTENT(out)        :: ekv(:,:)                            !< (J/m3)  vertical kinetic energy density
 
     INTEGER                      :: jc, jk                              !< loop indices
 
@@ -1181,21 +1188,20 @@ CONTAINS
 
     !$ACC END DATA
 
-  END FUNCTION atm_energy_diag_ekv
+  END SUBROUTINE atm_energy_diag_ekv
 
   !-------------------------------------------------------------------
 
-  PURE FUNCTION atm_energy_diag_egp(jcs, jce, jks, jke, &
+  PURE SUBROUTINE atm_energy_diag_egp(jcs, jce, jks, jke, &
        &                            rho,                &
-       &                            geopot)             &
-       &                     RESULT(egp)
+       &                            geopot,             &
+       &                            egp)
 
     INTEGER , INTENT(in)         :: jcs, jce, jks, jke                  !< domain indices
 
     REAL(wp), INTENT(in)         :: rho(:,:)                            !< (kg/m3) mass density
     REAL(wp), INTENT(in)         :: geopot(:,:)                         !< (J/kg)  geopotential
-
-    REAL(wp)                     :: egp(SIZE(rho,1),SIZE(rho,2))        !< (J/m3)  geopotential energy density
+    REAL(wp), INTENT(out)        :: egp(:,:)                            !< (J/m3)  geopotential energy density
 
     INTEGER                      :: jc, jk                              !< loop indices
 
@@ -1216,16 +1222,16 @@ CONTAINS
 
     !$ACC END DATA
 
-  END FUNCTION atm_energy_diag_egp
+  END SUBROUTINE atm_energy_diag_egp
 
   !-------------------------------------------------------------------
 
-  PURE FUNCTION atm_energy_diag_eto(jcs, jce, jks, jke, &
+  PURE SUBROUTINE atm_energy_diag_eto(jcs, jce, jks, jke, &
        &                            ein,                &
        &                            ekh,                &
        &                            ekv,                &
-       &                            egp)                &
-       &                     RESULT(eto)
+       &                            egp,                &
+       &                            eto)
 
     INTEGER , INTENT(in)         :: jcs, jce, jks, jke                  !< domain indices
 
@@ -1233,8 +1239,7 @@ CONTAINS
     REAL(wp), INTENT(in)         :: ekh(:,:)                            !< (J/m3)  hor. kinetic energy density
     REAL(wp), INTENT(in)         :: ekv(:,:)                            !< (J/m3)  vert.kinetic energy density
     REAL(wp), INTENT(in)         :: egp(:,:)                            !< (J/m3)  geopotential energy density
-
-    REAL(wp)                     :: eto(SIZE(ein,1),SIZE(ein,2))        !< (J/m3)  total        energy density
+    REAL(wp), INTENT(out)        :: eto(:,:)                            !< (J/m3)  total        energy density
 
     INTEGER                      :: jc, jk                              !< loop indices
 
@@ -1253,21 +1258,20 @@ CONTAINS
 
     !$ACC END DATA
 
-  END FUNCTION atm_energy_diag_eto
+  END SUBROUTINE atm_energy_diag_eto
 
   !-------------------------------------------------------------------
 
-  PURE FUNCTION atm_energy_vint(jcs, jce, jks, jke, &
+  PURE SUBROUTINE atm_energy_vint(jcs, jce, jks, jke, &
        &                        dz,                 &
-       &                        x)                  &
-       &                 RESULT(xvi)
+       &                        x,                  &
+       &                        xvi)
 
     INTEGER , INTENT(in)     :: jcs, jce, jks, jke                      !< domain indices
 
     REAL(wp), INTENT(in)     :: dz(:,:)                                 !< (m)    layer thickness
     REAL(wp), INTENT(in)     :: x(:,:)                                  !< (<x>)  vertically resolved field
-
-    REAL(wp)                 :: xvi(SIZE(x,1))                          !< (<x>m) vertically integrated field
+    REAL(wp), INTENT(out)    :: xvi(:)                                  !< (<x>m) vertically integrated field
 
     INTEGER                  :: jc, jk                                  !< loop indices
 
@@ -1292,7 +1296,7 @@ CONTAINS
 
     !$ACC END DATA
 
-  END FUNCTION atm_energy_vint
+  END SUBROUTINE atm_energy_vint
 
   !-------------------------------------------------------------------
 

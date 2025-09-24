@@ -77,7 +77,7 @@ MODULE mo_aes_phy_init
   USE mo_aes_convect_tables,   ONLY: init_aes_convect_tables => init_convect_tables
 
   ! cloud optical properties
-  USE mo_aes_cop_config,       ONLY: print_aes_cop_config, aes_cop_config
+  USE mo_aes_cop_config,       ONLY: eval_aes_cop_config, print_aes_cop_config
 
   ! two-moment bulk microphysics
   USE mo_2mom_mcrph_driver,    ONLY: two_moment_mcrph_init
@@ -200,13 +200,12 @@ CONTAINS
       CALL print_aes_rad_config(ng)
       !
       ! Cloud optical properties
+      CALL  eval_aes_cop_config(ng)
       CALL print_aes_cop_config(ng)
 #ifndef __NO_RTE_RRTMGP__
       !
-      ! Radiation constants for gas and cloud optics
-      CALL rte_rrtmgp_basic_setup(nproma, nlev, pressure_scale, droplet_scale,          &
-        &                         aes_cop_config(1)%cinhoml, aes_cop_config(1)%cinhomi, &
-        &                         aes_cop_config(1)%cinhoms)
+      ! Radiation constants for gas
+      CALL rte_rrtmgp_basic_setup
 #endif
     END IF
 
@@ -507,6 +506,8 @@ CONTAINS
 
   SUBROUTINE init_aes_phy_external( p_patch, ext_data, mtime_current)
 
+    USE mo_physical_constants, ONLY: tf_salt
+
     TYPE(t_patch), TARGET,   INTENT(in) :: p_patch(:)
     TYPE(t_external_data),   INTENT(in) :: ext_data(:)
     TYPE(datetime), POINTER, INTENT(in) :: mtime_current !< Date and time information
@@ -745,10 +746,13 @@ CONTAINS
 
           CALL sic_intp(jg)%init(sic_reader(jg), mtime_current, "SIC")
           CALL sic_intp(jg)%intp(mtime_current, sic_dat, lacc=.FALSE.)
-          prm_field(jg)%seaice(:,:) = sic_dat(:,1,:,1)
+          prm_field(jg)%seaice(:,:) = MERGE(sic_dat(:,1,:,1), 0.0_wp, &
+            &                               (prm_field(jg)%lsmask(:,:) + prm_field(jg)%alake(:,:) < 1._wp))
           prm_field(jg)%seaice(:,:) = MERGE(0.99_wp, prm_field(jg)%seaice(:,:), prm_field(jg)%seaice(:,:) > 0.99_wp)
           prm_field(jg)%seaice(:,:) = MERGE(0.0_wp, prm_field(jg)%seaice(:,:), prm_field(jg)%seaice(:,:) <= 0.01_wp)
 
+          prm_field(jg)%ts_tile(:,:,iwtr) = MERGE(tf_salt, MAX(prm_field(jg)%ts_tile(:,:,iwtr), tf_salt), &
+              &                                   prm_field(jg)%seaice(:,:) > 0.0_wp)
           ! set ice thickness
           WHERE (prm_field(jg)%seaice(:,:) > 0.0_wp)
             prm_field(jg)%siced(:,:) = MERGE(2.0_wp, 1.0_wp, p_patch(jg)%cells%center(:,:)%lat > 0.0_wp)
@@ -802,10 +806,7 @@ CONTAINS
 
       ! Assign initial values for some components of the "field" and
       ! "tend" state vectors.
-#ifndef __PGI
-!FIXME: PGI + OpenMP produce error in this routine... check correctness of parallel code
 !$OMP PARALLEL WORKSHARE
-#endif
       !
       ! constant-in-time fields
       ! initial and re-start
@@ -815,9 +816,7 @@ CONTAINS
       field% areacella(:,  :) = p_patch% cells%   area(:,:)
       field%    coriol(:,  :) = p_patch% cells%    f_c(:,:)
       !
-#ifndef __PGI
 !$OMP END PARALLEL WORKSHARE
-#endif
       ! in case of restart, reset output fields of unused parameterizations,
       ! to their intial value
       !

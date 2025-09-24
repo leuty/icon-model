@@ -41,6 +41,8 @@ MODULE mo_interpol_nml
                                   & config_l_mono_c2l           => l_mono_c2l           , &
                                   & config_rbf_scale_mode_ll    => rbf_scale_mode_ll    , &
                                   & config_support_baryctr_intp => support_baryctr_intp , &
+                                  & config_lrbf_read            => lrbf_read            , &
+                                  & config_lrbf_write           => lrbf_write           , &
                                   & config_lreduced_nestbdry_stencil => lreduced_nestbdry_stencil
   USE mo_nml_annotate,        ONLY: temp_defaults, temp_settings
 
@@ -101,6 +103,9 @@ MODULE mo_interpol_nml
   ! the lat-lon interpolation stencil.
   LOGICAL :: lreduced_nestbdry_stencil
 
+  ! Control rbf coefficients read/write
+  LOGICAL :: lrbf_read, lrbf_write
+
   NAMELIST/interpol_nml/ llsq_lin_consv,    llsq_high_consv,     &
                        & lsq_high_ord,      rbf_vec_kern_c,      &
                        & rbf_vec_scale_c,   rbf_vec_kern_v,      &
@@ -111,7 +116,8 @@ MODULE mo_interpol_nml
                        & l_intp_c2l, rbf_dim_c2l, l_mono_c2l,    &
                        & rbf_vec_kern_ll,   rbf_scale_mode_ll,   &
                        & support_baryctr_intp,                   &
-                       & lreduced_nestbdry_stencil
+                       & lreduced_nestbdry_stencil,              &
+                       & lrbf_read, lrbf_write
 
 CONTAINS
   !-------------------------------------------------------------------------
@@ -180,6 +186,10 @@ CONTAINS
     ! nest boundary points are not removed from lat-lon interpolation
     ! stencil by default:
     lreduced_nestbdry_stencil = .FALSE.
+
+    ! Read/writing of RBF coefficients disabled by default
+    lrbf_read                   = .FALSE.
+    lrbf_write                  = .FALSE.
 
     !------------------------------------------------------------------
     ! 2. If this is a resumed integration, overwrite the defaults above
@@ -271,6 +281,9 @@ CONTAINS
 
     config_support_baryctr_intp = support_baryctr_intp
     config_lreduced_nestbdry_stencil = lreduced_nestbdry_stencil
+
+    config_lrbf_read                   = lrbf_read
+    config_lrbf_write                  = lrbf_write
 
     !-----------------------------------------------------
     ! 5. Store the namelist for restart

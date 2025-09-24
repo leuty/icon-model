@@ -43,7 +43,7 @@
 
 
       USE mo_hamocc_types,       ONLY: t_hamocc_diag, t_hamocc_state, &
-    &                                  t_hamocc_sed, t_hamocc_tend,   &
+    &                                  t_hamocc_sed, t_hamocc_tend, t_hamocc_vertint, &
     &                                  t_hamocc_monitor, t_hamocc_prog, t_hamocc_agg
 
       USE mo_zaxis_type
@@ -62,7 +62,7 @@
 
       USE mo_parallel_config,     ONLY: nproma
 
-      USE mo_hamocc_nml,         ONLY: io_stdo_bgc, l_N_cycle, i_settling
+      USE mo_hamocc_nml,         ONLY: io_stdo_bgc, l_N_cycle, i_settling, l_hamocc_vertint
 
       USE mo_var_metadata,       ONLY: post_op, get_timelevel_string
 
@@ -113,13 +113,16 @@
     CALL set_tracer_indices()
 
     !$ACC ENTER DATA COPYIN(hamocc_state, hamocc_state%p_diag, hamocc_state%p_sed) &
-    !$ACC   COPYIN(hamocc_state%p_agg, hamocc_state%p_tend, hamocc_state%p_tend%monitor)
+    !$ACC   COPYIN(hamocc_state%p_agg, hamocc_state%p_tend, hamocc_state%p_tend%monitor) &
+    !$ACC   COPYIN(hamocc_state%p_tend%vertint)
     CALL construct_hamocc_diag(patch_2d, hamocc_state%p_diag)
 
     CALL message(TRIM(routine), 'start to construct hamocc state: tend' )
     CALL construct_hamocc_tend(patch_2d, hamocc_state%p_tend)
     CALL construct_hamocc_moni(patch_2d, hamocc_state%p_tend%monitor)
-
+    IF (l_hamocc_vertint) THEN
+      CALL construct_hamocc_vertint(patch_2d, hamocc_state%p_tend%vertint)
+    END IF
     CALL message(TRIM(routine), 'start to construct hamocc state: sed' )
     CALL construct_hamocc_sed(patch_2d, hamocc_state%p_sed)
 
@@ -1685,7 +1688,7 @@
     __acc_attach(hamocc_state_tend%satoxy)
 
     CALL add_var(hamocc_tendency_list, 'HAMOCC_satn2',hamocc_state_tend%satn2,    &
-      & grid_unstructured_cell, za_depth_below_sea,&
+      & grid_unstructured_cell, za_surface,&
       & t_cf_var('satn2','','N2 at saturation', datatype_flt,'satn2'), &
       & grib2_var(255, 255, 255, DATATYPE_PACK16, GRID_UNSTRUCTURED, grid_cell),&
       & ldims=(/nproma,alloc_cell_blocks/),in_group=groups("HAMOCC_TEND"),&
@@ -1693,7 +1696,7 @@
     __acc_attach(hamocc_state_tend%satn2)
 
     CALL add_var(hamocc_tendency_list, 'HAMOCC_satn2o',hamocc_state_tend%satn2o,    &
-      & grid_unstructured_cell, za_depth_below_sea,&
+      & grid_unstructured_cell, za_surface,&
       & t_cf_var('satn2o','','N2O at saturation', datatype_flt,'satn2o'), &
       & grib2_var(255, 255, 255, DATATYPE_PACK16, GRID_UNSTRUCTURED, grid_cell),&
       & ldims=(/nproma,alloc_cell_blocks/),in_group=groups("HAMOCC_TEND"),&
@@ -1701,7 +1704,7 @@
     __acc_attach(hamocc_state_tend%satn2o)
 
     CALL add_var(hamocc_tendency_list, 'HAMOCC_solco2',hamocc_state_tend%solco2,    &
-      & grid_unstructured_cell, za_depth_below_sea,&
+      & grid_unstructured_cell, za_surface,&
       & t_cf_var('solco2','','CO2 solubility', datatype_flt,'solco2'), &
       & grib2_var(255, 255, 255, DATATYPE_PACK16, GRID_UNSTRUCTURED, grid_cell),&
       & ldims=(/nproma,alloc_cell_blocks/),in_group=groups("HAMOCC_TEND"),&
@@ -1904,6 +1907,109 @@
 
 
     CALL message(TRIM(routine), 'construct hamocc tend end')
+
+  END SUBROUTINE
+
+!==================================================================================
+  SUBROUTINE construct_hamocc_vertint(patch_2d, hamocc_state_vertint)
+
+    TYPE(t_patch), TARGET, INTENT(in)          :: patch_2d
+    TYPE(t_hamocc_vertint), INTENT(inout)      :: hamocc_state_vertint
+
+    ! local variables
+    INTEGER ::  alloc_cell_blocks,datatype_flt
+    CHARACTER(LEN=max_char_length), PARAMETER :: &
+      & routine = 'mo_bgc_icon_comm:construct_hamocc_vertint'
+
+    alloc_cell_blocks = patch_2d%alloc_cell_blocks
+
+    ! set correct output data type
+    datatype_flt = MERGE(DATATYPE_FLT64, DATATYPE_FLT32, lnetcdf_flt64_output)
+
+    !-----DIAG W/O restart-----------------------------------------------------------------
+    ! for tracers restart is handled by ICON
+    CALL message(TRIM(routine), 'start to construct hamocc vertint')
+
+    ! add vertint
+    CALL add_var(hamocc_tendency_list, 'dic_i', hamocc_state_vertint%dic, &
+      & grid_unstructured_cell, za_surface, &
+      & t_cf_var('dic_i','kmol P m-2','top90m dissolved inorganic carbon', datatype_flt,'dic_i'), &
+      & grib2_var(255, 255, 255, DATATYPE_PACK16, GRID_UNSTRUCTURED, grid_cell), &
+      & ldims=(/nproma,alloc_cell_blocks/),in_group=groups("HAMOCC_VINT"), &
+      & loutput=.TRUE., lrestart=.FALSE.,lopenacc=.TRUE.)
+    __acc_attach(hamocc_state_vertint%dic)
+
+    CALL add_var(hamocc_tendency_list, 'alk_i', hamocc_state_vertint%alk, &
+      & grid_unstructured_cell, za_surface, &
+      & t_cf_var('alk_i','kmol m-2','top90m alkalinity', datatype_flt,'alk_i'), &
+      & grib2_var(255, 255, 255, DATATYPE_PACK16, GRID_UNSTRUCTURED, grid_cell), &
+      & ldims=(/nproma,alloc_cell_blocks/),in_group=groups("HAMOCC_VINT"), &
+      & loutput=.TRUE., lrestart=.FALSE.,lopenacc=.TRUE.)
+    __acc_attach(hamocc_state_vertint%alk)
+
+    CALL add_var(hamocc_tendency_list, 'phy_i', hamocc_state_vertint%phy, &
+      & grid_unstructured_cell, za_surface, &
+      & t_cf_var('phy_i','kmol P m-2','top90m phytoplankton concentration', datatype_flt,'phy_i'), &
+      & grib2_var(255, 255, 255, DATATYPE_PACK16, GRID_UNSTRUCTURED, grid_cell), &
+      & ldims=(/nproma,alloc_cell_blocks/),in_group=groups("HAMOCC_VINT"), &
+      & loutput=.TRUE., lrestart=.FALSE.,lopenacc=.TRUE.)
+    __acc_attach(hamocc_state_vertint%phy)
+
+    CALL add_var(hamocc_tendency_list, 'HAMOCC_npp_i', hamocc_state_vertint%npp, &
+      & grid_unstructured_cell, za_surface, &
+      & t_cf_var('npp_i','kmol P m-2 s-1','top90m net primary production', datatype_flt,'npp_i'), &
+      & grib2_var(255, 255, 255, DATATYPE_PACK16, GRID_UNSTRUCTURED, grid_cell), &
+      & ldims=(/nproma,alloc_cell_blocks/),in_group=groups("HAMOCC_VINT"), &
+      & loutput=.TRUE., lrestart=.FALSE.,lopenacc=.TRUE.)
+    __acc_attach(hamocc_state_vertint%npp)
+
+    CALL add_var(hamocc_tendency_list, 'HAMOCC_pho_cya_i',hamocc_state_vertint%phoc, &
+      & grid_unstructured_cell, za_surface, &
+      & t_cf_var('pho_cya_i','kmol P m-2 s-1','top90m total cyanobacteria growth', datatype_flt,'pho_cya_i'), &
+      & grib2_var(255, 255, 255, DATATYPE_PACK16, GRID_UNSTRUCTURED, grid_cell), &
+      & ldims=(/nproma,alloc_cell_blocks/),in_group=groups("HAMOCC_VINT"), &
+      & loutput=.TRUE., lrestart=.FALSE.,lopenacc=.TRUE.)
+    __acc_attach(hamocc_state_vertint%phoc)
+
+    CALL add_var(hamocc_tendency_list, 'HAMOCC_grazing_i',hamocc_state_vertint%graz, &
+      & grid_unstructured_cell, za_surface, &
+      & t_cf_var('grazing_i','kmol P m-2 s-1','top90m zooplankton grazing', datatype_flt,'grazing_i'), &
+      & grib2_var(255, 255, 255, DATATYPE_PACK16, GRID_UNSTRUCTURED, grid_cell), &
+      & ldims=(/nproma,alloc_cell_blocks/),in_group=groups("HAMOCC_VINT"), &
+      & loutput=.TRUE., lrestart=.FALSE.,lopenacc=.TRUE.)
+    __acc_attach(hamocc_state_vertint%graz)
+
+    CALL add_var(hamocc_tendency_list, 'HAMOCC_zoomor_i',hamocc_state_vertint%zoomor, &
+      & grid_unstructured_cell, za_surface, &
+      & t_cf_var('zoomor_i','kmol P m-2 s-1','top90m zooplankton mortality', datatype_flt,'zoomor_i'), &
+      & grib2_var(255, 255, 255, DATATYPE_PACK16, GRID_UNSTRUCTURED, grid_cell), &
+      & ldims=(/nproma,alloc_cell_blocks/),in_group=groups("HAMOCC_VINT"), &
+      & loutput=.TRUE., lrestart=.FALSE.,lopenacc=.TRUE.)
+    __acc_attach(hamocc_state_vertint%zoomor)
+
+   CALL add_var(hamocc_tendency_list, 'HAMOCC_bacfra_i',hamocc_state_vertint%bacfra, &
+      & grid_unstructured_cell, za_surface, &
+      & t_cf_var('bacfra_i','kmol P m-2 s-1','top90m bacterial decomposition of DOC', datatype_flt,'bacfra_i'), &
+      & grib2_var(255, 255, 255, DATATYPE_PACK16, GRID_UNSTRUCTURED, grid_cell), &
+      & ldims=(/nproma,alloc_cell_blocks/),in_group=groups("HAMOCC_VINT"), &
+      & loutput=.TRUE., lrestart=.FALSE., lopenacc=.TRUE.)
+   __acc_attach(hamocc_state_vertint%bacfra)
+
+    CALL add_var(hamocc_tendency_list, 'HAMOCC_remina_i',hamocc_state_vertint%remina, &
+      & grid_unstructured_cell, za_surface, &
+      & t_cf_var('remina_i','kmol P m-2 s-1','top90m aerob detritus remineralization', datatype_flt,'remina_i'), &
+      & grib2_var(255, 255, 255, DATATYPE_PACK16, GRID_UNSTRUCTURED, grid_cell), &
+      & ldims=(/nproma,alloc_cell_blocks/),in_group=groups("HAMOCC_VINT"), &
+      & loutput=.TRUE., lrestart=.FALSE.,lopenacc=.TRUE.)
+    __acc_attach(hamocc_state_vertint%remina)
+
+    CALL add_var(hamocc_tendency_list, 'HAMOCC_delcar_i',hamocc_state_vertint%delcar, &
+      & grid_unstructured_cell, za_surface, &
+      & t_cf_var('delcar_i','kmol C m-2 s-1','top90m calcium carbonate production', datatype_flt,'delcar_i'), &
+      & grib2_var(255, 255, 85, DATATYPE_PACK16, GRID_UNSTRUCTURED, grid_cell), &
+      & ldims=(/nproma,alloc_cell_blocks/),in_group=groups("HAMOCC_VINT"), &
+      & loutput=.TRUE., lrestart=.FALSE.,lopenacc=.TRUE.)
+    __acc_attach(hamocc_state_vertint%delcar)
 
   END SUBROUTINE
 

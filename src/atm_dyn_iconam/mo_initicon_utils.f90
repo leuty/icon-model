@@ -1378,11 +1378,15 @@ MODULE mo_initicon_utils
   END SUBROUTINE copy_initicon2prog_sfc
 
 
-  SUBROUTINE initVarnamesDict(dictionary)
+  SUBROUTINE initVarnamesDict(dictionary, lcase_sensitive)
     TYPE(t_dictionary), INTENT(INOUT) :: dictionary
-
+    LOGICAL, OPTIONAL, INTENT(IN) :: lcase_sensitive
     ! read the map file into dictionary data structure:
-    CALL dictionary%init(.FALSE.)
+    IF(PRESENT(lcase_sensitive)) THEN
+      CALL dictionary%init(lcase_sensitive)
+    ELSE
+      CALL dictionary%init(.FALSE.)
+    ENDIF
     IF(ana_varnames_map_file /= ' ') THEN
       IF (my_process_is_mpi_workroot()) &
         CALL dictionary%loadfile(TRIM(ana_varnames_map_file))

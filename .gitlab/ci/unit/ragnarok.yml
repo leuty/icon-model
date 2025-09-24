@@ -1,0 +1,99 @@
+# ICON
+#
+# ---------------------------------------------------------------
+# Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+# Contact information: icon-model.org
+# See AUTHORS.TXT for a list of authors
+# See LICENSES/ for license information
+# SPDX-License-Identifier: BSD-3-Clause
+# ---------------------------------------------------------------
+
+include:
+  - local: .gitlab/ci/utils/log.yml
+  - local: .gitlab/ci/common/dkrz.yml
+
+.ragnarok:common:
+  stage: unit
+  needs: []
+  variables:
+    CLICOLOR_FORCE: 1
+    VERBOSE: # any given value is ignored, it's just checked for existence
+    MAKEFLAGS: --no-print-directory --output-sync=target
+    GTEST_COLOR: 1
+  script:
+    - |
+      # !reference [.ragnarok:common, script]
+      icon_ci_log_section_start 'Configuring Ragnarok' 'collapsed=false'
+      ICON_CI_RAGNAROK_BUILD_PATH=${ICON_CI_RAGNAROK_BUILD_PATH:-"${CI_PROJECT_DIR}/build"}
+      (
+        cmake --version
+        eval "set dummy ${ICON_CI_RAGNAROK_CMAKE_EXTRA_ARGS-}; shift"
+        set -ux
+        cmake \
+          -B "${ICON_CI_RAGNAROK_BUILD_PATH}" \
+          -S "${CI_PROJECT_DIR}/ragnarok" \
+          -G 'Unix Makefiles' \
+          "$@"
+      ) 2>&1
+      icon_ci_log_section_end
+      icon_ci_log_section_start 'Building Ragnarok' 'collapsed=false'
+      (
+        set -ux
+        cmake --build "${ICON_CI_RAGNAROK_BUILD_PATH}"
+      ) 2>&1
+      icon_ci_log_section_end
+      icon_ci_log_section_start 'Testing Ragnarok' 'collapsed=false'
+      (
+        set -ux
+        ctest --test-dir "${ICON_CI_RAGNAROK_BUILD_PATH}" --verbose
+      ) 2>&1
+      icon_ci_log_section_end
+
+.ragnarok:levante:
+  extends:
+    - .common:dkrz:levante
+    - .ragnarok:common
+  variables:
+    GIT_SUBMODULE_STRATEGY: none
+    ICON_CI_COMMON_DKRZ_SLURM_NTASKS: 64
+    ICON_CI_UTILS_GIT_SPARSE_PATTERNS: /ragnarok/
+    ICON_CI_RAGNAROK_CMAKE_EXTRA_ARGS: -C "${ICON_CI_RAGNAROK_CACHE_FILE_PATH}"
+    CMAKE_BUILD_PARALLEL_LEVEL: ${ICON_CI_COMMON_DKRZ_SLURM_NTASKS}
+    CTEST_PARALLEL_LEVEL: ${ICON_CI_COMMON_DKRZ_SLURM_NTASKS}
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "web"
+      when: manual
+    - !reference [.common:dkrz:levante, rules]
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+ragnarok:cpu:serial:
+  extends:
+    - .utils:log
+    - .ragnarok:common
+  variables:
+    CMAKE_BUILD_PARALLEL_LEVEL: 8
+    CTEST_PARALLEL_LEVEL: 8
+  tags:
+    - docker-any-image
+  image: registry.gitlab.dkrz.de/icon/containers/icon-dev
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "web"
+      when: manual
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+ragnarok:cpu:openmp:
+  extends: .ragnarok:levante
+  variables:
+    OMP_PROC_BIND: close
+    OMP_PLACES: cores
+    OMP_NUM_THREADS: ${ICON_CI_COMMON_DKRZ_SLURM_NTASKS}
+    ICON_CI_RAGNAROK_CACHE_FILE_PATH: >-
+      ${CI_PROJECT_DIR}/ragnarok/cmake/caches/levante_cpu.cmake
+
+ragnarok:gpu:
+  extends: .ragnarok:levante
+  variables:
+    ICON_CI_COMMON_DKRZ_SLURM_PARTITION: gpu
+    ICON_CI_COMMON_DKRZ_SLURM_GPUS_PER_NODE: 1
+    ICON_CI_RAGNAROK_CACHE_FILE_PATH: >-
+      ${CI_PROJECT_DIR}/ragnarok/cmake/caches/levante_gpu.cmake

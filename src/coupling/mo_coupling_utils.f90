@@ -73,8 +73,11 @@ MODULE mo_coupling_utils
     &                           YAC_ACTION_GET_FOR_RESTART, &
     &                           YAC_ACTION_OUT_OF_BOUND, &
     &                           yac_string, &
-    &                           yac_fget_comp_names, yac_fget_grid_names, yac_fget_field_names, &
-    &                           yac_fget_field_id, yac_fget_field_timestep
+    &                           yac_fget_comp_names, yac_fget_grid_names, &
+    &                           yac_fget_field_names, &
+    &                           yac_fget_field_id, yac_fget_field_timestep, &
+    &                           yac_fget_role_from_field_id, &
+    &                           YAC_EXCHANGE_TYPE_SOURCE, yac_fget_field_name
   USE mpi
 #endif
 
@@ -93,8 +96,10 @@ MODULE mo_coupling_utils
   PUBLIC :: cpl_def_field
   PUBLIC :: cpl_get_field
   PUBLIC :: cpl_get_field_collection_size
+  PUBLIC :: cpl_get_field_name
   PUBLIC :: cpl_get_field_metadata
   PUBLIC :: cpl_get_field_datetime
+  PUBLIC :: cpl_get_field_is_source
   PUBLIC :: cpl_put_field
   PUBLIC :: cpl_sync_def
   PUBLIC :: cpl_enddef
@@ -1991,6 +1996,52 @@ CONTAINS
 #endif
 
   END FUNCTION cpl_get_field_datetime
+
+  ! determines whether a field is configured to be a source of a couple
+  ! (only works after the respective field and the associated couplings have
+  !  been definied and its information has been distributed among all processes
+  !  either by a call to yac_fsync_def or yac_fenddef)
+  FUNCTION cpl_get_field_is_source(caller, field_id)
+
+    INTEGER, INTENT(IN) :: field_id
+    CHARACTER(LEN=*), INTENT(IN) :: caller ! name of the calling routine (for debugging)
+
+    LOGICAL :: cpl_get_field_is_source
+
+#ifndef YAC_coupling
+    CALL finish( &
+      TRIM(caller) // ':cpl_get_field_is_source', &
+      'built without coupling support.')
+#else
+
+    cpl_get_field_is_source = &
+      yac_fget_role_from_field_id(field_id) == YAC_EXCHANGE_TYPE_SOURCE
+
+! YAC_coupling
+#endif
+
+  END FUNCTION cpl_get_field_is_source
+
+  ! gets the name of a field from its id
+  FUNCTION cpl_get_field_name(caller, field_id)
+
+    INTEGER, INTENT(IN) :: field_id
+    CHARACTER(LEN=*), INTENT(IN) :: caller ! name of the calling routine (for debugging)
+
+    CHARACTER(LEN=:), ALLOCATABLE :: cpl_get_field_name
+
+#ifndef YAC_coupling
+    CALL finish( &
+      TRIM(caller) // ':cpl_get_field_name', &
+      'built without coupling support.')
+#else
+
+    cpl_get_field_name = yac_fget_field_name(field_id)
+
+! YAC_coupling
+#endif
+
+  END FUNCTION cpl_get_field_name
 
   ! gets the meta data of a field
   ! (only works after the respective field has been definied and

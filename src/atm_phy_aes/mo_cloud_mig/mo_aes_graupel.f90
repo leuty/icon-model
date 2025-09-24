@@ -423,7 +423,7 @@ PURE FUNCTION vm(iqx,rho_x,rho,t)
     b_s    = -1.0_wp/6.0_wp
 
   REAL(wp), PARAMETER, DIMENSION(2) :: &
-    a_i = [  1.25_wp,  0.160_wp],      &
+    a_i = [  0.80_wp,  0.160_wp],      &
     a_s = [2.0_wp*57.80_wp,  1.0_wp/6.0_wp], &
     a_g = [ 12.24_wp,  0.217_wp]
 
