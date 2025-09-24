@@ -1118,14 +1118,14 @@ CONTAINS
            & ldims=shape2d_c)
 
       cf_desc    = t_cf_var('u3d_stokes', 'ms-1', 'U-component of 3d Stokes drift', datatype_flt)
-      grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      grib2_desc = grib2_var(10, 0, 21, ibits, GRID_UNSTRUCTURED, GRID_CELL)
       CALL add_var(p_diag_list, 'u3d_stokes', p_diag%u3d_stokes,          &
            & GRID_UNSTRUCTURED_CELL, ZA_DEPTH_BELOW_SEA, cf_desc, grib2_desc, &
            & lrestart=.FALSE., loutput=.TRUE.,                        &
            & ldims=shape3d_depth_c)
 
       cf_desc    = t_cf_var('v3d_stokes', 'ms-1', 'V-component of 3d Stokes drift', datatype_flt)
-      grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      grib2_desc = grib2_var(10, 0, 22, ibits, GRID_UNSTRUCTURED, GRID_CELL)
       CALL add_var(p_diag_list, 'v3d_stokes', p_diag%v3d_stokes,          &
            & GRID_UNSTRUCTURED_CELL, ZA_DEPTH_BELOW_SEA, cf_desc, grib2_desc, &
            & lrestart=.FALSE., loutput=.TRUE.,                        &
