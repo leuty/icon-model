@@ -23,7 +23,7 @@
 
 namespace icon_bridge {
 
-extern "C" void init_ragnarok_support(f2c_support::FunTable *ftab);
+extern "C" void init_ragnarok_support(f2c_support::FunTable* ftab);
 
 }  // namespace icon_bridge
 

@@ -16,9 +16,9 @@
 
 namespace icon_exception {
 
-void message(const std::string &name, const std::string &text);
-void finish(const std::string &name, const std::string &text);
-void finish(const std::string &name);
+void message(const std::string& name, const std::string& text);
+void finish(const std::string& name, const std::string& text);
+void finish(const std::string& name);
 
 }  // namespace icon_exception
 

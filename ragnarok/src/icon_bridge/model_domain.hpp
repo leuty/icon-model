@@ -31,7 +31,7 @@ struct Patch : public f2c::PatchInfo {
 
 void init();
 
-const Patch &get_patch(int dom_id);
+const Patch& get_patch(int dom_id);
 
 }  // namespace model_domain
 

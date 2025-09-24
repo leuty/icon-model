@@ -26,7 +26,7 @@
 
 namespace icon_bridge {
 
-extern "C" void init_ragnarok_support(f2c_support::FunTable *fun_tab) {
+extern "C" void init_ragnarok_support(f2c_support::FunTable* fun_tab) {
   assert(ragnarok::is_initialized());
   f2c_support::init(fun_tab);
   model_domain::init();

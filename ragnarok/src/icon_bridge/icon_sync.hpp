@@ -39,7 +39,7 @@ constexpr SyncE sync_e;
 constexpr SyncV sync_v;
 constexpr SyncC1 sync_c1;
 
-inline const f2c_support::ProcessInfo &get_process_info() {
+inline const f2c_support::ProcessInfo& get_process_info() {
   static const f2c_support::ProcessInfo process_info = f2c_support::get_fun_table().get_process_info();
   return process_info;
 }

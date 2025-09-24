@@ -16,4 +16,3 @@ AlignConsecutiveAssignments:
   AcrossComments:  true
   AlignFunctionPointers: true
 ColumnLimit:     120
-DerivePointerAlignment: true

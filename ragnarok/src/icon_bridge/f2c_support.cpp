@@ -34,8 +34,8 @@ namespace {
 void show_debug_info() {
   const std::string context = "icon_bridge::show_debug_info";
   assert(is_initialized());
-  auto &dom_info  = get_domain_info();
-  auto &fun_table = get_fun_table();
+  auto& dom_info  = get_domain_info();
+  auto& fun_table = get_fun_table();
   {
     std::stringstream buffer;
 
@@ -67,15 +67,15 @@ void show_debug_info() {
 
 }  // namespace
 
-void init(const FunTable *funtab) {
-  auto &init_state = Internal::init_state;
+void init(const FunTable* funtab) {
+  auto& init_state = Internal::init_state;
   if (init_state) return;
   init_state      = true;
   // copy funtab:
-  auto &fun_table = Internal::fun_table;
+  auto& fun_table = Internal::fun_table;
   fun_table       = *funtab;
   // provide dom_info:
-  auto &dom_info  = Internal::dom_info;
+  auto& dom_info  = Internal::dom_info;
   fun_table.get_domain_info(&dom_info);
   if (dom_info.id_max < dom_info.id_min) {
     const std::string context = "init_f2c_support";

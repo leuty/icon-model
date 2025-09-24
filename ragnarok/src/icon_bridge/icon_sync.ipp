@@ -15,7 +15,7 @@
 namespace icon_sync {
 
 template <typename S>
-inline const f2c_support::CommPattern &comm_pat_of_type(const f2c_support::CommPatch &comm_patch, S typ) {
+inline const f2c_support::CommPattern& comm_pat_of_type(const f2c_support::CommPatch& comm_patch, S typ) {
   if constexpr (std::is_same_v<S, SyncC>) {
     return comm_patch.comm_pat_c;
   } else if constexpr (std::is_same_v<S, SyncE>) {
@@ -30,10 +30,10 @@ inline const f2c_support::CommPattern &comm_pat_of_type(const f2c_support::CommP
 }
 
 template <typename S>
-void sync_patch_array_r3(S typ, const model_domain::Patch &patch, double *arr, int arr_shape[], bool lacc) {
-  auto &fun_table    = f2c_support::get_fun_table();
+void sync_patch_array_r3(S typ, const model_domain::Patch& patch, double* arr, int arr_shape[], bool lacc) {
+  auto& fun_table    = f2c_support::get_fun_table();
   auto pat           = comm_pat_of_type(patch.comm_patch, typ);
-  auto &my_proc_info = get_process_info();
+  auto& my_proc_info = get_process_info();
   if (my_proc_info.is_mpi_parallel) {
     fun_table.exchange_data_r3d(pat, lacc, arr, arr_shape);
   }

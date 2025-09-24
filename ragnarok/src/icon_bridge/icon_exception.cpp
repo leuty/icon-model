@@ -31,15 +31,15 @@ bool is_initialized = false;
 
 }  // namespace
 
-void message(const std::string &name, const std::string &text) {
+void message(const std::string& name, const std::string& text) {
   f2c::get_fun_table().message(name.c_str(), name.length(), text.c_str(), text.length());
 }
 
-void finish(const std::string &name, const std::string &text) {
+void finish(const std::string& name, const std::string& text) {
   f2c::get_fun_table().finish(name.c_str(), name.length(), text.c_str(), text.length());
 }
 
-void finish(const std::string &name) { f2c::get_fun_table().finish(name.c_str(), name.length(), "", 0); }
+void finish(const std::string& name) { f2c::get_fun_table().finish(name.c_str(), name.length(), "", 0); }
 
 void init() {
   if (is_initialized) return;

@@ -26,7 +26,7 @@ namespace f2c_support {
 
 // opaque pointer to a Fortran t_patch instance
 struct PatchDescr {
-  void *cptr = NULL;
+  void* cptr = NULL;
 };
 
 // portable part of top level t_patch components
@@ -48,7 +48,7 @@ struct DomainInfo {
 
 // opaque pointer to a Fortran ICON CommPattern instance
 struct CommPatternDescr {
-  void *cptr = NULL;
+  void* cptr = NULL;
 };
 
 constexpr CommPatternDescr comm_pat_null = {NULL};
@@ -68,21 +68,21 @@ struct ProcessInfo {
 };
 
 struct FunTable {
-  void (*get_domain_info)(DomainInfo *dom_info)                                               = NULL;
-  void (*get_patch_info)(const PatchDescr patch_descr, PatchInfo *patch_info)                 = NULL;
+  void (*get_domain_info)(DomainInfo* dom_info)                                               = NULL;
+  void (*get_patch_info)(const PatchDescr patch_descr, PatchInfo* patch_info)                 = NULL;
   PatchDescr (*get_mo_model_domain_p_patch_descr)(int id)                                     = NULL;
-  void (*get_comm_patch)(const PatchDescr patch_descr, CommPatch *comm_patch)                 = NULL;
-  void (*message)(const char *name, int name_len, const char *text, int text_len)             = NULL;
-  void (*finish)(const char *name, int name_len, const char *text, int text_len)              = NULL;
-  void (*exchange_data_r3d)(CommPatternDescr descr, bool lacc, double *recv, int *recv_shape) = NULL;
+  void (*get_comm_patch)(const PatchDescr patch_descr, CommPatch* comm_patch)                 = NULL;
+  void (*message)(const char* name, int name_len, const char* text, int text_len)             = NULL;
+  void (*finish)(const char* name, int name_len, const char* text, int text_len)              = NULL;
+  void (*exchange_data_r3d)(CommPatternDescr descr, bool lacc, double* recv, int* recv_shape) = NULL;
   ProcessInfo (*get_process_info)()                                                           = NULL;
 };
 
 class Internal {
-  friend void init(const FunTable *fun_tab);
+  friend void init(const FunTable* fun_tab);
   friend bool is_initialized();
-  friend const FunTable &get_fun_table();
-  friend const DomainInfo &get_domain_info();
+  friend const FunTable& get_fun_table();
+  friend const DomainInfo& get_domain_info();
   static bool init_state;
   static FunTable fun_table;
   static DomainInfo dom_info;
@@ -90,17 +90,17 @@ class Internal {
 
 inline bool is_initialized() { return Internal::init_state; }
 
-inline const FunTable &get_fun_table() {
+inline const FunTable& get_fun_table() {
   assert(Internal::init_state);
   return Internal::fun_table;
 }
 
-inline const DomainInfo &get_domain_info() {
+inline const DomainInfo& get_domain_info() {
   assert(Internal::init_state);
   return Internal::dom_info;
 }
 
-void init(const FunTable *fun_tab);
+void init(const FunTable* fun_tab);
 
 }  // namespace f2c_support
 
