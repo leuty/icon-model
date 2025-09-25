@@ -92,12 +92,16 @@ include:
       - bin/icon
       - externals/mtime/build/python/mtime
       - run/SETUP.config
-  when: manual
-  allow_failure: false
   rules:
     - if: $CI_PIPELINE_SOURCE == "web"
+      when: manual
     - !reference [.common:dkrz:levante, rules]
+    - if: >-
+        $CI_PIPELINE_SOURCE == "merge_request_event" &&
+          $CI_MERGE_REQUEST_PROJECT_PATH == "icon/icon-mpim" &&
+          $CI_MERGE_REQUEST_DRAFT == "false"
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: manual
 
 .system:run:levante:
   extends: .common:dkrz:levante
@@ -156,7 +160,10 @@ include:
     reports:
       dotenv: dependent.env
     expire_in: 30mins
-  rules: !reference [.system:build:levante, rules]
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "web"
+    - !reference [.common:dkrz:levante, rules]
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 
 .system:checksum:
   extends: .utils:git:ignore

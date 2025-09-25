@@ -114,4 +114,10 @@ Levante is down:
           $ICON_INACTIVE_BUILDERS !~ "/(^|,)levante_nag(,|$)/"
       when: never
     - if: $CI_PIPELINE_SOURCE == "web"
+    - if: >-
+        $CI_PIPELINE_SOURCE == "merge_request_event" && (
+          $CI_MERGE_REQUEST_PROJECT_PATH == "icon/icon-mpim" ||
+            $CI_MERGE_REQUEST_PROJECT_PATH == "icon/icon"
+        )
+      allow_failure: false
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
