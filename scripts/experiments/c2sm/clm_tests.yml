@@ -16,7 +16,7 @@ tests:
     refgen: ['balfrin_cpu_nvidia','balfrin_cpu_nvidia_mixed','santis_cpu_nvhpc']
     tags: ['atm', 'merge2rc','probtest']
     checksuite_modes:
-      - balfrin: 't'
+      - balfrin: 'tg'
       - santis: 'bt'
     ensemble_num:
       - balfrin_cpu_nvidia: [1,4,5,7,16,24,30,31,40]

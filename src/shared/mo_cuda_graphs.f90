@@ -105,9 +105,8 @@ MODULE mo_cuda_graphs
     INTEGER(c_intptr_t) :: keys(SIZE(graphs%keys, 1))
 #endif
 
-    id_captured = 0
-
 #ifdef ICON_USE_CUDA_GRAPH
+    id_captured = 0
     CALL make_internal_keys(keys, graphs%routine, ptr_keys, int_keys)
     DO ig=1,graphs%total_captured
       IF (ALL(keys == graphs%keys(:,ig))) THEN
@@ -173,7 +172,7 @@ MODULE mo_cuda_graphs
 #ifdef ICON_USE_CUDA_GRAPH
     IF (id < 1 .OR. id > graphs%total_captured) THEN
       WRITE(message_text,'(a,i2,a,i2)') 'passed invalid CUDA graph id ', id, &
-        ', expected between 1 and ', graphs%total_captured+1
+        ', expected between 1 and ', graphs%total_captured
       CALL finish(graphs%routine, message_text)
     END IF
 
@@ -210,7 +209,7 @@ MODULE mo_cuda_graphs
 #ifdef ICON_USE_CUDA_GRAPH
     IF (id < 1 .OR. id > graphs%total_captured) THEN
       WRITE(message_text,'(a,i2,a,i2)') 'passed invalid CUDA graph id ', id, &
-        ', expected between 1 and ', graphs%total_captured+1
+        ', expected between 1 and ', graphs%total_captured
       CALL finish(graphs%routine, message_text)
     END IF
 

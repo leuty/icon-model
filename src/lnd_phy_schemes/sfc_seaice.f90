@@ -538,7 +538,10 @@ CONTAINS
                          &  ci_o_alf     = ci/alf
 
     ! Local variables
-    REAL(wp), DIMENSION(nsigb) ::            &
+    ! Need to allocate these variables to nproma size for the CUDA graphs
+    !  because nsigb may change from step to step and we need to make sure
+    !  these arrays are large enough for any nsigb at the captured time step
+    REAL(wp), DIMENSION(SIZE(qsen)) ::       &
                                 &  dticedt , &  !< time tendency of ice surface temperature [K/s]
                                 &  dhicedt , &  !< time tendency of ice thickness [m/s]
                                 &  dtsnowdt, &  !< time tendency of snow surface temperature [K/s]
@@ -593,9 +596,8 @@ CONTAINS
     lis_coupled_to_ocean = is_coupled_to_ocean()
 
     !$ACC DATA CREATE(dticedt, dhicedt, dtsnowdt, dhsnowdt) &
-    !$ACC   PRESENT(qsen, qlat, qlwrnet, qsolnet, snow_rate, rain_rate, tice_p, hice_p, tsnow_p, hsnow_p) &
-    !$ACC   PRESENT(albsi_p, tice_n, hice_n, tsnow_n, hsnow_n, condhf, meltpot, albsi_n)
-    !$ACC DATA PRESENT(fac_bottom_hflx) IF(PRESENT(fac_bottom_hflx))
+    !$ACC   PRESENT(nsigb) &
+    !$ACC   NO_CREATE(fac_bottom_hflx) ASYNC(1)
 
     !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
     !$ACC LOOP GANG(STATIC: 1) VECTOR &
@@ -852,7 +854,6 @@ CONTAINS
     IF (.NOT. lcuda_graph_lnd) THEN
       !$ACC WAIT(1)
     END IF
-    !$ACC END DATA
     !$ACC END DATA
     !-----------------------------------------------------------------------------------------------
     !  End calculations

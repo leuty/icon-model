@@ -32,6 +32,7 @@ MODULE mo_nonhydro_gpu_types
   USE mo_intp_lonlat_types,   ONLY: lonlat_grids
   USE mo_interpol_config,     ONLY: support_baryctr_intp
   USE mo_grid_config,         ONLY: n_dom
+  USE mo_cuda_graphs,         ONLY: reset_all_graphs
   IMPLICIT NONE
   PRIVATE
 
@@ -103,6 +104,9 @@ CONTAINS
     !
     CALL assert_acc_device_only("d2h_icon", lacc)
     !$ACC WAIT
+
+    ! Delete CUDA graphs
+    CALL reset_all_graphs
 
     CALL transfer_nh_state( p_nh_state, .FALSE. )
     CALL transfer_prep_adv( prep_adv, .FALSE. )

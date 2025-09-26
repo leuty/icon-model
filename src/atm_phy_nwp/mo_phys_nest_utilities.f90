@@ -274,7 +274,7 @@ SUBROUTINE upscale_rad_input(jg, jgp, nlev_rg, emis_rad,                   &
   TYPE(t_patch),      POINTER     :: p_pp
 
   ! Indices
-  INTEGER :: jb, jc, jk, jk1, i_chidx, i_nchdom, i_startrow, &
+  INTEGER :: jb, jc, jk, jk1, jj, i_chidx, i_nchdom, i_startrow, &
              i_startblk, i_endblk, i_startidx, i_endidx, nblks_c_lp, &
              jf, assoc_hyd, nlevsend, ntotsend, n2d_upsc
 

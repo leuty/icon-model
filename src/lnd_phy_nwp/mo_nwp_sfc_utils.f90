@@ -2439,24 +2439,35 @@ CONTAINS
     LOGICAL  :: lhave_condhf
     !-------------------------------------------------------------------------
 
+    !$ACC DATA ASYNC(1) &
+    !$ACC   CREATE(list_seaice_idx_old, list_seaice_count_old, l_update_required) &
+    !$ACC   PRESENT(list_seawtr_count, list_seaice_count) &
+    !$ACC   NO_CREATE(condhf, meltpot)
 
     ! Test if a list update is required at all.
     ! The melting of a seaice tile is a relatively rare event.
+    !$ACC SERIAL ASYNC(1)
     l_update_required = .FALSE.
+    !$ACC END SERIAL
+
 !$NEC ivdep
-    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) REDUCTION(.OR.: l_update_required) PRIVATE(jc) COPY(l_update_required)
+    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) PRIVATE(jc)
     DO ic = 1, list_seaice_count
       jc = list_seaice_idx(ic)
-      IF ( hice_n(jc) < hice_min ) l_update_required = .TRUE.
+      IF ( hice_n(jc) < hice_min ) THEN
+        !$ACC ATOMIC WRITE
+        l_update_required = .TRUE.
+      END IF
     ENDDO
-    !$ACC END PARALLEL LOOP
-    IF (.NOT. lcuda_graph_lnd) THEN
-      !$ACC WAIT(1)
-    END IF
+
+#ifndef _OPENACC
+    ! In OpenACC l_update_required flag is updated only on the device
+    !  and can only be used in the PARALLEL regions for the early exit
     IF (.NOT. l_update_required) RETURN
 
     IF (msg_level >= 13) CALL message('update_idx_lists_sea', &
       'One or more seaice cells melted -> List update required.')
+#endif
 
 #ifdef __NVCOMPILER
     ! nvfortran does not understand passing a NULL pointer to an optional (Fortran 2008) :(
@@ -2467,26 +2478,23 @@ CONTAINS
     lhave_condhf = PRESENT(condhf)
 #endif
 
-    !$ACC DATA PRESENT(condhf) IF(lhave_condhf)
-    !$ACC DATA PRESENT(meltpot) IF(lhave_meltpot)
-    !$ACC DATA CREATE(list_seaice_idx_old) &
-    !$ACC   PRESENT(hice_n, pres_sfc, list_seawtr_idx) &
-    !$ACC   PRESENT(list_seaice_idx, frac_t_ice) &
-    !$ACC   PRESENT(frac_t_water, lc_frac_t_water, fr_seaice) &
-    !$ACC   PRESENT(hice_old, tice_old, albsi_now, albsi_new) &
-    !$ACC   PRESENT(t_g_t_now, t_g_t_new, t_s_t_now, t_s_t_new) &
-    !$ACC   PRESENT(t_sk_t_now, t_sk_t_new, qv_s_t, t_seasfc) &
-    !$ACC   NO_CREATE(condhf, meltpot)
+    !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT)
+    IF (l_update_required) THEN
+      !$ACC LOOP GANG VECTOR
+      DO ic = 1, list_seaice_count
+          ! save old sea-ice index list and grid point count
+          list_seaice_idx_old(ic) = list_seaice_idx(ic)
+          ! re-initialize sea-ice index list and grid point count
+          list_seaice_idx(ic) = 0
+      END DO
+    END IF
+    !$ACC END PARALLEL
 
-    !$ACC PARALLEL LOOP GANG VECTOR ASYNC(1) DEFAULT(PRESENT)
-    DO ic = 1, list_seaice_count
-      ! save old sea-ice index list and grid point count
-      list_seaice_idx_old(ic) = list_seaice_idx(ic)
-      ! re-initialize sea-ice index list and grid point count
-      list_seaice_idx(ic) = 0
-    END DO
-    !$ACC END PARALLEL LOOP
+    !$ACC SERIAL ASYNC(1) DEFAULT(PRESENT)
     list_seaice_count_old  = list_seaice_count
+    ! Only if needed, do the reset on accelerator when using OpenACC
+    IF (l_update_required) list_seaice_count = 0
+    !$ACC END SERIAL
 
     !
     ! update index list for sea-ice and open water
@@ -2502,9 +2510,7 @@ CONTAINS
 #ifdef _OPENACC
       CALL finish('update_idx_lists_sea', "The code path without tiling is not tested on GPU")
 #endif
-      !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) &
-      !$ACC   PRESENT(list_seawtr_count, list_seaice_count) ! these are entries of vectors that are present on device
-      list_seaice_count = 0 ! do the reset on accelerator if using OpenACC
+      !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT)
 !$NEC ivdep
       !$ACC LOOP GANG VECTOR PRIVATE(jc, i_capture)
       DO ic = 1, list_seaice_count_old
@@ -2562,90 +2568,89 @@ CONTAINS
 
       !$ACC END PARALLEL
     ELSE
-      !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) &
-      !$ACC   PRESENT(list_seawtr_count, list_seaice_count) ! these are entries of vectors that are present on device
-      list_seaice_count = 0 ! do the reset on accelerator if using OpenACC
+      !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT)
+      IF (l_update_required) THEN
 !$NEC ivdep
-      !$ACC LOOP GANG VECTOR PRIVATE(jc, i_capture)
-      DO ic = 1, list_seaice_count_old
-        jc = list_seaice_idx_old(ic)
+        !$ACC LOOP GANG VECTOR PRIVATE(jc, i_capture)
+        DO ic = 1, list_seaice_count_old
+          jc = list_seaice_idx_old(ic)
 
-        IF ( hice_n(jc) >= hice_min )  THEN ! still sea-ice point
-          !$ACC ATOMIC CAPTURE
-          list_seaice_count = list_seaice_count + 1
-          i_capture = list_seaice_count
-          !$ACC END ATOMIC
-          list_seaice_idx(i_capture) = jc
-          ! sea-ice fraction remains unchanged
-        ELSE                        ! sea-ice point has turned into water point
-          ! Check whether we need to initialize a new water tile, or whether a water tile
-          ! already exists for the given point:
-          IF ( fr_seaice(jc) > (1._wp-frsi_min) ) THEN
-            ! water tile does not exist for given point
-            ! add new water tile to water-points index list and initialize
+          IF ( hice_n(jc) >= hice_min )  THEN ! still sea-ice point
             !$ACC ATOMIC CAPTURE
-            list_seawtr_count = list_seawtr_count + 1
-            i_capture = list_seawtr_count
+            list_seaice_count = list_seaice_count + 1
+            i_capture = list_seaice_count
             !$ACC END ATOMIC
-            list_seawtr_idx(i_capture) = jc
+            list_seaice_idx(i_capture) = jc
+            ! sea-ice fraction remains unchanged
+          ELSE                        ! sea-ice point has turned into water point
+            ! Check whether we need to initialize a new water tile, or whether a water tile
+            ! already exists for the given point:
+            IF ( fr_seaice(jc) > (1._wp-frsi_min) ) THEN
+              ! water tile does not exist for given point
+              ! add new water tile to water-points index list and initialize
+              !$ACC ATOMIC CAPTURE
+              list_seawtr_count = list_seawtr_count + 1
+              i_capture = list_seawtr_count
+              !$ACC END ATOMIC
+              list_seawtr_idx(i_capture) = jc
 
-            ! Initialize new water tile
+              ! Initialize new water tile
+              !
+              ! Initialize temperature with salt water freezing point
+              t_g_t_new(jc) = tf_salt ! if the SST analysis contains a meaningful water
+                                      ! temperature for this point, one may also take
+                                      ! the latter
+              t_g_t_now(jc) = tf_salt
+
+              t_s_t_new(jc) = tf_salt ! otherwise aggregated t_so and t_s will be
+                                      ! 0 at these points
+              t_s_t_now(jc) = tf_salt
+
+              t_sk_t_new(jc) = tf_salt
+              t_sk_t_now(jc) = tf_salt
+
+              t_seasfc(jc)  = tf_salt
+
+              !
+              ! Initialize surface saturation specific humidity
+              ! includes reduction of saturation pressure due to salt content
+              qv_s_t(jc) = salinity_fac * spec_humi(sat_pres_water(t_g_t_new(jc)),pres_sfc(jc))
+            ENDIF
+
+            ! re-set dynamic fractions of water and sea-ice
             !
-            ! Initialize temperature with salt water freezing point
-            t_g_t_new(jc) = tf_salt ! if the SST analysis contains a meaningful water
-                                    ! temperature for this point, one may also take
-                                    ! the latter
-            t_g_t_now(jc) = tf_salt
-
-            t_s_t_new(jc) = tf_salt ! otherwise aggregated t_so and t_s will be
-                                    ! 0 at these points
-            t_s_t_now(jc) = tf_salt
-
-            t_sk_t_new(jc) = tf_salt
-            t_sk_t_now(jc) = tf_salt
-
-            t_seasfc(jc)  = tf_salt
-
+            ! new sea area fraction is the sum of the current water and sea-ice area fractions
+            ! to ensure bit-reproducibility with restart, we use lc_frac_t instead of frac_t_water+frac_t_ice
+            frac_t_water(jc) = lc_frac_t_water(jc)
+            ! since sea-ice melted away, the sea-ice fraction is re-set to 0
+            fr_seaice(jc)  = 0._wp
+            frac_t_ice(jc) = 0._wp
             !
-            ! Initialize surface saturation specific humidity
-            ! includes reduction of saturation pressure due to salt content
-            qv_s_t(jc) = salinity_fac * spec_humi(sat_pres_water(t_g_t_new(jc)),pres_sfc(jc))
+            ! reset sea-ice temperature and depth at old time level in order to prevent
+            ! other schemes from using them incorrectly
+            tice_old(jc) = tmelt
+            hice_old(jc) = 0._wp
+
+              ! also reset ice heat fluxes
+            IF (lhave_condhf) condhf(jc) = 0._wp
+            IF (lhave_meltpot) meltpot(jc) = 0._wp
+
+            ! Reset prognostic sea ice albedo for consistency
+            IF (lprog_albsi) THEN
+              albsi_now(jc) = ALB_SI_MISSVAL
+              albsi_new(jc) = ALB_SI_MISSVAL
+            ENDIF
           ENDIF
-
-          ! re-set dynamic fractions of water and sea-ice
-          !
-          ! new sea area fraction is the sum of the current water and sea-ice area fractions
-          ! to ensure bit-reproducibility with restart, we use lc_frac_t instead of frac_t_water+frac_t_ice
-          frac_t_water(jc) = lc_frac_t_water(jc)
-          ! since sea-ice melted away, the sea-ice fraction is re-set to 0
-          fr_seaice(jc)  = 0._wp
-          frac_t_ice(jc) = 0._wp
-          !
-          ! reset sea-ice temperature and depth at old time level in order to prevent
-          ! other schemes from using them incorrectly
-          tice_old(jc) = tmelt
-          hice_old(jc) = 0._wp
-
-            ! also reset ice heat fluxes
-          IF (lhave_condhf) condhf(jc) = 0._wp
-          IF (lhave_meltpot) meltpot(jc) = 0._wp
-
-          ! Reset prognostic sea ice albedo for consistency
-          IF (lprog_albsi) THEN
-            albsi_now(jc) = ALB_SI_MISSVAL
-            albsi_new(jc) = ALB_SI_MISSVAL
-          ENDIF
-        ENDIF
-      ENDDO  ! ic
+        ENDDO  ! ic
+      END IF
       !$ACC END PARALLEL
 
     ENDIF  ! IF ( ntiles_total == 1 )
-    !$ACC UPDATE ASYNC(1) HOST(list_seawtr_count, list_seaice_count) ! also update index lists?
+
     IF (.NOT. lcuda_graph_lnd) THEN
       !$ACC WAIT(1)
     END IF
-    !$ACC END DATA
-    !$ACC END DATA
+
     !$ACC END DATA
 
   END SUBROUTINE update_idx_lists_sea
