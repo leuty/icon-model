@@ -429,7 +429,7 @@ then
     fi
     #
     start_year=${start_date%%-*}
-    end_year=${end_date%%-*}
+    end_year=$(( ${end_date%%-*} + 1 ))
     #
     file=bc_land_frac_11pfts_${start_year}.nc
     if [ -f $datadir/$file ]
