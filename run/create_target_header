@@ -1923,8 +1923,8 @@ EOF
 }
 set_run_target_santis_cpu()
 {
-    icon_data_rootFolder="/capstor/store/cscs/userlab/d126/pool/data/ICON/"
-    testingFolder_prefix="/capstor/store/cscs/userlab/d126"
+    icon_data_rootFolder="/capstor/store/cscs/userlab/cws01/pool/data/ICON/"
+    testingFolder_prefix="/capstor/store/cscs/userlab/cws01/ci"
 
     set_default use_nodes 1
     set_default use_nproma 48
@@ -1984,8 +1984,8 @@ EOF
 
 set_run_target_santis_gpu()
 {
-    icon_data_rootFolder="/capstor/store/cscs/userlab/d126/pool/data/ICON/"
-    testingFolder_prefix="/capstor/store/cscs/userlab/d126"
+    icon_data_rootFolder="/capstor/store/cscs/userlab/cws01/pool/data/ICON/"
+    testingFolder_prefix="/capstor/store/cscs/userlab/cws01/ci"
 
     set_default use_nodes 1
     set_default use_nproma 0
