@@ -3631,8 +3631,19 @@ MODULE mo_nh_stepping
   ENDIF
 
 #ifndef __NO_NWP__
-  IF (ALLOCATED(sst_intp)) DEALLOCATE(sst_intp)
-  IF (ALLOCATED(sic_intp)) DEALLOCATE(sic_intp)
+  IF (ALLOCATED(sst_intp)) THEN
+    DO jg = 1, n_dom
+      CALL sst_intp(jg)%finalize
+    END DO
+    DEALLOCATE(sst_intp)
+  END IF
+
+  IF (ALLOCATED(sic_intp)) THEN
+    DO jg = 1, n_dom
+      CALL sic_intp(jg)%finalize
+    END DO
+    DEALLOCATE(sic_intp)
+  END IF
 
   IF (ALLOCATED(sst_reader)) THEN
     DO jg = 1, n_dom

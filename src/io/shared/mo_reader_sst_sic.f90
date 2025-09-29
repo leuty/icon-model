@@ -188,7 +188,7 @@ CONTAINS
     CLASS(t_sst_sic_file), INTENT(INOUT) :: this
     INTEGER, INTENT(IN) :: index
     CHARACTER(len=*), INTENT(IN) :: varname
-    REAL(wp), INTENT(OUT), TARGET :: dat(:,:,:)
+    REAL(wp), INTENT(INOUT), TARGET :: dat(:,:,:)
     TYPE(t_ptr_3d_wp) :: ptr(1)
 
     IF (this%fileid == -1) THEN
@@ -313,6 +313,7 @@ CONTAINS
 
     IF (.NOT. ALLOCATED(dat)) THEN
       ALLOCATE(dat(nproma, 1, this%p_patch%nblks_c, 1))
+      dat(:,:,:,:) = -1._wp
     END IF
 
     CALL this%file%get_slice(this%index, varname, dat(:,:,:,1))
