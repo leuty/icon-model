@@ -9,14 +9,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ---------------------------------------------------------------
 
-set(kokkos_dependents main.cpp types.cpp)
-
-add_executable(ragnarok_test ${kokkos_dependents})
-
-set_source_files_properties(
-  ${kokkos_dependents} PROPERTIES LANGUAGE ${Kokkos_COMPILE_LANGUAGE}
-)
-
-target_link_libraries(
-  ragnarok_test PRIVATE ragnarok_common_headers GTest::gtest Kokkos::kokkos
-)
+add_subdirectory(src)
+if(BUILD_TESTING)
+  add_subdirectory(test)
+endif()

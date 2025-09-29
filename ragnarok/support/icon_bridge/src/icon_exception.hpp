@@ -9,17 +9,17 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // ---------------------------------------------------------------
 
-#ifndef RAGNAROK_ICON_BRIDGE_ICON_EXCEPTION_H_
-#define RAGNAROK_ICON_BRIDGE_ICON_EXCEPTION_H_
+#ifndef RAGNAROK_SUPPORT_ICON_BRIDGE_ICON_EXCEPTION_H_
+#define RAGNAROK_SUPPORT_ICON_BRIDGE_ICON_EXCEPTION_H_
 
 #include <string>
 
-namespace icon_exception {
+namespace icon {
 
 void message(const std::string& name, const std::string& text);
 void finish(const std::string& name, const std::string& text);
 void finish(const std::string& name);
 
-}  // namespace icon_exception
+}  // namespace icon
 
-#endif
+#endif  // RAGNAROK_SUPPORT_ICON_BRIDGE_ICON_EXCEPTION_H_

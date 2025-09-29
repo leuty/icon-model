@@ -12,7 +12,7 @@
 ! provides access to icon functionlity for ragnarok
 #ifndef __NO_RAGNAROK__
 
-MODULE  mo_ragnarok_bridge
+MODULE mo_ragnarok_support
   USE ISO_C_BINDING, ONLY: c_int, c_ptr, c_null_ptr, c_loc, c_funptr, c_FUNLOC, &
        & c_char, c_f_pointer, c_bool, c_double
   USE mo_kind, ONLY: wp
@@ -20,25 +20,29 @@ MODULE  mo_ragnarok_bridge
   USE mo_parallel_config, ONLY: nproma
   USE mo_model_domain, ONLY: t_patch, p_patch
   USE mo_io_units, ONLY: filename_max
-  USE mo_ragnarok_support, ONLY: t_f2c_ftable, t_dom_info, t_f2c_patch_descr, &
-       & t_patch_info, init_ragnarok_support, &
+  USE mo_ragnarok_f2c, ONLY: t_f2c_ftable, t_dom_info, t_f2c_patch_descr, &
+       & t_patch_info, init_ragnarok_f2c, &
        & t_comm_patch, t_comm_pattern_cdescr, &
        & ragnarok_sync_patch_array_r3_sync_c, &
        & t_process_info
+  USE mo_ragnarok_timer, only: init_ragnarok_timer
   USE mo_communication, ONLY: t_comm_pattern,  exchange_data
   USE mo_communication_types, ONLY: t_comm_pattern_descr
+  USE mo_timer, ONLY: new_timer, timer_start, timer_stop, ltimer, timers_level
+  USE mo_real_timer, ONLY: timer_val
   IMPLICIT NONE
   PRIVATE
-  PUBLIC :: init_ragnarok_bridge
+  PUBLIC :: init_ragnarok_support
 
-  CHARACTER(len=*), PARAMETER :: module_name = 'mo_ragnarok_bridge'
+  CHARACTER(len=*), PARAMETER :: module_name = 'mo_ragnarok_support'
   LOGICAL, PRIVATE :: is_initialized = .FALSE.
+
 CONTAINS
 
-  SUBROUTINE init_ragnarok_bridge()
-    CHARACTER(len=*), PARAMETER :: context = module_name //'::init_ragnarok_bridge'
+  SUBROUTINE init_ragnarok_support()
+    CHARACTER(len=*), PARAMETER :: context = module_name //'::init_ragnarok_support'
     IF (is_initialized) RETURN
-    CALL init_ragnarok_support( t_f2c_ftable( &
+    CALL init_ragnarok_f2c( t_f2c_ftable( &
          & get_domain_info = c_funloc(get_domain_info), &
          & get_patch_info = c_funloc(get_patch_info), &
          & get_mo_model_domain_p_patch_descr = c_funloc(get_mo_model_domain_p_patch_descr), &
@@ -46,14 +50,17 @@ CONTAINS
          & f2c_message = c_funloc(f2c_message), &
          & f2c_finish = c_funloc(f2c_finish), &
          & f2c_exchange_data_r3d = c_funloc(f2c_exchange_data_r3d), &
-         & get_process_info = c_FUNLOC(get_process_info) &
+         & get_process_info = c_FUNLOC(get_process_info), &
+         & f2c_new_timer = c_FUNLOC(f2c_new_timer), &
+         & f2c_timer_start = c_FUNLOC(f2c_timer_start), &
+         & f2c_timer_stop = c_FUNLOC(f2c_timer_stop), &
+         & f2c_timer_value = c_FUNLOC(f2c_timer_value), &
+         & f2c_get_timer_config = c_FUNLOC(f2c_get_timer_config) &
          & ))
-    CALL message(context,'ragnarok_bridge is initialized.')
+    CALL init_ragnarok_timer()
+    CALL message(context,'ragnarok_support is initialized.')
     is_initialized = .TRUE.
-#ifdef DEBUG_RAGNAROK_BRIDGE
-    CALL test_ragnarok_sync_patch_array_r3_sync_c()
-#endif
-  END SUBROUTINE init_ragnarok_bridge
+  END SUBROUTINE init_ragnarok_support
 
   FUNCTION get_process_info() RESULT(process_info) BIND(c)
     USE mo_mpi, ONLY: my_process_is_mpi_parallel
@@ -71,41 +78,6 @@ CONTAINS
     CALL exchange_data(get_comm_pattern(pat_descr), LOGICAL(lacc), recv)
 
   END SUBROUTINE f2c_exchange_data_r3d
-
-#ifdef DEBUG_RAGNAROK_BRIDGE
-  SUBROUTINE test_ragnarok_sync_patch_array_r3_sync_c()
-    USE mo_sync, ONLY: sync_patch_array, SYNC_C
-    CHARACTER(len=*), PARAMETER :: context = module_name //'::test_ragnarok_sync_patch_array_r3_sync_c'
-
-    INTEGER :: pid
-    REAL(wp), ALLOCATABLE :: arr(:,:,:), ref(:,:,:)
-    TYPE(t_patch), POINTER :: patch
-    INTEGER :: ia, ib, k, na, p
-    pid = LBOUND(p_patch,1)
-    patch => p_patch(pid)
-    ALLOCATE(ref(nproma, patch%nlev, patch%nblks_c))
-    p = (patch%rank+1) * 10000
-    ref = -REAL(p,wp)
-    DO ib = 1, patch%nblks_c
-      na = MERGE(nproma, patch%npromz_c, ib < patch%nblks_c)
-      DO k = 1, patch%nlev
-        DO ia = 1, na
-          p = p + 1
-          ref(ia,k,ib) = REAL(p,wp)
-        ENDDO
-      ENDDO
-    ENDDO
-    arr = ref
-    CALL sync_patch_array(SYNC_C, patch, ref)
-    IF (ALL(arr == ref)) CALL message(context,'Note: test not significant')
-    CALL ragnarok_sync_patch_array_r3_sync_c(pid, arr,[nproma, patch%nlev, patch%nblks_c])
-    IF (ALL(arr == ref)) THEN
-      CALL message(context,'Test passed.')
-    ELSE
-      CALL finish(context,'Test failed')
-    ENDIF
-  END SUBROUTINE test_ragnarok_sync_patch_array_r3_sync_c
-#endif
 
   SUBROUTINE get_domain_info(dom_info) BIND(c)
     CHARACTER(len=*), PARAMETER :: context = module_name //'::get_domain_info'
@@ -219,5 +191,42 @@ CONTAINS
     ENDDO
   END SUBROUTINE aux_copy_cstring
 
-END MODULE mo_ragnarok_bridge
+  FUNCTION f2c_new_timer(cname, cname_len) RESULT(itimer) BIND(c)
+    CHARACTER(c_char), DIMENSION(*), INTENT(in) :: cname
+    INTEGER(c_int), VALUE, INTENT(in) :: cname_len
+    INTEGER(c_int) :: itimer
+    INTEGER :: my_fname_len
+    my_fname_len = MIN(cname_len, filename_max)
+    CALL my_sub()
+  CONTAINS
+    SUBROUTINE my_sub
+      CHARACTER(len=my_fname_len) :: my_fname
+      CALL aux_copy_cstring(cname, my_fname, my_fname_len)
+      itimer = new_timer(my_fname)
+    END SUBROUTINE my_sub
+  END FUNCTION f2c_new_timer
+
+  SUBROUTINE f2c_timer_start(it) BIND(c)
+    INTEGER(c_int), VALUE, INTENT(in) :: it
+    CALL timer_start(it)
+  END SUBROUTINE f2c_timer_start
+
+  SUBROUTINE f2c_timer_stop(it) BIND(c)
+    INTEGER(c_int), VALUE, INTENT(in) :: it
+    CALL timer_stop(it)
+  END SUBROUTINE f2c_timer_stop
+
+  REAL(c_double) FUNCTION f2c_timer_value(it) BIND(c)
+    INTEGER(c_int), VALUE, INTENT(in) :: it
+    f2c_timer_value = timer_val(it)
+  END FUNCTION f2c_timer_value
+
+  SUBROUTINE f2c_get_timer_config(cltimer, ctimers_level) BIND(c)
+    LOGICAL(c_bool) :: cltimer
+    INTEGER(c_int) :: ctimers_level
+    cltimer = LOGICAL(ltimer, c_bool)
+    ctimers_level = INT(timers_level, c_int)
+  END SUBROUTINE f2c_get_timer_config
+
+END MODULE mo_ragnarok_support
 #endif /* __NO_RAGNAROK__ */

@@ -15,9 +15,9 @@
 ///
 //----------------------------
 
-#include <cassert>
-
 #include "icon_domain.hpp"
+
+#include <cassert>
 
 namespace icon {
 

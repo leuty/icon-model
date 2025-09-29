@@ -20,16 +20,16 @@
 
 #include <cassert>
 
-#include "f2c_support.hpp"
-#include "model_domain.hpp"
+#include "icon_domain.hpp"
+#include "icon_f2c.hpp"
 #include "ragnarok.hpp"
 
-namespace icon_bridge {
+namespace icon {
 
-extern "C" void init_ragnarok_support(f2c_support::FunTable* fun_tab) {
+extern "C" void init_ragnarok_f2c(f2c::FunTable* fun_tab) {
   assert(ragnarok::is_initialized());
-  f2c_support::init(fun_tab);
-  model_domain::init();
+  f2c::init(fun_tab);
+  init_domain();
 }
 
-}  // namespace icon_bridge
+}  // namespace icon

@@ -9,14 +9,14 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // ---------------------------------------------------------------
 
-#ifndef RAGNAROK_ICON_BRIDGE_ICON_SYNC_H_
-#define RAGNAROK_ICON_BRIDGE_ICON_SYNC_H_
+#ifndef RAGNAROK_SUPPORT_ICON_BRIDGE_ICON_SYNC_H_
+#define RAGNAROK_SUPPORT_ICON_BRIDGE_ICON_SYNC_H_
 
-#include "f2c_support.hpp"
+#include "icon_f2c.hpp"
 
-namespace icon_sync {
+namespace icon {
 
-void sync_patch_array(int typ, f2c_support::PatchDescr patch, double arr[], int shape[3]);
+void sync_patch_array(int typ, f2c::PatchDescr patch, double arr[], int shape[3]);
 
 struct SyncC {
   static constexpr int value = 1;
@@ -39,13 +39,13 @@ constexpr SyncE sync_e;
 constexpr SyncV sync_v;
 constexpr SyncC1 sync_c1;
 
-inline const f2c_support::ProcessInfo& get_process_info() {
-  static const f2c_support::ProcessInfo process_info = f2c_support::get_fun_table().get_process_info();
+inline const f2c::ProcessInfo& get_process_info() {
+  static const f2c::ProcessInfo process_info = f2c::get_fun_table().get_process_info();
   return process_info;
 }
 
-}  // namespace icon_sync
+}  // namespace icon
 
 #include "icon_sync.ipp"
 
-#endif
+#endif  // RAGNAROK_SUPPORT_ICON_BRIDGE_ICON_SYNC_H_

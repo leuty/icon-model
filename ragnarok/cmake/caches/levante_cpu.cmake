@@ -39,6 +39,10 @@ set(BUILD_TESTING
     ON
     CACHE BOOL "Enable testing" FORCE
 )
+set(RGK_ENABLE_STANDALONE
+    ON
+    CACHE BOOL "Enable standalone" FORCE
+)
 
 # Kokkos options
 set(Kokkos_ENABLE_SERIAL

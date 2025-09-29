@@ -9,7 +9,7 @@
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
 
-MODULE mo_ragnarok_support
+MODULE mo_ragnarok_f2c
   USE ISO_C_BINDING, ONLY: c_int, c_double, c_ptr, c_null_ptr, c_loc, c_funptr, &
        & c_null_funptr, c_bool
   IMPLICIT NONE
@@ -18,7 +18,7 @@ MODULE mo_ragnarok_support
   PUBLIC :: t_dom_info
   PUBLIC :: t_f2c_patch_descr
   PUBLIC :: t_patch_info
-  PUBLIC :: init_ragnarok_support
+  PUBLIC :: init_ragnarok_f2c
   PUBLIC :: t_comm_patch
   PUBLIC :: t_comm_pattern_cdescr
   PUBLIC :: ragnarok_sync_patch_array_r3_sync_c
@@ -33,6 +33,11 @@ MODULE mo_ragnarok_support
     TYPE(c_funptr) :: f2c_finish = c_null_funptr
     TYPE(c_funptr) :: f2c_exchange_data_r3d = c_null_funptr
     TYPE(c_funptr) :: get_process_info = c_null_funptr
+    TYPE(c_funptr) :: f2c_new_timer = c_null_funptr
+    TYPE(c_funptr) :: f2c_timer_start = c_null_funptr
+    TYPE(c_funptr) :: f2c_timer_stop = c_null_funptr
+    TYPE(c_funptr) :: f2c_timer_value = c_null_funptr
+    TYPE(c_funptr) :: f2c_get_timer_config = c_null_funptr
   END TYPE t_f2c_ftable
 
   ! domain info:
@@ -71,10 +76,10 @@ MODULE mo_ragnarok_support
   END TYPE t_process_info
 
   INTERFACE
-    SUBROUTINE init_ragnarok_support(funtab) BIND(c)
+    SUBROUTINE init_ragnarok_f2c(funtab) BIND(c)
       IMPORT t_f2c_ftable
       TYPE(t_f2c_ftable), INTENT(in) :: funtab
-    END SUBROUTINE init_ragnarok_support
+    END SUBROUTINE init_ragnarok_f2c
 
     SUBROUTINE ragnarok_sync_patch_array_r3_sync_c(pid, arr, arr_shape) BIND(c)
       IMPORT :: c_double, c_int
@@ -84,4 +89,4 @@ MODULE mo_ragnarok_support
     END SUBROUTINE ragnarok_sync_patch_array_r3_sync_c
   END INTERFACE
 
-END MODULE mo_ragnarok_support
+END MODULE mo_ragnarok_f2c

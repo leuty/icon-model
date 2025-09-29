@@ -16,13 +16,13 @@
 ///
 //----------------------------
 
-#ifndef RAGNAROK_ICON_BRIDGE_F2C_SUPPORT_H_
-#define RAGNAROK_ICON_BRIDGE_F2C_SUPPORT_H_
+#ifndef RAGNAROK_SUPPORT_ICON_BRIDGE_ICON_F2C_H_
+#define RAGNAROK_SUPPORT_ICON_BRIDGE_ICON_F2C_H_
 
 #include <cassert>
 #include <cstddef>
-
-namespace f2c_support {
+namespace icon {
+namespace f2c {
 
 // opaque pointer to a Fortran t_patch instance
 struct PatchDescr {
@@ -76,6 +76,11 @@ struct FunTable {
   void (*finish)(const char* name, int name_len, const char* text, int text_len)              = NULL;
   void (*exchange_data_r3d)(CommPatternDescr descr, bool lacc, double* recv, int* recv_shape) = NULL;
   ProcessInfo (*get_process_info)()                                                           = NULL;
+  int (*new_timer)(const char* name, int name_len)                                            = NULL;
+  void (*timer_start)(int timer)                                                              = NULL;
+  void (*timer_stop)(int timer)                                                               = NULL;
+  double (*timer_value)(int timer)                                                            = NULL;
+  void (*get_timer_config)(bool& ltimer, int& timers_level)                                   = NULL;
 };
 
 class Internal {
@@ -102,6 +107,7 @@ inline const DomainInfo& get_domain_info() {
 
 void init(const FunTable* fun_tab);
 
-}  // namespace f2c_support
+}  // namespace f2c
+}  // namespace icon
 
-#endif  // RAGNAROK_ICON_BRIDGE_F2C_SUPPORT_H_
+#endif  // RAGNAROK_SUPPORT_ICON_BRIDGE_ICON_F2C_H_

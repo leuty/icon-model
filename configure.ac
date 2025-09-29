@@ -3101,10 +3101,12 @@ RAGNAROK library @<:@default=$ICON_BUNDLED_HIPFLAGS@:>@])dnl
      [-DCMAKE_BUILD_TYPE=None],
      [-DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH"],
      [-DBUILD_SHARED_LIBS=OFF], [-DBUILD_TESTING=OFF],
+     [-DRGK_ENABLE_STANDALONE=OFF],
      [-DCMAKE_CUDA_ARCHITECTURES=OFF], [-DCMAKE_HIP_ARCHITECTURES=OFF])
    icon_bundled_config_after_config([ragnarok/build], [externals/kokkos/build])
    AS_VAR_APPEND([bundled_includes],
-     ["${FC_MOD_IN}ragnarok/build/support/icon_bridge/src/mod "])
+     ["${FC_MOD_IN}ragnarok/build/support/icon_bridge/src/mod dnl
+${FC_MOD_IN}ragnarok/build/support/timer/src/mod " ])
    BUNDLED_LIBFILES="ragnarok/build/libragnarok.a $BUNDLED_LIBFILES"])
 
 dnl Prepend the include search flags to FCFLAGS:

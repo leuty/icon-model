@@ -16,8 +16,8 @@
 ///
 //----------------------------
 
-#ifndef RAGNAROK_ICON_BRIDGE_RAGNAROK_H_
-#define RAGNAROK_ICON_BRIDGE_RAGNAROK_H_
+#ifndef RAGNAROK_SUPPORT_ICON_BRIDGE_RAGNAROK_H_
+#define RAGNAROK_SUPPORT_ICON_BRIDGE_RAGNAROK_H_
 
 namespace ragnarok {
 
@@ -32,4 +32,4 @@ void init_ragnarok();
 char* retrieve_kokkos_version_c(int&);
 }
 
-#endif
+#endif  // RAGNAROK_SUPPORT_ICON_BRIDGE_RAGNAROK_H_

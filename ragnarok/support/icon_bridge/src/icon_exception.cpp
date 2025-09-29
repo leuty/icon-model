@@ -19,11 +19,9 @@
 
 #include <cassert>
 
-#include "f2c_support.hpp"
+#include "icon_f2c.hpp"
 
-namespace icon_exception {
-
-namespace f2c = f2c_support;
+namespace icon {
 
 namespace {
 
@@ -47,4 +45,4 @@ void init() {
   is_initialized = true;
 }
 
-}  // namespace icon_exception
+}  // namespace icon

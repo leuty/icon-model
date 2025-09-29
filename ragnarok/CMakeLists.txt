@@ -23,6 +23,7 @@ project(
 
 option(BUILD_SHARED_LIBS "Build shared libraries" ON)
 option(BUILD_TESTING "Build tests" ON)
+option(RGK_ENABLE_STANDALONE "Enable standalone" ON)
 
 include(CTest)
 
@@ -163,14 +164,19 @@ if(Kokkos_ENABLE_COMPILE_AS_CMAKE_LANGUAGE)
   endif()
 endif()
 
-add_library(ragnarok)
-
 add_subdirectory(common)
 add_subdirectory(support)
 
-target_link_libraries(ragnarok PUBLIC ragnarok_support)
+if(NOT RGK_ENABLE_STANDALONE)
+  # Create a single library comprising all components that ICON can link to:
+  add_library(ragnarok)
+  target_link_libraries(ragnarok PUBLIC ragnarok_support)
+endif()
 
-# Allow for 'make test' even if the tests are disabled:
-if(NOT BUILD_TESTING)
+if(BUILD_TESTING)
+  # Delay test discovery until runtime (needed for cross-compilation):
+  gtest_discover_tests(ragnarok_test DISCOVERY_MODE PRE_TEST)
+else()
+  # Allow for 'make test' even if the tests are disabled:
   enable_testing()
 endif()

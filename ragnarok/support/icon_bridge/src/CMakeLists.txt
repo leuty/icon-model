@@ -12,8 +12,8 @@
 set(kokkos_dependents
     # cmake-format: sort
     icon_bridge.cpp
+    icon_domain.cpp
     icon_sync.cpp
-    model_domain.cpp
     ragnarok.cpp
 )
 
@@ -21,15 +21,14 @@ add_library(
   icon_bridge OBJECT
   # cmake-format: sort
   ${kokkos_dependents}
-  f2c_support.cpp
-  f2c_support.hpp
   icon_exception.cpp
   icon_exception.hpp
+  icon_f2c.cpp
+  icon_f2c.hpp
   icon_sync.hpp
   icon_sync.ipp
   mo_ragnarok.f90
-  mo_ragnarok_support.f90
-  model_domain.hpp
+  mo_ragnarok_f2c.f90
   ragnarok.hpp
 )
 
@@ -50,6 +49,7 @@ endif()
 target_include_directories(
   icon_bridge
   PUBLIC
+    $<BUILD_INTERFACE:$<$<NOT:$<COMPILE_LANGUAGE:Fortran>>:${CMAKE_CURRENT_SOURCE_DIR}>>
     $<BUILD_INTERFACE:$<$<COMPILE_LANGUAGE:Fortran>:${Fortran_MODULE_DIRECTORY}>>
 )
 

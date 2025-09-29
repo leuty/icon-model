@@ -19,15 +19,15 @@
 
 #include <iostream>
 
+#include "icon_domain.hpp"
 #include "icon_exception.hpp"
-#include "model_domain.hpp"
 
-namespace icon_sync {
+namespace icon {
 
 // for testing only
 extern "C" void ragnarok_sync_patch_array_r3_sync_c(int pid, double arr[], int arr_shape[3]) {
-  auto patch = model_domain::get_patch(pid);
+  auto& patch = get_patch(pid);
   sync_patch_array_r3(sync_c, patch, arr, arr_shape, false);
 }
 
-}  // namespace icon_sync
+}  // namespace icon

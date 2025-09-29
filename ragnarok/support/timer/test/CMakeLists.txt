@@ -9,16 +9,12 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ---------------------------------------------------------------
 
-add_subdirectory(timer)
 if(RGK_ENABLE_STANDALONE)
-  add_library(ragnarok_support INTERFACE)
-else()
-  add_library(ragnarok_support OBJECT)
-  add_subdirectory(icon_bridge)
-  target_link_libraries(ragnarok_support INTERFACE icon_bridge)
-  target_sources(
-    ragnarok_support
-    PUBLIC $<TARGET_OBJECTS:icon_bridge> $<TARGET_OBJECTS:timer>
+  set(kokkos_dependents timer_gtests.cpp)
+  set_source_files_properties(
+    ${kokkos_dependents} TARGET_DIRECTORY ragnarok_test
+    PROPERTIES LANGUAGE ${Kokkos_COMPILE_LANGUAGE}
   )
+  target_sources(ragnarok_test PUBLIC ${kokkos_dependents})
+  target_link_libraries(ragnarok_test PRIVATE timer)
 endif()
-target_link_libraries(ragnarok_support INTERFACE timer)

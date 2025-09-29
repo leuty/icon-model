@@ -16,15 +16,15 @@
 ///
 //----------------------------
 
-#ifndef RAGNAROK_ICON_BRIDGE_ICON_BRIDGE_H_
-#define RAGNAROK_ICON_BRIDGE_ICON_BRIDGE_H_
+#ifndef RAGNAROK_SUPPORT_ICON_BRIDGE_ICON_BRIDGE_H_
+#define RAGNAROK_SUPPORT_ICON_BRIDGE_ICON_BRIDGE_H_
 
-#include "f2c_support.hpp"
+#include "icon_f2c.hpp"
 
-namespace icon_bridge {
+namespace icon {
 
-extern "C" void init_ragnarok_support(f2c_support::FunTable* ftab);
+extern "C" void init_ragnarok_f2c(f2c::FunTable* ftab);
 
-}  // namespace icon_bridge
+}  // namespace icon
 
-#endif /* RAGNAROK_ICON_BRIDGE_ICON_BRIDGE_H_ */
+#endif /* RAGNAROK_SUPPORT_ICON_BRIDGE_ICON_BRIDGE_H_ */

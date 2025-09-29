@@ -9,13 +9,13 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // ---------------------------------------------------------------
 
+#include "icon_domain.hpp"
 #include "icon_exception.hpp"
-#include "model_domain.hpp"
 
-namespace icon_sync {
+namespace icon {
 
 template <typename S>
-inline const f2c_support::CommPattern& comm_pat_of_type(const f2c_support::CommPatch& comm_patch, S typ) {
+inline const f2c::CommPattern& comm_pat_of_type(const f2c::CommPatch& comm_patch, S typ) {
   if constexpr (std::is_same_v<S, SyncC>) {
     return comm_patch.comm_pat_c;
   } else if constexpr (std::is_same_v<S, SyncE>) {
@@ -25,13 +25,13 @@ inline const f2c_support::CommPattern& comm_pat_of_type(const f2c_support::CommP
   } else if constexpr (std::is_same_v<S, SyncC1>) {
     return comm_patch.comm_pat_c1;
   }
-  icon_exception::finish("comm_pat_of_type", "unsupported typ variable");
-  return f2c_support::comm_pat_null;  // never reached
+  finish("comm_pat_of_type", "unsupported typ variable");
+  return f2c::comm_pat_null;  // never reached
 }
 
 template <typename S>
-void sync_patch_array_r3(S typ, const model_domain::Patch& patch, double* arr, int arr_shape[], bool lacc) {
-  auto& fun_table    = f2c_support::get_fun_table();
+void sync_patch_array_r3(S typ, const Patch& patch, double* arr, int arr_shape[], bool lacc) {
+  auto& fun_table    = f2c::get_fun_table();
   auto pat           = comm_pat_of_type(patch.comm_patch, typ);
   auto& my_proc_info = get_process_info();
   if (my_proc_info.is_mpi_parallel) {
@@ -39,4 +39,4 @@ void sync_patch_array_r3(S typ, const model_domain::Patch& patch, double* arr, i
   }
 }
 
-}  // namespace icon_sync
+}  // namespace icon

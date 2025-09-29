@@ -49,6 +49,21 @@ include:
       ) 2>&1
       icon_ci_log_section_end
 
+.ragnarok:docker:
+  extends:
+    - .utils:log
+    - .ragnarok:common
+  variables:
+    CMAKE_BUILD_PARALLEL_LEVEL: 8
+    CTEST_PARALLEL_LEVEL: 8
+  tags:
+    - docker-any-image
+  image: registry.gitlab.dkrz.de/icon/containers/icon-dev
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "web"
+      when: manual
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
 .ragnarok:levante:
   extends:
     - .common:dkrz:levante
@@ -67,19 +82,28 @@ include:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 
 ragnarok:cpu:serial:
-  extends:
-    - .utils:log
-    - .ragnarok:common
+  extends: .ragnarok:docker
   variables:
-    CMAKE_BUILD_PARALLEL_LEVEL: 8
-    CTEST_PARALLEL_LEVEL: 8
-  tags:
-    - docker-any-image
-  image: registry.gitlab.dkrz.de/icon/containers/icon-dev
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "web"
-      when: manual
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    ICON_CI_RAGNAROK_CMAKE_EXTRA_ARGS: >-
+      -DKokkos_ENABLE_OPENMP=OFF
+      -DKokkos_ENABLE_SERIAL=ON
+      -DRGK_ENABLE_STANDALONE=ON
+
+ragnarok:icon-bridge:
+  extends: .ragnarok:docker
+  variables:
+    ICON_CI_RAGNAROK_CMAKE_EXTRA_ARGS: >-
+      -DBUILD_SHARED_LIBS=OFF
+      -DRGK_ENABLE_STANDALONE=OFF
+  script:
+    - !reference [.ragnarok:docker, script]
+    - |
+      # !reference [ragnarok:icon-bridge, script]
+      icon_ci_log_info_msg 'Checking for expected build artifacts...'
+      (
+        set -ux
+        test -e "${ICON_CI_RAGNAROK_BUILD_PATH}/libragnarok.a"
+      )
 
 ragnarok:cpu:openmp:
   extends: .ragnarok:levante
