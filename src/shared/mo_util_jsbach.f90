@@ -445,6 +445,7 @@ CONTAINS
       ztime = atm_phy_nwp_config(model_id)%dt_fastphy
     ELSE
       ztime = -1._wp
+      dt_in_ms = -1._wp
 
       reference_datetime => newDatetime("1979-01-01T00:00:00.000") ! 1980-06-01T00:00:00.000
 

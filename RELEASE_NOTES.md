@@ -85,6 +85,7 @@ Climate: ICON-Land
   - Fix needed with jsbach standalone simulations on GPUs
   - Fixed sequence of variables in surface temperature routine calls
   - Removed unnecessary mpi-all-reduce calls to reduce run time
+  - Fixed uninitialized value for function get_time_dt in standalone model
 - Code cleaning:
   - Only use one variable representing time step length
   - Revised surface temperature computation wrt variable names and comments
