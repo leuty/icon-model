@@ -80,6 +80,15 @@
     USE mo_dictionary,          ONLY: t_dictionary
     USE mo_atm_phy_nwp_config,  ONLY: atm_phy_nwp_config
 
+#ifdef __ICON_ART
+    ! OEM
+    USE mo_art_oem_types,       ONLY: p_art_oem_data
+
+    ! ART
+    USE mo_run_config,          ONLY: lart
+#endif
+
+
     IMPLICIT NONE
     PRIVATE
 
@@ -387,6 +396,14 @@
       LOGICAL                               :: is_restart
       TYPE(t_read_params) :: read_params(2) ! parameters for cdi read routine, 1 = for cells, 2 = for edges
       INTEGER :: jn
+
+
+      ! set pointer for the lateral BCs of OEM
+#ifdef __ICON_ART
+      IF (lart) THEN
+        p_art_oem_data%data_fields%p_latbc_data => latbc
+      ENDIF
+#endif
 
       is_restart = isrestart()
       ! Fill data type with parameters for cdi read routine
@@ -1558,6 +1575,7 @@
 
             ! ... additional tracer variables
             DO idx = 1, ntracer
+
               IF ( ASSOCIATED(latbc_data(tlev)%atm%tracer(idx)%field) ) THEN
                 DO jk = 1, nlev
                    DO jc = i_startidx, i_endidx
