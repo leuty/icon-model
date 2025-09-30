@@ -121,6 +121,16 @@ For a more detailed description of the reduced radiation grid implementation, se
 2. <a name="frad2"/>Output variables starting with the letter `a` are likely "accumulated" since model start. Depending on the switch {term}`lflux_avg`, they contain either averages since model start (`lflux_avg=.true.`) or accumulated values.<a href="#fradswback">{octicon}`undo;1em;pst-color-secondary`</a>
 3. <a name="frad3"/>The asterisk stands for the number of the surface tile.<a href="#fradswback">{octicon}`undo;1em;pst-color-secondary`</a>
 
+(ref_atmosphere_ecrad_gases)=
+# Gas Input Options
+
+There are multiple options for the specification of several components of the gaseous composition of the atmosphere available.
+The corresponding namelist parameters are `irad_h2o` for water vapor, `irad_o3` for ozone, `irad_co2` for carbon dioxide, `irad_n2o` for nitrous oxide, `irad_ch4` for methane, `irad_o2` for oxygen, `irad_cfc11` for trichlorofluoromethane and `irad_cfc12` for dichlorodifluoromethane.
+
+## External specification
+
+For all of the above described gases, the option `-1` (e.g., `irad_h2o=-1`) allows for an external specification of the gaseous concentrations. A variable `<gas>rad_ext` (e.g., `h2orad_ext`) is created which can be filled with mass mixing ratios ({math}`kg\,kg^{-1}`) from an external source, for example via the [Community Interface **ComIn**](ref_tools_comin). There is no cross-check that the arrays contain meaningful values. This is left to the user.
+
 (ref_atmosphere_ecrad_aerosol)=
 # Aerosol Input Options
 

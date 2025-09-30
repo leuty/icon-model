@@ -80,7 +80,9 @@ USE mo_radiation_config,    ONLY: irad_aero, iRadAeroTegen, iRadAeroART, iRadAer
   &                               iRadAeroConst, iRadAeroCAMSclim, iRadAeroCAMStd, islope_rad, &
   &                               iRadAeroConstKinne, iRadAeroKinne, iRadAeroVolc, iRadAeroKinneVolc, &
   &                               iRadAeroKinneVolcSP, iRadAeroKinneSP, iRadAeroExternal, &
-  &                               ecrad_nbands_sw, ecrad_nbands_lw, lcalculate_fsd
+  &                               ecrad_nbands_sw, ecrad_nbands_lw, lcalculate_fsd, &
+  &                               irad_h2o, irad_o3, irad_co2, irad_n2o, irad_ch4, &
+  &                               irad_o2, irad_cfc11, irad_cfc12
 USE mo_lnd_nwp_config,      ONLY: ntiles_total, ntiles_water, nlev_soil, itype_ahf
 USE mo_nwp_tuning_config,   ONLY: itune_gust_diag
 USE mo_var_list,            ONLY: add_var, add_ref, t_var_list_ptr
@@ -417,7 +419,11 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       &     diag%cape_mu, &
       &     diag%clc_rad, &
       &     diag%ceiling_height, &
+      &     diag%cfc11rad_ext, &
+      &     diag%cfc12rad_ext, &
+      &     diag%ch4rad_ext, &
       &     diag%cin_mu, &
+      &     diag%co2rad_ext, &
       &     diag%dbz3d_lin, &
       &     diag%dbz_850, &
       &     diag%dbzlmx_low, &
@@ -456,6 +462,9 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       &     diag%lpi, &
       &     diag%lwflxsfc_t, &
       &     diag%mech_prod, &
+      &     diag%n2orad_ext, &
+      &     diag%o2rad_ext, &
+      &     diag%o3rad_ext, &
       &     diag%od_lw, &
       &     diag%od_sw, &
       &     diag%p_cbase, &
@@ -463,6 +472,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       &     diag%pv, &
       &     diag%q_sedim, &
       &     diag%qrs_flux, &
+      &     diag%qvrad_ext, &
       &     diag%qvtend_lhn, &
       &     diag%reff_qc, &
       &     diag%reff_qg, &
@@ -2934,6 +2944,86 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
                 & cf_desc, grib2_desc, ldims=shape4d_swbands, &
                 & lrestart=.FALSE., loutput=.FALSE., lopenacc=.TRUE.)
       __acc_attach(diag%g_sw)
+    ENDIF
+
+    IF (irad_h2o == -1) THEN
+      cf_desc    = t_cf_var('qvrad_ext', 'kg kg-1', 'water vapor (external)', datatype_flt)
+      grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( diag_list, 'qvrad_ext', diag%qvrad_ext, &
+                & GRID_UNSTRUCTURED_CELL, ZA_REFERENCE, &
+                & cf_desc, grib2_desc, ldims=shape3d, &
+                & lrestart=.FALSE., loutput=.FALSE., lopenacc=.TRUE.)
+      __acc_attach(diag%qvrad_ext)
+    ENDIF
+
+    IF (irad_o3 == -1) THEN
+      cf_desc    = t_cf_var('o3rad_ext', 'kg kg-1', 'ozone (external)', datatype_flt)
+      grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( diag_list, 'o3rad_ext', diag%o3rad_ext, &
+                & GRID_UNSTRUCTURED_CELL, ZA_REFERENCE, &
+                & cf_desc, grib2_desc, ldims=shape3d, &
+                & lrestart=.FALSE., loutput=.FALSE., lopenacc=.TRUE.)
+      __acc_attach(diag%o3rad_ext)
+    ENDIF
+
+    IF (irad_co2 == -1) THEN
+      cf_desc    = t_cf_var('co2rad_ext', 'kg kg-1', 'carbon dioxide (external)', datatype_flt)
+      grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( diag_list, 'co2rad_ext', diag%co2rad_ext, &
+                & GRID_UNSTRUCTURED_CELL, ZA_REFERENCE, &
+                & cf_desc, grib2_desc, ldims=shape3d, &
+                & lrestart=.FALSE., loutput=.FALSE., lopenacc=.TRUE.)
+      __acc_attach(diag%co2rad_ext)
+    ENDIF
+
+    IF (irad_o2 == -1) THEN
+      cf_desc    = t_cf_var('o2rad_ext', 'kg kg-1', 'oxygen (external)', datatype_flt)
+      grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( diag_list, 'o2rad_ext', diag%o2rad_ext, &
+                & GRID_UNSTRUCTURED_CELL, ZA_REFERENCE, &
+                & cf_desc, grib2_desc, ldims=shape3d, &
+                & lrestart=.FALSE., loutput=.FALSE., lopenacc=.TRUE.)
+      __acc_attach(diag%o2rad_ext)
+    ENDIF
+
+    IF (irad_cfc11 == -1) THEN
+      cf_desc    = t_cf_var('cfc11rad_ext', 'kg kg-1', 'cfc11 (external)', datatype_flt)
+      grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( diag_list, 'cfc11rad_ext', diag%cfc11rad_ext, &
+                & GRID_UNSTRUCTURED_CELL, ZA_REFERENCE, &
+                & cf_desc, grib2_desc, ldims=shape3d, &
+                & lrestart=.FALSE., loutput=.FALSE., lopenacc=.TRUE.)
+      __acc_attach(diag%cfc11rad_ext)
+    ENDIF
+
+    IF (irad_cfc12 == -1) THEN
+      cf_desc    = t_cf_var('cfc12rad_ext', 'kg kg-1', 'cfc12 (external)', datatype_flt)
+      grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( diag_list, 'cfc12rad_ext', diag%cfc12rad_ext, &
+                & GRID_UNSTRUCTURED_CELL, ZA_REFERENCE, &
+                & cf_desc, grib2_desc, ldims=shape3d, &
+                & lrestart=.FALSE., loutput=.FALSE., lopenacc=.TRUE.)
+      __acc_attach(diag%cfc12rad_ext)
+    ENDIF
+
+    IF (irad_n2o == -1) THEN
+      cf_desc    = t_cf_var('n2orad_ext', 'kg kg-1', 'nitrous oxide (external)', datatype_flt)
+      grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( diag_list, 'n2orad_ext', diag%n2orad_ext, &
+                & GRID_UNSTRUCTURED_CELL, ZA_REFERENCE, &
+                & cf_desc, grib2_desc, ldims=shape3d, &
+                & lrestart=.FALSE., loutput=.FALSE., lopenacc=.TRUE.)
+      __acc_attach(diag%n2orad_ext)
+    ENDIF
+
+    IF (irad_ch4 == -1) THEN
+      cf_desc    = t_cf_var('ch4rad_ext', 'kg kg-1', 'methane (external)', datatype_flt)
+      grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( diag_list, 'ch4rad_ext', diag%ch4rad_ext, &
+                & GRID_UNSTRUCTURED_CELL, ZA_REFERENCE, &
+                & cf_desc, grib2_desc, ldims=shape3d, &
+                & lrestart=.FALSE., loutput=.FALSE., lopenacc=.TRUE.)
+      __acc_attach(diag%ch4rad_ext)
     ENDIF
 
     IF ( atm_phy_nwp_config(k_jg)%lstochastic_pattern_generator ) THEN

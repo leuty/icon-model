@@ -366,6 +366,8 @@ CONTAINS
         IF ( (atm_phy_nwp_config(jg)%inwp_radiation > 0) )  THEN
 
           SELECT CASE (irad_o3)
+          CASE (-1) ! ok
+            CALL message(routine,'Externally specified ozone')
           CASE (0) ! ok
             CALL message(routine,'radiation is used without ozone')
           CASE (2,4,5,6,7,9,11,79,97) ! ok
@@ -448,22 +450,22 @@ CONTAINS
 
           ! ecRad specific checks
           IF ( (atm_phy_nwp_config(jg)%inwp_radiation == 4) )  THEN
-            IF (.NOT. ANY( irad_h2o     == (/0,1/)         ) ) &
-              &  CALL finish(routine,'For inwp_radiation = 4, irad_h2o has to be 0 or 1')
-            IF (.NOT. ANY( irad_co2     == (/0,2,4/)       ) ) &
-              &  CALL finish(routine,'For inwp_radiation = 4, irad_co2 has to be 0, 2 or 4')
-            IF (.NOT. ANY( irad_ch4     == (/0,2,3,4/)     ) ) &
-              &  CALL finish(routine,'For inwp_radiation = 4, irad_ch4 has to be 0, 2, 3 or 4')
-            IF (.NOT. ANY( irad_n2o     == (/0,2,3,4/)     ) ) &
-              &  CALL finish(routine,'For inwp_radiation = 4, irad_n2o has to be 0, 2, 3 or 4')
-            IF (.NOT. ANY( irad_o3      == (/0,5,7,9,10,11,79,97/) ) ) &
-              &  CALL finish(routine,'For inwp_radiation = 4, irad_o3 has to be 0, 5, 7, 9, 10, 11, 79 or 97')
-            IF (.NOT. ANY( irad_o2      == (/0,2/)         ) ) &
-              &  CALL finish(routine,'For inwp_radiation = 4, irad_o2 has to be 0 or 2')
-            IF (.NOT. ANY( irad_cfc11   == (/0,2,4/)       ) ) &
-              &  CALL finish(routine,'For inwp_radiation = 4, irad_cfc11 has to be 0, 2 or 4')
-            IF (.NOT. ANY( irad_cfc12   == (/0,2,4/)       ) ) &
-              &  CALL finish(routine,'For inwp_radiation = 4, irad_cfc12 has to be 0, 2 or 4')
+            IF (.NOT. ANY( irad_h2o     == (/-1,0,1/)         ) ) &
+              &  CALL finish(routine,'For inwp_radiation = 4, irad_h2o has to be -1, 0 or 1')
+            IF (.NOT. ANY( irad_co2     == (/-1,0,2,4/)       ) ) &
+              &  CALL finish(routine,'For inwp_radiation = 4, irad_co2 has to be -1, 0, 2 or 4')
+            IF (.NOT. ANY( irad_ch4     == (/-1,0,2,3,4/)     ) ) &
+              &  CALL finish(routine,'For inwp_radiation = 4, irad_ch4 has to be -1, 0, 2, 3 or 4')
+            IF (.NOT. ANY( irad_n2o     == (/-1,0,2,3,4/)     ) ) &
+              &  CALL finish(routine,'For inwp_radiation = 4, irad_n2o has to be -1, 0, 2, 3 or 4')
+            IF (.NOT. ANY( irad_o3      == (/-1,0,5,7,9,10,11,79,97/) ) ) &
+              &  CALL finish(routine,'For inwp_radiation = 4, irad_o3 has to be -1, 0, 5, 7, 9, 10, 11, 79 or 97')
+            IF (.NOT. ANY( irad_o2      == (/-1,0,2/)         ) ) &
+              &  CALL finish(routine,'For inwp_radiation = 4, irad_o2 has to be -1, 0 or 2')
+            IF (.NOT. ANY( irad_cfc11   == (/-1,0,2,4/)       ) ) &
+              &  CALL finish(routine,'For inwp_radiation = 4, irad_cfc11 has to be -1, 0, 2 or 4')
+            IF (.NOT. ANY( irad_cfc12   == (/-1,0,2,4/)       ) ) &
+              &  CALL finish(routine,'For inwp_radiation = 4, irad_cfc12 has to be -1, 0, 2 or 4')
             IF (.NOT. ANY( irad_aero    == (/iRadAeroNone, iRadAeroConst, iRadAeroTegen, iRadAeroART, &
               &             iRadAeroConstKinne, iRadAeroKinne, iRadAeroVolc, iRadAeroCAMSclim,        &
               &             iRadAeroCAMStd, iRadAeroKinneVolc, iRadAeroKinneVolcSP, iRadAeroKinneSP,  &
@@ -522,7 +524,7 @@ CONTAINS
               ecrad_igraupel_scat = -1
               CALL message(routine,'Warning: Reset ecrad_igraupel_scat = -1 because of no graupel in microphysics')
             ENDIF
-          ELSE
+          ELSE ! Not ecRad
             IF ( ecrad_llw_cloud_scat ) &
               &  CALL message(routine,'Warning: ecrad_llw_cloud_scat is set to .true., but ecRad is not used')
             IF ( ecrad_iliquid_scat /= 0 ) &
@@ -535,7 +537,11 @@ CONTAINS
               &  CALL message(routine,'Warning: ecrad_igas_model is explicitly set, but ecRad is not used')
             IF ( ecrad_use_general_cloud_optics ) &
               &  CALL message(routine,'Warning: ecrad_use_general_cloud_optics is explicitly set, but ecRad is not used')
-          ENDIF
+
+            IF ( ANY( (/irad_h2o, irad_co2, irad_ch4, irad_n2o, irad_o3, irad_o2, irad_cfc11, irad_cfc12/) == -1 ) ) &
+              &  CALL finish(routine, &
+                   &         'External gas specification (irad_* == 1) only implemented for ecrad (inwp_radiation==4)')
+          ENDIF ! inwp_radiation == 4
 
         ELSE
 

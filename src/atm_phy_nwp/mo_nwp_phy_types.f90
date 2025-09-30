@@ -428,12 +428,20 @@ MODULE mo_nwp_phy_types
       & aercl_du  (:,:),    &
       & aerosol   (:,:,:)
 
-    ! Fields for externally specified aerosol, e.g. by ComIn
+    ! Fields for externally specified aerosol and gases, e.g. by ComIn
     REAL(wp), POINTER, CONTIGUOUS :: &
-      &  od_lw(:,:,:,:), & !< LW optical thickness of aerosols (-)
-      &  od_sw(:,:,:,:), & !< SW aerosol optical thickness (-)
-      &  g_sw (:,:,:,:), & !< SW aerosol asymmetry factor (-)
-      &  ssa_sw(:,:,:,:)   !< SW aerosol single scattering albedo (-)
+      &  od_lw(:,:,:,:),     & !< LW optical thickness of aerosols (-)
+      &  od_sw(:,:,:,:),     & !< SW aerosol optical thickness (-)
+      &  g_sw (:,:,:,:),     & !< SW aerosol asymmetry factor (-)
+      &  ssa_sw(:,:,:,:),    & !< SW aerosol single scattering albedo (-)
+      &  qvrad_ext(:,:,:),   & !< Externally specified water vapor (kg kg-1)
+      &  o3rad_ext(:,:,:),   & !< Externally specified ozone (kg kg-1)
+      &  co2rad_ext(:,:,:),  & !< Externally specified carbon dioxide (kg kg-1)
+      &  o2rad_ext(:,:,:),   & !< Externally specified oxygen (kg kg-1)
+      &  cfc11rad_ext(:,:,:),& !< Externally specified CFC11 (kg kg-1)
+      &  cfc12rad_ext(:,:,:),& !< Externally specified CFC12 (kg kg-1)
+      &  n2orad_ext(:,:,:),  & !< Externally specified N2O (kg kg-1)
+      &  ch4rad_ext(:,:,:)     !< Externally specified CH4 (kg kg-1)
 
     INTEGER, POINTER, CONTIGUOUS :: &
       &  mbas_con(:,:),     & !< cloud base level index
