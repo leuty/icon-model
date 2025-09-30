@@ -9,4 +9,29 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ---------------------------------------------------------------
 
-add_subdirectory(src)
+set(kokkos_dependents
+    # cmake-format: sort
+    icon_bridge.cpp
+    icon_domain.cpp
+    icon_sync.cpp
+    ragnarok.cpp
+)
+
+target_sources(
+  ragnarok
+  PRIVATE # cmake-format: sort
+          ${kokkos_dependents}
+          icon_exception.cpp
+          icon_exception.hpp
+          icon_f2c.cpp
+          icon_f2c.hpp
+          icon_sync.hpp
+          icon_sync.ipp
+          mo_ragnarok.f90
+          mo_ragnarok_f2c.f90
+          ragnarok.hpp
+)
+
+set_source_files_properties(
+  ${kokkos_dependents} PROPERTIES LANGUAGE ${Kokkos_COMPILE_LANGUAGE}
+)

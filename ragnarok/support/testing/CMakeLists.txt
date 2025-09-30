@@ -9,12 +9,13 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ---------------------------------------------------------------
 
-if(RGK_ENABLE_STANDALONE)
-  set(kokkos_dependents timer_gtests.cpp)
+if(BUILD_TESTING)
+  set(kokkos_dependents tests_runner.cpp)
+
   set_source_files_properties(
     ${kokkos_dependents} TARGET_DIRECTORY ragnarok_test
     PROPERTIES LANGUAGE ${Kokkos_COMPILE_LANGUAGE}
   )
-  target_sources(ragnarok_test PUBLIC ${kokkos_dependents})
-  target_link_libraries(ragnarok_test PRIVATE timer)
+
+  target_sources(ragnarok_test PRIVATE ${kokkos_dependents})
 endif()

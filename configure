@@ -11941,7 +11941,7 @@ esac
   as_fn_append BUNDLED_RULES "ragnarok/build/Makefile:| externals/kokkos/build/Makefile$as_nl"
 fi
    as_fn_append BUNDLED_RULES "ragnarok/build: externals/kokkos/build$as_nl"
-   as_fn_append bundled_includes "${FC_MOD_IN}ragnarok/build/support/icon_bridge/src/mod ${FC_MOD_IN}ragnarok/build/support/timer/src/mod "
+   as_fn_append bundled_includes "${FC_MOD_IN}ragnarok/build/mod "
    BUNDLED_LIBFILES="ragnarok/build/libragnarok.a $BUNDLED_LIBFILES"
 fi
 

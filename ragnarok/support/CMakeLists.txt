@@ -9,16 +9,9 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ---------------------------------------------------------------
 
-add_subdirectory(timer)
-if(RGK_ENABLE_STANDALONE)
-  add_library(ragnarok_support INTERFACE)
-else()
-  add_library(ragnarok_support OBJECT)
+if(NOT RGK_ENABLE_STANDALONE)
   add_subdirectory(icon_bridge)
-  target_link_libraries(ragnarok_support INTERFACE icon_bridge)
-  target_sources(
-    ragnarok_support
-    PUBLIC $<TARGET_OBJECTS:icon_bridge> $<TARGET_OBJECTS:timer>
-  )
 endif()
-target_link_libraries(ragnarok_support INTERFACE timer)
+
+add_subdirectory(timer)
+add_subdirectory(testing)

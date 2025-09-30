@@ -9,7 +9,21 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ---------------------------------------------------------------
 
-add_subdirectory(src)
-if(BUILD_TESTING)
-  add_subdirectory(test)
+if(RGK_ENABLE_STANDALONE)
+  target_sources(ragnarok PRIVATE rgk_timer.hpp)
+else()
+  target_sources(
+    ragnarok PRIVATE icon_timer.hpp icon_timer.cpp mo_ragnarok_timer.f90
+  )
+endif()
+
+if(BUILD_TESTING AND RGK_ENABLE_STANDALONE)
+  set(kokkos_dependents timer_test.cpp)
+
+  set_source_files_properties(
+    ${kokkos_dependents} TARGET_DIRECTORY ragnarok_test
+    PROPERTIES LANGUAGE ${Kokkos_COMPILE_LANGUAGE}
+  )
+
+  target_sources(ragnarok_test PRIVATE ${kokkos_dependents})
 endif()

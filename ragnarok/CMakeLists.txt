@@ -164,19 +164,41 @@ if(Kokkos_ENABLE_COMPILE_AS_CMAKE_LANGUAGE)
   endif()
 endif()
 
-add_subdirectory(common)
-add_subdirectory(support)
-
-if(NOT RGK_ENABLE_STANDALONE)
-  # Create a single library comprising all components that ICON can link to:
+# Create a single library comprising all components that ICON can link to:
+if(RGK_ENABLE_STANDALONE)
+  # As long as ragnarok has no object files in this case, use a trick to avoid
+  # CMake complains:
+  add_library(ragnarok OBJECT ${CMAKE_CURRENT_LIST_FILE})
+else()
   add_library(ragnarok)
-  target_link_libraries(ragnarok PUBLIC ragnarok_support)
 endif()
 
+set(Fortran_MODULE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/mod")
+set_target_properties(
+  ragnarok PROPERTIES Fortran_MODULE_DIRECTORY "${Fortran_MODULE_DIRECTORY}"
+)
+
+target_include_directories(
+  ragnarok
+  PUBLIC
+    $<BUILD_INTERFACE:$<$<NOT:$<COMPILE_LANGUAGE:Fortran>>:${CMAKE_CURRENT_SOURCE_DIR}>>
+    $<BUILD_INTERFACE:$<$<COMPILE_LANGUAGE:Fortran>:${Fortran_MODULE_DIRECTORY}>>
+)
+
+target_link_libraries(ragnarok PUBLIC Kokkos::kokkos)
+
 if(BUILD_TESTING)
+
+  add_executable(ragnarok_test)
+
+  target_link_libraries(ragnarok_test PRIVATE ragnarok GTest::gtest)
+
   # Delay test discovery until runtime (needed for cross-compilation):
   gtest_discover_tests(ragnarok_test DISCOVERY_MODE PRE_TEST)
 else()
   # Allow for 'make test' even if the tests are disabled:
   enable_testing()
 endif()
+
+add_subdirectory(common)
+add_subdirectory(support)

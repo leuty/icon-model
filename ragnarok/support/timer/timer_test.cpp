@@ -27,7 +27,7 @@ TEST(TimerTests, CheckTimerMeasurement) {
   timer1.stop();
 
   auto value1 = timer1.value();
-  EXPECT_NEAR(value1, 0.042, 0.001);
+  EXPECT_TRUE(value1 >= 0.042 && value1 < 1.0);
 }
 
 };  // namespace

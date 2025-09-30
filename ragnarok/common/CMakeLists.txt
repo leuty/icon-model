@@ -9,8 +9,15 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ---------------------------------------------------------------
 
-add_subdirectory(src)
+target_sources(ragnarok PRIVATE types.hpp)
 
 if(BUILD_TESTING)
-  add_subdirectory(test)
+  set(kokkos_dependents types_test.cpp)
+
+  set_source_files_properties(
+    ${kokkos_dependents} TARGET_DIRECTORY ragnarok_test
+    PROPERTIES LANGUAGE ${Kokkos_COMPILE_LANGUAGE}
+  )
+
+  target_sources(ragnarok_test PRIVATE ${kokkos_dependents})
 endif()
