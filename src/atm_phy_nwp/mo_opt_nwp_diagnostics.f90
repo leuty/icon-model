@@ -84,7 +84,8 @@ MODULE mo_opt_nwp_diagnostics
     &                                   radar_rayleigh_oguchi_2mom_vec
   USE mo_synradar_config,         ONLY: synradar_meta, &
                                         ydir_mielookup_read, ydir_mielookup_write, &
-                                        rain2mom_mu_incloud
+                                        rain2mom_mu_incloud, itype_Dlim_sgh, &
+                                        Dlim_rain, Dlim_drysnow, Dlim_meltsnow, Dlim_meltgraupel, Dlim_melthail
   USE mo_mpi,                     ONLY: get_my_mpi_work_comm_size
 #endif
   USE sfc_terra_data,             ONLY: cpwp, cfcap
@@ -4375,7 +4376,12 @@ CONTAINS
                ext_tune_fac_pure    = synradar_meta%ext_tune_fac_pure, &
                ext_tune_fac_melt    = synradar_meta%ext_tune_fac_melt, &
                zh_radar             = dbz3d_lin(:,:,:), &
-               lhydrom_choice_testing = synradar_meta%lhydrom_choice_testing &
+               lhydrom_choice_testing = synradar_meta%lhydrom_choice_testing, &
+               itype_Dlim_sgh       = itype_Dlim_sgh, &
+               Dlim_rain            = Dlim_rain, &
+               Dlim_drysnow         = Dlim_drysnow, &
+               Dlim_meltsnow        = Dlim_meltsnow, &
+               Dlim_meltgraupel     = Dlim_meltgraupel &
                )
 
         CASE ( 3 )
@@ -4565,7 +4571,13 @@ CONTAINS
                ext_tune_fac_pure    = synradar_meta%ext_tune_fac_pure, &
                ext_tune_fac_melt    = synradar_meta%ext_tune_fac_melt, &
                zh_radar          = dbz3d_lin(:,:,:), &
-               lhydrom_choice_testing = synradar_meta%lhydrom_choice_testing &
+               lhydrom_choice_testing = synradar_meta%lhydrom_choice_testing, &
+               itype_Dlim_sgh    = itype_Dlim_sgh, &
+               Dlim_rain            = Dlim_rain, &
+               Dlim_drysnow      = Dlim_drysnow, &
+               Dlim_meltsnow        = Dlim_meltsnow, &
+               Dlim_meltgraupel  = Dlim_meltgraupel, &
+               Dlim_melthail     = Dlim_melthail &
                )
 
         CASE ( 3 )

@@ -28,6 +28,9 @@ The DOI and ISSN referenced series **[Reports on ICON](https://www.icon-model.or
 :::{glossary}
 Reinert et al. 2025
   Reinert, D., and Coauthors (2025): DWD Database Reference for the Global and Regional ICON and ICON-EPS Forecasting System. <https://www.dwd.de/SharedDocs/downloads/DE/modelldokumentationen/nwv/icon/icon_dbbeschr_aktuell.pdf>
+
+EMVORADO User's Guide
+  U. Blahak, A. de Lozar and J. Mendrok (2025). EMVORADO User's Guide, <https://www.cosmo-model.org/content/model/documentation/core/emvorado_userguide.pdf>
 :::
 
 (ref_literature_science)=
@@ -51,6 +54,9 @@ Barker et al. 2003
 
 Bechtold et al. 2008
   Bechtold, P., M. Köhler, T. Jung, F. Doblas-Reyes, M. Leutbecher, M. J. Rodwell, F. Vitart, and G. Balsamo (2008): Advances in simulating atmospheric variability with the ECMWF model: From synoptic to decadal time-scales. Q. J. R. Meteorol. Soc., 134 (634), 1337-1351, <https://doi.org/10.1002/qj.289>.
+
+COSMO Technical Report No. 28
+  U. Blahak (2016). RADAR_MIE_LM and RADAR_MIELIB - Calculation of Radar Reflectivity from Model Output, COSMO Technical Report No. 28, <https://www.cosmo-model.org/content/model/cosmo/techReports/docs/techReport28.pdf>
 
 Borchert et al. 2019
   Borchert, S., Zhou, G., Baldauf, M., Schmidt, H., Zängl, G., and Reinert, D. (2019). The upper-atmosphere extension of the ICON general circulation model (version: ua-icon-1.0). Geoscientific Model Development, 12(8), 3541-3569. <https://doi.org/10.5194/gmd-12-3541-2019>

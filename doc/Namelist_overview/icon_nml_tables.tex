@@ -9074,6 +9074,54 @@ For Mie- or T-matrix calculations together with the two-moment mircophysics: val
 iforcing=3, \\ ICON configure'd with \verb+--enable-emvorado+, \\ \squeezeme{synradar\_meta\%itype\_refl=1, 5, 6} \\ \squeezeme{inwp\_gscp=4, 5, 6, 7}
 \tabularnewline
 
+%\hline
+itype\_Dlim\_sgh&
+I& 0 & &
+Options (0,1, or 2) to limit excessive radar signals coming from the large tail of (some) hydrometeor PSDs. When integrating radar moments over the PSD, the mass of particles larger than a certain diameter $D_c$ (separate namelist parameters for hydrometeors, see below) is redistributed to
+  \begin{itemize}
+  \item[1] particles of exact size $D_c$
+  \item[2] to all particles with $D<D_c$ by scaling up the PSD there
+  \end{itemize}
+  before integrating over the PSD. If set to 0 (default), no such redistribution is applied. More details in Emvorado User's Guide. &
+iforcing=3, \\ ICON configure'd with \verb+--enable-emvorado+, \\ \squeezeme{synradar\_meta\%itype\_refl=1, 5, 6}
+\tabularnewline
+
+%\hline
+Dlim\_rain&
+R & 999.0 & &
+For itype\_Dlim\_sgh>0: limiting diameter [m] for rain. Does not have any effect if set to a value $>D_{max,r}$ (upper integration limit in EMVORADO). The default is such a large value. &
+iforcing=3, \\ ICON configure'd with \verb+--enable-emvorado+, \\ \squeezeme{synradar\_meta\%itype\_refl=1, 5, 6}
+\tabularnewline
+
+%\hline
+Dlim\_drysnow&
+R & 999.0 & &
+For itype\_Dlim\_sgh>0: limiting diameter [m] for dry snow. Does not have any effect if set to a value $>D_{max,s}$ (upper integration limit in EMVORADO). The default is such a large value. &
+iforcing=3, \\ ICON configure'd with \verb+--enable-emvorado+, \\ \squeezeme{synradar\_meta\%itype\_refl=1, 5, 6}
+\tabularnewline
+
+%\hline
+Dlim\_meltsnow&
+R & 999.0 & &
+For itype\_Dlim\_sgh>0: limiting diameter [m] for melting snow. Does not have any effect if set to a value $>D_{max,s}$ (upper integration limit in EMVORADO). The default is such a large value. &
+iforcing=3, \\ ICON configure'd with \verb+--enable-emvorado+, \\ \squeezeme{synradar\_meta\%itype\_refl=1, 5, 6}
+\tabularnewline
+
+%\hline
+Dlim\_meltgraupel&
+R & 999.0 & &
+For itype\_Dlim\_sgh>0: limiting diameter [m] for melting graupel. Does not have any effect if set to a value $>D_{max,g}$ (upper integration limit in EMVORADO). The default is such a large value. &
+iforcing=3, \\ ICON configure'd with \verb+--enable-emvorado+, \\ \squeezeme{synradar\_meta\%itype\_refl=1, 5, 6}
+\tabularnewline
+
+%\hline
+Dlim\_melthail&
+R & 999.0 & &
+For itype\_Dlim\_sgh>0: limiting diameter [m] for melting hail. Does not have any effect if set to a value $>D_{max,h}$ (upper integration limit in EMVORADO). The default is such a large value. &
+iforcing=3, \\ ICON configure'd with \verb+--enable-emvorado+, \\ \squeezeme{synradar\_meta\%itype\_refl=1, 5, 6}
+\tabularnewline
+
+
 \end{longtab}
 
 Defined and used in: \verb+src/namelists/mo_synradar_nml.f90+
