@@ -142,14 +142,19 @@ MODULE mo_art_nml
   ! Radiation multiple call
   INTEGER  :: irad_multicall
 
+  !< rart_shfl_fire > 0.0 -> Enable treatment of wildfire sensible heat release
+  REAL(wp) :: rart_shfl_fire         !< set enhancement factor
+  !< rart_qv_fire > 0.0 -> Enable treatment of wildfire moisture release
+  REAL(wp) :: rart_qv_fire           !< set enhancement factor
+
 
   NAMELIST/art_nml/ cart_input_folder, lart_chem, lart_chemtracer, lart_mecca,          &
    &                cart_io_suffix, lart_pntSrc, lart_aerosol, iart_seasalt, iart_dust, &
-   &                iart_anthro, iart_fire, iart_volcano, cart_volcano_file,            &
-   &                iart_fplume, iart_volc_numb, cart_fplume_inp, iart_radioact,        &
-   &                cart_radioact_file, iart_pollen, iart_nonsph, iart_isorropia,       &
-   &                iart_seas_water, lart_dusty_cirrus, rart_dustyci_crit,              &
-   &                rart_dustyci_rhi, lart_excl_end_pntSrc,                             &
+   &                iart_anthro, iart_fire, rart_shfl_fire, rart_qv_fire, iart_volcano, &
+   &                cart_volcano_file, iart_fplume, iart_volc_numb, cart_fplume_inp,    &
+   &                iart_radioact, cart_radioact_file, iart_pollen, iart_nonsph,        &
+   &                iart_isorropia, iart_seas_water, lart_dusty_cirrus,                 &
+   &                rart_dustyci_crit, rart_dustyci_rhi, lart_excl_end_pntSrc,          &
    &                iart_modeshift, iart_aci_warm, iart_aci_cold, iart_ari,             &
    &                iart_aero_washout, lart_conv, lart_turb, iart_init_aero,            &
    &                iart_init_gas, lart_diag_out, lart_diag_xml, cart_emiss_xml_file,   &
@@ -272,6 +277,13 @@ CONTAINS
 
     ! Radiation multiple call
     irad_multicall = 0
+
+    ! Enhancement factor of wildfire sensible heat release
+    rart_shfl_fire    = 0.0_wp
+
+    ! Enhancement factor of wildfire moisture release
+    rart_qv_fire      = 0.0_wp
+
 
     !------------------------------------------------------------------
     ! 2. If this is a resumed integration, overwrite the defaults above
@@ -467,6 +479,12 @@ CONTAINS
 
       ! Radiation multiple call
       art_config(jg)%irad_multicall      = irad_multicall
+
+      ! Enhancement factor of wildfire sensible heat release
+      art_config(jg)%rart_shfl_fire      = rart_shfl_fire
+      ! Enhancement factor of wildfire moisture release
+      art_config(jg)%rart_qv_fire        = rart_qv_fire
+
     ENDDO !jg
 
     !-----------------------------------------------------

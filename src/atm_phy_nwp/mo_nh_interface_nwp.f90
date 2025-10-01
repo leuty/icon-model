@@ -107,6 +107,7 @@ MODULE mo_nh_interface_nwp
                                     &   rad_multicall_alloc, rad_multicall_dealloc, &
                                     &   rad_multicall_dre, rad_multicall_finalize
   USE mo_art_cover_koe,           ONLY: art_cover_dusty
+  USE mo_art_emission_interface,  ONLY: art_sh_fire_interface
 #endif
   USE mo_var_list,                ONLY: t_var_list_ptr
 #ifndef __NO_ICON_LES__
@@ -784,6 +785,12 @@ CONTAINS
                              & wtr_prog_now, wtr_prog_new,       & !>inout
                              & lnd_diag,                         & !>input
                              & lacc=lacc                         ) !>in
+    ! Account for sensible heat release by wildfires
+#ifdef __ICON_ART
+    IF (lart) THEN
+      CALL art_sh_fire_interface ( pt_patch, prm_diag)
+    ENDIF
+#endif
 
        !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "surface", .FALSE., opt_dt=mtime_datetime)
       IF (timers_level > 2) CALL timer_stop(timer_nwp_surface)

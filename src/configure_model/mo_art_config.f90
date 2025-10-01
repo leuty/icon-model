@@ -150,6 +150,11 @@ MODULE mo_art_config
 
     ! Type of radiation multiple call scheme to use
     INTEGER :: irad_multicall
+    ! Enhancment of wildfire sensible heat release
+    REAL(wp) :: rart_shfl_fire          !< Treatment of wildfire sensible heat release
+    ! Enhancment of wildfire moisture release
+    REAL(wp) :: rart_qv_fire            !< Treatment of wildfire moisture release
+
   END TYPE t_art_config
 
   TYPE(t_art_config), TARGET :: art_config(0:max_dom)
