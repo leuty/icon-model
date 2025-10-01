@@ -85,13 +85,14 @@ include:
       ) 2>&1
       icon_ci_log_section_end
   artifacts:
-    when: always
     paths:
       - "**/CMakeCache.txt"
       - "**/config.log"
       - bin/icon
       - externals/mtime/build/python/mtime
       - run/SETUP.config
+    when: always
+    expire_in: 1 day
   rules:
     - if: $CI_PIPELINE_SOURCE == "web"
       when: manual
@@ -159,7 +160,7 @@ include:
       - ${ICON_CI_MKEXP_WORK_REL_PATH}/${ICON_CI_MKEXP_RUN_SUBDIR}/${CI_JOB_NAME_SLUG}*.nc
     reports:
       dotenv: dependent.env
-    expire_in: 30mins
+    expire_in: 30 mins
   rules:
     - if: $CI_PIPELINE_SOURCE == "web"
     - !reference [.common:dkrz:levante, rules]
@@ -225,6 +226,7 @@ include:
     reports:
       dotenv: dependent.env
     when: on_failure
+    expire_in: 1 day
   rules: !reference [.system:run:levante, rules]
 
 aes:bubble:gcc:build:
@@ -372,6 +374,7 @@ generate-checksum-table:
   artifacts:
     paths:
       - ${ICON_CI_CHECKSUM_TABLE_PATH}
+    expire_in: 1 day
   rules: !reference [.system:analyze, rules]
 
 Accept new checksum table:

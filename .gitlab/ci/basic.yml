@@ -72,8 +72,8 @@ style:coding:
   artifacts:
     paths:
       - ${STYLE_PATCH}
-    expire_in: 1 day
     when: on_failure
+    expire_in: 1 day
   rules:
     - if: $CI_PIPELINE_SOURCE == "web"
       when: manual
@@ -178,8 +178,8 @@ autoconf:
   artifacts:
     paths:
       - ${AUTOCONF_PATCH}
-    expire_in: 1 week
     when: on_failure
+    expire_in: 1 day
   rules:
     - if: $CI_PIPELINE_SOURCE == "web"
       when: manual
@@ -245,6 +245,7 @@ doc:namelist:
   artifacts:
     paths:
       - doc/Namelist_overview/Namelist_overview.pdf
+    expire_in: 1 day
   tags:
     - latex
   rules:
@@ -260,6 +261,8 @@ doc:html:check:
   environment:
     name: review/${CI_COMMIT_REF_SLUG}
     url: ${ICON_CI_COMMON_HTML_ARTIFACT_URL}
+  artifacts:
+    expire_in: 1 week
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
       when: never

@@ -55,6 +55,7 @@ include:
   artifacts:
     paths:
       - ${ICON_CI_COMMON_HTML_OUTPUT_REL_PATH}
+    expire_in: 1 day
   rules:
     changes:
       - doc/www/**/*
