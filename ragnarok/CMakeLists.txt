@@ -202,3 +202,4 @@ endif()
 
 add_subdirectory(common)
 add_subdirectory(support)
+add_subdirectory(aes_thermodynamics)

@@ -58,4 +58,6 @@ using ManagedView3D = Kokkos::View<T***, Kokkos::LayoutRight, Kokkos::DefaultExe
 // Kokkos default memory space
 using MemorySpace   = Kokkos::DefaultExecutionSpace::memory_space;
 
+using RangePolicy2D = Kokkos::MDRangePolicy<Kokkos::Rank<2, Kokkos::Iterate::Left, Kokkos::Iterate::Left>>;
+
 #endif  // RAGNAROK_COMMON_TYPES_H_

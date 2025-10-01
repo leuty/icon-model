@@ -9,10 +9,10 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ---------------------------------------------------------------
 
-target_sources(ragnarok PRIVATE types.hpp physical_constants.hpp)
+target_sources(ragnarok PRIVATE thermo.hpp thermo_constants.hpp)
 
 if(BUILD_TESTING)
-  set(kokkos_dependents types_test.cpp)
+  set(kokkos_dependents thermo_test.cpp)
 
   set_source_files_properties(
     ${kokkos_dependents} TARGET_DIRECTORY ragnarok_test
