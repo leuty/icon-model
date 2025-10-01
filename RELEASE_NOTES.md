@@ -73,6 +73,7 @@ Climate: ICON-Land
   - Different code updates reducing the number of restart variables in QUINCY runs (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/925, https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1015)
   - Enable reading of biogeochemical vegetation and soil states - and optionally product pools - from input file for QUINCY (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/953, https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1011)
   - Use the JSBACH soil physics processes with the QUINCY (vegetation and soil) biogeochemistry (icon-mpim!897, icon-mpim!1002)
+  - Bugfixes to make QUINCY thread-safe when running with JSBACH soil physics
   - Improve nitrogen cycle of QUINCY biogeochemistry
   - Add namelist options and modify QUINCY biogeochemistry to better represent nutrient interactions
   - Enabled setting selected calibration vegetation and soil-biogeochemistry parameters via namelist
