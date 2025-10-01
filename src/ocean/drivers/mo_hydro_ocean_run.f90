@@ -752,24 +752,9 @@ CONTAINS
           IF ( is_coupled_to_atmo() ) THEN
             IF (ltimer) CALL timer_start(timer_coupling)
             CALL couple_ocean_toatmo_fluxes( &
-              patch_3D, ocean_state(jg), sea_ice, p_atm_f, p_as)
+              patch_3D, ocean_state(jg), sea_ice, p_oce_sfc, p_atm_f, p_as)
             IF (ltimer) CALL timer_stop(timer_coupling)
           END IF
-
-          ! copy fluxes updated in coupling from p_atm_f into p_oce_sfc
-          p_oce_sfc%FrshFlux_Precipitation = p_atm_f%FrshFlux_Precipitation
-          p_oce_sfc%FrshFlux_Evaporation   = p_atm_f%FrshFlux_Evaporation
-          p_oce_sfc%FrshFlux_SnowFall      = p_atm_f%FrshFlux_SnowFall
-          p_oce_sfc%HeatFlux_Total         = p_atm_f%HeatFlux_Total
-          p_oce_sfc%HeatFlux_ShortWave     = p_atm_f%HeatFlux_ShortWave
-          p_oce_sfc%HeatFlux_Longwave      = p_atm_f%HeatFlux_Longwave
-          p_oce_sfc%HeatFlux_Sensible      = p_atm_f%HeatFlux_Sensible
-          p_oce_sfc%HeatFlux_Latent        = p_atm_f%HeatFlux_Latent
-          p_oce_sfc%FrshFlux_Runoff        = p_atm_f%FrshFlux_Runoff
-          IF ( l_cpl_co2 ) THEN
-            p_oce_sfc%CO2_Mixing_Ratio     = p_as%co2
-          ENDIF
-
         ENDIF
 
         ! copy atmospheric wind speed of coupling from p_as%fu10 into forcing to be written by restart
@@ -1264,21 +1249,9 @@ CONTAINS
           IF ( is_coupled_to_atmo() ) THEN
             IF (ltimer) CALL timer_start(timer_coupling)
             CALL couple_ocean_toatmo_fluxes( &
-              patch_3D, ocean_state(jg), sea_ice, p_atm_f, p_as)
+              patch_3D, ocean_state(jg), sea_ice, p_oce_sfc, p_atm_f, p_as)
             IF (ltimer) CALL timer_stop(timer_coupling)
           END IF
-
-          ! copy fluxes updated in coupling from p_atm_f into p_oce_sfc
-          p_oce_sfc%FrshFlux_Precipitation = p_atm_f%FrshFlux_Precipitation
-          p_oce_sfc%FrshFlux_Evaporation   = p_atm_f%FrshFlux_Evaporation
-          p_oce_sfc%FrshFlux_SnowFall      = p_atm_f%FrshFlux_SnowFall
-          p_oce_sfc%HeatFlux_Total         = p_atm_f%HeatFlux_Total
-          p_oce_sfc%HeatFlux_ShortWave     = p_atm_f%HeatFlux_ShortWave
-          p_oce_sfc%HeatFlux_Longwave      = p_atm_f%HeatFlux_Longwave
-          p_oce_sfc%HeatFlux_Sensible      = p_atm_f%HeatFlux_Sensible
-          p_oce_sfc%HeatFlux_Latent        = p_atm_f%HeatFlux_Latent
-          p_oce_sfc%FrshFlux_Runoff        = p_atm_f%FrshFlux_Runoff
-
         ENDIF
 
         ! copy atmospheric wind speed of coupling from p_as%fu10 into forcing to be written by restart
