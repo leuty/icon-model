@@ -57,7 +57,7 @@ CXXFLAGS='-O2'
 CPPFLAGS="-I${ECCODES_ROOT}/include -I${FYAML_ROOT}/include -I${XML2_ROOT}/include/libxml2"
 
 FC='ftn'
-FCFLAGS="-hadd_paren -Ktrap=divz,ovf,inv -hflex_mp=intolerant -hfp1 -hipa0"
+FCFLAGS="-hacc_model=auto_async_none -hadd_paren -Ktrap=divz,ovf,inv -hflex_mp=intolerant -hfp1 -hipa0"
 
 HIPFLAGS='--offload-arch=gfx90a -O3'
 

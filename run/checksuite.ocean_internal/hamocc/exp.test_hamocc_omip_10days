@@ -190,6 +190,18 @@ cat >> ${ocean_namelist} << EOF1
 &output_nml
   filetype         =  5                       ! output format: 2=GRIB2, 4=NETCDFv2
   filename_format  = "<output_filename>_<datetime2>"
+  output_filename  = "${EXPNAME}_hamocc_vertint"
+  output_start     = "${start_date}"                  ! start in ISO-format
+  output_end       = "${end_date}"                    ! end in ISO-format
+  output_interval  = "${daily}"
+  file_interval    = "${file_interval}"
+  output_grid      = .TRUE.
+  operation        = 'mean'
+  ml_varlist       = 'dic_i','alk_i','phy_i','HAMOCC_npp_i','HAMOCC_pho_cya_i','HAMOCC_grazing_i','HAMOCC_zoomor_i','HAMOCC_bacfra_i','HAMOCC_remina_i','HAMOCC_delcar_i'
+/
+&output_nml
+  filetype         =  5                       ! output format: 2=GRIB2, 4=NETCDFv2
+  filename_format  = "<output_filename>_<datetime2>"
   output_filename  = "${EXPNAME}_hamocc_2d_tendencies"
   output_start     = "${start_date}"                  ! start in ISO-format
   output_end       = "${end_date}"                    ! end in ISO-format
@@ -370,6 +382,7 @@ mc_depth                          = 100.      ! depth where linear increase of s
 mc_fac                            = 2.0       ! slope of sinking speed increase relative to remin rate (default 2.0)
 l_implsed                         =.FALSE.    ! implicit sediment formulation
 l_init_bgc                        =.TRUE.
+l_hamocc_vertint		  =.TRUE.
 /
 EOF3
 fi

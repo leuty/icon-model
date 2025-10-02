@@ -318,7 +318,7 @@ CONTAINS
       DO jls = 1, nvalid(jb)
         js = indices(jls,jb)
         zthetav_mid = w1 * thetav_atm(js,jb) + w2 * thetav_sfc(js,jb)
-        richardson_number(js,jb) = zf(js,jb) * grav * (thetav_atm(js,jb) - thetav_sfc(js,jb)) / (zthetav_mid * wind(js,jb))
+        richardson_number(js,jb) = zf(js,jb) * grav * (thetav_atm(js,jb) - thetav_sfc(js,jb)) / (zthetav_mid * wind(js,jb)**2)
       END DO
       !$ACC END PARALLEL LOOP
     END DO
@@ -390,22 +390,11 @@ CONTAINS
       tcm         = inv_bus_mom * inv_bus_mom
     END DO
 
-    ! pcfm = tcm*mwind
-    ! pcfh = tch*mwind
+
     kh  = tch
     km  = tcm
     kh_neutral = ckap / MAX(zepsec, SQRT(tcn_heat))
     km_neutral = ckap / MAX(zepsec, SQRT(tcn_mom))
-
-    ! pcfm = pcfm + pfrc*pcfm
-    ! pcfh = pcfh + pfrc*pcfh
-
-    ! pbn = ckap / MAX( zepsec, sqrt(tcn_mom) )
-    ! pbhn= ckap / MAX( zepsec, sqrt(tcn_heat) )
-    ! pbm = MAX( zepsec, sqrt(pcfm * tch*zcons17/ (tcn_mom*mwind)) )
-    ! pbh = MAX( zepsec, tch/pbm*zcons17)
-    ! pbm = 1._wp / pbm
-    ! pbh = 1._wp / pbh
 
   END SUBROUTINE sfc_exchange_coefficients
   !
@@ -436,20 +425,10 @@ CONTAINS
     REAL(wp), DIMENSION(:,:), INTENT(in) :: &
       thetam1,   &
       pqm1 ,     &
-      ! pxim1,     &
-      ! ppsfc,     &
-      ! ptsfc,     &
-      ! pcsat,     &
-      ! pcair,     &
       mwind,     &
       rough_m,   &
       theta_sfc, &
       qsat_sfc
-      ! pch,       &
-      ! pbn,       &
-      ! pbhn,      &
-      ! pbm,       &
-      ! pbh,       &
       !
       ! Output variables
       !
@@ -502,8 +481,8 @@ CONTAINS
   !
   !=================================================================
   !
-  !! stability_function_mom
-  !! Taken from COSMO docs and Holstag & Boville 1992
+  !! first guess stability_function_mom
+  !! Taken from Holstag & Boville 1992 J.Clim, Eqs.2.9-2.11
   !!------------------------------------------------------------------------
 #ifndef _OPENACC
   ELEMENTAL &
@@ -516,10 +495,6 @@ CONTAINS
      !$ACC ROUTINE SEQ
 
      IF(RIB.GE.0._wp)THEN
-       !Cosmo
-       !stab_fun = 1._wp / ( 1._wp + 10._wp*RIB/SQRT(1._wp+5*RIB) )
-
-       !H&B
        stab_fun = 1._wp / ( 1._wp + 10._wp*RIB*(1._wp+8._wp*RIB) )
     ELSE
        hz0_fac = ( max(hz0, 1._wp)**(1._wp/3._wp) - 1._wp )**1.5_wp ! FLO - hz0 can be < 1 then, the **1.5 is invalid.
@@ -531,7 +506,7 @@ CONTAINS
 
   END FUNCTION stability_function_mom
   !
-  ! stability_function_heat
+  ! first guess stability_function_heat
   !------------------------------------------------------------------------
 #ifndef _OPENACC
   ELEMENTAL &
@@ -544,10 +519,6 @@ CONTAINS
      !$ACC ROUTINE SEQ
 
      IF(RIB.GE.0._wp)THEN
-       !Cosmo
-       !stab_fun = 1._wp / ( 1._wp + 15._wp*RIB*SQRT(1._wp+5._wp*RIB) )
-
-       !H&B
        stab_fun = 1._wp / ( 1._wp + 10._wp*RIB*(1._wp+8._wp*RIB) )
      ELSE
        hzh_fac = ( max(hzh, 1._wp)**(1._wp/3._wp) - 1._wp )**1.5_wp
@@ -580,9 +551,8 @@ CONTAINS
       zeta  = z1/L
       zeta0 = z0/L
       IF(zeta > 1._wp)THEN !Zeng etal 1997 J. Clim
-        psi    = -bsm*LOG(zeta) - zeta + 1._wp
-        psi0   = -bsm*LOG(zeta0) - zeta0 + 1._wp
-        factor = (LOG(L/z0) + bsh - psi + psi0  ) / ckap
+        psi    = -bsm + bsm*zeta0 + (1._wp-bsm)*LOG(zeta) -  zeta + 1._wp
+        factor = (LOG(z1/z0) - psi) / ckap
       ELSE
         psi  = -bsm*zeta
         psi0 = -bsm*zeta0
@@ -606,12 +576,11 @@ CONTAINS
     END IF
 
   END FUNCTION businger_mom
+
   !
   ! factor_heat
   !------------------------------------------------------------------------
   ! Businger Dyer similarity profile:
-  ! Louis (1979) A Parametirc model of vertical eddy fluxes in the atmosphere
-  ! and R. B. Stull's book
   !------------------------------------------------------------------------
 #ifndef _OPENACC
   ELEMENTAL &
@@ -628,9 +597,8 @@ CONTAINS
       zeta   = z1/L
       zeta0  = z0/L
       IF(zeta > 1._wp)THEN !Zeng etal 1997 J. Clim
-        psi    = -bsh*LOG(zeta) - zeta + 1._wp
-        psi0   = -bsh*LOG(zeta0) - zeta0 + 1._wp
-        factor = (LOG(L/z0) + bsh - psi + psi0  ) / ckap
+        psi    = -bsh + bsh*zeta0 + (1._wp-bsh)*LOG(zeta) -  zeta + 1._wp
+        factor = (LOG(z1/z0) - psi) / ckap
       ELSE
         psi    = -bsh*zeta
         psi0   = -bsh*zeta0
@@ -649,5 +617,6 @@ CONTAINS
     END IF
 
   END FUNCTION businger_heat
+
 
 END MODULE mo_vdf_diag_smag

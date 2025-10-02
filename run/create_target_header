@@ -662,7 +662,12 @@ set_run_target_lumi_gpu()
     set_default use_prefetch_procs 0
     set_default use_account_no ${SBATCH_ACCOUNT:-project_465000454}
     set_default use_nodes 1
-    set_default use_queue "standard-g"
+    if [[ "x$BB_SYSTEM" != "x" ]]; then
+        # this buildbot, use debug queue
+        set_default use_queue "dev-g"
+    else
+        set_default use_queue "standard-g"
+    fi
 
     use_OMP_SCHEDULE="static,1"
 
@@ -738,7 +743,12 @@ set_run_target_lumi_cpu()
     set_default use_nblocks_c 0
     set_default use_account_no ${SBATCH_ACCOUNT:-project_462000911}
     set_default use_nodes 1
-    set_default use_queue "standard"
+    if [[ "x$BB_SYSTEM" != "x" ]]; then
+        # this buildbot, use debug queue
+        set_default use_queue "debug"
+    else
+        set_default use_queue "standard"
+    fi
 
     use_OMP_SCHEDULE="static,1"
 

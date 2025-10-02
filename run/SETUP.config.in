@@ -25,3 +25,4 @@ host_fqdn = @host_fqdn@
 
 @OPENMP_ENABLED@openmp_enabled = true
 @GPU_ENABLED@gpu_enabled = true
+@MPI_ENABLED@mpi_enabled = true

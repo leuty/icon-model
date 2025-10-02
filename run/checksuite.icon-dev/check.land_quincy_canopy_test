@@ -64,15 +64,6 @@ builder="unknown"
 [[ $BB_NAME ]] && builder=$(echo ${BB_NAME} | tr '[:upper:]' '[:lower:]')
 
 case $builder in
-    levante_gcc)
-        MD='m' # currently nproma fails (follow up issues)
-        ;;
-    levante_nag)
-        MD='m' # currently nproma fails (follow up issues)
-        ;;
-    levante_intel_hybrid)
-        MD='mor' # currently nproma  fails (follow up issues)
-        ;;
     levante_gpu*)
         # MPI test fails. nproma test is invalid (comment copied from atm_nwp_jsbach_test -- not tested)
         MD='r'

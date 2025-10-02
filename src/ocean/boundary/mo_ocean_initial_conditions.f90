@@ -75,7 +75,7 @@ MODULE mo_ocean_initial_conditions
   USE mo_oce_io_with_cdi,     ONLY: init_oce
   USE mo_initicon_config,    ONLY: initicon_config, dwdana_filename, dwdfg_filename, &
     & ana_varnames_map_file
-
+  USE mo_grid_config,        ONLY: n_dom
   IMPLICIT NONE
   PRIVATE
 
@@ -7307,27 +7307,68 @@ END DO
 
     CHARACTER(LEN=*), PARAMETER :: method_name = module_name//':init_from_analysis'
     TYPE(t_initicono_read) :: read_initicono
-    INTEGER                 :: ivar, jvar
+    INTEGER                 :: ivar, jvar,jg
 
     ! In general we want to read in the variables in read_initicono at some point.
     ! read_initicono contains u, v, vn, to, so, zos, hi, hs, conc
 
-    read_initicono%u     = .TRUE.
-    read_initicono%v     = .TRUE.
-    read_initicono%vn    = .FALSE.
-    read_initicono%to    = .TRUE.
-    read_initicono%so    = .TRUE.
-    read_initicono%hi    = .TRUE.
-    read_initicono%hs    = .TRUE.
-    read_initicono%conc  = .TRUE.
+    DO jg = 1,n_dom !n_dom = 1 if no LAM is used
+      initicon_config(jg)%fg_checklist = check_fg_oce(jg)%list
 
-    DO ivar=1, SIZE(check_fg_oce)
-      initicon_config(patch_3d%p_patch_2D%id)%fg_checklist(ivar) = check_fg_oce(ivar)
-    ENDDO
+      !now set the booleans
+      ivar = 1
+      DO WHILE (check_fg_oce(jg)%list(ivar) /= " " )
+        SELECT CASE (check_fg_oce(jg)%list(ivar))
+          CASE("to", "SWPT")
+            read_initicono%to = .TRUE.
+          CASE("so", "SWPSAL")
+            read_initicono%so = .TRUE.
+          CASE("vn", "VNSEA")
+            read_initicono%vn = .TRUE.
+          CASE("u", "USEA")
+            read_initicono%u = .TRUE.
+          CASE("v", "VSEA")
+            read_initicono%v = .TRUE.
+          CASE("hi", "H_ICE")
+            read_initicono%hi = .TRUE.
+          CASE("hs", "H_SNOW_SEA")
+            read_initicono%hs = .TRUE.
+          CASE("conc", "FR_ICE")
+            read_initicono%conc = .TRUE.
+          CASE DEFAULT
+            WRITE(0,*) 'Unknown variable for initicon-o. Please check your demanded fg variables in the namelist: ', check_fg_oce(jg)%list(ivar)
+        END SELECT
+        ivar = ivar + 1
+      ENDDO
 
-    DO jvar=1, SIZE(check_ana_oce)
-      initicon_config(patch_3d%p_patch_2D%id)%ana_checklist(jvar) = check_ana_oce(jvar)
-    ENDDO
+      initicon_config(jg)%ana_checklist = check_ana_oce(jg)%list
+
+      !We might want to read variables only from analysis but not from fg. So set the booleans again:
+      jvar = 1
+      DO WHILE (check_ana_oce(jg)%list(jvar) /= " " )
+        SELECT CASE (check_ana_oce(jg)%list(jvar))
+          CASE("to", "SWPT")
+            read_initicono%to = .TRUE.
+          CASE("so", "SWPSAL")
+            read_initicono%so = .TRUE.
+          CASE("vn", "VNSEA")
+            read_initicono%vn = .TRUE.
+          CASE("u", "USEA")
+            read_initicono%u = .TRUE.
+          CASE("v", "VSEA")
+            read_initicono%v = .TRUE.
+          CASE("hi", "H_ICE")
+            read_initicono%hi = .TRUE.
+          CASE("hs", "H_SNOW_SEA")
+            read_initicono%hs = .TRUE.
+          CASE("conc", "FR_ICE")
+            read_initicono%conc = .TRUE.
+          CASE DEFAULT
+            WRITE(0,*) 'Unknown variable for initicon-o. Please check your demanded analysis variables in the namelist: ', check_ana_oce(jg)%list(jvar)
+        END SELECT
+        jvar = jvar + 1
+      END DO
+    END DO
 
     ! Now fill initicon with the filenames
     dwdfg_filename = fg_filename

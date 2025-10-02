@@ -168,7 +168,7 @@ MODULE mo_atmo_model
 
 #ifndef __NO_RAGNAROK__
   USE mo_ragnarok, ONLY: init_ragnarok
-  USE mo_ragnarok_bridge, ONLY: init_ragnarok_bridge
+  USE mo_ragnarok_support, ONLY: init_ragnarok_support
 #endif
 
   !-------------------------------------------------------------------------
@@ -736,7 +736,7 @@ CONTAINS
     !------------------------------------------------------------------
     ! 12. Connect ICON and ragnarok
     !------------------------------------------------------------------
-    IF (my_process_is_work()) CALL init_ragnarok_bridge()
+    IF (my_process_is_work()) CALL init_ragnarok_support()
 #endif
 
     IF (timers_level > 1) CALL timer_stop(timer_model_init)

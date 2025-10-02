@@ -22,6 +22,32 @@ project(
 )
 
 option(BUILD_SHARED_LIBS "Build shared libraries" ON)
+option(BUILD_TESTING "Build tests" ON)
+option(RGK_ENABLE_STANDALONE "Enable standalone" ON)
+
+include(CTest)
+
+if(BUILD_TESTING)
+  find_package(GTest)
+  if(NOT GTest_FOUND)
+    message(CHECK_START "Fetching external GTest")
+    include(FetchContent)
+    FetchContent_Declare(
+      GTest
+      URL https://github.com/google/googletest/releases/download/v1.16.0/googletest-1.16.0.tar.gz
+      URL_HASH MD5=9a75eb2ac97300cdb8b65b1a5833f411
+    )
+    # Function to avoid namespace pollution:
+    function(configure_gtest)
+      set(BUILD_GMOCK OFF)
+      set(INSTALL_GTEST OFF)
+      set(gtest_disable_pthreads ON)
+      FetchContent_MakeAvailable(GTest)
+    endfunction()
+    configure_gtest()
+    message(CHECK_PASS "done")
+  endif()
+endif()
 
 # KokkosConfig.cmake overrides the CMAKE_CXX_EXTENSIONS cache variable. We do
 # not want our targets (some of which might not even depend on Kokkos) to be
@@ -138,7 +164,42 @@ if(Kokkos_ENABLE_COMPILE_AS_CMAKE_LANGUAGE)
   endif()
 endif()
 
-add_subdirectory(src)
+# Create a single library comprising all components that ICON can link to:
+if(RGK_ENABLE_STANDALONE)
+  # As long as ragnarok has no object files in this case, use a trick to avoid
+  # CMake complains:
+  add_library(ragnarok OBJECT ${CMAKE_CURRENT_LIST_FILE})
+else()
+  add_library(ragnarok)
+endif()
 
-# Allow for 'make test' even if the tests are disabled:
-enable_testing()
+set(Fortran_MODULE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/mod")
+set_target_properties(
+  ragnarok PROPERTIES Fortran_MODULE_DIRECTORY "${Fortran_MODULE_DIRECTORY}"
+)
+
+target_include_directories(
+  ragnarok
+  PUBLIC
+    $<BUILD_INTERFACE:$<$<NOT:$<COMPILE_LANGUAGE:Fortran>>:${CMAKE_CURRENT_SOURCE_DIR}>>
+    $<BUILD_INTERFACE:$<$<COMPILE_LANGUAGE:Fortran>:${Fortran_MODULE_DIRECTORY}>>
+)
+
+target_link_libraries(ragnarok PUBLIC Kokkos::kokkos)
+
+if(BUILD_TESTING)
+
+  add_executable(ragnarok_test)
+
+  target_link_libraries(ragnarok_test PRIVATE ragnarok GTest::gtest)
+
+  # Delay test discovery until runtime (needed for cross-compilation):
+  gtest_discover_tests(ragnarok_test DISCOVERY_MODE PRE_TEST)
+else()
+  # Allow for 'make test' even if the tests are disabled:
+  enable_testing()
+endif()
+
+add_subdirectory(common)
+add_subdirectory(support)
+add_subdirectory(aes_thermodynamics)

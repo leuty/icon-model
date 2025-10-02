@@ -484,8 +484,9 @@ add_link_file $datadir/bc_land_phys.nc                                  ./bc_lan
 add_link_file $datadir/bc_land_soil.nc                                  ./bc_land_soil.nc
 add_link_file $datadir/bc_land_sso.nc                                   ./bc_land_sso.nc
 if [[ ${jsbach_with_alcc} = yes ]]; then
+  last_alcc_year=$(( ${end_date%%-*} + 1 ))
   year=${start_date%%-*}
-  while [[ $year -le ${end_date%%-*} ]]; do
+  while [[ $year -le $last_alcc_year ]]; do
     add_link_file $datadir/bc_land_frac_${pft_file_tag}${year}.nc       ./bc_land_frac_11pfts_${year}.nc
     (( year = year+1 ))
   done

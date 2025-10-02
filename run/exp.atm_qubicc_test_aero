@@ -292,8 +292,9 @@ cat >> ${atmo_namelist} << EOF
  aes_cop_config(1)%cn1sea     =  50.0
  aes_cop_config(1)%cn2sea     = 100.0
  aes_cop_config(1)%cinhomi    =   1.0
- aes_cop_config(1)%cinhoms    =   1.0
- aes_cop_config(1)%cinhoml    =   1.0
+ aes_cop_config(1)%cinhoml_cfl=   1.0
+ aes_cop_config(1)%cinhoml_cfo=   1.0
+ aes_cop_config(1)%cinhoml_sf =   1.0
 /
 EOF
 #
@@ -446,7 +447,7 @@ ln -s ${basedir}/data/ECHAM6_CldOptProps_rrtmgp_sw.nc ${expdir}/rrtmgp-cloud-opt
 #
 # - aerosols
 # Aerosols do no make sense in the aqua planet and are here for tests only. They are switched off. Please, do no remove the following links.
-dataaero=/pool/data/ICON/grids/public/mpim/0043/aerosol_kinne/r0001
+dataaero=${icon_data_rootFolder}/grids/public/mpim/0043/aerosol_kinne/r0001
 #climatological
 add_link_file $dataaero/bc_aeropt_kinne_sw_b14_fin_1850.nc                ./bc_aeropt_kinne_sw_b14_fin.nc
 # Kinne aerosol
@@ -457,7 +458,7 @@ add_link_file ${basedir}/data/MACv2.0-SP_v1.nc                          ./MACv2.
 #
 #CMIP6 volcanic aerosols, (local data) faking 1979 as 1992...for seeing something for Pinatubo
 #cmip6_datadir=/scratch/local1/m218036/m218036_scratch_local2/icon/data
-cmip6_datadir=/pool/data/ICON/grids/public/mpim/common/aerosol_volcanic_cmip6
+cmip6_datadir=${icon_data_rootFolder}/grids/public/mpim/common/aerosol_volcanic_cmip6
 add_link_file $cmip6_datadir/bc_aeropt_cmip6_volc_lw_b16_sw_b14_1991.nc        ./bc_aeropt_cmip6_volc_lw_b16_sw_b14_1978.nc
 add_link_file $cmip6_datadir/bc_aeropt_cmip6_volc_lw_b16_sw_b14_1992.nc        ./bc_aeropt_cmip6_volc_lw_b16_sw_b14_1979.nc
 add_link_file $cmip6_datadir/bc_aeropt_cmip6_volc_lw_b16_sw_b14_1993.nc        ./bc_aeropt_cmip6_volc_lw_b16_sw_b14_1980.nc

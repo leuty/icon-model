@@ -8,24 +8,24 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ---------------------------------------------------------------
 
-.common_cscs_ci:
+include:
+  - local: .gitlab/ci/common/alpine.yml
+  - local: .gitlab/ci/common/warning.yml
+
+.cscs:common:trigger:
+  stage: external
+  needs: []
+  extends: .common:alpine
   variables:
-    APK_CACHE_DIR: ${CI_PROJECT_DIR}/.ci_dir/apk-cache
+    GIT_STRATEGY: none
+    ICON_CI_COMMON_ALPINE_PACKAGES: >-
+      py3-ratelim py3-requests py3-retry py3-yaml python3
     CSCS_CI_COMMIT_SHA: ${CI_COMMIT_SHA}
     CSCS_CI_TAG: merge2rc
-    GIT_STRATEGY: none
-  before_script:
-    - mkdir -p "${APK_CACHE_DIR}"
-    - apk --cache-dir "${APK_CACHE_DIR}" --update-cache add py3-ratelim py3-requests py3-retry py3-yaml python3
-    - apk --cache-dir "${APK_CACHE_DIR}" cache clean
-  tags:
-    - alpine
-  # Dont want parent job to timeout before child job finishes
+  # Manual that is allowed to fail by default:
+  when: manual
+  # Wait for the external pipeline to finish:
   timeout: 6h
-  cache:
-    - key: apk-cscs-ci
-      paths:
-        - ${APK_CACHE_DIR}
   script:
     - |
       python3 - <<\_EOF
@@ -145,42 +145,76 @@
       exit(0 if pipeline_succeeded else 1)
       _EOF
 
-cpu:
-  extends: .common_cscs_ci
+.cscs:common:warning:
+  stage: external
+  needs: []
+  extends: .common:warning
   variables:
-    CSCS_CI_TAG: merge2rc
+    ICON_CI_COMMON_WARNING_MESSAGE: >
+      ${CI_JOB_NAME}, see https://icon.gitlab-pages.dkrz.de/ci-tooling/icon-builders-status
+
+.cscs:common:trigger:cpu:
+  extends: .cscs:common:trigger
+  variables:
     CSCS_CI_BUILDER: santis-cpu
   rules:
-    - if: $CI_MERGE_REQUEST_ID
-      when: always
-      interruptible: true
-    - when: manual
-  interruptible: false
+    - if: $CI_PIPELINE_SOURCE == "web"
+    - if: $ICON_INACTIVE_BUILDERS =~ "/(^|,)santis_cpu(,|$)/"
+      when: never
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 
-gpu:
-  extends: .common_cscs_ci
+"'santis_cpu' is inactive":
+  extends: .cscs:common:warning
+  rules:
+    - if: $ICON_INACTIVE_BUILDERS !~ "/(^|,)santis_cpu(,|$)/"
+      when: never
+    - if: $CI_PIPELINE_SOURCE == "web"
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ICON_CI_TEST_SCHEDULE == "nightly"
+
+.cscs:common:trigger:gpu:
+  extends: .cscs:common:trigger
   variables:
-    CSCS_CI_TAG: merge2rc
     CSCS_CI_BUILDER: santis-gpu
   rules:
-    - if: $CI_MERGE_REQUEST_ID
-      when: always
-      interruptible: true
-    - when: manual
-  interruptible: false
+    - if: $CI_PIPELINE_SOURCE == "web"
+    - if: $ICON_INACTIVE_BUILDERS =~ "/(^|,)santis_gpu(,|$)/"
+      when: never
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 
-cpu_tolerance:
-  extends: .common_cscs_ci
+"'santis_gpu' is inactive":
+  extends: .cscs:common:warning
+  rules:
+    - if: $ICON_INACTIVE_BUILDERS !~ "/(^|,)santis_gpu(,|$)/"
+      when: never
+    - if: $CI_PIPELINE_SOURCE == "web"
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ICON_CI_TEST_SCHEDULE == "nightly"
+
+cscs/santis_cpu:
+  extends: .cscs:common:trigger:cpu
+  rules:
+    - !reference [.cscs:common:trigger:cpu, rules]
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ICON_CI_TEST_SCHEDULE == "nightly"
+      when: on_success
+  allow_failure: false
+
+cscs/santis_gpu:
+  extends: .cscs:common:trigger:gpu
+  rules:
+    - !reference [.cscs:common:trigger:gpu, rules]
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ICON_CI_TEST_SCHEDULE == "nightly"
+      when: on_success
+  allow_failure: false
+
+cscs/santis_cpu:tolerance:
+  stage: optional
+  extends: .cscs:common:trigger:cpu
   variables:
     CSCS_CI_TAG: tolerance
-    CSCS_CI_BUILDER: santis-cpu
-  when: manual
-  interruptible: true
 
-cpu_select_members:
-  extends: .common_cscs_ci
+cscs/santis_cpu:select-members:
+  stage: optional
+  extends: .cscs:common:trigger:cpu
   variables:
     CSCS_CI_TAG: select-members
-    CSCS_CI_BUILDER: santis-cpu
-  when: manual
-  interruptible: true

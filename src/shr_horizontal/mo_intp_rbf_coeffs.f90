@@ -17,9 +17,6 @@
 @PROCESS smp=noopt
 @PROCESS noopt
 #endif
-#ifdef __PGI
-!pgi$g opt=1
-#endif
 
 !----------------------------
 #include "omp_definitions.inc"

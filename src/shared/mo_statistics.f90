@@ -1152,8 +1152,8 @@ CONTAINS
               & values(idx, level, block) * weights(idx, level, block)
             tmp_weight = tmp_weight + weights(idx, level, block)
           ENDDO
-          total_sum(level) = tmp_sum
-          sum_weight(level) = tmp_weight
+          total_sum(level) = total_sum(level) + tmp_sum
+          sum_weight(level) = sum_weight(level) + tmp_weight
         ENDDO
         !$ACC END PARALLEL LOOP
         !$ACC WAIT(1)
@@ -1174,8 +1174,8 @@ CONTAINS
               & values(idx, level, block) * weights(idx, level, block)
             tmp_weight = tmp_weight + weights(idx, level, block)
           ENDDO
-          total_sum(level) = tmp_sum
-          sum_weight(level) = tmp_weight
+          total_sum(level) = total_sum(level) + tmp_sum
+          sum_weight(level) = sum_weight(level) + tmp_weight
         ENDDO
          !$ACC END PARALLEL LOOP
          !$ACC WAIT(1)
