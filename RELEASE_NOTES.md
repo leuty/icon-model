@@ -75,6 +75,7 @@ Climate: ICON-Land
   - Use the JSBACH soil physics processes with the QUINCY (vegetation and soil) biogeochemistry (icon-mpim!897, icon-mpim!1002)
   - Bugfixes to make QUINCY thread-safe when running with JSBACH soil physics
   - Improve nitrogen cycle of QUINCY biogeochemistry
+  - Fix calculation of vegetation root allocation, and impove definition of soil water states
   - Add namelist options and modify QUINCY biogeochemistry to better represent nutrient interactions
   - Enabled setting selected calibration vegetation and soil-biogeochemistry parameters via namelist
   - Refactored canopy radiation process for QUINCY and ported routine to GPU
