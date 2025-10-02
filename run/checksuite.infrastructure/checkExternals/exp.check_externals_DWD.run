@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # ICON
 #
@@ -10,16 +10,16 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ---------------------------------------------------------------
 
-# ----------------------------------------------------------------------------
 #PBS -q sx_norm
 #PBS -l elapstim_req=00:35:00
-#PBS --venode=3          # Run up to 3 * 8 = 24 MPI jobs
+#PBS --venode=4          # Run up to 4 * 8 = 32 MPI jobs
 #PBS --venum-lhost=8     # Number of VE per logical host
 #PBS --use-hca=2         # Number of HCA per logical host
 #PBS -T necmpi_hydra
 #PBS -j o
 #PBS -o LOG.exp.check_externals_DWD.run.run.o
-# ----------------------------------------------------------------------
+
+set -x
 
 # for PBS change to directory where job was submitted
 # (without this job is started in HOME)
@@ -38,18 +38,18 @@ echo '255' > exp.check_externals_DWD.run.final_status
 
 unset MAKEFLAGS
 
-set -x
-
 # Build the tests with the highest level of parallelism (limited by the number
-# of the host CPU cores on one node) and then run them with a smaller number of
-# jobs (limited by the number of the vector engine cores on all nodes):
+# of the host CPU cores available on one node) and then run them with a smaller
+# number of jobs (limited by the number of the vector engines available on all
+# allocated nodes):
 time make -C ../vector --jobs=24 --keep-going --no-print-directory --output-sync=target V=1 TESTS= check-bundled && \
-  time make -C ../vector --jobs=4 --keep-going ICON_VERBOSE_TESTS=1 ICON_COLOR_TESTS=always check-bundled
+  time make -C ../vector --jobs=3 --keep-going ICON_VERBOSE_TESTS=1 ICON_COLOR_TESTS=always \
+    TESTS_ENVIRONMENT='echo "$${mgn}RUNNING$${std}: $$f"; st=$$(date +%s.%N);' \
+    AM_TESTS_FD_REDIRECT=';printf "$${brg}duration$${std}: %s: %0.2fs\n" "$$f" "$$(echo "$$(date +%s.%N) - $${st}" | bc -l)"' \
+    check-bundled
 
 # Save the exit code of the 'make check-bundled' command:
 exitcode=$?
-
-set +x
 
 # Overwrite the status file with the real exit code:
 echo "${exitcode}" > exp.check_externals_DWD.run.final_status

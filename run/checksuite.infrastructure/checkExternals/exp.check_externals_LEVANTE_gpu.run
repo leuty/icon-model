@@ -1,4 +1,4 @@
-#! /bin/ksh
+#!/usr/bin/env bash
 
 # ICON
 #
@@ -10,10 +10,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ---------------------------------------------------------------
 
-#=============================================================================
-
-# mistral cpu batch job parameters
-# --------------------------------
 #SBATCH --account=mh0156
 #SBATCH --qos=buildbot
 #SBATCH --job-name=exp.check_externals_LEVANTE_gpu.run
@@ -28,19 +24,20 @@
 #SBATCH --exclusive
 #SBATCH --time=00:20:00
 
-#=============================================================================
 set -x
 ulimit -s unlimited
-#=============================================================================
-thisdir=$(pwd)
-basedir=${thisdir%/*}
+
+basedir=$(dirname "$(pwd)")
 
 unset MAKEFLAGS
 makeflags="--jobs=${SLURM_NTASKS:-22} --keep-going"
 
 # Build and run the tests in two separate steps for better output in the log:
 time make -C "${basedir}" ${makeflags} --no-print-directory --output-sync=target V=1 TESTS= check-bundled && \
-  time make -C "${basedir}" ${makeflags} ICON_VERBOSE_TESTS=1 ICON_COLOR_TESTS=always check-bundled
+  time make -C "${basedir}" ${makeflags} ICON_VERBOSE_TESTS=1 ICON_COLOR_TESTS=always \
+    TESTS_ENVIRONMENT='echo "$${mgn}RUNNING$${std}: $$f"; st=$$(date +%s.%N);' \
+    AM_TESTS_FD_REDIRECT=';printf "$${brg}duration$${std}: %s: %0.2fs\n" "$$f" "$$(echo "$$(date +%s.%N) - $${st}" | bc -l)"' \
+    check-bundled
 
 # Save the exit code of the 'make check-bundled' command:
 exitcode=$?
