@@ -536,6 +536,78 @@ CONTAINS
       &          ldims=(/nproma,alloc_cell_blocks/), in_group=groups("ice_default"), lopenacc=.TRUE., initval=0.0_wp)
     __acc_attach(p_ice%v)
 
+     CALL add_var(ocean_default_list, 'delta', p_ice%delta ,&
+        &          GRID_UNSTRUCTURED_CELL, ZA_SURFACE, &
+        &          t_cf_var('delta', 's-1', 'deformation', datatype_flt),&
+        &          grib2_var(255, 255, 255, DATATYPE_PACK16, GRID_UNSTRUCTURED, GRID_CELL),&
+        &          ldims=(/nproma,alloc_cell_blocks/), in_group=groups("ice_default"),&
+        &          lopenacc=.TRUE., initval=0.0_wp)
+    __acc_attach(p_ice%delta)
+
+      CALL add_var(ocean_default_list, 'e11', p_ice%e11 ,&
+        &          GRID_UNSTRUCTURED_CELL, ZA_SURFACE, &
+        &          t_cf_var('e11', 's-1', 'strain rate', datatype_flt),&
+        &          grib2_var(255, 255, 255, DATATYPE_PACK16, GRID_UNSTRUCTURED, GRID_CELL),&
+        &          ldims=(/nproma,alloc_cell_blocks/), in_group=groups("ice_default"),&
+        &          lopenacc=.TRUE., initval=0.0_wp)
+    __acc_attach(p_ice%e11)
+
+      CALL add_var(ocean_default_list, 'e12', p_ice%e12 ,&
+        &          GRID_UNSTRUCTURED_CELL, ZA_SURFACE, &
+        &          t_cf_var('e12', 's-1', 'strain rate', datatype_flt),&
+        &          grib2_var(255, 255, 255, DATATYPE_PACK16, GRID_UNSTRUCTURED, GRID_CELL),&
+        &          ldims=(/nproma,alloc_cell_blocks/), in_group=groups("ice_default"),&
+        &          lopenacc=.TRUE., initval=0.0_wp)
+    __acc_attach(p_ice%e12)
+
+      CALL add_var(ocean_default_list, 'e22', p_ice%e22 ,&
+        &          GRID_UNSTRUCTURED_CELL, ZA_SURFACE, &
+        &          t_cf_var('e22', 's-1', 'strain rate', datatype_flt),&
+        &          grib2_var(255, 255, 255, DATATYPE_PACK16, GRID_UNSTRUCTURED, GRID_CELL),&
+        &          ldims=(/nproma,alloc_cell_blocks/), in_group=groups("ice_default"),&
+       &           lopenacc=.TRUE., initval=0.0_wp)
+    __acc_attach(p_ice%e22)
+
+      CALL add_var(ocean_restart_list, 's11', p_ice%s11 ,&
+        &          GRID_UNSTRUCTURED_CELL, ZA_SURFACE, &
+        &          t_cf_var('s11', 'N m-1', 'normal stress', datatype_flt),&
+        &          grib2_var(255, 255, 255, DATATYPE_PACK16, GRID_UNSTRUCTURED, GRID_CELL),&
+        &          ldims=(/nproma,alloc_cell_blocks/), in_group=groups("ice_default"),lrestart_cont=.TRUE.,&
+        &          lopenacc=.TRUE., initval=0.0_wp)
+    __acc_attach(p_ice%s11)
+
+      CALL add_var(ocean_restart_list, 's12', p_ice%s12 ,&
+        &          GRID_UNSTRUCTURED_CELL, ZA_SURFACE, &
+        &          t_cf_var('s12', 'N m-1', 'shear stress', datatype_flt),&
+        &          grib2_var(255, 255, 255, DATATYPE_PACK16, GRID_UNSTRUCTURED, GRID_CELL),&
+        &          ldims=(/nproma,alloc_cell_blocks/), in_group=groups("ice_default"),lrestart_cont=.TRUE.,&
+        &          lopenacc=.TRUE., initval=0.0_wp)
+    __acc_attach(p_ice%s12)
+
+      CALL add_var(ocean_restart_list, 's22', p_ice%s22 ,&
+        &          GRID_UNSTRUCTURED_CELL, ZA_SURFACE, &
+        &          t_cf_var('s22', 'N m-1', 'normal stress', datatype_flt),&
+        &          grib2_var(255, 255, 255, DATATYPE_PACK16, GRID_UNSTRUCTURED, GRID_CELL),&
+        &          ldims=(/nproma,alloc_cell_blocks/), in_group=groups("ice_default"),lrestart_cont=.TRUE.,&
+        &          lopenacc=.TRUE., initval=0.0_wp)
+    __acc_attach(p_ice%s22)
+
+      CALL add_var(ocean_default_list, 'sigma_i', p_ice%sigma_i ,&
+        &          GRID_UNSTRUCTURED_CELL, ZA_SURFACE, &
+        &          t_cf_var('sigma_i', 'N m-2', 'first principal stress', datatype_flt),&
+        &          grib2_var(255, 255, 255, DATATYPE_PACK16, GRID_UNSTRUCTURED, GRID_CELL),&
+        &          ldims=(/nproma,alloc_cell_blocks/), in_group=groups("ice_default"),&
+        &          lopenacc=.TRUE., initval=0.0_wp)
+    __acc_attach(p_ice%sigma_i)
+
+      CALL add_var(ocean_default_list, 'sigma_ii', p_ice%sigma_ii ,&
+        &          GRID_UNSTRUCTURED_CELL, ZA_SURFACE, &
+        &          t_cf_var('sigma_ii', 'N m-2', 'second principal stress', datatype_flt),&
+        &          grib2_var(255, 255, 255, DATATYPE_PACK16, GRID_UNSTRUCTURED, GRID_CELL),&
+        &          ldims=(/nproma,alloc_cell_blocks/), in_group=groups("ice_default"),&
+        &          lopenacc=.TRUE., initval=0.0_wp)
+    __acc_attach(p_ice%sigma_ii)
+
     IF ( i_ice_dyn == 1 ) THEN
 
       CALL add_var(ocean_restart_list, 'ice_u_prog', p_ice%u_prog ,&
@@ -559,6 +631,7 @@ CONTAINS
            &          ldims=(/nproma,nblks_e/), lopenacc=.TRUE.)
       __acc_attach(p_ice%vn_e)
 
+
     ELSE IF ( i_ice_dyn == 2 ) THEN
 
       CALL add_var(ocean_restart_list, 'ice_vn', p_ice%vn_e ,&
@@ -573,12 +646,6 @@ CONTAINS
         &          t_cf_var('ice_vt', 'm/s', 'zonal velocity', datatype_flt),&
         &          grib2_var(255, 255, 255, DATATYPE_PACK16, GRID_UNSTRUCTURED, GRID_EDGE),&
         &          ldims=(/nproma,nblks_e/),lrestart_cont=.TRUE.)
-
-      CALL add_var(ocean_default_list, 'Delta', p_ice%Delta ,&
-        &          GRID_UNSTRUCTURED_CELL, ZA_SURFACE, &
-        &          t_cf_var('Delta', '1/s', 'Defomation', datatype_flt),&
-        &          grib2_var(255, 255, 255, DATATYPE_PACK16, GRID_UNSTRUCTURED, GRID_CELL),&
-        &          ldims=(/nproma,alloc_cell_blocks/), in_group=groups("ice_default"),lrestart_cont=.TRUE.)
 
     ENDIF
 

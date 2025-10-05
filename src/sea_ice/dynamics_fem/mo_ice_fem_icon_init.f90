@@ -47,6 +47,8 @@ MODULE mo_ice_fem_icon_init
   PUBLIC  :: ice_fem_grid_post
 
   PUBLIC  :: exchange_nod2D
+  PUBLIC  :: copy_fem2icon, copy_icon2fem
+  PUBLIC  :: copy_femelem2iconcell, copy_iconcell2femelem
 
   INTERFACE exchange_nod2d
     MODULE PROCEDURE exchange_nod2d
@@ -600,7 +602,8 @@ CONTAINS
     !$ACC WAIT(1)
     !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
     DO jv = nlast+1,nproma
-      u_(jv, lev_idx, jb) = -9999._wp
+      !      u_(jv, lev_idx, jb) = -9999._wp
+      u_(jv, lev_idx, jb) = 0.0_wp
     END DO
     !$ACC END PARALLEL LOOP
     !$ACC WAIT(1)
@@ -637,6 +640,81 @@ CONTAINS
     !$ACC END PARALLEL LOOP
     !$ACC WAIT(1)
   END SUBROUTINE copy_icon2fem
+
+!> map fesom variable on elements --> ICON cells
+SUBROUTINE copy_femelem2iconcell(u_elem, u_cell, lacc)
+  REAL(wp), INTENT(IN)    :: u_elem(fem_patch%n_patch_cells)
+  REAL(wp), INTENT(INOUT) :: u_cell(nproma, fem_patch%nblks_c)
+  LOGICAL, INTENT(IN), OPTIONAL :: lacc
+
+  INTEGER :: jc, jb, npad, nlast
+  LOGICAL :: lzacc
+
+  CALL set_acc_host_or_device(lzacc, lacc)
+
+  ! all full blocks
+  !$ACC PARALLEL LOOP GANG VECTOR COLLAPSE(2) DEFAULT(PRESENT) IF(lzacc)
+  DO jb = 1, fem_patch%nblks_c-1
+    DO jc = 1, nproma
+      u_cell(jc, jb) = u_elem((jb-1)*nproma + jc)
+    END DO
+  END DO
+  !$ACC END PARALLEL LOOP
+
+  ! last block (probably not full)
+  npad  = nproma*fem_patch%nblks_c - fem_patch%n_patch_cells
+  nlast = nproma - npad
+  jb    = fem_patch%nblks_c
+
+  !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) IF(lzacc)
+  DO jc = 1, nlast
+    u_cell(jc, jb) = u_elem((jb-1)*nproma + jc)
+  END DO
+  !$ACC END PARALLEL LOOP
+
+  ! fill the rest with 0
+  !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) IF(lzacc)
+  DO jc = nlast+1, nproma
+    u_cell(jc, jb) = 0.0_wp
+  END DO
+  !$ACC END PARALLEL LOOP
+
+END SUBROUTINE copy_femelem2iconcell
+
+
+!> map ICON variable on cells --> fesom elements
+SUBROUTINE copy_iconcell2femelem(u_cell, u_elem, lacc)
+  REAL(wp), INTENT(IN)  :: u_cell(nproma, fem_patch%nblks_c)
+  REAL(wp), INTENT(OUT) :: u_elem(fem_patch%n_patch_cells)
+  LOGICAL, INTENT(IN), OPTIONAL :: lacc
+
+  INTEGER :: jc, jb, npad, nlast
+  LOGICAL :: lzacc
+
+  CALL set_acc_host_or_device(lzacc, lacc)
+
+  ! all full blocks
+  !$ACC PARALLEL LOOP GANG VECTOR COLLAPSE(2) DEFAULT(PRESENT) IF(lzacc)
+  DO jb = 1, fem_patch%nblks_c-1
+    DO jc = 1, nproma
+      u_elem((jb-1)*nproma + jc) = u_cell(jc, jb)
+    END DO
+  END DO
+  !$ACC END PARALLEL LOOP
+
+  ! last block (probably not full)
+  npad  = nproma*fem_patch%nblks_c - fem_patch%n_patch_cells
+  nlast = nproma - npad
+  jb    = fem_patch%nblks_c
+
+  !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) IF(lzacc)
+  DO jc = 1, nlast
+    u_elem((jb-1)*nproma + jc) = u_cell(jc, jb)
+  END DO
+  !$ACC END PARALLEL LOOP
+
+END SUBROUTINE copy_iconcell2femelem
+
 
   SUBROUTINE exchange_nod2Dx2(u1_ice, u2_ice, lacc)
     REAL(wp), INTENT(INOUT) :: u1_ice(fem_patch%n_patch_verts), &

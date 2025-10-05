@@ -32,6 +32,7 @@ MODULE mo_ice_fem_interface
   USE mo_grid_subset,         ONLY: t_subset_range, get_index_range
   USE mo_impl_constants,      ONLY: sea_boundary
 
+  USE mo_ice_fem_icon_init,   ONLY: copy_femelem2iconcell
   USE mo_operator_ocean_coeff_3d,ONLY: t_operator_coeff
   USE mo_dynamics_config,     ONLY: nold
   USE mo_ocean_types,         ONLY: t_hydro_ocean_state
@@ -80,7 +81,8 @@ CONTAINS
   SUBROUTINE ice_fem_interface( p_patch_3D, p_ice, p_os, p_as, &
                                 atmos_fluxes, p_op_coeff, p_oce_sfc, lacc )
 
-    USE mo_ice_fem_types,     ONLY: sigma11, sigma12, sigma22
+    USE mo_ice_fem_types,     ONLY: sigma11, sigma12, sigma22, &
+                                    delta, eps11, eps12, eps22, si1, si2
     USE mo_ice_fem_evp,       ONLY: EVPdynamics
     USE mo_ice_fem_icon_init, ONLY: c2v_wgt
     USE mo_ice_fem_types,     ONLY: m_ice, m_snow, a_ice, elevation
@@ -203,7 +205,44 @@ CONTAINS
 
     !$ACC END DATA
 
+
     CALL EVPdynamics(lacc=lzacc)
+
+    !-----------------------------------------------------------------------
+    ! Copy FEM element-based stress/strain diagnostics to ICON patch arrays
+    !-----------------------------------------------------------------------
+
+    ! strain rates (epsilons)
+    CALL copy_femelem2iconcell(eps11, p_ice%e11, lacc=lzacc)
+    CALL copy_femelem2iconcell(eps12, p_ice%e12, lacc=lzacc)
+    CALL copy_femelem2iconcell(eps22, p_ice%e22, lacc=lzacc)
+
+    ! stresses
+    CALL copy_femelem2iconcell(sigma11, p_ice%s11, lacc=lzacc)
+    CALL copy_femelem2iconcell(sigma12, p_ice%s12, lacc=lzacc)
+    CALL copy_femelem2iconcell(sigma22, p_ice%s22, lacc=lzacc)
+
+    ! delta and principal stresses
+    CALL copy_femelem2iconcell(delta, p_ice%delta, lacc=lzacc)
+    CALL copy_femelem2iconcell(si1, p_ice%sigma_i, lacc=lzacc)
+    CALL copy_femelem2iconcell(si2, p_ice%sigma_ii,lacc=lzacc)
+
+
+    ! check if these are needed ?
+    !-----------------------------------------------------------------------
+    ! Synchronize ICON patch arrays across MPI/processes
+    !-----------------------------------------------------------------------
+    !CALL sync_patch_array(SYNC_C, p_patch, p_ice%e11, lacc=lzacc)
+    !CALL sync_patch_array(SYNC_C, p_patch, p_ice%e12, lacc=lzacc)
+    !CALL sync_patch_array(SYNC_C, p_patch, p_ice%e22, lacc=lzacc)
+
+    !CALL sync_patch_array(SYNC_C, p_patch, p_ice%s11, lacc=lzacc)
+    !CALL sync_patch_array(SYNC_C, p_patch, p_ice%s12, lacc=lzacc)
+    !CALL sync_patch_array(SYNC_C, p_patch, p_ice%s22, lacc=lzacc)
+
+    !CALL sync_patch_array(SYNC_C, p_patch, p_ice%delta, lacc=lzacc)
+    !CALL sync_patch_array(SYNC_C, p_patch, p_ice%sigma_i, lacc=lzacc)
+    !CALL sync_patch_array(SYNC_C, p_patch, p_ice%sigma_ii, lacc=lzacc)
 
     !$ACC DATA COPYIN(u_ice, v_ice) &
     !$ACC   COPY(u_w, v_w, stress_atmice_x, stress_atmice_y, elevation) IF(lzacc)
@@ -265,17 +304,21 @@ CONTAINS
   !
   !> Initialize u_ice, v_ice in case of a restart
   !!
-  SUBROUTINE ice_fem_init_vel_restart(p_patch, p_ice)
-    USE mo_ice_fem_types,       ONLY: u_ice, v_ice
+  SUBROUTINE ice_fem_init_vel_restart(p_patch, p_ice, lacc)
+    USE mo_ice_fem_types,       ONLY: u_ice, v_ice, sigma11, sigma12, sigma22
+    USE mo_ice_fem_icon_init,   ONLY: copy_iconcell2femelem
 
     TYPE(t_patch), TARGET, INTENT(IN)    :: p_patch
     TYPE(t_sea_ice),       INTENT(IN)    :: p_ice
+    LOGICAL, INTENT(IN), OPTIONAL        :: lacc
 
     ! Local variables
     TYPE(t_subset_range), POINTER :: all_verts
     INTEGER :: i_startidx_v, i_endidx_v
     INTEGER :: jk, jb, jv
+    LOGICAL                                  :: lzacc
 
+    CALL set_acc_host_or_device(lzacc, lacc)
   !-------------------------------------------------------------------------
 
     all_verts => p_patch%verts%all
@@ -292,6 +335,12 @@ CONTAINS
          v_ice(jk) = p_ice%v_prog(jv,jb)
       END DO
     END DO
+
+    ! copy stresses from ICON cells back to FESOM elements
+    CALL copy_iconcell2femelem(p_ice%s11, sigma11, lacc=lzacc)
+    CALL copy_iconcell2femelem(p_ice%s12, sigma12, lacc=lzacc)
+    CALL copy_iconcell2femelem(p_ice%s22, sigma22, lacc=lzacc)
+
 
   END SUBROUTINE ice_fem_init_vel_restart
 

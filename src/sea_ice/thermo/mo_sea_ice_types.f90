@@ -111,7 +111,17 @@ MODULE mo_sea_ice_types
       & v          (:,:)         ,   & ! Meridional velocity on cell centre (diagn.)            [m/s]
       & vn_e       (:,:)         ,   &  ! Edge normal velocity(prognostic)                      [m/s]
       & vt_e       (:,:)         ,   & ! Edge tangential velocity prognostic                     [m/s]
-      & Delta      (:,:)           ! Delta                                               [1/s]
+      & delta      (:,:)         ,   & ! Delta                  [1/s]
+      & sigma_i    (:,:)         ,   & !
+      & sigma_ii   (:,:)         ,   & !
+      & s11        (:,:)         ,   & ! normal stress component (sigma_11) [N/m]
+      & s12        (:,:)         ,   & ! shear stress component (sigma_12)  [N/m]           [N/m]
+      & s22        (:,:)         ,   & ! normal stress component (sigma_22)
+      & e11        (:,:)         ,   & ! strain rate (eps11) [s-1]
+      & e12        (:,:)         ,   & ! strain rate (eps12)  [s-1]           [N/m]
+      & e22        (:,:)               ! strain rate (eps22) [s-1]
+
+
     ! not currently used categorywise limiter
     REAL(wp), ALLOCATABLE :: hi_lim(:) ! Thickness limit                                        [m]
 
