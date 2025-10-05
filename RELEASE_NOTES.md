@@ -80,6 +80,7 @@ Climate: ICON-Land
   - Add namelist options and modify QUINCY biogeochemistry to better represent nutrient interactions
   - Enabled setting selected calibration vegetation and soil-biogeochemistry parameters via namelist
   - Refactored canopy radiation process for QUINCY and ported routine to GPU
+  - Bug fixes in turnover and mortality to prevent negative vegetation pools
 - Use a common interface for QUINCY and JSBACH
 - Updated the anthropogenic land cover change process, including reading next years land cover map as target in case of daily land cover changes
 - Updated inline documentation of hydrology process
