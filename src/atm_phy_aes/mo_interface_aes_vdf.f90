@@ -242,7 +242,7 @@ CONTAINS
       ELSE
         graph_id = id_captured( graphs, &
           ptr_keys=(/ C_LOC(prm_field(patch%id)%qtrc_phy), C_LOC(prm_field(patch%id)%rho) /), &
-          int_keys=(/ merge(1, 0, is_time_ltrig_rad_m1(datetime, pdtime, jg)) /) )
+          int_keys=(/ merge(1, 0, is_time_ltrig_rad_m1(datetime, pdtime, jg, .FALSE.)) /) )
         IF (graph_id > 0) THEN
           CALL replay(graphs, graph_id, 1)
           !$ACC WAIT(1)
@@ -253,7 +253,7 @@ CONTAINS
         ELSE
           CALL begin_capture( graphs, 1, &
             ptr_keys=(/ C_LOC(prm_field(patch%id)%qtrc_phy), C_LOC(prm_field(patch%id)%rho) /), &
-            int_keys=(/ merge(1, 0, is_time_ltrig_rad_m1(datetime, pdtime, jg)) /) )
+            int_keys=(/ merge(1, 0, is_time_ltrig_rad_m1(datetime, pdtime, jg, .FALSE.)) /) )
         END IF
       END IF
     END IF

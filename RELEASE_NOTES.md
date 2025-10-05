@@ -33,6 +33,7 @@ NWP Physics:
 - Use cdnc scaling factor of the year 1850 in picontrol mode (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1789)
 - Fixes:
   - Inconsistent initialization time step length in vdiff interface and jsbach
+  - Use functions for sat. vapor pressure consistently between NWP physics and VDIFF/ICON-Land (ICON-XPP) (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1065)
   - Make ecRad compilable with Cray 17.0.1 for AMD GPUs (https://gitlab.dkrz.de/icon/icon/-/merge_requests/648)
   - Fix echotop and echotopinm diagnostics for clouds reaching model top (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1750)
   - fix P-E lake double counting in JSBACH (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1773)

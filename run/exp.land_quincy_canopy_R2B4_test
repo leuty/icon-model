@@ -264,7 +264,7 @@ cat > $jsbach_namelist << EOF
 &run_nml
  num_lev          = 1          ! Number of full levels for each domain. For JS4-driver we use 1.
  modelTimeStep    = "${modelTimeStep}"
- iforcing         = 2           ! 0: none, 1: HS, 2: ECHAM, 3: NWP
+ iforcing         = 3 ! 2: AES, 3: NWP (which thermodynamic functions to use)
  output           = 'nml'
  msg_level        = 12           ! e.g. 15. level of details report during integration
  restart_filename = "${EXPNAME}_restart_jsbach_<rsttime>.nc"
@@ -275,6 +275,10 @@ cat > $jsbach_namelist << EOF
                         ! TIMER_MODE_AGGREGATED=1,
                         ! TIMER_MODE_DETAILED=2,
                         ! TIMER_MODE_WRITE_FILES=3
+/
+&nwp_phy_nml
+ itype_satpres_coeffs = 2 ! For iforcing=3: 1 = old coefficients inherited from the COSMO model
+                          !                 2 = more accurate coefficients used in IFS
 /
 &grid_nml
  dynamics_grid_filename = ${atmo_dyn_grids}

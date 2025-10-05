@@ -24,7 +24,7 @@ MODULE mo_turb_vdiff_sma
   USE mo_turb_vdiff_config ,ONLY: t_vdiff_config
   USE mo_turb_vdiff_params ,ONLY: ckap
   USE mo_physical_constants,ONLY: grav, rd, cpd, rd_o_cpd,             &
-    &                             vtmpc1, p0ref, rgrav
+    &                             vtmpc1, p0ref, rgrav, tmelt
   USE mo_model_domain      ,ONLY: t_patch
   USE mo_nonhydro_types    ,ONLY: t_nh_metrics
   USE mo_intp_data_strc    ,ONLY: t_int_state
@@ -32,7 +32,7 @@ MODULE mo_turb_vdiff_sma
   USE mo_intp_data_strc    ,ONLY: p_int_state
   USE mo_fortran_tools     ,ONLY: assert_acc_device_only, init
   USE mo_impl_constants    ,ONLY: min_rlcell, min_rledge_int, min_rlcell_int, &
-    &                             min_rlvert_int
+    &                             min_rlvert_int, iaes
   USE mo_parallel_config   ,ONLY: p_test_run
   USE mo_loopindices       ,ONLY: get_indices_e, get_indices_c
   USE mo_nh_vert_interp_les,ONLY: brunt_vaisala_freq, vert_intp_full2half_cell_3d
@@ -43,10 +43,11 @@ MODULE mo_turb_vdiff_sma
   USE mo_intp_rbf          ,ONLY: rbf_vec_interpol_vertex, rbf_vec_interpol_edge
   USE mo_impl_constants_grf,ONLY: grf_bdywidth_c, grf_bdywidth_e
   USE mo_nh_testcases_nml  ,ONLY: is_dry_cbl
-  USE mo_thdyn_functions   ,ONLY: spec_humi, sat_pres_water
+  USE mo_thdyn_functions   ,ONLY: spec_humi, sat_pres_water, sat_pres_ice
   USE mo_math_constants    ,ONLY: pi_2, ln2
   USE mo_math_utilities    ,ONLY: tdma_solver_vec
   USE mo_intp_rbf          ,ONLY: rbf_vec_interpol_cell
+  USE mo_run_config        ,ONLY: iforcing
 
   IMPLICIT NONE
   PRIVATE
@@ -465,16 +466,26 @@ CONTAINS
     !$ACC WAIT(1)
 
     DO jsfc = 1, ksfc_type
-      CALL compute_qsat( kbdim, is(jsfc), loidx(:,jsfc), ppsfc(:,jb), ptsfc(:,jb,jsfc), pqsat_tile(:,jb,jsfc), lacc=.TRUE. )
 
-     ! loop over mask only
-     !
+      IF (iforcing == iaes) THEN
+        CALL compute_qsat( kbdim, is(jsfc), loidx(:,jsfc), ppsfc(:,jb), ptsfc(:,jb,jsfc), pqsat_tile(:,jb,jsfc), lacc=.TRUE. )
+      END IF
 
+      ! loop over mask only
+      !
       !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
       !$ACC LOOP GANG VECTOR
       DO jls = 1, is(jsfc)
         js=loidx(jls,jsfc)
 
+        ! saturation specific humidity
+        IF (iforcing /= iaes) THEN
+          IF (ptsfc(js,jb,jsfc) >= tmelt) THEN
+            pqsat_tile(js,jb,jsfc) = spec_humi(sat_pres_water(ptsfc(js,jb,jsfc)),ppsfc(js,jb))
+          ELSE
+            pqsat_tile(js,jb,jsfc) = spec_humi(sat_pres_ice(ptsfc(js,jb,jsfc)),ppsfc(js,jb))
+          END IF
+        END IF
         ! dry static energy pcpt_tile
         !
         IF(jsfc == idx_lnd ) THEN
@@ -494,8 +505,9 @@ CONTAINS
 
         !Get surface pot. temperature and humidity
         theta_sfc = ptsfc(js,jb,jsfc) / EXP( rd_o_cpd*LOG(ppsfc(js,jb)/p0ref) )
-        qv_s    = spec_humi(sat_pres_water(ptsfc(js,jb,jsfc)),ppsfc(js,jb))
-
+        IF (iforcing == iaes) THEN
+          qv_s = spec_humi(sat_pres_water(ptsfc(js,jb,jsfc)),ppsfc(js,jb))
+        END IF
 
         mwind = MAX( min_sfc_wind, SQRT(pum1(js,klev,jb)**2+pvm1(js,klev,jb)**2) )
 
@@ -513,7 +525,11 @@ CONTAINS
         !now iterate
         DO itr = 1 , 5
            shfl = tch*mwind*(theta_sfc-ztheta(js,klev,jb))
-           lhfl = tch*mwind*(qv_s-pqm1(js,klev,jb))
+           IF (iforcing == iaes) THEN
+             lhfl = tch*mwind*(qv_s-pqm1(js,klev,jb))
+           ELSE
+             lhfl = tch*mwind*(pqsat_tile(js,jb,jsfc)-pqm1(js,klev,jb))
+           END IF
            bflx1= shfl + vtmpc1 * theta_sfc * lhfl
            ustar= SQRT(tcm)*mwind
 

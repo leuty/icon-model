@@ -49,7 +49,7 @@ rm  ${check_script}_${modification}_DATES
 # REFERENCE model directory and reference experiment for update test
 #
 export OVERWRITE=no
-reference_dir=2025-08-22.icon-mpim.c8361b20bbb0
+reference_dir=2025-10-05.icon-mpim.0fff9f7fd5f6
 [[ ! -z $BB_NAME ]] && builder=$(echo ${BB_NAME} | tr '[:upper:]' '[:lower:]') # new buildbot
 export REFERENCE=$icon_data_rootFolder/buildbot_data/ref/${reference_dir}/${builder}
 

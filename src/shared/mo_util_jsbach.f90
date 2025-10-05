@@ -321,6 +321,7 @@ CONTAINS
 
     USE mo_aes_phy_nml,           ONLY: process_aes_phy_nml
     USE mo_aes_rad_nml,           ONLY: process_aes_rad_nml
+    USE mo_nwp_phy_nml,           ONLY: read_nwp_phy_namelist
 
     CHARACTER(LEN=*), INTENT(in) :: jsb_namelist_filename
     CHARACTER(LEN=*), INTENT(in) :: shr_namelist_filename
@@ -355,6 +356,7 @@ CONTAINS
 
     CALL process_aes_phy_nml             (jsb_namelist_filename)
     CALL process_aes_rad_nml             (jsb_namelist_filename)
+    CALL read_nwp_phy_namelist           (jsb_namelist_filename)
 
   END SUBROUTINE read_infrastructure_namelists_for_jsbach
 
@@ -431,9 +433,10 @@ CONTAINS
   !!
   !! Function returns the length of the integration time step
   !!
-  REAL(wp) FUNCTION get_time_dt(model_id)
+  REAL(wp) FUNCTION get_time_dt(model_id, is_standalone)
 
     INTEGER, INTENT(in) :: model_id
+    LOGICAL, INTENT(in) :: is_standalone
 
     TYPE(t_datetime), POINTER :: reference_datetime
     REAL(wp) :: ztime
@@ -441,23 +444,21 @@ CONTAINS
 
     CHARACTER(len=*), PARAMETER :: routine = modname//':get_time_dt'
 
-    IF (iforcing == inwp) THEN
+    IF (iforcing == inwp .AND. .NOT. is_standalone) THEN
       ztime = atm_phy_nwp_config(model_id)%dt_fastphy
     ELSE
       ztime = -1._wp
       dt_in_ms = -1._wp
-
       reference_datetime => newDatetime("1979-01-01T00:00:00.000") ! 1980-06-01T00:00:00.000
 
-      ! First try to get time step from the vertical diffusion config in a coupled experiment
-      IF (ASSOCIATED(aes_phy_tc(model_id)%dt_vdf)) THEN
-        dt_in_ms = getTotalMilliSecondsTimeDelta(aes_phy_tc(model_id)%dt_vdf, reference_datetime)
-      END IF
-
-      IF (dt_in_ms <= 0) THEN
-        ! This should only happen for an ICON-Land standalone experiment;
-        ! Use "modeltimestep" from run_nml in this case (same for all model_id's!)
+      IF (is_standalone) THEN
+        ! Use "modeltimestep" from run_nml for standalone run (same for all model_id's!)
         dt_in_ms = getTotalMilliSecondsTimeDelta(time_config%tc_dt_model, reference_datetime)
+      ELSE
+        ! Try to get time step from the vertical diffusion config in a coupled experiment
+        IF (ASSOCIATED(aes_phy_tc(model_id)%dt_vdf)) THEN
+          dt_in_ms = getTotalMilliSecondsTimeDelta(aes_phy_tc(model_id)%dt_vdf, reference_datetime)
+        END IF
       END IF
 
       ztime = REAL(dt_in_ms, wp) / 1000._wp
@@ -576,11 +577,13 @@ CONTAINS
   ! If radiation is not used at all in the current time window set result to true so
   ! that JSBACH calculates albedo every time step.
   !
-  FUNCTION is_time_ltrig_rad_m1(current, dt, model_id) RESULT(ltrig_rad_m1)
+  FUNCTION is_time_ltrig_rad_m1(current, dt, model_id, is_standalone) RESULT(ltrig_rad_m1)
 
     TYPE(t_datetime), POINTER, INTENT(in) :: current
     REAL(wp),                  INTENT(in) :: dt
     INTEGER,                   INTENT(in) :: model_id
+    LOGICAL,                   INTENT(in) :: is_standalone
+
     LOGICAL                               :: ltrig_rad_m1
 
     TYPE(t_datetime), POINTER       :: datetime_next
@@ -588,18 +591,17 @@ CONTAINS
     LOGICAL                         :: luse_rad
     REAL(wp)                        :: dt_rad, seconds_in_day
 
+    CHARACTER(len=*), PARAMETER :: routine = modname//':is_time_ltrig_rad_m1'
+
     IF (.NOT. ASSOCIATED(dt_zero)) dt_zero => newTimedelta('PT0S')
 
-    datetime_next => get_time_next(current, dt)
-
-    SELECT CASE (iforcing)
-    CASE(inwp)
+    IF (iforcing == inwp .AND. .NOT. is_standalone) THEN
       ltrig_rad_m1 = atm_phy_nwp_config(model_id)%lcall_phy(itrad)
-
-    CASE DEFAULT
+    ELSE
       ltrig_rad_m1 = .TRUE.
       IF (ASSOCIATED(aes_phy_tc(model_id)%dt_rad)) THEN
         IF (aes_phy_tc(model_id)%dt_rad > dt_zero) THEN
+          datetime_next => get_time_next(current, dt)
           dt_rad = getTotalMilliSecondsTimeDelta(aes_phy_tc(model_id)%dt_rad, datetime_next) / 1000._wp
           seconds_in_day = getNoOfSecondsElapsedInDayDateTime(datetime_next) + REAL(datetime_next%time%ms,wp)/1000._wp
           ltrig_rad_m1 = MOD(seconds_in_day, dt_rad) == 0
@@ -608,13 +610,12 @@ CONTAINS
           luse_rad  = (aes_phy_tc(model_id)%sd_rad <= datetime_next) .AND. &
             &         (aes_phy_tc(model_id)%ed_rad >  datetime_next)
           ltrig_rad_m1 = ltrig_rad_m1 .AND. luse_rad
+          CALL deallocateDatetime(datetime_next)
         ELSE
           ltrig_rad_m1 = .TRUE.
         END IF
       END IF
-    END SELECT
-
-    CALL deallocateDatetime(datetime_next)
+    END IF
 
   END FUNCTION is_time_ltrig_rad_m1
 
@@ -1705,35 +1706,227 @@ MODULE mo_physical_constants_iface
 END MODULE mo_physical_constants_iface
 
 !------------------------------------------------------------------------------------------------------------
-!> Contains interfaces to ICON convect_tables
-!
-MODULE mo_jsb_convect_tables_iface
-
-  USE mo_kind,                 ONLY: wp
-  USE mo_aes_convect_tables,   ONLY: init_convect_tables, tlucua, jptlucu1, jptlucu2
-
-  IMPLICIT NONE
-  PRIVATE
-
-  PUBLIC :: init_convect_tables, tlucua, jptlucu1, jptlucu2
-
-  CHARACTER(len=*), PARAMETER :: modname = 'mo_jsb_convect_tables_iface'
-
-! CONTAINS
-
-END MODULE mo_jsb_convect_tables_iface
-
-!------------------------------------------------------------------------------------------------------------
-!> Contains interfaces to thermodynamic functions from ICON
-!
+!> Thermodynamic function interfaces for JSBACH
+!>
+!> This module provides thermodynamic function interfaces that allow ICON-Land to access
+!> thermodynamic functions from different atmospheric physics packages (NWP or AES) in a unified way.
+!>
+!> The module serves as an abstraction layer that:
+!> - Allows runtime switching between NWP and AES physics implementations
+!> - Maintains compatibility with different atmospheric forcing configurations
+!> - Provides GPU-accelerated thermodynamic calculations
+!> - Ensures consistency between land and atmosphere thermodynamic calculations
+!>
+!> Note for `sat_pres_mixed`: If the input temperature is outside the valid range, the function returns -1.0_wp.
 MODULE mo_jsb_thermo_iface
 
-  USE mo_aes_thermo, ONLY: potential_temperature, sat_pres_water, sat_pres_ice, specific_humidity
+  USE mo_kind, ONLY: wp
+  USE mo_impl_constants, ONLY: iaes, inwp
+  USE mo_physical_constants, ONLY: tmelt, rdv
+  USE mo_run_config, ONLY: iforcing
+  USE mo_aes_thermo, ONLY:                        &
+    & potential_temperature,                      &
+    & sat_pres_water_aes    => sat_pres_water,    &
+    & sat_pres_ice_aes      => sat_pres_ice,      &
+    & specific_humidity_aes => specific_humidity
+  USE mo_aes_convect_tables, ONLY: init_aes_convect_tables => init_convect_tables, tlucua, jptlucu1, jptlucu2
+  USE mo_lookup_tables_constants, ONLY: init_satpres_coeffs
+  USE mo_atm_phy_nwp_config,   ONLY: configure_atm_phy_nwp, atm_phy_nwp_config
+  USE mo_thdyn_functions, ONLY:                   &
+    & sat_pres_water_nwp    => sat_pres_water,    &
+    & sat_pres_ice_nwp      => sat_pres_ice,      &
+    & specific_humidity_nwp => spec_humi
+  USE mo_aes_vdf_config, ONLY: aes_vdf_config
+  USE mo_grid_config, ONLY: n_dom
+  USE mo_util_string, ONLY: int2string
+  USE mo_exception, ONLY: finish, message
 
   IMPLICIT NONE
-  PUBLIC
+  PUBLIC :: iaes, inwp, init_jsb_thermo_iface, &
+    &       potential_temperature, &
+    &       sat_pres_water, sat_pres_ice, sat_pres_mixed, specific_humidity
+
+  INTEGER :: i_atmo_physics = 0             !< Atmospheric physics package in use for thermodynamic functions (iaes or inwp)
+  LOGICAL :: l_aes_convect_tables = .FALSE. !< Use convection tables for AES physics?
+
+  !$ACC DECLARE COPYIN(i_atmo_physics, l_aes_convect_tables)
 
   CHARACTER(len=*), PARAMETER :: modname = 'mo_jsb_thermo_iface'
+
+CONTAINS
+
+  !> Initialize the thermodynamic interface
+  !>
+  !> This subroutine initializes the thermodynamic interface by determining
+  !> which atmospheric physics package to use for thermodynamic calculations.
+  !> It sets the internal i_atmo_physics flag and updates GPU device memory
+  !> for OpenACC acceleration.
+  !>
+  !> is_standalone Flag to indicate standalone mode. If .TRUE., the standalone model will use
+  !>               the thermodynamic functions from NWP physics by default.
+  !>               Set `iforcing = iaes = 2` in `run_nml` to switch to AES functions.
+  !>               If, for standalone runs, `iforcing` is not set in the namelist (i.e. = 0 = default)
+  !>               or is anything else than iaes=2 for standalone runs, the NWP functions will be used.
+  !>
+  !> This subroutine must be called before using any thermodynamic functions
+  !> Terminates execution with error for unsupported forcing types
+  !>
+  SUBROUTINE init_jsb_thermo_iface(is_standalone)
+
+    LOGICAL, INTENT(IN) :: is_standalone
+
+    INTEGER :: iforcing_local
+
+    CHARACTER(len=*), PARAMETER :: routine = modname//':init_jsb_thermo_iface'
+
+    IF (is_standalone) THEN
+      SELECT CASE (iforcing)
+      CASE (iaes)
+        iforcing_local = iaes
+      CASE (inwp)
+        iforcing_local = inwp
+      CASE DEFAULT
+        iforcing_local = inwp
+      END SELECT
+      iforcing = 0 ! Reset iforcing to 0 (default; no atmosphere) for standalone model
+    ELSE
+      iforcing_local = iforcing
+    END IF
+
+    IF (iforcing_local /= inwp .AND. iforcing_local /= iaes) THEN
+        CALL finish(routine, 'Unsupported value of iforcing_local: '//TRIM(int2string(iforcing_local))// &
+          & '. Supported values are '//TRIM(int2string(inwp))//' (NWP physics) and '// &
+          & TRIM(int2string(iaes))//' (AES physics).')
+    END IF
+
+    IF (iforcing_local == inwp) THEN
+      i_atmo_physics = inwp ! NWP physics
+      l_aes_convect_tables = .FALSE.
+      IF (is_standalone) THEN
+        CALL init_satpres_coeffs(atm_phy_nwp_config(1)%itype_satpres_coeffs)
+      END IF
+      CALL message(routine, 'Using thermodynamic functions from NWP physics')
+      IF (atm_phy_nwp_config(1)%itype_satpres_coeffs == 1) THEN
+        CALL message(routine, '... using old coefficients inherited from the COSMO model')
+      ELSE IF (atm_phy_nwp_config(1)%itype_satpres_coeffs == 2) THEN
+        CALL message(routine, '... using more accurate coefficients used in IFS')
+      ELSE
+        CALL finish(routine, 'Unsupported value for itype_satpres_coeffs:'// &
+          & TRIM(int2string(atm_phy_nwp_config(1)%itype_satpres_coeffs)))
+      END IF
+    ELSE IF (iforcing_local == iaes) THEN
+      i_atmo_physics = iaes ! AES physics
+      l_aes_convect_tables = .NOT. aes_vdf_config(1)%use_tmx ! Don't use convect_tables with tmx
+      IF (n_dom >= 2) THEN
+        IF (ANY(aes_vdf_config(2:n_dom)%use_tmx .EQV. l_aes_convect_tables)) THEN
+          CALL finish(routine, 'Inconsistent aes_vdf_config%use_tmx across domains')
+        END IF
+      END IF
+      IF (l_aes_convect_tables) THEN
+        CALL message(routine, 'Using thermodynamic functions from AES physics (with convect_tables)')
+        IF (is_standalone) THEN
+          CALL init_aes_convect_tables()
+        END IF
+      ELSE
+        CALL message(routine, 'Using thermodynamic functions from AES physics (with aes_thermo)')
+      END IF
+    ELSE
+      CALL finish(routine, 'Unsupported value of iforcing: '//TRIM(int2string(iforcing_local)))
+    END IF
+
+    ! Update device copies of i_atmo_physics and l_aes_convect_tables so that GPU-accelerated routines
+    ! use the correct atmospheric physics configuration and convection table flag.
+    !$ACC UPDATE DEVICE(i_atmo_physics, l_aes_convect_tables)
+
+  END SUBROUTINE init_jsb_thermo_iface
+
+#ifndef _OPENACC
+ELEMENTAL &
+#endif
+  FUNCTION sat_pres_water(temp) RESULT(esat)
+
+    REAL(wp), INTENT(IN) :: temp ! Temperature [K]
+    REAL(wp) :: esat             ! Saturation vapor pressure over water [Pa]
+
+    !$ACC ROUTINE SEQ
+
+    IF (i_atmo_physics == inwp) THEN
+      esat = sat_pres_water_nwp(temp)
+    ELSE IF (i_atmo_physics == iaes) THEN
+      esat = sat_pres_water_aes(temp)
+    END IF
+
+  END FUNCTION sat_pres_water
+
+#ifndef _OPENACC
+ELEMENTAL &
+#endif
+  FUNCTION sat_pres_ice(temp) RESULT(esat)
+
+    REAL(wp), INTENT(IN) :: temp !< Temperature [K]
+    REAL(wp) :: esat             !< Saturation vapor pressure over ice [Pa]
+
+    !$ACC ROUTINE SEQ
+
+    IF (i_atmo_physics == inwp) THEN
+      esat = sat_pres_ice_nwp(temp)
+    ELSE IF (i_atmo_physics == iaes) THEN
+      esat = sat_pres_ice_aes(temp)
+    END IF
+
+  END FUNCTION sat_pres_ice
+
+#ifndef _OPENACC
+ELEMENTAL &
+#endif
+  FUNCTION sat_pres_mixed(temp) RESULT(esat)
+
+    REAL(wp), INTENT(IN) :: temp !< Temperature [K]
+    REAL(wp) :: esat             !< Saturation vapor pressure over water/ice [Pa]
+
+    INTEGER :: it
+
+    !$ACC ROUTINE SEQ
+
+    IF (l_aes_convect_tables) THEN
+      it = NINT(temp * 1000._wp)
+      ! NOTE convection tables work within [50,400] Kelvin
+
+      IF (it >= jptlucu1 .AND. it <= jptlucu2) THEN
+        esat = tlucua(it) / rdv
+      ELSE
+        esat = -1.0_wp ! Return a clearly invalid value
+      END IF
+    ELSE
+      IF (temp >= tmelt .AND. temp <= 400._wp) THEN
+        esat = sat_pres_water(temp)
+      ELSE IF (temp < tmelt .AND. temp >= 50._wp) THEN
+        esat = sat_pres_ice(temp)
+      ELSE
+        esat = -1.0_wp ! Return a clearly invalid value
+      END IF
+    END IF
+
+  END FUNCTION sat_pres_mixed
+
+#ifndef _OPENACC
+ELEMENTAL &
+#endif
+  FUNCTION specific_humidity(pvapor, ptotal)
+
+    REAL (wp), INTENT(IN)  :: ptotal            !< Total pressure [Pa]
+    REAL (wp), INTENT(IN)  :: pvapor            !< Vapor pressure [Pa]
+    REAL (wp)              :: specific_humidity !< Specific humidity [kg/kg]
+
+    !$ACC ROUTINE SEQ
+
+    IF (i_atmo_physics == inwp) THEN
+      specific_humidity = specific_humidity_nwp(pvapor, ptotal)
+    ELSE IF (i_atmo_physics == iaes) THEN
+      specific_humidity = specific_humidity_aes(pvapor, ptotal)
+    END IF
+
+  END FUNCTION specific_humidity
 
 END MODULE mo_jsb_thermo_iface
 
