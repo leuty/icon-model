@@ -13,7 +13,7 @@
 #
 # %{mkexp_input}
 #
-# $Id: run/mkexp/defaults/DEFAULT.run.tmpl 24 2025-06-10 06:54:49Z m221078 $
+# $Id: run/mkexp/defaults/DEFAULT.run.tmpl 25 2025-08-01 12:15:22Z k202204 $
 #
 # %{VERSIONS_|join('\n# ')}
 #
@@ -23,7 +23,7 @@
 #%include ['mkexp/environments/'+ENVIRONMENT+'.tmpl', 'mkexp/environments/DEFAULT.tmpl'] ignore missing with context
 
 #=============================================================================
-set -e
+set -euo pipefail
 #%  if JOB.debug_level|d(0)|int > 1:
 set -x
 #%  endif
@@ -55,6 +55,10 @@ fi
 
 # Convenience link to log file
 ln -snvf %{LOG_DIR}/%{JOB.log_file|d or EXP_ID+'.run.$(printf %08d ${'+JOB.id_environ+'}).log'} $SCRIPT_DIR/%{EXP_ID}.run.log
+
+# how to submit the next job
+# --------------------------
+job_name="%{EXP_ID}.run"
 
 # Load traditional error handling
 . $PREFIX/run/add_run_routines
@@ -202,10 +206,6 @@ export START="srun -l --kill-on-bad-exit=1 --propagate=STACK,CORE --cpu-bind=non
 #%  endif
 export MODEL="%{BIN_DIR}/%{MODEL_EXE}"
 
-# how to submit the next job
-# --------------------------
-job_name="%{EXP_ID}.run"
-
 # cdo for post-processing
 # -----------------------
 cdo="cdo"
@@ -233,8 +233,10 @@ mpi_oce_procs=$((no_of_nodes * oce_per_node))
 mpi_atm_procs=$((no_of_nodes * atm_per_node))
 #%   else:
 mpi_oce_nodes=%{JOB.ocean_nodes|d(0)}
+mpi_atm_nodes=$((no_of_nodes - mpi_oce_nodes))
 mpi_oce_procs=$((mpi_oce_nodes * mpi_procs_pernode))
 mpi_atm_procs=$((mpi_total_procs - mpi_oce_procs))
+atm_per_node=$(((mpi_atm_procs + mpi_atm_nodes - 1)/mpi_atm_nodes))
 #%   endif
 #%  else:
 #%#     use_openmp_hack is set
@@ -547,12 +549,17 @@ mpi_oce_io_procs=%{namelists.NAMELIST_oce.parallel_nml.num_io_procs}
 #%         endif
 #%      endif
 #%  else:
-#%#     use_openmp_hack is set
+#%#     # use_openmp_hack is set
 #%      include "mkexp/environments/hostfiles_levante/hostfile_openmp_hack.tmpl"
 #%  endif
 
 #% if JOB.use_gpus is set:
 #%     include "mkexp/environments/run_wrapper_levante_gpu.tmpl"
+# run_model.sh should be created in run_wrapper_*.tmpl
+if [ ! -f run_model.sh ]; then
+	echo "ERROR: cannot find $(pwd)/run_model.sh" >&2
+    exit 1
+fi
 #% endif
 
 #%#
@@ -650,7 +657,7 @@ echo "####################  ldd  ######################"
 echo "#################################################"
 rm -f ldd.txt
 echo $(realpath ${MODEL}) 2>&1 | tee ldd.txt
-srun -N1 -n1 -- %{JOB.ldd} -v $(realpath ${MODEL}) 2>&1 | tee ldd.txt
+srun -n1 -- %{JOB.ldd} -v $(realpath ${MODEL}) 2>&1 | tee ldd.txt
 echo "#################################################"
 
 #%  endif
@@ -764,6 +771,15 @@ echo "============================"
 echo "Script run (atmo) successfully: $finish_status_atm"
 echo "Script run (oce) successfully: $finish_status_oce"
 echo "============================"
+
+s="${finish_status_atm}|${finish_status_oce}"
+if [[ "$s" == "RESTART|RESTART" ]]; then
+  finish_status=RESTART
+elif [[ "$s" == "OK|OK" ]]; then
+  finish_status=OK
+else
+  finish_status=1
+fi
 #%   else
 finish_status=`cat finish.status`
 finish_status="${finish_status# }"
