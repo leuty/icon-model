@@ -229,16 +229,23 @@ include:
     expire_in: 1 day
   rules: !reference [.system:run:levante, rules]
 
+.aes:bubble:
+  variables:
+    ICON_CI_CONFIG_EXTRA_ARGS: --enable-atmo --enable-aes --enable-rte-rrtmgp
+    ICON_CI_CONFIG_EXTRA_SUBMODULE_PATHS: externals/rte-rrtmgp
+    ICON_CI_MKEXP_CONFIG_REL_PATH: run/examples/bubble.config
+
 aes:bubble:gcc:build:
-  extends: .system:build:levante
+  extends:
+    - .aes:bubble
+    - .system:build:levante
   variables:
     ICON_CI_CONFIG_REL_PATH: config/dkrz/levante.gcc
-    ICON_CI_CONFIG_EXTRA_ARGS: --enable-atmo --enable-aes
 
 aes:bubble:gcc:run:
-  extends: .system:run:levante
-  variables:
-    ICON_CI_MKEXP_CONFIG_REL_PATH: run/examples/bubble.config
+  extends:
+    - .aes:bubble
+    - .system:run:levante
   needs: [aes:bubble:gcc:build]
 
 aes:bubble:gcc:analyze:
@@ -246,15 +253,18 @@ aes:bubble:gcc:analyze:
   needs: [aes:bubble:gcc:run]
 
 aes:bubble:cpu:build:
-  extends: .system:build:levante
+  extends:
+    - .aes:bubble
+    - .system:build:levante
   variables:
     ICON_CI_CONFIG_REL_PATH: config/dkrz/levante.intel
-    ICON_CI_CONFIG_EXTRA_ARGS: --enable-atmo --enable-aes --enable-openmp
+    ICON_CI_CONFIG_EXTRA_ARGS: >-
+      --enable-atmo --enable-aes --enable-rte-rrtmgp --enable-openmp
 
 aes:bubble:cpu:run:
-  extends: .system:run:levante
-  variables:
-    ICON_CI_MKEXP_CONFIG_REL_PATH: run/examples/bubble.config
+  extends:
+    - .aes:bubble
+    - .system:run:levante
   needs: [aes:bubble:cpu:build]
 
 aes:bubble:cpu:analyze:
@@ -262,20 +272,16 @@ aes:bubble:cpu:analyze:
   needs: [aes:bubble:cpu:run]
 
 aes:bubble:nag:build:
-  extends: .system:build:levante
+  extends:
+    - .aes:bubble
+    - .system:build:levante
   variables:
     ICON_CI_CONFIG_REL_PATH: config/dkrz/levante.nag
-    # We know that the bubble test does not work as expected without RTE-RRTMGP,
-    # but we will not enable the feature until ICON learns to fail gracefully.
-    # However, we want other things to be tested when running ICON built with
-    # NAG compiler:
-    ICON_CI_CONFIG_EXTRA_ARGS: --enable-atmo --enable-aes --enable-rte-rrtmgp
-    ICON_CI_CONFIG_EXTRA_SUBMODULE_PATHS: externals/rte-rrtmgp
 
 aes:bubble:nag:run:
-  extends: .system:run:levante
-  variables:
-    ICON_CI_MKEXP_CONFIG_REL_PATH: run/examples/bubble.config
+  extends:
+    - .aes:bubble
+    - .system:run:levante
   needs: [aes:bubble:nag:build]
 
 aes:bubble:nag:analyze:
@@ -283,26 +289,25 @@ aes:bubble:nag:analyze:
   needs: [aes:bubble:nag:run]
 
 aes:bubble:gpu:build:
-  extends: .system:build:levante
+  extends:
+    - .aes:bubble
+    - .system:build:levante
   variables:
     ICON_CI_CONFIG_REL_PATH: config/dkrz/levante.gpu.nvhpc
     # Enable Large-Eddy Simulation to work around a bug
     # (see https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/706#note_351521):
-    ICON_CI_CONFIG_EXTRA_ARGS: --enable-atmo --enable-aes --enable-les
+    ICON_CI_CONFIG_EXTRA_ARGS: --enable-atmo --enable-aes --enable-rte-rrtmgp --enable-les
 
 aes:bubble:gpu:run:
-  extends: .system:run:levante
+  extends:
+    - .aes:bubble
+    - .system:run:levante
   needs: [aes:bubble:gpu:build]
   variables:
     ICON_CI_COMMON_DKRZ_SLURM_PARTITION: gpu
     ICON_CI_COMMON_DKRZ_SLURM_NTASKS: 4
     ICON_CI_COMMON_DKRZ_SLURM_GPUS_PER_NODE: 4
     ICON_CI_COMMON_DKRZ_SLURM_EXTRA_PARAMETERS: --exclusive
-    ICON_CI_MKEXP_CONFIG_REL_PATH: run/examples/bubble.config
-
-aes:bubble:gpu:analyze:
-  extends: .system:analyze
-  needs: [aes:bubble:gpu:run]
 
 aes:coupled:cpu:build:
   extends: .system:build:levante
@@ -336,7 +341,6 @@ generate-checksum-table:
   needs:
     - aes:bubble:cpu:analyze
     - aes:bubble:gcc:analyze
-    - aes:bubble:gpu:analyze
     - aes:bubble:nag:analyze
     - aes:coupled:cpu:analyze
   extends:
