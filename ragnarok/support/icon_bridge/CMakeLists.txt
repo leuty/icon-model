@@ -17,6 +17,11 @@ set(kokkos_dependents
     ragnarok.cpp
 )
 
+set_source_files_properties(
+  ${kokkos_dependents} TARGET_DIRECTORY ragnarok
+  PROPERTIES LANGUAGE ${Kokkos_COMPILE_LANGUAGE}
+)
+
 target_sources(
   ragnarok
   PRIVATE # cmake-format: sort
@@ -30,8 +35,4 @@ target_sources(
           mo_ragnarok.f90
           mo_ragnarok_f2c.f90
           ragnarok.hpp
-)
-
-set_source_files_properties(
-  ${kokkos_dependents} PROPERTIES LANGUAGE ${Kokkos_COMPILE_LANGUAGE}
 )

@@ -1,0 +1,105 @@
+# ICON
+#
+# ---------------------------------------------------------------
+# Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+# Contact information: icon-model.org
+# See AUTHORS.TXT for a list of authors
+# See LICENSES/ for license information
+# SPDX-License-Identifier: BSD-3-Clause
+# ---------------------------------------------------------------
+include:
+  - local: .gitlab/ci/utils/git.yml
+  - local: .gitlab/ci/common/dkrz.yml
+
+.unit:icon:levante:
+  extends: .common:dkrz:levante
+  stage: unit
+  needs: []
+  variables:
+    ICON_CI_COMMON_DKRZ_SLURM_NTASKS: 32
+    ICON_CI_COMMON_DKRZ_SLURM_TIMELIMIT: "13:00"
+    ICON_CI_UTILS_GIT_CLONE_PATH: ${ICON_CI_COMMON_DKRZ_SHMEM_PATH}/icon
+    ICON_CI_UTILS_GIT_SPARSE_PATTERNS: >-
+      /configure /utils/ /*.in /run/*.in /src/ /support/ /config/ /test/ /ragnarok/
+    GIT_SUBMODULE_PATHS: >-
+      externals/cdi externals/fortran-support externals/iconmath externals/mtime externals/kokkos
+    ICON_CI_CONFIG_REL_PATH: configure
+    MAKEFLAGS: >-
+      --jobs=${ICON_CI_COMMON_DKRZ_SLURM_NTASKS}
+      --no-print-directory
+      --output-sync=target
+      V=1
+  script:
+    # We put the entire script into a single subshell to trap the EXIT
+    # pseudo-signal, which we need to copy the job artifacts to $CI_PROJECT_DIR
+    # (where GitLab can find them) and to clean up the
+    # $ICON_CI_COMMON_DKRZ_SHMEM_PATH directory, regardless of whether the job
+    # succeeds.
+    - |
+      # !reference [.system:build:levante, script]
+      icon_ci_log_section_start 'Configuring and building ICON' 'collapsed=false'
+      time (
+        finalize ()
+        {
+          rsync "${ICON_CI_UTILS_GIT_CLONE_PATH}/" \
+            --include='*/' \
+            --include='CMakeCache.txt' \
+            --exclude='*' \
+            "${CI_PROJECT_DIR}" \
+            --archive \
+            --compress \
+            --copy-unsafe-links \
+            --human-readable \
+            --prune-empty-dirs \
+            --verbose
+          rm -rf "${ICON_CI_COMMON_DKRZ_SHMEM_PATH}"
+        }
+        trap finalize ERR
+
+        set -ux
+
+        cd "${ICON_CI_UTILS_GIT_CLONE_PATH}"
+
+        "${ICON_CI_UTILS_GIT_CLONE_PATH}/${ICON_CI_CONFIG_REL_PATH}" \
+          --disable-acm-license --disable-art u-disable-art-gpl \
+          --disable-comin --disable-coupling --disable-dace \
+          --disable-ecrad --disable-emvorado --disable-hd \
+          --disable-jsbach --disable-jsbach-hd --disable-quincy \
+          --disable-rte-rrtmgp --disable-rttov --disable-upatmo \
+          --disable-waves --disable-yaxt --disable-openmp \
+          --enable-ragnarok \
+          --enable-mpi --enable-separate-mods ${ICON_CI_CONFIG_EXTRA_ARGS-}
+
+        make check-icon
+
+      ) 2>&1
+      icon_ci_log_section_end
+  artifacts:
+    when: on_failure
+    paths:
+      - "**/CMakeCache.txt"
+      - "**/config.log"
+    expire_in: 30mins
+  when: manual
+  allow_failure: false
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "web"
+    - !reference [.common:dkrz:levante, rules]
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+icon:cpu:
+  extends:
+    - .unit:icon:levante
+  variables:
+    ICON_CI_CONFIG_REL_PATH: config/dkrz/levante.gcc
+
+icon:gpu:
+  extends:
+    - .unit:icon:levante
+  variables:
+    ICON_CI_CONFIG_REL_PATH: config/dkrz/levante.gpu.nvhpc
+    ICON_CI_CONFIG_EXTRA_ARGS: --disable-openmp
+    ICON_CI_COMMON_DKRZ_SLURM_PARTITION: gpu
+    ICON_CI_COMMON_DKRZ_SLURM_NTASKS: 4
+    ICON_CI_COMMON_DKRZ_SLURM_GPUS_PER_NODE: 4
+    ICON_CI_COMMON_DKRZ_SLURM_EXTRA_PARAMETERS: --exclusive
