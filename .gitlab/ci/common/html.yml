@@ -9,7 +9,7 @@
 # ---------------------------------------------------------------
 
 include:
-  - local: .gitlab/ci/utils/log.yml
+  - local: .gitlab/ci/common/alpine.yml
   - local: .gitlab/ci/utils/pip.yml
 
 # Implements the common template for jobs that generate the ICON documentation
@@ -24,22 +24,27 @@ include:
 #
 .common:html:
   extends:
-    - .utils:log
+    - .common:alpine
     - .utils:pip
   variables:
     ICON_CI_COMMON_HTML_OUTPUT_REL_PATH: public
     ICON_CI_COMMON_HTML_ARTIFACT_URL: >-
       https://${CI_PAGES_HOSTNAME}/-/${CI_PROJECT_NAME}/-/jobs/${CI_JOB_ID}/artifacts/${ICON_CI_COMMON_HTML_OUTPUT_REL_PATH}/index.html
+    ICON_CI_COMMON_ALPINE_PACKAGES: bash
     ICON_CI_UTILS_PIP_PACKAGES: >-
-      myst-parser pydata-sphinx-theme sphinx sphinx-design
+      myst-parser pydata-sphinx-theme sphinx sphinx-design click numpy pandas pyyaml
   before_script:
-    - !reference [.utils:log, before_script]
+    - !reference [.common:alpine, before_script]
     - !reference [.utils:pip, before_script]
   script:
     - |
       icon_ci_log_section_start 'Generating HTML pages' 'collapsed=false'
       (
         set -ux
+        # Create test list
+        BB_NAME=all ./scripts/buildbot_scripts/create_list_merge2rc
+        # Add test list to documentation
+        python3 scripts/ci_scripts/generate_test_list.py
         # Do not tolerate warnings:
         #  1) --fail-on-warning ensures a non-zero exit status of the command
         #     if any warnings are encountered;
@@ -52,6 +57,11 @@ include:
       icon_ci_log_info_msg "${ICON_CI_COMMON_HTML_ARTIFACT_URL}"
   tags:
     - sphinx
+  cache:
+    - key: alpine-html
+      paths:
+        - ${ICON_CI_COMMON_ALPINE_CACHE_PATH}
+    - !reference [.utils:pip, cache]
   artifacts:
     paths:
       - ${ICON_CI_COMMON_HTML_OUTPUT_REL_PATH}
@@ -59,3 +69,5 @@ include:
   rules:
     changes:
       - doc/www/**/*
+      - scripts/experiments/**/*
+      - scripts/buildbot_scripts/**/*

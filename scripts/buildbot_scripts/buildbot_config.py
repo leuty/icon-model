@@ -266,6 +266,28 @@ class BuildbotConfig(object):
 
         return [exp.name for exp in exps.flatten()]
 
+    def get_experiments_by_machine(self, machine):
+        if machine not in self.machine_meta.keys():
+            print(
+                "machine {} is not part of this buildbot configuration".format(
+                    machine
+                )
+            )
+            sys.exit(1)
+
+        experiments = (
+            self.data.loc[:, (machine, slice(None))].dropna(how="all").values
+        )
+
+        exp_list = []
+        for row in experiments:
+            for elem in row:
+                if isinstance(elem, Experiment):
+                    if elem.name not in exp_list:
+                        exp_list.append(elem.name)
+
+        return exp_list
+
     def add_dependency_manager(
         self,
         source_experiment,
@@ -447,3 +469,43 @@ class BuildbotConfig(object):
                 builderNames.append(b)
 
         return " ".join(builderNames)
+
+    def buildbot_to_data(self):
+        """
+        Returns a dictionary of machines with builders and experiments and their status (True/False).
+        """
+        machines = self.data.columns.levels[0]
+        data = {"machines": list(machines)}
+
+        for midx in machines:
+            experiments = self.get_experiments_by_machine(midx)
+            builders = (
+                self.data.columns.to_frame()
+                .loc[(midx, slice(None)), "builder"]
+                .sort_index()
+                .values
+            )
+
+            status = [
+                [
+                    (
+                        (
+                            isinstance(
+                                self.data.loc[exp, (midx, bld)], Experiment
+                            )
+                        )
+                        if (midx, bld) in self.data.columns
+                        else False
+                    )
+                    for bld in builders
+                ]
+                for exp in experiments
+            ]
+
+            data[midx] = {
+                "experiments": experiments,
+                "builders": builders,
+                "status": status,
+            }
+
+        return data
