@@ -50,13 +50,10 @@ GPU_BUILDERS="${NVHPC_CPU_BUILDERS} ${NVHPC_GPU_BUILDERS} ${NVHPC_DEV_BUILDERS}"
 ./set_builder_flags Inactive --builders "levante_nag_serial"    --list $listname
 #---------------------------------------------------------------------------------------------------------
 $addexp "checksuite.icon-dev/check.aes_amip_test"          --machines "levante" --list $listname --runflags "ntasks=16 queue=compute memory=32G"
-$addexp "checksuite.icon-dev/check.aes_amip_test_update"   --machines "levante" --list $listname --runflags "ntasks=16 queue=compute memory=32G"
 #
 $addexp "checksuite.icon-dev/check.aes_amip_pfts_test"          --machines "levante" --list $listname --runflags "ntasks=16 queue=compute memory=32G"
-$addexp "checksuite.icon-dev/check.aes_amip_pfts_test_update"   --machines "levante" --list $listname --runflags "ntasks=16 queue=compute memory=32G"
 #
 $addexp "checksuite.icon-dev/check.atm_cph_nest_R2B4_test"         --machines "levante" --list $listname --runflags "ntasks=16 queue=compute memory=32G"
-$addexp "checksuite.icon-dev/check.atm_cph_nest_R2B4_test_update"  --machines "levante" --list $listname --runflags "ntasks=16 queue=compute memory=32G"
 ./set_builder_flags Active   --builders "levante_nag_serial"    --list $listname
 #
 #---------------------------------------------------------------------------------------------------------
@@ -70,7 +67,6 @@ $addexp "checksuite.icon-dev/check.atm_qubicc_nofor"       --machines "levante" 
 $addexp "checksuite.icon-dev/check.atm_qubicc_onlyfor"     --machines "levante" --list $listname --runflags="ntasks=16 queue=shared,compute memory=32G"
 $addexp "checksuite.icon-dev/check.atm_qubicc_pfts"        --machines "levante" --list $listname --runflags "ntasks=16 queue=shared,compute memory=32G"
 $addexp "checksuite.icon-dev/check.atm_qubicc_tmx"         --machines "levante" --list $listname --runflags "ntasks=16 queue=shared,compute memory=32G"
-$addexp "checksuite.icon-dev/check.atm_qubicc_update"      --machines "levante" --list $listname --runflags "ntasks=16 queue=shared,compute memory=32G"
 $addexp "checksuite.icon-dev/check.atm_qubicc_test_aero"   --machines "levante" --list $listname --runflags "queue=compute"
 ./set_builder_flags Inactive --builders "${NVHPC_CPU_BUILDERS}" --list $listname
 ./set_builder_flags Active   --builders "levante_nag_serial"    --list $listname
@@ -87,7 +83,6 @@ $addexp "checksuite.icon-dev/check.atm_qubicc_nofor"       --builders "${NVHPC_G
 $addexp "checksuite.icon-dev/check.atm_qubicc_onlyfor"     --builders "${NVHPC_GPU_BUILDERS}" --list $listname --runflags "mpi_procs_pernode=4"
 $addexp "checksuite.icon-dev/check.atm_qubicc_pfts"        --builders "${NVHPC_GPU_BUILDERS}" --list $listname --runflags "mpi_procs_pernode=4"
 $addexp "checksuite.icon-dev/check.atm_qubicc_tmx"         --builders "${NVHPC_GPU_BUILDERS}" --list $listname --runflags "mpi_procs_pernode=4"
-$addexp "checksuite.icon-dev/check.atm_qubicc_update"      --builders "${NVHPC_GPU_BUILDERS}" --list $listname --runflags "mpi_procs_pernode=4"
 $addexp "checksuite.icon-dev/check.atm_qubicc_test_aero"   --builders "${NVHPC_GPU_BUILDERS}" --list $listname --runflags "mpi_procs_pernode=4"
 $addexp "checksuite.atm/gpu/test_amip-aes_R2B6_gpu.config" --builders "${NVHPC_GPU_BUILDERS}" --list $listname
 ./set_builder_flags Inactive --builders "${NVHPC_GPU_BUILDERS}" --list $listname
@@ -111,15 +106,12 @@ $addexp "checksuite.icon-dev/check.atm_sma"                --machines "levante" 
 #
 $addexp "checksuite.icon-dev/check.atm_bubble_test"        --machines "levante" --list $listname --runflags "ntasks=16 queue=shared"
 $addexp "checksuite.atm/bubble.config"                     --builders "levante_intel_hybrid" --list $listname --runflags "EXP_OPTIONS=buildbot"
-$addexp "checksuite.icon-dev/check.atm_bubble_test_update" --machines "levante" --list $listname --runflags "ntasks=16 queue=shared"
-./rmexp "checksuite.icon-dev/check.atm_bubble_test_update" --builders "levante_nag_serial" --list $listname
 $addexp "checksuite.icon-dev/check.atm_bubble_land_test"   --machines "levante" --list $listname --runflags "ntasks=16 queue=shared"
 #
 #---------------------------------------------------------------------------------------------------------
 # add idealized atm_bubble tests to levante NVHPC_CPU_BUILDERS
 ./set_builder_flags Active   --builders "${NVHPC_CPU_BUILDERS}" --list $listname
 $addexp "checksuite.icon-dev/check.atm_bubble_test"        --builders "${NVHPC_CPU_BUILDERS}" --list $listname --runflags "queue=shared ntasks=16 memory=32G"
-$addexp "checksuite.icon-dev/check.atm_bubble_test_update" --builders "${NVHPC_CPU_BUILDERS}" --list $listname --runflags "queue=shared ntasks=16 memory=32G"
 $addexp "checksuite.icon-dev/check.atm_bubble_land_test"   --builders "${NVHPC_CPU_BUILDERS}" --list $listname --runflags "queue=shared ntasks=16 memory=32G"
 ./set_builder_flags Inactive --builders "${NVHPC_CPU_BUILDERS}" --list $listname
 #

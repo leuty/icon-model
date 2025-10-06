@@ -15,7 +15,7 @@ set -euxo pipefail
 
 cd $(dirname "${BASH_SOURCE[0]}")
 
-listname='update-ref'
+listname='update-mpim-ref'
 ./rmlist "${listname}"
 ./create_all_builders "${listname}"
 
@@ -82,14 +82,34 @@ add_experiments ()
   ./adddep --from-experiment="${exp_refgen}" --to-experiment="${exp_base}" --builders="${builders}" --list="${listname}"
 }
 
-exp_base='exp.waves_R2B4_global_no_forcing_base'
-exp_refgen='checksuite.icon-dev/pp.refgen_waves_R2B4_global_no_forcing_update-ref'
-builders='levante_intel_hybrid'
+exp_base='checksuite.icon-dev/check.atm_qubicc_update-ref'
+exp_refgen='checksuite.icon-dev/pp.refgen_atm_qubicc_test_update-ref'
+builders='levante_gcc levante_gcc_hybrid levante_intel levante_intel_hybrid levante_intel_hybrid_mixed levante_nag'
+runflags='ntasks=16 queue=compute memory=32G'
+add_experiments
+builders='levante_cpu_nvhpc'
+runflags='queue=shared ntasks=16 memory=32G'
+add_experiments
+builders='levante_gpu_nvhpc'
+runflags='mpi_procs_pernode=3'
 add_experiments
 
-exp_base='exp.atm_tracer_df4_base'
-exp_refgen='checksuite.icon-dev/pp.refgen_atm_tracer_df4_update-ref'
-builders='levante_nag'
+exp_base='exp.atm_cph_nest_R2B4_test_update_base'
+exp_refgen='checksuite.icon-dev/pp.refgen_atm_cph_nest_R2B4_test_update-ref'
+builders='levante_gcc levante_gcc_hybrid levante_intel levante_intel_hybrid levante_intel_hybrid_mixed levante_nag'
+runflags='ntasks=16 queue=compute memory=32G'
+add_experiments
+
+exp_base='exp.aes_amip_test_update_base'
+exp_refgen='checksuite.icon-dev/pp.refgen_aes_amip_test_update-ref'
+builders='levante_gcc levante_gcc_hybrid levante_intel levante_intel_hybrid levante_intel_hybrid_mixed levante_nag'
+runflags='ntasks=16 queue=compute memory=32G'
+add_experiments
+
+exp_base='exp.aes_amip_pfts_test_update_base'
+exp_refgen='checksuite.icon-dev/pp.refgen_aes_amip_pfts_test_update-ref'
+builders='levante_gcc levante_gcc_hybrid levante_intel levante_intel_hybrid levante_intel_hybrid_mixed levante_nag'
+runflags='ntasks=16 queue=compute memory=32G'
 add_experiments
 
 ./lslist $listname
