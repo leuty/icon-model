@@ -66,4 +66,4 @@
 #   ECCODES:
 --fc-external-mods=grib_api,eccodes
 #   RAGNAROK:
---fc-external-mods=mo_ragnarok,mo_ragnarok_support
+--fc-external-mods=mo_ragnarok,mo_ragnarok_f2c,mo_ragnarok_timer

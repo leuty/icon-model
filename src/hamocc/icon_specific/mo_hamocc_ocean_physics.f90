@@ -38,14 +38,14 @@
     USE mo_dynamics_config,              ONLY: nold, nnew
     USE mo_ocean_hamocc_couple_state, ONLY: t_ocean_to_hamocc_state, t_hamocc_to_ocean_state, &
       & t_hamocc_ocean_state
-    USE mo_hamocc_diagnostics,     ONLY: get_monitoring
+    USE mo_hamocc_diagnostics,     ONLY: get_monitoring, get_vertint
     USE mo_bgc_bcond,              ONLY: ext_data_bgc, update_bgc_bcond
     USE mtime,                     ONLY: datetime
     USE mo_util_dbg_prnt,          ONLY: dbg_print
     USE mo_master_control,         ONLY: my_process_is_hamocc
     USE mo_control_bgc,            ONLY: bgc_zlevs, bgc_nproma
 
-    USE mo_hamocc_nml,             ONLY: l_bgc_check,io_stdo_bgc
+    USE mo_hamocc_nml,             ONLY: l_bgc_check,io_stdo_bgc,l_hamocc_vertint
     USE mo_exception, ONLY: message_to_own_unit
     USE mo_hamocc_diagnostics,  ONLY: get_inventories
     USE mo_bgc_icon, ONLY: bgc_icon
@@ -263,6 +263,9 @@
     !$ACC UPDATE HOST(hamocc_to_ocean_state%swr_fraction, hamocc_to_ocean_state%co2_flux) ASYNC(1)
 
      CALL get_monitoring( hamocc_state, hamocc_state%p_prog(nnew(1))%tracer, ssh_new, pddpo_new, patch_3d)
+     IF (l_hamocc_vertint) THEN
+        CALL get_vertint( hamocc_state, hamocc_state%p_prog(nnew(1))%tracer, pddpo_new, patch_3d, lacc=lzacc)
+     END IF
     !------------------------------------------------------------------------
     !$ACC WAIT(1)
     !$ACC END DATA

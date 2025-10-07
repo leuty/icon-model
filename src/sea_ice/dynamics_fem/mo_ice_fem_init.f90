@@ -106,21 +106,29 @@ integer   :: k
 ! Allocate memory for variables of ice model
  allocate(m_ice(nod2D), a_ice(nod2D), m_snow(nod2D))
  allocate(u_ice(nod2D), v_ice(nod2D))
- allocate(sigma11(elem2D), sigma12(elem2D), sigma22(elem2D))
+ ALLOCATE(sigma11(elem2D), sigma12(elem2D), sigma22(elem2D), delta(elem2d))
+ ALLOCATE(eps11(elem2D), eps12(elem2D), eps22(elem2D))
+ ALLOCATE(si1(elem2D), si2(elem2D))
  allocate(rhs_m(nod2D), rhs_a(nod2D), rhs_u(nod2D), rhs_v(nod2D))
  allocate(rhs_mis(nod2D))
 
 ! initialize
- u_ice  = 0._wp
- v_ice  = 0._wp
- rhs_m  = 0._wp
- rhs_mis= 0._wp
- rhs_a  = 0._wp
- rhs_u  = 0._wp
- rhs_v  = 0._wp
- sigma11= 0._wp
- sigma22= 0._wp
- sigma12= 0._wp
+ u_ice  = 0.0_wp
+ v_ice  = 0.0_wp
+ rhs_m  = 0.0_wp
+ rhs_mis= 0.0_wp
+ rhs_a  = 0.0_wp
+ rhs_u  = 0.0_wp
+ rhs_v  = 0.0_wp
+ sigma11 = 0.0_wp
+ sigma22 = 0.0_wp
+ sigma12 = 0.0_wp
+ delta = 0.0_wp
+ eps11 = 0.0_wp
+ eps22 = 0.0_wp
+ eps12 = 0.0_wp
+ si1 = 0.0_wp
+ si2 = 0.0_wp
 
 ! Allocate memory used for coupling (Partly used for input, and partly
 ! for output of information)
@@ -140,6 +148,7 @@ END DO
 
 !$ACC ENTER DATA COPYIN(u_ice, v_ice, m_ice, m_snow, a_ice, elevation, u_w, v_w) &
 !$ACC   COPYIN(stress_atmice_x, stress_atmice_y, sigma11, sigma22, sigma12) &
+!$ACC   COPYIN(si1, si2, eps11, eps22, eps12, delta) &
 !$ACC   COPYIN(rhs_m, rhs_mis, rhs_a, rhs_u, rhs_v, lmass_matrix)
 end subroutine array_setup_ice
 !==========================================================================

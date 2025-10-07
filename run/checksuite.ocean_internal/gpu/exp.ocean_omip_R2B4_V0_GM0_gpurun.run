@@ -74,7 +74,8 @@ num_io_procs=0
 #
 # blocking length
 # ---------------
-: ${nproma:=10240} ${nproma_sub:=10240} ${nblocks_c:=0}
+# Set nproma to have more than one but overall only a few blocks
+: ${nproma:=6000} ${nproma_sub:=6000} ${nblocks_c:=0}
 export nproma nproma_sub nblocks_c
 
 #

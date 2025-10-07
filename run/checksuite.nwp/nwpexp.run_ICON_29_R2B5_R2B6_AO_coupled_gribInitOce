@@ -1334,6 +1334,9 @@ EOF
   ana_varnames_map_file_oce                  = "dict.icono.dwd"
   dt_shift_oce                               = 0.0              !set this to negative values for a shift
   lconsistency_checks_oce                    = .FALSE.
+  lread_ana_oce                              = .TRUE.
+  check_fg_oce(1)%list                       = 'SWPT','SWPSAL','USEA','VSEA','H_ICE','FR_ICE'
+  check_ana_oce(1)%list                      = 'SWPT','SWPSAL'
 /
 EOF
     fi
@@ -1354,6 +1357,39 @@ cat >> ${oce_namelist} << EOF
 ! lnetcdf_flt64_output                       = .TRUE.           ! 64 bit output in all files
   lkeep_in_sync                              = .TRUE.           ! sync after each timestep
 /
+EOF
+
+cat >> dict.icono.dwd << EOF
+# The following table defines the dictionary for the mapping  between
+# user defined short names and short names defined in the "add_var"
+# calls in ICON. The "add_var" names are used by default, if either no
+# translation is used or the name does not occur in the dictionary.
+#
+# This file contains a dictionary for the mapping between "add_var"
+# names and names used at MPI-M for postprocessing.
+#
+# ======================================================================
+#
+# Available translations for output of constant fields
+# ----------------------------------------------------
+#
+# use name          "add_var" name
+# --------------------------------
+#
+  zos                DSLM
+  u                  USEA
+  v                  VSEA
+  SWPT               SWPT
+  so                 SWPSAL
+  conc               FR_ICE
+  hi                 H_ICE
+  ice_u              UICE
+  ice_v              VICE
+  delhi              ICEG
+  hs                 H_SNOW_SEA
+  column_thick_c     BATHY
+  rho                SWDEN
+  rhopot             SWPDEN
 EOF
 
 #-----------------------------------------------------------------------------
@@ -1488,7 +1524,7 @@ else
 
     add_link_file ${ocean_data_InputFolder}/exp28_fg_oce_DOM01.grb fg_oce_DOM01.grb
     add_link_file ${ocean_data_InputFolder}/exp28_ana_oce_DOM01.grb ana_oce_DOM01.grb
-    add_link_file ${ocean_data_InputFolder}/exp28_dict.icono.dwd dict.icono.dwd
+    add_required_file ${basedir}/run/dict.icono.dwd ./
   fi
 fi
 #END AUTOMATIC_RESTART_SETUP

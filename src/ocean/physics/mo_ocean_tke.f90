@@ -251,8 +251,10 @@ CONTAINS
     INTEGER :: cell_1_idx, cell_1_block, cell_2_idx,cell_2_block
 
     REAL(wp) :: rho_up(nproma,n_zlev), rho_down(nproma,n_zlev)
-    REAL(wp) :: pressure(nproma,n_zlev)
-    REAL(wp) :: Nsqr(nproma,n_zlev+1), Ssqr(nproma,n_zlev+1), tmp, tke_old(nproma,n_zlev+1)
+    REAL(wp) :: pressure(n_zlev)
+    REAL(wp) :: Nsqr(nproma,n_zlev+1,patch_3d%p_patch_2d(1)%alloc_cell_blocks)
+    REAL(wp) :: Ssqr(nproma,n_zlev+1,patch_3d%p_patch_2d(1)%alloc_cell_blocks)
+    REAL(wp) :: tmp, tke_old(nproma,n_zlev+1)
 
     ! Parameters for zstar
     REAL(wp) :: s_c(nproma, patch_3d%p_patch_2d(1)%alloc_cell_blocks)    ! stretching factor
@@ -383,11 +385,12 @@ CONTAINS
     ENDIF
 
     !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-    DO jc = 1,nproma
-      pressure(jc,1) = 1.0_wp
-      DO level = 2, n_zlev
-        pressure(jc,level) = patch_3d%p_patch_1d(1)%zlev_i(level) * ReferencePressureIndbars
-      END DO
+    DO level = 1, n_zlev
+      IF (level == 1) THEN
+        pressure(1) = 1.0_wp
+      ELSE
+        pressure(level) = patch_3d%p_patch_1d(1)%zlev_i(level) * ReferencePressureIndbars
+      END IF
     END DO
     !$ACC END PARALLEL LOOP
     !$ACC WAIT(1)
@@ -400,9 +403,8 @@ CONTAINS
         IF (dolic_c(jc,blockNo) > 0) THEN
 
           DO level = 1, n_zlev+1
-            tke_old(jc,level) = tke(jc,level,blockNo)
-            Nsqr(jc,level) = 0.0_wp
-            Ssqr(jc,level) = 0.0_wp
+            Nsqr(jc,level,blockNo) = 0.0_wp
+            Ssqr(jc,level,blockNo) = 0.0_wp
           END DO
 
           DO level = 1, n_zlev
@@ -426,21 +428,22 @@ CONTAINS
           ! calculate N2
           DO level = 1,levels-1
             rho_up(jc,level) = calculate_density_onColumn_elem(temp(jc,level,blockNo), salt(jc,level,blockNo), &
-                                                pressure(jc,level+1))
+                                                pressure(level+1))
           END DO
 
           DO level = 2,levels
             rho_down(jc,level) = calculate_density_onColumn_elem(temp(jc,level,blockNo), salt(jc,level,blockNo), &
-                                                pressure(jc,level))
+                                                pressure(level))
           END DO
 
           DO jk = 2, levels
-            Nsqr(jc,jk) = grav/OceanReferenceDensity * (rho_down(jc,jk) - rho_up(jc,jk-1)) *  dzi(jc,jk,blockNo) / s_c(jc,blockNo)
+            Nsqr(jc,jk,blockNo) = grav/OceanReferenceDensity * (rho_down(jc,jk) - rho_up(jc,jk-1)) &
+              & *  dzi(jc,jk,blockNo) / s_c(jc,blockNo)
           ENDDO
 
           ! calculate shear
           DO jk = 2, levels
-            Ssqr(jc,jk) = SUM(((  ocean_state%p_diag%p_vn(jc,jk-1,blockNo)%x   &
+            Ssqr(jc,jk,blockNo) = SUM(((  ocean_state%p_diag%p_vn(jc,jk-1,blockNo)%x   &
                  &              - ocean_state%p_diag%p_vn(jc,jk,  blockNo)%x ) &
                  &            * dzi(jc,jk,blockNo)/s_c(jc,blockNo) )**2)
           ENDDO
@@ -474,8 +477,9 @@ CONTAINS
             ! parcel with kinetic energy 0.5*u_stokes**2 can reach on its own by
             ! converting its kinetic energy to potential energy.
             hlc(jc,blockNo) = 0.0_wp
+            !$ACC LOOP SEQ
             DO jk = 2, levels
-              tmp = SUM( Nsqr(jc,2:jk)*depth_CellInterface(jc,2:jk,blockNo) &  ! see axell (2002) eq.47
+              tmp = SUM( Nsqr(jc,2:jk,blockNo)*depth_CellInterface(jc,2:jk,blockNo) &  ! see axell (2002) eq.47
                            *prism_thick_c(jc,2:jk,blockNo)*s_c(jc,blockNo) )
 
               IF(tmp > 0.5_wp*u_stokes(jc,blockNo)**2.0_wp) THEN
@@ -489,7 +493,7 @@ CONTAINS
             ! Axell (2002); results in deeper MLDs and better spatial MLD pattern.
             DO jk = 2, levels
               IF ( ( depth_CellInterface(jc,jk,blockNo)*s_c(jc,blockNo) <= hlc(jc,blockNo) )  &
-                   .AND. ( patch_3D%wet_c(jc,jk,blockNo) .EQ. 1 ) ) THEN
+                   .AND. ( patch_3D%wet_c(jc,jk,blockNo) .EQ. 1 ) .AND. (hlc(jc,blockNo) .NE. 0) ) THEN
                 wlc(jc,jk,blockNo) = clc * u_stokes(jc,blockNo)*SIN(pi*depth_CellInterface(jc,jk,blockNo)/hlc(jc,blockNo))
               ELSE
                 wlc(jc,jk,blockNo) = 0.0_wp
@@ -519,6 +523,8 @@ CONTAINS
       !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
       DO level = 1, n_zlev
         DO jc = start_index, end_index
+          IF (dolic_c(jc,blockNo) <= 0) CYCLE
+
           tmp_dzw(jc,level) = prism_thick_c(jc,level,blockNo)*s_c(jc,blockNo)
         END DO
       END DO
@@ -527,6 +533,9 @@ CONTAINS
       !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
       DO level = 1, n_zlev+1
         DO jc = start_index, end_index
+          IF (dolic_c(jc,blockNo) <= 0) CYCLE
+
+          tke_old(jc,level) = tke(jc,level,blockNo)
           tmp_dzt(jc,level) = dz(jc,level,blockNo)*s_c(jc,blockNo)
         END DO
       END DO
@@ -552,8 +561,8 @@ CONTAINS
                             dzw = tmp_dzw(:,:),                                               &
                             dzt = tmp_dzt(:,:),                                               &
                             max_nlev = n_zlev,                                                &
-                            Ssqr = Ssqr(:,:),                                                 &
-                            Nsqr = Nsqr(:,:),                                                 &
+                            Ssqr = Ssqr(:,:,blockNo),                                         &
+                            Nsqr = Nsqr(:,:,blockNo),                                         &
                             tke_Tbpr = params_oce%vmix_params%tke_Tbpr(:,:,blockNo),          &
                             tke_Tspr = params_oce%vmix_params%tke_Tspr(:,:,blockNo),          &
                             tke_Tdif = params_oce%vmix_params%tke_Tdif(:,:,blockNo),          &
@@ -895,7 +904,7 @@ CONTAINS
             DO jk = 2, levels
 !              IF ( depth_CellInterface(jc,jk,blockNo)*s_c(jc,blockNo) <= hlc(jc,blockNo) ) THEN
               IF ( ( depth_CellInterface(jc,jk,blockNo)*s_c(jc,blockNo) <= hlc(jc,blockNo) )  &
-                   .AND. ( patch_3D%wet_c(jc,jk,blockNo) .EQ. 1 ) ) THEN
+                   .AND. ( patch_3D%wet_c(jc,jk,blockNo) .EQ. 1 ) .AND. ( hlc(jc,blockNo) .NE. 0 ) ) THEN
                 wlc(jc,jk,blockNo) = clc * u_stokes(jc,blockNo)*SIN(pi*depth_CellInterface(jc,jk,blockNo)/hlc(jc,blockNo))
               ELSE
                 wlc(jc,jk,blockNo) = 0.0_wp
@@ -1327,7 +1336,7 @@ CONTAINS
         DO jk = 2, max_levels
           DO jc = start_index, end_index
             IF ( ( depth_CellInterface(jc,jk,blockNo)*s_c(jc,blockNo) - e_c(jc,blockNo) <= hlc(jc,blockNo) )  &
-                .AND. ( patch_3D%wet_c(jc,jk,blockNo) .EQ. 1 ) ) then
+                .AND. ( patch_3D%wet_c(jc,jk,blockNo) .EQ. 1 ) .AND. hlc(jc,blockNo) .NE. 0 ) THEN
               wlc(jc,jk,blockNo) = clc * u_stokes(jc,blockNo)*SIN(pi*depth_CellInterface(jc,jk,blockNo)/hlc(jc,blockNo))
             ELSE
               wlc(jc,jk,blockNo) = 0.0_wp

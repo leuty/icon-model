@@ -15,9 +15,15 @@ AES Physics:
 - Add gustiness to surface turbulent exchange (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/880)
 - Decrease albedoW from 0.07 to 0.05 (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/894)
 - Riming of cloud water and snow and faster snow fall velocity (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/909)
+- Refactor implementation of inhomx factors (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/895, https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1019)
+- Remove snow from radiation (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/960)
+- Fix atm energy diagnostics for GPU (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/879)
+- Port AES Thermodynamics to Kokkos (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1066)
 - Fixes for:
   - GPU port of solar_parameters() (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/776)
   - tropopause height calculation when using vertical nesting, and initialises tmix with nested mesh dt_loc (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/858)
+  - Implemented additional checks and fixes for using 6-hourly SST/SIC data
+  - Surface exchange coefficients in TMX
 
 NWP Physics:
 
@@ -31,6 +37,7 @@ NWP Physics:
 - Use cdnc scaling factor of the year 1850 in picontrol mode (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1789)
 - Fixes:
   - Inconsistent initialization time step length in vdiff interface and jsbach
+  - Use functions for sat. vapor pressure consistently between NWP physics and VDIFF/ICON-Land (ICON-XPP) (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1065)
   - Make ecRad compilable with Cray 17.0.1 for AMD GPUs (https://gitlab.dkrz.de/icon/icon/-/merge_requests/648)
   - Fix echotop and echotopinm diagnostics for clouds reaching model top (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1750)
   - fix P-E lake double counting in JSBACH (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1773)
@@ -49,6 +56,17 @@ NWP Physics:
 - Fix concurrent HAMOCC (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/921)
 - Bugfix for the mld mlotst diagnostics on vector/gpu (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/928)
 - Enable compilation of sea ice thermodynamics for atmosphere-only builds (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/797)
+- Add output of vertical integrals in HAMOCC (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/912)
+- Vectorization improvements in ocean and sea ice code (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/830)
+- Extension of ocean initialisation configurability for coupled forecast (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/863)
+- Remove superfluous LOOP SEQ in ocean code (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/970)
+- Prevent Langmuir cell depth from being zero (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/973)
+- Fix dimension mismatch in ocean analytic forcing (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1021)
+- Correct vertical axis attribute (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/989)
+- Fix ocean GPU code with more than one block (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/994)
+- Improve evp solver convergence (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/932)
+- Change typeOfLevel for surface seaice variables to ZA_SURFACE (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1028)
+- Bugfix evp solver GPU (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1078)
 
 ### ICON-Waves
 
@@ -68,8 +86,18 @@ Climate: ICON-Land
   - Bugfix related to soil/surface albedo when snow is present
   - First implementation allowing anthropogenic land cover change with QUINCY biogeophysics processes
   - Enable running the agriculture process in QUINCY also when only running biogeophysical processes
-  - Different code updates reducing the number of restart variables in QUINCY runs
+  - Different code updates reducing the number of restart variables in QUINCY runs (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/925, https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1015)
+  - Enable reading of biogeochemical vegetation and soil states - and optionally product pools - from input file for QUINCY (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/953, https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1011)
+  - Use the JSBACH soil physics processes with the QUINCY (vegetation and soil) biogeochemistry (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/897, https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1002, https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1079)
+  - Bugfixes to make QUINCY thread-safe when running with JSBACH soil physics
+  - Improve nitrogen cycle of QUINCY biogeochemistry
+  - Fix calculation of vegetation root allocation, and impove definition of soil water states
+  - Add namelist options and modify QUINCY biogeochemistry to better represent nutrient interactions
+  - Enabled setting selected calibration vegetation and soil-biogeochemistry parameters via namelist
+  - Refactored canopy radiation process for QUINCY and ported routine to GPU
+  - Bug fixes in turnover and mortality to prevent negative vegetation pools
 - Use a common interface for QUINCY and JSBACH
+- Updated the anthropogenic land cover change process, including reading next years land cover map as target in case of daily land cover changes
 - Updated inline documentation of hydrology process
 - Fixes:
   - Verification check for some JSBACH lctlib parameters when compiling with single precision
@@ -78,6 +106,7 @@ Climate: ICON-Land
   - Fix needed with jsbach standalone simulations on GPUs
   - Fixed sequence of variables in surface temperature routine calls
   - Removed unnecessary mpi-all-reduce calls to reduce run time
+  - Fixed uninitialized value for function get_time_dt in standalone model
 - Code cleaning:
   - Only use one variable representing time step length
   - Revised surface temperature computation wrt variable names and comments
@@ -87,6 +116,9 @@ Climate: ICON-Land
 - Implemented fix for using older restart files when not using skin temperature scheme (TMX or standalone)
 - Surface water ponds (if enabled) modify the top layer soil heat capacity
 - Land initial files: Update for soil and root depth (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/837)
+- Revision of phase change in snow, surface water and top layer soil storages
+- Update of snow density parametrization to include a dependency on mean snow temperature
+- Fixed unit conversion for land CO2 flux in QUINCY (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1053)
 
 NWP: TERRA and other surface issues
 
@@ -101,6 +133,9 @@ NWP: TERRA and other surface issues
 - Optimization of synchronization between atmosphere and ocean in coupled configurations (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/799)
 - Expose valid_masks in output_coupling (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/719)
 - Implement component-specific finish.status files (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1748)
+- Fixes for using vertex-based 3d fields in the output coupling
+- Add support for AES model start date being shifted back in time by timeshift (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/991)
+- Bugfix to ensure restartability of coupled ocean-atmosphere configurations (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1022)
 
 ### Externals
 
@@ -109,17 +144,21 @@ NWP: TERRA and other surface issues
 - Switch to HD v5.2.4
 - Switch to probtest v1.1
 - Switch to YAC v3.9.2_p2
+- Switch to mkexp 1.4.3
 
 ### Infrastructure
 
 - Collection of additional changes required for single-precision (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/771, https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/657)
 - Add option to build ICON in single precision (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/681)
 - single precision for ecRad (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1628)
-- Add infrastructure for the Kokkos C++ development
+- Add infrastructure for the Kokkos C++ development (Ragnarok)
 - Add infrastructure for unit testing
 - Remove usage of t_char_workaround (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/883)
 - Stochastic pattern generator based on spherical harmonics (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1708)
 - refactor SST(SIC reader and time interpolation classes  (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1777)
+- Redefine sp/dp kind parameters using iso_c_binding types (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/859)
+- Allow to disable GPU memory usage output (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/957)
+- Read/Write rbf coefficients from/to file (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/946, https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1014)
 
 #### Scripting and testing
 
@@ -127,6 +166,14 @@ NWP: TERRA and other surface issues
 - Added 158, 49, 5 and 2.1 km AMIP template with AES physics for mkexp (cpu + gpu, distributed IO)
 - Added 49km AMIP BuildBot test with AES physics on one Levante GPU
 - Support more ocean setups and output options in omip run script template (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/644)
+- Add mkexp support for CUDA graph utilization in jsbach on Levante gpu partition (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/934)
+- Refactor QUBICC test scripts (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/926)
+- Make nextGEMS test the default coupled test configuration (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/890)
+- Add MKEXP configuration for nested R2B4 (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/918, https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/978, https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/980)
+- Add aquaplanet setup and documentation (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/882)
+- Add mkexp Radiative Convective Equilibrium test case (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/896, https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/980)
+- New AMIP setup in exp.aes_amip (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/974)
+- Add docs and mkexp files for OMIP configuration (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/906)
 
 #### Building
 
@@ -135,17 +182,26 @@ NWP: TERRA and other surface issues
 - Configure CUDA/HIP C++ compiler and flags
 - Pass ICON_LDFLAGS to the Fortran compiler only
 - Fixes for disable switches --disable-aes and --disable-jsbach
+- Added NVHPC/OpenMPI config wrapper for jupiter
+- Added INTEL/MPI-4.1.5 config wrapper for levante
 - Fixes for the quad-precision handling
+- Drop the HIP event handling suppression of the Cray OpenACC runtime
+- Fix cached configuration (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/968)
 
 #### Miscellaneous
 
 - Some OpenACC optimizations and fixes
+- Cleaned up obsolete workarounds for NVHPC/PGI compiler (OpenACC and OpenMP)
 - Updated document on how to run HAMOCC (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/770)
 - Add bubble documentation as template for experiment configurations (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/805)
 - Add documentation about future nested buildbot configuration (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/864)
 - Add testing section to infrastructure documentation and document checksuite (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/866)
 - Apply auto line-ending rules and enable syntax highlighting for test templates (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/885)
 - Fix typos in tools documentation (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/927)
+- Add CI test list to ICON documentation (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1050)
+- Update AMIP documentation (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/899)
+- Add documentation for testbed_nml to Namelist_overview (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/952)
+- Cleaned up obsolete workarounds for NVHPC/PGI compiler (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/869)
 
 
 # Release notes for icon-2025.04-2

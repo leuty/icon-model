@@ -931,9 +931,8 @@ CONTAINS
 
     !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
 #ifdef __LVECTOR__
-    !$ACC LOOP SEQ
+    !$ACC LOOP GANG VECTOR COLLAPSE(2) PRIVATE(inv_str_c)
     DO level=1,maxcell
-      !$ACC LOOP GANG VECTOR PRIVATE(inv_str_c)
       DO cell_index = start_index, end_index
         IF (dolic_c(cell_index,blockNo) < 2 .or. dolic_c(cell_index,blockNo) < level) CYCLE ! nothing to diffuse
 #else

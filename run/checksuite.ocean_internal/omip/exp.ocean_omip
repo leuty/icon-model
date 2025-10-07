@@ -535,6 +535,21 @@ cat >> ${ocean_namelist} << EOF
 
 &output_nml
   filetype                        = 5
+  output_filename                 = "${EXPNAME}_P1D_ice"
+  output_start                    = "${start_date}"
+  output_end                      = "${end_date}"
+  output_interval                 = "P1D"
+  filename_format                 = "<output_filename>_<datetime2>"
+!  operation                       = "mean"
+  file_interval                   = "${file_interval}"
+  mode                            = 1
+  include_last                    = .FALSE.
+  output_grid                     = .TRUE.
+  ml_varlist                      = 'hi','hs','conc','ice_u','ice_v','s11','s12','s22','delta','e11','e12','e22','sigma_i','sigma_ii'
+/
+
+&output_nml
+  filetype                        = 5
   output_filename                 = "${EXPNAME}_P1M_mon"
   output_start                    = "${start_date}"
   output_end                      = "${end_date}"

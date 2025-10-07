@@ -13,7 +13,7 @@
 #
 # %{mkexp_input}
 #
-# $Id: run/mkexp/defaults/DEFAULT.run.tmpl 24 2025-06-10 06:54:49Z m221078 $
+# $Id: run/mkexp/defaults/DEFAULT.run.tmpl 25 2025-08-01 12:15:22Z k202204 $
 #
 # %{VERSIONS_|join('\n# ')}
 #
@@ -23,7 +23,7 @@
 #%include ['mkexp/environments/'+ENVIRONMENT+'.tmpl', 'mkexp/environments/DEFAULT.tmpl'] ignore missing with context
 
 #=============================================================================
-set -e
+set -euo pipefail
 #%  if JOB.debug_level|d(0)|int > 1:
 set -x
 #%  endif
@@ -33,11 +33,15 @@ UTILS_DIR=%{MODEL_DIR}/utils
 PATH=$UTILS_DIR:$PATH
 
 # Support log style output
-pipe=%{EXP_ID}_%{JOB.id}_$$.pipe
-mkfifo $pipe
-trap "cd $PWD && rm -f $pipe" EXIT
-%{JOB.python3} $UTILS_DIR/timewarp $pipe &
-exec > $pipe 2>&1
+if ! ${TIMEWARP_IS_RUNNING_:-false}
+then
+    pipe=%{EXP_ID}_%{JOB.id}_$$.pipe
+    mkfifo $pipe
+    trap "cd $PWD && rm -f $pipe" EXIT
+    %{JOB.python3} $UTILS_DIR/timewarp $pipe &
+    exec > $pipe 2>&1
+    export TIMEWARP_IS_RUNNING_=true
+fi
 
 #% do VARIABLES_.add('MODEL_DIR')
 #% do VARIABLES_.add('SCRIPT_DIR')
@@ -51,6 +55,10 @@ exec > $pipe 2>&1
 
 # Convenience link to log file
 ln -snvf %{LOG_DIR}/%{JOB.log_file|d or EXP_ID+'.run.$(printf %08d ${'+JOB.id_environ+'}).log'} $SCRIPT_DIR/%{EXP_ID}.run.log
+
+# how to submit the next job
+# --------------------------
+job_name="%{EXP_ID}.run"
 
 # Load traditional error handling
 . $PREFIX/run/add_run_routines
@@ -82,7 +90,7 @@ icon_variables expand_plan --variables=$MODEL_DIR/run/standard_options/hiopy/var
 #
 # OpenMP environment variables
 # ----------------------------
-#%  set threads_per_task = JOB.threads_per_task|d(1)|int
+#%  set threads_per_task = JOB.threads_per_task|d(JOB.default_threads_per_task)|d(1)|int
 export OMP_NUM_THREADS=%{threads_per_task}
 export ICON_THREADS=$OMP_NUM_THREADS
 #
@@ -101,8 +109,12 @@ gpus_per_node=%{JOB.gpus_per_node|d(SLURM_GPUS_ON_NODE)}
 mpi_procs_pernode=$(( gpus_per_node + io_procs_pernode))
 #%  else
 cpus_per_task=%{threads_per_task if JOB.hardware_threads is set else 2*threads_per_task}
+#%    if JOB.cpus_per_node is defined:
+cpus_per_node=%{JOB.cpus_per_node}
+#%    else:
 slurm_cpus_per_node=${SLURM_JOB_CPUS_PER_NODE%%\(*}
-cpus_per_node=${slurm_cpus_per_node:-%{JOB.cpus_per_node|d(1)}}
+cpus_per_node=${slurm_cpus_per_node:-%{JOB.default_cpus_per_node|d(1)}}
+#%    endif
 mpi_procs_pernode=$((cpus_per_node/cpus_per_task))
 #%  endif
 
@@ -194,10 +206,6 @@ export START="srun -l --kill-on-bad-exit=1 --propagate=STACK,CORE --cpu-bind=non
 #%  endif
 export MODEL="%{BIN_DIR}/%{MODEL_EXE}"
 
-# how to submit the next job
-# --------------------------
-job_name="%{EXP_ID}.run"
-
 # cdo for post-processing
 # -----------------------
 cdo="cdo"
@@ -225,8 +233,10 @@ mpi_oce_procs=$((no_of_nodes * oce_per_node))
 mpi_atm_procs=$((no_of_nodes * atm_per_node))
 #%   else:
 mpi_oce_nodes=%{JOB.ocean_nodes|d(0)}
+mpi_atm_nodes=$((no_of_nodes - mpi_oce_nodes))
 mpi_oce_procs=$((mpi_oce_nodes * mpi_procs_pernode))
 mpi_atm_procs=$((mpi_total_procs - mpi_oce_procs))
+atm_per_node=$(((mpi_atm_procs + mpi_atm_nodes - 1)/mpi_atm_nodes))
 #%   endif
 #%  else:
 #%#     use_openmp_hack is set
@@ -463,9 +473,13 @@ EOF
 # jsbach namelist
 # ---------------
 
-cat > NAMELIST_lnd << EOF
-%{format_namelist(namelists.NAMELIST_lnd)}
+#%  for namelist in namelists.sections:
+#%    if namelist.startswith('NAMELIST_lnd'):
+cat > %{namelist} << EOF
+%{format_namelist(namelists[namelist])}
 EOF
+#%    endif
+#%  endfor
 
 #%  endif
 #%  if WITH_OCEAN is set:
@@ -535,12 +549,17 @@ mpi_oce_io_procs=%{namelists.NAMELIST_oce.parallel_nml.num_io_procs}
 #%         endif
 #%      endif
 #%  else:
-#%#     use_openmp_hack is set
+#%#     # use_openmp_hack is set
 #%      include "mkexp/environments/hostfiles_levante/hostfile_openmp_hack.tmpl"
 #%  endif
 
 #% if JOB.use_gpus is set:
 #%     include "mkexp/environments/run_wrapper_levante_gpu.tmpl"
+# run_model.sh should be created in run_wrapper_*.tmpl
+if [ ! -f run_model.sh ]; then
+	echo "ERROR: cannot find $(pwd)/run_model.sh" >&2
+    exit 1
+fi
 #% endif
 
 #%#
@@ -638,7 +657,7 @@ echo "####################  ldd  ######################"
 echo "#################################################"
 rm -f ldd.txt
 echo $(realpath ${MODEL}) 2>&1 | tee ldd.txt
-srun -N1 -n1 -- %{JOB.ldd} -v $(realpath ${MODEL}) 2>&1 | tee ldd.txt
+srun -n1 -- %{JOB.ldd} -v $(realpath ${MODEL}) 2>&1 | tee ldd.txt
 echo "#################################################"
 
 #%  endif
@@ -752,6 +771,15 @@ echo "============================"
 echo "Script run (atmo) successfully: $finish_status_atm"
 echo "Script run (oce) successfully: $finish_status_oce"
 echo "============================"
+
+s="${finish_status_atm}|${finish_status_oce}"
+if [[ "$s" == "RESTART|RESTART" ]]; then
+  finish_status=RESTART
+elif [[ "$s" == "OK|OK" ]]; then
+  finish_status=OK
+else
+  finish_status=1
+fi
 #%   else
 finish_status=`cat finish.status`
 finish_status="${finish_status# }"

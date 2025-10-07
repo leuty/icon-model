@@ -64,6 +64,7 @@ MODULE mo_ocean_GM_Redi
     & map_scalar_center2prismtop_GM, map_scalar_prismtop2center_GM,&
     & map_vec_prismtop2center_on_block_GM
   USE mo_ocean_thermodyn,           ONLY : calc_neutralslope_coeff_func_onColumn,&
+                                         & calc_neutralslope_coeff_func_elem,&
                                          & calc_neutralslope_coeff_func_onColumn_UNESCO
   USE mo_ocean_tracer_diffusion,    ONLY: tracer_diffusion_vertical_implicit
   USE mo_ocean_thermodyn,           ONLY: calculate_density_onColumn ! by_Oliver
@@ -523,7 +524,11 @@ CONTAINS
 !     REAL(wp):: size_grad_S_horz_vec(nproma, n_zlev,patch_3d%p_patch_2d(1)%alloc_cell_blocks)
 
     REAL(wp), POINTER :: depth_cellinterface(:,:,:)
+#ifdef __LVECTOR__
+    REAL(wp):: neutral_coeff(nproma, 1:n_zlev, 2)
+#else
     REAL(wp):: neutral_coeff(1:n_zlev, 2), salinityColumn(1:n_zlev),neutral_coeff1(1:n_zlev, 2)
+#endif
     !-----------------------------------------------------------------------
     patch_2D        => patch_3D%p_patch_2D(1)
     all_cells       => patch_2D%cells%all
@@ -769,13 +774,72 @@ CONTAINS
     IF(no_tracer>=2)THEN
 
         IF(SLOPE_CALC_VIA_TEMPERTURE_SALINITY)THEN
+#ifndef __LVECTOR__
 !ICON_OMP_PARALLEL PRIVATE(salinityColumn)
     salinityColumn(1:n_zlev) = sal_ref  ! in case of absent salinty tracer!
+#endif
 !ICON_OMP_DO PRIVATE(start_cell_index,end_cell_index, cell_index, end_level,neutral_coeff, &
 !ICON_OMP  level) ICON_OMP_DEFAULT_SCHEDULE
           DO blockNo = cells_in_domain%start_block, cells_in_domain%end_block
             CALL get_index_range(cells_in_domain, blockNo, start_cell_index, end_cell_index)
 
+#ifdef __LVECTOR__
+                !4.1) calculate slope coefficients as thermal expansion and saline contraction coefficients
+                !
+                !Nonlinear EOS, slope coefficients are calculated via the McDougall-method
+            IF(EOS_TYPE/=1)THEN
+
+              DO level = start_level, MAXVAL(patch_3d%p_patch_1d(1)%dolic_c(start_cell_index:end_cell_index,blockNo))
+                DO cell_index = start_cell_index, end_cell_index
+                  end_level = patch_3d%p_patch_1d(1)%dolic_c(cell_index,blockNo)
+                  IF(end_level <= min_dolic .OR. level > end_level) CYCLE
+
+                  neutral_coeff(cell_index, level, 1) = calc_neutralslope_coeff_func_elem(         &
+                  & pot_temp(cell_index,level,blockNo), salinity(cell_index,level,blockNo),  &
+                  & depth_cellinterface(cell_index,level+1,blockNo), variant=1 )
+                  neutral_coeff(cell_index, level, 2) = calc_neutralslope_coeff_func_elem(         &
+                  & pot_temp(cell_index,level,blockNo), salinity(cell_index,level,blockNo),  &
+                  & depth_cellinterface(cell_index,level+1,blockNo), variant=2 )
+
+                ENDDO
+              ENDDO
+                !Linear EOS: slope coefficients are equal to EOS-coefficients
+            ELSEIF(EOS_TYPE==1)THEN
+              neutral_coeff = LinearThermoExpansionCoefficient
+              neutral_coeff = LinearHalineContractionCoefficient
+            ENDIF
+
+            DO level = start_level+1, MAXVAL(patch_3d%p_patch_1d(1)%dolic_c(start_cell_index:end_cell_index,blockNo))
+              DO cell_index = start_cell_index, end_cell_index
+                end_level = patch_3d%p_patch_1d(1)%dolic_c(cell_index,blockNo)
+                IF(end_level <= min_dolic .OR. level > end_level-1) CYCLE
+
+                  ocean_state%p_aux%slopes(cell_index,level,blockNo)%x &
+                  & = -neutral_coeff(cell_index,level,1) * grad_T_vec(cell_index,level,blockNo)%x + &
+                  &      neutral_coeff(cell_index,level,2) * grad_S_vec(cell_index,level,blockNo)%x
+
+                  ocean_state%p_aux%slopes_drdx(cell_index,level,blockNo)=&
+                  & DOT_PRODUCT(ocean_state%p_aux%slopes(cell_index,level,blockNo)%x,&
+                           &ocean_state%p_aux%slopes(cell_index,level,blockNo)%x)
+                  ocean_state%p_aux%slopes_drdx(cell_index,level,blockNo)=&
+                  & sqrt(ocean_state%p_aux%slopes_drdx(cell_index,level,blockNo))
+
+                  ocean_state%p_aux%slopes_drdz(cell_index,level,blockNo)=&
+                  & -(-neutral_coeff(cell_index,level,1) * grad_T_vert_center(cell_index,level,blockNo)+ &
+                  &      neutral_coeff(cell_index,level,2) * grad_S_vert_center(cell_index,level,blockNo))
+
+                  ocean_state%p_aux%slopes(cell_index,level,blockNo)%x &
+                    & = -(-neutral_coeff(cell_index,level,1) * grad_T_vec(cell_index,level,blockNo)%x + &
+                    &      neutral_coeff(cell_index,level,2) * grad_S_vec(cell_index,level,blockNo)%x)  &
+                    &   /(-neutral_coeff(cell_index,level,1) * grad_T_vert_center(cell_index,level,blockNo)+ &
+                    &      neutral_coeff(cell_index,level,2) * grad_S_vert_center(cell_index,level,blockNo)-dbl_eps)
+
+                  ocean_state%p_aux%slopes_squared(cell_index,level,blockNo)=&
+                    & DOT_PRODUCT(ocean_state%p_aux%slopes(cell_index,level,blockNo)%x,&
+                                 &ocean_state%p_aux%slopes(cell_index,level,blockNo)%x)
+              END DO ! cell_index = start_cell_index, end_cell_index
+            END DO
+#else
             DO cell_index = start_cell_index, end_cell_index
               end_level = patch_3d%p_patch_1d(1)%dolic_c(cell_index,blockNo)
               IF(end_level <= min_dolic) CYCLE
@@ -835,9 +899,12 @@ CONTAINS
 !           ocean_state%p_aux%slopes(cell_index,end_level,blockNo)%x &
 !           &= ocean_state%p_aux%slopes(cell_index,end_level-1,blockNo)%x
             END DO ! cell_index = start_cell_index, end_cell_index
+#endif
           END DO  ! blockNo = all_cells%start_block, all_cells%end_block
+#ifndef __LVECTOR__
 !ICON_OMP_END_DO_NOWAIT
 !ICON_OMP_END_PARALLEL
+#endif
 
         ELSEIF(.NOT.SLOPE_CALC_VIA_TEMPERTURE_SALINITY)THEN
 !ICON_OMP_PARALLEL

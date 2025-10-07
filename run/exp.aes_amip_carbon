@@ -65,7 +65,8 @@ if [ ${grid_refinement} == R02B08 ] ; then
    # namelist variables
    #
    num_restart_procs=10
-   cinhoml=0.4
+   cinhoml_cfl=0.4
+   cinhoml_cfo=0.4
    l_soil_texture=.TRUE.
 
 elif [ ${grid_refinement} == R02B09 ] ; then
@@ -87,7 +88,8 @@ elif [ ${grid_refinement} == R02B09 ] ; then
    # namelist variables
    #
    num_restart_procs=992
-   cinhoml=0.45
+   cinhoml_cfl=0.45
+   cinhoml_cfo=0.45
    l_soil_texture=.FALSE.
 
 elif [ ${grid_refinement} == R02B10 ] ; then
@@ -108,7 +110,8 @@ elif [ ${grid_refinement} == R02B10 ] ; then
    # namelist variables
    #
    num_restart_procs=992
-   cinhoml=0.5
+   cinhoml_cfl=0.5
+   cinhoml_cfo=0.5
    l_soil_texture=.FALSE.
 
 elif [ ${grid_refinement} == R02B04 ] ; then
@@ -129,7 +132,8 @@ elif [ ${grid_refinement} == R02B04 ] ; then
    # namelist variables
    #
    num_restart_procs=1
-   cinhoml=0.4
+   cinhoml_cfl=0.4
+   cinhoml_cfo=0.4
    l_soil_texture=.TRUE.
 
 elif [ ${grid_refinement} == R02B06 ] ; then
@@ -150,9 +154,14 @@ elif [ ${grid_refinement} == R02B06 ] ; then
    # namelist variables
    #
    num_restart_procs=1
-   cinhoml=0.4
+   cinhoml_cfl=0.4
+   cinhoml_cfo=0.4
    l_soil_texture=.TRUE.
 
+fi
+
+if [ ${builder} == bullx_gpu_pgi ] ; then
+   use_cuda_vdf=true
 fi
 
 # domain globe
@@ -343,8 +352,6 @@ cat > ${atmo_namelist} << EOF
  aes_rad_config(1)%irad_cfc11 = 3
  aes_rad_config(1)%irad_cfc12 = 3
  aes_rad_config(1)%irad_aero  = 13 ! tropospheric aerosol optical properties after S. Kinne, filename with year
- aes_rad_config(1)%inhom_lts  = .TRUE.
- aes_rad_config(1)%inhom_lts_max = 0.725
  !aes_rad_config(1)%vmr_co2 = 348.00E-06 ! atmospheric CO2 concentration (initial value with interactive carbon cycle)
 /
 &aes_vdf_nml
@@ -356,6 +363,7 @@ cat > ${atmo_namelist} << EOF
 ! aes_vdf_config(1)%min_sfc_wind i     = 1.  ! 1 is default
 ! aes_vdf_config(1)%louis_constant_b   = 4.2 ! !automatically scaled in tmx
 ! aes_vdf_config(1)%lmix_max   = 150.
+ aes_vdf_config(1)%lcuda_graph_vdf = .${use_cuda_vdf:-false}. ! Use CUDA graph to speed up execution
 /
 &ccycle_nml
  ccycle_config(1)%iccycle=1
@@ -367,9 +375,10 @@ cat > ${atmo_namelist} << EOF
  aes_cov_config(1)%cqx        = 1.e-6
 /
 &aes_cop_nml
- aes_cop_config(1)%cinhomi  = 0.6
- aes_cop_config(1)%cinhoms  = 0.6
- aes_cop_config(1)%cinhoml  = ${cinhoml}
+ aes_cop_config(1)%cinhomi    = 0.6
+ aes_cop_config(1)%cinhoml_cfl= ${cinhoml_cfl}
+ aes_cop_config(1)%cinhoml_cfo= ${cinhoml_cfo}
+ aes_cop_config(1)%cinhoml_sf = 0.725
  aes_cop_config(1)%cn1lnd   = 50.0
  aes_cop_config(1)%cn1sea   = 50.0
  aes_cop_config(1)%cn2lnd   = 220.0

@@ -11,6 +11,12 @@
 
 # Trigger follow-up jobs
 
+import os
+import subprocess
+import sys
+
+os.chdir('%{SCRIPT_DIR}')
+
 status = 0
 #%    for trigger in JOB['.trigger']|d([])|list:
 #%      set args = trigger|split|list

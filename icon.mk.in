@@ -215,7 +215,6 @@ filter_substring= $(foreach v,$(2),$(if $(findstring $(1),$(v)),$(v)))
 
 # Object files that must be injected into all executables:
 common_prog_obj_files:=
-@HIP_OVERRIDES_ENABLED@common_prog_obj_files+= support/dummy_hip_events.@OBJEXT@
 
 # Main executable files:
 exec_files:=

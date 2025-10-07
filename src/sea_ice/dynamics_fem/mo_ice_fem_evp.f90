@@ -126,7 +126,7 @@ subroutine precalc4rhs(lacc)
 ! with the subcycles. Hence, can be precalculated and stored.
 ! Those are rhs_a, rhs_m, mass
 
-  use mo_physical_constants,  ONLY: rhoi, rhos
+  use mo_physical_constants,  ONLY: rhoi, rhos, grav
 
 IMPLICIT NONE
 
@@ -179,7 +179,7 @@ CALL set_acc_host_or_device(lzacc, lacc)
      elevation_elem(:)=elevation(elnodes(:))
 
      ! use rhs_m and rhs_a for storing the contribution from elevation:
-     aa=9.81_wp*voltriangle(elem)/3.0_wp
+     aa=grav*voltriangle(elem)/3.0_wp
      da(elem)=-aa*sum(dx(:)*elevation_elem(:))
      dm(elem)=-aa*sum(dy(:)*elevation_elem(:))
  END DO
@@ -263,10 +263,10 @@ implicit none
     INTEGER, INTENT(IN), DIMENSION(:) :: si_idx_elem
     LOGICAL, INTENT(IN), OPTIONAL     :: lacc
 
-    REAL(wp)   :: eps11, eps12, eps22, pressure, P, delta, delta_inv!, aa
+    REAL(wp)   :: pressure, P, delta_inv!, aa
     INTEGER    :: elnodes(3), elem, i
     REAL(wp)   :: asum, msum, dx(3), dy(3)
-    REAL(wp)   :: r1, r2, r3, si1, si2
+    REAL(wp)   :: r1, r2, r3
     REAL(wp)   :: zeta, usum, vsum
     LOGICAL    :: lzacc
 
@@ -274,8 +274,8 @@ implicit none
 
     !$ACC DATA CREATE(elnodes, dx, dy) IF(lzacc)
 
-! !ICON_OMP_DO        PRIVATE(i,elem,elnodes,dx,dy,vsum,usum,eps11,eps22,eps12,delta,msum,asum,pressure, &
-! !ICON_OMP                   delta_inv,zeta,r1,r2,r3,si1,si2)  SCHEDULE(static,4)
+! !ICON_OMP_DO        PRIVATE(i,elem,elnodes,dx,dy,vsum,usum,msum,asum,pressure, &
+! !ICON_OMP                   delta_inv,zeta,r1,r2,r3)  SCHEDULE(static,4)
 !NEC$ ivdep
     !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
     DO i=1,si_elem2D
@@ -294,15 +294,15 @@ implicit none
      usum=sum(u_ice(elnodes))                           !metrics
 
       ! ===== Deformation rate tensor on element elem:
-     eps11=sum(dx*u_ice(elnodes))
-     eps11=eps11-val3*vsum*metrics_elem2D(elem)                !metrics
-     eps22=sum(dy*v_ice(elnodes))
-     eps12=0.5_wp*sum(dy*u_ice(elnodes) + dx*v_ice(elnodes))
-     eps12=eps12+0.5_wp*val3*usum*metrics_elem2D(elem)          !metrics
+     eps11(elem)=sum(dx*u_ice(elnodes))
+     eps11(elem)=eps11(elem)-val3*vsum*metrics_elem2D(elem)                !metrics
+     eps22(elem)=sum(dy*v_ice(elnodes))
+     eps12(elem)=0.5_wp*sum(dy*u_ice(elnodes) + dx*v_ice(elnodes))
+     eps12(elem)=eps12(elem)+0.5_wp*val3*usum*metrics_elem2D(elem)          !metrics
       ! ===== moduli:
-     delta=(eps11**2+eps22**2)*(1.0_wp+vale)+4.0_wp*vale*eps12**2 + &
-            2.0_wp*eps11*eps22*(1.0_wp-vale)
-     delta=sqrt(delta)
+     delta(elem)=(eps11(elem)**2+eps22(elem)**2)*(1.0_wp+vale)+4.0_wp*vale*eps12(elem)**2 + &
+            2.0_wp*eps11(elem)*eps22(elem)*(1.0_wp-vale)
+     delta(elem)=sqrt(delta(elem))
      msum=sum(m_ice(elnodes))*val3
      asum=sum(a_ice(elnodes))*val3
 
@@ -317,12 +317,12 @@ implicit none
      !if(delta>pressure/zeta_min) delta=pressure/zeta_min
       ! ===== if viscosity is too big, it is limited too
       ! (done via correcting delta_inv)
-     delta_inv=1.0_wp/max(delta,delta_min)
+     delta_inv=1.0_wp/max(delta(elem),delta_min)
 
      IF (luse_replacement_pressure) THEN
        !pressure=pressure*delta*delta_inv    ! Limiting pressure --- may not
        !                                     ! be needed. Should be tested
-       P=pressure*delta/(delta+delta_min)
+       P=pressure*delta(elem)/(delta(elem)+delta_min)
      ELSE
        P=pressure
      END IF
@@ -341,17 +341,17 @@ implicit none
       P=P*Tevp_inv
       zeta=zeta*Tevp_inv
 
-     r1=zeta*(eps11+eps22) - P
-     r2=zeta*(eps11-eps22)
-     r3=zeta*eps12
-     si1=sigma11(elem)+sigma22(elem)
-     si2=sigma11(elem)-sigma22(elem)
+     r1=zeta*(eps11(elem)+eps22(elem)) - P
+     r2=zeta*(eps11(elem)-eps22(elem))
+     r3=zeta*eps12(elem)
+     si1(elem)=sigma11(elem)+sigma22(elem)
+     si2(elem)=sigma11(elem)-sigma22(elem)
 
-     si1=det1*(si1+dte*r1)
-     si2=det2*(si2+dte*r2)
+     si1(elem)=det1*(si1(elem)+dte*r1)
+     si2(elem)=det2*(si2(elem)+dte*r2)
      sigma12(elem)=det2*(sigma12(elem)+dte*r3)
-     sigma11(elem)=0.5_wp*(si1+si2)
-     sigma22(elem)=0.5_wp*(si1-si2)
+     sigma11(elem)=0.5_wp*(si1(elem)+si2(elem))
+     sigma22(elem)=0.5_wp*(si1(elem)-si2(elem))
 
     END DO
     !$ACC END PARALLEL LOOP
@@ -436,6 +436,9 @@ logical     :: lzacc
 
  !$ACC DATA COPY(elem2D_nodes, bafux, bafuy, metrics_elem2D) &
  !$ACC   COPY(sigma11, sigma12, sigma22) &
+ !$ACC   COPY(eps11, eps12, eps22) &
+ !$ACC   COPY(si1, si2) &
+ !$ACC   COPY(delta) &
  !$ACC   COPY(u_ice, v_ice, m_ice, a_ice, m_snow) &
  !$ACC   COPY(elevation, u_w, v_w, stress_atmice_x, stress_atmice_y) &
  !$ACC   COPY(myList_nod2D) &
@@ -445,29 +448,25 @@ logical     :: lzacc
  !$ACC   COPY(lmass_matrix, myList_elem2D) &
  !$ACC   IF(lzacc)
 
-    !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-    sigma11(:) = 0._wp
-    sigma12(:) = 0._wp
-    sigma22(:) = 0._wp
-    !$ACC END KERNELS
-    !$ACC WAIT(1)
+! We start evp iteration with stresses (sigma11,sigma12,sigma22) from the
+! previous timestep for better convergence.
 
 ! index elements/nodes where sea ice is present for faster loops
-    call index_si_elements(lacc=lzacc)
+    CALL index_si_elements(lacc=lzacc)
 ! precalculate several arrays that do not change during subcycling
-    call precalc4rhs(lacc=lzacc)
+    CALL precalc4rhs(lacc=lzacc)
 
  DO shortstep=1, evp_rheol_steps
 
      ! ===== Boundary conditions
      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-     do j=1, myDim_nod2D+eDim_nod2D
+     DO j=1, myDim_nod2D+eDim_nod2D
         i=myList_nod2D(j)
-        if(index_nod2D(i)==1) then
+        IF(index_nod2D(i)==1) THEN
           u_ice(i)=0.0_wp
           v_ice(i)=0.0_wp
-        end if
-     end do
+        END IF
+     END DO
      !$ACC END PARALLEL LOOP
      !$ACC WAIT(1)
 
@@ -481,8 +480,8 @@ logical     :: lzacc
      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
      DO j=1,si_nod2D
        i=si_idx_nodes(j)
-       if (index_nod2D(i)>0) CYCLE          ! Skip boundary nodes
-       if (a_ice(i) > 0.01_wp) then             ! If ice is present, update velocities
+       IF (index_nod2D(i)>0) CYCLE          ! Skip boundary nodes
+       IF (a_ice(i) > 0.01_wp) THEN             ! If ice is present, update velocities
          inv_mass=(rhoi*m_ice(i)+rhos*m_snow(i))/a_ice(i)
          inv_mass=max(inv_mass, 9.0_wp)        ! Limit the weighted mass
                                            ! if it is too small
@@ -498,10 +497,16 @@ logical     :: lzacc
          det=1.0_wp/det
          u_ice(i)=det*((1.0_wp+ax*drag*dte)*rhsu+dte*(coriolis_nod2D(i)+ay*drag)*rhsv)
          v_ice(i)=det*((1.0_wp+ax*drag*dte)*rhsv-dte*(coriolis_nod2D(i)+ay*drag)*rhsu)
-      ! else                           ! Set ice velocity equal to water velocity
+
+       ELSE !Set velocity to 0 if ice absent
+         u_ice(i) = 0.0_wp
+         v_ice(i) = 0.0_wp
+      ! better set ice velocity equal to water velocity
       ! u_ice(i)=u_w(i)
       ! v_ice(i)=v_w(i)
-       end if
+
+       END IF
+
      END DO
      !$ACC END PARALLEL LOOP
     !$ACC WAIT(1)

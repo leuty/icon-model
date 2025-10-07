@@ -130,7 +130,7 @@ htop_cloudy=16000.  # [m] top height for clouds in transport and microphysics, a
 #
 ldynamics=.TRUE.    # .TRUE.: on       , .FALSE.: off
 ltransport=.TRUE.   # .TRUE.: on       , .FALSE.: off
-iforcing=3          #     3 : NWP      ,  0     : off
+iforcing=3          #     3 : NWP
 run_jsbach=yes      # yes,true: on, else: off
 
 atmo_namelist=NAMELIST_${EXPNAME}_atm # also used in exec.iconrun

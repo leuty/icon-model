@@ -26,6 +26,7 @@ MODULE mo_turb_vdiff_diag
   USE mo_aes_convect_tables,ONLY: prepare_ua_index_spline_batch, lookup_ua_spline_batch
 #endif
 
+  USE mo_thdyn_functions,   ONLY: spec_humi, sat_pres_water, sat_pres_ice
   USE mo_sleve_config,      ONLY: top_height
   USE mo_turb_vdiff_config, ONLY: t_vdiff_config
   USE mo_turb_vdiff_params, ONLY: ckap, cb,cc, chneu, da1,                  &
@@ -39,6 +40,8 @@ MODULE mo_turb_vdiff_diag
   USE mo_model_domain      ,ONLY: t_patch
   USE mo_math_constants    ,ONLY: rad2deg
   USE mo_fortran_tools     ,ONLY: assert_acc_device_only
+  USE mo_run_config        ,ONLY: iforcing
+  USE mo_impl_constants    ,ONLY: iaes
 
 
   IMPLICIT NONE
@@ -225,10 +228,12 @@ CONTAINS
 
 #ifndef _OPENACC
     DO 212 jk=1,klev
-      CALL prepare_ua_index_spline('vdiff (1)',jcs,kproma,ptm1(:,jk),idx,za        &
-      &                                       ,klev=jk,kblock=jb,kblock_size=kbdim,&
-      &                            extend_upper_limit=top_height >= THERMOSPHERE_HEIGHT)
-      CALL lookup_ua_spline(jcs,kproma,idx,za,zua)
+      IF (iforcing == iaes) THEN
+          CALL prepare_ua_index_spline('vdiff (1)',jcs,kproma,ptm1(:,jk),idx,za        &
+          &                                       ,klev=jk,kblock=jb,kblock_size=kbdim,&
+          &                            extend_upper_limit=top_height >= THERMOSPHERE_HEIGHT)
+          CALL lookup_ua_spline(jcs,kproma,idx,za,zua)
+      END IF
 
       !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
       !$ACC LOOP GANG VECTOR
@@ -254,25 +259,34 @@ CONTAINS
         zlh(jl,jk)     = FSEL(ptm1(jl,jk)-tmelt,alv,als) ! latent heat
         zusus1         = zlh(jl,jk)/cpd*ztheta(jl,jk)/ptm1(jl,jk)*pxm1(jl,jk)
         zthetal(jl,jk) = ztheta(jl,jk)-zusus1
-
-        zes=zua(jl)*zpapm1i(jl)              ! (sat. vapour pressure)*Rd/Rv/ps
-        zes=MIN(zes,0.5_wp)
-        zqsat(jl,jk)=zes/(1._wp-vtmpc1*zes)  ! specific humidity at saturation
+        IF (iforcing == iaes) THEN
+          zes=zua(jl)*zpapm1i(jl)              ! (sat. vapour pressure)*Rd/Rv/ps
+          zes=MIN(zes,0.5_wp)
+          zqsat(jl,jk)=zes/(1._wp-vtmpc1*zes)  ! specific humidity at saturation
+        ELSE
+          IF (ptm1(jl,jk) >= tmelt) THEN
+            zqsat(jl,jk)=spec_humi(sat_pres_water(ptm1(jl,jk)), papm1(jl,jk))
+          ELSE
+            zqsat(jl,jk)=spec_humi(sat_pres_ice(ptm1(jl,jk)), papm1(jl,jk))
+          END IF
+        END IF
 211   END DO
       !$ACC END PARALLEL
 212 END DO
 
 #else
-    ! DA: warning: those are from AES convect tables!!
-    CALL prepare_ua_index_spline_batch(name='vdiff (1)', jcs=jcs, jce=kproma, &
-      &                                batch_size=klev, temp=ptm1, idx=idx_batch, &
-      &                                zalpha=za_batch, lacc=.TRUE., &
-      &                                kblock=jb,kblock_size=kbdim, &
-      &                                csecfrl=csecfrl, cthomi=cthomi, &
-      &                                extend_upper_limit=top_height >= THERMOSPHERE_HEIGHT)
-    CALL lookup_ua_spline_batch(jcs=jcs, jce=kproma, batch_size=klev, &
-      &                         idx=idx_batch, zalpha=za_batch, lacc=.TRUE., &
-      &                         ua=zua_batch)
+  IF (iforcing == iaes) THEN
+      ! DA: warning: those are from AES convect tables!!
+        CALL prepare_ua_index_spline_batch(name='vdiff (1)', jcs=jcs, jce=kproma, &
+        &                                batch_size=klev, temp=ptm1, idx=idx_batch, &
+        &                                zalpha=za_batch, lacc=.TRUE., &
+        &                                kblock=jb,kblock_size=kbdim, &
+        &                                csecfrl=csecfrl, cthomi=cthomi, &
+        &                                extend_upper_limit=top_height >= THERMOSPHERE_HEIGHT)
+        CALL lookup_ua_spline_batch(jcs=jcs, jce=kproma, batch_size=klev, &
+        &                         idx=idx_batch, zalpha=za_batch, lacc=.TRUE., &
+        &                         ua=zua_batch)
+    END IF
 
     !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
     !$ACC LOOP GANG VECTOR COLLAPSE(2) PRIVATE(zpapm1i_s, zusus1, zes)
@@ -293,10 +307,17 @@ CONTAINS
         zlh(jl,jk)     = FSEL(ptm1(jl,jk)-tmelt,alv,als) ! latent heat
         zusus1         = zlh(jl,jk)/cpd*ztheta(jl,jk)/ptm1(jl,jk)*pxm1(jl,jk)
         zthetal(jl,jk) = ztheta(jl,jk)-zusus1
-
-        zes=zua_batch(jl,jk)*zpapm1i_s              ! (sat. vapour pressure)*Rd/Rv/ps
-        zes=MIN(zes,0.5_wp)
-        zqsat(jl,jk)=zes/(1._wp-vtmpc1*zes)  ! specific humidity at saturation
+        IF (iforcing == iaes) THEN
+          zes=zua_batch(jl,jk)*zpapm1i_s              ! (sat. vapour pressure)*Rd/Rv/ps
+          zes=MIN(zes,0.5_wp)
+          zqsat(jl,jk)=zes/(1._wp-vtmpc1*zes)  ! specific humidity at saturation
+        ELSE
+          IF (ptm1(jl,jk) >= tmelt) THEN
+            zqsat(jl,jk)=spec_humi(sat_pres_water(ptm1(jl,jk)), papm1(jl,jk))
+          ELSE
+            zqsat(jl,jk)=spec_humi(sat_pres_ice(ptm1(jl,jk)), papm1(jl,jk))
+          END IF
+        END IF
       END DO
     END DO
     !$ACC END PARALLEL
@@ -812,8 +833,9 @@ CONTAINS
     CALL generate_index_list_batched(pfrc_test(:,:), loidx, jcs, kproma, is, &
       &   lacc=.TRUE., opt_acc_async_queue=1)
     DO jsfc = 1,ksfc_type
-
-      CALL compute_qsat( kproma, is(jsfc), loidx(:,jsfc), ppsfc, ptsfc(:,jsfc), pqsat_tile(:,jsfc), lacc=.TRUE., error_reporter=lookup_error_)
+      IF (iforcing == iaes) THEN
+        CALL compute_qsat( kproma, is(jsfc), loidx(:,jsfc), ppsfc, ptsfc(:,jsfc), pqsat_tile(:,jsfc), lacc=.TRUE., error_reporter=lookup_error_)
+      END IF
      ! loop over mask only
      !
       !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
@@ -823,6 +845,15 @@ CONTAINS
       !NEC$ ivdep
       DO jls = 1,is(jsfc)
         js=loidx(jls,jsfc)
+
+        ! saturation specific humidity
+        IF (iforcing /= iaes) THEN
+          IF (ptsfc(js,jsfc) >= tmelt) THEN
+            pqsat_tile(js,jsfc) = spec_humi(sat_pres_water(ptsfc(js,jsfc)), ppsfc(js))
+          ELSE
+            pqsat_tile(js,jsfc) = spec_humi(sat_pres_ice(ptsfc(js,jsfc)), ppsfc(js))
+          END IF
+        END IF
         ! dry static energy pcpt_tile
         !
         IF(jsfc == idx_lnd) THEN

@@ -14,6 +14,7 @@ import subprocess
 import sys
 import warnings
 
+import numpy as np
 import yaml
 
 sys.path.insert(
@@ -640,10 +641,14 @@ class CscsCiInterface(ExperimentTestCollection):
     def __init__(self):
         super().__init__()
 
-    def get_items_for_builder(self, builder, mode):
+    def get_supported_builders(self):
         supported_builders = {
-            "santis": set(("santis_cpu_nvhpc", "santis_gpu_nvhpc"))
+            "santis": ["santis_cpu_nvhpc", "santis_gpu_nvhpc"]
         }
+        return supported_builders
+
+    def get_items_for_builder(self, builder, mode):
+        supported_builders = self.get_supported_builders()
         items = []
         for exp in self.items["tests"]:
             # in case of no machines section, we assume not needed to run on this builder
@@ -667,6 +672,22 @@ class CscsCiInterface(ExperimentTestCollection):
                 elif (mode == "probtest") and builder not in exp["refgen"]:
                     continue
                 items.append(exp)
+
+        return {"tests": items}
+
+    def get_items_for_machine(self, machine):
+        supported_builders = self.get_supported_builders()
+        items = []
+        for exp in self.items["tests"]:
+            # in case of no machines section, we assume not needed to run on this machine
+            for m in exp.get("machines", []):
+                name = m["name"]
+
+                # only consider the machine we are currently interested in
+                if name != machine:
+                    continue
+                else:
+                    items.append(exp)
 
         return {"tests": items}
 
@@ -862,6 +883,50 @@ def register_experiments_for_bb(tag_name, exp=None):
     bbi.items = bbi.get_items_by_tag(tag_name, mode)
 
     bbi.items_to_bb()
+
+
+def cscs_ci_to_data(tag_name):
+    """
+    Returns a dictionary of machines with builders and experiments and their status (True/False).
+    """
+    cci = CscsCiInterface()
+    mode = set_mode(tag_name)
+    cci.items = cci.get_items_by_tag(tag_name, mode)
+    supported_builders = cci.get_supported_builders()
+
+    data = {"machines": list(supported_builders.keys())}
+
+    for midx, builders in supported_builders.items():
+        # Get experiments on this machine
+        items_on_machine = cci.get_items_for_machine(midx)["tests"]
+        experiments = [exp["check"] for exp in items_on_machine]
+
+        # Get experiments per builder
+        items_on_builder = {
+            builder: cci.get_items_for_builder(builder, mode)["tests"]
+            for builder in builders
+        }
+
+        # Build status matrix
+        status = [
+            [exp in items_on_builder[builder] for builder in builders]
+            for exp in items_on_machine
+        ]
+
+        # Order experiments alphabetically
+        experiments, status = (
+            zip(*sorted(zip(experiments, status), key=lambda x: x[0]))
+            if experiments
+            else ([], [])
+        )
+
+        data[midx] = {
+            "builders": builders,
+            "experiments": experiments,
+            "status": status,
+        }
+
+    return data
 
 
 if __name__ == "__main__":

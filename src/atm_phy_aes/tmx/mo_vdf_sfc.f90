@@ -359,14 +359,14 @@ CONTAINS
         CALL reset(this%graphs)
       ELSE
         graph_id = id_captured( this%graphs, ptr_keys=(/ C_LOC(ins%ta(1,1)) /), &
-          int_keys=(/ 1, merge(1, 0, is_time_ltrig_rad_m1(datetime, dtime, jg)) /) )
+          int_keys=(/ 1, merge(1, 0, is_time_ltrig_rad_m1(datetime, dtime, jg, .FALSE.)) /) )
         IF (graph_id > 0) THEN
           CALL replay(this%graphs, graph_id, 1)
           !$ACC WAIT(1)
           RETURN
         ELSE
           CALL begin_capture( this%graphs, 1, ptr_keys=(/ C_LOC(ins%ta(1,1)) /), &
-            int_keys=(/ 1, merge(1, 0, is_time_ltrig_rad_m1(datetime, dtime, jg)) /) )
+            int_keys=(/ 1, merge(1, 0, is_time_ltrig_rad_m1(datetime, dtime, jg, .FALSE.)) /) )
         END IF
       END IF
     END IF

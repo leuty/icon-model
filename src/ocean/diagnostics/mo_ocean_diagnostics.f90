@@ -111,6 +111,7 @@ MODULE mo_ocean_diagnostics
   PUBLIC :: calc_moc
   PUBLIC :: calc_psi
   PUBLIC :: diag_heat_salt_tendency
+  PUBLIC :: get_level_index_by_depth
 
   INTERFACE calc_moc
 ! 2023-11 dzo-DKRZ: Temporary until the difference in atlantic_moc and global_moc between both functions is solved
@@ -1190,7 +1191,7 @@ CONTAINS
     REAL(wp), ALLOCATABLE :: sum_value(:,:), sum_weight(:,:), total_weight(:), total_sum(:)
     INTEGER :: block, level, start_index, end_index, idx, start_vertical, end_vertical
     INTEGER :: allocated_levels, no_of_threads, myThreadNo
-    REAL(wp) :: z_w, totalSum, totalWeight, tmp_value, tmp_weight
+    REAL(wp) :: z_w, totalSum, totalWeight, tmp_value, tmp_weight, tmp_weight_first_level
 
     CHARACTER(LEN=*), PARAMETER :: method_name=module_name//':potential_energy'
     LOGICAL :: lzacc
@@ -1240,17 +1241,14 @@ CONTAINS
       DO block = in_subset%start_block, in_subset%end_block
         CALL get_index_range(in_subset, block, start_index, end_index)
 
-        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) REDUCTION(+: tmp_value, tmp_weight) ASYNC(1) IF(lzacc)
 #if defined(__LVECTOR__) || defined(_OPENACC)
+        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
         DO level = start_vertical, end_vertical - 1
           tmp_value = 0.0_wp
           tmp_weight = 0.0_wp
+          !$ACC LOOP REDUCTION(+: tmp_value, tmp_weight)
           DO idx = start_index, end_index
             IF (level > in_subset%vertical_levels(idx,block) - 1) CYCLE
-#else
-        DO idx = start_index, end_index
-          DO level = start_vertical, MIN(end_vertical, in_subset%vertical_levels(idx,block)) - 1
-#endif
 
             z_w = MERGE( &
               & (w(idx,level,block)*h(idx,block) &
@@ -1263,25 +1261,42 @@ CONTAINS
               & , &
               & 1 .EQ. level)
 
-#if defined(__LVECTOR__) || defined(_OPENACC)
             tmp_value = tmp_value + &
               & grav*z_w*rho(idx, level, block) * weights(idx, level, block)
 
             tmp_weight = tmp_weight + weights(idx, level, block)
 
           ENDDO
-          sum_value(level, myThreadNo) = tmp_value
-          sum_weight(level, myThreadNo) = tmp_weight
+          sum_value(level, myThreadNo) = sum_value(level, myThreadNo) + tmp_value
+          sum_weight(level, myThreadNo) = sum_weight(level, myThreadNo) + tmp_weight
+        ENDDO
+        !$ACC END PARALLEL LOOP
+        !$ACC WAIT(1)
 #else
+        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) REDUCTION(+: sum_value, sum_weight) ASYNC(1) IF(lzacc)
+        DO idx = start_index, end_index
+          DO level = start_vertical, MIN(end_vertical, in_subset%vertical_levels(idx,block)) - 1
+
+            z_w = MERGE( &
+              & (w(idx,level,block)*h(idx,block) &
+              &  + w(idx,level+1,block)*0.5_wp*del_zlev_i(level)) &
+              & /(0.5_wp*del_zlev_i(level)+h(idx,block)) &
+              & , &
+              & (w(idx,level,block)*del_zlev_i(level) &
+              &  + w(idx,level+1,block)*del_zlev_i(level+1)) &
+              & /(del_zlev_i(level)+del_zlev_i(level+1)) &
+              & , &
+              & 1 .EQ. level)
+
             sum_value(level, myThreadNo) = sum_value(level, myThreadNo) + &
               & grav*z_w*rho(idx, level, block) * weights(idx, level, block)
 
             sum_weight(level, myThreadNo) = sum_weight(level, myThreadNo) + weights(idx, level, block)
           END DO
-#endif
         ENDDO
         !$ACC END PARALLEL LOOP
         !$ACC WAIT(1)
+#endif
       ENDDO
 !ICON_OMP_END_DO
 
@@ -1290,18 +1305,27 @@ CONTAINS
 !ICON_OMP_DO PRIVATE(block, level, idx, start_index, end_index) reduction(+:tmp_value, tmp_weight)
       DO block = in_subset%start_block, in_subset%end_block
         CALL get_index_range(in_subset, block, start_index, end_index)
-        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) REDUCTION(+: tmp_value) ASYNC(1) IF(lzacc)
 #if defined(__LVECTOR__) || defined(_OPENACC)
-        DO level = start_vertical, end_vertical - 1
+        CALL warning(method_name, "Branch with no associated in_subset%vertical_levels and " // &
+          & "__LVECTOR or _OPENACC not checked!")
+
+        tmp_weight_first_level = 0.0_wp
+        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) REDUCTION(+: tmp_weight_first_level) ASYNC(1) IF(lzacc)
+        DO idx = start_index, end_index
+          tmp_weight_first_level = tmp_weight_first_level + weights(idx, 1, block)
+        ENDDO
+        !$ACC END PARALLEL LOOP
+        !$ACC WAIT(1)
+
+        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+        DO level = start_vertical+1, end_vertical - 1
           ! since we have the same numbder of vertical layers, the weight is the same
           ! for all levels. Compute it only for the first level, and then copy it
           tmp_value = 0.0_wp
-          tmp_weight = sum_weight(start_vertical, myThreadNo)
+          tmp_weight = tmp_weight_first_level
+          !$ACC LOOP REDUCTION(+: tmp_value, tmp_weight)
           DO idx = start_index, end_index
-#else
-        DO idx = start_index, end_index
-          DO level = start_vertical, end_vertical - 1
-#endif
+
             z_w = MERGE( &
               & (w(idx,level,block)*h(idx,block) &
               &  + w(idx,level+1,block)*0.5_wp*del_zlev_i(level)) &
@@ -1313,21 +1337,38 @@ CONTAINS
               & , &
               & 1 .EQ. level)
 
-#if defined(__LVECTOR__) || defined(_OPENACC)
-            tmp_value  = tmp_value + &
+            tmp_value = tmp_value + &
               & grav*z_w*rho(idx, level, block) * weights(idx,level, block)
-            sum_weight(level, myThreadNo)  = tmp_weight + weights(idx, level, block)
+            sum_weight(level, myThreadNo) = tmp_weight + weights(idx, level, block)
           ENDDO
-          sum_value(level, myThreadNo) = tmp_value
-#else
-            sum_value(level, myThreadNo)  = sum_value(level, myThreadNo) + &
-              & grav*z_w*rho(idx, level, block) * weights(idx,level, block)
-            sum_weight(level, myThreadNo)  = sum_weight(start_vertical, myThreadNo) + weights(idx, level, block)
-          END DO
-#endif
+          sum_value(level, myThreadNo) = sum_value(level, myThreadNo) + tmp_value
         ENDDO
         !$ACC END PARALLEL LOOP
         !$ACC WAIT(1)
+#else
+        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) REDUCTION(+: sum_value, sum_weight) ASYNC(1) IF(lzacc)
+        DO idx = start_index, end_index
+          DO level = start_vertical, end_vertical - 1
+
+            z_w = MERGE( &
+              & (w(idx,level,block)*h(idx,block) &
+              &  + w(idx,level+1,block)*0.5_wp*del_zlev_i(level)) &
+              & /(0.5_wp*del_zlev_i(level)+h(idx,block)) &
+              & , &
+              & (w(idx,level,block)*del_zlev_i(level) &
+              &  + w(idx,level+1,block)*del_zlev_i(level+1)) &
+              & /(del_zlev_i(level)+del_zlev_i(level+1)) &
+              & , &
+              & 1 .EQ. level)
+
+            sum_value(level, myThreadNo) = sum_value(level, myThreadNo) + &
+              & grav*z_w*rho(idx, level, block) * weights(idx,level, block)
+            sum_weight(level, myThreadNo) = sum_weight(start_vertical, myThreadNo) + weights(idx, level, block)
+          END DO
+        ENDDO
+        !$ACC END PARALLEL LOOP
+        !$ACC WAIT(1)
+#endif
       ENDDO
 !ICON_OMP_END_DO
 
@@ -1342,10 +1383,11 @@ CONTAINS
     !$ACC WAIT(1)
 
 #if defined(__LVECTOR__) || defined(_OPENACC)
-    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) REDUCTION(+: tmp_value, tmp_weight) ASYNC(1) IF(lzacc)
+    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
     DO level = start_vertical, end_vertical - 1
       tmp_value = 0.0_wp
       tmp_weight = 0.0_wp
+      !$ACC LOOP REDUCTION(+: tmp_value, tmp_weight)
       DO myThreadNo=0, no_of_threads-1
         ! write(0,*) myThreadNo, level, " sum=", sum_value(level, myThreadNo), sum_weight(level, myThreadNo)
         tmp_value  = tmp_value  + sum_value(level, myThreadNo)
@@ -1405,9 +1447,9 @@ CONTAINS
     REAL(wp), ALLOCATABLE :: sum_value(:,:), sum_weight(:,:), total_weight(:), total_sum(:)
     INTEGER :: block, level, start_index, end_index, idx, start_vertical, end_vertical
     INTEGER :: allocated_levels, no_of_threads, myThreadNo
-    REAL(wp) :: z_w, totalSum, totalWeight, tmp_value, tmp_weight
+    REAL(wp) :: z_w, totalSum, totalWeight, tmp_value, tmp_weight, tmp_weight_first_level
 
-    CHARACTER(LEN=*), PARAMETER :: method_name=module_name//':potential_energy'
+    CHARACTER(LEN=*), PARAMETER :: method_name=module_name//':potential_energy_zstar'
     LOGICAL :: lzacc
 
     CALL set_acc_host_or_device(lzacc, lacc)
@@ -1454,81 +1496,107 @@ CONTAINS
 !ICON_OMP_DO PRIVATE(block, level, idx, start_index, end_index) reduction(+:tmp_value, tmp_weight)
       DO block = in_subset%start_block, in_subset%end_block
         CALL get_index_range(in_subset, block, start_index, end_index)
-        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) REDUCTION(+: tmp_value, tmp_weight) ASYNC(1) IF(lzacc)
 #if defined(__LVECTOR__) || defined(_OPENACC)
+        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
         DO level = start_vertical, end_vertical - 1
           tmp_value = 0.0_wp
           tmp_weight = 0.0_wp
+          !$ACC LOOP REDUCTION(+: tmp_value, tmp_weight)
           DO idx = start_index, end_index
             IF (level > in_subset%vertical_levels(idx,block) - 1) CYCLE
-#else
-        DO idx = start_index, end_index
-          DO level = start_vertical, MIN(end_vertical, in_subset%vertical_levels(idx,block)) - 1
-#endif
-
 
             z_w = (w(idx,level,block)*del_zlev_i(level) &
               &  + w(idx,level+1,block)*del_zlev_i(level+1)) &
               & /(del_zlev_i(level)+del_zlev_i(level+1))
 
-#if defined(__LVECTOR__) || defined(_OPENACC)
             tmp_value = tmp_value + &
               & grav*z_w*rho(idx, level, block) * weights(idx, level, block)*stretch(idx, block)
 
             tmp_weight = tmp_weight + weights(idx, level, block)
 
           ENDDO
-          sum_value(level, myThreadNo) = tmp_value
-          sum_weight(level, myThreadNo) = tmp_weight
+          sum_value(level, myThreadNo) = sum_value(level, myThreadNo) + tmp_value
+          sum_weight(level, myThreadNo) = sum_weight(level, myThreadNo) + tmp_weight
+        ENDDO
+        !$ACC END PARALLEL LOOP
+        !$ACC WAIT(1)
 #else
+        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) REDUCTION(+: sum_value, sum_weight) ASYNC(1) IF(lzacc)
+        DO idx = start_index, end_index
+          DO level = start_vertical, MIN(end_vertical, in_subset%vertical_levels(idx,block)) - 1
+
+            z_w = (w(idx,level,block)*del_zlev_i(level) &
+              &  + w(idx,level+1,block)*del_zlev_i(level+1)) &
+              & /(del_zlev_i(level)+del_zlev_i(level+1))
+
             sum_value(level, myThreadNo) = sum_value(level, myThreadNo) + &
               & grav*z_w*rho(idx, level, block) * weights(idx, level, block)*stretch(idx, block)
 
             sum_weight(level, myThreadNo) = sum_weight(level, myThreadNo) + weights(idx, level, block)
           END DO
-#endif
         ENDDO
         !$ACC END PARALLEL LOOP
         !$ACC WAIT(1)
+#endif
       ENDDO
 !ICON_OMP_END_DO
 
     ELSE ! no in_subset%vertical_levels
 
-!ICON_OMP_DO PRIVATE(block, level, idx, start_index, end_index) reduction(+:tmp_value, tmp_weight)
+!ICON_OMP_DO PRIVATE(block, level, idx, start_index, end_index) reduction(+:tmp_value, tmp_weight, tmp_weight_first_level)
       DO block = in_subset%start_block, in_subset%end_block
         CALL get_index_range(in_subset, block, start_index, end_index)
-        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) REDUCTION(+: tmp_value) ASYNC(1) IF(lzacc)
 #if defined(__LVECTOR__) || defined(_OPENACC)
-        DO level = start_vertical, end_vertical - 1
+        CALL warning(method_name, "Branch with no associated in_subset%vertical_levels and " // &
+          & "__LVECTOR or _OPENACC not checked!")
+
+        tmp_weight_first_level = 0.0_wp
+        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) REDUCTION(+: tmp_weight_first_level) ASYNC(1) IF(lzacc)
+        DO idx = start_index, end_index
+          tmp_weight_first_level = tmp_weight_first_level + weights(idx, 1, block)
+        ENDDO
+        !$ACC END PARALLEL LOOP
+        !$ACC WAIT(1)
+
+        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+        DO level = start_vertical+1, end_vertical - 1
           ! since we have the same numbder of vertical layers, the weight is the same
           ! for all levels. Compute it only for the first level, and then copy it
           tmp_value = 0.0_wp
-          tmp_weight = sum_weight(start_vertical, myThreadNo)
+          tmp_weight = tmp_weight_first_level
+          !$ACC LOOP REDUCTION(+: tmp_value, tmp_weight)
           DO idx = start_index, end_index
-#else
-        DO idx = start_index, end_index
-          DO level = start_vertical, end_vertical - 1
-#endif
+
             z_w = (w(idx,level,block)*del_zlev_i(level) &
               &  + w(idx,level+1,block)*del_zlev_i(level+1)) &
               & /(del_zlev_i(level)+del_zlev_i(level+1))
 
-#if defined(__LVECTOR__) || defined(_OPENACC)
             tmp_value  = tmp_value + &
               & grav*z_w*rho(idx, level, block) * weights(idx,level, block)*stretch(idx, block)
             sum_weight(level, myThreadNo)  = tmp_weight + weights(idx, level, block)
           ENDDO
-          sum_value(level, myThreadNo) = tmp_value
+          sum_value(level, myThreadNo) = sum_value(level, myThreadNo) + tmp_value
+        ENDDO
+        !$ACC END PARALLEL LOOP
+        !$ACC WAIT(1)
+
 #else
+        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) REDUCTION(+: sum_value, sum_weight) ASYNC(1) IF(lzacc)
+        DO idx = start_index, end_index
+          DO level = start_vertical, end_vertical - 1
+
+            z_w = (w(idx,level,block)*del_zlev_i(level) &
+              &  + w(idx,level+1,block)*del_zlev_i(level+1)) &
+              & /(del_zlev_i(level)+del_zlev_i(level+1))
+
             sum_value(level, myThreadNo)  = sum_value(level, myThreadNo) + &
               & grav*z_w*rho(idx, level, block) * weights(idx,level, block)*stretch(idx, block)
             sum_weight(level, myThreadNo)  = sum_weight(start_vertical, myThreadNo) + weights(idx, level, block)
           END DO
-#endif
         ENDDO
         !$ACC END PARALLEL LOOP
         !$ACC WAIT(1)
+#endif
       ENDDO
 !ICON_OMP_END_DO
 
@@ -1543,10 +1611,11 @@ CONTAINS
     !$ACC WAIT(1)
 
 #if defined(__LVECTOR__) || defined(_OPENACC)
-    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) REDUCTION(+: tmp_value, tmp_weight) ASYNC(1) IF(lzacc)
+    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
     DO level = start_vertical, end_vertical - 1
       tmp_value = 0.0_wp
       tmp_weight = 0.0_wp
+      !$ACC LOOP REDUCTION(+: tmp_value, tmp_weight)
       DO myThreadNo=0, no_of_threads-1
         ! write(0,*) myThreadNo, level, " sum=", sum_value(level, myThreadNo), sum_weight(level, myThreadNo)
         tmp_value  = tmp_value  + sum_value(level, myThreadNo)
@@ -2967,7 +3036,6 @@ CONTAINS
           delta_ice(cell,blk) = SUM(ice%hi(cell,:,blk)*ice%conc(cell,:,blk))
           delta_snow(cell,blk) = SUM(ice%hs(cell,:,blk)*ice%conc(cell,:,blk))
 
-          !$ACC LOOP SEQ
           DO level = 1,subset%vertical_levels(cell,blk)
             delta_thetao(cell,level,blk) = thetao(cell,level,blk)
             delta_so(cell,level,blk) = so(cell,level,blk)
@@ -3005,7 +3073,6 @@ CONTAINS
                * ( tmelt - tref )  )                                                      &
                - ( rhosnic * snthk * entmel )) * dti
 
-          !$ACC LOOP SEQ
           DO level = 1,subset%vertical_levels(cell,blk)
 
             IF (vert_cor_type .EQ. 1) THEN
@@ -3101,7 +3168,6 @@ CONTAINS
              * ice%zUnderIce(cell,blk)
 
 
-        !$ACC LOOP SEQ
         DO level=2,subset%vertical_levels(cell,blk)
 
           ! 2023-07 dzo-DKRZ: The following MERGE command does not work as intended with NVIDIA compiler
@@ -3307,7 +3373,6 @@ CONTAINS
           tauyv(cell,blk) = topbc_windstress_v(cell,blk) * V(cell,1,blk)
 
 
-        !$ACC LOOP SEQ
         DO level=1,subset%vertical_levels(cell,blk)
 
 
@@ -3619,7 +3684,7 @@ CONTAINS
   !!
 
   FUNCTION get_level_index_by_depth(patch_3d, depth) RESULT(level_index)
-
+    !$ACC ROUTINE SEQ
 
     TYPE(t_patch_3d ),TARGET, INTENT(in)     :: patch_3D
     REAL(dp), INTENT(in) :: depth

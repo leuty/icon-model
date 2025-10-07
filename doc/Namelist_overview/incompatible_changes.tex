@@ -594,4 +594,10 @@ from ...mpi\_phy... to ...echam\_phy... because programmers felt that the acrony
     \item Remove \texttt{itype\_interception=2} option. The namelist switch \texttt{itype\_interception} is still accepted but the model is aborted when set to a value different from $1$.
   \end{itemize}
 \end{changeitem}
+
+\begin{changeitem}{aes\_cop\_nml}{2025-07-31}{icon-mpim:master xxx}
+  \begin{itemize}
+    \item Remove \texttt{aes\_cop\_config(:)\%cinhoms} option. The cloud inhomogeneity factor for snow is removed for AES physics.
+  \end{itemize}
+\end{changeitem}
 % --------------------------------------------------------------------------------------------

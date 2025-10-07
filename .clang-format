@@ -14,8 +14,5 @@ AlignConsecutiveAssignments:
   Enabled:         true
   AcrossEmptyLines: true
   AcrossComments:  true
-  AlignCompound:   false
   AlignFunctionPointers: true
-  PadOperators:    true
-AlwaysBreakTemplateDeclarations: false
 ColumnLimit:     120
