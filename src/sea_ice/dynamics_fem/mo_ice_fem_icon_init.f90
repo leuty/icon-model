@@ -685,7 +685,7 @@ END SUBROUTINE copy_femelem2iconcell
 !> map ICON variable on cells --> fesom elements
 SUBROUTINE copy_iconcell2femelem(u_cell, u_elem, lacc)
   REAL(wp), INTENT(IN)  :: u_cell(nproma, fem_patch%nblks_c)
-  REAL(wp), INTENT(OUT) :: u_elem(fem_patch%n_patch_cells)
+  REAL(wp), INTENT(INOUT) :: u_elem(fem_patch%n_patch_cells)
   LOGICAL, INTENT(IN), OPTIONAL :: lacc
 
   INTEGER :: jc, jb, npad, nlast

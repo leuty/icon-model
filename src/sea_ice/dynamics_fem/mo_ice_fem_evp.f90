@@ -436,6 +436,9 @@ logical     :: lzacc
 
  !$ACC DATA COPY(elem2D_nodes, bafux, bafuy, metrics_elem2D) &
  !$ACC   COPY(sigma11, sigma12, sigma22) &
+ !$ACC   COPY(eps11, eps12, eps22) &
+ !$ACC   COPY(si1, si2) &
+ !$ACC   COPY(delta) &
  !$ACC   COPY(u_ice, v_ice, m_ice, a_ice, m_snow) &
  !$ACC   COPY(elevation, u_w, v_w, stress_atmice_x, stress_atmice_y) &
  !$ACC   COPY(myList_nod2D) &

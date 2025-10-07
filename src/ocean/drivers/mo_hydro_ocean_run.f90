@@ -166,7 +166,7 @@ CONTAINS
     ENDIF
     IF (is_restart .AND. (i_ice_dyn == 1)) THEN
         ! Initialize u_ice, v_ice with sea_ice vals read from the restart file
-        CALL ice_fem_init_vel_restart(patch_3d%p_patch_2D(1), sea_ice, lacc=lzacc)
+        CALL ice_fem_init_vel_restart(patch_3d%p_patch_2D(1), sea_ice, lacc=.TRUE.)
     END IF
 !
 !     IF (is_restart) THEN

@@ -148,6 +148,7 @@ END DO
 
 !$ACC ENTER DATA COPYIN(u_ice, v_ice, m_ice, m_snow, a_ice, elevation, u_w, v_w) &
 !$ACC   COPYIN(stress_atmice_x, stress_atmice_y, sigma11, sigma22, sigma12) &
+!$ACC   COPYIN(si1, si2, eps11, eps22, eps12, delta) &
 !$ACC   COPYIN(rhs_m, rhs_mis, rhs_a, rhs_u, rhs_v, lmass_matrix)
 end subroutine array_setup_ice
 !==========================================================================
