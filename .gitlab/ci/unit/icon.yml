@@ -36,7 +36,7 @@ include:
     # $ICON_CI_COMMON_DKRZ_SHMEM_PATH directory, regardless of whether the job
     # succeeds.
     - |
-      # !reference [.system:build:levante, script]
+      # !reference [.unit:icon:levante, script]
       icon_ci_log_section_start 'Configuring and building ICON' 'collapsed=false'
       time (
         finalize ()

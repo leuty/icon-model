@@ -9,7 +9,8 @@
 # ---------------------------------------------------------------
 
 include:
-  - local: .gitlab/ci/common/alpine.yml
+  - local: .gitlab/ci/utils/log.yml
+  - local: .gitlab/ci/utils/apk.yml
   - local: .gitlab/ci/utils/pip.yml
 
 # Implements the common template for jobs that generate the ICON documentation
@@ -24,20 +25,23 @@ include:
 #
 .common:html:
   extends:
-    - .common:alpine
+    - .utils:log
+    - .utils:apk
     - .utils:pip
   variables:
     ICON_CI_COMMON_HTML_OUTPUT_REL_PATH: public
     ICON_CI_COMMON_HTML_ARTIFACT_URL: >-
       https://${CI_PAGES_HOSTNAME}/-/${CI_PROJECT_NAME}/-/jobs/${CI_JOB_ID}/artifacts/${ICON_CI_COMMON_HTML_OUTPUT_REL_PATH}/index.html
-    ICON_CI_COMMON_ALPINE_PACKAGES: bash
-    ICON_CI_UTILS_PIP_PACKAGES: >-
-      myst-parser pydata-sphinx-theme sphinx sphinx-design click numpy pandas pyyaml
+    ICON_CI_UTILS_APK_PACKAGES: bash
+    PIP_REQUIREMENT: ${CI_PROJECT_DIR}/doc/www/requirements.txt
+    ICON_CI_UTILS_PIP_PACKAGES: click numpy pandas pyyaml
   before_script:
-    - !reference [.common:alpine, before_script]
+    - !reference [.utils:log, before_script]
+    - !reference [.utils:apk, before_script]
     - !reference [.utils:pip, before_script]
   script:
     - |
+      # !reference [.common:html, script]
       icon_ci_log_section_start 'Generating HTML pages' 'collapsed=false'
       (
         set -ux
@@ -58,10 +62,10 @@ include:
   tags:
     - sphinx
   cache:
-    - key: alpine-html
+    - key: apk-pip-${CI_RUNNER_TAGS}-${CI_JOB_IMAGE}-html
       paths:
-        - ${ICON_CI_COMMON_ALPINE_CACHE_PATH}
-    - !reference [.utils:pip, cache]
+        - ${ICON_CI_UTILS_APK_CACHE_PATH}
+        - ${ICON_CI_UTILS_PIP_CACHE_PATH}
   artifacts:
     paths:
       - ${ICON_CI_COMMON_HTML_OUTPUT_REL_PATH}

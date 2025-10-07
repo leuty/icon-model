@@ -18,7 +18,7 @@ include:
 .common:pre-commit:
   extends: .common:alpine
   variables:
-    ICON_CI_COMMON_ALPINE_PACKAGES: git pre-commit python3
+    ICON_CI_UTILS_APK_PACKAGES: git pre-commit python3
     ICON_CI_COMMON_PRE_COMMIT_CACHE_PATH: ${ICON_CI_UTILS_GIT_IGNORE_PATH}/pre-commit
     PRE_COMMIT_HOME: ${ICON_CI_COMMON_PRE_COMMIT_CACHE_PATH}/cache
   before_script:
@@ -34,11 +34,13 @@ include:
 
         cache_path=${PRE_COMMIT_HOME}
 
-        # Invalidate the cache if the version of Python has changed:
-        cache_key="$(python --version)"
+        # Invalidate the cache if the versions of Python and pre-commit have
+        # changed:
+        cache_key="$(python3 -c 'import sys; print("python", sys.version)')
+        $(pre-commit --version)"
         cache_key_path="${ICON_CI_COMMON_PRE_COMMIT_CACHE_PATH}/key"
 
-        echo "${cache_key}" | diff - "${cache_key_path}" 2>/dev/null 2>&1 && {
+        echo "${cache_key}" | diff - "${cache_key_path}" >/dev/null 2>&1 && {
           icon_ci_log_info_msg "Using cache from '${cache_path}'..."
         } || (
           icon_ci_log_info_msg "Initializing cache in '${cache_path}'..."
@@ -57,7 +59,7 @@ include:
   cache:
     - key: alpine-pre-commit
       paths:
-        - ${ICON_CI_COMMON_ALPINE_CACHE_PATH}
+        - ${ICON_CI_UTILS_APK_CACHE_PATH}
     - key:
         prefix: pre-commit-hooks
         files:

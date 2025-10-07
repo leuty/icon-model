@@ -10,42 +10,21 @@
 
 include:
   - local: .gitlab/ci/utils/log.yml
+  - local: .gitlab/ci/utils/apt.yml
 
 # Implements the recommended default template for a job based on the ubuntu
-# Docker image. Installs the required Advanced Package Tool (APT) packages.
-#
-# The installation of the packages can be controlled with the following
-# variables:
-#   - ICON_CI_COMMON_UBUNTU_PACKAGES (defaults to an empty string): a
-#     space-separated list of packages to install with APT.
+# Docker image. Installs the required Advanced Package Tool (APT) packages (see
+# .utils:apt).
 #
 .common:ubuntu:
-  extends: .utils:log
+  extends:
+    - .utils:log
+    - .utils:apt
   variables:
     GIT_SUBMODULE_UPDATE_FLAGS: --jobs=4
   before_script:
     - !reference [.utils:log, before_script]
-    - |
-      # !reference [.common:ubuntu, before_script]
-      icon_ci_log_section_start 'Installing APT packages'
-      (
-        set -u
-
-        test -n "${ICON_CI_COMMON_UBUNTU_PACKAGES-}" || {
-          icon_ci_log_info_msg \
-            'ICON_CI_COMMON_UBUNTU_PACKAGES is empty: nothing to install'
-          exit 0
-        }
-
-        apt-get --version
-
-        set -x
-        DEBIAN_FRONTEND=noninteractive apt-get -yq update
-        DEBIAN_FRONTEND=noninteractive apt-get -yq install \
-          --no-install-recommends \
-          ${ICON_CI_COMMON_UBUNTU_PACKAGES}
-      ) 2>&1
-      icon_ci_log_section_end
+    - !reference [.utils:apt, before_script]
   tags:
     - docker-any-image
   image:

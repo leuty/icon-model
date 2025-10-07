@@ -27,6 +27,9 @@
 # GitLab runners normally do when the GIT_STRATEGY is set to 'clone'. The script
 # also supports the following standard variables
 # (see https://docs.gitlab.com/ci/runners/configure_runners/#configure-runner-behavior-with-variables):
+#   - GIT_STRATEGY (defaults to `empty`): if set to `none`, all git operations
+#     are skipped (any other value of the variable does not affect the logic of
+#     the before_script);
 #   - GIT_SUBMODULE_STRATEGY (defaults to `none`);
 #   - GIT_CHECKOUT (defaults to `true`);
 #   - GIT_FETCH_EXTRA_FLAGS (defaults to `--quiet`);
@@ -64,6 +67,7 @@
         set -u
 
         # Default values:
+        GIT_STRATEGY=${GIT_STRATEGY:-none}
         GIT_SUBMODULE_STRATEGY=${GIT_SUBMODULE_STRATEGY:-none}
         GIT_CHECKOUT=${GIT_CHECKOUT:-true}
         GIT_FETCH_EXTRA_FLAGS=${GIT_FETCH_EXTRA_FLAGS:---quiet}
@@ -84,36 +88,43 @@
           submodule_recursive_flag=
 
         # Sanity checks:
-        git --version 2>/dev/null || {
-          icon_ci_log_error_msg 'ERROR: git command is not available'
-          exit 1
-        }
-        test ! -d "${ICON_CI_UTILS_GIT_CLONE_PATH}" || {
-          git_toplevel=$(git -C "${ICON_CI_UTILS_GIT_CLONE_PATH}" rev-parse --show-toplevel 2>/dev/null)
-          test "${ICON_CI_UTILS_GIT_CLONE_PATH}" != "${git_toplevel}"
+        test none = "${GIT_STRATEGY}" && {
+          icon_ci_log_info_msg 'Skipping Git repository setup'
+          GIT_SUBMODULE_STRATEGY=none
+          GIT_CHECKOUT=false
+          ICON_CI_UTILS_GIT_SPARSE_PATTERNS=
         } || {
-          icon_ci_log_error_msg "ERROR: '${ICON_CI_UTILS_GIT_CLONE_PATH}' is an existing git repository"
-          exit 1
+          git --version 2>/dev/null || {
+            icon_ci_log_error_msg 'ERROR: git command is not available'
+            exit 1
+          }
+          test ! -d "${ICON_CI_UTILS_GIT_CLONE_PATH}" || {
+            git_toplevel=$(git -C "${ICON_CI_UTILS_GIT_CLONE_PATH}" rev-parse --show-toplevel 2>/dev/null)
+            test "${ICON_CI_UTILS_GIT_CLONE_PATH}" != "${git_toplevel}"
+          } || {
+            icon_ci_log_error_msg "ERROR: '${ICON_CI_UTILS_GIT_CLONE_PATH}' is an existing git repository"
+            exit 1
+          }
+
+          icon_ci_log_section_start \
+            "Cloning '${ICON_CI_UTILS_GIT_REPOSITORY_URL}' to '${ICON_CI_UTILS_GIT_CLONE_PATH}'"
+
+          icon_ci_log_info_msg "Fetching changes with git depth set to ${GIT_DEPTH}..."
+          (
+            set -x
+            git -c 'init.defaultBranch=none' init --template='' "${ICON_CI_UTILS_GIT_CLONE_PATH}"
+            git -C "${ICON_CI_UTILS_GIT_CLONE_PATH}" \
+              remote add origin "${ICON_CI_UTILS_GIT_REPOSITORY_URL}"
+            git -C "${ICON_CI_UTILS_GIT_CLONE_PATH}" \
+              fetch origin --no-recurse-submodules ${ICON_CI_UTILS_GIT_REFSPECS} \
+              --depth "${GIT_DEPTH}" ${GIT_FETCH_EXTRA_FLAGS}
+          ) 2>&1
         }
-
-        icon_ci_log_section_start \
-          "Cloning '${ICON_CI_UTILS_GIT_REPOSITORY_URL}' to '${ICON_CI_UTILS_GIT_CLONE_PATH}'"
-
-        icon_ci_log_info_msg "Fetching changes with git depth set to ${GIT_DEPTH}..."
-        (
-          set -x
-          git -c 'init.defaultBranch=none' init --template='' "${ICON_CI_UTILS_GIT_CLONE_PATH}"
-          git -C "${ICON_CI_UTILS_GIT_CLONE_PATH}" \
-            remote add origin "${ICON_CI_UTILS_GIT_REPOSITORY_URL}"
-          git -C "${ICON_CI_UTILS_GIT_CLONE_PATH}" \
-            fetch origin --no-recurse-submodules ${ICON_CI_UTILS_GIT_REFSPECS} \
-            --depth "${GIT_DEPTH}" ${GIT_FETCH_EXTRA_FLAGS}
-        ) 2>&1
 
         test -z "${ICON_CI_UTILS_GIT_SPARSE_PATTERNS}" && {
-          icon_ci_log_info_msg 'Skipping sparse checkout configuration'
+          icon_ci_log_info_msg 'Skipping Git sparse checkout configuration'
         } || (
-          icon_ci_log_info_msg 'Applying sparse checkout configuration...'
+          icon_ci_log_info_msg 'Applying Git sparse checkout configuration...'
           set -x
           git -C "${ICON_CI_UTILS_GIT_CLONE_PATH}" \
             sparse-checkout set --no-cone -- ${ICON_CI_UTILS_GIT_SPARSE_PATTERNS}
@@ -140,7 +151,8 @@
             --depth "${GIT_SUBMODULE_DEPTH}" ${GIT_SUBMODULE_UPDATE_FLAGS} \
             ${GIT_SUBMODULE_PATHS:+--} ${GIT_SUBMODULE_PATHS}
         ) 2>&1
-        icon_ci_log_section_end
+
+        test none = "${GIT_STRATEGY}" || icon_ci_log_section_end
       )
 
 # Sets environment variables that speed up the cloning of the project

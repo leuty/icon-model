@@ -180,7 +180,7 @@ include:
     - .common:ubuntu
     - .system:checksum
   variables:
-    ICON_CI_COMMON_UBUNTU_PACKAGES: cdo python3-minimal python3-yaml
+    ICON_CI_UTILS_APT_PACKAGES: cdo python3-minimal python3-yaml
   before_script:
     - |
       # !reference [.system:analyze, before_script]
@@ -220,6 +220,10 @@ include:
         }
       ) 2>&1
       icon_ci_log_section_end
+  cache:
+    - key: apt-${CI_JOB_IMAGE}-system-analyze
+      paths:
+        - ${ICON_CI_UTILS_APT_CACHE_PATH}
   artifacts:
     paths:
       - ${ICON_CI_CHECKSUM_TMP_PATH}/*
@@ -347,7 +351,7 @@ generate-checksum-table:
     - .common:alpine
     - .system:checksum
   variables:
-    ICON_CI_COMMON_ALPINE_PACKAGES: yq-go
+    ICON_CI_UTILS_APK_PACKAGES: yq-go
   script:
     - |
       # !reference [generate-checksum-table, script]
@@ -388,7 +392,7 @@ Accept new checksum table:
     - .common:alpine
     - .system:checksum
   variables:
-    ICON_CI_COMMON_ALPINE_PACKAGES: git
+    ICON_CI_UTILS_APK_PACKAGES: git
   script:
     - |
       # !references [Accept new checksum table, script]

@@ -20,6 +20,7 @@ licenses:
   extends: .common:pre-commit
   script:
     - |
+      # !reference [licenses, script]
       icon_ci_log_section_start 'Checking licenses' 'collapsed=false'
       (
         set -ux
@@ -46,6 +47,7 @@ style:coding:
     STYLE_PATCH: style.patch
   script:
     - |
+      # !reference [style:coding, script]
       icon_ci_log_section_start 'Checking coding style' 'collapsed=false'
       (
         set -ux
@@ -93,11 +95,12 @@ style:general:
     # However, we cannot currently do that because they will fail the tests.
     # Therefore, we check as many of them as possible:
     GIT_SUBMODULE_PATHS: externals/art externals/jsbach
-    ICON_CI_COMMON_ALPINE_PACKAGES: >-
+    ICON_CI_UTILS_APK_PACKAGES: >-
       bash findutils grep py3-click py3-numpy py3-pandas py3-yaml python3
     ICON_SRC_PATHS: src support test/unit-tests
   script:
     - |
+      # !reference [style:general, script]
       icon_ci_log_section_start 'Checking general style' 'collapsed=false'
       (
         set -ux
@@ -121,10 +124,11 @@ autoconf:
     AUTOCONF_SHA256: 954bd69b391edc12d6a4a51a2dd1476543da5c6bbf05a95b59dc0dd6fd4c2969
     AUTOCONF_DIR: ${ICON_CI_UTILS_GIT_IGNORE_PATH}/autoconf
     AUTOCONF_PATCH: autoconf.patch
-    ICON_CI_COMMON_ALPINE_PACKAGES: automake curl git m4 make perl
+    ICON_CI_UTILS_APK_PACKAGES: automake curl git m4 make perl
   before_script:
     - !reference [.common:alpine, before_script]
     - |
+      # !reference [autoconf, before_script]
       icon_ci_log_section_start 'Fetching Autoconf'
       test -f "${AUTOCONF_DIR}/autoconf-${AUTOCONF_VERSION}.tar.gz" && \
       echo "${AUTOCONF_SHA256} ${AUTOCONF_DIR}/autoconf-${AUTOCONF_VERSION}.tar.gz" | sha256sum -c || (
@@ -153,6 +157,7 @@ autoconf:
       icon_ci_log_section_end
   script:
     - |
+      # !reference [autoconf, script]
       icon_ci_log_section_start 'Checking consistency' 'collapsed=false'
       set -u
       ( set -x; autoreconf -fvi; ) 2>&1
@@ -208,6 +213,7 @@ iconbot:
   before_script:
     - !reference [.utils:log, before_script]
     - |
+      # !reference [iconbot, before_script]
       icon_ci_log_section_start 'Fetching Iconbot'
       (
         set -ux
@@ -218,6 +224,7 @@ iconbot:
     - !reference [.utils:pip, before_script]
   script:
     - |
+      # !reference [iconbot, script]
       icon_ci_log_section_start 'Running Iconbot checks' 'collapsed=false'
       (
         set -ux

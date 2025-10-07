@@ -84,6 +84,7 @@ include:
       )
   script:
     - |
+      # !reference [.nwp:muphys:common, script]
       icon_ci_log_section_start 'Running tests' 'collapsed=false'
       (
         trap finalize EXIT
@@ -128,6 +129,7 @@ nwp:muphys:intel:
     TOLERANCE_PATCH: tolerance.patch
   script:
     - |
+      # !reference ["nwp:muphys: Generate tolerance data", script]
       icon_ci_log_section_start 'Generating patch file with new tolerance data' 'collapsed=false'
       (
         trap finalize EXIT
