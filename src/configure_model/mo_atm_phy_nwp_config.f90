@@ -72,6 +72,7 @@ MODULE mo_atm_phy_nwp_config
   PUBLIC :: setup_nwp_diag_events
   PUBLIC :: icpl_aero_ice
   PUBLIC :: lcuda_graph_turb_tran
+  PUBLIC :: icpl_gwd_prec
 
   !!--------------------------------------------------------------------------
   !! Basic configuration setup for nwp physics
@@ -233,6 +234,8 @@ MODULE mo_atm_phy_nwp_config
   INTEGER  :: icpl_o3_tp         !! type of coupling between ozone and the tropopause
   INTEGER  :: icpl_aero_ice      !! type of coupling between aersols and ice nucleation
   INTEGER  :: itype_dissip_heat  !! Options for the calculation of dissipative heating
+  INTEGER  :: icpl_gwd_prec      !! coupling between gwd momentum flux and total precipitation
+
 
   !$ACC DECLARE CREATE(itype_dissip_heat, icpl_o3_tp)
 

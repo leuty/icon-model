@@ -38,7 +38,8 @@ MODULE mo_nwp_phy_nml
     &                               config_icpl_o3_tp      => icpl_o3_tp,      &
     &                               config_itype_dissip_heat => itype_dissip_heat, &
     &                               config_icpl_aero_ice   => icpl_aero_ice,   &
-    &                               config_lcuda_graph_turb_tran => lcuda_graph_turb_tran
+    &                               config_lcuda_graph_turb_tran => lcuda_graph_turb_tran, &
+    &                               config_icpl_gwd_prec   => icpl_gwd_prec
 
   USE mo_nml_annotate,        ONLY: temp_defaults, temp_settings
   USE mo_cuparameters,        ONLY: icapdcycl
@@ -103,6 +104,7 @@ MODULE mo_nwp_phy_nml
   REAL(wp) :: efdt_min_raylfric  !! e-folding time corresponding to maximum relaxation coefficient
   LOGICAL  :: latm_above_top(max_dom) !! use extra layer above model top for radiation (reduced grid only)
   LOGICAL  :: lupatmo_phy(max_dom)    !! switch on/off upper-atmosphere physics in domains
+  INTEGER  :: icpl_gwd_prec      !! introduce linear dependence of gwd momentum flux to precipitation
   ! parameter for cloud microphysics
   REAL(wp) :: mu_rain            !! shape parameter in gamma distribution for rain
   REAL(wp) :: rain_n0_factor     !! tuning factor for intercept parameter of raindrop size distribution
@@ -158,7 +160,8 @@ MODULE mo_nwp_phy_nml
     &                    lstochastic_pattern_generator,              &
     &                    spg_length_scale, spg_time_scale,           &
     &                    spg_spec_modes, spg_variance,               &
-    &                    spg_fourier_modes, spg_use_asl
+    &                    spg_fourier_modes, spg_use_asl,             &
+    &                    icpl_gwd_prec
 
 CONTAINS
 
@@ -271,6 +274,11 @@ CONTAINS
 
     lupatmo_phy(:)     = .TRUE.   ! switch on upper-atmosphere physics
     lupatmo_phy(1)     = .FALSE.  ! switch off upper-atmosphere physics on dom 1 (please, do not touch this)
+
+    icpl_gwd_prec      = 0        ! If proportionality between gwd-momentum flux and total precipitation exists
+                                  ! 0 - momentum flux of non-orographic gravity wave parametrization: zfluxlaun = gfluxlaun
+                                  ! 1 - increase in gwd mom. flux; being proportional to total precipitation
+                                  !     zfluxlaun(jl)=gfluxlaun*(1.0_JPRB+MIN(0.5_JPRB,gcoeff*pprecip(jl))), gcoeff: constant
 
     ! CAPE correction to improve diurnal cycle of convection (moved from mo_cuparameters)
     icapdcycl = 0  ! 0= no CAPE diurnal cycle correction (IFS default prior to cy40r1, i.e. 2013-11-19)
@@ -618,6 +626,7 @@ CONTAINS
     config_itype_dissip_heat     = itype_dissip_heat
     config_lcuda_graph_turb_tran = lcuda_graph_turb_tran
     config_icpl_aero_ice         = icpl_aero_ice
+    config_icpl_gwd_prec         = icpl_gwd_prec
 
     !$ACC UPDATE DEVICE(config_icpl_o3_tp, config_itype_dissip_heat)
     !-----------------------------------------------------

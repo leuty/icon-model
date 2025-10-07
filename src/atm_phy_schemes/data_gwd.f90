@@ -23,6 +23,7 @@ MODULE data_gwd
 
   USE mo_cuparameters,       ONLY: lhook,   dr_hook
   USE mo_nwp_tuning_config,  ONLY: tune_gfluxlaun, tune_gcstar
+  USE mo_atm_phy_nwp_config, ONLY: icpl_gwd_prec
   !==============================================================================
 
   IMPLICIT NONE
@@ -125,7 +126,12 @@ CONTAINS
     !* If LOZPR=TRUE and GGAUSS=1 then launch momentum flux is proportional to total precipitation
     !* If LOZPR=TRUE and GGAUSS=2 then launch momentum flux has a gaussian distribution
 
-    lozpr=.FALSE.           !If .TRUE. then variable launch momemtum flux
+    !lozpr =.FALSE.           !If .TRUE. then variable launch momemtum flux
+    IF ( icpl_gwd_prec == 0 )THEN
+      lozpr = .FALSE.
+    ELSEIF ( icpl_gwd_prec > 0 ) THEN
+      lozpr = .TRUE.
+    ENDIF
     ngauss=1
     ggaussa=10.0_JPRB       !gaussian distribution half-width in degrees (used if GGAUSS=2)
     ggaussb=0.5_JPRB        !height of gaussian distribution (used if GGAUSS=2)
