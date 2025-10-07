@@ -36,9 +36,7 @@ include:
   script:
     # We put the entire script into a single subshell to trap the EXIT
     # pseudo-signal, which we need to copy the job artifacts to $CI_PROJECT_DIR
-    # (where GitLab can find them) and to clean up the
-    # $ICON_CI_COMMON_DKRZ_SHMEM_PATH directory, regardless of whether the job
-    # succeeds.
+    # (where GitLab can find them), regardless of whether the job succeeds.
     - |
       # !reference [.system:build:levante, script]
       icon_ci_log_section_start 'Configuring and building ICON' 'collapsed=false'
@@ -60,7 +58,6 @@ include:
             --human-readable \
             --prune-empty-dirs \
             --verbose
-          rm -rf "${ICON_CI_COMMON_DKRZ_SHMEM_PATH}"
         }
         trap finalize EXIT
 

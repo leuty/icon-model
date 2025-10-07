@@ -10,15 +10,24 @@
 
 include:
   - local: .gitlab/ci/common/dkrz.yml
+  - local: .gitlab/ci/utils/pip.yml
 
 .nwp:muphys:common:
   needs: []
-  extends: .common:dkrz:levante
+  extends:
+    - .common:dkrz:levante
+    - .utils:pip
   variables:
     ICON_CI_COMMON_DKRZ_SLURM_NTASKS: 32
     GIT_SUBMODULE_PATHS: externals/fortran-support externals/iconmath externals/probtest
     ICON_CI_UTILS_GIT_CLONE_PATH: ${ICON_CI_COMMON_DKRZ_SHMEM_PATH}/icon
     ICON_CI_MICROPHYSICS_PYVENV: ${ICON_CI_COMMON_DKRZ_SHMEM_PATH}/venv
+    ICON_CI_UTILS_PIP_PYTHON: ${ICON_CI_MICROPHYSICS_PYVENV}/bin/python3
+    ICON_CI_UTILS_PIP_UPGRADE: true
+    ICON_CI_UTILS_PIP_PACKAGES: >-
+      Jinja2==3.0.3 click==8.0.4 matplotlib==3.3.4 netCDF4==1.6.1
+      numpy==1.19.5 pandas==1.1.5 xarray==0.16.2
+    ICON_CI_UTILS_PIP_CACHE_PATH: null
     ICON_CI_MICROPHYSICS_EXTRA_MODULES: gcc/11.2.0-gcc-11.2.0
     ICON_CI_MICROPHYSICS_BUILD_PATH: ${ICON_CI_COMMON_DKRZ_SHMEM_PATH}/build
     ICON_CI_MICROPHYSICS_TARGET: all
@@ -32,66 +41,46 @@ include:
     - !reference [.common:dkrz:levante, before_script]
     - |
       # !reference [.nwp:muphys:common, before_script]
-
-      # We use the following function when trapping the EXIT pseudo-signal to
-      # clean up the $ICON_CI_COMMON_DKRZ_SHMEM_PATH directory, regardless of
-      # whether the job succeeds:
-      finalize ()
-      {
-        rm -rf "${ICON_CI_COMMON_DKRZ_SHMEM_PATH}"
-      }
-
+      icon_ci_log_section_start 'Initializing Python environment'
       (
-        trap finalize EXIT
-        set -u
-
-        icon_ci_log_section_start 'Initializing Python environment'
-        (
-          module --verbose load python3
-          set -x
-          python3 -m venv "${ICON_CI_MICROPHYSICS_PYVENV}"
-          "${ICON_CI_MICROPHYSICS_PYVENV}/bin/python3" \
-            -m pip --no-cache-dir install --upgrade pip
-          "${ICON_CI_MICROPHYSICS_PYVENV}/bin/python3" \
-            -m pip --no-cache-dir install \
-            Jinja2==3.1.6 click==8.2.1 matplotlib==3.10.6 netCDF4==1.7.2 \
-            numpy==2.2.6 pandas==2.3.2 xarray==2025.6.1
-        ) 2>&1
-        icon_ci_log_section_end
-
-        icon_ci_log_section_start "Configuring 'test/microphysics_1mom_schemes'"
-        (
-          module --verbose load ${ICON_CI_MICROPHYSICS_EXTRA_MODULES-}
-          cmake --version
-          set -x
-          cmake \
-            -S "${ICON_CI_UTILS_GIT_CLONE_PATH}/test/microphysics_1mom_schemes" \
-            -B "${ICON_CI_MICROPHYSICS_BUILD_PATH}" \
-            -G 'Unix Makefiles' \
-            -DPython3_EXECUTABLE="${ICON_CI_MICROPHYSICS_PYVENV}/bin/python3"
-        ) 2>&1
-        icon_ci_log_section_end
-
-        icon_ci_log_section_start "Building target '${ICON_CI_MICROPHYSICS_TARGET}'"
-        (
-          set -x
-          cmake \
-            --build "${ICON_CI_MICROPHYSICS_BUILD_PATH}" \
-            --target="${ICON_CI_MICROPHYSICS_TARGET}"
-        ) 2>&1
-        icon_ci_log_section_end
-        trap - EXIT
+        set -x
+        python3 -m venv "${ICON_CI_MICROPHYSICS_PYVENV}"
       )
+      icon_ci_log_section_end
+    - !reference [.utils:pip, before_script]
+    - |
+      # !reference [.nwp:muphys:common, before_script]
+      icon_ci_log_section_start "Configuring 'test/microphysics_1mom_schemes'"
+      (
+        set -u
+        module --verbose load ${ICON_CI_MICROPHYSICS_EXTRA_MODULES-}
+        cmake --version
+        set -x
+        cmake \
+          -S "${ICON_CI_UTILS_GIT_CLONE_PATH}/test/microphysics_1mom_schemes" \
+          -B "${ICON_CI_MICROPHYSICS_BUILD_PATH}" \
+          -G 'Unix Makefiles' \
+          -DPython3_EXECUTABLE="${ICON_CI_UTILS_PIP_PYTHON}"
+      ) 2>&1
+      icon_ci_log_section_end
+      icon_ci_log_section_start "Building target '${ICON_CI_MICROPHYSICS_TARGET}'"
+      (
+        set -ux
+        cmake \
+          --build "${ICON_CI_MICROPHYSICS_BUILD_PATH}" \
+          --target="${ICON_CI_MICROPHYSICS_TARGET}"
+      ) 2>&1
+      icon_ci_log_section_end
   script:
     - |
       # !reference [.nwp:muphys:common, script]
       icon_ci_log_section_start 'Running tests' 'collapsed=false'
       (
-        trap finalize EXIT
         set -ux
         ctest --test-dir "${ICON_CI_MICROPHYSICS_BUILD_PATH}"
       ) 2>&1
       icon_ci_log_section_end
+  cache: null
   rules:
     - if: $CI_PIPELINE_SOURCE == "web"
       when: manual
@@ -132,7 +121,6 @@ nwp:muphys:intel:
       # !reference ["nwp:muphys: Generate tolerance data", script]
       icon_ci_log_section_start 'Generating patch file with new tolerance data' 'collapsed=false'
       (
-        trap finalize EXIT
         set -u
 
         (
