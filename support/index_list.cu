@@ -11,18 +11,34 @@
 
 #include <cuda.h>
 
+#include <cstdio>
 #include <cub/device/device_select.cuh>
-#include <cub/iterator/counting_input_iterator.cuh>
 #include <memory>
 #include <unordered_map>
+
+#if CUDA_VERSION >= 13000
+#include <thrust/iterator/counting_iterator.h>
+template <typename T> using CountingInputIterator = thrust::counting_iterator<T>;
+#else
+#include <cub/iterator/counting_input_iterator.cuh>
+template <typename T> using CountingInputIterator = cub::CountingInputIterator<T>;
+#endif
 
 #include "index_list.h"
 
 // Use stream-ordered allocs if we're capturing a graph
 namespace {
+
+inline void CUDA_check(cudaError_t code) {
+  if (code != cudaSuccess) {
+    fprintf(stderr, "CUDA API error: %s\n", cudaGetErrorString(code));
+    throw std::runtime_error(std::string("CUDA API error: ") + cudaGetErrorString(code));
+  }
+}
+
 bool isStreamCapturing(gpuStream_t stream) {
   cudaStreamCaptureStatus captureStatus;
-  cudaStreamIsCapturing(stream, &captureStatus);
+  CUDA_check(cudaStreamIsCapturing(stream, &captureStatus));
   return captureStatus != cudaStreamCaptureStatusNone;
 }
 
@@ -44,11 +60,11 @@ class AsyncStorage : public Storage {
 
   void requestSize(size_t requestedSize) override final {
     if (data != nullptr) {
-      cudaFreeAsync(data, stream);
+      CUDA_check(cudaFreeAsync(data, stream));
     }
-    cudaMallocAsync(&data, alignment + requestedSize, stream);
+    CUDA_check(cudaMallocAsync(&data, alignment + requestedSize, stream));
   }
-  ~AsyncStorage() override { cudaFreeAsync(data, stream); }
+  ~AsyncStorage() override { CUDA_check(cudaFreeAsync(data, stream)); }
 
  private:
   gpuStream_t stream;
@@ -58,8 +74,8 @@ class SyncStorage : public Storage {
  public:
   void requestSize(size_t requestedSize) override final {
     if (curSize < requestedSize + alignment) {
-      cudaFree(data);
-      cudaMalloc(&data, requestedSize + alignment);
+      CUDA_check(cudaFree(data));
+      CUDA_check(cudaMalloc(&data, requestedSize + alignment));
       curSize = requestedSize + alignment;
     }
   }
@@ -92,7 +108,7 @@ static void c_generate_index_list_gpu_generic_device(const T* dev_conditions, co
   const int n = endid - startid + 1;
 
   // Argument is the offset of the first element
-  cub::CountingInputIterator<int> iterator(startid);
+  CountingInputIterator<int> iterator(startid);
 
   // Determine temporary device storage requirements
   size_t storageRequirement;
@@ -107,6 +123,7 @@ static void c_generate_index_list_gpu_generic_device(const T* dev_conditions, co
 
   cub::DeviceSelect::Flagged(storage->getScratchPtr(), storageRequirement, iterator, dev_conditions + startid - 1,
                              dev_indices, dev_nvalid, n, stream);
+  CUDA_check(cudaPeekAtLastError());
 }
 
 template <typename T>
@@ -131,8 +148,8 @@ static void c_generate_index_list_gpu_generic(const T* dev_conditions, const int
                                            copy_to_host ? storage->getNvalidPtr() : ptr_nvalid, storage.get(), stream);
 
   if (copy_to_host) {
-    cudaMemcpyAsync(ptr_nvalid, storage->getNvalidPtr(), sizeof(int), cudaMemcpyDeviceToHost, stream);
-    cudaStreamSynchronize(stream);
+    CUDA_check(cudaMemcpyAsync(ptr_nvalid, storage->getNvalidPtr(), sizeof(int), cudaMemcpyDeviceToHost, stream));
+    CUDA_check(cudaStreamSynchronize(stream));
   }
 }
 
