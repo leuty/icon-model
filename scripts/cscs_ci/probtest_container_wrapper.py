@@ -138,8 +138,6 @@ def generate_tolerance_file(
     etc, experiment, build_dir, file_id=None, member_ids=None
 ):
     """Generates the tolerance file from the stats files of an ensemble run using members specified in YAML files."""
-    bb_name = get_env_var("BB_NAME")
-    reference_builder = bb_name.replace("_gpu", "_cpu")
 
     # Get file IDs from YAML files if not give
     if not file_id:
@@ -149,6 +147,8 @@ def generate_tolerance_file(
 
     # Get ensemble member numbers
     if not member_ids:
+        bb_name = get_env_var("BB_NAME")
+        reference_builder = bb_name.replace("_gpu", "_cpu")
         member_ids = etc.get_ensemble_num_for_exp_as_string(
             experiment, reference_builder
         )
