@@ -95,6 +95,9 @@ include:
       when: manual
     - !reference [.common:dkrz:levante, rules]
     - if: >-
+        $CI_PIPELINE_SOURCE == "schedule" &&
+          $ICON_CI_TEST_SCHEDULE == "weekly"
+    - if: >-
         $CI_PIPELINE_SOURCE == "merge_request_event" &&
           $CI_MERGE_REQUEST_PROJECT_PATH == "icon/icon-mpim" &&
           $CI_MERGE_REQUEST_DRAFT == "false"
@@ -161,6 +164,9 @@ include:
   rules:
     - if: $CI_PIPELINE_SOURCE == "web"
     - !reference [.common:dkrz:levante, rules]
+    - if: >-
+        $CI_PIPELINE_SOURCE == "schedule" &&
+          $ICON_CI_TEST_SCHEDULE == "weekly"
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 
 .system:checksum:
