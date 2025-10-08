@@ -153,9 +153,7 @@ cpu:
   rules:
     - if: $CI_MERGE_REQUEST_ID
       when: always
-      interruptible: true
     - when: manual
-  interruptible: false
 
 gpu:
   extends: .common_cscs_ci
@@ -165,22 +163,28 @@ gpu:
   rules:
     - if: $CI_MERGE_REQUEST_ID
       when: always
-      interruptible: true
     - when: manual
-  interruptible: false
 
 cpu_tolerance:
   extends: .common_cscs_ci
   variables:
     CSCS_CI_TAG: tolerance
     CSCS_CI_BUILDER: santis-cpu
-  when: manual
-  interruptible: true
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+      when: manual
+    - when: manual
+  allow_failure: true
+  manual_confirmation: Confirm that you are runnning the tolerance generation for the relevant experiments only. To restrict this job to the relevant experiments, edit the pipeline job and add the key CSCS_CI_EXPERIMENTS, followed by a list of comma-separated experiments as the value.
 
 cpu_select_members:
   extends: .common_cscs_ci
   variables:
     CSCS_CI_TAG: select-members
     CSCS_CI_BUILDER: santis-cpu
-  when: manual
-  interruptible: true
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+      when: manual
+    - when: manual
+  allow_failure: true
+  manual_confirmation: Confirm that you are runnning the member selection for the relevant experiments only. To restrict this job to the relevant experiments, edit the pipeline job and add the key CSCS_CI_EXPERIMENTS, followed by a list of comma-separated experiments as the value.
