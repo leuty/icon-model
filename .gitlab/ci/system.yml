@@ -386,7 +386,10 @@ generate-checksum-table:
     paths:
       - ${ICON_CI_CHECKSUM_TABLE_PATH}
     expire_in: 1 day
-  rules: !reference [.system:analyze, rules]
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      when: never
+    - !reference [.system:analyze, rules]
 
 Accept new checksum table:
   stage: system
