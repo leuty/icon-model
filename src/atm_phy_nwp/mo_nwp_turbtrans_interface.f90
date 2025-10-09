@@ -65,11 +65,9 @@ MODULE mo_nwp_turbtrans_interface
   USE mo_run_config,           ONLY: timers_level
   USE mo_fortran_tools,        ONLY: set_acc_host_or_device
   USE mo_coupling_config,      ONLY: is_coupled_to_waves
-
-#ifdef ICON_USE_CUDA_GRAPH
-  USE mo_acc_device_management,ONLY: accGraph, accBeginCapture, accEndCapture, accGraphLaunch
+  USE mo_cuda_graphs,          ONLY: t_cuda_graphs, id_captured, create_graphs, &
+    &                                begin_capture, end_capture, replay
   USE, INTRINSIC :: iso_c_binding
-#endif
 
   IMPLICIT NONE
 
@@ -80,12 +78,7 @@ MODULE mo_nwp_turbtrans_interface
 
   TYPE(t_turbdiff_config), POINTER :: tdc ! 'turbdiff' configuration state for a single patch (domain)
 
-#ifdef ICON_USE_CUDA_GRAPH
-  TYPE(accGraph) :: graphs(max_dom*2)
-  TYPE(c_ptr) :: lnd_prog_new_cache(max_dom*2) = C_NULL_PTR
-  LOGICAL :: graph_captured
-  INTEGER :: cur_graph_id, ig
-#endif
+  TYPE(t_cuda_graphs) :: graphs
   LOGICAL :: multi_queue_processing
   INTEGER :: acc_async_queue = 1
 
@@ -190,14 +183,9 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
   TYPE (tile_info) :: list_t(ntiles_total+ntiles_water) ! tile-vector with pointers to index-lists of associated grid-points
 
   INTEGER,  POINTER :: ilist(:)                         ! pointer to the index-list of grid-points belonging to any tile
+  INTEGER :: graph_id                                   ! current CUDA graph ID
 
 !--------------------------------------------------------------
-#ifdef ICON_USE_CUDA_GRAPH
-    multi_queue_processing = lcuda_graph_turb_tran
-#else
-    multi_queue_processing = .FALSE.
-#endif
-
   CALL set_acc_host_or_device(lzacc, lacc)
 
   IF (msg_level >= 15) CALL message('mo_nwp_turbtrans_interface:', 'turbulence')
@@ -212,46 +200,24 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
 
   tdc => turbdiff_config(jg)
 
-#ifdef ICON_USE_CUDA_GRAPH
+  ! CUDA graphs
+  multi_queue_processing = lcuda_graph_turb_tran
+
   IF (lzacc .AND. lcuda_graph_turb_tran) THEN
-    cur_graph_id = -1
-    DO ig=1,max_dom*2
-      IF (C_LOC(lnd_prog_new) == lnd_prog_new_cache(ig)) THEN
-        cur_graph_id = ig
-        graph_captured = .TRUE.
-        EXIT
-      END IF
-    END DO
-
-    IF (cur_graph_id < 0) THEN
-      DO ig=1,max_dom*2
-        IF (lnd_prog_new_cache(ig) == C_NULL_PTR) THEN
-          cur_graph_id = ig
-          lnd_prog_new_cache(ig) = C_LOC(lnd_prog_new)
-          graph_captured = .FALSE.
-          EXIT
-        END IF
-      END DO
+    IF (.NOT. graphs%initialized) THEN
+      CALL create_graphs(graphs, 1, routine)
     END IF
 
-    IF (cur_graph_id < 0) THEN
-      CALL finish('mo_nwp_turbtrans_interface: ', 'error trying to allocate CUDA graph')
-    END IF
-
-    IF (graph_captured) THEN
-      WRITE(message_text,'(a,i2)') 'executing CUDA graph id ', cur_graph_id
-      IF (msg_level >= 14) CALL message('mo_nwp_turbtrans_interface: ', message_text)
-      CALL accGraphLaunch(graphs(cur_graph_id), 1)
+    graph_id = id_captured( graphs, ptr_keys=(/ C_LOC(lnd_prog_new) /) )
+    IF (graph_id > 0) THEN
+      CALL replay(graphs, graph_id, 1)
       !$ACC WAIT(1)
       IF (timers_level > 9) CALL timer_stop(timer_nwp_turbtrans)
       RETURN
     ELSE
-      WRITE(message_text,'(a,i2)') 'starting to capture CUDA graph, id ', cur_graph_id
-      IF (msg_level >= 13) CALL message('mo_nwp_turbtrans_interface: ', message_text)
-      CALL accBeginCapture(1)
+      CALL begin_capture( graphs, 1, ptr_keys=(/ C_LOC(lnd_prog_new) /) )
     END IF
   END IF
-#endif
 
   !$ACC DATA PRESENT(p_patch, p_metrics, ext_data, p_prog, p_prog_rcf, p_diag) &
   !$ACC   PRESENT(prm_diag, prm_nwp_tend, wtr_prog_new, lnd_prog_new, lnd_diag) &
@@ -1192,9 +1158,9 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
         !$ACC END PARALLEL
       ELSE ! compute only the gust limiter; the gust calculation itself is executed at the end of each averaging interval
         !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
-        !$ACC LOOP GANG(STATIC: 1)
+        !$ACC LOOP SEQ
         DO jk = nlev, kstart_moist(jg), -1
-          !$ACC LOOP VECTOR
+          !$ACC LOOP GANG VECTOR
           DO jc = i_startidx, i_endidx
             IF (p_metrics%geopot_agl(jc,jk,jb) < MAX(tune_gustlim_agl(jg)*grav, &
                 p_metrics%geopot_agl(jc,jk_gust(jc),jb) + 500._wp*grav)) THEN
@@ -1337,14 +1303,10 @@ SUBROUTINE nwp_turbtrans  ( tcall_turb_jg,                     & !>in
 
   !$ACC END DATA
 
-#ifdef ICON_USE_CUDA_GRAPH
-    IF (lzacc .AND. lcuda_graph_turb_tran) THEN
-      CALL accEndCapture(1, graphs(cur_graph_id))
-      WRITE(message_text,'(a,i2,a)') 'finished to capture CUDA graph, id ', cur_graph_id, ', now executing it'
-      IF (msg_level >= 13) CALL message('mo_nwp_turbtrans_interface: ', message_text)
-      CALL accGraphLaunch(graphs(cur_graph_id), 1)
-    END IF
-#endif
+  IF (lzacc .AND. lcuda_graph_turb_tran .AND. graph_id == 0) THEN
+    graph_id = end_capture(graphs)
+    CALL replay(graphs, graph_id, 1)
+  END IF
 
   !$ACC WAIT(1)
   IF (timers_level > 9) CALL timer_stop(timer_nwp_turbtrans)

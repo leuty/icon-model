@@ -44,13 +44,27 @@ CONTAINS
     DO jg=1,n_dom_out
       ! convenience pointer
       wc => wave_config(jg)
+      ! the following variables are set in configure_wave. Hence, they are not yet known on IO-PEs
+      ! and must be broadcasted.
+      CALL p_bcast(wc%oce_stokes_nlev, bcast_root, p_comm_work_2_io)
+      CALL p_bcast(wc%oce_stokes_nifc, bcast_root, p_comm_work_2_io)
+
       IF (my_process_is_io()) THEN
-        ALLOCATE(wc%freqs(wc%nfreqs), wc%dirs(wc%ndirs), wc%stokes_level(wc%ndepths), stat=ist)
+        ALLOCATE(wc%freqs(wc%nfreqs), wc%dirs(wc%ndirs), stat=ist)
         IF (ist/=SUCCESS) CALL finish(routine, "allocation for wc%freqs and wc%dirs failed on IO PE")
-      ENDIF
+
+        IF (wc%oce_stokes_nlev > 0) THEN
+          ALLOCATE(wc%oce_stokes_ifc(wc%oce_stokes_nifc),wc%oce_stokes_mc(wc%oce_stokes_nlev), stat=ist)
+          IF (ist/=SUCCESS) CALL finish(routine, "allocation for wc%oce_stokes_ifc and wc%oce_stokes_mc failed on IO PE")
+        END IF
+      END IF
+
       CALL p_bcast(wc%freqs(:), bcast_root, p_comm_work_2_io)
-      CALL p_bcast(wc%dirs(:) , bcast_root, p_comm_work_2_io)
-      CALL p_bcast(wc%stokes_level(:) , bcast_root, p_comm_work_2_io)
+      CALL p_bcast(wc%dirs(:), bcast_root, p_comm_work_2_io)
+      IF (ALLOCATED(wc%oce_stokes_mc)) THEN
+        CALL p_bcast(wc%oce_stokes_ifc(:), bcast_root, p_comm_work_2_io)
+        CALL p_bcast(wc%oce_stokes_mc(:), bcast_root, p_comm_work_2_io)
+      END IF
     ENDDO
 
   END SUBROUTINE replicate_wave_data_on_io_procs

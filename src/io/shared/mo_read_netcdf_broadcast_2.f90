@@ -38,6 +38,7 @@ MODULE mo_read_netcdf_broadcast_2
 
   PUBLIC :: netcdf_read_att_int
   PUBLIC :: netcdf_read_inq_varexists
+  PUBLIC :: netcdf_dimlen
   PUBLIC :: netcdf_read_0D_real
   PUBLIC :: netcdf_read_0D_int
   PUBLIC :: netcdf_read_1D
@@ -64,6 +65,10 @@ MODULE mo_read_netcdf_broadcast_2
   INTERFACE netcdf_read_att_int
     MODULE PROCEDURE netcdf_read_ATT_INT
   END INTERFACE netcdf_read_att_int
+
+  INTERFACE netcdf_dimlen
+    MODULE PROCEDURE netcdf_dimlen_int
+  END INTERFACE netcdf_dimlen
 
   INTERFACE netcdf_read_0D_real
     MODULE PROCEDURE netcdf_read_REAL_0D
@@ -162,6 +167,29 @@ CONTAINS
     res=zlocal(1)
 
   END FUNCTION netcdf_read_ATT_INT
+  !-------------------------------------------------------------------------
+
+  !-------------------------------------------------------------------------
+  !>
+  FUNCTION netcdf_dimlen_int(file_id, dim_name) result(res)
+
+    INTEGER                      :: res
+
+    INTEGER, INTENT(IN)          :: file_id
+    CHARACTER(LEN=*), INTENT(IN) :: dim_name
+
+    INTEGER                      :: dim_id, dim_len
+    IF( my_process_is_mpi_workroot()  ) THEN
+      CALL nf(nf90_inq_dimid(file_id, TRIM(dim_name), dim_id), TRIM(dim_name))
+      CALL nf(nf90_inquire_dimension(file_id, dim_id, len=dim_len), TRIM(dim_name))
+    END IF
+
+    ! broadcast...
+    CALL p_bcast(dim_len, process_mpi_root_id, p_comm_work)
+
+    res=dim_len
+
+  END FUNCTION netcdf_dimlen_int
   !-------------------------------------------------------------------------
 
   !-------------------------------------------------------------------------

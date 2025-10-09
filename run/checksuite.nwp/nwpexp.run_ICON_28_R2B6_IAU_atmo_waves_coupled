@@ -22,7 +22,7 @@
 # - the coupling of components with distinct start times
 #     (due to IAU, the atm component starts prior to the wave component)
 # - the component-wise initialization from restart
-#     (only one component starts from restart file while the other used IAU)
+#     (only the wave-component starts from restart file while the atmo-component uses IAU)
 #
 author_list="Daniel Reinert and Mikhail Dobrynin"
 #
@@ -785,6 +785,10 @@ cat > ${wave_namelist} <<EOF
  itopo                = 0
  extpar_filename      = '${wave_extpar}'
 /
+&initwave_nml
+ dt_shift             = -5400.  ! timedelta for backwards time shift of model start date
+ init_mode            = 1       ! MODE_ANA: read wave energy spectrum from analysis file
+/
 &wave_nml
  ndirs                = ${nd}   ! number of directions
  nfreqs               = ${nf}   ! number of frequencies
@@ -793,9 +797,6 @@ cat > ${wave_namelist} <<EOF
  depth_max            = 999.
  niter_smooth         = 3
  ALPHA_CH             = 0.00375 !0.0075
-/
-&initwave_nml
- dt_shift             = -5400.      ! timedelta for backwards time shift of model start date
 /
 &output_nml
  filetype             =                          4       ! output format: 2=GRIB2, 4=NETCDFv2

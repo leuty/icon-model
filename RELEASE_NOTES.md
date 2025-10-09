@@ -35,6 +35,11 @@ NWP Physics:
 - Modified shallow cloud cover as function of cloud droplet number (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1730)
 - New deep convection options to improve precipitation in the tropics (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1778)
 - Use cdnc scaling factor of the year 1850 in picontrol mode (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1789)
+- Extensions for prognostic 2D-Aerosol Prog2DAero (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1473)
+- Include a namelist switch to enable linear dependency of gwd momentum flux on precipitation (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1862)
+- Regime-dependent FSD parameterization (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1726)
+- More flexible options for entrainment/detrainment tuning in convection scheme (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1810)
+- Implementing interactive carbon-cycle (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1747, https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1803)
 - Fixes:
   - Inconsistent initialization time step length in vdiff interface and jsbach
   - Use functions for sat. vapor pressure consistently between NWP physics and VDIFF/ICON-Land (ICON-XPP) (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1065)
@@ -45,6 +50,7 @@ NWP Physics:
   - LHN: event bugfix (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1792)
   - Bug fix for nudging interpolation (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1795)
   - Bug fix in pressure bias correction for IFS lateral boundary data (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1802)
+  - Bugfix in mo_nonhydro_state for turbdiff, affecting SCM (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1819)
 
 ### ICON-Ocean
 
@@ -72,6 +78,8 @@ NWP Physics:
 
 - Implementation of Stokes depth diagnostic (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1782)
 - new diagnostic: peak wavenumber (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1828)
+- Introducing the ocean layers table in Icon-Waves (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1840, https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1853)
+- Restructure wave model initialization (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1728)
 
 ### Soil and Surface
 
@@ -125,8 +133,11 @@ NWP: TERRA and other surface issues
 - Fixes:
   - rime formation term for interception storage (icon-nwp!1740)
   - w_i nonconservation (icon-nwp!1746)
+  - bug fix for bare-soil evaporation (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1838)
 
 ### ICON-ART
+
+- Implement heat emission from wildfire as sensible heat flux from the surface (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1860)
 
 ### Coupling
 
@@ -136,6 +147,7 @@ NWP: TERRA and other surface issues
 - Fixes for using vertex-based 3d fields in the output coupling
 - Add support for AES model start date being shifted back in time by timeshift (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/991)
 - Bugfix to ensure restartability of coupled ocean-atmosphere configurations (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1022)
+- Fix overwriting of Tskin after ocean coupling (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1817)
 
 ### Externals
 
@@ -155,10 +167,14 @@ NWP: TERRA and other surface issues
 - Add infrastructure for unit testing
 - Remove usage of t_char_workaround (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/883)
 - Stochastic pattern generator based on spherical harmonics (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1708)
-- refactor SST(SIC reader and time interpolation classes  (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1777)
+- refactor SST(SIC reader and time interpolation classes  (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1777, https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1814, https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1854)
 - Redefine sp/dp kind parameters using iso_c_binding types (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/859)
 - Allow to disable GPU memory usage output (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/957)
 - Read/Write rbf coefficients from/to file (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/946, https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1014)
+- Port CDNC Scaling to GPU (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1826)
+- CUDA graphs support for NWP seaice (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1564)
+- Empa GPU developments (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1670)
+- Fix for the CUDA 13 release coming with NVHPC 25.9 (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1857)
 
 #### Scripting and testing
 
@@ -174,6 +190,7 @@ NWP: TERRA and other surface issues
 - Add mkexp Radiative Convective Equilibrium test case (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/896, https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/980)
 - New AMIP setup in exp.aes_amip (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/974)
 - Add docs and mkexp files for OMIP configuration (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/906)
+- Re-enable restart mechanism in AMIP-runscripts, generated with make_runscripts (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1830)
 
 #### Building
 
@@ -187,6 +204,7 @@ NWP: TERRA and other surface issues
 - Fixes for the quad-precision handling
 - Drop the HIP event handling suppression of the Cray OpenACC runtime
 - Fix cached configuration (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/968)
+- Single-precision buildbot builder on NEC@DWD (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1823)
 
 #### Miscellaneous
 
@@ -202,7 +220,7 @@ NWP: TERRA and other surface issues
 - Update AMIP documentation (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/899)
 - Add documentation for testbed_nml to Namelist_overview (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/952)
 - Cleaned up obsolete workarounds for NVHPC/PGI compiler (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/869)
-
+- Further extension of skin temperature over the ocean in Vdiff (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1751)
 
 # Release notes for icon-2025.04-2
 

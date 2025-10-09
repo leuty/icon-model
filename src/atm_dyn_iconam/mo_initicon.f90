@@ -58,7 +58,7 @@ MODULE mo_initicon
     &                               isub_lake, isub_water, lsnowtile, frlnd_thrhld, &
     &                               frlake_thrhld, lprog_albsi, dzsoil_icon => dzsoil, &
     &                               frsi_min
-  USE mo_atm_phy_nwp_config,  ONLY: iprog_aero, atm_phy_nwp_config
+  USE mo_atm_phy_nwp_config,  ONLY: i2daero_dust, i2daero_seas, i2daero_anthro, atm_phy_nwp_config
   USE sfc_terra_data,         ONLY: cporv, cadp, cpwp, cfcap, crhosmaxf, crhosmin_ml, crhosmax_ml
   USE sfc_terra_init,         ONLY: get_wsnow
   USE mo_nh_vert_interp,      ONLY: vert_interp_atm, vert_interp_sfc
@@ -351,7 +351,7 @@ MODULE mo_initicon
             END IF
     END SELECT
     ! Init aerosol field from climatology if no first-guess data have been available
-    IF (iprog_aero >= 1) CALL init_aerosol(p_patch, ext_data, prm_diag)
+    IF ( ANY( (/i2daero_dust, i2daero_seas, i2daero_anthro/) > 0) ) CALL init_aerosol(p_patch, ext_data, prm_diag)
   END SUBROUTINE process_dwdfg
 
   ! Read data from analysis files.

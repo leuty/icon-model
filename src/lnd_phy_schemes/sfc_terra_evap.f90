@@ -126,13 +126,14 @@ SUBROUTINE calc_evapotranspiration ( &
   LOGICAL, INTENT(IN) :: lzacc !< OpenACC flag.
   INTEGER, INTENT(IN) :: acc_async_queue !< OpenACC queue number.
 
-  REAL(wp) :: evapot_s(nvec) !< Potential evaporation for water [kg/(m**2 s)].
+  REAL(wp) :: evapot_s(nvec) !< Potential evaporation for water, referring to soil top temp. [kg/(m**2 s)].
+  REAL(wp) :: evapot_sk(nvec) !< Potential evaporation for water, referring to skin temp. [kg/(m**2 s)].
   REAL(wp) :: evapot_snow(nvec) !< Potential evaporation for snow [kg/(m**2 s)].
   REAL(wp) :: fr_w_i(nvec) !< Fraction of surface covered by interception water [m**2/m**2(tile)].
 
   REAL(wp) :: eva_sum !< Sum of evapotranspiration contributions [kg/(m**2 s)].
   REAL(wp) :: w_i_scale
-  REAL(wp) :: b2iw, b4iw, b234iw, q_s, dq_s, q_snow, dq_snow
+  REAL(wp) :: b2iw, b4iw, b234iw, dq_s, dq_sk, q_snow, dq_snow
   REAL(wp) :: smth_heav, area_fac, potevap, temp
 
   INTEGER :: i
@@ -144,10 +145,10 @@ SUBROUTINE calc_evapotranspiration ( &
   ! positive quantities, since positive sign indicates a flux
   ! directed towards the earth's surface!
 
-  !$ACC DATA PRESENT(ivend) CREATE(evapot_s, evapot_snow, fr_w_i) ASYNC(acc_async_queue)
+  !$ACC DATA PRESENT(ivend) CREATE(evapot_s, evapot_sk, evapot_snow, fr_w_i) ASYNC(acc_async_queue)
 
   !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(acc_async_queue) IF(lzacc)
-  !$ACC LOOP GANG(STATIC: 1) VECTOR PRIVATE(w_i_scale, b2iw, b4iw, b234iw, q_s, dq_s, q_snow) &
+  !$ACC LOOP GANG(STATIC: 1) VECTOR PRIVATE(w_i_scale, b2iw, b4iw, b234iw, dq_s, dq_sk, q_snow) &
   !$ACC   PRIVATE(dq_snow, smth_heav, area_fac, potevap, temp)
   DO i = ivstart, ivend
     ! Compute fraction covered by interception water.
@@ -163,28 +164,36 @@ SUBROUTINE calc_evapotranspiration ( &
         & w_i(i) >= 1.0E-4_wp*eps_soil &
       )
 
-    ! Compute potential evaporation.
+    ! Compute potential evaporation for soil, using soil top temperature
+    b2iw = MERGE(b2w, b2i, t_s(i) >= t0_melt)
+    b4iw = MERGE(b4w, b4i, t_s(i) >= t0_melt)
+    dq_s = qv_atm(i) - zsf_qsat(zsf_psat_iw(t_s(i), b2iw, b4iw), p_s(i))
+    IF (ABS(dq_s) < 0.01_wp * eps_soil) dq_s = 0.0_wp
+    evapot_s(i)  = tfv(i) * rho_ch(i) * dq_s
+
+    ! Compute potential evaporation for vegetation / interception storage, using skin temperature
     b2iw = MERGE(b2w, b2i, t_sk(i) >= t0_melt)
     b4iw = MERGE(b4w, b4i, t_sk(i) >= t0_melt)
-    q_s = zsf_qsat(zsf_psat_iw(t_sk(i), b2iw, b4iw), p_s(i))
-    dq_s = qv_atm(i) - q_s
-    IF (ABS(dq_s) < 0.01_wp * eps_soil) dq_s = 0.0_wp
+    dq_sk = qv_atm(i) - zsf_qsat(zsf_psat_iw(t_sk(i), b2iw, b4iw), p_s(i))
+    IF (ABS(dq_sk) < 0.01_wp * eps_soil) dq_sk = 0.0_wp
+    evapot_sk(i) = tfv(i) * rho_ch(i) * dq_sk
 
+    ! Compute potential evaporation for snow, including temperature correction for snow beneath vegetation
     b2iw = MERGE(b2w, b2i, t_snow_top(i) >= t0_melt)
     b4iw = MERGE(b4w, b4i, t_snow_top(i) >= t0_melt)
     b234iw = b2iw*(b3 - b4iw)
     q_snow = zsf_qsat(zsf_psat_iw(t_snow_top(i) - MAX(0.0_wp,t_snred(i)), b2iw, b4iw), p_s(i))
     dq_snow = qv_atm(i) - q_snow
     IF (ABS(dq_snow) < 0.01_wp*eps_soil) dq_snow = 0.0_wp
-
-    dqvdt_snow(i) = zsf_dqvdt_iw(t_snow_top(i), q_snow, b4iw, b234iw)
-
-    evapot_s(i) = tfv(i) * rho_ch(i) * dq_s
     evapot_snow(i) = MERGE(tfv(i) * rho_ch(i) * dq_snow, 0._wp, t_snow_top(i) < t0_melt) &
         & * MERGE(tfvsn(i), 1._wp, dq_snow<0._wp)
 
+    dqvdt_snow(i) = zsf_dqvdt_iw(t_snow_top(i), q_snow, b4iw, b234iw)
+
+
+
     ! Evaporation from interception store if it contains water (w_i>0) and
-    ! if evapot_s<0 indicates potential evaporation for temperature Ts
+    ! if evapot_sk<0 indicates potential evaporation for temperature Ts
     ! amount of water evaporated is limited to total content of store
 
     ! Between 25% and 100% of the wet area actually participate, depending on skin temperature, with a linear
@@ -195,13 +204,13 @@ SUBROUTINE calc_evapotranspiration ( &
 
     eva_w_i(i) = MERGE(MAX( &
         & & ! Evaporate freely, ...
-        &   area_fac * (1.0_wp - fr_snow(i)) * fr_w_i(i) * evapot_s(i), &
+        &   area_fac * (1.0_wp - fr_snow(i)) * fr_w_i(i) * evapot_sk(i), &
         & & ! ... but no more than the available water, ...
         &   -rho_w * w_i(i) / dt, &
         & & ! ... and no more than what 75% of net radiation or 300 W/m**2 can support.
         &   -MAX(300.0_wp,0.75_wp*rad_flx(i))/lh_v), &
         & 0._wp, &
-        & evapot_s(i) < 0._wp &
+        & evapot_sk(i) < 0._wp &
       )
 
     ! Evaporation of snow, if snow exists (w_snow>0) and if evapot_snow<0
@@ -212,12 +221,12 @@ SUBROUTINE calc_evapotranspiration ( &
         & evapot_snow(i) < 0._wp &
       )
 
-    ! Formation of dew or rime, if evapot_s > 0. The distinction between
+    ! Formation of dew or rime, if evapot_sk > 0. The distinction between
     ! dew or rime is only controlled by sign of surface temperature
     ! and not affected by presence of snow, but the variables entering into
     ! the calculation differ because t_snow_top does not contain t_sk
     ! in the absence of snow
-    potevap = MERGE(evapot_snow(i), evapot_s(i), w_snow(i) > eps_soil)
+    potevap = MERGE(evapot_snow(i), evapot_sk(i), w_snow(i) > eps_soil)
     temp    = MERGE(t_snow_top(i),  t_sk(i),     w_snow(i) > eps_soil)
     dew_rate(i)  = MERGE(potevap, 0._wp, temp >= t0_melt .AND. potevap >= 0._wp)
     rime_rate(i) = MERGE(potevap, 0._wp, temp <  t0_melt .AND. potevap >= 0._wp)
@@ -335,7 +344,7 @@ SUBROUTINE calc_evapotranspiration ( &
         & plcov=plcov, &
         & laifac=laifac, &
         & fr_snow=fr_snow, &
-        & evapot_s=evapot_s, &
+        & evapot_sk=evapot_sk, &
         & par_absorbed=par_absorbed, &
         & root_depth=root_depth, &
         & & ! inout
@@ -364,7 +373,7 @@ SUBROUTINE calc_evapotranspiration ( &
       & ivend=ivend, &
       & nvec=nvec, &
       & n_soil=n_soil, &
-      & evapot_s=evapot_s, &
+      & evapot_sk=evapot_sk, &
       & evapot_snow=evapot_snow, &
       & t_snred=t_snred, &
       & fr_snow=fr_snow, &
@@ -768,7 +777,7 @@ END SUBROUTINE calc_evsl_resistance
 SUBROUTINE calc_trvg_bats ( &
     & dt, icant, ivstart, ivend, nvec, n_soil, n_soil_hy, soiltyp_subs, z_ml, dz_hl, fr_w_ml, &
     & w_so_ice, u_atm, v_atm, t_atm, tcm, tch, z0, r_stommin, sai, tai, plcov, laifac, fr_snow, &
-    & evapot_s, par_absorbed, root_depth, plevap, transp_ml, transp_sum, lhfl_pl, r_stom, lzacc, &
+    & evapot_sk, par_absorbed, root_depth, plevap, transp_ml, transp_sum, lhfl_pl, r_stom, lzacc, &
     & acc_async_queue &
   )
 
@@ -800,7 +809,7 @@ SUBROUTINE calc_trvg_bats ( &
   REAL(wp), INTENT(IN) :: laifac(nvec) !< Ratio between current LAI and laimax (n_cell) [1].
   REAL(wp), INTENT(IN) :: fr_snow(nvec) !< Snow-covered fraction (n_cell) [m**2(snow)/m**2(tile)].
   !> Potential water evaporation (n_cell) [kg/(m**2 s)].
-  REAL(wp), INTENT(IN) :: evapot_s(nvec)
+  REAL(wp), INTENT(IN) :: evapot_sk(nvec)
   REAL(wp), INTENT(IN) :: par_absorbed(nvec) !< Absorbed PAR radiation (n_cell) [W/m**2].
   REAL(wp), INTENT(IN) :: root_depth(nvec) !< Root depth (n_cell) [m]
 
@@ -867,7 +876,7 @@ SUBROUTINE calc_trvg_bats ( &
       !$ACC LOOP GANG(STATIC: 1) VECTOR PRIVATE(fr_root, rootdz, mstyp, root_depth_reg, root_density)
       DO i = ivstart, ivend
         mstyp = soiltyp_subs(i)
-        IF (mstyp > IST_ROCK .AND. evapot_s(i) < 0.0_wp) THEN
+        IF (mstyp > IST_ROCK .AND. evapot_sk(i) < 0.0_wp) THEN
           root_depth_reg = MAX(0.001_wp,root_depth(i))
           root_density = BATS_ROOT_DENSITY / root_depth_reg
 
@@ -900,7 +909,7 @@ SUBROUTINE calc_trvg_bats ( &
       !$ACC LOOP GANG(STATIC: 1) VECTOR PRIVATE(rootdz, mstyp, root_depth_reg)
       DO i = ivstart, ivend
         mstyp = soiltyp_subs(i)
-        IF (mstyp > IST_ROCK .AND. evapot_s(i) < 0.0_wp) THEN
+        IF (mstyp > IST_ROCK .AND. evapot_sk(i) < 0.0_wp) THEN
           root_depth_reg = MAX(0.001_wp,root_depth(i))
 
           rootdz = MIN( &
@@ -932,7 +941,7 @@ SUBROUTINE calc_trvg_bats ( &
     ! Zero out layer-accumulated transpiration.
     transp_sum(i) = 0._wp
 
-    IF (mstyp > IST_ROCK .AND. evapot_s(i) < 0.0_wp) THEN
+    IF (mstyp > IST_ROCK .AND. evapot_sk(i) < 0.0_wp) THEN
       ! upwards directed potential evaporation
       uv = SQRT (u_atm(i)**2 + v_atm(i)**2 )
       catm = tch(i)*uv           ! Function CA
@@ -962,7 +971,7 @@ SUBROUTINE calc_trvg_bats ( &
       ENDIF
       f_rad = MAX(0._wp, MIN(1._wp, par_absorbed(i) / (cparcrit*rf_plevap_rad)))
       tlpmwp = (cfcap(mstyp) - cpwp(mstyp)) * &
-          & (0.81_wp + 0.121_wp * ATAN(-86400._wp * evapot_s(i) - 4.75_wp))
+          & (0.81_wp + 0.121_wp * ATAN(-86400._wp * evapot_sk(i) - 4.75_wp))
 
       ! Soil water function
       f_wat = MAX(0._wp, MIN(1._wp,(wrootdz_int(i) - cpwp(mstyp))/tlpmwp))
@@ -995,7 +1004,7 @@ SUBROUTINE calc_trvg_bats ( &
       rveg = rla + r_stom(i)
 
       ! Transpiration rate of dry leaves:
-      traleav(i) = evapot_s(i) * tai(i) / (sai(i) + rveg * catm)
+      traleav(i) = evapot_sk(i) * tai(i) / (sai(i) + rveg * catm)
     ELSE
       r_stom(i) = 0._wp
     END IF  ! upwards directed potential evaporation only
@@ -1010,7 +1019,7 @@ SUBROUTINE calc_trvg_bats ( &
     DO i = ivstart, ivend
       mstyp = soiltyp_subs(i)
 
-      IF (mstyp > IST_ROCK .AND. evapot_s(i) < 0.0_wp) THEN
+      IF (mstyp > IST_ROCK .AND. evapot_sk(i) < 0.0_wp) THEN
         ! upwards potential evaporation
 
         tr_frac = wrootdz(i,kso) / (rootdz_int(i) * wrootdz_int(i))
@@ -1124,7 +1133,7 @@ END SUBROUTINE update_plevap
 !!
 !!
 SUBROUTINE limit_evaporation ( &
-      & ivstart, ivend, nvec, n_soil, evapot_s, evapot_snow, t_snred, fr_snow, eva_w_i, eva_w_sn, &
+      & ivstart, ivend, nvec, n_soil, evapot_sk, evapot_snow, t_snred, fr_snow, eva_w_i, eva_w_sn, &
       & eva_bs, lhfl_bs, transp_sum, transp_ml, lhfl_pl, lzacc, acc_async_queue &
     )
 
@@ -1133,7 +1142,7 @@ SUBROUTINE limit_evaporation ( &
   INTEGER, INTENT(IN)  :: nvec
   INTEGER, INTENT(IN)  :: n_soil
   !> Potential water evaporation (n_cell) [kg/(m**2 s)].
-  REAL(wp), INTENT(IN) :: evapot_s(nvec)
+  REAL(wp), INTENT(IN) :: evapot_sk(nvec)
   !> Potential evaporation for snow (n_cell) [kg/(m**2 s)].
   REAL(wp), INTENT(IN) :: evapot_snow(nvec)
   !> Snow temperature offset for calculating evaporation (n_cell) [K].
@@ -1168,7 +1177,7 @@ SUBROUTINE limit_evaporation ( &
 
 #ifdef __SX__
   !> Accumulated reduction factors for transpiration (NEC only).
-  REAL(wp) :: tran_fac(SIZE(evapot_s))
+  REAL(wp) :: tran_fac(SIZE(evapot_sk))
   INTEGER :: kso
 #endif
 
@@ -1185,7 +1194,7 @@ SUBROUTINE limit_evaporation ( &
   DO i = ivstart, ivend
     eva_sum = eva_w_sn(i) + eva_w_i(i) + eva_bs(i) + transp_sum(i)
     ! snow-weighted potential evaporation
-    evapot_wgt = fr_snow(i) * evapot_snow(i) + (1._wp - fr_snow(i)) * evapot_s(i)
+    evapot_wgt = fr_snow(i) * evapot_snow(i) + (1._wp - fr_snow(i)) * evapot_sk(i)
 
     IF (evapot_wgt < 0._wp .AND. eva_sum < evapot_wgt) THEN
       eva_red = evapot_wgt / eva_sum
@@ -1205,7 +1214,7 @@ SUBROUTINE limit_evaporation ( &
     ! Negative values of t_snred indicate that snow is present on the corresponding snow tile
     ! and that the snow-free tile has been artificially generated by the melting-rate parameterization
     ! in this case, bare soil evaporation and, in the case of a long-lasting snow cover, plant evaporation, are turned off.
-    IF (t_snred(i) < 0.0_wp .AND. evapot_s(i) < 0.0_wp) THEN
+    IF (t_snred(i) < 0.0_wp .AND. evapot_sk(i) < 0.0_wp) THEN
       eva_red = MAX(0.0_wp,1.0_wp-ABS(t_snred(i)))
       tran_red = MIN(1.0_wp,MAX(0.0_wp,2.0_wp-ABS(t_snred(i))))
       eva_bs(i) = eva_bs(i) * eva_red

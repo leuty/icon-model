@@ -288,7 +288,10 @@ cat >> ${basedir}/run/${atmo_namelist} << EOF
  ntiles = 1
  lseaice        = .true.
  lprog_albsi    = .true.
- sstice_mode    = 2
+ sstice_mode    = 6
+ sst_td_filename = 'sst.nc'
+ ci_td_filename = 'sic.nc'
+ sst_file_interval = 'P43Y'
 /
 
 EOF
@@ -383,6 +386,8 @@ esac
 
 add_link_file $grid_dir/icon_grid_0049_R02B04_G.nc  icon_grid.nc
 add_link_file $grid_dir/initial_conditions/r0100/ifs2icon_1979010100_0049_R02B04_G.nc ic_atmosphere.nc
+add_link_file $grid_dir/sst_and_seaice/SeaIce_CMIP_PCMDI-AMIP-1-1-7_197801-202012_daily_0049_R02B04_G.nc sic.nc
+add_link_file $grid_dir/sst_and_seaice/SST_CMIP_PCMDI-AMIP-1-1-7_197801-202012_daily_0049_R02B04_G.nc sst.nc
 
 jsb_dir="${grid_dir}/land/r0101/"
 add_link_file $jsb_dir/ic_land_soil.nc              ic_land_soil.nc

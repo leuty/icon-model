@@ -78,7 +78,7 @@ CONTAINS
 
     ALLOCATE (p_wave_state(n_dom),p_wave_state_lists(n_dom), stat=ist)
     IF (ist /= success) THEN
-       CALL finish(TRIM(routine),'allocation for wave state failed')
+       CALL finish(routine,'allocation for wave state failed')
     END IF
 
     DO jg = 1, n_dom
@@ -365,7 +365,7 @@ CONTAINS
     INTEGER :: datatype_flt  !< floating point accuracy in NetCDF output
     INTEGER :: nblks_c, nblks_e
     INTEGER :: nfreqs, ndirs, jmax
-    INTEGER :: ndepths
+    INTEGER :: nlev ! number of Stokes lavels (midpoints)
     INTEGER :: jg,jf
     INTEGER :: ist
     INTEGER :: shape2d_c(2)
@@ -478,7 +478,7 @@ CONTAINS
     nfreqs  = wc%nfreqs
     ndirs   = wc%ndirs
     jmax    = wc%jmax
-    ndepths = wc%ndepths
+    nlev    = wc%oce_stokes_nlev
 
     shape1d_freq_p4   = (/nfreqs+4/)
     shape1d_dir_2     = (/ndirs, 2/)
@@ -486,7 +486,7 @@ CONTAINS
     shape3d_freq_c    = (/nproma, nfreqs, nblks_c/)
     shape3d_freq_e    = (/nproma, nfreqs, nblks_e/)
     shape3d_dir_c     = (/nproma, ndirs, nblks_c/)
-    shape3d_depth_c   = (/nproma, ndepths, nblks_c/)
+    shape3d_depth_c   = (/nproma, nlev, nblks_c/)
     shape4d_c         = (/nproma, ndirs, nblks_c, nfreqs/)
 
 
@@ -1092,7 +1092,9 @@ CONTAINS
       & var_in_output%u3d_stokes     .OR. &
       & var_in_output%v3d_stokes) THEN
 
-       WRITE(0,*) '--- calculate Stokes ---'
+      IF (TRIM(wc%oce_vct_filename) == "") THEN
+        CALL finish(routine, "file name for ocean vertical interfaces table (namelist oce_vct_filename) is not difined")
+      END IF
 
       cf_desc   = t_cf_var('last_idx_depth', '-', 'last index of depth layer', datatype_int)
       grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
@@ -1116,21 +1118,19 @@ CONTAINS
            & ldims=shape2d_c)
 
       cf_desc    = t_cf_var('u3d_stokes', 'ms-1', 'U-component of 3d Stokes drift', datatype_flt)
-      grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      grib2_desc = grib2_var(10, 0, 21, ibits, GRID_UNSTRUCTURED, GRID_CELL)
       CALL add_var(p_diag_list, 'u3d_stokes', p_diag%u3d_stokes,          &
            & GRID_UNSTRUCTURED_CELL, ZA_DEPTH_BELOW_SEA, cf_desc, grib2_desc, &
            & lrestart=.FALSE., loutput=.TRUE.,                        &
            & ldims=shape3d_depth_c)
 
       cf_desc    = t_cf_var('v3d_stokes', 'ms-1', 'V-component of 3d Stokes drift', datatype_flt)
-      grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      grib2_desc = grib2_var(10, 0, 22, ibits, GRID_UNSTRUCTURED, GRID_CELL)
       CALL add_var(p_diag_list, 'v3d_stokes', p_diag%v3d_stokes,          &
            & GRID_UNSTRUCTURED_CELL, ZA_DEPTH_BELOW_SEA, cf_desc, grib2_desc, &
            & lrestart=.FALSE., loutput=.TRUE.,                        &
            & ldims=shape3d_depth_c)
 
-   ELSE
-      WRITE(0,*) '--- without Stokes ---'
    END IF
 
 

@@ -67,7 +67,7 @@ MODULE mo_initicon_io
   USE mo_fortran_tools,       ONLY: init
   USE mo_input_request_list,  ONLY: t_InputRequestList
   USE mo_util_string,         ONLY: int2string
-  USE mo_atm_phy_nwp_config,  ONLY: iprog_aero, atm_phy_nwp_config
+  USE mo_atm_phy_nwp_config,  ONLY: i2daero_dust, i2daero_seas, i2daero_anthro, atm_phy_nwp_config
   USE mo_var_metadata_types,  ONLY: t_var_metadata
   USE mo_var_list_register,   ONLY: t_vl_register_iter
   USE mo_var,                 ONLY: level_type_ml
@@ -1893,13 +1893,11 @@ MODULE mo_initicon_io
             ! since FLake prognostic variables in 'MODE_COMBINED' are declared optional,
             ! see 'mo_input_instructions'.
 
-            IF(iprog_aero >= 1) THEN
-                IF (iprog_aero == 1) THEN
-                  aerosol_fg_present(jg,1:4) = .FALSE.
-                  aerosol_fg_present(jg,5)   = .TRUE.
-                ELSE
-                  aerosol_fg_present(jg,:)   = .TRUE.
-                ENDIF
+            aerosol_fg_present(jg,1:5) = .FALSE.
+            IF( ANY( (/i2daero_dust, i2daero_seas, i2daero_anthro/) > 0 ) ) THEN
+                IF (i2daero_dust == 1)   aerosol_fg_present(jg,idu)       = .TRUE.
+                IF (i2daero_seas == 1)   aerosol_fg_present(jg,iss)       = .TRUE.
+                IF (i2daero_anthro == 1) aerosol_fg_present(jg,iorg:iso4) = .TRUE.
 
                 my_ptr2d => prm_diag(jg)%aerosol(:,iss,:)
                 CALL fetchSurface(params, 'aer_ss', jg, my_ptr2d)
@@ -1927,8 +1925,6 @@ MODULE mo_initicon_io
                 IF (.NOT.aerosol_fg_present(jg,ibc))  CALL inputInstructions(jg)%ptr%setSource('aer_bc', kInputSourceCold)
                 IF (.NOT.aerosol_fg_present(jg,iso4)) CALL inputInstructions(jg)%ptr%setSource('aer_su', kInputSourceCold)
                 IF (.NOT.aerosol_fg_present(jg,idu))  CALL inputInstructions(jg)%ptr%setSource('aer_du', kInputSourceCold)
-            ELSE
-                aerosol_fg_present(jg,:) = .FALSE.
             END IF
 
             IF (atm_phy_nwp_config(jg)%lstoch_sde) THEN

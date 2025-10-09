@@ -244,9 +244,9 @@ itune_albedo = 1
   frcsmot       = 0.2   ! these 2 switches together apply vertical smoothing of the TKE source terms
   imode_frcsmot = 2     ! in the tropics (only), which reduces the moist bias in the tropical lower troposphere
  ! use horizontal shear production terms with 1/SQRT(Ri) scaling to prevent unwanted side effects:
-  itype_sher    = 3
-  ltkeshs       = .true.
-  a_hshr        = 2.0
+  itype_sher    = 0
+  ltkeshs       = .false.
+  a_hshr        = 0.0
   icldm_turb    = 1
 /
 &lnd_nml

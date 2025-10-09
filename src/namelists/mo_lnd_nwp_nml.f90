@@ -162,7 +162,8 @@ CONTAINS
     INTEGER ::  itype_oskin_cold  !> forecast with ocean cold skin
 
     CHARACTER(LEN=filename_max) :: sst_td_filename, ci_td_filename
-    CHARACTER(LEN=max_timedelta_str_len) :: sst_file_interval
+    CHARACTER(LEN=max_timedelta_str_len) :: sst_file_interval !< Interval covered by a single SST/SIC
+                                                              !< file from the sequence.
 
    LOGICAL ::           &
          lseaice,        & !> forecast with sea ice model

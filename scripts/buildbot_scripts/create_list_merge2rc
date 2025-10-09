@@ -429,8 +429,8 @@ do
 done
 $addexp "checksuite.infrastructure/testbed/exp.icon-testbed_sync" --builders "breeze_gcc breeze_intel" --list ${listname} --runflags "mpi_procs_pernode=4"
 
-# Activate all single-precision builders as build-only (exception dwd_nec_sp disabled)
-SINGLE_PRECISION_BUILDERS="levante_gcc_sp levante_intel_hybrid_sp levante_nag_sp levante_gpu_nvhpc_sp lumi_cpu_sp mpimac_gcc_sp"
+# Activate all single-precision builders as build-only
+SINGLE_PRECISION_BUILDERS="levante_gcc_sp levante_intel_hybrid_sp levante_nag_sp levante_gpu_nvhpc_sp lumi_cpu_sp mpimac_gcc_sp dwd_nec_sp"
 ./set_builder_flags build_only --builders "${SINGLE_PRECISION_BUILDERS}" --list $listname
 
 #lets see the list

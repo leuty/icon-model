@@ -111,7 +111,7 @@ add_required_file ${input_folder}/LOWBC_1979_02.nc .
 # - ssi and tsi
 add_link_file ${input_folder}/swflux_14band_cmip6_1850-2299-v3.2.nc  ./bc_solar_irradiance_sw_b14.nc
 # Add required files for iRadAeroKinnVolcSP (irad_aero=18)
-add_required_file ${input_folder}/bc_aeropt_cmip6_volc_lw_b16_sw_b14_1979.nc .
+add_required_file ${input_folder}/bc_aeropt_cmip6_volc_lw_b16_sw_b14_1979.nc ./bc_aeropt_volc_lw_b16_sw_b14_1979.nc
 
 # - tropospheric anthropogenic aerosols, simple plumes
 add_link_file ${input_folder}/MACv2.0-SP_v1.nc                          ./MACv2.0-SP_v1.nc
@@ -369,10 +369,10 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
  efdt_min_raylfric  = 7200.
  itype_z0         = 2
  icapdcycl        = 3
- icpl_aero_conv   = 0
+ icpl_aero_conv   = 1
  icpl_aero_gscp   = 3
+ scale_cdnc_mode  = 2
  icpl_o3_tp       = 1
- iprog_aero       = 0
  dt_rad           = 2400
  dt_conv          = 800
  dt_sso           = 1600

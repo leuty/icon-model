@@ -57,7 +57,7 @@ MODULE mo_interpolate_time
     PROCEDURE(get_weight), PRIVATE, DEFERRED :: get_weight
     PROCEDURE(get_npromz), PRIVATE, DEFERRED :: get_npromz
 
-    PROCEDURE, PRIVATE :: finalize => time_intp_final
+    PROCEDURE :: finalize => time_intp_final
   END TYPE
 
   ABSTRACT INTERFACE
@@ -111,7 +111,7 @@ MODULE mo_interpolate_time
     PROCEDURE :: get_weight => time_intp_transient_get_weight
     PROCEDURE :: get_npromz => time_intp_transient_get_npromz
 
-    FINAL :: time_intp_transient_final
+    FINAL :: time_intp_transient_final_r0, time_intp_transient_final_r1
   END TYPE t_time_intp_transient
 
   !> Interpolation for monthly climatologies.
@@ -132,7 +132,7 @@ MODULE mo_interpolate_time
     PROCEDURE :: get_weight => time_intp_monthlyclim_get_weight
     PROCEDURE :: get_npromz => time_intp_monthlyclim_get_npromz
 
-    FINAL :: time_intp_monthlyclim_final
+    FINAL :: time_intp_monthlyclim_final_r0, time_intp_monthlyclim_final_r1
   END TYPE t_time_intp_monthlyclim
 
   INTEGER, PARAMETER :: intModeConstant          = 0
@@ -339,12 +339,21 @@ CONTAINS
 
   END SUBROUTINE time_intp_transient_init
 
-  SUBROUTINE time_intp_transient_final (this)
+  SUBROUTINE time_intp_transient_final_r0 (this)
     TYPE(t_time_intp_transient), INTENT(INOUT) :: this
 
     ! Cannot put this on the abstract base class because final routines have to take a TYPE(class)
     ! parameter but abstract classes cannot be used as TYPE(). Catch 22.
     CALL this%finalize
+  END SUBROUTINE
+
+  SUBROUTINE time_intp_transient_final_r1 (this)
+    TYPE(t_time_intp_transient), INTENT(INOUT) :: this(:)
+    INTEGER :: i
+
+    DO i = 1, SIZE(this)
+      CALL this(i)%finalize
+    END DO
   END SUBROUTINE
 
   !> Check if transient interpolator needs new data.
@@ -479,12 +488,21 @@ CONTAINS
 
   END SUBROUTINE
 
-  SUBROUTINE time_intp_monthlyclim_final (this)
+  SUBROUTINE time_intp_monthlyclim_final_r0 (this)
     TYPE(t_time_intp_monthlyclim), INTENT(INOUT) :: this
 
     ! Cannot put this on the abstract base class because final routines have to take a TYPE(class)
     ! parameter but abstract classes cannot be used as TYPE(). Catch 22.
     CALL this%finalize
+  END SUBROUTINE
+
+  SUBROUTINE time_intp_monthlyclim_final_r1 (this)
+    TYPE(t_time_intp_monthlyclim), INTENT(INOUT) :: this(:)
+    INTEGER :: i
+
+    DO i = 1, SIZE(this)
+      CALL this(i)%finalize
+    END DO
   END SUBROUTINE
 
   LOGICAL FUNCTION time_intp_monthlyclim_need_new_data (this, local_time)

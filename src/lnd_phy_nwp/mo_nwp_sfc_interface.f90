@@ -60,11 +60,9 @@ MODULE mo_nwp_sfc_interface
   USE mo_index_list,          ONLY: generate_index_list
   USE mo_fortran_tools,       ONLY: init, set_acc_host_or_device, assert_acc_device_only
   USE microphysics_1mom_schemes, ONLY: get_mean_snowdrift_mass
-
-#ifdef ICON_USE_CUDA_GRAPH
-  USE mo_acc_device_management,ONLY: accGraph, accBeginCapture, accEndCapture, accGraphLaunch
+  USE mo_cuda_graphs,         ONLY: t_cuda_graphs, id_captured, create_graphs, &
+  &                                 begin_capture, end_capture, replay
   USE, INTRINSIC :: iso_c_binding
-#endif
 
   IMPLICIT NONE
 
@@ -80,12 +78,7 @@ MODULE mo_nwp_sfc_interface
 INTEGER, PARAMETER :: nlsoil= 8
 #endif
 
-#ifdef ICON_USE_CUDA_GRAPH
-TYPE(accGraph) :: graphs(max_dom*2)
-TYPE(c_ptr) :: lnd_prog_now_cache(max_dom*2) = C_NULL_PTR
-LOGICAL :: graph_captured
-INTEGER :: cur_graph_id, ig
-#endif
+TYPE(t_cuda_graphs) :: graphs
 LOGICAL :: multi_queue_processing
 INTEGER :: acc_async_queue = 1
 
@@ -254,7 +247,7 @@ CONTAINS
     REAL(wp) :: w_so_ice_now_t(nproma, nlev_soil)
     REAL(wp) :: w_so_ice_new_t(nproma, nlev_soil)
 
-    INTEGER  :: i_count, i_count_seawtr, i_count_snow, ic, i_count_init, is1, is2
+    INTEGER  :: i_count, i_count_snow, ic, i_count_init, is1, is2
     INTEGER  :: init_list(nproma), it1(nproma), it2(nproma)
     REAL(wp) :: tmp1, tmp2, tmp3, qsat1, dqsdt1, qsat2, dqsdt2, qi_snowdrift_flx_t, zxidrift
     REAL(wp) :: frac_sv(nproma), frac_snow_sv(nproma), fact1(nproma), fact2(nproma), tsnred(nproma), &
@@ -285,6 +278,8 @@ CONTAINS
 
     LOGICAL :: ldiff_qi, ldiff_qs, ldepo_qw
 
+    INTEGER :: graph_id ! current CUDA graph ID
+
     CHARACTER(len=*), PARAMETER :: routine = 'mo_nwp_sfc_interface:nwp_surface'
 
 
@@ -293,12 +288,6 @@ CONTAINS
 #endif
 
 !--------------------------------------------------------------
-#ifdef ICON_USE_CUDA_GRAPH
-    multi_queue_processing = lcuda_graph_lnd
-#else
-    multi_queue_processing = .FALSE.
-#endif
-
     CALL set_acc_host_or_device(lzacc, lacc)
 
     ! get patch ID
@@ -338,49 +327,22 @@ CONTAINS
 
     CALL get_mean_snowdrift_mass(zxidrift)
 
-#ifdef ICON_USE_CUDA_GRAPH
-! Using CUDA graphs here to capture and replay the GPU kernels without host overhead
-! We need to capture two graphs because the source and destination arrays
-!  are swapped every step (alternating nnow and nnew)
+    ! Using CUDA graphs here to capture and replay the GPU kernels without host overhead
+    multi_queue_processing = lcuda_graph_lnd
     IF (lzacc .AND. lcuda_graph_lnd) THEN
-      cur_graph_id = -1
-      DO ig=1,max_dom*2
-        IF (C_LOC(lnd_prog_now) == lnd_prog_now_cache(ig)) THEN
-          cur_graph_id = ig
-          graph_captured = .TRUE.
-          EXIT
-        END IF
-      END DO
-
-      IF (cur_graph_id < 0) THEN
-        DO ig=1,max_dom*2
-          IF (lnd_prog_now_cache(ig) == C_NULL_PTR) THEN
-            cur_graph_id = ig
-            lnd_prog_now_cache(ig) = C_LOC(lnd_prog_now)
-            graph_captured = .FALSE.
-            EXIT
-          END IF
-        END DO
+      IF (.NOT. graphs%initialized) THEN
+        CALL create_graphs(graphs, 1, routine)
       END IF
 
-      IF (cur_graph_id < 0) THEN
-        CALL finish('mo_nwp_sfc_interface: ', 'error trying to allocate CUDA graph')
-      END IF
-
-      IF (graph_captured) THEN
-        WRITE(message_text,'(a,i2)') 'executing CUDA graph id ', cur_graph_id
-        IF (msg_level >= 14) CALL message('mo_nwp_sfc_interface: ', message_text)
-        CALL accGraphLaunch(graphs(cur_graph_id), 1)
-        !$ACC UPDATE HOST(ext_data%atm%gp_count_t(:,1:ntiles_total)) ASYNC(1)
-        !$ACC WAIT(1)
+      graph_id = id_captured( graphs, ptr_keys=(/ C_LOC(lnd_prog_now) /) )
+      IF (graph_id > 0) THEN
+        CALL replay(graphs, graph_id, 1)
+        !$ACC WAIT(1) IF(lzacc)
         RETURN
       ELSE
-        WRITE(message_text,'(a,i2)') 'starting to capture CUDA graph, id ', cur_graph_id
-        IF (msg_level >= 13) CALL message('mo_nwp_sfc_interface: ', message_text)
-        CALL accBeginCapture(1)
+        CALL begin_capture( graphs, 1, ptr_keys=(/ C_LOC(lnd_prog_now) /) )
       END IF
     END IF
-#endif
 
     !$ACC DATA PRESENT(ext_data, p_prog, p_prog_rcf, p_diag, p_metrics, prm_diag) &
     !$ACC   PRESENT(lnd_prog_now, lnd_prog_new, p_prog_wtr_now, p_prog_wtr_new, lnd_diag) &
@@ -403,7 +365,7 @@ CONTAINS
     !$ACC   PRESENT(p_graupel_gsp_rate) ASYNC(1)
 
 !$OMP PARALLEL
-!$OMP DO PRIVATE(jb,jc,jk,i_startidx,i_endidx,isubs,i_count,ic,isubs_snow,i_count_snow,i_count_seawtr,      &
+!$OMP DO PRIVATE(jb,jc,jk,i_startidx,i_endidx,isubs,i_count,ic,isubs_snow,i_count_snow,                     &
 !$OMP   tmp1,tmp2,tmp3,fact1,fact2,frac_sv,frac_snow_sv,i_count_init,init_list,it1,it2,is1,is2,             &
 !$OMP   rain_gsp_rate,snow_gsp_rate,ice_gsp_rate,rain_con_rate,snow_con_rate,ps_t,prr_con_t,prs_con_t,      &
 !$OMP   prr_gsp_t,prs_gsp_t,pri_gsp_t,u_t,v_t,t_t,qv_t,qc_t,qi_t,p0_t,sso_sigma_t,lc_class_t,t_g_t,qv_s_t,  &
@@ -446,11 +408,10 @@ CONTAINS
          !
          !> adjust humidity at water surface because of changing surface pressure
          !
-         i_count_seawtr = ext_data%atm%list_seawtr%ncount(jb)
 !$NEC ivdep
          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
          !$ACC LOOP GANG VECTOR PRIVATE(jc)
-         DO ic=1,i_count_seawtr
+         DO ic=1,ext_data%atm%list_seawtr%ncount(jb)
            jc = ext_data%atm%list_seawtr%idx(ic,jb)
 
            ! salinity_fac accounts for the average reduction of saturation pressure caused by the salt content of oceans
@@ -1638,11 +1599,14 @@ CONTAINS
 
       !
       ! Update skin temperature T_g and T_s over ocean
-      !   no skin:    T_g = SST
-      !   oskin:      add warm layer and cold skin
-      !   sst_cl_inc: climatological increment
-      !   (only needed if either SST or skin update)
-      !
+      !   no skin:          T_g = SST
+      !   oskin:            add warm layer and cold skin
+      ! Note on changing t_seasfc (foundation temperature)
+      !   clim. increment:  t_seasfc + sst_cl_inc at 00UTC in sst_add_climatological_incr
+      !                     calculated before nwp_nh_interface
+      !   ocean:            t_seasfc changes in nwp_couple_ocean at end of nwp_nh_interface
+      !                     after ocean: second addition of warm-layer and cold-skin
+      !                                  after t_seasfc update in process_sst_and_seaice
 
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jb,ic,jc,t_g_new)
@@ -1844,15 +1808,15 @@ CONTAINS
 !$OMP END DO
 !$OMP END PARALLEL
 
-#ifdef ICON_USE_CUDA_GRAPH
-    IF (lzacc .AND. lcuda_graph_lnd) THEN
-      CALL accEndCapture(1, graphs(cur_graph_id))
-      WRITE(message_text,'(a,i2,a)') 'finished to capture CUDA graph, id ', cur_graph_id, ', now executing it'
-      IF (msg_level >= 13) CALL message('mo_nwp_sfc_interface: ', message_text)
-      CALL accGraphLaunch(graphs(cur_graph_id), 1)
-    END IF
-#endif
     !$ACC UPDATE HOST(ext_data%atm%gp_count_t(:,1:ntiles_total)) ASYNC(1) IF(lzacc)
+    IF ( (atm_phy_nwp_config(jg)%inwp_surface == 1) .AND. (lseaice) ) THEN
+      !$ACC UPDATE HOST(ext_data%atm%list_seaice%ncount, ext_data%atm%list_seawtr%ncount) ASYNC(1) IF(lzacc)
+    END IF
+
+    IF (lzacc .AND. lcuda_graph_lnd .AND. graph_id == 0) THEN
+      graph_id = end_capture(graphs)
+      CALL replay(graphs, graph_id, 1)
+    END IF
     !$ACC WAIT(1) IF(lzacc)
 
   END SUBROUTINE nwp_surface
@@ -1939,9 +1903,10 @@ CONTAINS
       CALL message(routine, 'call nwp_seaice scheme')
     ENDIF
 
-    !$ACC DATA CREATE(shfl_s, lhfl_s, lwflxsfc, swflxsfc, condhf_i, meltpot_i, snow_rate, rain_rate, tice_now, hice_now) &
+    !$ACC DATA CREATE(i_count) &
+    !$ACC   CREATE(shfl_s, lhfl_s, lwflxsfc, swflxsfc, condhf_i, meltpot_i, snow_rate, rain_rate, tice_now, hice_now) &
     !$ACC   CREATE(tsnow_now, hsnow_now, albsi_now, tice_new, hice_new, tsnow_new, hsnow_new, albsi_new, fhflx) &
-    !$ACC   PRESENT(ext_data, p_lnd_diag, prm_diag, p_prog_wtr_now, lnd_prog_new, p_prog_wtr_new, p_diag)
+    !$ACC   PRESENT(ext_data, p_lnd_diag, prm_diag, p_prog_wtr_now, lnd_prog_new, p_prog_wtr_new, p_diag) ASYNC(1)
 
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jb,i_count,ic,jc,shfl_s,lhfl_s,lwflxsfc,swflxsfc,snow_rate,rain_rate, &
@@ -1953,10 +1918,14 @@ CONTAINS
       !
       ! Copy input fields
       !
+
+      !$ACC SERIAL ASYNC(1)
       i_count = ext_data%atm%list_seaice%ncount(jb)
+      !$ACC END SERIAL
 
-
+#ifndef _OPENACC
       IF (i_count == 0) CYCLE ! skip loop if the index list for the given block is empty
+#endif
 
       !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
       !$ACC LOOP GANG VECTOR PRIVATE(jc)
@@ -2090,7 +2059,7 @@ CONTAINS
 !$OMP END DO
 !$OMP END PARALLEL
 
-    IF (.NOT. multi_queue_processing) THEN
+    IF (.NOT. lcuda_graph_lnd) THEN
       !$ACC WAIT(1)
     END IF
     !$ACC END DATA

@@ -48,7 +48,7 @@ MODULE mo_ext_data_state
   USE mo_initicon_config,    ONLY: icpl_da_seaice, icpl_da_snowalb
   USE mo_lnd_nwp_config,     ONLY: ntiles_total, ntiles_water, llake,       &
     &                              sstice_mode, lterra_urb
-  USE mo_atm_phy_nwp_config, ONLY: iprog_aero, atm_phy_nwp_config
+  USE mo_atm_phy_nwp_config, ONLY: i2daero_anthro, i2daero_fire, atm_phy_nwp_config
   USE mo_radiation_config,   ONLY: irad_o3, albedo_type, islope_rad
   USE mo_extpar_config,      ONLY: ext_atm_attr, ext_o3_attr, itype_vegetation_cycle, itype_lwemiss
   USE mo_cdi,                ONLY: DATATYPE_PACK16, DATATYPE_PACK24, DATATYPE_FLT32, DATATYPE_FLT64,     &
@@ -173,7 +173,7 @@ CONTAINS
 
     INTEGER :: shape2d_c(2)
     INTEGER :: shape3d_c(3)
-    INTEGER :: shape3d_sfc(3), shape3d_sfc_sec(3), shape3d_nt(3), shape3d_ntw(3)
+    INTEGER :: shape3d_sfc(3), shape3d_sfc_sec(3), shape3d_nt(3), shape3d_ntw(3), shape3d_clim(3)
 
     INTEGER :: ibits             !< "entropy" of horizontal slice
     INTEGER :: DATATYPE_PACK_VAR !< variable "entropy" for some horizontal slices
@@ -224,6 +224,7 @@ CONTAINS
     shape3d_sfc= (/ nproma, nblks_c, nclass_lu  /)
     shape3d_nt = (/ nproma, nblks_c, ntiles_total     /)
     shape3d_ntw = (/ nproma, nblks_c, ntiles_total + ntiles_water /)
+    shape3d_clim = (/nproma, nblks_c, 4/)
 
 
     !------------------------------
@@ -239,6 +240,8 @@ CONTAINS
       &     p_ext_atm%emi_bc,          &
       &     p_ext_atm%emi_oc,          &
       &     p_ext_atm%emi_so2,         &
+      &     p_ext_atm%emi_nh3,         &
+      &     p_ext_atm%emi_nox,         &
       &     p_ext_atm%bcfire,          &
       &     p_ext_atm%ocfire,          &
       &     p_ext_atm%so2fire,         &
@@ -426,7 +429,7 @@ CONTAINS
         &           grib2_desc, ldims=shape3d_c, loutput=.TRUE., lopenacc=.TRUE. )
       __acc_attach(p_ext_atm%o3)
 
-      IF (iprog_aero > 1) THEN
+      IF (i2daero_anthro == 1) THEN
         ! BC emission (precursor for anthr. 2D-aerosol emission)
         !
         ! emi_bc        p_ext_atm%emi_bc(nproma,nblks_c)
@@ -460,7 +463,29 @@ CONTAINS
           &           grib2_desc, ldims=shape2d_c, loutput=.TRUE., lopenacc=.TRUE. )
         __acc_attach(p_ext_atm%emi_so2)
 
-        IF (iprog_aero > 2) THEN
+        ! NH3 emission (precursor for anthr. 2D-aerosol emission)
+        !
+        ! emi_nh3       p_ext_atm%emi_nh3(nproma,nblks_c)
+        cf_desc    = t_cf_var('emi_nh3', 'kg m-2 s-1', &
+          &                   'emi_nh3', datatype_flt)
+        grib2_desc = grib2_var( 255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+        CALL add_var( p_ext_atm_list, 'emi_nh3', p_ext_atm%emi_nh3,                    &
+          &           GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc,                     &
+          &           grib2_desc, ldims=shape2d_c, loutput=.TRUE., lopenacc=.TRUE. )
+        __acc_attach(p_ext_atm%emi_nh3)
+
+        ! NOx emission (precursor for anthr. 2D-aerosol emission)
+        !
+        ! emi_nox       p_ext_atm%emi_nox(nproma,nblks_c)
+        cf_desc    = t_cf_var('emi_nox', 'kg m-2 s-1', &
+          &                   'emi_nox', datatype_flt)
+        grib2_desc = grib2_var( 255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+        CALL add_var( p_ext_atm_list, 'emi_nox', p_ext_atm%emi_nox,                    &
+          &           GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc,                     &
+          &           grib2_desc, ldims=shape2d_c, loutput=.TRUE., lopenacc=.TRUE. )
+        __acc_attach(p_ext_atm%emi_nox)
+
+        IF (i2daero_fire == 1) THEN
           ! BC emission (precursor for wildfire 2D-aerosol emission)
           !
           ! bcfire        p_ext_atm%bcfire(nproma,nblks_c)
@@ -494,6 +519,41 @@ CONTAINS
             &           grib2_desc, ldims=shape2d_c, loutput=.TRUE., lopenacc=.TRUE. )
           __acc_attach(p_ext_atm%so2fire)
         ENDIF
+
+        IF (i2daero_fire == 2) THEN
+          ! Climatological BC emission (precursor for wildfire 2D-aerosol emission), seasonal
+          !
+          ! bcfire_clim        p_ext_atm%bcfire_clim(nproma,nblks_c,season)
+          cf_desc    = t_cf_var('bcfire_clim', 'kg m-2 s-1', &
+            &                   'bcfire_clim', datatype_flt)
+          grib2_desc = grib2_var( 255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+          CALL add_var( p_ext_atm_list, 'bcfire_clim', p_ext_atm%bcfire_clim,            &
+            &           GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc,                     &
+            &           grib2_desc, ldims=shape3d_clim, loutput=.TRUE., lopenacc=.TRUE. )
+          __acc_attach(p_ext_atm%bcfire_clim)
+
+          ! Climatological OC emission (precursor for wildfire 2D-aerosol emission), seasonal
+          !
+          ! ocfire_clim        p_ext_atm%ocfire_clim(nproma,nblks_c,season)
+          cf_desc    = t_cf_var('ocfire_clim', 'kg m-2 s-1', &
+            &                   'ocfire_clim', datatype_flt)
+          grib2_desc = grib2_var( 255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+          CALL add_var( p_ext_atm_list, 'ocfire_clim', p_ext_atm%ocfire_clim,            &
+            &           GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc,                     &
+            &           grib2_desc, ldims=shape3d_clim, loutput=.TRUE., lopenacc=.TRUE. )
+          __acc_attach(p_ext_atm%ocfire_clim)
+
+          ! Climatological SO2 emission (precursor for wildfire 2D-aerosol emission), seasonal
+          !
+          ! so2fire_clim        p_ext_atm%so2fire_clim(nproma,nblks_c,season)
+          cf_desc    = t_cf_var('so2fire_clim', 'kg m-2 s-1', &
+            &                   'so2fire_clim', datatype_flt)
+          grib2_desc = grib2_var( 255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+          CALL add_var( p_ext_atm_list, 'so2fire_clim', p_ext_atm%so2fire_clim,          &
+            &           GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc,                     &
+            &           grib2_desc, ldims=shape3d_clim, loutput=.TRUE., lopenacc=.TRUE. )
+          __acc_attach(p_ext_atm%so2fire_clim)
+        ENDIF ! i2daero_fire == 2
       ENDIF
 
       ! external parameter for NWP forcing

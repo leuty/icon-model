@@ -50,7 +50,7 @@ MODULE mo_nh_init_nest_utils
     &                                 llake, isub_lake, frlake_thrhld, frsea_thrhld, lprog_albsi, &
     &                                 itype_snowevap, dzsoil, frsi_min, itype_ahf
   USE mo_initicon_config,       ONLY: icpl_da_sfcevap, icpl_da_skinc, icpl_da_sfcfric
-  USE mo_atm_phy_nwp_config,    ONLY: atm_phy_nwp_config, iprog_aero
+  USE mo_atm_phy_nwp_config,    ONLY: atm_phy_nwp_config, i2daero_dust, i2daero_seas, i2daero_anthro
   USE mo_nwp_tuning_config,     ONLY: itune_gust_diag
   USE mo_radiation_config,      ONLY: islope_rad
   USE mo_interpol_config,       ONLY: nudge_zone_width
@@ -593,7 +593,8 @@ MODULE mo_nh_init_nest_utils
         f4din1=p_parent_prog_rcf%tracer, f4dout1=p_child_prog_rcf%tracer, llimit_nneg=l_limit, nlev_ex=1)
     ENDIF
 
-    IF (ltransport .AND. iprog_aero >= 1 .AND. iforcing == inwp) THEN
+    IF (ltransport .AND. iforcing == inwp &
+      & .AND. ANY( (/i2daero_dust, i2daero_seas, i2daero_anthro/) > 0 ) ) THEN
       CALL interpol_scal_grf ( p_pp=p_patch(jg), p_pc=p_pc, p_grf=p_grf_state(jg)%p_dom(i_chidx), nfields=1, lacc=.FALSE.,  &
         f3din1=prm_diag(jg)%aerosol, f3dout1=prm_diag(jgc)%aerosol, llimit_nneg=(/.TRUE./), lnoshift=.TRUE.,                &
         nlev_ex=SIZE(prm_diag(jgc)%aerosol,2))
@@ -640,7 +641,8 @@ MODULE mo_nh_init_nest_utils
         &                     RECV4D=tracer_lp, SEND4D=p_parent_prog_rcf%tracer    )
     ENDIF
 
-    IF (ltransport .AND. iprog_aero >= 1 .AND. iforcing == inwp) THEN
+    IF (ltransport .AND. iforcing == inwp &
+      & .AND. ANY( (/i2daero_dust, i2daero_seas, i2daero_anthro/) > 0 )) THEN
       CALL exchange_data(p_pat=p_pp%comm_pat_glb_to_loc_c, lacc=.FALSE., RECV=aero_lp, SEND=prm_diag(jg)%aerosol)
     ENDIF
 
@@ -693,7 +695,8 @@ MODULE mo_nh_init_nest_utils
       CALL sync_patch_array_mult(SYNC_C, p_pc, ntracer, lacc=.FALSE., f4din=p_child_prog_rcf%tracer)
     ENDIF
 
-    IF (ltransport .AND. iprog_aero >= 1 .AND. iforcing == inwp) THEN
+    IF (ltransport .AND. iforcing == inwp &
+      & .AND. ANY( (/i2daero_dust, i2daero_seas, i2daero_anthro/) > 0 ) ) THEN
       IF(l_parallel) CALL exchange_data(p_pat=p_pp%comm_pat_c, lacc=.FALSE., recv=aero_lp)
       CALL interpol_scal_nudging (p_pp, p_int, p_grf%p_dom(i_chidx), nshift=0,                        &
                                   nfields=1, nlev_ex=nclass_aero, istart_blk=1, lacc=.FALSE.,         &

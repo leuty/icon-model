@@ -26,6 +26,7 @@ MODULE mo_nwp_vdiff_types
   USE mo_var_list, ONLY: t_var_list_ptr, add_var, add_ref
   USE mo_zaxis_type, ONLY: ZA_REFERENCE, ZA_SURFACE
   USE mo_fortran_tools,      ONLY: assert_acc_device_only
+  USE mo_run_config, ONLY: ico2
 
   USE mtime, ONLY: datetime
 
@@ -183,6 +184,9 @@ MODULE mo_nwp_vdiff_types
 
     !> Natural CO2 flux over land [kg/m**2/s] (nproma,nblks_c).
     REAL(wp), CONTIGUOUS, POINTER :: flx_co2_natural_land(:,:) => NULL()
+
+    !> Anthropogenic CO2 flux [kg/m**2/s] (nproma,nblks_c).
+    REAL(wp), CONTIGUOUS, POINTER :: fco2ant(:,:) => NULL()
 
     !> Total turbulent energy [J/kg?] (nproma,nlev,nblks_c)
     REAL(wp), CONTIGUOUS, POINTER :: total_turbulence_energy(:,:,:) => NULL()
@@ -359,6 +363,18 @@ CONTAINS
         & lrestart=.TRUE., in_group=groups('vdiff') &
       )
     !$ACC ENTER DATA ASYNC(1) ATTACH(self%flx_co2_natural_land)
+
+    ! self%fco2ant(nproma,nblks_c)
+    IF (ico2 > 0) THEN
+      cf_desc = t_cf_var('fco2ant', 'kg m-2 s-1', 'Anthropogenic CO2 flux', datatype_flt)
+      grib2_desc = grib2_var(255, 255, 255, grib2_bits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var(varlist, 'fco2ant', self%fco2ant, &
+          & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
+          & ldims=shape2d, isteptype=TSTEP_INSTANT, lopenacc=.TRUE., &
+          & lrestart=.TRUE., in_group=groups('vdiff') &
+        )
+    !$ACC ENTER DATA ASYNC(1) ATTACH(self%fco2ant)
+    END IF
 
     ! self%flx_heat_latent_sft(nproma,nblks_c,SFT_NUM)
     cf_desc = t_cf_var('flx_heat_latent_sft', 'W m-2', &
@@ -584,6 +600,11 @@ CONTAINS
     !$ACC   HOST(self%wstar_sfc) &
     !$ACC   HOST(self%z0m_sfc) &
     !$ACC   HOST(self%z0h_land)
+
+    IF (ASSOCIATED(self%fco2ant)) THEN
+      !$ACC UPDATE ASYNC(1) &
+      !$ACC   HOST(self%fco2ant)
+    END IF
     !$ACC WAIT(1)
 
   END SUBROUTINE nwp_vdiff_state_d2h
@@ -615,6 +636,11 @@ CONTAINS
     !$ACC   DEVICE(self%wstar_sfc) &
     !$ACC   DEVICE(self%z0m_sfc) &
     !$ACC   DEVICE(self%z0h_land)
+
+    IF (ASSOCIATED(self%fco2ant)) THEN
+      !$ACC UPDATE ASYNC(1) &
+      !$ACC   DEVICE(self%fco2ant)
+    END IF
 
   END SUBROUTINE nwp_vdiff_state_h2d
 

@@ -225,7 +225,7 @@ CONTAINS
     IF (ist /= SUCCESS) CALL finish(routine, &
          &  'deallocation of wave forcing state array and list failed')
 
-    CALL message (TRIM(routine), 'Destruction of wave forcing state finished')
+    CALL message(routine, 'Destruction of wave forcing state finished')
 
   END SUBROUTINE destruct_wave_forcing_state
 

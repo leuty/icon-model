@@ -35,14 +35,15 @@ MODULE mo_nml_crosscheck
   USE mo_limarea_config,           ONLY: latbc_config, LATBC_TYPE_CONST, LATBC_TYPE_EXT
   USE mo_master_config,            ONLY: isRestart
   USE mo_run_config,               ONLY: nsteps, dtime, iforcing, output_mode,             &
-    &                                    ltransport, ltestcase, ltimer,                    &
+    &                                    ltransport, ltestcase, ltimer, ldynamics,         &
     &                                    activate_sync_timers, timers_level, lart,         &
     &                                    msg_level, luse_radarfwo
   USE mo_dynamics_config,          ONLY: ldeepatmo, lmoist_thdyn
   USE mo_advection_config,         ONLY: advection_config
   USE mo_nonhydrostatic_config,    ONLY: itime_scheme_nh => itime_scheme,                  &
     &                                    rayleigh_type, ivctype, iadv_rhotheta
-  USE mo_atm_phy_nwp_config,       ONLY: atm_phy_nwp_config, icpl_aero_conv, iprog_aero,   &
+  USE mo_atm_phy_nwp_config,       ONLY: atm_phy_nwp_config, icpl_aero_conv, i2daero_dust, &
+    &                                    i2daero_seas, i2daero_anthro, i2daero_fire,       &
     &                                    icpl_aero_ice, itype_dissip_heat
   USE mo_lnd_nwp_config,           ONLY: ntiles_lnd, lsnowtile, sstice_mode, llake
 #ifndef __NO_AES__
@@ -65,6 +66,7 @@ MODULE mo_nml_crosscheck
     &                                    ecrad_isolver, ecrad_igas_model,                  &
     &                                    ecrad_use_general_cloud_optics
   USE mo_turbdiff_config,          ONLY: turbdiff_config
+  USE mo_diffusion_config,         ONLY: diffusion_config
   USE mo_initicon_config,          ONLY: init_mode, dt_iau, ltile_coldstart, iterate_iau,  &
     &                                    itype_vert_expol
   USE mo_nh_testcases_nml,         ONLY: nh_test_name, layer_thickness
@@ -268,6 +270,16 @@ CONTAINS
         CALL finish( routine, 'scm_sfc_... requires is_ls_forcing=TRUE, but --disable-les has been set')
 #endif
       END IF
+
+      ! SHS production terms in turbdiff cannot be calculated in SCM mode.
+      ! However, if LES is run in "idealised" mode with l_scm_mode and ldynamics=T,
+      ! the shear terms could be optional
+      IF (.NOT. ldynamics) THEN
+        turbdiff_config(1:n_dom)%loutshs = .FALSE.
+        turbdiff_config(1:n_dom)%ltkeshs = .FALSE.
+        turbdiff_config(1:n_dom)%a_hshr  = 0
+        turbdiff_config(1:n_dom)%itype_sher = 0
+      ENDIF
     ELSE
       i_scm_netcdf   = 0
     END IF
@@ -350,6 +362,15 @@ CONTAINS
                       'idealized (horizontally homogeneous) roughness '//&
                       'length z0 selected!')
         ENDIF
+
+        IF (turbdiff_config(jg)%ltkeshs .NEQV. (turbdiff_config(jg)%a_hshr>0)) &
+          &  CALL finish( routine,'Wrong combination of ltkeshs and a_hshr. ltkeshs=.true. must '//  &
+                               'coincide with a_hshr>0, and ltkeshs=.false. must coincide with a_hshr=0.')
+
+        IF ((turbdiff_config(jg)%itype_sher>=1 .OR. (turbdiff_config(jg)%a_hshr>0)) .AND. &
+          & diffusion_config(jg)%hdiff_order/=5) &
+          & CALL finish( routine,'hdiff_order=5 must be selected for horizontal shear term calculations '// &
+                        'requested with a_hshr>0 or itype_sher>=1')
 
         IF (.NOT. ltestcase .AND. atm_phy_nwp_config(jg)%inwp_surface == 0) THEN
           CALL finish( routine,'Real-data applications require using a surface scheme!')
@@ -555,13 +576,18 @@ CONTAINS
         ENDIF !inwp_radiation
 
         !! Checks for simple prognostic aerosol scheme
-        IF (iprog_aero > 0) THEN
+        IF ( ANY( (/i2daero_dust, i2daero_seas, i2daero_anthro, i2daero_fire/) > 0 ) ) THEN
 #ifndef __NO_ICON_LES__
           IF (atm_phy_nwp_config(jg)%is_les_phy) &
-            & CALL finish(routine,'iprog_aero > 0 can not be combined with LES physics')
+            & CALL finish(routine, &
+              & 'i2daero_dust, i2daero_seas, i2daero_anthro, i2daero_fire > 0 can not be combined with LES physics')
 #endif
-          IF (irad_aero /= iRadAeroTegen) &
-            & CALL finish(routine,'iprog_aero > 0 currently only available for irad_aero=6 (Tegen)')
+          IF ( ALL( (/iRadAeroTegen, iRadAeroART/) /= irad_aero) ) &
+            & CALL finish(routine, &
+              & 'i2daero_dust, i2daero_seas, i2daero_anthro, i2daero_fire > 0 only available for irad_aero=6,9')
+        ENDIF
+        IF ( i2daero_fire > 0 .AND. i2daero_anthro == 0 ) THEN
+          CALL finish(routine,'i2daero_fire > 0 can only be used in combination with i2daero_anthro > 0')
         ENDIF
 
         !! check options for cloud scheme
@@ -1071,10 +1097,6 @@ CONTAINS
     IF (.NOT. lart .AND. irad_aero == iRadAeroART ) THEN
       CALL finish(routine,'irad_aero=9 (ART) needs lart = .TRUE.')
     END IF
-
-    IF ( ( irad_aero == iRadAeroART ) .AND. ( iprog_aero /= 0 ) ) THEN
-      CALL finish(routine,'irad_aero=9 (ART) requires iprog_aero=0')
-    ENDIF
 
 #ifdef __ICON_ART
     IF ( ( irad_aero == iRadAeroART ) .AND. ( itopo /=1 ) ) THEN

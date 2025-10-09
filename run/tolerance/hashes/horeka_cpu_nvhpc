@@ -4,5 +4,5 @@
 icon_data_rootFolder: /hkfs/home/dataset/datasets/icon/pool/data/ICON
 builder: horeka_cpu_nvhpc
 # The list below maps each experiment to its current experiment_hash
-"dwd_run_ICON_09_R2B4N5_EPS": 621212861dc9489ce1168190dbe34c1ebb6251c5
-"mch_ch_r04b09_dace_synsat": bfb17e3267e6f4c1ace1763ea98c6e4a5b6824d5
+"dwd_run_ICON_09_R2B4N5_EPS": 4f78d7fbe49ae4fd66abc2e40b28f1eb53069a25
+"mch_ch_r04b09_dace_synsat": 6f00c3476366bc7830d93a9c98784061f9de86a4

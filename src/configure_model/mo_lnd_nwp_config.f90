@@ -121,7 +121,8 @@ MODULE mo_lnd_nwp_config
   REAL(wp)::  czbot_w_so       !< thickness of the hydraulical active soil layer [m]
 
   CHARACTER(LEN=filename_max) :: sst_td_filename, ci_td_filename
-  CHARACTER(LEN=max_timedelta_str_len) :: sst_file_interval
+  CHARACTER(LEN=max_timedelta_str_len) :: sst_file_interval !< Interval covered by a single SST/SIC
+                                                            !< file from the sequence.
 
   LOGICAL :: lcuda_graph_lnd  !< activate cuda graph
 

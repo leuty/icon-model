@@ -51,14 +51,14 @@ MODULE mo_nh_stepping
     &                                    timer_integrate_nh, timer_nh_diagnostics,             &
     &                                    timer_iconam_aes, timer_dace_coupling, timer_rrg_interp, &
     &                                    timer_gpu_mem_use,                                    &
-    &                                    timer_coupling
+    &                                    timer_coupling, timer_adv_2daero
 #else
   USE mo_timer,                    ONLY: ltimer, timers_level, timer_start, timer_stop,        &
     &                                    timer_total, timer_model_init, timer_nudging,         &
     &                                    timer_bdy_interp, timer_feedback, timer_nesting,      &
     &                                    timer_integrate_nh, timer_nh_diagnostics,             &
     &                                    timer_iconam_aes, timer_dace_coupling, timer_rrg_interp, &
-    &                                    timer_coupling
+    &                                    timer_coupling, timer_adv_2daero
 #endif
   USE mo_ext_data_state,           ONLY: ext_data
   USE mo_limarea_config,           ONLY: latbc_config
@@ -110,10 +110,11 @@ MODULE mo_nh_stepping
   USE mo_emvorado_interface,       ONLY: emvorado_radarfwo
 #endif
   ! NWP physics
-  USE mo_atm_phy_nwp_config,       ONLY: dt_phy, atm_phy_nwp_config, iprog_aero, setup_nwp_diag_events
+  USE mo_atm_phy_nwp_config,       ONLY: dt_phy, atm_phy_nwp_config, i2daero_dust, i2daero_seas, &
+    &                                    i2daero_anthro, i2daero_fire, setup_nwp_diag_events
   USE mo_nwp_phy_state,            ONLY: prm_diag, prm_nwp_tend, phy_params, prm_nwp_stochconv, prm_nwp_diag_list
   USE mo_lnd_nwp_config,           ONLY: nlev_soil, nlev_snow, sstice_mode, sst_td_filename, &
-    &                                    ci_td_filename, frsi_min
+    &                                    ci_td_filename, frsi_min, sst_file_interval
   USE mo_nwp_lnd_state,            ONLY: p_lnd_state
   USE mo_opt_nwp_diagnostics,      ONLY: compute_field_dbz3d_lin
   USE mo_nwp_gpu_util,             ONLY: gpu_d2h_nh_nwp, gpu_h2d_nh_nwp, devcpy_nwp, hostcpy_nwp, gpu_d2h_dace
@@ -429,7 +430,7 @@ MODULE mo_nh_stepping
            &                           TRIM(p_patch(jg)%grid_filename), &
            &                           nroot, p_patch(jg)%level, jg     )
 
-        CALL sst_reader(jg)%init(p_patch(jg), sst_td_file)
+        CALL sst_reader(jg)%init(p_patch(jg), sst_td_file, sst_file_interval)
         CALL sst_intp(jg)%init(sst_reader(jg), mtime_current, "SST")
         CALL sst_intp(jg)%intp(mtime_current, sst_dat, lacc=.FALSE.)
 
@@ -437,7 +438,7 @@ MODULE mo_nh_stepping
           p_lnd_state(jg)%diag_lnd%t_seasfc(:,:) = sst_dat(:,1,:,1)
         END WHERE
 
-        CALL sic_reader(jg)%init(p_patch(jg), ci_td_file)
+        CALL sic_reader(jg)%init(p_patch(jg), ci_td_file, sst_file_interval)
         CALL sic_intp(jg)%init(sic_reader(jg), mtime_current, "SIC")
         CALL sic_intp(jg)%intp(mtime_current, sic_dat, lacc=.FALSE.)
 
@@ -479,7 +480,8 @@ MODULE mo_nh_stepping
         CALL init_cloud_aero_cpl (mtime_current, p_patch(jg), p_nh_state(jg)%metrics, ext_data(jg), prm_diag(jg))
       ENDIF
 
-      IF (iprog_aero >= 1) CALL setup_aerosol_advection(p_patch(jg), lacc=.FALSE.)
+      IF ( ANY( (/i2daero_dust, i2daero_seas, i2daero_anthro/) > 0 ) ) &
+        &  CALL setup_aerosol_advection(p_patch(jg), lacc=.FALSE.)
 
     ENDDO
 
@@ -1208,9 +1210,9 @@ MODULE mo_nh_stepping
 
       END IF
 
-      IF (iprog_aero > 2) THEN
+      IF ( i2daero_fire == 1 ) THEN
 #ifdef _OPENACC
-        CALL finish('perform_nh_timeloop:','iprog_aero > 2 not available on GPU')
+        CALL finish('perform_nh_timeloop:','i2daero_fire == 1 not available on GPU')
 #endif
         ! Update wildfire emission dataset if a new dataset is available
         DO jg = 1, n_dom
@@ -2240,19 +2242,22 @@ MODULE mo_nh_stepping
 #endif
 
 #ifndef __NO_NWP__
-          IF (iprog_aero >= 1) THEN
-
+          IF ( ANY( (/i2daero_dust, i2daero_seas, i2daero_anthro/) > 0 ) ) THEN
+            IF (ltimer) CALL timer_start(timer_adv_2daero)
 #ifdef _OPENACC
             CALL finish (routine, 'aerosol_2D_advection: OpenACC version currently not implemented')
 #endif
-            CALL aerosol_2D_advection( p_patch(jg), p_int_state(jg), iprog_aero,   & !in
+            CALL aerosol_2D_advection( p_patch(jg), p_int_state(jg), i2daero_dust, & !in
+              &          i2daero_seas, i2daero_anthro,                             & !in
               &          dt_loc, prm_diag(jg)%aerosol, prep_adv(jg)%vn_traj,       & !in, inout, in
               &          prep_adv(jg)%mass_flx_me, prep_adv(jg)%mass_flx_ic,       & !in
               &          p_nh_state(jg)%metrics%ddqz_z_full_e,                     & !in
               &          p_nh_state(jg)%diag%airmass_now,                          & !in
               &          p_nh_state(jg)%diag%airmass_new                           ) !in
             CALL sync_patch_array(SYNC_C, p_patch(jg), prm_diag(jg)%aerosol, lacc=.TRUE.)
-            CALL aerosol_2D_diffusion( p_patch(jg), p_int_state(jg), nproma, prm_diag(jg)%aerosol)
+            CALL aerosol_2D_diffusion( p_patch(jg), p_int_state(jg), nproma,       &
+              &          prm_diag(jg)%aerosol, i2daero_dust, i2daero_seas, i2daero_anthro)
+            IF (ltimer) CALL timer_stop(timer_adv_2daero)
           ENDIF
 #endif
 
@@ -2876,7 +2881,8 @@ MODULE mo_nh_stepping
               CALL init_cloud_aero_cpl (datetime_local(jgc)%ptr, p_patch(jgc), p_nh_state(jgc)%metrics, & ! not ported to OpenACC
                 &                       ext_data(jgc), prm_diag(jgc))
 
-              IF (iprog_aero >= 1) CALL setup_aerosol_advection(p_patch(jgc), lacc=.TRUE.)
+              IF ( ANY( (/i2daero_dust, i2daero_seas, i2daero_anthro/) > 0 ) ) &
+                &  CALL setup_aerosol_advection(p_patch(jgc), lacc=.TRUE.)
 #endif
             ENDIF
 
@@ -3640,8 +3646,19 @@ MODULE mo_nh_stepping
   ENDIF
 
 #ifndef __NO_NWP__
-  IF (ALLOCATED(sst_intp)) DEALLOCATE(sst_intp)
-  IF (ALLOCATED(sic_intp)) DEALLOCATE(sic_intp)
+  IF (ALLOCATED(sst_intp)) THEN
+    DO jg = 1, n_dom
+      CALL sst_intp(jg)%finalize
+    END DO
+    DEALLOCATE(sst_intp)
+  END IF
+
+  IF (ALLOCATED(sic_intp)) THEN
+    DO jg = 1, n_dom
+      CALL sic_intp(jg)%finalize
+    END DO
+    DEALLOCATE(sic_intp)
+  END IF
 
   IF (ALLOCATED(sst_reader)) THEN
     DO jg = 1, n_dom

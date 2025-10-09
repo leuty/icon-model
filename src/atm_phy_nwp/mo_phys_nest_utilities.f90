@@ -505,7 +505,7 @@ SUBROUTINE upscale_rad_input(jg, jgp, nlev_rg, emis_rad,                   &
   i_endblk   = p_gcp%end_blk(min_rlcell_int,i_chidx)
 
 !$OMP PARALLEL
-!$OMP DO PRIVATE(jb,i_startidx,i_endidx,jc,jk,jk1,jf,assoc_hyd,p_q,p_reff) ICON_OMP_DEFAULT_SCHEDULE
+!$OMP DO PRIVATE(jb,i_startidx,i_endidx,jc,jk,ii,jk1,jf,assoc_hyd,p_q,p_reff) ICON_OMP_DEFAULT_SCHEDULE
   DO jb = i_startblk, i_endblk
 
     CALL get_indices_c(p_pp, jb, i_startblk, i_endblk,                           &

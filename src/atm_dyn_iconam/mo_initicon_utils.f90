@@ -51,7 +51,7 @@ MODULE mo_initicon_utils
     &                               frlake_thrhld, frsea_thrhld, nlev_snow, ntiles_lnd,           &
     &                               l2lay_rho_snow, lprog_albsi, dzsoil, frsi_min
   USE mo_nwp_sfc_utils,       ONLY: init_snowtile_lists
-  USE mo_atm_phy_nwp_config,  ONLY: atm_phy_nwp_config, iprog_aero
+  USE mo_atm_phy_nwp_config,  ONLY: atm_phy_nwp_config, i2daero_dust, i2daero_fire
   USE mo_aes_phy_config,      ONLY: aes_phy_config
   USE mo_nwp_phy_types,       ONLY: t_nwp_phy_diag
   USE sfc_terra_data,         ONLY: csalb_snow_min, csalb_snow_max, csalb_snow, crhosmin_ml, crhosmax_ml, &
@@ -269,23 +269,25 @@ MODULE mo_initicon_utils
         CALL message(routine, TRIM(message_text))
       ENDIF
 
-      CALL p_dust_source_const(jg)%init(ext_data(jg)%atm%i_lc_shrub_eg,  &
-        &                               ext_data(jg)%atm%i_lc_shrub,     &
-        &                               ext_data(jg)%atm%i_lc_grass,     &
-        &                               ext_data(jg)%atm%i_lc_bare_soil, &
-        &                               ext_data(jg)%atm%i_lc_sparse,    &
-        &                               i_st_sand=3, i_st_sandyloam=4,   &
-        &                               i_st_loam=5, i_st_clayloam=6,    &
-        &                               i_st_clay=7, nlu_classes=23,     &
-        &                               soiltype_sidx=0, soiltype_eidx=9)
+      IF (i2daero_dust == 1) THEN
+        CALL p_dust_source_const(jg)%init(ext_data(jg)%atm%i_lc_shrub_eg,  &
+          &                               ext_data(jg)%atm%i_lc_shrub,     &
+          &                               ext_data(jg)%atm%i_lc_grass,     &
+          &                               ext_data(jg)%atm%i_lc_bare_soil, &
+          &                               ext_data(jg)%atm%i_lc_sparse,    &
+          &                               i_st_sand=3, i_st_sandyloam=4,   &
+          &                               i_st_loam=5, i_st_clayloam=6,    &
+          &                               i_st_clay=7, nlu_classes=23,     &
+          &                               soiltype_sidx=0, soiltype_eidx=9)
+      ENDIF ! i2daero_dust == 1
 
-      IF (iprog_aero > 2) THEN
+      IF (i2daero_fire == 1) THEN
         CALL p_fire_source_info(jg)%init( ext_data(jg)%atm%bcfire,  &
           &                               ext_data(jg)%atm%ocfire,  &
           &                               ext_data(jg)%atm%so2fire  )
         CALL inquire_fire2d_data(p_patch(jg), nroot, fire2d_filename, p_fire_source_info(jg), &
           &                      time_config%tc_current_date, .TRUE.)
-      ENDIF ! iprog_aero > 2
+      ENDIF ! i2daero_fire == 1
 !$OMP END MASTER
 
     ENDDO

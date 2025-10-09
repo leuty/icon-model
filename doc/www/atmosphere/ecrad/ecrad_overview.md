@@ -23,7 +23,7 @@ By activating **{term}`lredgrid_phys``=.true.`** and specifying the correspondin
 - Only for the reduced radiation grid, there is an additional option named **{term}`latm_above_top`**. This option adds an extra layer at the top to account for the incoming long-wave radiation. This reduces the biases at the model top significantly.
 - For global domains, there is a load balancing for sunlit and shadowed parts of the earth for the reduced grid.
 
-For a more detailed description of the reduced radiation grid implementation, see {term}`ICON Tutorial 2024`.
+For a more detailed description of the reduced radiation grid implementation, see {term}`ICON Tutorial`.
 
 
 (ref_atmosphere_ecrad_outputVars)=
@@ -134,6 +134,7 @@ For all of the above described gases, the option `-1` (e.g., `irad_h2o=-1`) allo
 (ref_atmosphere_ecrad_aerosol)=
 # Aerosol Input Options
 
+(ref_atmosphere_ecrad_aerosol_tegen)=
 ## Tegen climatology
 
 Climatological aerosol based on the {term}`Tegen et al. 1997` climatology can be selected by choosing **{term}`irad_aero``=6`**.
@@ -143,6 +144,10 @@ This options has the following characteristics:
 - The annual cycle is considered by providing monthly data which is linearly interpolated inside ICON to the target date.
 - The original data is vertically integrated optical thickness. For the use in ecRad, an exponentially decaying, normalized vertical profile is added by ICON.
 - The target variables optical thickness (SW/LW), single scattering albedo (SW) and asymmetry parameter (SW) at the radiation wavelength bands are derived based on lookup tables in the ICON code.
+
+## Simplified Prognostic Aerosol Module _Prog2DAero_
+
+See [here](ref_miscnwp_2daero) for further information.
 
 ## CAMS climatology or CAMS forecast aerosol
 
@@ -242,6 +247,23 @@ Two additional parameters may be set in the `radiation_nml`:
 
 Lastly, it should be mentioned that the FSD calculation for liquid clouds depends on the cloud fraction: High cloud fraction is a proxy for stratiform clouds, which are assigned lower FSD values. In cases where the model predicts an incorrect cloud fraction (e.g. prediction cloud fractions <50% in stratocumulus regions), the error in the cloud radiative effect may be enhanced when using the FSD parameterization. In this example, the parameterization would make clouds with fraction <50% less reflective in an area where cloud cover (and therefore cloud radiative effect) is already too low.
 
+(ref_single_precision)=
+# Single precision
+
+The ecRad radiation scheme supports single-precision computation, which improves
+performance and reduces memory usage.
+This approach is accurate enough for most applications.
+It is especially beneficial for high-resolution simulations or large ensemble
+runs, where computational efficiency is crucial.
+You can enable single-precision computation via the appropriate configure
+option.
+Refer to the output of `./configure --help` for details.
+
+Please note that the quality of this feature has not been evaluated for global
+applications (i.e., altitudes higher than 25 km).
+Users are therefore advised to run a benchmark simulation before using this
+combination.
+
 # Glossary of Namelist Parameters
 
 _Operational NWP setting marked by {material-regular}`settings;1em;pst-color-secondary`_
@@ -271,20 +293,3 @@ fsd_background
 fsd_gridlen
   (`&radiation_nml`) Value for assumed horizontal grid spacing in FSD parameterization.
 :::
-
-(ref_single_precision)=
-# Single precision
-
-The ecRad radiation scheme supports single-precision computation, which improves
-performance and reduces memory usage.
-This approach is accurate enough for most applications.
-It is especially beneficial for high-resolution simulations or large ensemble
-runs, where computational efficiency is crucial.
-You can enable single-precision computation via the appropriate configure
-option.
-Refer to the output of `./configure --help` for details.
-
-Please note that the quality of this feature has not been evaluated for global
-applications (i.e., altitudes higher than 25 km).
-Users are therefore advised to run a benchmark simulation before using this
-combination.

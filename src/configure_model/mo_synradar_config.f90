@@ -32,6 +32,12 @@ MODULE mo_synradar_config
   CHARACTER(LEN=filename_max) :: ydir_mielookup_read
   CHARACTER(LEN=filename_max) :: ydir_mielookup_write
   REAL(wp)                    :: rain2mom_mu_incloud
+  INTEGER                     :: itype_Dlim_sgh
+  REAL(wp)                    :: Dlim_rain
+  REAL(wp)                    :: Dlim_drysnow
+  REAL(wp)                    :: Dlim_meltsnow
+  REAL(wp)                    :: Dlim_meltgraupel
+  REAL(wp)                    :: Dlim_melthail
 
 
 END MODULE mo_synradar_config

@@ -52,7 +52,7 @@ MODULE mo_aes_phy_bcs
   USE mo_bc_aeropt_kinne            ,ONLY: read_bc_aeropt_kinne
   USE mo_bc_anthro_emission         ,ONLY: get_current_bc_anthro_emission_year, &
        &                                   read_bc_anthro_emission, bc_anthro_emission_time_interpolation
-  USE mo_bc_aeropt_cmip6_volc       ,ONLY: read_bc_aeropt_cmip6_volc
+  USE mo_bc_aeropt_volc             ,ONLY: read_bc_aeropt_volc
 
   ! for 6hourly sst and ice data
   USE mo_time_config,          ONLY: time_config
@@ -345,7 +345,7 @@ CONTAINS
         ! irad_aero==13: transient tropospheric aerosol  (Kinne)
         !   - including anthropogenic
         ! irad_aero==18: tropospheric background aerosol (Kinne)
-        !   + stratospheric cmip6 aerosols
+        !   + stratospheric aerosols
         !   + simple plumes
         ! irad_aero==19: tropospheric background aerosol (Kinne)
         !   - no stratospheric aerosols
@@ -368,7 +368,7 @@ CONTAINS
         END IF
 
         IF (aes_rad_config(jg)% irad_aero == 18) THEN
-           CALL read_bc_aeropt_cmip6_volc(mtime_old, nbndlw, nbndsw)
+           CALL read_bc_aeropt_volc(mtime_old, nbndlw, nbndsw)
         END IF
 
         ! greenhouse gas concentrations, assumed constant in horizontal dimensions

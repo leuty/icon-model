@@ -292,7 +292,6 @@ cat > NAMELIST_${EXPNAME} << EOF
 	  icpl_aero_conv   = 1
 	  icpl_aero_gscp   = 1
 	  icpl_o3_tp       = 1
-          iprog_aero       = 0
           dt_rad    = 2400
           dt_conv   = 800
           dt_sso    = 1600

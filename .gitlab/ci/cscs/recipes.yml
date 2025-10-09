@@ -11,12 +11,6 @@
 include:
   - .gitlab/ci/cscs/remote.yml
 
-.setup_python:
-  script:
-    - python3 -m venv .venv
-    - source .venv/bin/activate
-    - pip install pyyaml pandas click toml
-
 .setup_uenv:
   script:
     - export UENV_VERSION=$(cat config/cscs/SANTIS_ENV_TAG)
@@ -37,8 +31,10 @@ include:
 
 .check_with_uenv:
   script:
-    - uenv run ${UENV_VERSION} --view modules,default -- bash -c '
-        source ./../.venv/bin/activate &&
+    - export SQFS_PATH=/capstor/store/cscs/userlab/cws01/ci/ci-python-image/py_icon_ci.squashfs
+    - mkdir -p .venv
+    - uenv run ${UENV_VERSION},${SQFS_PATH}:$(pwd)/.venv --view modules,default -- bash -c '
+        source $(pwd)/.venv/bin/activate &&
         module load nvhpc cdo &&
         ./check.${EXPERIMENT}.run 2>&1 | tee LOG.check.${EXPERIMENT}.run.o ;
         exit_code=${PIPESTATUS[0]} ;
@@ -46,8 +42,10 @@ include:
 
 .run_probtest:
   script:
-    - uenv run ${UENV_VERSION} --view modules,default -- bash -c '
-        source ./.venv/bin/activate &&
+    - export SQFS_PATH=/capstor/store/cscs/userlab/cws01/ci/ci-python-image/py_icon_ci.squashfs
+    - mkdir -p .venv
+    - uenv run ${UENV_VERSION},${SQFS_PATH}:$(pwd)/.venv --view modules,default -- bash -c '
+        source $(pwd)/.venv/bin/activate &&
         module load nvhpc cdo &&
         python3 scripts/cscs_ci/probtest_container_wrapper.py $PROBTEST_TASK $EXPERIMENT'
 
@@ -59,7 +57,9 @@ include:
   variables:
     GIT_SUBMODULE_STRATEGY: none
   before_script:
-    - !reference [.setup_python, script]
+    - python3 -m venv .venv
+    - source .venv/bin/activate
+    - pip install pyyaml pandas click
   script:
     - |
       if [ -n "${CSCS_CI_EXPERIMENTS}" ]; then
@@ -133,7 +133,6 @@ include:
   dependencies:
     - Build ICON
   before_script:
-    - !reference [.setup_python, script]
     - !reference [.setup_probtest_container, script]
     - !reference [.setup_uenv, script]
   script:
@@ -156,7 +155,6 @@ include:
   dependencies:
     - Build ICON
   before_script:
-    - !reference [.setup_python, script]
     - !reference [.setup_probtest_container, script]
     - !reference [.setup_uenv, script]
   script:
@@ -176,7 +174,6 @@ include:
   timeout: 1h
   stage: run
   before_script:
-    - !reference [.setup_python, script]
     - !reference [.setup_probtest_container, script]
     - !reference [.setup_uenv, script]
   script:
@@ -196,7 +193,6 @@ include:
   timeout: 1h
   stage: run
   before_script:
-    - !reference [.setup_python, script]
     - !reference [.setup_probtest_container, script]
     - !reference [.setup_uenv, script]
   script:

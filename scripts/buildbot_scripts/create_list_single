@@ -35,11 +35,8 @@ listname=single
 #############################################################################
 
 # Activate all single-precision builders as build-only
-SINGLE_PRECISION_BUILDERS="levante_gcc_sp levante_intel_hybrid_sp levante_nag_sp levante_gpu_nvhpc_sp lumi_cpu_sp mpimac_gcc_sp"
+SINGLE_PRECISION_BUILDERS="levante_gcc_sp levante_intel_hybrid_sp levante_nag_sp levante_gpu_nvhpc_sp lumi_cpu_sp mpimac_gcc_sp dwd_nec_sp"
 ./set_builder_flags build_only --builders "${SINGLE_PRECISION_BUILDERS}" --list $listname
-
-# dwd_nec_sp fixes are needed
-./set_builder_flags Inactive --builders "dwd_nec_sp" --list $listname
 
 #############################################################################
 

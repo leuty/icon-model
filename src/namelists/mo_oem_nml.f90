@@ -19,8 +19,13 @@ MODULE mo_oem_nml
                            & config_month_of_year_nc      => month_of_year_nc,      &
                            & config_hour_of_year_nc       => hour_of_year_nc,       &
                            & config_gridded_emissions_nc  => gridded_emissions_nc,  &
+                           & config_chem_init_nc          => chem_init_nc,          &
+                           & config_chem_restart_nc       => chem_restart_nc,       &
                            & config_ens_reg_nc            => ens_reg_nc,            &
                            & config_ens_lambda_nc         => ens_lambda_nc,         &
+                           & config_boundary_lambda_nc    => boundary_lambda_nc,    &
+                           & config_boundary_regions_nc   => boundary_regions_nc,   &
+                           & config_restart_init_time     => restart_init_time,     &
                            & config_vegetation_indices_nc => vegetation_indices_nc, &
                            & config_vprm_par              => vprm_par,              &
                            & config_vprm_lambda           => vprm_lambda,           &
@@ -59,8 +64,12 @@ MODULE mo_oem_nml
     &                            month_of_year_nc,      & !< name of the oae month of year file
     &                            hour_of_year_nc,       & !< name of the oae hour of year file
     &                            gridded_emissions_nc,  & !< name of the oae gridded emission file
+    &                            chem_init_nc,          & !< name of ic-file for chemical species
+    &                            chem_restart_nc,       & !< name of restart-file for chemical species
     &                            ens_reg_nc,            & !< name of file with ensemble-regions
     &                            ens_lambda_nc,         & !< name of file with ensemble-lambdas
+    &                            boundary_lambda_nc,    & !< name of file with bg-lambdas
+    &                            boundary_regions_nc,   & !< name of file with boundary region mask
     &                            vegetation_indices_nc    !< name of file with MODIS reflectances
   REAL(wp), DIMENSION(8) ::      vprm_par,              & !< VPRM parameter values for PAR_0
     &                            vprm_lambda,           & !< VPRM parameter values for lambda
@@ -86,8 +95,13 @@ MODULE mo_oem_nml
     &                    month_of_year_nc,      &
     &                    hour_of_year_nc,       &
     &                    gridded_emissions_nc,  &
+    &                    chem_init_nc,          &
+    &                    chem_restart_nc,       &
     &                    ens_reg_nc,            &
     &                    ens_lambda_nc,         &
+    &                    boundary_lambda_nc,    &
+    &                    boundary_regions_nc,   &
+    &                    restart_init_time,     &
     &                    vegetation_indices_nc, &
     &                    vprm_par,              &
     &                    vprm_lambda,           &
@@ -131,8 +145,13 @@ CONTAINS
     month_of_year_nc      = ''
     hour_of_year_nc       = ''
     gridded_emissions_nc  = ''
+    chem_init_nc          = ''
+    chem_restart_nc       = ''
     ens_reg_nc            = ''
     ens_lambda_nc         = ''
+    boundary_lambda_nc    = ''
+    boundary_regions_nc   = ''
+    restart_init_time     = 0
     vegetation_indices_nc = ''
     vprm_par              = (/  3.139508E+02,  3.132859E+02, &
                           &     5.149856E+02,  1.009878E+02, &
@@ -194,8 +213,13 @@ CONTAINS
     config_month_of_year_nc      = month_of_year_nc
     config_hour_of_year_nc       = hour_of_year_nc
     config_gridded_emissions_nc  = gridded_emissions_nc
+    config_chem_init_nc          = chem_init_nc
+    config_chem_restart_nc       = chem_restart_nc
     config_ens_reg_nc            = ens_reg_nc
     config_ens_lambda_nc         = ens_lambda_nc
+    config_boundary_lambda_nc    = boundary_lambda_nc
+    config_boundary_regions_nc   = boundary_regions_nc
+    config_restart_init_time     = restart_init_time
     config_vegetation_indices_nc = vegetation_indices_nc
     config_vprm_par              = vprm_par
     config_vprm_lambda           = vprm_lambda

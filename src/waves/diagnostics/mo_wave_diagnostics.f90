@@ -190,6 +190,8 @@ CONTAINS
 
     ! calculate stokes drift velocities
     !
+    ! surface values
+
     CALL stokes_drift(p_patch = p_patch, &
       &           wave_config = wave_config, &
       &            wave_num_c = p_diag%wave_num_c, &
@@ -198,7 +200,7 @@ CONTAINS
       &              u_stokes = p_diag%u_stokes, & ! OUT
       &              v_stokes = p_diag%v_stokes)   ! OUT
 
-
+    ! vertical profile
     IF (ASSOCIATED(p_diag%last_idx_depth) .AND. &
       & ASSOCIATED(p_diag%kbar)           .AND. &
       & ASSOCIATED(p_diag%T_stokes)       .AND. &
@@ -211,7 +213,6 @@ CONTAINS
           &           wave_config = wave_config, &
           &            wave_num_c = p_diag%wave_num_c, &
           &                 depth = depth,  &
-          &          stokes_level = wave_config%stokes_level, &
           &        last_idx_depth = p_diag%last_idx_depth, &
           &                tracer = tracer, &
           &            u3d_stokes = p_diag%u3d_stokes, & ! OUT
@@ -223,7 +224,6 @@ CONTAINS
           &           wave_config = wave_config, &
           &            wave_num_c = p_diag%wave_num_c, &
           &                 depth = depth,  &
-          &          stokes_level = wave_config%stokes_level, &
           &        last_idx_depth = p_diag%last_idx_depth, &
           &                tracer = tracer, &
           &              u_stokes = p_diag%u_stokes, & !

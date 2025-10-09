@@ -46,7 +46,7 @@ MODULE mo_nh_feedback
   USE mo_nwp_lnd_types,       ONLY: t_lnd_state, t_lnd_prog, t_wtr_prog
   USE mo_nwp_phy_types,       ONLY: t_nwp_phy_diag
   USE mo_lnd_nwp_config,      ONLY: ntiles_total, ntiles_water, lseaice
-  USE mo_atm_phy_nwp_config,  ONLY: atm_phy_nwp_config, iprog_aero
+  USE mo_atm_phy_nwp_config,  ONLY: atm_phy_nwp_config, i2daero_dust, i2daero_seas, i2daero_anthro
   USE mo_radar_data_types,    ONLY: t_lhn_diag
   USE fortran_support,        ONLY: t_ptr_3d_wp, assert_acc_device_only, assert_acc_host_only
 
@@ -797,7 +797,7 @@ CONTAINS
 
     ! for collecting all tracer fields which undergo feedback and thus
     ! require synchronization
-    TYPE(t_ptr_3d_wp) :: tracer_ptr(advection_config(jg)%trFeedback%len + MIN(1,iprog_aero))
+    TYPE(t_ptr_3d_wp), ALLOCATABLE :: tracer_ptr(:)
 
     LOGICAL :: lprog_aero        !< prognostic aerosol scheme
     !-----------------------------------------------------------------------
@@ -818,12 +818,14 @@ CONTAINS
     p_pc             => p_patch(jg)
     p_int            => p_int_state(jgp)
 
-    IF (iprog_aero >= 1 .AND. PRESENT(prm_diag)) THEN
+    IF (ANY( (/i2daero_dust, i2daero_seas, i2daero_anthro/) > 0 ) .AND. PRESENT(prm_diag)) THEN
       lprog_aero = .TRUE.
+      ALLOCATE( tracer_ptr(advection_config(jg)%trFeedback%len + 1) )
       prm_diagp  => prm_diag(jgp)
       prm_diagc  => prm_diag(jg)
     ELSE
       lprog_aero = .FALSE.
+      ALLOCATE( tracer_ptr(advection_config(jg)%trFeedback%len) )
     ENDIF
 
     p_grf  => p_grf_state_local_parent(jg)
@@ -1572,6 +1574,7 @@ CONTAINS
     !$ACC END DATA
 
     DEALLOCATE(feedback_thv,feedback_rho,feedback_w,feedback_vn)
+    DEALLOCATE(tracer_ptr)
     IF (ltransport) DEALLOCATE(feedback_rhoqx)
     IF (ltransport .AND. lprog_aero) DEALLOCATE(feedback_aero)
 

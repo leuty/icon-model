@@ -15,6 +15,7 @@
 # The purpose is the technical testing of the ICON-waves.
 # Idealized test, in which the horizontal propagation and refraction of wave energy
 # are the only active processes. Wave physics is switched off completely.
+# - analytic JONSWAP spectrum is used for initialization (bsed on analytic wind-field)
 #
 # Mikhail Dobrynin, 2022
 #
@@ -145,6 +146,10 @@ cat > ${wave_namelist} << EOF
 &extpar_nml
  itopo = 0 !do not read atmospheric exp file
  extpar_filename = '${wave_extpar}'
+/
+&initwave_nml
+ init_mode       = 2       ! coldstart: initialize wave energy spectrum by
+                           ! analytic parameterization (JONSWAP)
 /
 &wave_nml
  ndirs            = ${nd}   ! number of directions

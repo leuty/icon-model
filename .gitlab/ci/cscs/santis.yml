@@ -24,6 +24,8 @@ include:
     CSCS_CI_TAG: merge2rc
   # Manual that is allowed to fail by default:
   when: manual
+  # There is no mechanism to interrupt the jobs fully:
+  interruptible: false
   # Wait for the external pipeline to finish:
   timeout: 6h
   script:
@@ -213,9 +215,11 @@ cscs/santis_cpu:tolerance:
   extends: .cscs:common:trigger:cpu
   variables:
     CSCS_CI_TAG: tolerance
+  manual_confirmation: Confirm that you are runnning the tolerance generation for the relevant experiments only. To restrict this job to the relevant experiments, edit the pipeline job and add the key CSCS_CI_EXPERIMENTS, followed by a list of comma-separated experiments as the value.
 
 cscs/santis_cpu:select-members:
   stage: optional
   extends: .cscs:common:trigger:cpu
   variables:
     CSCS_CI_TAG: select-members
+  manual_confirmation: Confirm that you are runnning the member selection for the relevant experiments only. To restrict this job to the relevant experiments, edit the pipeline job and add the key CSCS_CI_EXPERIMENTS, followed by a list of comma-separated experiments as the value.

@@ -10,9 +10,9 @@
 ! ---------------------------------------------------------------
 
 ! Read and apply optical properties of aerosol climatology
-! for volcanic stratospheric aerosols as provided for CMIP6
+! for volcanic stratospheric aerosols
 
-MODULE mo_bc_aeropt_cmip6_volc
+MODULE mo_bc_aeropt_volc
 
   USE mo_kind,                   ONLY: wp, i8
   USE mo_exception,              ONLY: finish, message, message_text
@@ -29,13 +29,13 @@ MODULE mo_bc_aeropt_cmip6_volc
   IMPLICIT NONE
 
   PRIVATE
-  PUBLIC :: read_bc_aeropt_cmip6_volc
-  PUBLIC :: add_bc_aeropt_cmip6_volc
+  PUBLIC :: read_bc_aeropt_volc
+  PUBLIC :: add_bc_aeropt_volc
 
   ! Data file layout.
 
   !> Prefix of the filename from which the aerosol data is read.
-  CHARACTER(len=*), PARAMETER :: filename_base = 'bc_aeropt_cmip6_volc_lw_b16_sw_b14_'
+  CHARACTER(len=*), PARAMETER :: filename_base = 'bc_aeropt_volc_lw_b16_sw_b14_'
   !> Name of the latitude dimension.
   CHARACTER(len=*), PARAMETER :: dim_name_lat = 'latitude'
   !> Name of the altitude dimension.
@@ -89,7 +89,7 @@ CONTAINS
 
 
   !> Set up memory for fields in which the aerosol optical properties are stored when needed.
-  SUBROUTINE su_bc_aeropt_cmip6_volc(nbndlw, nbndsw)
+  SUBROUTINE su_bc_aeropt_volc(nbndlw, nbndsw)
 
     INTEGER, INTENT(IN) :: nbndlw !< Number of long-wave bands in the data files.
     INTEGER, INTENT(IN) :: nbndsw !< Number of short-wave bands in the data files.
@@ -102,7 +102,7 @@ CONTAINS
     REAL(wp), ALLOCATABLE :: zlat(:), zalt(:)
 
     CHARACTER(len=*), PARAMETER :: subroutine_name = &
-        & 'mo_bc_aeropt_cmip6_volc:su_bc_aeropt_cmip6_volc'
+        & 'mo_bc_aeropt_volc:su_bc_aeropt_volc'
 
     IF (ALLOCATED(aod_v_s)) RETURN
 
@@ -134,7 +134,7 @@ CONTAINS
     ENDIF
 
     WRITE (message_text,'(a,i2,a,i2)') &
-      & ' Allocating CMIP6 volcanic aerosols for months ', imonth_beg, ' to ', imonth_end
+      & ' Allocating volcanic aerosols for months ', imonth_beg, ' to ', imonth_end
     CALL message(subroutine_name, message_text)
 
     ! Get altitude and latitude points from the first file. These are assumed to be constant
@@ -181,28 +181,28 @@ CONTAINS
 
     DEALLOCATE(zalt, zlat)
 
-  END SUBROUTINE su_bc_aeropt_cmip6_volc
+  END SUBROUTINE su_bc_aeropt_volc
 
 
   !> Shifts December of current year into imonth=0 and January of the following year into imonth=1
   !! (these months do not need to be read again).
-  SUBROUTINE shift_months_bc_aeropt_cmip6_volc()
+  SUBROUTINE shift_months_bc_aeropt_volc()
 
     CHARACTER(len=*), PARAMETER :: subroutine_name = &
-        & 'mo_bc_aeropt_cmip6_volc:shift_months_bc_aeropt_cmip6_volc'
+        & 'mo_bc_aeropt_volc:shift_months_bc_aeropt_volc'
 
     IF ( .NOT. ALLOCATED(aod_v_s) ) CALL finish(subroutine_name, 'data arrays are not allocated')
 
     IF ( imonth_beg > 0 .OR. imonth_end < 13 ) THEN
-      WRITE (message_text,'(a,i2,a,i2)') ' CMIP6 volcanic aerosols are allocated for months ', &
+      WRITE (message_text,'(a,i2,a,i2)') ' volcanic aerosols are allocated for months ', &
           & imonth_beg, ' to ', imonth_end, 'only.'
       CALL message(subroutine_name, message_text)
       CALL finish(subroutine_name, &
-          & ' CMIP6 volcanic aerosols are not allocated over required range 0 to 13.')
+          & ' volcanic aerosols are not allocated over required range 0 to 13.')
     ENDIF
 
     WRITE (message_text,'(a)') &
-        & ' Copy CMIP6 volcanic aerosols for months 12:13 to months 0:1'
+        & ' Copy volcanic aerosols for months 12:13 to months 0:1'
     CALL message(subroutine_name, message_text)
 
     aod_v_s(:,:,0:1) = aod_v_s(:,:,12:13)
@@ -213,12 +213,12 @@ CONTAINS
     ext_v_t(:,:,:,0:1) = ext_v_t(:,:,:,12:13)
     ssa_v_t(:,:,:,0:1) = ssa_v_t(:,:,:,12:13)
 
-  END SUBROUTINE shift_months_bc_aeropt_cmip6_volc
+  END SUBROUTINE shift_months_bc_aeropt_volc
 
 
-  !> Read optical properties of CMIP6 volcanic aerosols from external files into interpolation
+  !> Read optical properties of volcanic aerosols from external files into interpolation
   !! cache. This routine has to be called on initialization and on Jan 1 of each simulation year.
-  SUBROUTINE read_bc_aeropt_cmip6_volc(mtime_current, nbndlw, nbndsw)
+  SUBROUTINE read_bc_aeropt_volc(mtime_current, nbndlw, nbndsw)
 
     TYPE(datetime), POINTER, INTENT(IN) :: mtime_current !< Current date.
     INTEGER, INTENT(IN) :: nbndsw !< Number of short-wave bands.
@@ -235,9 +235,9 @@ CONTAINS
       ! beginning of job or change of year
 
       IF ( pre_year > PRE_YEAR_UNINITIALIZED ) THEN
-        CALL shift_months_bc_aeropt_cmip6_volc()
+        CALL shift_months_bc_aeropt_volc()
       ELSE
-        CALL su_bc_aeropt_cmip6_volc(nbndlw, nbndsw)
+        CALL su_bc_aeropt_volc(nbndlw, nbndsw)
       ENDIF
 
       ! Restrict reading of data to those months that are needed
@@ -285,23 +285,23 @@ CONTAINS
 
       ENDIF
 
-      CALL read_months_bc_aeropt_cmip6_volc(imonthb, imonthe, iyear)
+      CALL read_months_bc_aeropt_volc(imonthb, imonthe, iyear)
 
       pre_year = mtime_current%date%year
 
-      ! The following arrays are created in su_bc_aeropt_cmip6_volc and changed in read_months_bc_aeropt_cmip6_volc
+      ! The following arrays are created in su_bc_aeropt_volc and changed in read_months_bc_aeropt_volc
       !$ACC UPDATE DEVICE(aod_v_s, ext_v_s, ssa_v_s, asy_v_s, aod_v_t, ext_v_t, ssa_v_t) &
       !$ACC   DEVICE(r_alt_clim, r_lat_clim) &
       !$ACC   ASYNC(1)
 
     END IF ! iyear > pre_year
 
-  END SUBROUTINE read_bc_aeropt_cmip6_volc
+  END SUBROUTINE read_bc_aeropt_volc
 
 
-  !> Add aerosol optical properties of CMIP6 volcanic aerosols to all wave length bands (solar and
+  !> Add aerosol optical properties of volcanic aerosols to all wave length bands (solar and
   !! IR). The height profile is taken into account.
-  SUBROUTINE add_bc_aeropt_cmip6_volc( &
+  SUBROUTINE add_bc_aeropt_volc( &
       & current_date,          jg,              jcs,                  &
       & kproma,                kbdim,           klev,                 &
       & krow,                  nb_sw,           nb_lw,                &
@@ -355,7 +355,7 @@ CONTAINS
     LOGICAL, OPTIONAL, INTENT(IN) :: lacc
 
     CHARACTER(len=*), PARAMETER :: subroutine_name = &
-        & 'mo_bc_aeropt_cmip6_volc:set_bc_aeropt_cmip6_volc'
+        & 'mo_bc_aeropt_volc:set_bc_aeropt_volc'
 
     CALL assert_acc_device_only(subroutine_name, lacc)
 
@@ -623,7 +623,7 @@ CONTAINS
     !$ACC WAIT(1)
     !$ACC END DATA
 
-  END SUBROUTINE add_bc_aeropt_cmip6_volc
+  END SUBROUTINE add_bc_aeropt_volc
 
   !------------------------------------------------------------------------
   SUBROUTINE altitude_index ( &
@@ -666,7 +666,7 @@ CONTAINS
 
   !>
   !! Read the month range `imnthb:imonthe` for base year `iyear` into the global arrays.
-  SUBROUTINE read_months_bc_aeropt_cmip6_volc (imnthb, imnthe, iyear)
+  SUBROUTINE read_months_bc_aeropt_volc (imnthb, imnthe, iyear)
 
     !> Begin month to read (may be `0` for month 12 of previous year).
     INTEGER, INTENT(IN) :: imnthb
@@ -680,7 +680,7 @@ CONTAINS
     CHARACTER(LEN=LEN(filename_base)+5+3) :: cfnameyear
 
     CHARACTER(len=*), PARAMETER :: subroutine_name = &
-        & 'mo_bc_aeropt_cmip6_volc:read_months_bc_aeropt_cmip6_volc'
+        & 'mo_bc_aeropt_volc:read_months_bc_aeropt_volc'
 
     IF (imnthb < 0 .OR. imnthe < imnthb .OR. imnthe > 13 ) THEN
       WRITE (message_text, '(a,2(a,i0))') &
@@ -689,7 +689,7 @@ CONTAINS
       CALL finish(subroutine_name, message_text)
     END IF
 
-    WRITE (message_text,'(a,i2,a,i2)') ' reading CMIP6 volcanic aerosols from imonth ', imnthb, ' to ', imnthe
+    WRITE (message_text,'(a,i2,a,i2)') ' reading volcanic aerosols from imonth ', imnthb, ' to ', imnthe
     CALL message(subroutine_name, message_text)
 
     ! Read data for last month of previous year
@@ -698,7 +698,7 @@ CONTAINS
 
       WRITE (cfnameyear,'(a,i0,a)') filename_base, iyear-1, '.nc'
 
-      CALL read_single_month_bc_aeropt_cmip6_volc ( &
+      CALL read_single_month_bc_aeropt_volc ( &
           & filename=cfnameyear, &
           & aod_s=aod_v_s(:,:,0:0), &
           & ssa_s=ssa_v_s(:,:,:,0:0), &
@@ -718,7 +718,7 @@ CONTAINS
     kmonthb=MAX(1,imnthb)
     kmonthe=MIN(12,imnthe)
 
-    CALL read_single_month_bc_aeropt_cmip6_volc ( &
+    CALL read_single_month_bc_aeropt_volc ( &
         & filename=cfnameyear, &
         & aod_s=aod_v_s(:,:,kmonthb:kmonthe), &
         & ssa_s=ssa_v_s(:,:,:,kmonthb:kmonthe), &
@@ -736,7 +736,7 @@ CONTAINS
 
       WRITE (cfnameyear,'(a,i0,a)') filename_base, iyear+1, '.nc'
 
-      CALL read_single_month_bc_aeropt_cmip6_volc ( &
+      CALL read_single_month_bc_aeropt_volc ( &
           & filename=cfnameyear, &
           & aod_s=aod_v_s(:,:,13:13), &
           & ssa_s=ssa_v_s(:,:,:,13:13), &
@@ -750,10 +750,10 @@ CONTAINS
         )
     END IF
 
-  END SUBROUTINE read_months_bc_aeropt_cmip6_volc
+  END SUBROUTINE read_months_bc_aeropt_volc
 
   !> Read a month range from a single file.
-  SUBROUTINE read_single_month_bc_aeropt_cmip6_volc (&
+  SUBROUTINE read_single_month_bc_aeropt_volc (&
         & filename, aod_s, ssa_s, asy_s, ext_s, aod_t, ssa_t, ext_t, start_timestep, end_timestep &
       )
 
@@ -772,7 +772,7 @@ CONTAINS
     REAL(wp) :: delta_alt
 
 
-    CALL message ('mo_bc_aeropt_cmip6_volc:read_months_bc_aeropt_cmip6_volc', &
+    CALL message ('mo_bc_aeropt_volc:read_months_bc_aeropt_volc', &
          &            ' reading from file '//TRIM(ADJUSTL(filename)))
 
     CALL openInputFile(file_id, filename)
@@ -875,7 +875,7 @@ CONTAINS
 
     END SUBROUTINE permute_shape
 
-  END SUBROUTINE read_single_month_bc_aeropt_cmip6_volc
+  END SUBROUTINE read_single_month_bc_aeropt_volc
 
   !>
   !! Calculates trapezoidal sum for functions f(:,1:n,:,:) over the n
@@ -901,4 +901,4 @@ CONTAINS
     END DO
   END SUBROUTINE trapezoidal_rule
 
-END MODULE mo_bc_aeropt_cmip6_volc
+END MODULE mo_bc_aeropt_volc

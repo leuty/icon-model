@@ -468,7 +468,7 @@ if [ "${run_coupled}" = 'true' ]; then
     fi
   fi
 else
-  if [ "${finish_status}" = "RESTART" ] ; then
+  if [ $finish_status = "RESTART" ] ; then
     echo "restart next experiment..."
     this_script="${RUNSCRIPTDIR}/${job_name}"
     echo 'this_script: ' "$this_script"

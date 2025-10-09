@@ -107,7 +107,7 @@ CONTAINS
     IF (ist/=SUCCESS) CALL finish (routine,&
       & 'deallocation of wave ext_data state array and list failed')
 
-    CALL message (TRIM(routine), 'Destruction of wave ext_data state finished')
+    CALL message(routine, 'Destruction of wave ext_data state finished')
 
   END SUBROUTINE destruct_wave_ext_data_state
 

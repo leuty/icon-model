@@ -9,6 +9,8 @@
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
 
+!NEC$ options "-finline-max-function-size=1000"
+
 ! This module contains routines needed for basic coupling between cloud microphysics and the aerosol climatology
 
 MODULE mo_cpl_aerosol_microphys
@@ -945,7 +947,7 @@ SUBROUTINE specccn_segalkhain_simple (ie, istart, iend, ncn, cloud_num)
   REAL(KIND=ireals),    PARAMETER :: wcb  = 0.25_ireals ! assume wind speed of 25 cm7s at cloud base
   REAL(KIND=ireals),    PARAMETER :: cloud_num_min  = 10.0e6_ireals  ! 1/kg
 
-
+!NEC$ ivdep
   DO i = istart, iend
 
     CALL interpol_nccn_segalkhain_2D(ltab2D, ncn(i), wcb, cloud_num(i))

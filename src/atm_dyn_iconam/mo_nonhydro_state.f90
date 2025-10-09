@@ -2536,7 +2536,8 @@ MODULE mo_nonhydro_state
                 & lopenacc = .TRUE. )
     __acc_attach(p_diag%div)
 
-    IF (turbdiff_config(p_patch%id)%itype_sher >= 1 .OR. turbdiff_config(p_patch%id)%ltkeshs) THEN
+    IF (turbdiff_config(p_patch%id)%itype_sher >= 1 .OR. turbdiff_config(p_patch%id)%loutshs &
+         &   .OR. turbdiff_config(p_patch%id)%a_hshr>0 ) THEN
       ! div_ic          p_diag%div_ic(nproma,nlevp1,nblks_c)
       !
       cf_desc    = t_cf_var('divergence at half levels', 's-1', 'divergence at half levels', datatype_flt)
@@ -2562,7 +2563,7 @@ MODULE mo_nonhydro_state
       ALLOCATE(p_diag%div_ic(1,1,nblks_c), p_diag%hdef_ic(1,1,nblks_c))
     ENDIF
 
-    IF (turbdiff_config(p_patch%id)%itype_sher >= 2) THEN
+    IF (turbdiff_config(p_patch%id)%itype_sher == 2) THEN
       ! dwdx          p_diag%dwdx(nproma,nlevp1,nblks_c)
       !
       cf_desc    = t_cf_var('Zonal gradient of vertical wind', 's-1', 'Zonal gradient of vertical wind', datatype_flt)

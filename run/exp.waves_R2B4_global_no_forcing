@@ -18,8 +18,8 @@ author_list="Mikhail Dobrynin, Daniel Reinert (DWD)"
 #
 # The purpose is the technical testing of the ICON-waves.
 #
-# This global test-case experiment generates an artificial wind field,
-# and therefore no forcing files are needed. This experiment requires a grid file,
+# This global test-case experiment uses an analytic wave-energy spectrum for initialization (JONSWAP),
+# based on an analytic wind field. Hence, no forcing files are needed. This experiment requires a grid file,
 # and an external parameter file with bathymetry.
 #
 #

@@ -21,9 +21,13 @@ MODULE mo_wave_config
   USE mo_physical_constants,   ONLY: grav, rhoh2o
   USE mo_wave_constants,       ONLY: EX_TAIL
   USE mo_fortran_tools,        ONLY: DO_DEALLOCATE
-  USE mo_io_units,             ONLY: filename_max
+  USE mo_io_units,             ONLY: filename_max, find_next_free_unit
   USE mo_util_string,          ONLY: t_keyword_list, associate_keyword, with_keywords, &
     &                                int2string
+  USE mo_mpi,                  ONLY: p_io, p_comm_work, my_process_is_stdio, &
+    &                                p_bcast, p_comm_work_test
+  USE mo_parallel_config,      ONLY: p_test_run
+
 
   IMPLICIT NONE
 
@@ -75,6 +79,8 @@ MODULE mo_wave_config
     REAL(wp) :: zalp     ! shifts growth curve (ecmwf cy45r1).
     REAL(wp) :: alpha_ch ! minimum charnock constant (ecmwf cy45r1)
 
+    CHARACTER(LEN=filename_max) :: oce_vct_filename ! name of ocean vertical coordinates file
+
     REAL(wp) :: depth        ! ocean depth (m) if not 0, then constant depth
     REAL(wp) :: depth_min    ! allowed minimum of model depth (m)
     REAL(wp) :: depth_max    ! allowed maximum of model depth (m)
@@ -116,7 +122,6 @@ MODULE mo_wave_config
 
     ! derived variables and fields
     !
-    INTEGER  :: ndepths      ! number of depth levels (used for Stokes profile calculation)
 
     REAL(wp) ::            &
       &  delth,            & ! angular increment of spectrum [rad].
@@ -149,8 +154,14 @@ MODULE mo_wave_config
       &  sin_dir(:),       & ! sine of direction
       &  cos_dir(:),       & ! cosine of direction
       &  rhowg_dfim(:),    & ! momentum and energy flux weights.
-      &  wtauhf(:),        & ! integration weight for tau_phi_hf
-      &  stokes_level(:)     ! depth of each layer (m)
+      &  wtauhf(:)           ! integration weight for tau_phi_hf
+
+     REAL(wp), ALLOCATABLE :: &
+      &  oce_ifc(:),        & ! depth of ocean vertical cell interfaces (m)
+      &  oce_mc(:),         & ! depth of ocean vertical cell midpoints (m)
+      &  oce_lay_th(:),     & ! ocean cell thickness (m)
+      &  oce_stokes_ifc(:), & ! depth of Stokes interfaces (m)
+      &  oce_stokes_mc(:)     ! depth of Stokes midpoints (m)
 
     INTEGER, ALLOCATABLE :: &
       &  dir_neig_ind(:,:)   ! index of direction neighbor (2,1:ndirs)
@@ -162,6 +173,11 @@ MODULE mo_wave_config
     INTEGER, ALLOCATABLE :: idx_coastedges(:), blk_coastedges(:)
 
     REAL(wp), ALLOCATABLE :: orient_coastedges(:) ! corresponding edge orientation
+
+    INTEGER :: oce_nifc ! number of ocean vertical interfaces
+    INTEGER :: oce_nlev ! number of ocean vertical layers
+    INTEGER :: oce_stokes_nifc ! number of Stokes interfaces
+    INTEGER :: oce_stokes_nlev ! number of Stokes vertical layers
 
   CONTAINS
     !
@@ -194,13 +210,176 @@ CONTAINS
     CALL DO_DEALLOCATE(me%RHOWG_DFIM)
     CALL DO_DEALLOCATE(me%dir_neig_ind)
     CALL DO_DEALLOCATE(me%wtauhf)
-    CALL DO_DEALLOCATE(me%stokes_level)
     CALL DO_DEALLOCATE(me%idx_coastedges)
     CALL DO_DEALLOCATE(me%blk_coastedges)
     CALL DO_DEALLOCATE(me%orient_coastedges)
+    CALL DO_DEALLOCATE(me%oce_ifc)
+    CALL DO_DEALLOCATE(me%oce_mc)
+    CALL DO_DEALLOCATE(me%oce_lay_th)
+    CALL DO_DEALLOCATE(me%oce_stokes_ifc)
+    CALL DO_DEALLOCATE(me%oce_stokes_mc)
+
 
   END SUBROUTINE wave_config_destruct
 
+
+  !>
+  !! Read the number of ocean vertical cell interfaces from oce_vct_file
+  !!
+  SUBROUTINE read_oce_vct(oce_vct_file, oce_nifc, oce_ifc)
+
+    CHARACTER(LEN=*),      INTENT(IN)    :: oce_vct_file
+    INTEGER,               INTENT(INOUT) :: oce_nifc
+    REAL(wp), ALLOCATABLE, INTENT(INOUT) :: oce_ifc(:)
+
+    CHARACTER(*),PARAMETER :: routine = modname//'::read_oce_vct'
+
+    INTEGER :: ist, iunit, jk, ik
+    INTEGER :: mpi_comm
+
+    IF (my_process_is_stdio()) THEN
+      iunit = find_next_free_unit(10,20)
+      OPEN (unit=iunit,file=TRIM(oce_vct_file),access='SEQUENTIAL', &
+        &  form='FORMATTED', action='READ', status='OLD', IOSTAT=ist)
+      IF (ist/=success) THEN
+        CALL finish (routine, 'open vertical coordinate table file failed')
+      END IF
+
+      READ (iunit,*,IOSTAT=ist) oce_nifc
+
+      IF (ist/=success) THEN
+
+        CALL finish (routine, 'reading number of ocean interface levels failed')
+
+      ELSE
+
+        ALLOCATE(oce_ifc(oce_nifc), stat=ist)
+        IF (ist/=SUCCESS) CALL finish(routine, "allocation for oce_ifc of type REAL failed")
+
+        DO jk=1, oce_nifc
+
+          READ (iunit,*,IOSTAT=ist) ik, oce_ifc(jk)
+          IF (ist/=success) THEN
+            CALL finish (routine, 'reading of ocean interface levels failed')
+          END IF
+
+        END DO
+
+        CALL message(routine, 'ocean vertical coordinate table file successfully read')
+
+      END IF
+
+      CLOSE(iunit)
+    END IF
+
+    IF (p_test_run) THEN
+      mpi_comm = p_comm_work_test
+    ELSE
+      mpi_comm = p_comm_work
+    END IF
+
+    CALL p_bcast(oce_nifc,  p_io, mpi_comm)
+    IF (.NOT.my_process_is_stdio()) THEN
+      ALLOCATE(oce_ifc(oce_nifc), stat=ist)
+      IF (ist/=SUCCESS) CALL finish(routine, "allocation for oce_ifc of type REAL failed")
+    END IF
+    CALL p_bcast(oce_ifc,  p_io, mpi_comm)
+
+  END SUBROUTINE read_oce_vct
+
+  !>
+  !! Calculate interfaces and midpoint depths of ocean levels and
+  !! within the Stokes layer according to the ocean vertical coordinates table.
+  !! The Stokes layer is limited by the namelist parameter stokes_depth,
+  !! if given as > 0, or by the depth of the last ocean level.
+  !!
+  SUBROUTINE oce_stokes_levels(wave_config)
+
+    TYPE(t_wave_config), TARGET, INTENT(INOUT) :: wave_config
+
+    TYPE(t_wave_config), POINTER :: wc => NULL()
+
+    INTEGER :: jk, ist
+
+    CHARACTER(len=*), PARAMETER ::  &
+      &  routine = modname//':oce_stokes_levels'
+
+    wc => wave_config
+
+    ! read ocean vertical coordinates table
+    IF (TRIM(wc%oce_vct_filename) /= "") THEN
+
+      CALL read_oce_vct(oce_vct_file = wc%oce_vct_filename, &
+        &                   oce_nifc = wc%oce_nifc, &
+        &                    oce_ifc = wc%oce_ifc)
+
+      wc%oce_nlev = wc%oce_nifc-1 ! number of ocean levels
+
+      ALLOCATE(wc%oce_mc(wc%oce_nlev),wc%oce_lay_th(wc%oce_nlev), stat=ist)
+      IF (ist/=SUCCESS) CALL finish(routine, "allocation for ocean vct of type REAL failed")
+
+      CALL message ('','')
+      CALL message (':-----------------------------------------------------------','')
+      WRITE(message_text,'(i5)') wc%oce_nlev
+      CALL message (' Run with ocean layers, number of layers: ',message_text)
+      CALL message (':-----------------------------------------------------------','')
+      CALL message (' index, depth of center, depth of interface, layer thickness','')
+      CALL message (':-----------------------------------------------------------','')
+
+      DO jk=1, wc%oce_nlev
+
+        wc%oce_mc(jk) = 0.5_wp * (wc%oce_ifc(jk) + wc%oce_ifc(jk+1))
+        wc%oce_lay_th(jk) = wc%oce_ifc(jk+1) - wc%oce_ifc(jk)
+
+        WRITE(message_text,'(i6,f17.1,f19.1,f15.1)') jk, wc%oce_mc(jk), wc%oce_ifc(jk), wc%oce_lay_th(jk)
+        CALL message ('',message_text)
+
+      END DO
+
+      WRITE(message_text,'(i6,a17,f19.1,a16)') jk, '-',  wc%oce_ifc(jk), '-'
+      CALL message ('',message_text)
+      CALL message (':-----------------------------------------------------------','')
+
+      ! calculate depth of each Stokes level (interface and midpoint) within wc%stokes_depth
+      IF (wc%stokes_depth > 0._wp) THEN
+        ! find the last interface index according to wc%stokes_depth
+        wc%oce_stokes_nifc = MINLOC(ABS(wc%oce_ifc-wc%stokes_depth), dim=1)
+      ELSE
+        ! use full depth of ocean table
+        wc%oce_stokes_nifc = wc%oce_nifc
+      END IF
+
+      wc%oce_stokes_nlev = wc%oce_stokes_nifc - 1
+
+      ALLOCATE(wc%oce_stokes_ifc(wc%oce_stokes_nifc),wc%oce_stokes_mc(wc%oce_stokes_nlev), stat=ist)
+      IF (ist/=SUCCESS) CALL finish(routine, "allocation for stokes_ifc field of type REAL failed")
+
+      CALL message ('','')
+      CALL message (':--- Run with Stokes layer ---------------------------------','')
+      WRITE(message_text,'(f10.5)') wc%stokes_depth
+      CALL message (' depth of Stokes layer (m)',message_text)
+      CALL message (':-----------------------------------------------------------','')
+      CALL message (' index, depth of center, depth of interface                 ','')
+      CALL message (':-----------------------------------------------------------','')
+
+      DO jk = 1, wc%oce_stokes_nifc
+        wc%oce_stokes_ifc(jk) = wc%oce_ifc(jk)
+      END DO
+
+      DO jk = 1, wc%oce_stokes_nlev
+        wc%oce_stokes_mc(jk) = wc%oce_mc(jk)
+
+        WRITE(message_text,'(i6,f17.1,f19.1)') jk, wc%oce_stokes_mc(jk), wc%oce_stokes_ifc(jk)
+        CALL message ('',message_text)
+      END DO
+
+      WRITE(message_text,'(i6,a17,f19.1)') jk, '-',  wc%oce_stokes_ifc(jk)
+      CALL message ('',message_text)
+      CALL message (':-----------------------------------------------------------','')
+
+    END IF
+
+  END SUBROUTINE oce_stokes_levels
 
   !>
   !! setup the waves model
@@ -214,10 +393,10 @@ CONTAINS
 
     INTEGER, INTENT(IN) :: n_dom    !< number of domains
 
-    INTEGER :: jd, jf   ! loop index
-    INTEGER :: jg       ! patch ID
-    INTEGER :: ist      ! error status
-    INTEGER :: j
+    INTEGER :: j, jd, jf, jk ! loop index
+    INTEGER :: jg            ! patch ID
+    INTEGER :: ist           ! error status
+
     TYPE(t_wave_config), POINTER :: wc =>NULL()     ! convenience pointer
 
     REAL(wp) :: CO1, X0, FF, F, DF, CONST1
@@ -277,28 +456,9 @@ CONTAINS
       ALLOCATE(wc%dir_neig_ind (2,wc%ndirs), stat=ist)
       IF (ist/=SUCCESS) CALL finish(routine, "allocation for fields of type INTEGER failed")
 
-      ! calculate depth of each depth layer in Stokes layer
-      IF ((wc%stokes_depth > 0._wp) .AND. (wc%stokes_th > 0._wp)) THEN
-
-        ALLOCATE(wc%stokes_level(wc%ndepths),stat=ist)
-        IF (ist/=SUCCESS) CALL finish(routine, "allocation for stokes_level field of type REAL failed")
-
-        CALL message ('','')
-        CALL message (':--- Run with Stokes layer --------------------------------','')
-        WRITE(message_text,'(f10.5)') wc%stokes_depth
-        CALL message ('               depth of Stokes layer (m)',message_text)
-        WRITE(message_text,'(f10.5)') wc%stokes_th
-        CALL message ('                     layer thickness (m)',message_text)
-        WRITE(message_text,'(i5)') wc%ndepths
-        CALL message ('  number of depth layers in Stokes layer',message_text)
-        CALL message (':----------------------------------------------------------','')
-
-        DO j = 1, wc%ndepths
-          wc%stokes_level(j) = wc%stokes_th * REAL(j,wp)
-        END DO
-
-      END IF
-
+      ! calculate interface and midpoint depths of ocean levels and
+      ! within the Stokes layer
+      CALL oce_stokes_levels(wc)
 
       ! calculate wind speed interval in the flminfr table
       wc%delu = wc%umax/REAL(wc%jmax,wp)

@@ -72,6 +72,7 @@ MODULE mo_timer
   PUBLIC :: timer_back_traj
   PUBLIC :: timer_adv_horz, timer_adv_vert
   PUBLIC :: timer_adv_hflx, timer_adv_vflx
+  PUBLIC :: timer_adv_2daero
 
   PUBLIC :: timer_update_prog_phy
   PUBLIC :: timer_diagnose_pres_temp
@@ -183,6 +184,7 @@ MODULE mo_timer
   PUBLIC :: timer_phys_2mom_sedi
   PUBLIC :: timer_phys_micro_specific
   PUBLIC :: timer_phys_micro_satad
+  PUBLIC :: timer_phys_2daero
 
   ! IAU
   PUBLIC :: timer_iau_save_restore
@@ -370,6 +372,7 @@ MODULE mo_timer
   INTEGER :: timer_phys_2mom_sedi
   INTEGER :: timer_phys_micro_specific
   INTEGER :: timer_phys_micro_satad
+  INTEGER :: timer_phys_2daero
 
   INTEGER :: timer_iau_save_restore
 
@@ -393,6 +396,7 @@ MODULE mo_timer
   INTEGER :: timer_adv_horz, timer_adv_vert
   INTEGER :: timer_adv_hflx, timer_adv_vflx
   INTEGER :: timer_back_traj
+  INTEGER :: timer_adv_2daero
 
   ! Timer ID's for forcings and testcases
   INTEGER :: timer_held_suarez_intr
@@ -724,6 +728,7 @@ CONTAINS
     timer_adv_vert  = new_timer("adv_vert")
     timer_adv_hflx  = new_timer("adv_hflx")
     timer_adv_vflx  = new_timer("adv_vflx")
+    timer_adv_2daero= new_timer("adv_2daero")
 
     ! dynamics timers
 
@@ -846,6 +851,7 @@ CONTAINS
     timer_phys_2mom_sedi = new_timer("phys_2mom_sedi")
     timer_phys_micro_specific = new_timer("phys_micro_specific")
     timer_phys_micro_satad = new_timer("phys_micro_satad")
+    timer_phys_2daero = new_timer("phys_2daero")
 
     timer_update_prog_phy = new_timer("update_prog_phy")
     timer_nh_diagnostics = new_timer("nh_diagnostics")

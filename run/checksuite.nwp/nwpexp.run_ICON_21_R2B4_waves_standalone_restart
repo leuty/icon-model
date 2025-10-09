@@ -17,6 +17,8 @@
 # The experiment writes checkpoint files asychronously, and restarts from the
 # latest checkpoint file, in order to check the correctness of the restart
 # functionality.
+# - analytic JONSWAP spectrum is used for initialization
+# - JONWAP spectrum is based on a realistic atmospheric wind field, read from file
 #
 # Mikhail Dobrynin, Daniel Reinert 2024
 #
@@ -86,9 +88,35 @@ num_prefetch_proc=0
 num_io_procs_radar=0
 proc0_shift=0 # proc0_shift does not work yet with WAVES
 
+# ocean vertical coordinates table, vertical cell interfaces
+cat > oce_vct << EOF
+21
+1      0.0
+2      2.0
+3      4.2
+4      6.7
+5      9.5
+6      12.6
+7      16.1
+8      20.0
+9      24.4
+10     29.3
+11     34.7
+12     40.6
+13     47.0
+14     54.1
+15     61.8
+16     70.2
+17     79.4
+18     89.5
+19     100.5
+20     112.5
+21     125.7
+EOF
+
 #spectral resolution
-nd=12          # NUMBER OF DIRECTIONS
-nf=25          # NUMBER OF FREQUENCIES
+nd=24          # NUMBER OF DIRECTIONS
+nf=32          # NUMBER OF FREQUENCIES
 
 wave_namelist=NAMELIST_${EXPNAME}
 
@@ -195,10 +223,20 @@ cat > ${wave_namelist} << EOF
  itopo = 0 !do not read atmospheric exp file
  extpar_filename = '${wave_extpar}'
 /
+&initwave_nml
+ init_mode       = 2       ! coldstart: initialize wave energy spectrum by
+                           ! analytic parameterization (JONSWAP)
+/
 &wave_nml
  ndirs       = ${nd}   ! number of directions
  nfreqs      = ${nf}   ! number of frequencies
  forc_file_prefix = 'ocean_waves_R2B4_19790101T000000' ! prefix of forcing file name
+ oce_vct_filename = 'oce_vct' ! ocean vertical coordinates table (depth of interfaces)
+ stokes_depth  = 50.
+ stokes_method = 1
+ niter_smooth  = 3
+ depth_min     = 2.
+ depth_max     = 999.
 /
 &energy_propagation_nml
  itype_limit  = 4     ! positive definite flux limiter
@@ -242,16 +280,15 @@ cat > ${wave_namelist} << EOF
 &output_nml
  filetype                =                          4         ! output format: 2=GRIB2, 4=NETCDFv2
  dom                     =                         -1         ! write all domains
- output_bounds           =        0., 10000000., 43200.       ! output: start, end, increment
+ output_bounds           =       0., 10000000., 43200         ! output: start, end, increment
  steps_per_file          =                          1         ! number of output steps in one output file
  mode                    =                          1         ! 1: forecast mode (relative t-axis), 2: climate mode (absolute t-axis)
  include_last            =                      .TRUE.        ! flag whether to include the last time step
- output_filename         =      '${ofile_prfx}_2ocean'        ! file name base
+ output_filename         =      '${ofile_prfx}_Stokes'        ! file name base
  output_grid             =                      .TRUE.        ! flag whether grid information is added to output.
- ml_varlist              = 'u_stokes','v_stokes'
+ ml_varlist              = 'u3d_stokes','v3d_stokes','u_stokes','v_stokes'
 /
 EOF
-
 
 
 #
@@ -275,24 +312,6 @@ done # iterations for restart testing
 
 SCRIPT_STATUS=0
 TEST_STATUS=0
-
-# 2ocean output filenames
-FILE_REF="wave-REF_2ocean_DOM01_ML_0011.nc"
-FILE_RST="wave-RST_2ocean_DOM01_ML_0011.nc"
-
-if [ ! -f ${FILE_REF} ] || [ ! -f ${FILE_RST} ]; then
-  echo " Both or either of the files ${FILE_RFF} and ${FILE_RST} do not exist"
-  SCRIPT_STATUS=$(($SCRIPT_STATUS + 1))
-  exit $SCRIPT_STATUS
-fi
-
-echo "##############################################################"
-echo "###       Restart test: check match of output files        ###"
-echo "##############################################################"
-
-# compare_output_files is defined in ./add_run_routines
-compare_output_files "${FILE_REF}" "${FILE_RST}"
-TEST_STATUS=$((TEST_STATUS + $?))
 
 # forcing output filenames
 FILE_REF="wave-REF_forcing_DOM01_ML_0011.grb"
@@ -330,6 +349,24 @@ echo "##############################################################"
 compare_output_files "${FILE_REF}" "${FILE_RST}"
 TEST_STATUS=$((TEST_STATUS + $?))
 
+
+# output filenames
+FILE_REF="wave-REF_Stokes_DOM01_ML_0011.nc"
+FILE_RST="wave-RST_Stokes_DOM01_ML_0011.nc"
+
+if [ ! -f ${FILE_REF} ] || [ ! -f ${FILE_RST} ]; then
+  echo " Both or either of the files ${FILE_RFF} and ${FILE_RST} do not exist"
+  SCRIPT_STATUS=$(($SCRIPT_STATUS + 1))
+  exit $SCRIPT_STATUS
+fi
+
+echo "##############################################################"
+echo "###       Restart test: check match of output files        ###"
+echo "##############################################################"
+
+# compare_output_files is defined in ./add_run_routines
+compare_output_files "${FILE_REF}" "${FILE_RST}"
+TEST_STATUS=$((TEST_STATUS + $?))
 
 if [ $TEST_STATUS == 0 ]; then
   echo " "

@@ -68,10 +68,11 @@ MODULE mo_atm_phy_nwp_config
   PUBLIC :: icpl_aero_conv
   PUBLIC :: icpl_o3_tp
   PUBLIC :: itype_dissip_heat
-  PUBLIC :: iprog_aero
+  PUBLIC :: i2daero_dust, i2daero_seas, i2daero_anthro, i2daero_fire
   PUBLIC :: setup_nwp_diag_events
   PUBLIC :: icpl_aero_ice
   PUBLIC :: lcuda_graph_turb_tran
+  PUBLIC :: icpl_gwd_prec
 
   !!--------------------------------------------------------------------------
   !! Basic configuration setup for nwp physics
@@ -226,10 +227,15 @@ MODULE mo_atm_phy_nwp_config
   CHARACTER(LEN=filename_max) :: cldopt_filename
 
   INTEGER  :: icpl_aero_conv     !! type of coupling between aerosols and convection scheme
-  INTEGER  :: iprog_aero         !! type of prognostic aerosol
+  INTEGER  :: i2daero_dust       !! 2D-Aerosol: Activate dust advection, sinks & sources
+  INTEGER  :: i2daero_seas       !! 2D-Aerosol: Activate sea salt advection, sinks & sources
+  INTEGER  :: i2daero_anthro     !! 2D-Aerosol: Activate bc/oc/so4 aerosol advection, sinks & sources
+  INTEGER  :: i2daero_fire       !! 2D-Aerosol: Activate wildfire sinks & sources (additional to i2daero_anthro)
   INTEGER  :: icpl_o3_tp         !! type of coupling between ozone and the tropopause
   INTEGER  :: icpl_aero_ice      !! type of coupling between aersols and ice nucleation
   INTEGER  :: itype_dissip_heat  !! Options for the calculation of dissipative heating
+  INTEGER  :: icpl_gwd_prec      !! coupling between gwd momentum flux and total precipitation
+
 
   !$ACC DECLARE CREATE(itype_dissip_heat, icpl_o3_tp)
 

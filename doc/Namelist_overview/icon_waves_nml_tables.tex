@@ -73,6 +73,9 @@ Defined and used in: \verb+src/waves/config/mo_energy_propagation_nml.f90+
  dt\_shift    & R   & 0.       &  s   & time interval by which the actual model start date (tc\_start\_date)
                                         is shifted backwards in time. &
 \tabularnewline
+ init\_mode   & I   & 2        &      & 1 (MODE\_ANA): read wave energy spectrum from analysis file\\
+                                        2 (MODE\_COLD): initialize wave energy spectrum by analytic parameterization (currently JONSWAP)&
+\tabularnewline
 \end{longtab}
 
 Defined and used in: \verb+src/waves/config/mo_initwave_nml.f90+
@@ -101,8 +104,17 @@ Defined and used in: \verb+src/waves/config/mo_initwave_nml.f90+
  xinveps   & R  & 1./xeps   &     & inverse air water density ratio & \tabularnewline
  betamax   & R  & 1.20      &     & parameter for wind input (ECMWF cy45r1) & \tabularnewline
  zalp      & R  & 0.0080    &     & shifts growth curve (ECMWF cy45r1) & \tabularnewline
- jtot\_tauhf& I  & 19       &     & dimension of high freuency wave stress (wtauhf) & must be odd \tabularnewline
- alpha\_ch  & R  & 0.0075   &     & minimum Charnock constant (ecmwf cy45r1) & \tabularnewline
+ jtot\_tauhf& I  & 19       &     & dimension of high freuency wave stress (\textbf{wtauhf}) & must be odd \tabularnewline
+ alpha\_ch  & R  & 0.0075   &     & minimum Charnock constant (ECMWF cy45r1) & \tabularnewline
+ oce\_vct\_filename  &C&    &     & name of ocean vertical coordinates file & \tabularnewline
+&&&& this file must contain the number of ocean vertical interfaces on the first line \textbf{oce\_nifc} (type integer), followed by lines with the interface index (type integer) and interface depth in meters \textbf{oce\_ifc} (type real), separated by a space. & the interface index must be in the range from 1 to \textbf{oce\_nifc} \tabularnewline
+                  & &     &     &   for example: & \tabularnewline
+                  & &     &     &   \verb| 21| & \tabularnewline
+                  & &     &     &   \verb| 1 0.0| & \tabularnewline
+                  & &     &     &   \verb| 2 2.0| & \tabularnewline
+                  & &     &     &   \verb| 3 4.0| & \tabularnewline
+                  & &     &     &   \verb| ...|   & \tabularnewline
+                  & &     &     &   \verb| 21 200.0| & \tabularnewline
  depth     &  R & 0.        & m   & ocean depth if not 0, then constant depth & \tabularnewline
  depth\_min &  R & 0.2      & m   & allowed minimum of model depth & \tabularnewline
  depth\_max &  R & 999.0    & m   & allowed maximum of model depth & \tabularnewline
@@ -136,8 +148,7 @@ peak\_lon & R & -140.0       & degree & longitude of wind peak value & \tabularn
 impl\_fac & R & 1.0          & & first order Euler backward time integration scheme for total source function & \tabularnewline
 stokes\_method & I & 1       &   & 1 - calculation of Stokes profile from the full spectrum \\
                                    2 - calculation based on Breivik (2016) & \tabularnewline
-stokes\_depth & R & 50.0     & m &  maximum of Stokes layer depth & \tabularnewline
-stokes\_th    & R & 2.0      & m &  thickness of individual layers & \tabularnewline
+stokes\_depth & R & 50.0     & m &  maximum Stokes layer depth, if set to zero, the depth of the last interface from \textbf{oce\_vct\_filename} will be used & \tabularnewline
 \end{longtab}
 
 Defined and used in: \verb+src/waves/config/mo_wave_nml.f90+

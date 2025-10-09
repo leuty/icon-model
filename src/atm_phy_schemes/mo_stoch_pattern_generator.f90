@@ -32,7 +32,7 @@ MODULE mo_stoch_pattern_generator
   !
   !==============================================================================
 
-  USE mo_kind,               ONLY: sp, wp, i4, i8
+  USE mo_kind,               ONLY: dp, sp, wp, i4, i8
   USE mo_math_constants,     ONLY: pi, rpi_2, pi_2, rad2deg
   USE mo_math_legendre,      ONLY: PlmON, PlmIndex
   USE mo_physical_constants, ONLY: earth_radius
@@ -546,7 +546,7 @@ CONTAINS
       CALL asl_random_initialize(randomhandle, nseed, seed, ierr)
 
       ! initalize random normals with mean of zero and stddev of one
-      CALL asl_random_distribute_normal(randomhandle, 0.0_wp, 1.0_wp, ierr)
+      CALL asl_random_distribute_normal(randomhandle, 0.0_dp, 1.0_dp, ierr)
 #endif
 
     ELSE

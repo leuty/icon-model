@@ -15,7 +15,7 @@ MODULE mo_wave_stepping
   USE mo_kind,                     ONLY: wp
   USE mo_exception,                ONLY: message, message_text, finish
   USE mo_impl_constants,           ONLY: SUCCESS
-  USE mo_run_config,               ONLY: output_mode, ltestcase, ltransport, msg_level
+  USE mo_run_config,               ONLY: output_mode, ltransport, msg_level
   USE mo_name_list_output,         ONLY: write_name_list_output, istime4name_list_output, istime4name_list_output_dom
   USE mo_name_list_output_init,    ONLY: output_file
   USE mo_output_event_handler,     ONLY: get_current_jfile
@@ -26,16 +26,14 @@ MODULE mo_wave_stepping
        &                                 OPERATOR(+), OPERATOR(>=), OPERATOR(==)
   USE mo_util_mtime,               ONLY: is_event_active
   USE mo_model_domain,             ONLY: p_patch
-  USE mo_grid_config,              ONLY: n_dom, nroot
-  USE mo_io_units,                 ONLY: filename_max
-  USE mo_master_config,            ONLY: isRestart, isInitFromRestart, getModelBaseDir
+  USE mo_grid_config,              ONLY: n_dom
+  USE mo_master_config,            ONLY: isRestart
   USE mo_dynamics_config,          ONLY: nnow, nnew
   USE mo_fortran_tools,            ONLY: swap, copy
   USE mo_intp_data_strc,           ONLY: p_int_state
   USE mo_pp_scheduler,             ONLY: new_simulation_status, pp_scheduler_process
   USE mo_pp_tasks,                 ONLY: t_simulation_status
-  USE mo_wave_adv_exp,             ONLY: init_wind_adv_test
-  USE mo_init_wave_physics,        ONLY: init_wave_spectrum, init_wave_nonlinear, fetch_law, jonswap, min_energy
+  USE mo_init_wave_physics,        ONLY: init_wave_nonlinear, min_energy
   USE mo_wave_state,               ONLY: p_wave_state
   USE mo_wave_ext_data_state,      ONLY: wave_ext_data
   USE mo_wave_forcing_state,       ONLY: wave_forcing_state
@@ -50,8 +48,7 @@ MODULE mo_wave_stepping
     &                                    calc_last_idx_depth
   USE mo_wave_config,              ONLY: wave_config, generate_filename
   USE mo_energy_propagation_config,ONLY: energy_propagation_config
-  USE mo_wave_forcing_state,       ONLY: wave_forcing_state
-  USE mo_wave_forcing,             ONLY: t_read_wave_forcing
+  USE mo_wave_forcing,             ONLY: reader_wave_forcing
   USE mo_wave_events,              ONLY: waveCheckpointEvent, waveRestartEvent
   USE mo_wave_td_update,           ONLY: update_speed_and_direction, update_ice_free_mask, &
     &                                    update_water_depth_and_grad
@@ -94,11 +91,6 @@ CONTAINS
     TYPE(datetime),  POINTER :: mtime_current     => NULL() !< current datetime
     TYPE(timedelta), POINTER :: model_time_step   => NULL()
 
-    !
-    ! note that the following TARGET attribute is essential! Otherwise the pointer to the
-    ! specific reader inside the time interpolator object (this%reader in time_intp_intp)
-    ! will lose its association status.
-    TYPE(t_read_wave_forcing), ALLOCATABLE, TARGET :: reader_wave_forcing(:)
     INTEGER                  :: jstep                       !< time step number
     INTEGER                  :: jstep_shift                 !< number of time steps for backward shifting
     LOGICAL                  :: lprint_timestep             !< print current datetime information
@@ -113,10 +105,6 @@ CONTAINS
     ! Time levels
     INTEGER :: n_new, n_now
 
-    CHARACTER(LEN=filename_max) :: wave_forc_wind_fn(n_dom) ! forc_file_prefix+'_wind' for U and V 10 meter wind (m/s)
-    CHARACTER(LEN=filename_max) :: wave_forc_ice_fn(n_dom)  ! forc_file_prefix+'_ice'  for sea ice concentration (fraction of 1)
-    CHARACTER(LEN=filename_max) :: wave_forc_slh_fn(n_dom)  ! forc_file_prefix+'_slh'  for sea level height (m)
-    CHARACTER(LEN=filename_max) :: wave_forc_osc_fn(n_dom)  ! forc_file_prefix+'_osc'  for U and V ocean surface currents (m/s)
     ! Restarting
     TYPE(t_key_value_store), POINTER :: restartAttributes
     INTEGER, ALLOCATABLE :: output_jfile(:)
@@ -137,129 +125,17 @@ CONTAINS
       IF (ierrstat /= SUCCESS)  CALL finish (routine, 'ALLOCATE failed for output_jfile!')
     ENDIF
 
-    IF (ltestcase) THEN
-      !-----------------------------------------------------------------------
-      ! advection experiment
-      CALL message(routine,'test case run: advection experiment')
-
-      DO jg = 1, n_dom
-        ! Initialisation of 10 meter wind and sea ice
-        CALL init_wind_adv_test(p_patch(jg), wave_config(jg), wave_forcing_state(jg))
-        CALL update_ice_free_mask(p_patch    = p_patch(jg),                          & ! IN
-          &                    sea_ice_c     = wave_forcing_state(jg)%sea_ice_c,     & ! IN
-          &                    ice_free_mask = wave_forcing_state(jg)%ice_free_mask_c) ! OUT
-      END DO
-    ENDIF
-
-
-    IF (is_coupled_to_atmo()) THEN
-      CALL message(routine,'coupled run: forcing data are received from the atmo model...')
-    ELSE
-
-      IF (timers_level >= 5) CALL timer_start(timer_wave_reader)
-
-      CALL message(routine,'standalone run: forcing data are read from file...')
-
-      ALLOCATE(reader_wave_forcing(n_dom), STAT=ierrstat)
-      IF (ierrstat /= SUCCESS) CALL finish(routine, 'Allocation failed for reader_wave_forcing')
-
-      DO jg = 1, n_dom
-        IF (wave_config(jg)%lread_forcing) THEN
-
-          jlev = p_patch(jg)%level
-
-          wave_forc_wind_fn(jg) = generate_filename(TRIM(wave_config(jg)%forc_file_prefix)//"_wind.nc",&
-            &                 getModelBaseDir(), nroot, jlev, jg)
-          wave_forc_ice_fn(jg)  = generate_filename(TRIM(wave_config(jg)%forc_file_prefix)//"_ice.nc", &
-            &                 getModelBaseDir(), nroot, jlev, jg)
-          wave_forc_slh_fn(jg)  = generate_filename(TRIM(wave_config(jg)%forc_file_prefix)//"_slh.nc", &
-            &                 getModelBaseDir(), nroot, jlev, jg)
-          wave_forc_osc_fn(jg)  = generate_filename(TRIM(wave_config(jg)%forc_file_prefix)//"_osc.nc", &
-            &                 getModelBaseDir(), nroot, jlev, jg)
-
-          ! initialize reader of external forcing data
-          CALL reader_wave_forcing(jg)%init(p_patch             = p_patch(jg),           & !in
-            &                               destination_time    = mtime_current,         & !in
-            &                               wave_forc_wind_file = wave_forc_wind_fn(jg), & !in
-            &                               wave_forc_ice_file  = wave_forc_ice_fn(jg),  & !in
-            &                               wave_forc_slh_file  = wave_forc_slh_fn(jg),  & !in
-            &                               wave_forc_osc_file  = wave_forc_osc_fn(jg) )   !in
-
-          ! get initial forcing data set (read from file and copy to forcing state vector)
-          CALL reader_wave_forcing(jg)%update_forcing(                                &
-            &                destination_time = mtime_current,                        & !in
-            &                u10m             = wave_forcing_state(jg)%u10m,          & !out
-            &                v10m             = wave_forcing_state(jg)%v10m,          & !out
-            &                sp10m            = wave_forcing_state(jg)%sp10m,         & !out
-            &                dir10m           = wave_forcing_state(jg)%dir10m,        & !out
-            &                sic              = wave_forcing_state(jg)%sea_ice_c,     & !out
-            &                slh              = wave_forcing_state(jg)%sea_level_c,   & !out
-            &                uosc             = wave_forcing_state(jg)%usoce_c,       & !out
-            &                vosc             = wave_forcing_state(jg)%vsoce_c,       & !out
-            &                sp_osc           = wave_forcing_state(jg)%sp_soce_c,     & !out
-            &                dir_osc          = wave_forcing_state(jg)%dir_soce_c,    & !out
-            &                ice_free_mask_c  = wave_forcing_state(jg)%ice_free_mask_c) !out
-
-          ! update depth and gradient
-          CALL update_water_depth_and_grad(p_patch = p_patch(jg),                        & !in
-            &                     p_int_state      = p_int_state(jg),                    & !in
-            &                     bathymetry_c     = wave_ext_data(jg)%bathymetry_c,     & !in
-            &                     sea_level_c      = wave_forcing_state(jg)%sea_level_c, & !in
-            &                     depth_c          = wave_ext_data(jg)%depth_c,          & !out
-            &                     depth_e          = wave_ext_data(jg)%depth_e,          & !out
-            &                     geo_depth_grad_c = wave_ext_data(jg)%geo_depth_grad_c)   !out
-        ELSE
-
-          WRITE(message_text,'(a,a,a)') 'No forcing files specified, testcase run is assumed.'
-          CALL message(routine, message_text)
-
-        END IF
-      END DO
-
-      IF (timers_level >= 5) CALL timer_stop(timer_wave_reader)
-
-    END IF  ! is_coupled_to_atmo
-
 
     DO jg = 1, n_dom
-      n_now  = nnow(jg)
-      n_new  = nnew(jg)
-
       ! Calculate the minimum values of energy allowed
       ! for each frequency for a given wind speed bin
       ! from 1 to wave_config%jmax, and up to wave_config%umax
       CALL min_energy(wave_config(jg), p_wave_state(jg)%diag%flminfr_tab)
 
-      IF (isRestart() .OR. isInitFromRestart()) THEN
-        ! do nothing
-      ELSE  ! coldstart
-
-        ! Initialisation of the wave spectrum
-        CALL fetch_law(                                       &
-          &  p_patch     = p_patch(jg),                       & !in
-          &  fetch       = wave_config(jg)%fetch,             & !in
-          &  fpmax       = wave_config(jg)%fm,                & !in
-          &  sp10m       = wave_forcing_state(jg)%sp10m(:,:), & !in
-          &  fp          = p_wave_state(jg)%diag%fp(:,:),     & !out
-          &  alphaj      = p_wave_state(jg)%diag%alphaj(:,:))   !out
-
-        ! Initialisation of the wave spectrum
-        CALL init_wave_spectrum(                                          &
-          &  p_patch     = p_patch(jg),                                   & !in
-          &  wave_config = wave_config(jg),                               & !in
-          &  dir10m      = wave_forcing_state(jg)%dir10m(:,:),            & !in
-          &  fp          = p_wave_state(jg)%diag%fp(:,:),                 & !in
-          &  alphaj      = p_wave_state(jg)%diag%alphaj(:,:),             & !in
-          &  et          = p_wave_state(jg)%diag%et(:,:,:),               & !out  ! purely diagnostic
-          &  tracer      = p_wave_state(jg)%prog(n_now)%tracer(:,:,:,:))    !out
-      END IF
-
-
       ! initialisation of the nonlinear transfer computations
       ! computes time-constant index arrays and weights
       CALL init_wave_nonlinear(wave_config = wave_config(jg),     & !in
         &                      p_diag      = p_wave_state(jg)%diag) !inout
-
 
       ! compute wave number at centers and edges
       CALL compute_wave_number(                            &
@@ -269,7 +145,6 @@ CONTAINS
         &  depth_e     = wave_ext_data(jg)%depth_e,        & !in
         &  wave_num_c  = p_wave_state(jg)%diag%wave_num_c, & !out
         &  wave_num_e  = p_wave_state(jg)%diag%wave_num_e  ) !out
-
 
       ! compute group velocity at centers and edges
       CALL compute_group_velocity(                          &
@@ -288,8 +163,7 @@ CONTAINS
           &  wave_config    = wave_config(jg),              &
           &  depth_c        = wave_ext_data(jg)%depth_c,    &
           &  last_idx_depth = p_wave_state(jg)%diag%last_idx_depth) !OUT
-
-    END DO
+    END DO  !jg
 
 
     IF (isRestart()) THEN
@@ -318,7 +192,7 @@ CONTAINS
 
         ! Calculate total and mean frequency energy
         CALL mean_frequency_and_total_energy(p_patch(jg), wave_config(jg), &
-             p_wave_state(jg)%prog(n_now)%tracer, &
+             p_wave_state(jg)%prog(nnow(jg))%tracer, &
              p_wave_state(jg)%source%llws, &
              p_wave_state(jg)%diag%emean, & ! OUT
              p_wave_state(jg)%diag%emeanws, & ! OUT
@@ -335,7 +209,7 @@ CONTAINS
         ! Calculate tm1 period and f1 frequency and wavenumbers
         CALL tm1_tm2_periods_and_wm1_wm2_wavenumber(p_patch(jg), wave_config(jg), &
              p_wave_state(jg)%diag%wave_num_c, &
-             p_wave_state(jg)%prog(n_now)%tracer, &
+             p_wave_state(jg)%prog(nnow(jg))%tracer, &
              p_wave_state(jg)%diag%emean, &
              p_wave_state(jg)%diag%tm1, &  ! OUT
              p_wave_state(jg)%diag%tm2, &  ! OUT
@@ -347,13 +221,13 @@ CONTAINS
         IF (istime4name_list_output_dom(jg=jg, jstep=jstep)) THEN
 
           ! Calculation of diagnostic output parameters
-          CALL calculate_output_diagnostics(p_patch = p_patch(jg),                    & ! IN
-            &                      wave_config = wave_config(jg),                     & ! IN
-            &                            sp10m = wave_forcing_state(jg)%sp10m,        & ! IN
-            &                           dir10m = wave_forcing_state(jg)%dir10m,       & ! IN
-            &                           depth  = wave_ext_data(jg)%depth_c,           & ! IN
-            &                           tracer = p_wave_state(jg)%prog(n_now)%tracer, & ! IN
-            &                           p_diag = p_wave_state(jg)%diag)                 ! INOUT
+          CALL calculate_output_diagnostics(p_patch = p_patch(jg),                       & ! IN
+            &                      wave_config = wave_config(jg),                        & ! IN
+            &                            sp10m = wave_forcing_state(jg)%sp10m,           & ! IN
+            &                           dir10m = wave_forcing_state(jg)%dir10m,          & ! IN
+            &                           depth  = wave_ext_data(jg)%depth_c,              & ! IN
+            &                           tracer = p_wave_state(jg)%prog(nnow(jg))%tracer, & ! IN
+            &                           p_diag = p_wave_state(jg)%diag)                    ! INOUT
         ENDIF
       ENDDO
 
@@ -431,6 +305,8 @@ CONTAINS
         ELSE
           ! get new forcing data (read from file and copy to forcing state vector)
           IF (wave_config(jg)%lread_forcing) THEN
+            IF (timers_level >= 5) CALL timer_start(timer_wave_reader)
+
             CALL reader_wave_forcing(jg)%update_forcing(                                &
               &                destination_time = mtime_current,                        & !in
               &                u10m             = wave_forcing_state(jg)%u10m,          & !out
@@ -454,6 +330,7 @@ CONTAINS
               &                     depth_e          = wave_ext_data(jg)%depth_e,          & !out
               &                     geo_depth_grad_c = wave_ext_data(jg)%geo_depth_grad_c)   !out
 
+            IF (timers_level >= 5) CALL timer_stop(timer_wave_reader)
           END IF
         END IF ! is_coupled_to_atmo()
 
@@ -817,16 +694,6 @@ CONTAINS
     IF (ALLOCATED(output_jfile)) THEN
       DEALLOCATE(output_jfile, STAT=ierrstat)
       IF (ierrstat /= SUCCESS)  CALL finish (routine, 'DEALLOCATE failed for output_jfile!')
-    ENDIF
-    !
-    IF (ALLOCATED(reader_wave_forcing)) THEN
-      DO jg=1,n_dom
-
-        CALL reader_wave_forcing(jg)%deinit()
-        !
-      ENDDO
-      DEALLOCATE(reader_wave_forcing, STAT=ierrstat)
-      IF (ierrstat /= SUCCESS) CALL finish(routine, 'Deallocation failed for reader_wave_forcing')
     ENDIF
 
     CALL message(routine,'finished')

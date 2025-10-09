@@ -70,7 +70,7 @@ MODULE mo_radiation
   USE mo_atm_phy_nwp_config,   ONLY: atm_phy_nwp_config
   USE mo_newcld_optics,        ONLY: newcld_optics
   USE mo_bc_aeropt_kinne,      ONLY: set_bc_aeropt_kinne
-  USE mo_bc_aeropt_cmip6_volc, ONLY: add_bc_aeropt_cmip6_volc
+  USE mo_bc_aeropt_volc,       ONLY: add_bc_aeropt_volc
   USE mo_coupling_config,      ONLY: is_coupled_to_aero
   USE mo_lrtm_par,             ONLY: jpband => nbndlw, jpxsec => maxxsec
   USE mo_lrtm,                 ONLY: lrtm
@@ -1651,12 +1651,12 @@ CONTAINS
     CASE (iRadAeroVolc)
       ! this is for rrtm radiation in the NWP part, we do not introduce
       ! the simple plumes here
-      ! set zero aerosol before adding CMIP6 volcanic aerosols
+      ! set zero aerosol before adding volcanic aerosols
       aer_tau_lw_vr(:,:,:) = 0.0_wp
       aer_tau_sw_vr(:,:,:) = 0.0_wp
       aer_piz_sw_vr(:,:,:) = 1.0_wp
       aer_cg_sw_vr(:,:,:)  = 0.0_wp
-      CALL add_bc_aeropt_cmip6_volc( current_date ,jg,            1 ,&
+      CALL add_bc_aeropt_volc( current_date ,jg,                  1 ,&
         & jce              ,kbdim                 ,klev             ,&
         & jb               ,jpsw                  ,jpband           ,&
         & p_nh_state(jg)% metrics% z_mc(:,:,jb)                     ,&
@@ -1673,7 +1673,7 @@ CONTAINS
         & p_nh_state(jg)% metrics% ddqz_z_full(:,:,jb)              ,&
         & aer_tau_sw_vr    ,aer_piz_sw_vr         ,aer_cg_sw_vr     ,&
         & aer_tau_lw_vr,opt_from_coupler = is_coupled_to_aero()     )
-      CALL add_bc_aeropt_cmip6_volc( current_date ,jg,            1 ,&
+      CALL add_bc_aeropt_volc( current_date ,jg,                  1 ,&
         & jce              ,kbdim                 ,klev             ,&
         & jb               ,jpsw                  ,jpband           ,&
         & p_nh_state(jg)% metrics% z_mc(:,:,jb)                     ,&

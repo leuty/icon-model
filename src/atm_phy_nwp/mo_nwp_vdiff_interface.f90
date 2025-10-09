@@ -55,6 +55,10 @@ MODULE mo_nwp_vdiff_interface
   USE mo_turb_vdiff_config, ONLY: t_vdiff_config
   USE mo_turb_vdiff_params, ONLY: vdiff_implfact => cvdifts, VDIFF_TURB_3DSMAGORINSKY
   USE mtime, ONLY: datetime, julianday, getJulianDayFromDatetime
+  USE mo_bc_anthro_emission, ONLY: get_current_bc_anthro_emission_year, &
+      & read_bc_anthro_emission, bc_anthro_emission_time_interpolation
+  USE mo_bcs_time_interpolation, ONLY: t_time_interpolation_weights, &
+      & calculate_time_interpolation_weights
 
 #ifndef __NO_JSBACH__
   USE mo_jsb_interface, ONLY: &
@@ -371,6 +375,8 @@ CONTAINS
     LOGICAL :: lis_coupled_to_ocean
     LOGICAL :: lhave_flx_co2_natural_sea
 
+    TYPE(t_time_interpolation_weights) :: current_time_interpolation_weights
+
     !
     ! Subroutine start
     !
@@ -514,6 +520,18 @@ CONTAINS
     CALL get_surface_type_fractions(patch, ext_data, mem, diag_lnd, fr_sfc, fr_sft, lacc=.TRUE.)
     CALL get_surface_class_temperature(patch, fr_sft, mem%temp_sft, fr_sfc, temp_sfc, lacc=.TRUE.)
 
+    IF (ASSOCIATED(mem%fco2ant)) THEN
+      IF (ccycle_config%lanthro) THEN
+        IF (datetime_now%date%year /= get_current_bc_anthro_emission_year()) THEN
+          CALL read_bc_anthro_emission(datetime_now%date%year, patch)
+        END IF
+        current_time_interpolation_weights = calculate_time_interpolation_weights(datetime_now)
+        CALL bc_anthro_emission_time_interpolation(current_time_interpolation_weights, &
+          & mem%fco2ant(:,:), &
+          & patch)
+      END IF
+    END IF
+
     !$OMP PARALLEL
       CALL weighted_average(patch, fr_sfc(:,:,:), temp_sfc(:,:,:), temp_srf_old(:,:), lacc=.TRUE.)
 
@@ -532,16 +550,17 @@ CONTAINS
             END DO
           END DO
 
-          ! Consider natural CO2 emissions to close the carbon cycle (if enabled).
+          ! Consider natural and anthropogenic CO2 emissions to close the carbon cycle (if enabled).
+          ! Anthropogenic emissions are on a grid-level and occur in land and ocean.
           IF (ico2 > 0) THEN
             !$ACC LOOP GANG VECTOR
             DO ic = ics, ice
               tracer_srf_emission(ic,ico2 - iqt + 1,i_blk) = &
-                & mem%flx_co2_natural_land(ic,i_blk) * fr_sft(ic,i_blk,SFT_LAND)
-              IF (lhave_flx_co2_natural_sea) THEN
+                & (mem%flx_co2_natural_land(ic,i_blk) + mem%fco2ant(ic,i_blk)) * fr_sft(ic,i_blk,SFT_LAND)
+                IF (lhave_flx_co2_natural_sea) THEN
                 tracer_srf_emission(ic,ico2 - iqt + 1,i_blk) = &
                   & tracer_srf_emission(ic,ico2 - iqt + 1,i_blk) &
-                  & + mem%sea_state%flx_co2_natural_sea(ic,i_blk) &
+                  & + (mem%sea_state%flx_co2_natural_sea(ic,i_blk) + mem%fco2ant(ic,i_blk)) &
                   & * (fr_sft(ic,i_blk,SFT_SWTR) + fr_sft(ic,i_blk,SFT_SICE))
               END IF
             END DO
@@ -886,6 +905,23 @@ CONTAINS
           )
 #endif
 
+        ! Diagnose surface stress (in N/m**2). This is a mixed-time flux.
+        CALL get_surface_stress ( &
+            & ics=ics, &
+            & ice=ice, &
+            & delta_time=delta_time, &
+            & prefactor_exchange=prefactor_exchange(:,i_blk), &
+            & exchange_coeff_m_sfc=mem%exchange_coeff_m_sfc(:,i_blk,:), &
+            & uv_acoef=uv_acoef(:,:), &
+            & u_bcoef=u_bcoef(:,:), &
+            & v_bcoef=v_bcoef(:,:), &
+            & ocean_u=ocean_u(:,i_blk), &
+            & ocean_v=ocean_v(:,i_blk), &
+            & zero=zero2d(:,1), &
+            & umfl_sft=flx_mom_u_sft(:,i_blk,:), &
+            & vmfl_sft=flx_mom_v_sft(:,i_blk,:) &
+          )
+
         ! condhf_ice and meltpot_ice are unallocated for uncoupled runs.
         IF (lis_coupled_to_ocean) THEN
           p_condhf_ice_blk => diag_lnd%condhf_ice(:,i_blk)
@@ -904,8 +940,10 @@ CONTAINS
             & ext_data=ext_data, &
             & rain=rain_srf(:,i_blk), &
             & snow=snow_srf(:,i_blk), &
-            & latent_hflx_ice_old=mem%flx_heat_latent_sft(:,i_blk,SFT_SICE), &
-            & sensible_hflx_ice_old=mem%flx_heat_sensible_sft(:,i_blk,SFT_SICE), &
+            & latent_hflx_sft_old=mem%flx_heat_latent_sft(:,i_blk,:), &
+            & sensible_hflx_sft_old=mem%flx_heat_sensible_sft(:,i_blk,:), &
+            & flx_mom_u_sft=flx_mom_u_sft(:,i_blk,:), &
+            & flx_mom_v_sft=flx_mom_v_sft(:,i_blk,:), &
             & flx_rad=flx_rad, &
             & sea_state=mem%sea_state, &
             & cos_zenith_angle=phy_diag%cosmu0(:,i_blk), &
@@ -942,23 +980,6 @@ CONTAINS
             & alb=alb, &
             & prog_wtr_new=prog_wtr_new, &
             & lacc=.TRUE. &
-          )
-
-        ! Diagnose surface stress (in N/m**2). This is a mixed-time flux.
-        CALL get_surface_stress ( &
-            & ics=ics, &
-            & ice=ice, &
-            & delta_time=delta_time, &
-            & prefactor_exchange=prefactor_exchange(:,i_blk), &
-            & exchange_coeff_m_sfc=mem%exchange_coeff_m_sfc(:,i_blk,:), &
-            & uv_acoef=uv_acoef(:,:), &
-            & u_bcoef=u_bcoef(:,:), &
-            & v_bcoef=v_bcoef(:,:), &
-            & ocean_u=ocean_u(:,i_blk), &
-            & ocean_v=ocean_v(:,i_blk), &
-            & zero=zero2d(:,1), &
-            & umfl_sft=flx_mom_u_sft(:,i_blk,:), &
-            & vmfl_sft=flx_mom_v_sft(:,i_blk,:) &
           )
 
         ! Including Q_snowcanopymelt here gives a slightly different flux from what JSBACH sees,
@@ -1419,6 +1440,9 @@ CONTAINS
     vdiff_state%fact_qsat_srf(:,:) = 0.5_wp
 
     vdiff_state%flx_co2_natural_land(:,:) = 0._wp
+    IF (ASSOCIATED(vdiff_state%fco2ant)) THEN
+      vdiff_state%fco2ant(:,:) = 0._wp
+    END IF
     vdiff_state%flx_heat_latent_sft(:,:,:) = 0._wp
     vdiff_state%flx_heat_sensible_sft(:,:,:) = 0._wp
     vdiff_state%fr_ice_on_lake(:,:) = MERGE(1._wp, 0._wp, lnd_prog_now%t_g(:,:) < tf_fresh)

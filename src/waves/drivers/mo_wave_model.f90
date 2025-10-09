@@ -29,7 +29,7 @@ MODULE mo_wave_model
   USE mo_impl_constants,          ONLY: success, pio_type_async, pio_type_cdipio
   USE mo_dynamics_config,         ONLY: configure_dynamics
   USE mo_run_config,              ONLY: configure_run, ldynamics, ltransport,    &
-       &                                ltimer, dtime,                           &
+       &                                ltimer, dtime, ltestcase,                &
        &                                nshift, num_lev, output_mode, msg_level, &
        &                                grid_generatingcenter, grid_generatingsubcenter
   USE mo_gribout_config,          ONLY: configure_gribout
@@ -51,11 +51,9 @@ MODULE mo_wave_model
   USE mo_wave_state,              ONLY: p_wave_state, p_wave_state_lists, construct_wave_state
   USE mo_model_domain,            ONLY: p_patch
   USE mo_name_list_output_config, ONLY: use_async_name_list_io
-
-  USE mo_name_list_output_init,   ONLY: parse_variable_groups, output_file, create_vertical_axes
   USE mo_wave,                    ONLY: wave
   USE mo_wave_config,             ONLY: configure_wave, wave_config
-
+  USE mo_wave_forcing,            ONLY: construct_reader_wave_forcing, destruct_reader_wave_forcing
   USE mo_wave_ext_data_state,     ONLY: wave_ext_data, wave_ext_data_list, construct_wave_ext_data_state, &
     &                                   destruct_wave_ext_data_state
   USE mo_wave_ext_data_init,      ONLY: init_wave_ext_data, init_coastedge_list
@@ -76,7 +74,7 @@ MODULE mo_wave_model
   USE mo_intp_lonlat,             ONLY: compute_lonlat_intp_coeffs
 
   ! coupling
-  USE mo_coupling_config,         ONLY: is_coupled_run
+  USE mo_coupling_config,         ONLY: is_coupled_run, is_coupled_to_atmo
   USE mo_coupling_utils,          ONLY: cpl_construct, cpl_destruct
   USE mo_wave_coupling_frame,     ONLY: construct_wave_coupling, &
     &                                   destruct_wave_coupling
@@ -103,6 +101,17 @@ CONTAINS
       IF (ltimer) CALL timer_start(timer_coupling)
       CALL construct_wave_coupling(p_patch(1:))
       IF (ltimer) CALL timer_stop(timer_coupling)
+    ENDIF
+
+    IF (.NOT.is_coupled_to_atmo()) THEN
+      ! No atmo-wave coupling
+      ! construct forcing data reader for standalone runs
+      IF (.NOT.ltestcase) THEN
+        CALL message(routine,'standalone run: forcing data are read from file ...')
+        CALL construct_reader_wave_forcing (p_patch(1:), wave_config(:), time_config%tc_startdate)
+      ELSE
+        CALL message(routine,'standalone run: using analytic forcing data ...')
+      ENDIF
     END IF
 
     CALL wave()
@@ -111,6 +120,11 @@ CONTAINS
       IF (ltimer) CALL timer_start(timer_coupling)
       CALL destruct_wave_coupling()
       IF (ltimer) CALL timer_stop(timer_coupling)
+    ENDIF
+
+    IF (.NOT.is_coupled_to_atmo()) THEN
+      ! destruct forcing data reader for standalone runs
+      CALL destruct_reader_wave_forcing ()
     END IF
 
     CALL destruct_wave_model()
@@ -119,7 +133,6 @@ CONTAINS
 
     ! print performance timers:
     IF (ltimer) CALL print_timer
-
 
   END SUBROUTINE wave_model
   !-------------------------------------------------------------------

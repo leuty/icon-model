@@ -28,7 +28,7 @@ MODULE mo_util_dbg_prnt
   USE mo_sync,                   ONLY: sync_c, sync_patch_array, global_max
   USE mo_grid_subset,            ONLY: t_subset_range, get_index_range
   USE mo_dbg_nml,                ONLY: str_mod_tst, dim_mod_tst, dbg_lon_in, dbg_lat_in, &
-    & idbg_mxmn, idbg_val, idbg_slev, idbg_elev, &
+    & idbg_mxmn, idbg_val, idbg_slev, idbg_elev, len_mod_tst, &
     & idbg_idx, idbg_blk
   USE mo_math_constants,         ONLY: pi
   USE mo_exception,              ONLY: message, message_text
@@ -361,7 +361,7 @@ CONTAINS
     ! local variables
     CHARACTER(LEN=27) ::  strout
     CHARACTER(LEN=12) ::  strmod
-    INTEGER ::  slev, elev, elev_val, elev_mxmn
+    INTEGER ::  slev, elev, elev_val, elev_mxmn, place_cmp_len
     INTEGER ::  iout, icheck_str_mod, jstr, i, jk, nlev, ndimblk
     REAL(wp)          :: minmaxmean(3)
 
@@ -401,8 +401,11 @@ CONTAINS
 
       ! compare defined source string with namelist-given output string
       icheck_str_mod = 0
+
+      ! make sure that the compared string is not longer than str_mod_tst
+      place_cmp_len = MIN(len_mod_tst, LEN(place))
       DO jstr = 1, dim_mod_tst
-        IF (place == str_mod_tst(jstr) .OR. str_mod_tst(jstr) == 'all') &
+        IF (place(1:place_cmp_len) == str_mod_tst(jstr) .OR. str_mod_tst(jstr) == 'all') &
           & icheck_str_mod = 1
       END DO
 
@@ -465,10 +468,14 @@ CONTAINS
       ! output channel: stderr
       iout = nerr
 
+
       ! compare defined source string with namelist-given output string
       icheck_str_mod = 0
+
+      ! make sure that the compared string is not longer than str_mod_tst
+      place_cmp_len = MIN(len_mod_tst, LEN(place))
       DO jstr = 1, dim_mod_tst
-        IF (place == str_mod_tst(jstr) .OR. str_mod_tst(jstr) == 'all') &
+        IF (place(1:place_cmp_len) == str_mod_tst(jstr) .OR. str_mod_tst(jstr) == 'all') &
           & icheck_str_mod = 1
       END DO
 
@@ -536,7 +543,7 @@ CONTAINS
     ! local variables
     CHARACTER(LEN=27) ::  strout
     CHARACTER(LEN=12) ::  strmod
-    INTEGER ::  iout, icheck_str_mod, jstr, i, jk, ndimblk
+    INTEGER ::  iout, icheck_str_mod, jstr, i, jk, ndimblk, place_cmp_len
     REAL(wp)          ::  minmaxmean(3)
 
     IF ((idbg_val < inDetail_level) .AND. (idbg_mxmn < inDetail_level)) RETURN
@@ -551,8 +558,11 @@ CONTAINS
 
     ! compare defined source string with namelist-given output string
     icheck_str_mod = 0
+
+    ! make sure that the compared string is not longer than str_mod_tst
+    place_cmp_len = MIN(len_mod_tst, LEN(place))
     DO jstr = 1, dim_mod_tst
-      IF (place == str_mod_tst(jstr) .OR. str_mod_tst(jstr) == 'all') &
+      IF (place(1:place_cmp_len) == str_mod_tst(jstr) .OR. str_mod_tst(jstr) == 'all') &
         & icheck_str_mod = 1
     END DO
 
