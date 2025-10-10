@@ -11,6 +11,10 @@
 
 - Use ice class as vertical axis attribute for 3d sea ice variables
 
+### ICON-ART
+
+- Update the testsuite setup and scripts
+
 ### Externals
 
 - Switch to ComIn 0.4.0
