@@ -320,7 +320,10 @@ MODULE mo_initicon_io
         !
         ! get number of cells
         !
-        CALL nf(nf90_inq_dimid(ncid, 'ncells', dimid), routine)
+        IF (nf90_inq_dimid(ncid, 'cell', dimid) /= nf90_noerr) THEN
+          CALL nf(nf90_inq_dimid(ncid, 'ncells', dimid), routine)
+        END IF
+
         CALL nf(nf90_inquire_dimension(ncid, dimid, len = no_cells), routine)
 
         !
@@ -699,7 +702,10 @@ MODULE mo_initicon_io
         !
         ! get number of cells
         !
-        CALL nf(nf90_inq_dimid(ncid, 'ncells', dimid), routine)
+        IF (nf90_inq_dimid(ncid, 'cell', dimid) /= nf90_noerr) THEN
+          CALL nf(nf90_inq_dimid(ncid, 'ncells', dimid), routine)
+        END IF
+
         CALL nf(nf90_inquire_dimension(ncid, dimid, len = no_cells), routine)
 
         !
