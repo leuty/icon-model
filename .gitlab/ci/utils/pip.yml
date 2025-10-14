@@ -55,6 +55,10 @@ include:
 
           ICON_CI_UTILS_PIP_PYTHON=${ICON_CI_UTILS_PIP_PYTHON:-python3}
 
+          PIP_BREAK_SYSTEM_PACKAGES=${PIP_BREAK_SYSTEM_PACKAGES:-true}
+          PIP_ROOT_USER_ACTION=${PIP_ROOT_USER_ACTION:-ignore}
+          export PIP_BREAK_SYSTEM_PACKAGES PIP_ROOT_USER_ACTION
+
           "${ICON_CI_UTILS_PIP_PYTHON}" --version
 
           # Upgrade the PIP module if required:

@@ -35,7 +35,7 @@ The following sections provide information on some features and implementation d
 
 **_NOTE:_** The term *bundled package* does not apply to all packages listed in {{ '[`.gitmodules`]({}/.gitmodules)'.format(base_url) }}: some of them, e.g. [JSBACH](https://gitlab.dkrz.de/jsbach/jsbach) and [ICON-ART](https://www.icon-art.kit.edu), have circular dependencies with the ICON source code and therefore are treated as part of it.
 
-```{image} ./icon-depgraph/icon-depgraph.svg
+```{image} ./icon-depgraph.svg
 :alt: ICON dependency graph
 :align: center
 :name: fig_icon_depgraph
