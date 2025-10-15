@@ -23,7 +23,7 @@ include:
     ICON_CI_COMMON_DKRZ_SLURM_TIMELIMIT: "20:00"
     ICON_CI_UTILS_GIT_CLONE_PATH: ${ICON_CI_COMMON_DKRZ_SHMEM_PATH}/icon
     ICON_CI_UTILS_GIT_SPARSE_PATTERNS: >-
-      /configure /utils/ /*.in /run/*.in /src/ /support/ /config/
+      /configure /utils/ /*.in /run/*.in /src/ /support/ /ragnarok/ /config/
     GIT_SUBMODULE_PATHS: >-
       externals/cdi externals/fortran-support externals/iconmath externals/mtime
       ${ICON_CI_CONFIG_EXTRA_SUBMODULE_PATHS}
@@ -278,6 +278,21 @@ aes:bubble:cpu:analyze:
   extends: .system:analyze
   needs: [aes:bubble:cpu:run]
 
+aes:bubble:ragnarok:cpu:build:
+  extends: aes:bubble:cpu:build
+  variables:
+    ICON_CI_CONFIG_EXTRA_ARGS: >-
+      --enable-atmo --enable-aes --enable-rte-rrtmgp --enable-openmp --enable-ragnarok
+    ICON_CI_CONFIG_EXTRA_SUBMODULE_PATHS: externals/kokkos externals/rte-rrtmgp
+
+aes:bubble:ragnarok:cpu:run:
+  extends: aes:bubble:cpu:run
+  needs: [aes:bubble:ragnarok:cpu:build]
+
+aes:bubble:ragnarok:cpu:analyze:
+  extends: aes:bubble:cpu:analyze
+  needs: [aes:bubble:ragnarok:cpu:run]
+
 aes:bubble:nag:build:
   extends:
     - .aes:bubble
@@ -316,6 +331,19 @@ aes:bubble:gpu:run:
     ICON_CI_COMMON_DKRZ_SLURM_GPUS_PER_NODE: 4
     ICON_CI_COMMON_DKRZ_SLURM_EXTRA_PARAMETERS: --exclusive
 
+aes:bubble:ragnarok:gpu:build:
+  extends: aes:bubble:gpu:build
+  variables:
+    # Enable Large-Eddy Simulation to work around a bug
+    # (see https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/706#note_351521):
+    ICON_CI_CONFIG_EXTRA_ARGS: >-
+      --enable-atmo --enable-aes --enable-rte-rrtmgp --enable-les --enable-ragnarok
+    ICON_CI_CONFIG_EXTRA_SUBMODULE_PATHS: externals/kokkos externals/rte-rrtmgp
+
+aes:bubble:ragnarok:gpu:run:
+  extends: aes:bubble:gpu:run
+  needs: [aes:bubble:ragnarok:gpu:build]
+
 aes:coupled:cpu:build:
   extends: .system:build:levante
   variables:
@@ -349,6 +377,7 @@ generate-checksum-table:
     - aes:bubble:cpu:analyze
     - aes:bubble:gcc:analyze
     - aes:bubble:nag:analyze
+    - aes:bubble:ragnarok:cpu:analyze
     - aes:coupled:cpu:analyze
   extends:
     - .common:alpine

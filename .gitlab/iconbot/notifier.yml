@@ -115,6 +115,11 @@
   - file_names:
       - externals/ecrad
     mentions: [m300368, b381110]
+  # C++/Kokkos:
+  - file_names:
+     - ragnarok/*
+     - .gitlab/ci/unit/ragnarok.yml
+    labels: [C++, WarmWorld]
   # AES test references:
   - file_names:
       - run/checksuite.icon-dev/check.aes_amip_test_update
@@ -146,6 +151,13 @@
   - mentions: [m300368]
     file_names:
       - src/atm_phy_nwp/mo_nwp_aerosol.f90
+  - mentions: [k202174, k202137]
+    file_names:
+      - src/atm_phy_aes/mo_cloud_mig/mo_aes_graupel.f90
+      - src/atm_phy_aes/mo_cloud_mig/mo_cloud_mig.f90
+      - src/atm_phy_aes/mo_aes_thermo.f90
+      - ragnarok/*
+      - .gitlab/ci/unit/ragnarok.yml
 
 icon/icon:
   default:
