@@ -49,24 +49,29 @@ MODULE mo_kind
 #else
   INTEGER, PARAMETER :: qp = -1                        !< quad precision
 #endif
-  !
-#ifdef __SINGLE_PRECISION
+
+#if defined(__SINGLE_PRECISION)
   INTEGER, PARAMETER :: wp = sp                        !< selected working precision
   INTEGER, PARAMETER :: xwp = dp                       !< not working precision - {sp,dp} not wp
+  INTEGER, PARAMETER :: vp = sp                        !< selected variable precision
+  INTEGER, PARAMETER :: rp = sp                        !< selected nwp radiation precision
+#else
+
+#if defined(__MIXED_PRECISION)
+  INTEGER, PARAMETER :: wp = dp                        !< selected working precision
+  INTEGER, PARAMETER :: xwp = sp                       !< not working precision - {sp,dp} not wp
   INTEGER, PARAMETER :: vp = sp                        !< selected variable precision
 #else
   INTEGER, PARAMETER :: wp = dp                        !< selected working precision
   INTEGER, PARAMETER :: xwp = sp                       !< not working precision - {sp,dp} not wp
-#ifdef __MIXED_PRECISION
-  INTEGER, PARAMETER :: vp = sp                        !< selected variable precision
-#else
   INTEGER, PARAMETER :: vp = dp                        !< selected variable precision
 #endif
-#endif
 #ifdef __SINGLE_PRECISION_ECRAD
-  INTEGER, PARAMETER :: rp = sp
+  INTEGER, PARAMETER :: rp = sp                        !< selected nwp radiation precision
 #else
-  INTEGER, PARAMETER :: rp = wp
+  INTEGER, PARAMETER :: rp = dp                        !< selected nwp radiation precision
+#endif
+
 #endif
 
 

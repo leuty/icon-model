@@ -1658,7 +1658,7 @@ Optimization Features:
                           enable single precision as the working precision
                           (experimental) [default=no]
   --enable-single-precision-ecrad
-                          enable single precision for ECRAD [default=no]
+                          enable single precision for ECRAD [default=auto]
   --enable-intel-consistency
                           enable Intel compiler directives enforcing
                           consistency [default=auto]
@@ -3653,13 +3653,28 @@ fi
 
 # Check whether --enable-single-precision-ecrad was given.
 if test "${enable_single_precision_ecrad+set}" = set; then :
-  enableval=$enable_single_precision_ecrad; if test x"$enableval" != xno; then :
+  enableval=$enable_single_precision_ecrad; if test x"$enableval" != xno && test x"$enableval" != xauto; then :
   enable_single_precision_ecrad=yes
 fi
 else
-  enable_single_precision_ecrad=no
+  enable_single_precision_ecrad=auto
 fi
 
+
+if test "x$enable_single_precision_ecrad" = xauto; then :
+  if test "x$enable_ecrad$enable_single_precision" = xyesyes; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: single precision for ECRAD is enabled because single precision as the working precision is requested" >&5
+$as_echo "$as_me: single precision for ECRAD is enabled because single precision as the working precision is requested" >&6;}
+      enable_single_precision_ecrad=yes
+else
+  enable_single_precision_ecrad=no
+fi
+else
+  if test "x$enable_ecrad" = xno; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: option '--enable-single-precision-ecrad=$enable_single_precision_ecrad' is ignored: the usage of the ECMWF radiation scheme (ECRAD) is disabled" >&5
+$as_echo "$as_me: WARNING: option '--enable-single-precision-ecrad=$enable_single_precision_ecrad' is ignored: the usage of the ECMWF radiation scheme (ECRAD) is disabled" >&2;}
+fi
+fi
 
 # Check whether --enable-intel-consistency was given.
 if test "${enable_intel_consistency+set}" = set; then :
@@ -3948,6 +3963,12 @@ fi
 if test "x$enable_single_precision" = xyes; then :
   if test "x$enable_mixed_precision" = xyes; then :
   as_fn_error $? "unsupported combination of the configure options: you are trying to configure with the single precision as the working precision and the mixed precision dycore: either disable the single precision (--disable-single-precision) or disable the mixed precision dycore (--disable-mixed-precision)" "$LINENO" 5
+fi
+fi
+
+if test "x$enable_ecrad" = xyes; then :
+  if test "x$enable_single_precision$enable_single_precision_ecrad" = xyesno; then :
+  as_fn_error $? "unsupported combination of the configure options: you are trying to configure with the single precision as the working precision but the single precision for ECRAD is disabled: either disable the single precision as the working precision (--disable-single-precision) or enable the single precision for ECRAD (--enable-single-precision-ecrad)" "$LINENO" 5
 fi
 fi
 

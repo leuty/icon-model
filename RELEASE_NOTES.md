@@ -1,3 +1,12 @@
+# Release notes for icon-2025.10-1
+
+### Infrastructure
+
+#### Building
+
+- Clean up and clarify single-precision options
+
+
 # Release notes for icon-2025.10
 
 ### ICON-Atmo
