@@ -14,7 +14,7 @@
 PROGRAM test_start_mpi_parallel
 
   USE mo_mpi, ONLY: start_mpi, stop_mpi, abort_mpi, &
-                    process_mpi_all_comm, split_global_mpi_communicator
+      process_mpi_all_comm, split_global_mpi_communicator
   USE mpi
   USE mo_test_common, ONLY: test_fail, test_pass
   USE mo_io_units, ONLY: nerr
@@ -32,14 +32,14 @@ PROGRAM test_start_mpi_parallel
   comm = process_mpi_all_comm
   CALL mpi_comm_size(comm, comm_size, ierror)
   IF (ierror /= mpi_success) THEN
-    WRITE (nerr, '(a,a)') modname, ' mpi_comm_size failed.'
-    WRITE (nerr, '(a,i4)') ' Error =  ', ierror
+    WRITE(nerr, '(a,a)') modname, ' mpi_comm_size failed.'
+    WRITE(nerr, '(a,i4)') ' Error =  ', ierror
     CALL abort_mpi
   END IF
   CALL mpi_comm_rank(comm, comm_rank, ierror)
   IF (ierror /= mpi_success) THEN
-    WRITE (nerr, '(a,a)') modname, ' mpi_comm_rank failed.'
-    WRITE (nerr, '(a,i4)') ' Error =  ', ierror
+    WRITE(nerr, '(a,a)') modname, ' mpi_comm_rank failed.'
+    WRITE(nerr, '(a,i4)') ' Error =  ', ierror
     CALL abort_mpi
   END IF
 

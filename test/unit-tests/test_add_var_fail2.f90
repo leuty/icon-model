@@ -34,9 +34,9 @@ PROGRAM test_add_var_fail2
 
   ! FAIL 2: test_add_var_fail2 - data_type=REAL_T, and passing svals
   CALL add_var(REAL_T, var_list_ptr, dname//"2", info%hgrid, info%vgrid, info%cf, &
-    & info%grib2, info%used_dimensions(1:info%ndims), vl_elem, &
-    & initval_s=info%initval%sval, resetval_s=info%resetval%sval, &
-    & missval_s=info%missval%sval)
+      & info%grib2, info%used_dimensions(1:info%ndims), vl_elem, &
+      & initval_s=info%initval%sval, resetval_s=info%resetval%sval, &
+      & missval_s=info%missval%sval)
 
   CALL test_pass()
 
