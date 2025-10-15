@@ -18,7 +18,7 @@ MODULE mo_interpol_nml
   USE mo_impl_constants,      ONLY: max_dom
   USE mo_mpi,                 ONLY: my_process_is_stdio
   USE mo_master_control,      ONLY: use_restart_namelists
-  USE mo_io_units,            ONLY: nnml, nnml_output
+  USE mo_io_units,            ONLY: nnml, nnml_output, filename_max
   USE mo_namelist,            ONLY: position_nml, POSITIONED, open_nml, close_nml
   USE mo_restart_nml_and_att, ONLY: open_tmpfile, store_and_close_namelist,  &
                                   & open_and_restore_namelist, close_tmpfile
@@ -41,6 +41,7 @@ MODULE mo_interpol_nml
                                   & config_l_mono_c2l           => l_mono_c2l           , &
                                   & config_rbf_scale_mode_ll    => rbf_scale_mode_ll    , &
                                   & config_support_baryctr_intp => support_baryctr_intp , &
+                                  & config_rbf_coeffs_filename  => rbf_coeffs_filename  , &
                                   & config_lrbf_read            => lrbf_read            , &
                                   & config_lrbf_write           => lrbf_write           , &
                                   & config_lreduced_nestbdry_stencil => lreduced_nestbdry_stencil
@@ -104,6 +105,7 @@ MODULE mo_interpol_nml
   LOGICAL :: lreduced_nestbdry_stencil
 
   ! Control rbf coefficients read/write
+  CHARACTER(LEN=filename_max) :: rbf_coeffs_filename(max_dom)
   LOGICAL :: lrbf_read, lrbf_write
 
   NAMELIST/interpol_nml/ llsq_lin_consv,    llsq_high_consv,     &
@@ -117,6 +119,7 @@ MODULE mo_interpol_nml
                        & rbf_vec_kern_ll,   rbf_scale_mode_ll,   &
                        & support_baryctr_intp,                   &
                        & lreduced_nestbdry_stencil,              &
+                       & rbf_coeffs_filename,                    &
                        & lrbf_read, lrbf_write
 
 CONTAINS
@@ -138,6 +141,7 @@ CONTAINS
     CHARACTER(LEN=*), INTENT(IN) :: filename
     INTEGER :: istat, funit
     INTEGER :: iunit
+    INTEGER :: i
 
     CHARACTER(len=*), PARAMETER ::  &
       &  routine = 'mo_interpol_nml: read_interpol_namelist'
@@ -190,6 +194,9 @@ CONTAINS
     ! Read/writing of RBF coefficients disabled by default
     lrbf_read                   = .FALSE.
     lrbf_write                  = .FALSE.
+    DO i = 1, max_dom
+      WRITE(rbf_coeffs_filename(i),'(A,I2.2,A)') 'rbf_coeffs_dom', i, '.nc'
+    ENDDO
 
     !------------------------------------------------------------------
     ! 2. If this is a resumed integration, overwrite the defaults above
@@ -284,6 +291,7 @@ CONTAINS
 
     config_lrbf_read                   = lrbf_read
     config_lrbf_write                  = lrbf_write
+    config_rbf_coeffs_filename         = rbf_coeffs_filename
 
     !-----------------------------------------------------
     ! 5. Store the namelist for restart

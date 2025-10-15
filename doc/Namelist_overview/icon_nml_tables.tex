@@ -3095,10 +3095,18 @@ Scale factor for RBF reconstruction at vertices&
 \tabularnewline
 
 %\hline
+rbf\_coeffs\_filename &
+C& rbf\_coeffs\_dom<i\_dom>.nc & &
+Array of filenames to be used for reading/writing RBF coefficients if
+\texttt{lrbf\_read=.TRUE. or lrbf\_write=.TRUE.}. Each entry corresponds to the
+RBF coefficients for the grids defined in \texttt{dynamics\_grid\_filename}.&
+\tabularnewline
+
+%\hline
 lrbf\_read &
 L& .FALSE. & &
 Flag. If .TRUE. then the RBF coefficients are read from file
-R(rbf\_coeffs\_ROOT\_dom<i\_dom>.nc) instead of reconstructing. Coefficients
+\texttt{rbf\_coeffs\_filename} instead of reconstructing. Coefficients
 are only read from file if scaling parameters, and gridsize are equal to those
 in input file. Else the model fails.&
 \tabularnewline
@@ -3107,7 +3115,7 @@ in input file. Else the model fails.&
 lrbf\_write &
 L& .FALSE. & &
 Flag. If .TRUE. then the RBF coefficients are written to file
-R(rbf\_coeffs\_ROOT\_dom<i\_dom>.nc).&
+\texttt{rbf\_coeffs\_filename}.&
 \tabularnewline
 
 %\hline

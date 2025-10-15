@@ -20,7 +20,7 @@ MODULE mo_rbf_coefficients_io
     &                               work_mpi_barrier, p_bcast
   USE mo_interpol_config, ONLY: rbf_vec_dim_c, rbf_c2grad_dim, rbf_vec_dim_v, &
     &                               rbf_vec_dim_e, rbf_vec_scale_c, rbf_vec_scale_e, &
-    &                               rbf_vec_scale_v
+    &                               rbf_vec_scale_v, rbf_coeffs_filename
   USE mo_parallel_config, ONLY: nproma
   USE mo_model_domain, ONLY: t_patch
   USE mo_netcdf_errhandler, ONLY: nf
@@ -39,6 +39,7 @@ MODULE mo_rbf_coefficients_io
   USE mo_read_netcdf_types, ONLY: t_alloc_3d
   USE mo_util_uuid_types, ONLY: t_uuid, UUID_STRING_LENGTH
   USE mo_util_uuid, ONLY: uuid_parse, uuid_unparse, OPERATOR(==)
+  USE mo_io_units, ONLY: filename_max
 
   IMPLICIT NONE
 
@@ -60,7 +61,6 @@ MODULE mo_rbf_coefficients_io
   END INTERFACE unpack_from_nlev
 
   ! Module variables
-  INTEGER, PARAMETER :: MAX_LEN_FILENAME = 65
   INTEGER, PARAMETER :: MAX_LEN_NAMES = 30
   INTEGER, PARAMETER :: MAX_NDIMS = 4
   CHARACTER(*), PARAMETER :: modname = "mo_rbf_coefficients_io"
@@ -113,7 +113,7 @@ CONTAINS
     ! Local vars
     INTEGER :: ncid ! Only used on root
     INTEGER :: i
-    CHARACTER(len=MAX_LEN_FILENAME) :: filename
+    CHARACTER(len=filename_max) :: filename
     LOGICAL :: is_root ! root proc for gather and io
     CHARACTER(*), PARAMETER :: routine = modname//":rbf_coefficients_write"
 
@@ -218,7 +218,7 @@ CONTAINS
     ! Local vars
     CHARACTER(*), PARAMETER :: routine = modname//":rbf_coefficients_read"
     TYPE(t_stream_id) :: stream_id !< file stream_id on workroot proc
-    CHARACTER(len=MAX_LEN_FILENAME) :: filename
+    CHARACTER(len=filename_max) :: filename
     REAL(wp), ALLOCATABLE :: buf_wp(:, :, :)
     REAL(wp) :: attrib_wp
     INTEGER :: attrib_int
@@ -540,8 +540,8 @@ CONTAINS
 
   SUBROUTINE get_filename(jg, filename)
     INTEGER, INTENT(IN) :: jg
-    CHARACTER(LEN=MAX_LEN_FILENAME), INTENT(OUT) :: filename
-    WRITE (filename, '(A,I2.2,A)') 'rbf_coeffs_dom', jg, '.nc'
+    CHARACTER(LEN=filename_max), INTENT(OUT) :: filename
+    WRITE (filename, '(A)') rbf_coeffs_filename(jg)
   END SUBROUTINE get_filename
 
 END MODULE mo_rbf_coefficients_io
