@@ -17,3 +17,6 @@
 # Switch to the updated Google C++ Style Guide:
 # https://google.github.io/styleguide/cppguide.html#Pointer_and_Reference_Expressions
 e4331fed29082d46c02b442f5b971ad986ddbe20
+
+# Switch from fprettify to Codee for Fortran formatting:
+5cd72de876f4efe49759ab268a66433c7a8ad763

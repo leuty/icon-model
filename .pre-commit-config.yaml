@@ -13,12 +13,14 @@ repos:
     rev: v6.0.0
     hooks:
       - id: end-of-file-fixer
+        name: end-of-file-fixer
         exclude: |
           (?x)^(
             # Exclude external files:
             doc/www/_static/tex-mml-chtml.js
           )$
       - id: trailing-whitespace
+        name: trailing-whitespace
         args: [--markdown-linebreak-ext=md]
         exclude: |
           (?x)^(
@@ -42,7 +44,7 @@ repos:
             # Exclude external files:
             test/microphysics_1mom_schemes/cmake/Modules/FindNetCDF.cmake
           )$
-  - repo: https://gitlab.dkrz.de/icon/ci-tooling/icon-openacc-beautifier.git
+  - repo: https://gitlab.dkrz.de/icon/ci-tooling/icon-openacc-beautifier
     rev: v1.1.0
     hooks:
       - id: icon-openacc-beautifier
