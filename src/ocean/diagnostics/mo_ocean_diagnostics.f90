@@ -981,6 +981,10 @@ CONTAINS
 
       ENDIF
 
+      IF (isRegistered('vort_on_cells')) THEN
+        CALL calc_vort_on_cells(patch_3d, ocean_state, lacc=lzacc)
+      ENDIF
+
       IF (isRegistered('tos') .OR. isRegistered('sos') ) THEN
         CALL calc_tos_sos(patch_3d, tracers, p_diag%tos, p_diag%sos, lacc=lzacc)
       ENDIF
@@ -3409,6 +3413,47 @@ CONTAINS
     !$ACC WAIT(1)
 
   END SUBROUTINE calc_eddydiag
+
+  SUBROUTINE calc_vort_on_cells(patch_3d, ocean_state,lacc) ! by_nils vort_on_cells
+
+    TYPE(t_patch_3D), INTENT(IN) :: patch_3d
+    TYPE(t_hydro_ocean_state), TARGET, INTENT(inout) :: ocean_state
+    LOGICAL, INTENT(IN), OPTIONAL :: lacc
+
+    TYPE(t_patch), POINTER :: patch_2d
+    TYPE(t_subset_range), POINTER :: all_cells, owned_cells
+    INTEGER :: blockNo, jk, jc, start_index, end_index, max_level
+    INTEGER :: neigbor, vertex_idx, vertex_blk
+
+    LOGICAL  :: lzacc
+
+    CALL set_acc_host_or_device(lzacc, lacc)
+
+    patch_2d => patch_3d%p_patch_2d(1)
+    owned_cells => patch_2D%cells%owned
+    !ICON_OMP_PARALLEL_DO PRIVATE(blockNo,jk,jc,start_index, end_index, max_level, neigbor, vertex_idx, vertex_blk)
+    DO blockNo = owned_cells%start_block, owned_cells%end_block
+      CALL get_index_range(owned_cells, blockNo, start_index,  end_index)
+       max_level = MAXVAL(patch_3d%p_patch_1d(1)%dolic_c(start_index:end_index, blockNo))
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+      DO jc = start_index,  end_index
+        DO jk = 1, max_level
+          ocean_state%p_diag%vort_on_cells(jc,jk,blockNo) = 0.0_wp
+          DO neigbor=1,patch_2D%cells%max_connectivity
+            vertex_blk = patch_2d%cells%vertex_blk(jc,blockNo,neigbor)
+            vertex_idx = patch_2d%cells%vertex_idx(jc,blockNo,neigbor)
+            ocean_state%p_diag%vort_on_cells(jc,jk,blockNo) =  ocean_state%p_diag%vort_on_cells(jc,jk,blockNo) + &
+              & ocean_state%p_diag%vort(vertex_idx,jk,vertex_blk) * patch_3d%wet_c(jc,jk,blockNo)
+          ENDDO
+          ocean_state%p_diag%vort_on_cells(jc,jk,blockNo) = ocean_state%p_diag%vort_on_cells(jc,jk,blockNo) / &
+            & (REAL(patch_2D%cells%max_connectivity, wp))
+        ENDDO
+      ENDDO
+      !$ACC END PARALLEL LOOP
+      !$ACC WAIT(1)
+    ENDDO
+    !ICON_OMP_END_PARALLEL_DO
+  END SUBROUTINE calc_vort_on_cells
 
 
   SUBROUTINE reset_ocean_monitor(monitor)

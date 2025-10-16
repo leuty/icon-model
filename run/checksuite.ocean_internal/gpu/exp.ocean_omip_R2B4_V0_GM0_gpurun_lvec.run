@@ -506,7 +506,7 @@ cat >> ${ocean_namelist} << EOF
   output_grid                     = .TRUE.
   m_levels                        = "1,${levidx_100m},${levidx_2000m}"
   ml_varlist                      = 'zos','mlotst','hi','hs','conc','ice_u','ice_v','u','v','to','so',
-                                    'kin','vort'
+                                    'kin','vort','vort_on_cells'
 /
 
 &output_nml
@@ -932,6 +932,7 @@ cat >> ${ocean_namelist} << EOF
   use_layers                      = .FALSE.
   n_dlev                          = 84
   mode_layers                     = 1
+  do_vort_on_cells                = .TRUE.
 /
 
 &io_nml

@@ -32,6 +32,7 @@ MODULE mo_ocean_state
     &                               GMREDI_COMBINED_DIAGNOSTIC,GM_INDIVIDUAL_DIAGNOSTIC,          &
     &                               REDI_INDIVIDUAL_DIAGNOSTIC, eddydiag,                         &
     &                               do_ts_budget,                                                 & !by_nils
+    &                               do_vort_on_cells,                                             & !by_nils
     &                               diagnose_for_tendencies, diagnose_for_heat_content, lhamocc,  &
     &                               use_tides_SAL, vert_cor_type, diagnose_age, diagnose_green,   &
     &                               age_idx, green_idx, use_fillValue, fillValue
@@ -1342,6 +1343,18 @@ CONTAINS
        & ldims=(/nproma,n_zlev,alloc_cell_blocks/),in_group=groups_oce_eddy, lopenacc=.TRUE.)
        __acc_attach(ocean_state_diag%vw)
     ENDIF ! eddydiag
+
+    IF ( do_vort_on_cells ) THEN
+       CALL add_var(ocean_default_list, 'vort_on_cells', ocean_state_diag%vort_on_cells,&
+       & grid_unstructured_cell, &
+       & za_depth_below_sea, &
+       & t_cf_var('vort_on_cells','s-1','vorticity on cell centers', datatype_flt),&
+       & dflt_g2_decl_cell,&
+       & lmiss=use_fillValue, missval=fillValue, initval=fillValue, &
+       & ldims=(/nproma,n_zlev,alloc_cell_blocks/), lopenacc=.TRUE.)
+       __acc_attach(ocean_state_diag%vort_on_cells)
+    ENDIF ! do_vort_on_cells
+
 
 !   CALL add_var(ocean_restart_list, 'w_e', ocean_state_diag%w_e, grid_unstructured_cell, &
 !     & za_depth_below_sea_half, &
@@ -3340,6 +3353,8 @@ CONTAINS
     !$ACC   COPYIN(patch_3d%p_patch_2d(1)%edges%inv_primal_edge_length) &
     !$ACC   COPYIN(patch_3d%p_patch_2d(1)%cells%edge_idx, patch_3d%p_patch_2d(1)%cells%edge_blk) &
     !$ACC   COPYIN(patch_3d%p_patch_2d(1)%cells%neighbor_idx, patch_3d%p_patch_2d(1)%cells%neighbor_blk) &
+    !$ACC   COPYIN(patch_3d%p_patch_2d(1)%cells%vertex_blk, patch_3d%p_patch_2d(1)%cells%vertex_idx) &
+    !$ACC   COPYIN(patch_3d%p_patch_2d(1)%cells%max_connectivity) &
     !$ACC   COPYIN(patch_3d%p_patch_2d(1)%cells%center, patch_3d%p_patch_2d(1)%cells%num_edges) &
     !$ACC   COPYIN(patch_3d%p_patch_2d(1)%cells%owned, patch_3d%p_patch_2d(1)%cells%owned%vertical_levels) &
     !$ACC   COPYIN(patch_3d%p_patch_2d(1)%cells%all) &
