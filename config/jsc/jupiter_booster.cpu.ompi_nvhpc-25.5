@@ -17,45 +17,45 @@ ulimit -c 0
 script_dir=$(cd "$(dirname "$0")"; pwd)
 icon_dir=$(cd "${script_dir}/../.."; pwd)
 
-NVHPC_ROOT="/p/software/default/stages/2025/software/NVHPC/25.5-CUDA-12"
-GCC_ROOT="/p/software/jupiter/stages/2025/software/GCCcore/13.3.0"
+NVHPC_ROOT="/e/software/default/stages/2025/software/NVHPC/25.5-CUDA-12"
+GCC_ROOT="/e/software/jupiter/stages/2025/software/GCCcore/13.3.0"
 
 STDCPP_ROOT=${GCC_ROOT}
 STDCPP_LIBS='-lstdc++'
 
-MPI_ROOT="/p/software/default/stages/2025/software/OpenMPI/5.0.5-NVHPC-24.9-CUDA-12"
-MPI_extra_ldflags='-L/p/software/jupiter/stages/2025/software/CUDA/12/lib'
+MPI_ROOT="/e/software/default/stages/2025/software/OpenMPI/5.0.5-NVHPC-24.9-CUDA-12-gpfs"
+MPI_extra_ldflags='-L/e/software/jupiter/stages/2025/software/CUDA/12/lib'
 MPI_extra_libs='-lcudart'
 
-HDF5_ROOT="/p/software/default/stages/2025/software/HDF5/1.14.5-nvompic-2024a"
+HDF5_ROOT="/e/software/default/stages/2025/software/HDF5/1.14.5-nvompic-2024a"
 HDF5_LIBS='-lhdf5_hl -lhdf5'
 
-NETCDF_ROOT="/p/software/default/stages/2025/software/netCDF/4.9.2-nvompic-2024a"
-NETCDF_extra_ldflags="-L/p/software/default/stages/2025/software/PnetCDF/1.13.0-nvompic-2024a/lib -L/p/software/jupiter/stages/2025/software/bzip2/1.0.8-GCCcore-13.3.0/lib -L/p/software/default/stages/2025/software/Blosc/1.21.6-GCCcore-13.3.0/lib -L/p/software/default/stages/2025/software/libaec/1.1.3-GCCcore-13.3.0/lib"
+NETCDF_ROOT="/e/software/default/stages/2025/software/netCDF/4.9.2-nvompic-2024a"
+NETCDF_extra_ldflags="-L/e/software/default/stages/2025/software/PnetCDF/1.13.0-nvompic-2024a/lib -L/e/software/jupiter/stages/2025/software/bzip2/1.0.8-GCCcore-13.3.0/lib -L/e/software/default/stages/2025/software/Blosc/1.21.6-GCCcore-13.3.0/lib -L/e/software/default/stages/2025/software/libaec/1.1.3-GCCcore-13.3.0/lib"
 NETCDF_LIBS='-lnetcdf -lblosc -lsz -lbz2 -lpnetcdf'
 
-NETCDFF_ROOT="/p/software/default/stages/2025/software/netCDF-Fortran/4.6.1-nvompic-2024a"
+NETCDFF_ROOT="/e/software/default/stages/2025/software/netCDF-Fortran/4.6.1-nvompic-2024a"
 NETCDFF_LIBS='-lnetcdff'
 
 BLAS_LAPACK_LIBS='-llapack -lblas'
 
-ECCODES_ROOT="/p/software/default/stages/2025/software/ecCodes/2.39.0-nvompic-2024a"
+ECCODES_ROOT="/e/software/default/stages/2025/software/ecCodes/2.39.0-nvompic-2024a"
 ECCODES_extra_ldflags="$(PKG_CONFIG_PATH=${ECCODES_ROOT}/lib64/pkgconfig:${PKG_CONFIG_PATH-} pkg-config --libs-only-L --libs-only-other --static eccodes)"
 ECCODES_LIBS="$(PKG_CONFIG_PATH=${ECCODES_ROOT}/lib64/pkgconfig:${PKG_CONFIG_PATH-} pkg-config --libs-only-l --static eccodes)"
 
-FYAML_ROOT="/p/software/default/stages/2025/software/libfyaml/0.9-GCCcore-13.3.0"
+FYAML_ROOT="/e/software/default/stages/2025/software/libfyaml/0.9-GCCcore-13.3.0"
 FYAML_LIBS='-lfyaml'
 
-XML2_ROOT='/p/software/jupiter/stages/2025/software/libxml2/2.12.7-GCCcore-13.3.0'
+XML2_ROOT='/e/software/jupiter/stages/2025/software/libxml2/2.12.7-GCCcore-13.3.0'
 XML2_LIBS='-lxml2'
 
 ################################################################################
 
-MODULES="Stages/2025 NVHPC/25.5-CUDA-12 OpenMPI/5.0.5 netCDF-Fortran/4.6.1 ecCodes/2.39.0  libfyaml/.0.9 CMake make"
+MODULES="Stages/2025 NVHPC/25.5-CUDA-12 OpenMPI/5.0.5-gpfs netCDF-Fortran/4.6.1 ecCodes/2.39.0  libfyaml/.0.9 CMake make"
 BUILD_ENV="module --force purge; module load ${MODULES}; module list};"
 
 CC="${MPI_ROOT}/bin/mpicc"
-CFLAGS='-g -O2'
+CFLAGS='-g -O3'
 
 # Let YAC find LAPACK with the C compiler:
 ICON_YAC_CFLAGS='-fortranlibs'
@@ -63,10 +63,10 @@ ICON_YAC_CFLAGS='-fortranlibs'
 CPPFLAGS="-I${HDF5_ROOT}/include -I${NETCDF_ROOT}/include -I${ECCODES_ROOT}/include -I${FYAML_ROOT}/include -I${XML2_ROOT}/include/libxml2"
 
 CXX="${NVHPC_ROOT}/Linux_aarch64/25.5/compilers/bin/nvc++"
-CXXFLAGS='-g -O2'
+CXXFLAGS='-g -O3'
 
 FC="${MPI_ROOT}/bin/mpifort"
-FCFLAGS="-I${NETCDFF_ROOT}/include -g -O2 -Mrecursive -Mallocatable=03 -Mstack_arrays -Minfo=inline -DOCE_SOLVE_OMP"
+FCFLAGS="-I${NETCDFF_ROOT}/include -g -O3 -Mrecursive -Mallocatable=03 -Mstack_arrays -Minfo=inline -DOCE_SOLVE_OMP"
 
 LDFLAGS="-L${STDCPP_ROOT}/lib64 ${MPI_extra_ldflags} ${NETCDF_extra_ldflags} -L${HDF5_ROOT}/lib -L${NETCDF_ROOT}/lib64 -L${NETCDFF_ROOT}/lib ${ECCODES_extra_ldflags}  -L${ECCODES_ROOT}/lib64 -L${FYAML_ROOT}/lib"
 LIBS="${STDCPP_LIBS} ${MPI_extra_libs} ${XML2_LIBS} ${FYAML_LIBS} ${ECCODES_LIBS} ${BLAS_LAPACK_LIBS} ${NETCDFF_LIBS} ${NETCDF_LIBS} ${HDF5_LIBS} -nvmalloc"
