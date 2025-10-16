@@ -18,7 +18,7 @@ MODULE mo_initwave_nml
 
   USE mo_kind,                      ONLY: wp
   USE mo_exception,                 ONLY: finish, message, print_value
-  USE mo_io_units,                  ONLY: nnml, nnml_output
+  USE mo_io_units,                  ONLY: nnml, nnml_output, filename_max
   USE mo_master_control,            ONLY: use_restart_namelists
   USE mo_namelist,                  ONLY: position_nml, POSITIONED, open_nml, close_nml
   USE mo_restart_nml_and_att,       ONLY: open_tmpfile, store_and_close_namelist,     &
@@ -26,7 +26,7 @@ MODULE mo_initwave_nml
   USE mo_mpi,                       ONLY: my_process_is_stdio
   USE mo_nml_annotate,              ONLY: temp_defaults, temp_settings
   USE mo_impl_constants,            ONLY: max_dom
-  USE mo_wave_constants,            ONLY: MODE_COLD
+  USE mo_wave_constants,            ONLY: MODE_COLD, MODE_ANA
   USE mo_time_config,               ONLY: set_tc_timeshift
   USE mo_initwave_config,           ONLY: initwave_config
 
@@ -63,11 +63,13 @@ CONTAINS
     INTEGER :: init_mode     !< MODE_ANA : read wave energy spectrum from analysis file
                              !< MODE_COLD: initialize by analytic wind-speed based parameterization
                              !             (such as JONSWAP)
+    CHARACTER(LEN=filename_max) :: initial_wave_spectrum_filename
 
     CHARACTER(len=*), PARAMETER ::  &
       &  routine = 'mo_initwave_nml: read_initwave_nml'
 
-    NAMELIST /initwave_nml/ dt_shift, init_mode
+    NAMELIST /initwave_nml/ dt_shift, init_mode, &
+      &      initial_wave_spectrum_filename
 
     !-----------------------
     ! 1. default settings
@@ -76,6 +78,8 @@ CONTAINS
     dt_shift  = 0._wp     ! no shift backwards in time.
                           ! => tc_current_date = tc_start_date at model start
     init_mode = MODE_COLD ! coldstart from JONSWAP
+    initial_wave_spectrum_filename = ""   ! <path>/wave_DOM<dom>_<y><m><d>T<h><min><sec>Z.nc or <path>/wave_DOM<dom>_ML_<num>.nc
+
 
     IF (my_process_is_stdio()) THEN
       iunit = temp_defaults()
@@ -118,6 +122,7 @@ CONTAINS
     !----------------------------------------------------
     DO jg = 1,max_dom
       initwave_config(jg)%init_mode = init_mode
+      initwave_config(jg)%initial_wave_spectrum_filename = initial_wave_spectrum_filename
     ENDDO
 
     ! transfer dt_shift to time_config state

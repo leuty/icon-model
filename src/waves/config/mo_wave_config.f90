@@ -27,7 +27,7 @@ MODULE mo_wave_config
   USE mo_mpi,                  ONLY: p_io, p_comm_work, my_process_is_stdio, &
     &                                p_bcast, p_comm_work_test
   USE mo_parallel_config,      ONLY: p_test_run
-
+  USE mtime,                   ONLY: datetime
 
   IMPLICIT NONE
 
@@ -595,21 +595,48 @@ CONTAINS
   END SUBROUTINE configure_wave
 
 
-  FUNCTION generate_filename(input_filename, model_base_dir, &
-    &                        nroot, jlev, idom)  RESULT(result_str)
-    CHARACTER(len=*), INTENT(IN)   :: input_filename, &
-      &                               model_base_dir
-    INTEGER,          INTENT(IN)   :: nroot, jlev, idom
-    CHARACTER(len=MAX_CHAR_LENGTH) :: result_str
-    TYPE (t_keyword_list), POINTER :: keywords => NULL()
+  FUNCTION generate_filename(input_filename, model_base_dir, nroot, jlev, idom, &
+    &                        file_datetime, filenumber)  RESULT(result_str)
+    CHARACTER(len=*),         INTENT(IN)   :: input_filename, model_base_dir
+    INTEGER,                  INTENT(IN)  :: nroot, jlev, idom
+    TYPE(datetime), OPTIONAL, INTENT(IN)  :: file_datetime       !< optional argument for <y><m><d><h><min><sec> for backward compatibity
+    INTEGER,        OPTIONAL, INTENT(IN)  :: filenumber          !< optional, for <num> wave current_setup
 
+    CHARACTER(LEN=MAX_CHAR_LENGTH) :: str
+    CHARACTER(len=MAX_CHAR_LENGTH) :: result_str
+    TYPE(t_keyword_list), POINTER  :: keywords => NULL()
+
+    ! Existing ICON placeholders
     CALL associate_keyword("<path>",   TRIM(model_base_dir),             keywords)
     CALL associate_keyword("<nroot>",  TRIM(int2string(nroot,"(i0)")),   keywords)
     CALL associate_keyword("<nroot0>", TRIM(int2string(nroot,"(i2.2)")), keywords)
     CALL associate_keyword("<jlev>",   TRIM(int2string(jlev, "(i2.2)")), keywords)
     CALL associate_keyword("<idom>",   TRIM(int2string(idom, "(i2.2)")), keywords)
-    ! replace keywords in "input_filename", which is by default
-    ! ifs2icon_filename = "<path>ifs2icon_R<nroot>B<jlev>_DOM<idom>.nc"
+    CALL associate_keyword("<dom>",    TRIM(int2string(idom, "(i2.2)")), keywords)
+
+    ! Date/time placeholders from file_datetime
+    IF (PRESENT(file_datetime)) THEN
+      WRITE(str,'(i4)')   file_datetime%date%year
+      CALL associate_keyword("<y>",   TRIM(str), keywords)
+      WRITE(str,'(i2.2)') file_datetime%date%month
+      CALL associate_keyword("<m>",   TRIM(str), keywords)
+      WRITE(str,'(i2.2)') file_datetime%date%day
+      CALL associate_keyword("<d>",   TRIM(str), keywords)
+      WRITE(str,'(i2.2)') file_datetime%time%hour
+      CALL associate_keyword("<h>",   TRIM(str), keywords)
+      WRITE(str,'(i2.2)') file_datetime%time%minute
+      CALL associate_keyword("<min>", TRIM(str), keywords)
+      WRITE(str,'(i2.2)') file_datetime%time%second
+      CALL associate_keyword("<sec>", TRIM(str), keywords)
+    ENDIF
+
+    ! Optional file number placeholder <num>
+    IF (PRESENT(filenumber)) THEN
+     CALL associate_keyword("<num>", TRIM(int2string(filenumber, "(i4.4)")), keywords)
+    ELSE
+     CALL associate_keyword("<num>", "0001", keywords)
+    END IF
+    ! replace keywords in "input_filename"
     result_str = TRIM(with_keywords(keywords, TRIM(input_filename)))
 
   END FUNCTION generate_filename

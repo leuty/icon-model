@@ -38,7 +38,7 @@ MODULE mo_wave_init
   USE mo_intp_data_strc,       ONLY: t_int_state
   USE mo_wave_adv_exp,         ONLY: init_analytic_forcing
   USE mo_wave_td_update,       ONLY: update_water_depth_and_grad
-  USE mo_init_wave_physics,    ONLY: init_wave_spectrum, fetch_law
+  USE mo_init_wave_physics,    ONLY: init_wave_spectrum, fetch_law, init_spectrum_from_file
   USE mo_load_restart,         ONLY: read_restart_files
 
   IMPLICIT NONE
@@ -106,9 +106,10 @@ CONTAINS
         ELSE
           ! Initialize from First Guess or analysis file
           !
-          ! TO BE IMPLEMENTED
+          CALL init_spectrum_from_file(p_patch(jg), wave_config(jg), wave_state(jg))
           !
-          CALL finish(routine,'Model initialization from analysis file not yet available.')
+          !
+          !
         ENDIF
 
       CASE (MODE_COLD)

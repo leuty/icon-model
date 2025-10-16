@@ -14,7 +14,7 @@
 
 MODULE mo_wave_crosscheck
 
-  USE mo_exception,         ONLY: message, finish
+  USE mo_exception,         ONLY: message, message_text, finish
   USE mo_wave_constants,    ONLY: MODE_ANA
   USE mo_master_config,     ONLY: isInitFromRestart
   USE mo_parallel_config,   ONLY: check_parallel_configuration
@@ -82,6 +82,14 @@ CONTAINS
 
     IF (isInitFromRestart() .AND. ANY(initwave_config(1:n_dom)%init_mode /= MODE_ANA)) THEN
       CALL finish(routine,'Model initialization from restart file requires init_mode=1 (MODE_ANA)')
+    ENDIF
+
+    IF (ANY(initwave_config(1:n_dom)%init_mode == MODE_ANA) .AND. .NOT. isInitFromRestart()) THEN
+      IF (ANY(initwave_config(1:n_dom)%initial_wave_spectrum_filename == "")) THEN
+        WRITE(message_text,'(a)') "Error: 'init_mode=1' (read analysis for initialization) requires " // &
+          &                       "a valid filename 'initial_wave_spectrum_filename'"
+        CALL finish(routine, message_text)
+      ENDIF
     ENDIF
 
     IF (ANY(num_lev(1:n_dom).ne.1)) THEN

@@ -14,6 +14,7 @@
 MODULE mo_initwave_config
 
   USE mo_impl_constants,       ONLY: max_dom
+  USE mo_io_units,             ONLY: filename_max
 
   IMPLICIT NONE
 
@@ -32,6 +33,8 @@ MODULE mo_initwave_config
     INTEGER :: init_mode     !< MODE_ANA : read wave energy spectrum from analysis file
                              !< MODE_COLD: initialize by analytic wind-speed based parameterization
                              !             (such as JONSWAP)
+    CHARACTER(LEN=filename_max)::initial_wave_spectrum_filename
+
   END TYPE t_initwave_config
 
   TYPE(t_initwave_config), TARGET:: initwave_config(max_dom)
