@@ -195,3 +195,17 @@ Currently, there are two options to obtain [grid](ref_buildrun_gridextpar) and [
 
 (ref_buildrun_icbc)=
 ## Initial & Boundary Data
+
+Besides horizontal grid files and external parameters, ICON needs data describing
+the initial state of the component to run. NWP runs require data for atmosphere,
+land and sea. When running ICON in limited-area mode also lateral boundary data have
+to be provided in regular time intervals.
+
+ICON can take data from DWD's Data Assimilation Coding Environment (DACE), from
+its own forecasts, and data interpolated from IFS forecasts or analysis.
+Depending on which data is taken, several steps are necessary to process these
+data in a way that they can be read by ICON.
+
+* [Data Assimilation System]
+* [ICON forecasts]
+* [IFS analysis or forecasts](ref_buildrun_icbcifs)
