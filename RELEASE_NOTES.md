@@ -1,4 +1,12 @@
-# Release notes for icon-YYYY.MM
+# Release notes for icon-2026.MM
+
+### Soil and Surface
+
+Climate: ICON-Land
+
+- Land initial files: Major update: 12 and 13 tile setups for jsbach and quincy (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1080)
+
+# Release notes for icon-2025.10
 
 ### ICON-Atmo
 
