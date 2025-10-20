@@ -1,3 +1,12 @@
+# Release notes for icon-2025.10-2
+
+### ICON-Atmo
+
+#### NWP Physics
+
+- Correction of the roughness length computation over ocean in TMX
+
+
 # Release notes for icon-2025.10-1
 
 ### ICON-Atmo
