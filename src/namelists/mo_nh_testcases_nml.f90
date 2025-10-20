@@ -373,6 +373,7 @@ MODULE mo_nh_testcases_nml
     itheta_init = 1
     t_cbl_sol = 1._wp
 
+
     !For CBL testcases, Anurag Dipankar (MPIM, 2013-04)
     u_cbl(1:2) = 0._wp
     v_cbl(1:2) = 0._wp

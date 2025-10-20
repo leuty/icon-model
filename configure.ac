@@ -219,6 +219,12 @@ AC_ARG_ENABLE([art],
   [AS_IF([test x"$enableval" != xno], [enable_art=yes])],
   [enable_art=no])
 
+AC_ARG_ENABLE([msgwam],
+  [AS_HELP_STRING([--enable-msgwam],
+     [enable the MSGWAM gravity wave drag scheme @<:@default=no@:>@])],
+  [AS_IF([test x"$enableval" != xno], [enable_msgwam=yes])],
+  [enable_msgwam=no])
+
 AC_ARG_ENABLE([art-gpl],
   [AS_HELP_STRING([--enable-art-gpl],
      [enable GPL-licensed code parts of the ART component @<:@default=no@:>@])],
@@ -865,6 +871,14 @@ AS_VAR_IF([enable_art], [yes],
 trace component ART ($icon_subdir_unique_file) in '$icon_subdir_srcdir': dnl
 disable the component (--disable-art)])])])
 
+AS_VAR_IF([enable_msgwam], [yes],
+  [icon_subdir_srcdir="$srcdir/externals/msgwam"
+   icon_subdir_unique_file="msgwam/mo_msgwam.f90"
+   AS_IF([test ! -r "$icon_subdir_srcdir/$icon_subdir_unique_file"],
+     [AC_MSG_ERROR([unable to find sources of the MSGWAM gravity wave drag dnl
+scheme ($icon_subdir_unique_file) in '$icon_subdir_srcdir': disable the dnl
+scheme (--disable-msgwam)])])])
+
 ############################## ENVIRONMENT CHECKS ##############################
 
 ACX_BUILD_ENVIRONMENT
@@ -1074,6 +1088,9 @@ AS_VAR_IF([enable_emvorado], [yes],
 AS_VAR_IF([enable_art], [yes],
   [AS_VAR_APPEND([FCFLAGS],
      [" ${FC_PP_DEF}__ICON_ART ${FC_PP_DEF}__ART_TMP_IFDEF"])])
+
+AS_VAR_IF([enable_msgwam], [yes],
+  [AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}__MSGWAM"])])
 
 AS_VAR_IF([enable_art_gpl], [yes],
   [AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}__ART_GPL"])])
@@ -3243,6 +3260,10 @@ AS_VAR_IF([enable_emvorado], [yes],
 AS_VAR_IF([enable_art], [yes],
   [AC_SUBST([ART_ENABLED], [''])],
   [AC_SUBST([ART_ENABLED], ['#'])])
+
+AS_VAR_IF([enable_msgwam], [yes],
+  [AC_SUBST([MSGWAM_ENABLED], [''])],
+  [AC_SUBST([MSGWAM_ENABLED], ['#'])])
 
 AS_VAR_IF([enable_mpi], [yes],
   [AC_SUBST([MPI_ENABLED], [''])

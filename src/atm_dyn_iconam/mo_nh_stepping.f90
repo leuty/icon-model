@@ -42,7 +42,7 @@ MODULE mo_nh_stepping
   USE mo_run_config,               ONLY: ltestcase, dtime, nsteps, ldynamics, ltransport,   &
     &                                    ntracer, iforcing, msg_level, test_mode,           &
     &                                    output_mode, lart, luse_radarfwo, ldass_lhn,       &
-    &                                    l_disable_print_gpu_mem
+    &                                    l_disable_print_gpu_mem, lmsgwam
   USE mo_advection_config,         ONLY: advection_config
 #ifdef _OPENACC
   USE mo_timer,                    ONLY: ltimer, timers_level, timer_start, timer_stop,        &
@@ -249,6 +249,10 @@ MODULE mo_nh_stepping
   USE mo_icon2dace,                ONLY: mec_Event, init_dace_op, run_dace_op, dace_op_init
   USE mo_extpar_config,            ONLY: generate_filename
   USE mo_nudging_config,           ONLY: nudging_config, l_global_nudging, indg_type
+#ifdef __MSGWAM
+  USE mo_setup_msgwam_interface,   ONLY: msgwam_read_restartfiles,  &
+    &                                    msgwam_write_restartfiles
+#endif
   USE mo_nwp_tuning_config,        ONLY: itune_gust_diag
   USE mo_nudging,                  ONLY: nudging_interface
   USE mo_nh_moist_thdyn,           ONLY: thermo_src_term
@@ -616,6 +620,14 @@ MODULE mo_nh_stepping
     END IF
 #endif
   END SELECT ! iforcing
+
+#ifdef __MSGWAM
+  IF (isRestart()) THEN
+    DO jg = 1, n_dom
+      IF (lmsgwam(jg))  CALL msgwam_read_restartfiles( mtime_current, p_patch(jg) )
+    ENDDO
+  END IF
+#endif
 
 #ifdef __ICON_ART
   IF (lart) THEN
@@ -1702,6 +1714,12 @@ MODULE mo_nh_stepping
         ! boundary region may be older than the data in the prognostic
         ! region. However this has no effect on the prognostic result.
         CALL restartDescriptor%writeRestart(mtime_current, jstep, opt_output_jfile = output_jfile)
+
+#ifdef __MSGWAM
+        DO jg = 1, n_dom
+          IF (lmsgwam(jg))  CALL msgwam_write_restartfiles( mtime_current, p_patch(jg) )
+        ENDDO
+#endif
 
 #ifdef MESSY
         CALL messy_channel_write_output(IOMODE_RST)

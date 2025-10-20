@@ -26,7 +26,7 @@ MODULE mo_cumaster
     & ruvper    ,rmfsoltq,rmfsolct,rmfcmin  ,lmfsmooth,lmfwstar ,&
     & lmftrac   ,   LMFUVDIS                                    ,&
     & rg       ,rd, rv      ,rcpd  ,retv , rlvtt, rlstt, rvtmp2 ,&
-    & lhook,   dr_hook, icapdcycl
+    & lhook,   dr_hook, icapdcycl, rlmlt
 
   USE mo_adjust,      ONLY: satur
   USE mo_cufunctions, ONLY: foelhmcu, foealfcu
@@ -34,6 +34,9 @@ MODULE mo_cumaster
   USE mo_cuascn,      ONLY: cuascn
   USE mo_cudescn,     ONLY: cudlfsn, cuddrafn
   USE mo_cuflxtends,  ONLY: cuflxn, cudtdqn,cududv,cuctracer
+#ifdef __MSGWAM
+  USE mo_cuflxtends,  ONLY: compute_msgwam_heating
+#endif
   USE mo_cucalclpi,   ONLY: cucalclpi, cucalcmlpi
   USE mo_cucalclfd,   ONLY: cucalclfd
   USE mo_nwp_parameters,  ONLY: t_phy_params
@@ -45,6 +48,7 @@ MODULE mo_cumaster
   USE mo_stoch_explicit,       ONLY: shallow_stoch_explicit
   USE mo_stoch_deep,           ONLY: deep_stoch_sde
   USE mo_nwp_phy_types,        ONLY: t_ptr_cloud_ensemble
+  USE mo_run_config,           ONLY: lmsgwam
 
   IMPLICIT NONE
 
@@ -77,6 +81,10 @@ SUBROUTINE cumastrn &
  & pcape,    pvddraf,                            &
  & pcen, ptenrhoc,                               &
  & l_lpi, l_lfd, lpi, mlpi, koi, lfd, peis,      &
+#ifdef __MSGWAM
+ & nsrc_cgw, ktype_cgw, kcbot_cgw, kctop_cgw,    &
+ & heat_cgw, tupd_cgw, test_cgw,                 &
+#endif
 ! stochastic, extra diagnostics and logical switches
  & lspinup, k650,k700, temp_s,                   &
  & cell_area,iseed,                              &
@@ -406,6 +414,15 @@ REAL(KIND=jprb)   ,OPTIONAL, INTENT(inout)   :: koi(:)
 REAL(KIND=jprb)   ,OPTIONAL, INTENT(inout)   :: lfd(:)
 REAL(KIND=jprb)            , INTENT(inout)   :: peis(:)
 LOGICAL                    , INTENT(in)      :: lacc
+#ifdef __MSGWAM
+INTEGER(KIND=jpim),INTENT(in)  :: nsrc_cgw
+INTEGER(KIND=jpim),INTENT(out) :: ktype_cgw(:)
+INTEGER(KIND=jpim),INTENT(out) :: kcbot_cgw(:)
+INTEGER(KIND=jpim),INTENT(out) :: kctop_cgw(:)
+REAL(KIND=jprb)   ,INTENT(out) :: heat_cgw (:,:)
+REAL(KIND=jprb)   ,INTENT(out) :: tupd_cgw (:,:)
+REAL(KIND=jprb)   ,INTENT(out) :: test_cgw (:,:)
+#endif
 
 !*UPG change to operations
 REAL(KIND=jprb) :: pwmean(klon)
@@ -489,6 +506,9 @@ LOGICAL, PARAMETER :: lpassive = .FALSE. !run stoch schemes in piggy-backing mod
 INTEGER(KIND=jpim) :: ktrac  ! number of chemical tracers
 
 REAL(KIND=jprb) :: msee(klon,klev)
+#ifdef __MSGWAM
+REAL(KIND=jprb) :: plude_expl(klon,klev)
+#endif
 
 !#include "cuascn.intfb.h"
 !#include "cubasen.intfb.h"
@@ -1810,6 +1830,17 @@ DO jl=kidia,kfdia
   ENDIF
 ENDDO
 
+#ifdef __MSGWAM
+! To calculate our heating explicitly even if this cumulus scheme solves
+! it implicitly (rmfsoltq /= 0), 'plude' has to be saved here before it is
+! modified due to rmfsoltq /= 0.
+IF ( ANY(lmsgwam) ) THEN
+  IF (nsrc_cgw > 0 .AND. rmfsoltq /= 0.0_JPRB) THEN
+    plude_expl(:,:) = plude(:,:)
+  END IF
+END IF
+#endif
+
 ! avoid negative humidities near cloud top because gradient of precip flux
 ! and detrainment / liquid water flux too large
 !$ACC LOOP SEQ
@@ -1891,6 +1922,19 @@ DO jk=ktdia+1,klev
     ENDIF
   ENDDO
 ENDDO
+
+#ifdef __MSGWAM
+IF (ANY(lmsgwam)) &
+CALL compute_msgwam_heating( &
+  & nsrc_cgw, rmfsoltq, kidia, kfdia, ktdia, klev, itopm2,  &
+  & heat_cgw, tupd_cgw, test_cgw,                          &
+  & ktype_cgw, kctop_cgw, kcbot_cgw,                       &
+  & plude_expl, plude, zmfdq, llddraf, idtop,              &
+  & ldcum, kctop, kcbot, paph, pten,                       &
+  & ptu, zmful, zdmfup, psnde, zlglac, zdpmel,             &
+  & zmfus, zmfds, zmfuq,                           &
+  & rlmlt, rg, ptsphy,ktype,pqen)
+#endif
 
 !----------------------------------------------------------------------
 

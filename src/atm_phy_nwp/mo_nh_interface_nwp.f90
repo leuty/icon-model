@@ -35,7 +35,7 @@ MODULE mo_nh_interface_nwp
   USE mo_kind,                    ONLY: wp
 
   USE mo_timer
-  USE mo_exception,               ONLY: message, message_text, finish
+  USE mo_exception,               ONLY: message, message_text, finish, debug_on, debug_off
   USE mo_impl_constants,          ONLY: itconv, itccov, itrad, itgscp,                        &
     &                                   itsatad, itturb, itsfc, itradheat,                    &
     &                                   itsso, itgwd, itfastphy, icosmo, igme, ivdiff,               &
@@ -56,7 +56,7 @@ MODULE mo_nh_interface_nwp
   USE mo_diffusion_config,        ONLY: diffusion_config
   USE mo_initicon_config,         ONLY: is_iau_active, icpl_da_sfcevap
   USE mo_run_config,              ONLY: ntracer, iqv, iqc, iqi, iqs, iqr, iqg, iqtke,  &
-    &                                   msg_level, ltimer, timers_level, lart, ldass_lhn
+    &                                   msg_level, ltimer, timers_level, lart, ldass_lhn, lmsgwam
   USE mo_grid_config,             ONLY: l_limited_area
   USE mo_io_config,               ONLY: var_in_output
   USE mo_physical_constants,      ONLY: rd, rd_o_cpd, vtmpc1, p0ref, rcvd, cvd, cvv, grav
@@ -163,6 +163,12 @@ MODULE mo_nh_interface_nwp
 
 
   USE mo_nwp_tuning_config,       ONLY: tune_sc_eis
+#ifdef __MSGWAM
+  USE mo_nwp_msgwam_interface,    ONLY: nwp_msgwam_interface
+  USE mo_msgwam_config,           ONLY: lmsgwam_fricheat, lmsgwam_offline, lmsgwam_rfric
+  USE mo_gw_source_config,        ONLY: gws_conv_config
+  USE mo_gw_source_conv,          ONLY: gw_source_conv
+#endif
   USE mo_sbm_storage,             ONLY: t_sbm_storage, get_sbm_storage
   USE mo_name_list_output_config, ONLY: is_variable_in_output
   USE mo_sbm_util,                ONLY: qx_from_bins_diag
@@ -248,6 +254,9 @@ CONTAINS
 
     INTEGER :: jc,jk,jb,jce,isubs!loop indices
     INTEGER :: jg                !domain id
+#ifdef __MSGWAM
+    INTEGER :: jsrc              !loop index
+#endif
 
     LOGICAL :: ltemp, lpres, ltemp_ifc, l_any_fastphys, l_any_slowphys
     LOGICAL :: lcall_lhn, lcall_lhn_v, lapply_lhn               !< switches for latent heat nudging
@@ -286,11 +295,6 @@ CONTAINS
 
     ! Variables for LHN
     REAL(wp) :: dhumi_lhn,dhumi_lhn_tot
-
-    ! communication ids, these do not need to be different variables,
-    ! since they are not treated individualy
-    INTEGER :: ddt_u_tot_comm, ddt_v_tot_comm, z_ddt_u_tot_comm, z_ddt_v_tot_comm, &
-      & tracers_comm, tempv_comm, exner_pr_comm, w_comm
 
     INTEGER :: ntracer_sync
 
@@ -1422,6 +1426,13 @@ CONTAINS
         ltemp_ifc = .FALSE.
       ENDIF
 
+#ifdef __MSGWAM
+      IF ( lmsgwam(jg)) THEN
+        IF ( gws_conv_config%n_source(jg) > 0 .AND. lcall_phy_jg(itconv) )  &
+          &  ltemp_ifc = .TRUE.   ! override
+      ENDIF
+#endif
+
       CALL diagnose_pres_temp (p_metrics, pt_prog, pt_prog_rcf,   &
         &                      pt_diag, pt_patch,                 &
         &                      lacc              = lacc,          &
@@ -1969,6 +1980,88 @@ CONTAINS
     CALL icon_call_callback(EP_ATM_GWDRAG_BEFORE, jg, lacc=lacc)
 #endif
 
+#ifdef __MSGWAM
+    !-------------------------------------------------------------------------
+    ! MS-GWaM: GW sources
+    !-------------------------------------------------------------------------
+
+
+    ! 1/ GW source: convection
+    IF ( lmsgwam(jg)) THEN
+      IF (timers_level > 3)  CALL timer_start(timer_gw_source)
+      IF ( gws_conv_config%n_source(jg) > 0 .AND.  &
+        &  lcall_phy_jg(itconv) ) THEN
+
+        IF (msg_level >= 15)  CALL message('mo_nh_interface',  &
+          &                                'gravity wave source - convection')
+
+        IF (timers_level > 3)  CALL timer_start(timer_gws_conv)
+
+        ! CAUTION: temp_ifc and pres_ifc are supposed to be prepared above.
+
+        DO jsrc = 1, gws_conv_config%n_source(jg)
+          CALL gw_source_conv( jsrc,                           & !>input
+            &                  pt_patch%id,                    & !>input
+            &                  p_metrics%z_ifc,                & !>input
+            &                  p_metrics%z_mc,                 & !>input
+            &                  p_metrics%ddqz_z_full,          & !>input
+            &                  pt_prog%rho,                    & !>input
+            &                  pt_diag%u,                      & !>input
+            &                  pt_diag%v,                      & !>input
+            &                  pt_diag%temp_ifc,               & !>input
+            &                  pt_diag%pres_ifc,               & !>input
+            &                  pt_patch%nblks_c,               & !>input
+            &                  pt_patch%nlev,                  & !>input
+            &                  pt_patch%nlevp1,                & !>input
+            &                  pt_patch%cells%start_block,     & !>input
+            &                  pt_patch%cells%end_block       ) !>input
+        ENDDO
+
+        IF (timers_level > 3)  CALL timer_stop(timer_gws_conv)
+
+      ENDIF
+
+      ! 2/ GW source: jets/fronts
+      ! To be done !
+
+      ! 3/ GW source: orographic
+      ! To be done !
+
+      IF (timers_level > 3)  CALL timer_stop(timer_gw_source)
+
+      !-------------------------------------------------------------------------
+      ! MS-GWaM: GW propagation
+      !-------------------------------------------------------------------------
+
+      IF (lcall_phy_jg(itgwd) ) THEN
+
+        ! debug on
+        IF (msg_level >= 15) THEN
+          CALL message('mo_nh_interface', 'MS-GWaM: GW propagation')
+          CALL debug_on()
+        ENDIF
+
+        IF (timers_level > 3) CALL timer_start(timer_msgwam)
+
+        CALL nwp_msgwam_interface ( dt_phy_jg(itgwd),          & !>input
+          &                         mtime_datetime,            & !>input
+          &                         p_sim_time,                & !>input
+          &                         pt_patch, p_metrics,       & !>input
+          &                         pt_int_state,              & !>input
+          &                         pt_diag,pt_prog,           & !>input
+          &                         prm_nwp_tend               ) !>inout
+
+        ! debug off
+        IF (msg_level >= 15) THEN
+          CALL debug_off()
+        ENDIF
+
+        IF (timers_level > 3) CALL timer_stop(timer_msgwam)
+
+      ENDIF ! lcall_phy_jg(itgwd)
+    ENDIF !lmsgwam
+#endif
+
     !-------------------------------------------------------------------------
     !> Gravity waves drag: orographic and non-orographic
     !-------------------------------------------------------------------------
@@ -2226,7 +2319,13 @@ CONTAINS
 
 
         ! artificial Rayleigh friction: active if GWD or SSO scheme is active
-        IF (atm_phy_nwp_config(jg)%inwp_sso > 0 .OR. atm_phy_nwp_config(jg)%inwp_gwd > 0) THEN
+        IF (atm_phy_nwp_config(jg)%inwp_sso > 0  .OR. &
+           (atm_phy_nwp_config(jg)%inwp_gwd > 0 &
+#ifdef __MSGWAM
+              ! MS-GWaM: avoid Rayleigh friction for idealized case 'gwp'
+              .AND. (.NOT. lmsgwam(jg) .OR. lmsgwam_rfric) &
+#endif
+           )) THEN
           !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
           !$ACC LOOP GANG VECTOR PRIVATE(vabs, rfric_fac) COLLAPSE(2)
           DO jk = 1, nlev
@@ -2289,33 +2388,61 @@ CONTAINS
           ENDDO
           !$ACC END PARALLEL
 
-          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
-          !$ACC LOOP GANG VECTOR PRIVATE(wfac) COLLAPSE(2)
-          DO jk = 1, nlev
+#ifndef __MSGWAM
+          IF (.NOT. lmsgwam(jg)) THEN
+#else
+          ! Case for MSGWAM switched off, or used offline, or used without frictional heat
+          IF (.NOT. lmsgwam(jg) .OR. lmsgwam_offline .OR. lmsgwam_fricheat) THEN
+#endif
+            !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
+            !$ACC LOOP GANG VECTOR PRIVATE(wfac) COLLAPSE(2)
+            DO jk = 1, nlev
 !DIR$ IVDEP
-            DO jc = i_startidx, i_endidx
-              !
-              ! heating related to momentum deposition by SSO, GWD and Rayleigh friction
-              !
-              wfac = MIN(1._wp, 0.004_wp*p_metrics%geopot_agl(jc,jk,jb)/grav)
-              z_ddt_temp_drag(jc,jk)               = -rcvd*(pt_diag%u(jc,jk,jb)*             &
-                                                     (prm_nwp_tend%ddt_u_sso(jc,jk,jb)+      &
-                                                      prm_nwp_tend%ddt_u_gwd(jc,jk,jb)+      &
-                                                      zddt_u_raylfric(jc,jk))                &
-                                                     +      pt_diag%v(jc,jk,jb)*             &
-                                                     (prm_nwp_tend%ddt_v_sso(jc,jk,jb)+      &
-                                                      prm_nwp_tend%ddt_v_gwd(jc,jk,jb)+      &
-                                                      zddt_v_raylfric(jc,jk)) ) /            &
-                                                      ((1._wp-wfac)*sqrt_ri(jc) + wfac)
-              !
-              ! total slow physics heating rate
-              !
-              z_ddt_temp(jc,jk) = prm_nwp_tend%ddt_temp_radsw(jc,jk,jb) + prm_nwp_tend%ddt_temp_radlw(jc,jk,jb) &
-                &               + z_ddt_temp_drag(jc,jk)                + prm_nwp_tend%ddt_temp_pconv(jc,jk,jb) &
-                &               + prm_nwp_tend%ddt_temp_clcov(jc,jk,jb)
+              DO jc = i_startidx, i_endidx
+                wfac = MIN(1._wp, 0.004_wp*p_metrics%geopot_agl(jc,jk,jb)/grav)
+                z_ddt_temp_drag(jc,jk)               = -rcvd*(pt_diag%u(jc,jk,jb)*                &
+                                                        (prm_nwp_tend%ddt_u_sso(jc,jk,jb)+        &
+                                                        prm_nwp_tend%ddt_u_gwd(jc,jk,jb)+         &
+                                                        zddt_u_raylfric(jc,jk))                   &
+                                                        +      pt_diag%v(jc,jk,jb)*               &
+                                                        (prm_nwp_tend%ddt_v_sso(jc,jk,jb)+        &
+                                                        prm_nwp_tend%ddt_v_gwd(jc,jk,jb)+         &
+                                                        zddt_v_raylfric(jc,jk)) ) /               &
+                                                        ((1._wp-wfac)*sqrt_ri(jc) + wfac)
+                !
+                ! total slow physics heating rate
+                !
+                z_ddt_temp(jc,jk) = prm_nwp_tend%ddt_temp_radsw(jc,jk,jb) + prm_nwp_tend%ddt_temp_radlw(jc,jk,jb) &
+                  &               + z_ddt_temp_drag(jc,jk)                + prm_nwp_tend%ddt_temp_pconv(jc,jk,jb) &
+                  &               + prm_nwp_tend%ddt_temp_clcov(jc,jk,jb)
+              ENDDO
             ENDDO
-          ENDDO
           !$ACC END PARALLEL
+          ELSE
+            DO jk = 1, nlev
+              DO jc = i_startidx, i_endidx
+                l_out_ddt_temp_drag = .TRUE.
+                ! i.e. on-line MS-GWaM without frictional heating
+                ! heating related to momentum deposition by SSO, GWD and Rayleigh friction
+                    z_ddt_temp_drag(jc,jk) = prm_nwp_tend%ddt_temp_drag(jc,jk,jb)
+                    wfac = MIN(1._wp, 0.004_wp*p_metrics%geopot_agl(jc,jk,jb)/grav)
+                    z_ddt_temp_drag(jc,jk)               =  z_ddt_temp_drag(jc,jk)                &
+                                                          -rcvd*(pt_diag%u(jc,jk,jb)*             &
+                                                          (prm_nwp_tend%ddt_u_sso(jc,jk,jb)+      &
+                                                            zddt_u_raylfric(jc,jk))               &
+                                                          +      pt_diag%v(jc,jk,jb)*             &
+                                                          (prm_nwp_tend%ddt_v_sso(jc,jk,jb)+      &
+                                                            zddt_v_raylfric(jc,jk)) ) /           &
+                                                            ((1._wp-wfac)*sqrt_ri(jc) + wfac)
+                              !
+                ! total slow physics heating rate
+                !
+                z_ddt_temp(jc,jk) = prm_nwp_tend%ddt_temp_radsw(jc,jk,jb) + prm_nwp_tend%ddt_temp_radlw(jc,jk,jb) &
+                  &               + z_ddt_temp_drag(jc,jk)                + prm_nwp_tend%ddt_temp_pconv(jc,jk,jb) &
+                  &               + prm_nwp_tend%ddt_temp_clcov(jc,jk,jb)
+              ENDDO
+            ENDDO
+          ENDIF
 
         ELSE
 
@@ -2334,6 +2461,8 @@ CONTAINS
           !$ACC END PARALLEL
 
         ENDIF
+
+
 
         IF (itype_dissip_heat >= 1 .AND. l_out_ddt_temp_drag) THEN
           !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
@@ -2563,6 +2692,13 @@ CONTAINS
 
       CALL sync_patch_array_mult(SYNC_C1, pt_patch, 2, lacc=lacc, f3din1=prm_nwp_tend%ddt_u_turb, &
                                  f3din2=prm_nwp_tend%ddt_v_turb)
+#ifndef __NO_ICON_LES__
+    ELSE IF (lmsgwam(jg) .AND. (is_ls_forcing .OR. l_any_slowphys)) THEN ! MS-GWaM (if no turbulence, i.e. for idealized simulations)
+#else
+    ELSE IF (lmsgwam(jg) .AND. l_any_slowphys) THEN ! MS-GWaM (if no turbulence, i.e. for idealized simulations)
+#endif
+      CALL sync_patch_array_mult(SYNC_C1, pt_patch, 2, lacc=lacc, f3din1=z_ddt_u_tot, f3din2=z_ddt_v_tot)
+
     ENDIF
 
     ! DA: TODO: make kernels async in the interface and remove the wait
@@ -2715,7 +2851,47 @@ CONTAINS
           ENDDO
         ENDDO
         !$ACC END PARALLEL
+#ifdef __MSGWAM
+! MS-GWaM: Handles remaining cases with standalone LS forcing or slow physics when turbulence is off
 
+      ELSE IF (lmsgwam(jg) .AND. (is_ls_forcing .OR. l_any_slowphys)) THEN
+
+#ifdef __LOOP_EXCHANGE
+        DO jce = i_startidx, i_endidx
+!DIR$ IVDEP
+          DO jk = 1, nlev
+#else
+!CDIR UNROLL=5
+        DO jk = 1, nlev
+          DO jce = i_startidx, i_endidx
+#endif
+
+            pt_diag%ddt_vn_phy(jce,jk,jb) =   pt_int_state%c_lin_e(jce,1,jb) &
+&                                 * (z_ddt_u_tot(iidx(jce,jb,1),jk,iblk(jce,jb,1))   &
+&                                   * pt_patch%edges%primal_normal_cell(jce,jb,1)%v1  &
+&                                   + z_ddt_v_tot(iidx(jce,jb,1),jk,iblk(jce,jb,1))   &
+&                                   * pt_patch%edges%primal_normal_cell(jce,jb,1)%v2 )&
+&                                                 + pt_int_state%c_lin_e(jce,2,jb)    &
+&                                 * (z_ddt_u_tot(iidx(jce,jb,2),jk,iblk(jce,jb,2))   &
+&                                    * pt_patch%edges%primal_normal_cell(jce,jb,2)%v1 &
+&                                  + z_ddt_v_tot(iidx(jce,jb,2),jk,iblk(jce,jb,2))    &
+&                                   * pt_patch%edges%primal_normal_cell(jce,jb,2)%v2 )
+
+          ENDDO
+        ENDDO
+
+      ENDIF
+
+      ! MS-GWaM diag printouts to see what's going on
+      IF (msg_level >= 15) THEN
+        CALL debug_on()
+        DO jk = 1,nlev
+          WRITE(message_text,'(a,2i4,2E12.4)') 'interface, jk, jb, u, v:',  &
+                            jk, jb, pt_diag%u(1,jk,jb), pt_diag%v(1,jk,jb)
+          CALL message('', TRIM(message_text))
+        ENDDO
+        CALL debug_off()
+#endif
       ENDIF
 
     ENDDO

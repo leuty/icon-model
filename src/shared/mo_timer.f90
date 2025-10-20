@@ -196,6 +196,19 @@ MODULE mo_timer
 !   PUBLIC :: timer_sync_psend_1, timer_sync_isend_2, timer_sync_recv_2,timer_sync_isend_3
 
   PUBLIC :: timer_sso
+  PUBLIC :: timer_msgwam
+  PUBLIC :: timer_msgwam_fieldsgrads
+  PUBLIC :: timer_msgwam_init_gw_orretal
+  PUBLIC :: timer_msgwam_sync_wave
+  PUBLIC :: timer_msgwam_split_merge
+  PUBLIC :: timer_msgwam_remove_rays
+  PUBLIC :: timer_msgwam_saturation
+  PUBLIC :: timer_msgwam_wave2grid
+  PUBLIC :: timer_msgwam_smooth_hori
+  PUBLIC :: timer_msgwam_tendency
+  PUBLIC :: timer_msgwam_diagprof
+  PUBLIC :: timer_msgwam_propagate_wave
+  PUBLIC :: timer_gw_source, timer_gws_conv
   PUBLIC :: timer_cover_koe
   PUBLIC :: timer_radiation
   PUBLIC :: timer_radheat
@@ -382,6 +395,19 @@ MODULE mo_timer
 !   INTEGER :: timer_sync_psend_1, timer_sync_isend_2, timer_sync_recv_2,timer_sync_isend_3
 
   INTEGER :: timer_sso
+  INTEGER :: timer_msgwam
+  INTEGER :: timer_msgwam_fieldsgrads
+  INTEGER :: timer_msgwam_init_gw_orretal
+  INTEGER :: timer_msgwam_sync_wave
+  INTEGER :: timer_msgwam_split_merge
+  INTEGER :: timer_msgwam_remove_rays
+  INTEGER :: timer_msgwam_saturation
+  INTEGER :: timer_msgwam_wave2grid
+  INTEGER :: timer_msgwam_smooth_hori
+  INTEGER :: timer_msgwam_tendency
+  INTEGER :: timer_msgwam_diagprof
+  INTEGER :: timer_msgwam_propagate_wave
+  INTEGER :: timer_gw_source, timer_gws_conv
   INTEGER :: timer_cover_koe
   INTEGER :: timer_radiation
   INTEGER :: timer_radheat
@@ -868,6 +894,20 @@ CONTAINS
     timer_fast_phys = new_timer("rediag_prog_vars")
     timer_nwp_convection = new_timer("nwp_convection")
     timer_pre_radiation_nwp = new_timer("pre_radiation_nwp")
+    timer_msgwam = new_timer("msgwam")
+    timer_msgwam_fieldsgrads = new_timer("msgwam_fieldsgrads")
+    timer_msgwam_init_gw_orretal = new_timer("msgwam_init_gw_orretal")
+    timer_msgwam_sync_wave = new_timer("msgwam_sync_wave")
+    timer_msgwam_split_merge = new_timer("msgwam_split_merge")
+    timer_msgwam_remove_rays = new_timer("msgwam_remove_rays")
+    timer_msgwam_saturation = new_timer("msgwam_saturation")
+    timer_msgwam_wave2grid = new_timer("msgwam_wave2grid")
+    timer_msgwam_smooth_hori = new_timer("msgwam_smooth_hori")
+    timer_msgwam_tendency = new_timer("msgwam_tendency")
+    timer_msgwam_diagprof = new_timer("msgwam_diagprof")
+    timer_msgwam_propagate_wave = new_timer("msgwam_propagate_wave")
+    timer_gw_source = new_timer("gw_source")
+    timer_gws_conv  = new_timer("gws_conv")
     IF (iforcing/=iaes) timer_sso = new_timer("sso")
     timer_cover_koe = new_timer("cloud_cover")
     timer_radiation = new_timer("radiation")

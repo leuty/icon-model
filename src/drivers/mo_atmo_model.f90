@@ -148,6 +148,9 @@ MODULE mo_atmo_model
     &                                   art_calc_ntracer_and_names
 #endif
   USE mo_sync,                    ONLY: global_max
+#ifdef __MSGWAM
+  USE mo_setup_msgwam_interface,  ONLY: setup_msgwam_interface  ! MS-GWaM
+#endif
   USE mo_check_ext_constants,     ONLY: check_ext_constants
 
 #ifndef __NO_ICON_COMIN__
@@ -729,6 +732,13 @@ CONTAINS
 
     CALL art_init_interface(n_dom,'construct',ntracer,advection_config(1)%npassive_tracer)
 #endif
+#ifdef __MSGWAM
+    !------------------------------------------------------------------
+    ! 12. Setup MS-GWaM
+    !------------------------------------------------------------------
+
+    CALL setup_msgwam_interface(n_dom,p_patch(1:),'construct')
+#endif
 
     !------------------------------------------------------------------
 
@@ -750,6 +760,12 @@ CONTAINS
     CHARACTER(*), PARAMETER :: routine = "mo_atmo_model:destruct_atmo_model"
 
     INTEGER :: error_status
+
+#ifdef __MSGWAM
+    ! destruct MS-GWaM
+    CALL setup_msgwam_interface(n_dom,p_patch(1:),'destruct')
+#endif
+
 
     ! Destruct external data state
     CALL destruct_ext_data()

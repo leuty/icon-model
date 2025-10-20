@@ -65,6 +65,9 @@
     PUBLIC :: setup_barycentric_intp_lonlat_repartition
     PUBLIC :: compute_auxiliary_triangulation
     PUBLIC :: try_triangulation_readin
+#ifdef __MSGWAM
+    PUBLIC :: inside_triangle
+#endif
 
     INTERFACE compute_auxiliary_triangulation
       MODULE PROCEDURE compute_triangulation_local_partition

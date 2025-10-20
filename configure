@@ -597,6 +597,7 @@ GPU_ENABLED
 OPENMP_ENABLED
 MPI_DISABLED
 MPI_ENABLED
+MSGWAM_ENABLED
 ART_ENABLED
 EMVORADO_ENABLED
 DACE_ENABLED
@@ -774,6 +775,7 @@ enable_rttov
 enable_dace
 enable_emvorado
 enable_art
+enable_msgwam
 enable_art_gpl
 enable_comin
 enable_hd
@@ -1578,6 +1580,8 @@ Model Features:
   --enable-emvorado       enable the radar forward operator EMVORADO
                           [default=no]
   --enable-art            enable the aerosols and reactive trace component ART
+                          [default=no]
+  --enable-msgwam         enable the MSGWAM gravity wave drag scheme
                           [default=no]
   --enable-art-gpl        enable GPL-licensed code parts of the ART component
                           [default=no]
@@ -3274,6 +3278,16 @@ else
 fi
 
 
+# Check whether --enable-msgwam was given.
+if test "${enable_msgwam+set}" = set; then :
+  enableval=$enable_msgwam; if test x"$enableval" != xno; then :
+  enable_msgwam=yes
+fi
+else
+  enable_msgwam=no
+fi
+
+
 # Check whether --enable-art-gpl was given.
 if test "${enable_art_gpl+set}" = set; then :
   enableval=$enable_art_gpl; if test x"$enableval" != xno; then :
@@ -4075,6 +4089,14 @@ if test "x$enable_art" = xyes; then :
    icon_subdir_unique_file="chem_init/mo_art_chem_init_utils.f90"
    if test ! -r "$icon_subdir_srcdir/$icon_subdir_unique_file"; then :
   as_fn_error $? "unable to find sources of the aerosols and reactive trace component ART ($icon_subdir_unique_file) in '$icon_subdir_srcdir': disable the component (--disable-art)" "$LINENO" 5
+fi
+fi
+
+if test "x$enable_msgwam" = xyes; then :
+  icon_subdir_srcdir="$srcdir/externals/msgwam"
+   icon_subdir_unique_file="msgwam/mo_msgwam.f90"
+   if test ! -r "$icon_subdir_srcdir/$icon_subdir_unique_file"; then :
+  as_fn_error $? "unable to find sources of the MSGWAM gravity wave drag scheme ($icon_subdir_unique_file) in '$icon_subdir_srcdir': disable the scheme (--disable-msgwam)" "$LINENO" 5
 fi
 fi
 
@@ -5954,6 +5976,10 @@ fi
 
 if test "x$enable_art" = xyes; then :
   as_fn_append FCFLAGS " ${FC_PP_DEF}__ICON_ART ${FC_PP_DEF}__ART_TMP_IFDEF"
+fi
+
+if test "x$enable_msgwam" = xyes; then :
+  as_fn_append FCFLAGS " ${FC_PP_DEF}__MSGWAM"
 fi
 
 if test "x$enable_art_gpl" = xyes; then :
@@ -12158,6 +12184,14 @@ if test "x$enable_art" = xyes; then :
 
 else
   ART_ENABLED='#'
+
+fi
+
+if test "x$enable_msgwam" = xyes; then :
+  MSGWAM_ENABLED=''
+
+else
+  MSGWAM_ENABLED='#'
 
 fi
 

@@ -2469,6 +2469,9 @@ create_target_header()
                 ;;
             esac
             ;;
+        *atm_msgwam_gc*)
+            use_nodes=2
+            ;;
         esac
 
     # set more default values

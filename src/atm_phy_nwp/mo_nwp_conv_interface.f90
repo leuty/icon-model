@@ -34,7 +34,7 @@ MODULE mo_nwp_conv_interface
   USE mo_nwp_phy_types,        ONLY: t_nwp_phy_diag, t_nwp_phy_tend, &
        &                             t_nwp_phy_stochconv, t_ptr_cloud_ensemble
   USE mo_nwp_phy_state,        ONLY: phy_params
-  USE mo_run_config,           ONLY: iqv, iqc, iqi, iqr, iqs, nqtendphy, lart
+  USE mo_run_config,           ONLY: iqv, iqc, iqi, iqr, iqs, nqtendphy, lart, lmsgwam
   USE mo_physical_constants,   ONLY: grav, alf, alv, als, cvd, cpd, tmelt
   USE mo_atm_phy_nwp_config,   ONLY: atm_phy_nwp_config
   USE mo_cumaster,             ONLY: cumastrn
@@ -42,6 +42,10 @@ MODULE mo_nwp_conv_interface
   USE mo_comin_config,         ONLY: comin_config, t_comin_tracer_info
   USE mo_art_config,           ONLY: art_config
   USE mo_util_phys,            ONLY: nwp_con_gust
+#ifdef __MSGWAM
+  USE mo_gw_source_config,     ONLY: gws_conv_config
+  USE mo_setup_msgwam_interface, ONLY: p_msgwam
+#endif
   USE mo_exception,            ONLY: finish, message_text
 
   ! for stochastic convection
@@ -117,6 +121,9 @@ CONTAINS
     REAL(wp) :: z_dtdt   (nproma,p_patch%nlev)         !< temporal temperature tendency
     REAL(wp) :: z_dtdt_sv(nproma,p_patch%nlev)         !< save array for temperature tendency
     REAL(wp) :: z_ddspeed(nproma)                      !< maximum downdraft speed at the surface
+#ifdef __MSGWAM
+    REAL(wp) :: z_heatchg_cgw(nproma,p_patch%nlev)     !< convective temperature tendency *cvd
+#endif
 
     ! stochastic cloud ensemble variables:
     ! variables to contain profiles/sfc fluxes averaged over halo, only used for stoch conv
@@ -255,6 +262,9 @@ CONTAINS
 !$OMP PARALLEL DO PRIVATE(jb,jc,jk,jt,i_startidx,i_endidx,z_omega_p,z_plitot,z_qhfl,z_shfl,z_dtdqv,&
 !$OMP            z_dtdt,z_dtdt_sv,zk850,zk950,u850,u950,v850,v950,wfac,z_ddspeed,convfac,nconv, &
 !$OMP            iseed,presmean,umean,vmean,qvmean,tempmean,qhfl_avg,shfl_avg,l,jc2,jb2,area_norm, &
+#ifdef __MSGWAM
+!$OMP            z_heatchg_cgw, &
+#endif
 !$OMP            p_pres,p_u,p_v,p_qv,p_temp,p_qhfl_avg,p_shfl_avg,p_cloud_ensemble), ICON_OMP_GUIDED_SCHEDULE
     DO jb = i_startblk, i_endblk
 
@@ -572,6 +582,15 @@ CONTAINS
 &          pvddraf =     z_ddspeed(:)                                       ,& !! OUT
 &          pcen     =    ptr_conv_tracer                                    ,& !! IN
 &          ptenrhoc =    ptr_conv_tracer_tend                               ,& !! OUT
+#ifdef __MSGWAM
+&          nsrc_cgw  =   gws_conv_config%n_source(jg)                       ,& !! IN
+&          ktype_cgw =   p_msgwam(jg)%ktype_cgw   (:,jb)                    ,& !! OUT
+&          kcbot_cgw =   p_msgwam(jg)%mbas_con_cgw(:,jb)                    ,& !! OUT
+&          kctop_cgw =   p_msgwam(jg)%mtop_con_cgw(:,jb)                    ,& !! OUT
+&          heat_cgw  =   p_msgwam(jg)%heat_cgw(:,:,jb)                      ,& !! OUT
+&          tupd_cgw  =   p_msgwam(jg)%tupd_cgw(:,:,jb)                      ,& !! OUT
+&          test_cgw  =   p_msgwam(jg)%test_1_cgw(:,:,jb)                    ,& !! OUT
+#endif
 &          l_lpi  =      lcompute_lpi                                       ,& !! IN
 &          l_lfd  =      lcompute_lfd                                       ,& !! IN
 &          lpi    =      prm_diag%lpi_con(:,jb)                             ,& !! OUT
@@ -615,6 +634,10 @@ CONTAINS
 
         ! Convert detrained cloud ice into cloud water if the temperature is only slightly below freezing
         ! and convective cloud top is not cold enough for substantial ice initiation
+#ifdef __MSGWAM
+        z_heatchg_cgw(:,:) = 0.0_wp
+#endif
+
         !$ACC LOOP SEQ
         DO jk = kstart_moist(jg),nlev
           !$ACC LOOP GANG(STATIC: 1) VECTOR PRIVATE(wfac)
@@ -627,11 +650,38 @@ CONTAINS
 
               prm_nwp_tend%ddt_temp_pconv(jc,jk,jb) = prm_nwp_tend%ddt_temp_pconv(jc,jk,jb) - &
                 lfocvd*wfac*prm_nwp_tend%ddt_tracer_pconv(jc,jk,jb,iqi)/p_prog%rho(jc,jk,jb)
+#ifdef __MSGWAM
+              IF (lmsgwam(jg)) THEN
+                ! Save the above increment of 'ddt_temp_pconv' * cvd, to correct our heating too
+                z_heatchg_cgw(jc,jk) = -alf*wfac                   &  ! ( alf = lfocvd * cvd )
+                  &  *prm_nwp_tend%ddt_tracer_pconv(jc,jk,jb,iqi)  &
+                  &  /p_prog%rho(jc,jk,jb)
+              ENDIF
+#endif
 
               prm_nwp_tend%ddt_tracer_pconv(jc,jk,jb,iqi) = (1._wp-wfac)*prm_nwp_tend%ddt_tracer_pconv(jc,jk,jb,iqi)
             ENDIF
           ENDDO
         ENDDO
+#ifdef __MSGWAM
+        IF ( lmsgwam(jg)) THEN
+          IF ( gws_conv_config%n_source(jg) > 0 ) THEN
+            DO jc = i_startidx, i_endidx
+              IF ( prm_diag%ktype(jc,jb) == 1 ) THEN   !CGW conv_type
+                DO jk = kstart_moist(jg), nlev
+                  p_msgwam(jg)%heat_cgw(jc,jk,jb) = p_msgwam(jg)%heat_cgw(jc,jk,jb)      &
+                    &                               + z_heatchg_cgw(jc,jk)
+                  ! entropy = (Q/T)_(updraft air)
+                  p_msgwam(jg)%entr_cgw(jc,jk,jb) = p_msgwam(jg)%heat_cgw(jc,jk,jb)      &
+                    &                              /p_msgwam(jg)%tupd_cgw(jc,jk,jb)
+                  p_msgwam(jg)%test_1_cgw(jc,jk,jb) = p_msgwam(jg)%test_1_cgw(jc,jk,jb)  &
+                    &                                 + z_heatchg_cgw(jc,jk)
+                ENDDO
+              ENDIF
+            ENDDO
+          ENDIF
+        ENDIF
+#endif
 
         ! In case of SBM microphysics, convert qc, qi, qr, qs into qv and calculate the corresponding temperature increment
         IF (atm_phy_nwp_config(jg)%inwp_gscp == 8) THEN

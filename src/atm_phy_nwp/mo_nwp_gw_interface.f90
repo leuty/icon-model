@@ -40,6 +40,10 @@ MODULE mo_nwp_gw_interface
   USE mo_vertical_coord_table, ONLY: vct_a
   USE mo_exception,            ONLY : finish, message
   USE mo_fortran_tools,        ONLY: set_acc_host_or_device
+  USE mo_run_config,           ONLY: lmsgwam
+#ifdef __MSGWAM
+  USE mo_msgwam_config,        ONLY: lmsgwam_offline
+#endif
 
   IMPLICIT NONE
 
@@ -269,7 +273,13 @@ CONTAINS
 
 ! Non-orgographic gravity wave drag
 
-      IF (lcall_gwd_jg .AND. atm_phy_nwp_config(jg)%inwp_gwd == 1) THEN
+      IF (lcall_gwd_jg .AND. atm_phy_nwp_config(jg)%inwp_gwd == 1  &
+#ifdef __MSGWAM
+    ! When MSGWAM is switched on, standard GW drag is skipped,
+    ! but inwp_gwd=1 is still needed for shared infrastructure
+        & .AND. ((.NOT. lmsgwam(jg)) .OR. lmsgwam_offline) &
+#endif
+        ) THEN
 
         ! get total precipitation rate [kg/m2/s] ==> input for gwdrag_wms
         !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)

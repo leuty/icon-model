@@ -69,7 +69,7 @@ USE mo_cdi_constants,       ONLY: GRID_UNSTRUCTURED_CELL,             &
 USE mo_master_control,      ONLY: get_my_process_name
 USE mo_parallel_config,     ONLY: nproma
 USE mo_run_config,          ONLY: nqtendphy, iqv, iqc, iqi, iqr, iqs, iqg, iqh, lart, ldass_lhn, &
-  &                               iqb_water_start, iqb_water_end, iqb_snow_start, iqb_snow_end, iqbin
+  &                               iqb_water_start, iqb_water_end, iqb_snow_start, iqb_snow_end, iqbin, lmsgwam
 USE mo_exception,           ONLY: message, finish !,message_text
 USE mo_model_domain,        ONLY: t_patch, p_patch, p_patch_local_parent
 USE mo_grid_config,         ONLY: n_dom, n_dom_start, nexlevs_rrg_vnest
@@ -6409,7 +6409,7 @@ SUBROUTINE new_nwp_phy_tend_list( k_jg, klev,  kblks,   &
                 & in_group=groups("phys_tendencies"), lopenacc=.TRUE. )
     __acc_attach(phy_tend%ddt_temp_clcov)
 
-    IF (is_variable_in_output(var_name="ddt_temp_drag")) THEN
+    IF (is_variable_in_output(var_name="ddt_temp_drag") .OR. ANY(lmsgwam(:))) THEN
       cf_desc    = t_cf_var('ddt_temp_drag', 'K s-1', &
              &                'sso + gwdrag temperature tendency', datatype_flt)
       grib2_desc = grib2_var(192, 162, 125, ibits, GRID_UNSTRUCTURED, GRID_CELL)
@@ -6421,7 +6421,7 @@ SUBROUTINE new_nwp_phy_tend_list( k_jg, klev,  kblks,   &
                     & ldims=shape3d, lrestart=.FALSE.,                              &
                     & in_group=groups("phys_tendencies"), lopenacc=.TRUE. )
                     __acc_attach(phy_tend%ddt_temp_drag)
-      END IF
+    END IF
 
     ! &      phy_tend%ddt_temp_pconv(nproma,nlev,nblks)
     cf_desc    = t_cf_var('ddt_temp_pconv', 'K s-1', &

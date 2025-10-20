@@ -40,7 +40,7 @@ MODULE mo_nh_testcases
   USE mo_math_types,           ONLY: t_cartesian_coordinates, t_geographical_coordinates
   USE mo_math_utilities,       ONLY: gc2cc, arc_length
   USE mo_parallel_config,      ONLY: nproma
-  USE mo_run_config,           ONLY: ltransport, iforcing
+  USE mo_run_config,           ONLY: ltransport, iforcing, ldynamics
   USE mo_extpar_config,        ONLY: itopo
   USE mo_dynamics_config,      ONLY: nnow, nnew, lcoriolis
   USE mo_atm_phy_nwp_config,   ONLY: atm_phy_nwp_config
@@ -89,6 +89,12 @@ MODULE mo_nh_testcases
   USE mo_vertical_coord_table, ONLY: vct_a
   USE mo_hydro_adjust,         ONLY: hydro_adjust_const_thetav
   USE mo_scm_nml,              ONLY: i_scm_netcdf, lscm_random_noise
+#ifdef __MSGWAM
+  USE mo_msgwam_config,        ONLY: nrays_add_bg, nrays_bg
+  USE mo_nh_isotherm_rest_atm, ONLY: init_nh_isotherm_rest_atm
+  USE mo_setup_msgwam_interface,   ONLY: p_gridinfo4ray, p_ray
+  USE mo_nh_isotherm_rest_atm_gwp, ONLY: init_nh_isotherm_rest_atm_gwp
+#endif
 
   IMPLICIT NONE
 
@@ -428,6 +434,18 @@ MODULE mo_nh_testcases
     END DO
 
     CALL message(TRIM(routine),'running the dcmip_rest_200 (steady state at rest dcmip) test')
+
+#ifdef __MSGWAM
+  CASE ('isothermal')
+    ! itopo == 0 --> The topography is initialized to 0 at the begining of this
+    ! subroutine
+    CALL message(routine,'running isothermal testcase')
+  CASE ('gwp')
+    ! itopo == 0 --> The topography is initialized to 0 at the begining of this
+    ! subroutine
+    CALL message(routine,'running gwp testcase')
+#endif
+
 
 !!$  CASE ('dcmip_mw_2x')
 !DR topography_v no longer read in available. If needed, it should be
@@ -1161,6 +1179,70 @@ MODULE mo_nh_testcases
 
     CALL message(TRIM(routine),'End setup dcmip_rest_200 test')
 
+#ifdef __MSGWAM
+  CASE ('isothermal')
+    ! no orog, isothermal atmosphere
+
+    CALL message(routine,'setup isothermal test: no orography, isothermal atmosphere')
+
+    l_hydro_adjust = .FALSE.
+
+    IF (lcoriolis) THEN
+
+      CALL message(routine,'Warning: lcoriolis is .TRUE., beware about &
+        &                         that when trying to reproduce GW packet test cases!')
+    END IF
+
+    IF (ldynamics) THEN
+
+      CALL message(routine,'Warning: ldynamics is .TRUE., beware about &
+        &                         that when trying to reproduce GW packet test cases!')
+    END IF
+
+    DO jg = 1, n_dom
+      CALL init_nh_isotherm_rest_atm( p_patch(jg), &
+        &                    p_nh_state(jg)%prog(nnow(jg)), p_nh_state(jg)%diag, &
+        &                    p_nh_state(jg)%metrics, l_hydro_adjust )
+      CALL duplicate_prog_state(p_nh_state(jg)%prog(nnow(jg)),p_nh_state(jg)%prog(nnew(jg)))
+    ENDDO
+
+    CALL message(routine,'End setup isothermal test')
+
+  CASE ('gwp')
+    ! no orog, isothermal atmosphere
+
+    CALL message(routine,'setup gwp test case: no orography, isothermal atmosphere, &
+      &                         Gaussian gravity wave packet')
+
+    IF (lcoriolis) THEN
+
+      CALL message(routine,'Warning: lcoriolis is .TRUE., beware about &
+        &                         that when trying to reproduce GW packet test cases!')
+    END IF
+
+    IF (ldynamics) THEN
+
+      CALL message(routine,'Warning: ldynamics is .TRUE., beware about &
+        &                         that when trying to reproduce GW packet test cases!')
+    END IF
+
+    l_hydro_adjust = .FALSE.
+
+    DO jg = 1, n_dom
+      CALL init_nh_isotherm_rest_atm_gwp( p_patch(jg), &
+        &                    p_nh_state(jg)%prog(nnow(jg)), p_nh_state(jg)%diag, &
+        &                    p_gridinfo4ray(jg), p_ray(jg), p_nh_state(jg)%metrics, &
+                             l_hydro_adjust )
+      CALL duplicate_prog_state(p_nh_state(jg)%prog(nnow(jg)),p_nh_state(jg)%prog(nnew(jg)))
+
+      WRITE(message_text,'(a,i6)') 'Max no. of ray volumes allowed:', nrays_bg(jg)
+      CALL message('', TRIM(message_text))
+      WRITE(message_text,'(a,i6)') 'No. of ray volumes initialized:', nrays_add_bg(jg)
+      CALL message('', TRIM(message_text))
+    ENDDO
+
+    CALL message(routine,'End setup gwp test case')
+#endif
 
   CASE ('dcmip_mw_2x')
 
