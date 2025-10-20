@@ -118,7 +118,7 @@ with open(doc_path, "r", encoding="utf-8") as f:
 new_content = re.sub(
     r"<!-- EXTERNAL-CI-SYSTEM-TESTS -->",
     "<details>\n"
-    "<summary>CI System Tests on External Machines by Builder</summary>\n\n"
+    "<summary>CI System Tests on External Machines by Builder (Click to Expand)</summary>\n\n"
     + ci_test_list_table
     + "</details>\n",
     content,

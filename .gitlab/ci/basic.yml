@@ -275,6 +275,11 @@ doc:html:check:
       when: never
     - if: $CI_PIPELINE_SOURCE == "web"
       when: manual
+    # Run the job for merge requests in icon/icon-nwp, regardless of whether
+    # they change the documentation:
+    - if: >-
+        $CI_PIPELINE_SOURCE == "merge_request_event" &&
+          $CI_MERGE_REQUEST_PROJECT_PATH == "icon/icon-nwp"
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes: !reference [.common:html, rules, changes]
 

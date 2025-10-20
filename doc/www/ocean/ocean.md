@@ -1,5 +1,5 @@
 (ref_ocean_overview)=
-# Ocean Modelling Overview
+# Ocean
 
 The ocean component of ICON consists of three parts:
 

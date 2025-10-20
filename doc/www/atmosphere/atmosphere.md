@@ -1,5 +1,5 @@
 (ref_atmosphere)=
-# Atmosphere Overview
+# Atmosphere
 
 ```{toctree}
 :hidden:
@@ -177,7 +177,7 @@ inwp_cldcover
   (`&nwp_phy_nml`) 1:{material-regular}`settings;1em;pst-color-secondary` Diagnostic PDF 5: All or nothing scheme (grid-scale clouds)
 
 inwp_gscp
-  (`&nwp_phy_nml`) 1:{material-regular}`settings;1em;pst-color-secondary` Single moment 2:{material-regular}`settings;1em;pst-color-secondary` Single moment incl. graupel 4: Double moment 8: Warm spectral bin microphysics
+  (`&nwp_phy_nml`) 1:{material-regular}`settings;1em;pst-color-secondary` Single moment 2:{material-regular}`settings;1em;pst-color-secondary` Single moment incl. graupel 4: Double moment 8: Spectral bin microphysics
 
 inwp_convection
   (`&nwp_phy_nml`) 1:{material-regular}`settings;1em;pst-color-secondary` Tiedtke-Bechtold

@@ -9,23 +9,12 @@ This website contains a collection of ICON documentation including references to
 ```{toctree}
 :hidden:
 buildrun/buildrun_quickstart.md
-buildrun/buildrun_recommended/aes_configurations/bubble.md
-buildrun/buildrun_recommended/aes_configurations/nest.md
-buildrun/buildrun_recommended/aes_configurations/amip.md
-buildrun/buildrun_recommended/aes_configurations/coupled.md
-buildrun/buildrun_recommended/aes_configurations/aquaplanet.md
-buildrun/buildrun_recommended/aes_configurations/rce.md
-buildrun/buildrun_recommended/oes_configurations/omip.md
-
 tools/tools.md
-tools/ecflow-ecmwf.md
 atmosphere/atmosphere.md
 ocean/ocean.md
 waves/waves.md
 land/land.md
 infrastructure/infrastructure.md
-infrastructure/testing/system_tests.md
-infrastructure/testing/unit_testing.md
 literature/literature.md
 ```
 
@@ -69,15 +58,15 @@ Information on the changes are available in the {{ '[**Release Notes**]({}/RELEA
 :::{grid-item-card}
 [**Ocean**](ref_ocean_overview)
 ^^^
-[](ref_ocean_seaice)  
-[](ref_ocean_biogeochem)  
+[Sea-ice Model](ref_ocean_seaice)  
+[Ocean Biogeochemistry](ref_ocean_biogeochem)  
 :::
 
 :::{grid-item-card}
-[**Ocean surface waves**](ref_waves_overview)
+[**Waves**](ref_waves_overview)
 ^^^
-[](ref_waves_config)  
-[](ref_waves_output)
+[Configuration](ref_waves_config)  
+[Output Parameters](ref_waves_output)
 :::
 
 :::{grid-item-card}

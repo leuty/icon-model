@@ -1,5 +1,5 @@
 (ref_waves_overview)=
-# Ocean Surface Gravity Wave Model
+# Waves
 
 🌊 The ocean surface gravity wave model ICON-waves (Dobrynin et al., GMD, in preparation) is designed to explicitly model ocean surface gravity waves and their feedbacks on the atmosphere and ocean within the Earth system. ICON-waves is a joint effort led by the Deutscher Wetterdienst (DWD) with contributions from the Max Planck Institute for Meteorology (MPI-M), the German Climate Computing Center (DKRZ) and the Helmholz research center HEREON. Surface waves influence the sea surface state, generate turbulence, modify ocean currents, and affect air-sea exchanges of heat, matter, and momentum. ICON-waves addresses these processes by providing a wave-spectrum-dependent interface within the ICON framework. ICON-waves introduces two-way coupling through the coupler YAC (Yet Another Coupler), providing dynamic feedback of wave-induced processes to both the atmosphere and ocean (under development). The integration of ICON-waves into the ICON framework represents a significant advancement in modeling the complexity of atmosphere-ocean feedbacks, enabling more realistic simulations of atmosphere-ocean interactions and offers potential benefits for weather and climate prediction.
 

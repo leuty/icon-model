@@ -11,7 +11,7 @@ The tables summarize the most important tuning variables for the ICON model, and
 Please also keep in mind that the list is neither exhaustive, nor complete. There may well be further model parameters that are more suitable for individual applications.
 
 ## SSO tuning
-{material-regular}`warning;2em;pst-color-secondary` Tuning of the SSO and GWD parameters is dependent on the employed external paramters.
+{material-regular}`warning;2em;pst-color-secondary` Tuning of the SSO and GWD parameters is dependent on the employed external parameters.
 
 |Parameter     |  Description            |  Meaningful Range                                    |    Comment|
 |-----------|--------------|--------|-------|

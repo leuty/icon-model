@@ -1,5 +1,5 @@
 (ref_infrastructure)=
-# Infrastructure Overview
+# Infrastructure
 This page describe the main infrastructures of the icon model such as the parallelization and I/O.
 
 (ref_infrastructure_parallelization)=

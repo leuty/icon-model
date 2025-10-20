@@ -3,7 +3,7 @@
 ```
 
 (ref_buildrun_environments)=
-# Supported environments
+# Supported Environments
 
 (ref_buildrun_hardware)=
 ## Supported Hardware

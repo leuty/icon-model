@@ -1,3 +1,7 @@
+```{eval-rst}
+:orphan:
+```
+
 (ref_infrastructure_system_tests)=
 # System Tests
 
@@ -5,7 +9,7 @@
 
 ## ICON Development Checksuite
 
-The {{ '[ICON development checksuite](https://gitlab.dkrz.de/icon/icon-model/-/blob/release-2025.04-public/run/checksuite.icon-dev/icon-dev.checksuite)'.format(base_url) }} (`icon-dev.checksuite`) defines a set of generic system tests that can be applied to any ICON configuration/experiment. One or several of the checksuite flags (see definitions below) defined in the `check.<exp-name>` file indicates which of the system tests are applied to the experiment. `check.<exp-name>` may also be used to add specific input to the experiments. See a list of checksuite experiments {{ '[here]({}/run/checksuite.icon-dev)'.format(base_url) }}.
+The {{ '[ICON development checksuite]({}/run/checksuite.icon-dev/icon-dev.checksuite)'.format(base_url) }} (`icon-dev.checksuite`) defines a set of generic system tests that can be applied to any ICON configuration/experiment. One or several of the checksuite flags (see definitions below) defined in the `check.<exp-name>` file indicates which of the system tests are applied to the experiment. `check.<exp-name>` may also be used to add specific input to the experiments. See a list of checksuite experiments {{ '[here]({}/run/checksuite.icon-dev)'.format(base_url) }}.
 
 **Note:** Checksuite is only compatible with `make_runscripts`, but not with `mkexp` at the moment.
 

@@ -1,3 +1,7 @@
+```{eval-rst}
+:orphan:
+```
+
 (ref_buildrun_bubble)=
 # Bubble Configuration
 

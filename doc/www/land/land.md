@@ -1,5 +1,5 @@
 (ref_land)=
-# Land Modeling Overview
+# Land
 
 Land models are used with atmospheric circulation models or coupled Earth System Models
 in order to provide the lower boundary conditions to the atmosphere. As such, the exchange
