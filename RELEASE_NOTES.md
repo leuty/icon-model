@@ -1,5 +1,12 @@
 # Release notes for icon-2026.MM
 
+### ICON-Atmo
+
+AES Physics:
+
+- Correction of the roughness length computation over ocean in TMX
+
+
 ### Soil and Surface
 
 Climate: ICON-Land
