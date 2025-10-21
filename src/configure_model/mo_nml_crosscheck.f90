@@ -1071,9 +1071,6 @@ CONTAINS
       CALL finish(routine, "Coupled atm/wave runs are not available on GPU")
     END IF
 
-    IF ( is_coupled_to_ocean() ) THEN
-      CALL finish(routine, "Coupled atm/ocean runs are not available on GPU")
-    END IF
 #endif
 
   END SUBROUTINE coupled_crosscheck
