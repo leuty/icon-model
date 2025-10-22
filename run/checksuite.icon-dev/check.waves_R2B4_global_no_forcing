@@ -86,7 +86,7 @@ esac
 # 3. Launch the checksuite from run/
 #
 
-reference_dir=2025-10-21.icon-nwp.0a2151dee074
+reference_dir=2025-10-22.icon-nwp.bf96717671f5
 
 export REFERENCE=$icon_data_rootFolder/buildbot_data/ref/${reference_dir}/${builder}
 
