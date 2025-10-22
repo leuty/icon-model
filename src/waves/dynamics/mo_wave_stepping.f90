@@ -46,7 +46,7 @@ MODULE mo_wave_stepping
     &                                    impose_high_freq_tail, wave_stress, &
     &                                    mask_energy, compute_wave_number, compute_group_velocity, sdepth_lim, &
     &                                    calc_last_idx_depth
-  USE mo_wave_config,              ONLY: wave_config, generate_filename
+  USE mo_wave_config,              ONLY: wave_config
   USE mo_energy_propagation_config,ONLY: energy_propagation_config
   USE mo_wave_forcing,             ONLY: reader_wave_forcing
   USE mo_wave_events,              ONLY: waveCheckpointEvent, waveRestartEvent
@@ -95,7 +95,7 @@ CONTAINS
     INTEGER                  :: jstep_shift                 !< number of time steps for backward shifting
     LOGICAL                  :: lprint_timestep             !< print current datetime information
     LOGICAL                  :: lprint_wave_stats           !< print wave height information
-    INTEGER                  :: jg, jlev
+    INTEGER                  :: jg
     INTEGER                  :: ierrstat
     REAL(wp)                 :: dtime                       !< model time step in seconds
     TYPE(t_simulation_status):: simulation_status

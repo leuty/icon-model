@@ -38,7 +38,7 @@ MODULE mo_wave_init
   USE mo_intp_data_strc,       ONLY: t_int_state
   USE mo_wave_adv_exp,         ONLY: init_analytic_forcing
   USE mo_wave_td_update,       ONLY: update_water_depth_and_grad
-  USE mo_init_wave_physics,    ONLY: init_wave_spectrum, fetch_law, init_spectrum_from_file
+  USE mo_init_wave_physics,    ONLY: init_wave_spectrum_analytic, init_spectrum_from_file
   USE mo_load_restart,         ONLY: read_restart_files
 
   IMPLICIT NONE
@@ -166,23 +166,12 @@ CONTAINS
           ENDIF ! lread_forcing
         ENDIF
 
-        ! Initialisation of the wave spectrum
-        CALL fetch_law(                                          &
-          &     p_patch     = p_patch(jg),                       & !in
-          &     fetch       = wave_config(jg)%fetch,             & !in
-          &     fpmax       = wave_config(jg)%fm,                & !in
-          &     sp10m       = wave_forcing_state(jg)%sp10m(:,:), & !in
-          &     fp          = wave_state(jg)%diag%fp(:,:),       & !out
-          &     alphaj      = wave_state(jg)%diag%alphaj(:,:))     !out
-
-        ! Initialisation of the wave spectrum
-        CALL init_wave_spectrum(                                             &
+        ! Initialisation of the wave spectrum by the analytic 1D JONSWAP spectrum
+        CALL init_wave_spectrum_analytic(                                    &
           &     p_patch     = p_patch(jg),                                   & !in
           &     wave_config = wave_config(jg),                               & !in
+          &     sp10m       = wave_forcing_state(jg)%sp10m(:,:),             & !in
           &     dir10m      = wave_forcing_state(jg)%dir10m(:,:),            & !in
-          &     fp          = wave_state(jg)%diag%fp(:,:),                   & !in
-          &     alphaj      = wave_state(jg)%diag%alphaj(:,:),               & !in
-          &     et          = wave_state(jg)%diag%et(:,:,:),                 & !out  ! purely diagnostic
           &     tracer      = wave_state(jg)%prog(nnow(jg))%tracer(:,:,:,:))   !out
 
       CASE DEFAULT

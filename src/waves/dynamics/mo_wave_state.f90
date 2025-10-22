@@ -200,7 +200,7 @@ CONTAINS
 
     ! tracer        p_source%tracer(nproma,ndirs,nblks_c,nfreqs)
     tracer_container_name = 'tracer'//suffix
-    cf_desc    = t_cf_var('tracer', '', 'spectral bin of wave energy', datatype_flt)
+    cf_desc    = t_cf_var('tracer', 'm^2 s', 'spectral bin of wave energy', datatype_flt)
     grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
     CALL add_var( p_prog_list, tracer_container_name, p_prog%tracer,   &
          & GRID_UNSTRUCTURED_CELL, ZA_DIR_GENERIC, cf_desc, grib2_desc,&
@@ -397,9 +397,6 @@ CONTAINS
     &       p_diag%xkmean, &
     &       p_diag%swell_mask, &
     &       p_diag%last_prog_freq_ind, &
-    &       p_diag%ALPHAJ, &
-    &       p_diag%FP, &
-    &       p_diag%ET, &
     &       p_diag%flminfr_tab, &
     &       p_diag%ustar, &
     &       p_diag%z0, &
@@ -539,16 +536,18 @@ CONTAINS
          & lrestart=.FALSE., loutput=.TRUE.,                        &
          & ldims=shape2d_c, in_group=groups("wave_phy"))
 
-    cf_desc    = t_cf_var('hrms_frac', '-', 'square ratio (Hrms / Hmax)**2', datatype_flt)
+    cf_desc    = t_cf_var('hrms_frac', '-', 'square ratio (Hrms / Hmax)^2', datatype_flt)
     grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
-    CALL add_var(p_diag_list, 'hrms_frac', p_diag%hrms_frac,          &
+    CALL add_var(p_diag_list, 'hrms_frac', p_diag%hrms_frac,        &
          & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
+         & lrestart=.FALSE., loutput=.TRUE.,                        &
          & ldims=shape2d_c)
 
     cf_desc    = t_cf_var('wbr_frac', '-', 'fraction of breaking waves', datatype_flt)
     grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
     CALL add_var(p_diag_list, 'wbr_frac', p_diag%wbr_frac,          &
          & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
+         & lrestart=.FALSE., loutput=.TRUE.,                        &
          & ldims=shape2d_c, in_group=groups("wave_phy"))
 
     cf_desc    = t_cf_var('wave_num_c', '1/m', 'wave number at cell center', datatype_flt)
@@ -627,28 +626,7 @@ CONTAINS
          & lrestart=.FALSE., loutput=.TRUE.,                        &
          & ldims=shape2d_c, in_group=groups("wave_phy"))
 
-    cf_desc    = t_cf_var('ALPHAJ', '-', 'JONSWAP alpha', datatype_flt)
-    grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
-    CALL add_var(p_diag_list, 'ALPHAJ', p_diag%ALPHAJ,              &
-         & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
-         & lrestart=.TRUE., loutput=.TRUE.,                         &
-         & ldims=shape2d_c , in_group=groups("wave_phy"))
-
-    cf_desc    = t_cf_var('FP', 'Hz', 'JONSWAP peak frequency', datatype_flt)
-    grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
-    CALL add_var(p_diag_list, 'FP', p_diag%FP,                      &
-         & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
-         & lrestart=.TRUE., loutput=.TRUE.,                         &
-         & ldims=shape2d_c , in_group=groups("wave_phy"))
-
-    cf_desc    = t_cf_var('ET', '-', 'JONSWAP spectra', datatype_flt)
-    grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
-    CALL add_var(p_diag_list, 'ET', p_diag%ET,                           &
-         & GRID_UNSTRUCTURED_CELL, ZA_FREQ_GENERIC, cf_desc, grib2_desc, &
-         & lrestart=.FALSE., loutput=.TRUE.,                             &
-         & ldims=shape3d_freq_c)
-
-    cf_desc    = t_cf_var('flminfr_tab', 'm**2 Hz-1', 'minimum allowed energy level', datatype_flt)
+    cf_desc    = t_cf_var('flminfr_tab', 'm^2 Hz-1', 'minimum allowed energy level', datatype_flt)
     grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
     CALL add_var(p_diag_list, 'flminfr_tab', p_diag%flminfr_tab,          &
          & GRID_UNSTRUCTURED_CELL, ZA_FREQ_GENERIC, cf_desc, grib2_desc,  &
@@ -669,7 +647,7 @@ CONTAINS
          & lrestart=.FALSE., loutput=.TRUE.,                        &
          & ldims=shape2d_c , in_group=groups("wave_phy"))
 
-    cf_desc    = t_cf_var('wave_stress', '(m/s)**2', 'wave stress', datatype_flt)
+    cf_desc    = t_cf_var('wave_stress', '(m/s)^2', 'wave stress', datatype_flt)
     grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
     CALL add_var(p_diag_list, 'tauw', p_diag%tauw,                  &
          & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &

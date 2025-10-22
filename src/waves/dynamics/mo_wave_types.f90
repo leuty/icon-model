@@ -57,9 +57,6 @@ MODULE mo_wave_types
     REAL(wp), POINTER, CONTIGUOUS :: &
       &  gv_c(:,:,:),         & ! group velocity                    (nproma,nfreqs,nblks_c)  (m/s)
       &  gv_e(:,:,:),         & ! group velocity                    (nproma,nfreqs,nblks_e)  (m/s)
-      &  alphaj(:,:),         & ! jonswap alpha                     (nproma,nblks_c)         (-)
-      &  fp(:,:),             & ! jonswap peak frequency            (nproma,nblks_c)         (hz)
-      &  et(:,:,:),           & ! jonswap spectra                   (nproma,nfreqs,nblks_c)  (-)
       &  flminfr_tab(:,:),    & ! minimum value of energy for a given frequency and wind speed bin (jmax,nfreqs)
       &  f1mean(:,:),         & ! mean frequency based on f-moment  (nproma,nblks_c)
       &  wave_num_c(:,:,:),   & ! wave number at cell centers as a function of

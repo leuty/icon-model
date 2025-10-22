@@ -432,6 +432,7 @@ CONTAINS
 
   END SUBROUTINE src_wave_breaking
 
+
   !>
   !! Calculation of fraction of breaking waves
   !!
@@ -465,7 +466,7 @@ CONTAINS
     INTEGER :: jc,jb
 
     REAL(wp), PARAMETER :: gamd  = 0.8  !! Parameter of depth limited wave height
-    REAL(wp) :: frac_0(nproma) !Q0
+    REAL(wp) :: frac_0  !Q0
 
     i_rlstart  = 1
     i_rlend    = min_rlcell
@@ -480,27 +481,22 @@ CONTAINS
 
       ! calculation of BB (Hrms / Hmax)**2 BB = 8.*EMEAN/(GAMD*DEPTH)**2
       DO jc = i_startidx, i_endidx
+
         hrms_frac(jc,jb) = 8.0_wp * emean(jc,jb)/(gamd*depth_c(jc,jb))**2
-      END DO
 
-      ! initialisation of frac_0
-      DO jc = i_startidx, i_endidx
-        IF (hrms_frac(jc,jb)>=0.25_wp) THEN
-          frac_0(jc) = (2.0_wp * SQRT(hrms_frac(jc,jb))-1.0_wp )**2
-        ELSE
-          frac_0(jc) = 0.0_wp
-        END IF
-      END DO
-
-      DO jc = i_startidx, i_endidx
         IF (hrms_frac(jc,jb) < 1.0_wp) THEN
-          wbr_frac(jc,jb) = frac_0(jc) - &
-            & hrms_frac(jc,jb) * (frac_0(jc)-EXP((frac_0(jc)-1.0_wp)/hrms_frac(jc,jb))) / &
-            & (hrms_frac(jc,jb) - EXP((frac_0(jc)-1.0_wp)/hrms_frac(jc,jb)))
+          ! initialisation of frac_0
+          frac_0 = MERGE((2.0_wp * SQRT(hrms_frac(jc,jb))-1.0_wp )**2, &
+            &            0.0_wp,                                       &
+            &            hrms_frac(jc,jb)>=0.25_wp)
+
+          wbr_frac(jc,jb) = frac_0 - &
+            & hrms_frac(jc,jb) * (frac_0-EXP((frac_0-1.0_wp)/hrms_frac(jc,jb))) / &
+            & (hrms_frac(jc,jb) - EXP((frac_0-1.0_wp)/hrms_frac(jc,jb)))
         ELSE
           wbr_frac(jc,jb) = 1.0_wp
         END IF
-      END DO
+      ENDDO
     END DO
 !$OMP ENDDO NOWAIT
 !$OMP END PARALLEL
