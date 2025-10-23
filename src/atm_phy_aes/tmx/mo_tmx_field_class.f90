@@ -15,9 +15,8 @@ MODULE mo_tmx_field_class
 
   USE mo_kind, ONLY: wp
   USE mo_exception, ONLY: finish
-  USE mo_variable, ONLY: t_variable, allocate_variable
-  USE mo_variable_list, ONLY: t_variable_list, t_variable_item, variable_list_id
-
+  USE mo_tmx_var, ONLY: t_tmx_var
+  USE memman, ONLY: var_descriptor, add_var_dp, get_var_data
   ! Todo: refactor so that t_patch is not needed
   USE mo_model_domain      ,ONLY: t_patch
 
@@ -31,42 +30,26 @@ MODULE mo_tmx_field_class
   IMPLICIT NONE
   PRIVATE
 
-  PUBLIC :: t_tmx_field, t_tmx_field_list, &! bind_tmx_field, &
+  PUBLIC :: t_tmx_field, t_tmx_field_p, &! bind_tmx_field, &
     &       t_domain, isfc_oce, isfc_ice, isfc_lnd
 
-  TYPE, EXTENDS(t_variable) :: t_tmx_field
+  TYPE, EXTENDS(t_tmx_var) :: t_tmx_field
     INTEGER :: id = -1
-    INTEGER :: type = -1 ! Field type
-    ! PROCEDURE(i_convert), POINTER :: convert_field => NULL()
+    INTEGER :: diffusion_type = -1 ! Field type
+    INTEGER, ALLOCATABLE :: ref_idx(:)
   END TYPE t_tmx_field
 
-  ! ABSTRACT INTERFACE
-  !   SUBROUTINE i_convert(this, inputs)
-  !     IMPORT t_tmx_field, t_variable_list
-  !     CLASS(t_tmx_field), INTENT(in) :: this
-  !     CLASS(t_variable_list), INTENT(in) :: inputs
-  !   END SUBROUTINE
-  ! END INTERFACE
   INTERFACE t_tmx_field
     MODULE PROCEDURE t_tmx_field_constructor
   END INTERFACE
 
-  TYPE, EXTENDS(t_variable_list) :: t_tmx_field_list
-  CONTAINS
-    PROCEDURE :: search_field                  => t_tmx_field_list_search
-  END TYPE t_tmx_field_list
-
-  INTERFACE t_tmx_field_list
-    MODULE PROCEDURE t_tmx_field_list_constructor
-  END INTERFACE
-
-  ! INTERFACE bind_tmx_field
-  !   MODULE PROCEDURE bind_tmx_field_r2d
-  !   MODULE PROCEDURE bind_tmx_field_r3d
-  ! END INTERFACE
+  TYPE :: t_tmx_field_p
+    TYPE(t_tmx_field), POINTER :: p
+  END TYPE t_tmx_field_p
 
   TYPE t_domain
     INTEGER ::              &
+      & id,                 &
       & nlev = 0,           &
       & ntiles = 0,         &
       & nproma = 1,         &
@@ -103,113 +86,42 @@ MODULE mo_tmx_field_class
 
 CONTAINS
 
-  FUNCTION t_tmx_field_constructor(name, dims, type) RESULT(field)
+  FUNCTION t_tmx_field_constructor(name, type_id, dims, diffusion_type, var_desc, ref_pos, ref_idx) RESULT(field)
 
     CHARACTER(len=*), INTENT(in) :: name
+    CHARACTER(len=*), INTENT(in) :: type_id
     INTEGER,          INTENT(in) :: dims(:)
-    INTEGER,          INTENT(in) :: type
-    TYPE(t_tmx_field)            :: field
+    INTEGER,          INTENT(in) :: diffusion_type
+    TYPE(var_descriptor), INTENT(in) :: var_desc
+    INTEGER, OPTIONAL,    INTENT(in) :: ref_pos
+    INTEGER, OPTIONAL,    INTENT(in) :: ref_idx(:)
+    TYPE(t_tmx_field), POINTER   :: field
 
-    TYPE(t_variable) :: var
+    TYPE(t_tmx_var), POINTER :: var
 
-    var = t_variable(name, dims, "", type_id="real" )
-    field%name = var%name
-    field%units = var%units
-    field%type_id = var%type_id
-    field%dim = var%dim
-    field%dims = var%dims
-    field%l_opt = var%l_opt
+    CHARACTER(len=*), PARAMETER :: routine = modname//':t_tmx_field_constructor'
 
-    field%type = type
+    var => t_tmx_var(name, type_id, var_desc, dims=dims, ref_pos=ref_pos)
+    ALLOCATE(field)
+    field%t_tmx_var = var
+    CALL MOVE_ALLOC(var%dims, field%dims)
+    DEALLOCATE(var)
+
+    field%diffusion_type = diffusion_type
+
+    IF (PRESENT(ref_pos)) THEN
+      IF (ref_pos > field%rank) CALL finish(routine, name//' - ref_pos > rank')
+      field%ref_pos = ref_pos
+    END IF
+    IF (PRESENT(ref_idx)) THEN
+      IF (.NOT. PRESENT(ref_pos)) field%ref_pos = field%rank
+      IF (ANY(ref_idx > field%dims(field%ref_pos))) CALL finish(routine, name//' - ref_idx > dims(ref_pos)')
+      ALLOCATE(field%ref_idx(SIZE(ref_idx)))
+      field%ref_idx(:) = ref_idx(:)
+    END IF
+    IF (field%ref_pos > 0 .AND. field%ref_pos < field%rank) CALL finish(routine, name//' - ref_pos < rank currently not supported')
 
   END FUNCTION t_tmx_field_constructor
-
-  FUNCTION t_tmx_field_list_constructor(name) result(this_variable_list)
-
-    TYPE(t_tmx_field_list) :: this_variable_list
-
-    CHARACTER(len=*), INTENT(IN) :: name
-
-    variable_list_id                      = variable_list_id + 1
-    this_variable_list%variable_list_id   = variable_list_id
-    this_variable_list%variable_list_name = name
-
-    ALLOCATE(this_variable_list%variable_list)
-
-  END FUNCTION t_tmx_field_list_constructor
-
-  FUNCTION t_tmx_field_list_search(this, name) result(tv)
-    CLASS (t_tmx_field_list) :: this
-    CHARACTER(len=*), INTENT(IN) :: name
-    CLASS(t_tmx_field), POINTER :: tv
-
-    TYPE(t_variable_item), POINTER :: item
-    CLASS(*), POINTER :: variable
-
-    tv => NULL()
-
-    item => this%getFirstVariable()
-    DO WHILE ( (.NOT. item%is_item_equal_to_key(name)) .AND. ASSOCIATED(item) )
-      item => this%getNextVariable(item)
-      IF (.NOT. ASSOCIATED(item)) EXIT
-    ENDDO
-
-    IF (.NOT. ASSOCIATED(item)) RETURN
-
-    variable => item%item_value
-
-    SELECT TYPE (variable)
-      CLASS is (t_tmx_field)
-        tv => variable
-      CLASS DEFAULT
-        tv => NULL()
-    END SELECT
-
-  END FUNCTION t_tmx_field_list_search
-
-  ! SUBROUTINE bind_tmx_field_r2d( tv, v )
-  !   CLASS(t_tmx_field), POINTER :: tv
-  !   REAL(wp), POINTER :: v(:,:)
-  !   ! REAL(wp), TARGET, INTENT(in) :: v(:,:)
-  !   IF (tv%bound) THEN
-  !     PRINT *, "ERROR: ", TRIM(tv%name), " is already associated"
-  !   ELSE
-  !     tv%r2d => v
-  !     tv%bound = .true.
-  !   ENDIF
-  !   IF ( tv%dim /= 2 ) THEN
-  !     PRINT *, "ERROR: ", TRIM(tv%name), " is not two dimensional"
-  !   ENDIF
-  !   ! IF (.not. ASSOCIATED(v) ) THEN
-  !   !     PRINT *, "ERROR: ", TRIM(tv%name), " array not associated"
-  !   !   STOP
-  !   ! ENDIF
-  !   IF ( ANY(SHAPE(v) /= tv%dims(1:tv%dim)) ) THEN
-  !     PRINT *, "ERROR: ", TRIM(tv%name), " must have size ", tv%dims(1:tv%dim), " but has size ", SHAPE(v)
-  !   ENDIF
-  ! END SUBROUTINE bind_tmx_field_r2d
-
-  ! SUBROUTINE bind_tmx_field_r3d( tv, v )
-  !   CLASS(t_tmx_field), POINTER :: tv
-  !   REAL(wp), POINTER :: v(:,:,:)
-  !   ! REAL(wp), TARGET, INTENT(in) :: v(:,:,:)
-  !   IF (tv%bound) THEN
-  !     PRINT *, "ERROR: ", TRIM(tv%name), " is already associated"
-  !   ELSE
-  !     tv%r3d => v
-  !     tv%bound = .true.
-  !   ENDIF
-  !   IF ( tv%dim /= 3 ) THEN
-  !     PRINT *, "ERROR: ", TRIM(tv%name), " is not three dimensional"
-  !   ENDIF
-  !   ! IF (.not. ASSOCIATED(v) ) THEN
-  !   !     PRINT *, "ERROR: ", TRIM(tv%name), " array not associated"
-  !   !   STOP
-  !   ! ENDIF
-  !   IF ( ANY(SHAPE(v) /= tv%dims(1:tv%dim)) ) THEN
-  !     PRINT *, "ERROR: ", TRIM(tv%name), " must have size ", tv%dims(1:tv%dim), " but has size ", SHAPE(v)
-  !   ENDIF
-  ! END SUBROUTINE bind_tmx_field_r3d
 
   FUNCTION t_domain_constructor(patch, nproma, nlev, ntiles, sfc_types) RESULT(domain)
 
@@ -234,6 +146,7 @@ CONTAINS
 
     ALLOCATE(domain)
 
+    domain%id = patch%id
     domain%nproma = nproma
 
     domain%patch => patch

@@ -118,7 +118,6 @@ CONTAINS
     INTEGER :: msg_level     ! how much printout is generated during runtime
     LOGICAL :: msg_timestamp ! If .TRUE.: Precede output messages by time stamp.
 
-
     INTEGER :: test_mode  ! if =0 then run the standard version,
     ! otherwise special setup for (performance) tests, see Namelist_overview
     INTEGER :: debug_check_level

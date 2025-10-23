@@ -180,7 +180,7 @@ CONTAINS
     & loutput, lcontainer, lrestart, lrestart_cont, initval, isteptype,    &
     & resetval, lmiss, missval, tlev_source, vert_interp, hor_interp,      &
     & in_group, l_pp_scheduler_task, post_op, action_list, var_class,      &
-    & data_type, idx_tracer, idx_diag, lopenacc)
+    & data_type, idx_tracer, idx_diag, lmemman, lopenacc)
     TYPE(t_var_metadata), INTENT(INOUT) :: info
     INTEGER, INTENT(IN) :: ldims(:)
     CHARACTER(*), INTENT(IN), OPTIONAL :: name
@@ -189,7 +189,7 @@ CONTAINS
     TYPE(t_cf_var), INTENT(IN), OPTIONAL :: cf
     TYPE(t_grib2_var), INTENT(IN), OPTIONAL :: grib2
     LOGICAL, OPTIONAL, INTENT(IN) :: loutput, lcontainer, lrestart, lmiss, &
-      & lrestart_cont, in_group(:), lopenacc
+      & lrestart_cont, in_group(:), lmemman, lopenacc
     TYPE(t_union_vals), INTENT(IN), OPTIONAL :: initval, resetval, missval
     TYPE(t_vert_interp_meta),INTENT(IN), OPTIONAL :: vert_interp   ! vertical interpolation metadata
     TYPE(t_hor_interp_meta), INTENT(IN), OPTIONAL :: hor_interp    ! horizontal interpolation metadata
@@ -234,6 +234,7 @@ CONTAINS
     IF (PRESENT(idx_tracer))    info%idx_tracer    = idx_tracer
     IF (PRESENT(idx_diag))      info%idx_diag      = idx_diag
     IF (PRESENT(lopenacc))      info%lopenacc      = lopenacc
+    IF (PRESENT(lmemman))       info%lmemman       = lmemman
     ! perform consistency checks on variable's meta-data:
     CALL check_metadata_consistency()
   CONTAINS

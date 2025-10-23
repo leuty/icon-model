@@ -5,6 +5,7 @@
 AES Physics:
 
 - Correction of the roughness length computation over ocean in TMX
+- Use memory manager library for data management in TMX
 
 
 ### Soil and Surface
@@ -12,6 +13,10 @@ AES Physics:
 Climate: ICON-Land
 
 - Land initial files: Major update: 12 and 13 tile setups for jsbach and quincy (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1080)
+
+### Externals
+
+- Added Memory Manager library 1.0.0 as external in externals/memman
 
 # Release notes for icon-2025.10
 

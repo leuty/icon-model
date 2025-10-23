@@ -24,7 +24,6 @@ MODULE mo_tmx_numerics
   USE mo_tmx_process_class, ONLY: t_tmx_process
   USE mo_tmx_time_integration_class, ONLY: t_time_scheme
   USE mo_model_domain,      ONLY: t_patch
-  ! USE mo_variable_list, ONLY: t_variable_list
 
   IMPLICIT NONE
   PRIVATE

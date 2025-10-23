@@ -23,7 +23,7 @@ digraph ICON {
 			       "NetCDF-Fortran"; "RTE+RRTMGP"; "ECRAD"; "BLAS";
 			       "LAPACK"; "RTTOV"; "SCT"; "YAXT"; "ECCODES";
 			       "CDI"; "SERIALBOX"; "MTIME"; "YAC"; "ICON-TIXI";
-			       "COMIN"; "FORTRAN-SUPPORT"};
+			       "COMIN"; "FORTRAN-SUPPORT"; "MEMMAN"; };
 
 		"STDC++";
 
@@ -83,6 +83,9 @@ digraph ICON {
 		"COMIN" -> {"STDC++"};
 
 		"FORTRAN-SUPPORT" [shape=box; fillcolor="#47A1F1"];
+
+		"MEMMAN" [shape=box];
+		"MEMMAN" -> {"STDC++"; "CUDA"; "ROCm"};
 
 		"AEC / SZIP" [fillcolor="#DEF1D1"];
 		"AEC / SZIP";

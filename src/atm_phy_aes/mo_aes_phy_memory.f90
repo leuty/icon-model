@@ -69,7 +69,8 @@ MODULE mo_aes_phy_memory
   USE mo_sea_ice_nml,         ONLY: kice
   USE mo_run_config,          ONLY: iqv ,iqc ,iqi ,     &
     &                               iqr ,iqs ,iqg, iqh, &
-    &                               io3
+    &                               io3,                &
+    &                               lmemman
   USE mo_dynamics_config,     ONLY: nnew
   USE mo_advection_config,    ONLY: advection_config
 
@@ -1385,6 +1386,7 @@ CONTAINS
          &       cf_desc , grib2_desc                       , &
          &       lrestart = .FALSE.                         , &
          &       ldims=shape2d                              , &
+         &       lmemman=lmemman                            , &
          &       lopenacc=.TRUE.                            )
     __acc_attach(field%cosmu0)
 
@@ -1583,6 +1585,7 @@ CONTAINS
          &       cf_desc, grib2_desc                   , &
          &       lrestart = .FALSE.                    , &
          &       ldims=shape2d                         , &
+         &       lmemman=lmemman                       , &
          &       lopenacc=.TRUE.                       )
     __acc_attach(field%rsds)
 
@@ -1596,6 +1599,7 @@ CONTAINS
          &       cf_desc, grib2_desc                   , &
          &       lrestart = .FALSE.                    , &
          &       ldims=shape2d                         , &
+         &       lmemman=lmemman                       , &
          &       lopenacc=.TRUE.                       )
     __acc_attach(field%rsus)
 
@@ -1778,6 +1782,7 @@ CONTAINS
          &       cf_desc, grib2_desc                           , &
          &       lrestart = .FALSE.                            , &
          &       ldims=shape2d                                 , &
+         &       lmemman=lmemman                               , &
          &       lopenacc=.TRUE.                               )
     __acc_attach(field%rvds_dir)
 
@@ -1791,6 +1796,7 @@ CONTAINS
          &       cf_desc, grib2_desc                           , &
          &       lrestart = .FALSE.                            , &
          &       ldims=shape2d                                 , &
+         &       lmemman=lmemman                               , &
          &       lopenacc=.TRUE.                               )
     __acc_attach(field%rpds_dir)
 
@@ -1804,6 +1810,7 @@ CONTAINS
          &       cf_desc, grib2_desc                           , &
          &       lrestart = .FALSE.                            , &
          &       ldims=shape2d                                 , &
+         &       lmemman=lmemman                               , &
          &       lopenacc=.TRUE.                               )
     __acc_attach(field%rnds_dir)
 
@@ -1818,6 +1825,7 @@ CONTAINS
          &       cf_desc, grib2_desc                           , &
          &       lrestart = .FALSE.                            , &
          &       ldims=shape2d                                 , &
+         &       lmemman=lmemman                               , &
          &       lopenacc=.TRUE.                               )
     __acc_attach(field%rvds_dif)
 
@@ -1831,6 +1839,7 @@ CONTAINS
          &       cf_desc, grib2_desc                           , &
          &       lrestart = .FALSE.                            , &
          &       ldims=shape2d                                 , &
+         &       lmemman=lmemman                               , &
          &       lopenacc=.TRUE.                               )
     __acc_attach(field%rpds_dif)
 
@@ -1844,6 +1853,7 @@ CONTAINS
          &       cf_desc, grib2_desc                           , &
          &       lrestart = .FALSE.                            , &
          &       ldims=shape2d                                 , &
+         &       lmemman=lmemman                               , &
          &       lopenacc=.TRUE.                               )
     __acc_attach(field%rnds_dif)
 
@@ -2069,6 +2079,7 @@ CONTAINS
          &       cf_desc, grib2_desc                   , &
          &       lrestart = .FALSE.                    , &
          &       ldims=shape2d                         , &
+         &       lmemman=lmemman                       , &
          &       lopenacc=.TRUE.                       )
     __acc_attach(field%rlds)
 
@@ -2082,6 +2093,7 @@ CONTAINS
          &       cf_desc, grib2_desc                   , &
          &       lrestart = .FALSE.                    , &
          &       ldims=shape2d                         , &
+         &       lmemman=lmemman                       , &
          &       lopenacc=.TRUE.                       )
     __acc_attach(field%rlus)
 
@@ -2184,6 +2196,7 @@ CONTAINS
     CALL add_var( field_list, prefix//'ts_rad', field%ts_rad,              &
                 & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
                 & lrestart = .TRUE., ldims=shape2d,                        &
+                & lmemman=lmemman,                                         &
                 & lopenacc=.TRUE. )
     __acc_attach(field%ts_rad)
 
@@ -2235,6 +2248,7 @@ CONTAINS
     CALL add_var( field_list, prefix//'fco2ant', field%fco2ant,                &
                 & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,     &
                 & lrestart = .TRUE., initval =  0.0_wp, ldims=shape2d,         &
+                & lmemman=lmemman,                                             &
                 & lopenacc=.TRUE. )
     __acc_attach(field%fco2ant)
 
@@ -2245,6 +2259,7 @@ CONTAINS
     CALL add_var( field_list, prefix//'fco2nat', field%fco2nat,                &
                 & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,     &
                 & lrestart = .TRUE., initval =  0.0_wp, ldims=shape2d,         &
+                & lmemman=lmemman,                                             &
                 & lopenacc=.TRUE. )
     __acc_attach(field%fco2nat)
 
@@ -2257,6 +2272,7 @@ CONTAINS
                 & grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED,GRID_CELL),&
                 & ldims=shapesfc, initval=0.0_wp,                              &
                 & lcontainer=.TRUE., lrestart=.FALSE.,                         &
+                & lmemman=lmemman,                                             &
                 & lopenacc=.TRUE. )
     __acc_attach(field%co2_flux_tile)
 
@@ -2331,6 +2347,7 @@ CONTAINS
       &          t_cf_var('sit_icecl', 'm', 'ice thickness', datatype_flt),   &
       &          grib2_var(10,2,1, ibits, GRID_UNSTRUCTURED, GRID_CELL),      &
       &          ldims=shapeice, lrestart=.TRUE.,                             &
+      &          lmemman=lmemman,                                             &
       &          lopenacc=.TRUE.)
     __acc_attach(field%hi )
     CALL add_var( field_list, prefix//'hs_icecl', field%hs ,                  &
@@ -2338,6 +2355,7 @@ CONTAINS
       &          t_cf_var('hs_icecl', 'm', 'snow thickness', datatype_flt),   &
       &          grib2_var(10,2,255, ibits, GRID_UNSTRUCTURED, GRID_CELL),    &
       &          ldims=shapeice, lrestart=.TRUE.,                             &
+      &          lmemman=lmemman,                                             &
       &          lopenacc=.TRUE.)
     __acc_attach(field%hs )
     CALL add_var( field_list, prefix//'qtop_icecl', field%Qtop ,              &
@@ -2346,6 +2364,7 @@ CONTAINS
       &                   datatype_flt),                                      &
       &          grib2_var(10,2,255, ibits, GRID_UNSTRUCTURED, GRID_CELL),    &
       &          ldims=shapeice, lrestart=.FALSE.,                            &
+      &          lmemman=lmemman,                                             &
       &          lopenacc=.TRUE.)
     __acc_attach(field%Qtop )
     CALL add_var( field_list, prefix//'qbot_icecl', field%Qbot ,              &
@@ -2353,6 +2372,7 @@ CONTAINS
       &          t_cf_var('qbot_icecl', 'W/m^2', 'Energy flux at ice-ocean interface', datatype_flt),&
       &          grib2_var(10,2,255, ibits, GRID_UNSTRUCTURED, GRID_CELL),    &
       &          ldims=shapeice, lrestart=.FALSE.,                            &
+      &          lmemman=lmemman,                                             &
       &          lopenacc=.TRUE.)
     __acc_attach(field%Qbot )
 
@@ -2500,6 +2520,7 @@ CONTAINS
          &        ldims=shape2d,                                 &
          &        lrestart = .FALSE.,                            &
          &        isteptype=TSTEP_INSTANT,                       &
+         &        lmemman=lmemman,                               &
          &        lopenacc=.TRUE.)
     __acc_attach(field%ufts)
 
@@ -2512,6 +2533,7 @@ CONTAINS
          &        ldims=shape2d,                                 &
          &        lrestart = .FALSE.,                            &
          &        isteptype=TSTEP_INSTANT,                       &
+         &        lmemman=lmemman,                               &
          &        lopenacc=.TRUE.)
     __acc_attach(field%ufvs)
 
@@ -2539,6 +2561,7 @@ CONTAINS
          &        ldims=shape2d,                                 &
          &        lrestart = .TRUE.,                             &
          &        isteptype=TSTEP_INSTANT,                       &
+         &        lmemman=lmemman,                               &
          &        lopenacc=.TRUE.)
     __acc_attach(field%rsfl)
 
@@ -2551,6 +2574,7 @@ CONTAINS
          &        ldims=shape2d,                                 &
          &        lrestart = .TRUE.,                             &
          &        isteptype=TSTEP_INSTANT,                       &
+     &        lmemman=lmemman,                                   &
          &        lopenacc=.TRUE.)
     __acc_attach(field%ssfl)
 
@@ -2674,6 +2698,7 @@ CONTAINS
                 & vert_interp=create_vert_interp_metadata(                        &
                 &   vert_intp_type=vintp_types("P","Z","I"),                      &
                 &   vert_intp_method=VINTP_METHOD_LIN ),                          &
+                & lmemman=lmemman,                                                &
                 & lopenacc=.TRUE.)
 
     __acc_attach(field%cvair)
@@ -2813,6 +2838,7 @@ CONTAINS
                       & vert_interp=create_vert_interp_metadata(                        &
                       &   vert_intp_type=vintp_types("P","Z","I"),                      &
                       &   vert_intp_method=VINTP_METHOD_LIN ),                          &
+                      & lmemman=lmemman,                                                &
                       & lopenacc=.TRUE.)
           __acc_attach(field%q_vdf)
        END IF
@@ -2902,6 +2928,7 @@ CONTAINS
       CALL add_var( field_list, prefix//'cptgz', field%cptgz,                  &
                   & GRID_UNSTRUCTURED_CELL, ZA_REFERENCE, cf_desc, grib2_desc, &
                   & lrestart = .TRUE., initval = 1.e-4_wp, ldims=shape3d,      &
+                  & lmemman=lmemman,                                           &
                   & lopenacc=.TRUE.)
       __acc_attach(field%cptgz)
 
@@ -2916,6 +2943,7 @@ CONTAINS
                &        ldims=shape2d,                                               &
                &        lrestart = .FALSE.,                                          &
                &        isteptype=TSTEP_INSTANT,                                     &
+               &        lmemman=lmemman,                                             &
                &        lopenacc=.TRUE.)
           __acc_attach(field%cptgzvi)
       END IF
@@ -2958,6 +2986,7 @@ CONTAINS
                &        ldims=shape2d,                                               &
                &        lrestart = .FALSE.,                                          &
                &        isteptype=TSTEP_INSTANT,                                     &
+               &        lmemman=lmemman,                                             &
                &        lopenacc=.TRUE.)
           __acc_attach(field%utmxvi)
       END IF
@@ -2969,6 +2998,7 @@ CONTAINS
       CALL add_var( field_list, prefix//'cfm', field%cfm,                      &
            &        GRID_UNSTRUCTURED_CELL, ZA_REFERENCE, cf_desc, grib2_desc, &
            &        lrestart = .FALSE., ldims=shape3d,                         &
+           &        lmemman=lmemman,                                           &
            &        lopenacc=.TRUE.)
 
       __acc_attach(field%cfm)
@@ -2989,6 +3019,7 @@ CONTAINS
                      & grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED,GRID_CELL),&
                      & ldims=shapesfc, lmiss=.TRUE., missval=cdimissval,            &
                      & lcontainer=.TRUE., lrestart=.FALSE., loutput=.FALSE.,        &
+                     & lmemman=lmemman,                                             &
                      & lopenacc=.TRUE.)
          __acc_attach(field%cfm_tile)
          ALLOCATE(field%cfm_tile_ptr(ksfc_type))
@@ -3015,6 +3046,7 @@ CONTAINS
       CALL add_var( field_list, prefix//'cfh', field%cfh,                      &
                   & GRID_UNSTRUCTURED_CELL, ZA_REFERENCE, cf_desc, grib2_desc, &
                   & lrestart = .FALSE., ldims=shape3d,                         &
+                  & lmemman=lmemman,                                           &
                   & lopenacc=.TRUE.)
       __acc_attach(field%cfh)
       !END IF
@@ -3034,6 +3066,7 @@ CONTAINS
                      & grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED,GRID_CELL),&
                      & ldims=shapesfc, lmiss=.TRUE., missval=cdimissval,            &
                      & lcontainer=.TRUE., lrestart=.FALSE., loutput=.FALSE.,        &
+                     & lmemman=lmemman,                                             &
                      & lopenacc=.TRUE.)
          __acc_attach(field%cfh_tile)
          ALLOCATE(field%cfh_tile_ptr(ksfc_type))
@@ -3111,6 +3144,7 @@ CONTAINS
         CALL add_var( field_list, prefix//'z0m', field%z0m,                    &
                   & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
                   & lrestart = .FALSE., ldims=shape2d,                       &
+                  & lmemman=lmemman,                                         &
                   & lopenacc=.TRUE.)
         __acc_attach(field%z0m)
       END IF
@@ -3131,6 +3165,7 @@ CONTAINS
                     & grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED,GRID_CELL),           &
                     & ldims=shapesfc, lmiss=.TRUE., missval=cdimissval,                       &
                     & lcontainer=.TRUE., lrestart=.FALSE., loutput=.FALSE.,                   &
+                    & lmemman=lmemman,                                                        &
                     & lopenacc=.TRUE.)
         __acc_attach(field%z0m_tile)
       END IF
@@ -3158,6 +3193,7 @@ CONTAINS
           CALL add_var( field_list, prefix//'z0h', field%z0h,                    &
                       & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
                       & lrestart = .FALSE., ldims=shape2d,                       &
+                      & lmemman=lmemman,                                         &
                       & lopenacc=.TRUE.)
           __acc_attach(field%z0h)
         END IF
@@ -3178,6 +3214,7 @@ CONTAINS
                     & grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED,GRID_CELL),           &
                     & ldims=shapesfc, lmiss=.TRUE., missval=cdimissval,                       &
                     & lcontainer=.TRUE., lrestart=.FALSE., loutput=.FALSE.,                   &
+                    & lmemman=lmemman,                                                        &
                     & lopenacc=.TRUE.)
           __acc_attach(field%z0h_tile)
         END IF
@@ -3259,6 +3296,7 @@ CONTAINS
          CALL add_var( field_list, prefix//'kedisp', field%kedisp,                  &
                      & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,     &
                      & lrestart=.FALSE., ldims=shape2d,                             &
+                     & lmemman=lmemman,                                             &
                      & lopenacc=.TRUE.)
          __acc_attach(field%kedisp)
       END IF
@@ -3270,6 +3308,7 @@ CONTAINS
         &           GRID_UNSTRUCTURED_CELL, ZA_SURFACE,   &
         &           cf_desc, grib2_desc, ldims=shape2d,   &
         &           lrestart=.TRUE., initval=0._wp,       &
+        &           lmemman=lmemman,                      &
         &           lopenacc=.TRUE.)
       __acc_attach(field%ocu)
 
@@ -3280,6 +3319,7 @@ CONTAINS
         &           GRID_UNSTRUCTURED_CELL, ZA_SURFACE,   &
         &           cf_desc, grib2_desc, ldims=shape2d,   &
         &           lrestart=.TRUE., initval=0._wp,       &
+        &           lmemman=lmemman,                      &
         &           lopenacc=.TRUE.)
       __acc_attach(field%ocv)
 
@@ -3387,6 +3427,7 @@ CONTAINS
     CALL add_var( field_list, prefix//'ts', field%ts,                    &
               & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
               & lrestart=.TRUE., ldims=shape2d,                          &
+              & lmemman=lmemman,                                         &
               & lopenacc=.TRUE.)
     __acc_attach(field%ts)
 
@@ -3397,6 +3438,7 @@ CONTAINS
                 & grib2_var(0,0,0, ibits, GRID_UNSTRUCTURED, GRID_CELL),       &
                 & ldims=shapesfc, lmiss=.TRUE., missval=cdimissval,            &
                 & lcontainer=.TRUE., lrestart=.FALSE., loutput=.FALSE.,        &
+                & lmemman=lmemman,                                             &
                 & lopenacc=.TRUE.)
     __acc_attach(field%ts_tile)
 
@@ -3453,6 +3495,7 @@ CONTAINS
     CALL add_var( field_list, prefix//'albedo', field%albedo,              &
                 & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
                 & lrestart=.FALSE., ldims=shape2d,                         &
+                & lmemman=lmemman,                                         &
                 & lopenacc=.TRUE.)
     __acc_attach(field%albedo)
 
@@ -3462,6 +3505,7 @@ CONTAINS
     CALL add_var( field_list, prefix//'albvisdir', field%albvisdir,        &
                 & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
                 & lrestart=.TRUE., ldims=shape2d ,                         &
+                & lmemman=lmemman,                                         &
                 & lopenacc=.TRUE.)
     __acc_attach(field%albvisdir)
 
@@ -3471,6 +3515,7 @@ CONTAINS
     CALL add_var( field_list, prefix//'albvisdif', field%albvisdif,        &
                 & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
                 & lrestart=.TRUE., ldims=shape2d ,                         &
+                & lmemman=lmemman,                                         &
                 & lopenacc=.TRUE.)
     __acc_attach(field%albvisdif)
 
@@ -3480,6 +3525,7 @@ CONTAINS
     CALL add_var( field_list, prefix//'albnirdir', field%albnirdir,        &
                 & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
                 & lrestart=.TRUE., ldims=shape2d ,                         &
+                & lmemman=lmemman,                                         &
                 & lopenacc=.TRUE.)
     __acc_attach(field%albnirdir)
 
@@ -3489,6 +3535,7 @@ CONTAINS
     CALL add_var( field_list, prefix//'albnirdif', field%albnirdif,        &
                 & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
                 & lrestart=.TRUE., ldims=shape2d ,                         &
+                & lmemman=lmemman,                                         &
                 & lopenacc=.TRUE.)
     __acc_attach(field%albnirdif)
 
@@ -3499,6 +3546,7 @@ CONTAINS
                 & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,                &
                 & ldims=shapesfc, lmiss=.TRUE., missval=cdimissval,                       &
                 & lcontainer=.TRUE., lrestart=.FALSE.,                                    &
+                & loutput=.FALSE., lmemman=lmemman,                                       &
                 & lopenacc=.TRUE.)
     __acc_attach(field%albvisdir_tile)
 
@@ -3509,6 +3557,7 @@ CONTAINS
                 & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,                &
                 & ldims=shapesfc, lmiss=.TRUE., missval=cdimissval,                       &
                 & lcontainer=.TRUE., lrestart=.FALSE.,                                    &
+                & loutput=.FALSE., lmemman=lmemman,                                       &
                 & lopenacc=.TRUE.)
     __acc_attach(field%albvisdif_tile)
 
@@ -3519,6 +3568,7 @@ CONTAINS
                 & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,                &
                 & ldims=shapesfc, lmiss=.TRUE., missval=cdimissval,                       &
                 & lcontainer=.TRUE., lrestart=.FALSE.,                                    &
+                & loutput=.FALSE., lmemman=lmemman,                                       &
                 & lopenacc=.TRUE.)
     __acc_attach(field%albnirdir_tile)
 
@@ -3529,6 +3579,7 @@ CONTAINS
                 & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,                &
                 & ldims=shapesfc, lmiss=.TRUE., missval=cdimissval,                       &
                 & lcontainer=.TRUE., lrestart=.FALSE.,                                    &
+                & loutput=.FALSE., lmemman=lmemman,                                       &
                 & lopenacc=.TRUE.)
     __acc_attach(field%albnirdif_tile)
 
@@ -3539,6 +3590,7 @@ CONTAINS
                 & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,                &
                 & ldims=shapesfc, lmiss=.TRUE., missval=cdimissval,                       &
                 & lcontainer=.TRUE., lrestart=.FALSE.,                                    &
+                & loutput=.FALSE., lmemman=lmemman,                                       &
                 & lopenacc=.TRUE.)
     __acc_attach(field%albedo_tile)
 
@@ -3590,6 +3642,7 @@ CONTAINS
     CALL add_var( field_list, prefix//'emissivity', field%emissivity,      &
                 & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
                 & lrestart=.FALSE., ldims=shape2d,                         &
+                & lmemman=lmemman,                                         &
                 & lopenacc=.TRUE.)
     __acc_attach(field%emissivity)
 
@@ -3606,6 +3659,7 @@ CONTAINS
                 & ldims=shape2d,                                          &
                 & lrestart = .FALSE.,                                     &
                 & isteptype=TSTEP_INSTANT,                                &
+                & lmemman=lmemman,                                        &
                 & lopenacc=.TRUE.)
 
 
@@ -3619,6 +3673,7 @@ CONTAINS
                 & ldims=shape2d,                                          &
                 & lrestart = .FALSE.,                                     &
                 & isteptype=TSTEP_INSTANT,                                &
+                & lmemman=lmemman,                                        &
                 & lopenacc=.TRUE.)
 
     __acc_attach(field%lhflx)
@@ -3631,6 +3686,7 @@ CONTAINS
                 & ldims=shape2d,                                          &
                 & lrestart = .FALSE.,                                     &
                 & isteptype=TSTEP_INSTANT,                                &
+                & lmemman=lmemman,                                        &
                 & lopenacc=.TRUE.)
 
     __acc_attach(field%shflx)
@@ -3646,6 +3702,7 @@ CONTAINS
                 & grib2_var(0,4,9, ibits, GRID_UNSTRUCTURED, GRID_CELL),  &
                 & ldims=shapesfc, lmiss=.TRUE., missval=cdimissval,       &
                 & lcontainer=.TRUE., lrestart=.FALSE., loutput=.FALSE.,   &
+                & lmemman=lmemman,                                        &
                 & lopenacc=.TRUE.)
 
     __acc_attach(field%swflxsfc_tile)
@@ -3658,6 +3715,7 @@ CONTAINS
                 & grib2_var(0,5,5, ibits, GRID_UNSTRUCTURED, GRID_CELL),  &
                 & ldims=shapesfc, lmiss=.TRUE., missval=cdimissval,       &
                 & lcontainer=.TRUE., lrestart=.FALSE., loutput=.FALSE.,   &
+                & lmemman=lmemman,                                        &
                 & lopenacc=.TRUE.)
 
     __acc_attach(field%lwflxsfc_tile)
@@ -3669,6 +3727,7 @@ CONTAINS
                 & grib2_var(0,1,6, ibits, GRID_UNSTRUCTURED, GRID_CELL),  &
                 & ldims=shapesfc,                                         &
                 & lcontainer=.TRUE., lrestart=.FALSE., loutput=.FALSE.,   &
+                & lmemman=lmemman,                                        &
                 & lopenacc=.TRUE.)
 
     __acc_attach(field%evap_tile)
@@ -3680,6 +3739,7 @@ CONTAINS
                 & grib2_var(0,0,10, ibits, GRID_UNSTRUCTURED, GRID_CELL), &
                 & ldims=shapesfc, lmiss=.TRUE., missval=cdimissval,       &
                 & lcontainer=.TRUE., lrestart=.FALSE., loutput=.FALSE.,   &
+                & lmemman=lmemman,                                        &
                 & lopenacc=.TRUE.)
 
     __acc_attach(field%lhflx_tile)
@@ -3691,6 +3751,7 @@ CONTAINS
                 & grib2_var(0,0,11, ibits, GRID_UNSTRUCTURED, GRID_CELL), &
                 & ldims=shapesfc, lmiss=.TRUE., missval=cdimissval,       &
                 & lcontainer=.TRUE., lrestart=.FALSE., loutput=.FALSE.,   &
+                & lmemman=lmemman,                                        &
                 & lopenacc=.TRUE.)
 
     __acc_attach(field%shflx_tile)
@@ -3702,6 +3763,7 @@ CONTAINS
                 & grib2_var(255,255,255, ibits, GRID_UNSTRUCTURED, GRID_CELL), &
                 & ldims=shapesfc, lmiss=.TRUE., missval=cdimissval,       &
                 & lcontainer=.TRUE., lrestart=.FALSE., loutput=.FALSE.,   &
+                & lmemman=lmemman,                                        &
                 & lopenacc=.TRUE.)
 
     __acc_attach(field%frac_tile)
@@ -3785,6 +3847,7 @@ CONTAINS
                 & ldims=shape2d,                                                &
                 & lrestart = .FALSE.,                                           &
                 & isteptype=TSTEP_INSTANT,                                      &
+                & lmemman=lmemman,                                              &
                 & lopenacc=.TRUE.)
 
     __acc_attach(field%u_stress        )
@@ -3797,6 +3860,7 @@ CONTAINS
                 & ldims=shape2d,                                                &
                 & lrestart = .FALSE.,                                           &
                 & isteptype=TSTEP_INSTANT,                                      &
+                & lmemman=lmemman,                                              &
                 & lopenacc=.TRUE.)
 
     __acc_attach(field%v_stress)
@@ -3811,6 +3875,7 @@ CONTAINS
                 & grib2_var(0,2,17, ibits, GRID_UNSTRUCTURED, GRID_CELL),       &
                 & ldims=shapesfc, lmiss=.TRUE., missval=cdimissval,             &
                 & lcontainer=.TRUE., lrestart=.FALSE., loutput=.FALSE.,         &
+                & lmemman=lmemman,                                              &
                 & lopenacc=.TRUE.)
 
     __acc_attach(field%u_stress_tile)
@@ -3823,6 +3888,7 @@ CONTAINS
                 & grib2_var(0,2,18, ibits, GRID_UNSTRUCTURED, GRID_CELL),       &
                 & ldims=shapesfc, lmiss=.TRUE., missval=cdimissval,             &
                 & lcontainer=.TRUE., lrestart=.FALSE., loutput=.FALSE.,         &
+                & lmemman=lmemman,                                              &
                 & lopenacc=.TRUE.)
 
     __acc_attach(field%v_stress_tile)
@@ -3865,6 +3931,7 @@ CONTAINS
                 & ldims=shape2d,                                                &
                 & lrestart = .FALSE.,                                           &
                 & isteptype=TSTEP_INSTANT,                                      &
+                & lmemman=lmemman,                                              &
                 & lopenacc=.TRUE.)
 
     __acc_attach(field%sfcwind)
@@ -3877,6 +3944,7 @@ CONTAINS
                 & ldims=shape2d,                                                &
                 & lrestart = .FALSE.,                                           &
                 & isteptype=TSTEP_INSTANT,                                      &
+                & lmemman=lmemman,                                              &
                 & lopenacc=.TRUE.)
 
     __acc_attach(field%uas)
@@ -3889,6 +3957,7 @@ CONTAINS
                 & ldims=shape2d,                                                &
                 & lrestart = .FALSE.,                                           &
                 & isteptype=TSTEP_INSTANT,                                      &
+                & lmemman=lmemman,                                              &
                 & lopenacc=.TRUE.)
 
     __acc_attach(field%vas)
@@ -3901,6 +3970,7 @@ CONTAINS
                 & ldims=shape2d,                                                &
                 & lrestart = .FALSE.,                                           &
                 & isteptype=TSTEP_INSTANT,                                      &
+                & lmemman=lmemman,                                              &
                 & lopenacc=.TRUE.)
 
     __acc_attach(field%tas)
@@ -3913,6 +3983,7 @@ CONTAINS
                    & ldims=shape2d,                                            &
                    & lrestart = .FALSE.,                                       &
                    & isteptype=TSTEP_INSTANT,                                  &
+                   & lmemman=lmemman,                                          &
                    & lopenacc=.TRUE.)
     __acc_attach(field%qv2m)
 
@@ -3924,6 +3995,7 @@ CONTAINS
                    & ldims=shape2d,                                            &
                    & lrestart = .FALSE.,                                       &
                    & isteptype=TSTEP_INSTANT,                                  &
+                   & lmemman=lmemman,                                          &
                    & lopenacc=.TRUE.)
     __acc_attach(field%dew2)
 
@@ -3967,6 +4039,7 @@ CONTAINS
                 & ldims=shapesfc,                                               &
                 & lcontainer=.TRUE., lrestart=.FALSE.,                          &
                 & isteptype=TSTEP_INSTANT,                                      &
+                & lmemman=lmemman,                                              &
                 & lopenacc=.TRUE.)
 
     __acc_attach(field%sfcwind_tile)
@@ -3979,6 +4052,7 @@ CONTAINS
                 & ldims=shapesfc,                                               &
                 & lcontainer=.TRUE., lrestart=.FALSE.,                          &
                 & isteptype=TSTEP_INSTANT,                                      &
+                & lmemman=lmemman,                                              &
                 & lopenacc=.TRUE.)
 
     __acc_attach(field%uas_tile)
@@ -3991,6 +4065,7 @@ CONTAINS
                 & ldims=shapesfc,                                               &
                 & lcontainer=.TRUE., lrestart=.FALSE.,                          &
                 & isteptype=TSTEP_INSTANT,                                      &
+                & lmemman=lmemman,                                              &
                 & lopenacc=.TRUE.)
 
     __acc_attach(field%vas_tile)
@@ -4003,6 +4078,7 @@ CONTAINS
                 & ldims=shapesfc,                                               &
                 & lcontainer=.TRUE., lrestart=.FALSE.,                          &
                 & isteptype=TSTEP_INSTANT,                                      &
+                & lmemman=lmemman,                                              &
                 & lopenacc=.TRUE.)
 
     __acc_attach(field%tas_tile)
@@ -4015,6 +4091,7 @@ CONTAINS
                    & ldims=shapesfc,                                           &
                    & lcontainer=.TRUE., lrestart=.FALSE.,                      &
                    & isteptype=TSTEP_INSTANT,                                  &
+                   & lmemman=lmemman,                                          &
                    & lopenacc=.TRUE.)
     __acc_attach(field%qv2m_tile)
 
@@ -4026,6 +4103,7 @@ CONTAINS
                    & ldims=shapesfc,                                           &
                    & lcontainer=.TRUE., lrestart=.FALSE.,                      &
                    & isteptype=TSTEP_INSTANT,                                  &
+                   & lmemman=lmemman,                                          &
                    & lopenacc=.TRUE.)
     __acc_attach(field%dew2_tile)
 
@@ -4823,6 +4901,7 @@ CONTAINS
             &       ldims=[kproma,kblks],                                        &
             &       lrestart = .FALSE.,                                          &
             &       isteptype=TSTEP_INSTANT,                                     &
+            &       lmemman=lmemman,                                             &
             &       lopenacc=.TRUE.)
       __acc_attach(tend%utmxvi)
     END IF

@@ -18,6 +18,9 @@ MODULE mo_var
   USE mo_impl_constants,     ONLY: REAL_T, SINGLE_T, BOOL_T, INT_T, &
     &                              STR_HINTP_TYPE
   USE mo_var_groups,         ONLY: var_groups_dyn
+#ifndef __NO_AES__
+  USE memman,                ONLY: var_descriptor
+#endif
 
   IMPLICIT NONE
   PRIVATE
@@ -51,6 +54,9 @@ MODULE mo_var
     TYPE(t_var_metadata)         :: info               ! meta data for this entry
     TYPE(t_var_metadata_dynamic) :: info_dyn           ! dynamic meta data for this entry (see type description)
     TYPE(t_var), POINTER :: ref_to => NULL()
+#ifndef __NO_AES__
+    TYPE(var_descriptor) :: mm_var_desc
+#endif
   CONTAINS
     PROCEDURE :: print_short => var__print_short
     PROCEDURE :: print_rigorous => var__print_rigorous

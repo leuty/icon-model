@@ -33,6 +33,7 @@ MODULE mo_run_config
   PUBLIC :: radarnmlfile
   PUBLIC :: lvert_nest, num_lev, nshift, nsteps, dtime
   PUBLIC :: ltimer, timers_level, activate_sync_timers, msg_level
+  PUBLIC :: lmemman
   PUBLIC :: iqv, iqc, iqi, iqs, iqr, nqtendphy, iqt, ico2, ich4, in2o, io3
   PUBLIC :: iqni, iqg, iqm_max
   PUBLIC :: iqh, iqnh, iqnr, iqns, iqng, iqnc, inccn, ininpot, ininact, iqgl, iqhl
@@ -90,6 +91,8 @@ MODULE mo_run_config
     INTEGER :: msg_level       !< how much printout is generated during runtime
     LOGICAL :: logmaxrss
     LOGICAL :: logmaxrss_all
+
+    LOGICAL :: lmemman = .FALSE. !< switch for using memory manager; will later be enabled if needed
 
 
     !> output mode (string)
@@ -192,7 +195,6 @@ CONTAINS
   SUBROUTINE configure_run( )
 
     CHARACTER(LEN=*),PARAMETER :: routine = 'mo_run_config:configure_run'
-
 
     !----------------------------
     ! Number of vertical levels
