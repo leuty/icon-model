@@ -36,6 +36,8 @@ licenses:
       ) 2>&1
       icon_ci_log_section_end
   rules:
+    - if: $CI_PROJECT_PATH == "icon/icon-model"
+      when: never
     - if: $CI_PIPELINE_SOURCE == "web"
       when: manual
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
@@ -77,6 +79,8 @@ style:coding:
     when: on_failure
     expire_in: 1 day
   rules:
+    - if: $CI_PROJECT_PATH == "icon/icon-model"
+      when: never
     - if: $CI_PIPELINE_SOURCE == "web"
       when: manual
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
@@ -112,6 +116,8 @@ style:general:
       ) 2>&1
       icon_ci_log_section_end
   rules:
+    - if: $CI_PROJECT_PATH == "icon/icon-model"
+      when: never
     - if: $CI_PIPELINE_SOURCE == "web"
       when: manual
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
@@ -186,6 +192,8 @@ autoconf:
     when: on_failure
     expire_in: 1 day
   rules:
+    - if: $CI_PROJECT_PATH == "icon/icon-model"
+      when: never
     - if: $CI_PIPELINE_SOURCE == "web"
       when: manual
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
@@ -236,6 +244,8 @@ iconbot:
     # A random runner with Python3 and PIP:
     - sphinx
   rules:
+    - if: $CI_PROJECT_PATH == "icon/icon-model"
+      when: never
     - if: $CI_PIPELINE_SOURCE == "web"
       when: manual
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
@@ -256,6 +266,8 @@ doc:namelist:
   tags:
     - latex
   rules:
+    - if: $CI_PROJECT_PATH == "icon/icon-model"
+      when: never
     - if: $CI_PIPELINE_SOURCE == "web"
       when: manual
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
@@ -263,14 +275,16 @@ doc:namelist:
         - doc/Namelist_overview/*.tex
 
 doc:html:check:
-  extends: .common:html
   stage: basic
+  extends: .common:html
   environment:
     name: review/${CI_COMMIT_REF_SLUG}
     url: ${ICON_CI_COMMON_HTML_ARTIFACT_URL}
   artifacts:
     expire_in: 1 week
   rules:
+    - if: $CI_PROJECT_PATH == "icon/icon-model"
+      when: never
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
       when: never
     - if: $CI_PIPELINE_SOURCE == "web"
@@ -283,12 +297,14 @@ doc:html:check:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes: !reference [.common:html, rules, changes]
 
-doc:html:publish:
-  extends: .common:html
+doc:html:publish:pages:
   stage: basic
+  extends: .common:html
   pages:
     publish: ${ICON_CI_COMMON_HTML_OUTPUT_REL_PATH}
   rules:
+    - if: $CI_PROJECT_PATH == "icon/icon-model"
+      when: never
     - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
       when: never
     - if: $CI_PIPELINE_SOURCE == "web"
@@ -296,3 +312,28 @@ doc:html:publish:
     - if: $CI_PIPELINE_SOURCE == "push"
       changes: !reference [.common:html, rules, changes]
   manual_confirmation: This job updates the GitLab Pages of the current project
+
+doc:html:publish:osr:
+  stage: basic
+  extends: .common:html
+  before_script:
+    - ICON_CI_UTILS_APK_PACKAGES="${ICON_CI_UTILS_APK_PACKAGES} rsync"
+    - !reference [.common:html, before_script]
+  script:
+    - !reference [.common:html, script]
+    - chmod 600 "${DEPLOY_KEY}"
+    - >-
+      rsync --delete --devices --group --links --recursive --specials
+      --rsh="ssh -i '${DEPLOY_KEY}' -o 'UserKnownHostsFile=${DEPLOY_HOST_KEYS}'"
+      "${ICON_CI_COMMON_HTML_OUTPUT_REL_PATH}/"
+      "${DEPLOY_USER}@${DEPLOY_HOST}:/var/www/${DEPLOY_USER}"
+  interruptible: false
+  rules:
+    - if: >-
+        $CI_PROJECT_PATH == "icon/icon-model" &&
+          ( $CI_PIPELINE_SOURCE == "push" || $CI_PIPELINE_SOURCE == "web" ) &&
+          $CI_COMMIT_TAG && $CI_COMMIT_REF_PROTECTED == "true" &&
+          $CI_COMMIT_REF_NAME =~ "/icon-.*-public/"
+      when: manual
+  manual_confirmation: >-
+    This job updates the open-source release documentation at https://docs.icon-model.org

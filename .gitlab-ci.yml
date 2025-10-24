@@ -10,8 +10,6 @@
 
 workflow:
   rules:
-    - if: $CI_PROJECT_PATH == "icon/icon-model"
-      when: never
     - if: $CI_PIPELINE_SOURCE == "push"
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_PIPELINE_SOURCE == "web" || $CI_PIPELINE_SOURCE == "schedule"
@@ -33,6 +31,8 @@ include:
   - local: .gitlab/ci/basic.yml
   - local: .gitlab/ci/unit/ragnarok.yml
     rules:
+      - if: $CI_PROJECT_PATH == "icon/icon-model"
+        when: never
       - if: $CI_PIPELINE_SOURCE == "web"
       - if: $CI_PIPELINE_SOURCE == "merge_request_event"
         changes:
@@ -40,6 +40,8 @@ include:
           - ragnarok/**/*
   - local: .gitlab/ci/functional/nwp-microphysics.yml
     rules:
+      - if: $CI_PROJECT_PATH == "icon/icon-model"
+        when: never
       - if: $CI_PIPELINE_SOURCE == "web"
       - if: $CI_PIPELINE_SOURCE == "merge_request_event"
         changes:
@@ -59,8 +61,14 @@ include:
           - src/shared/mo_impl_constants_grf.f90
           - test/microphysics_1mom_schemes/**/*
   - local: .gitlab/ci/system.yml
+    rules:
+      - if: $CI_PROJECT_PATH == "icon/icon-model"
+        when: never
+      - when: always
   - local: .gitlab/ci/cscs/santis.yml
     rules:
+      - if: $CI_PROJECT_PATH == "icon/icon-model"
+        when: never
       - if: $CI_PIPELINE_SOURCE == "web"
       - if: $CI_PIPELINE_SOURCE == "schedule"
       - if: $CI_PIPELINE_SOURCE == "merge_request_event"
