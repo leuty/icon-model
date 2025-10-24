@@ -41,7 +41,7 @@
 	url = ../../esmenv/mkexp.git
 [submodule "externals/art"]
 	path = externals/art
-	url = ../../art/art.git
+	url = ../../art-public/art.git
 [submodule "externals/ppm"]
 	path = externals/ppm
 	url = ../../dkrz-sw/ppm.git
