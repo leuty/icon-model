@@ -217,7 +217,6 @@ add_required_file ${thisdir}/coupling_${EXPNAME}.yaml         ./coupling.yaml
 # output_<xyz>=yes : yes --> output files for <xyz>, any other value --> no files for <xyz>
 
 output_atm_vgrid=no         # produces 1 file, but only once
-output_atm_2d_hiopy=yes      # produces 3 files (15M, 3H, 1D)
 output_atm_fluxes=yes
 output_atm_minmax=no        # produces 2 files
 output_atm_3d=no            # produces 4 files
@@ -516,29 +515,6 @@ if [[ "$output_atm_vgrid" == "yes" ]]; then
 EOF
 fi
 #
-if [[ "$output_atm_2d_hiopy" == "yes" ]]; then
-  #
-  cat >> ${atmo_namelist} << EOF
-&output_nml
- output_filename  = "${EXPNAME}_atm_2d_ml"
- filename_format  = "<output_filename>_<datetime2>_DOM<physdom>"
- filetype         = 5
- mode             = 1
- output_start     = "${start_date}"
- output_end       = "${end_date}"
- output_interval  = "$output_interval"
- file_interval    = "${atm_file_interval}"
-! operation        = 'mean'
- output_grid      = .TRUE.
- ml_varlist       = 'clivi', 'cllvi', 'qv2m',
-                    'pr_grpl', 'pres_msl', 'prw',
-                    'qgvi', 'qrvi', 'qsvi', 'rlut',
-                    'rsds', 'rsus','rsut', 'rsutcs', 'rlutcs',
-                    'sic', 'sit', 'tas',
-                    'uas', 'vas',
-/
-EOF
-fi
 
 if [[ "$output_atm_fluxes" == "yes" ]]; then
   #

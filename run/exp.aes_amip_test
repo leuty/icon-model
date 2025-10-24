@@ -144,23 +144,12 @@ atm_file_interval="PT40S"
 # ---------------------
 
 # output_<xyz>=yes : yes --> output files for <xyz>, any other value --> no files for <xyz>
-# set output_atm_2/3d_hiopy=yes if you want to generate data as in coupled runs and 3D data on 26 levels only
 
 output_atm_vgrid=no              # produces 1 file, but only once
-output_atm_2d_hiopy=no            # produces 3 files (15M, 3H, 1D)
-output_atm_3d_hiopy=no            # produces 4 files
 output_atm_gmean=no               # produces 2 files
 output_atm_qp=yes                 # produces 2 file,  for quickplots, daily means
 
-output_atm_2d_P1D=.FALSE.
-if [[ "$output_atm_2d_hiopy" == "yes" ]]; then
-        output_atm_2d_P1D=.TRUE.
-elif [[ "$output_atm_qp" == "yes" ]]; then
-        output_atm_2d_P1D=.TRUE.
-fi
 #
-# for hiopy-outputfiles
-m_levels='14,21,25,29,31,35,38,41,46,51,55,58,63,67,71,74,76,78,80,81,83,84,85,87,89,90'
 
 # asynchronous diagnostic output processes
 # ----------------------------------------
@@ -523,43 +512,25 @@ if [[ "$output_atm_vgrid" == "yes" ]]; then
 EOF
 fi
 #
-if [[ "$output_atm_2d_hiopy" == "yes" ]]; then
+
+#
+# output for quickplots
+#
+if [[ "$output_atm_qp" == "yes" ]]; then
   #
   cat >> ${atmo_namelist} << EOF
 &output_nml
- output_filename  = "${EXPNAME}_atm_2d_PT20M_ml"
+ output_filename  = "${EXPNAME}_atm_3d_qp_ml"
  filename_format  = "<output_filename>_<datetime2>"
  filetype         = 5
  mode             = 1
  output_start     = "${start_date}"
  output_end       = "${end_date}"
- output_interval  = "PT20M" !
- file_interval    = "${atm_file_interval}"    !     the file interval
  operation        = 'mean'
- ml_varlist       = 'pr', 'qv2m', 'rlut', 'rsds', 'sfcwind', 'tas'
-/
-&output_nml
- output_filename  = "${EXPNAME}_atm_2d_PT3H_ml"
- filename_format  = "<output_filename>_<datetime2>"
- filetype         = 5
- mode             = 1
- output_start     = "${start_date}"
- output_end       = "${end_date}"
- output_interval  = "PT3H" !
+ output_interval  = "${atm_output_interval_3d}" !     the output interval and
  file_interval    = "${atm_file_interval}"    !     the file interval
- operation        = 'mean'
- ml_varlist       = 'clivi', 'cllvi', 'qv2m', 'hfls', 'hfss', 'pr',
-                    'pres_msl', 'pres_sfc', 'prls', 'prw',
-                    'qgvi', 'qrvi', 'qsvi', 'rlds','rlus', 'rlut',
-                    'rsds', 'rsdt', 'rsus','rsut', 'sfcwind',
-                    'sic', 'sit', 'tas','tauu', 'tauv', 'ts',
-                    'uas', 'vas',
+ ml_varlist       = 'ta', 'ua', 'va', 'hus'
 /
-EOF
-fi
-if [[ $output_atm_2d_P1D ]]; then
-  #
-  cat >> ${atmo_namelist} << EOF
 &output_nml
  output_filename  = "${EXPNAME}_atm_2d_P1D_ml"
  filename_format  = "<output_filename>_<datetime2>"
@@ -584,67 +555,10 @@ if [[ $output_atm_2d_P1D ]]; then
                     'pres_msl', 'pres_sfc',
 /
 EOF
+# end quickplot-output
 fi
 #
-if [[ "$output_atm_3d_hiopy" == "yes" ]]; then
-  #
-  # Daily files for 3d
-  #
-  cat >> ${atmo_namelist} << EOF
-&output_nml
- output_filename  = "${EXPNAME}_atm_3d_P1D_1"
- filename_format  = "<output_filename>_<datetime2>"
- filetype         = 5
- mode             = 1
- output_start     = "${start_date}"
- output_end       = "${end_date}"
- operation        = 'mean'
- output_interval  = "${atm_output_interval_3d}" !     the output interval and
- file_interval    = "P1D"    !     the file interval
- ml_varlist       = 'wa', 'ua', 'va', 'rho'
- m_levels         = "${m_levels}"
-/
-&output_nml
- output_filename  = "${EXPNAME}_atm_3d_P1D_2"
- filename_format  = "<output_filename>_<datetime2>"
- filetype         = 5
- mode             = 1
- output_start     = "${start_date}"
- output_end       = "${end_date}"
- operation        = 'mean'
- output_interval  = "${atm_output_interval_3d}" !     the output interval and
- file_interval    = "P1D"    !     the file interval
- ml_varlist       = 'hus', 'clw', 'cli',
- m_levels         = "${m_levels}"
-/
-&output_nml
- output_filename  = "${EXPNAME}_atm_3d_P1D_3"
- filename_format  = "<output_filename>_<datetime2>"
- filetype         = 5
- mode             = 1
- output_start     = "${start_date}"
- output_end       = "${end_date}"
- operation        = 'mean'
- output_interval  = "${atm_output_interval_3d}" !     the output interval and
- file_interval    = "P1D"    !     the file interval
- ml_varlist       = 'qg', 'qr', 'qs',
- m_levels         = "${m_levels}"
-/
-&output_nml
- output_filename  = "${EXPNAME}_atm_3d_P1D_4"
- filename_format  = "<output_filename>_<datetime2>"
- filetype         = 5
- mode             = 1
- output_start     = "${start_date}"
- output_end       = "${end_date}"
- operation        = 'mean'
- output_interval  = "${atm_output_interval_3d}" !     the output interval and
- file_interval    = "P1D"    !     the file interval
- ml_varlist       = 'ta', 'pfull', 'phalf'
- m_levels         = "${m_levels}"
-/
-EOF
-fi
+
 #
 if [[ "$output_atm_gmean" == "yes" ]]; then
   #
@@ -680,27 +594,6 @@ if [[ "$output_atm_gmean" == "yes" ]]; then
  ml_varlist       = 'group:jsb_mon'
 /
 EOF
-fi
-#
-# output for quickplots
-#
-if [[ "$output_atm_qp" == "yes" ]]; then
-  #
-  cat >> ${atmo_namelist} << EOF
-&output_nml
- output_filename  = "${EXPNAME}_atm_3d_qp_ml"
- filename_format  = "<output_filename>_<datetime2>"
- filetype         = 5
- mode             = 1
- output_start     = "${start_date}"
- output_end       = "${end_date}"
- operation        = 'mean'
- output_interval  = "${atm_output_interval_3d}" !     the output interval and
- file_interval    = "${atm_file_interval}"    !     the file interval
- ml_varlist       = 'ta', 'ua', 'va', 'hus'
-/
-EOF
-# end quickplot-output
 fi
 
 #
