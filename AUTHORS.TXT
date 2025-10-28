@@ -1,5 +1,6 @@
 # ICON AUTHORS
 
+# INDIVIDUAL CONTRIBUTORS
 Abishek Gopal
 Achim Randelhoff
 Alberto de Lozar
@@ -12,6 +13,7 @@ Andrea Schneidereit
 Andreas Baer
 Andreas Jocksch
 Andreas Pfeiffer
+Angel Peinado
 Anika Rohde
 Anja Stieren
 Anne Roches
@@ -23,17 +25,20 @@ Astrid Kerkweg
 Avetik Hayrapetyan
 Axel Seifert
 Bastian Kern
+Benjamin Rodenberg
 Bjorn Stevens
 Bo Liu
 Bodo Ritter
 Burkhardt Rockel
-Carmen Köhler
+Carmen Koehler
 Carolin Mehlmann
 Carolin Walter
+Cathy Hohenegger
 Christine Sgoff
 Christoph Gebhardt
 Christoph Heinze
-Christoph Müller
+Christoph Mueller
+Christopher Higgins
 Christopher Moseley
 Christopher Purr
 Claudia Frauen
@@ -41,7 +46,7 @@ Constantin Junk
 Corina Keller
 Daniel Hupp
 Daniel Klocke
-Daniel Krüger
+Daniel Krueger
 Daniel Leuenberger
 Daniel Reinert
 Daniel Rieger
@@ -67,7 +72,7 @@ Ernst Maier-Reimer
 Evgenii Churiulin
 Fabian Gessler
 Fatemeh Chegini
-Felix Köhler
+Felix Koehler
 Felix Pithan
 Florian Prill
 Florian Ziemen
@@ -76,19 +81,21 @@ Gabriel Vollenweider
 Georgiana Mania
 Georgii Nerobelov
 Gerd Vogel
-Gergely Bölöni
+Gergely Boeloeni
 Giacomo Serafini
+Guang Zeng
+Guenther Doms
+Guenther Zaengl
 Guidi Zhou
 Guido Cioni
-Guido Schröder
+Guido Schroeder
 Guillaume Van Parys
 Gustavo Hime
 Guy Brasseur
 Guy de Morsier
-Günther Doms
-Günther Zängl
 Hanna Paulsen
 Hannah-Theresa Gaenslen
+Hans Segura
 Harald Anlauf
 Harald Braun
 Harald Rybka
@@ -106,31 +113,33 @@ Hermann Asensio
 Hernan Campos
 Hideki Ninomiya
 Hui Wan
-Inge Bischoff-Gauß
+Inge Bischoff-Gauss
 Ingo Kirchner
 Irene Stemmler
 Ivan Bastak Duran
+Jacob Shpund
 Jairo Segura
 Jan Ackmann
 Jan Engel
 Jan Frederik Engels
 Jan-Niklas Welss
 Jan-Peter Schulz
-Jennifer Buchmüller
+Jennifer Buchmueller
 Jens-Olaf Beismann
 Jochem Marotzke
-Jochen Förstner
+Jochen Foerstner
 Joeran Maerz
+Joerg Behrens
+Johannes Riebold
 Jonas Jucker
 Jonas Straub
 Josiane Salameh
+Juergen Helmert
 Julia Bruckert
 Julia Duras
 Julia Nabel
 Junhong Lee
 Jussi Enkovaara
-Jörg Behrens
-Jürgen Helmert
 Kai Logemann
 Karl-Hermann Wieners
 Karolina Slominska-Durdasiak
@@ -140,19 +149,21 @@ Kay Schaefer
 Kerstin Hartung
 Khompat Satitkovitchai
 Klaus Stephan
-Kristina Fröhlich
+Kristina Froehlich
 Kristina Lundgren
 Lennart Ramme
 Leonidas Linardakis
 Levi Silvers
 Linda Schlemmer
+Lisa Muth
 Luca Bunaventura
 Luis Kornblueh
 Lukas Jansing
 Lukas Kluft
+Lukas Strebel
 Mahnoosh Haghighatnasab
 Maike Ahlgrimm
-Manoel Römmer
+Manoel Roemmer
 Marco Giorgetta
 Marco Wurth
 Mareike Burba
@@ -160,22 +171,23 @@ Marek Jacob
 Maria Pilar Ripodas
 Mariano Mertens
 Martin Charron
-Martin Köhler
+Martin Koehler
 Martin Sprengel
 Matthias Brueck
 Matthias Raschendorfer
-Matthias Röthlin
+Matthias Roethlin
 Matthieu Leclair
 Max Bangert
 Michael Baldauf
 Michael Haller
-Michael Jähn
+Michael Jaehn
 Michael Krayer
 Michael Steiner
 Michael Weimer
 Mikael Stellio
 Mikhail Dobrynin
 Mirjana Sakradzija
+Mittal Rameshbhai Parmar
 Monika Esch
 Moritz Hanke
 Moritz Mathis
@@ -184,22 +196,27 @@ Mukund Pondkule
 Nadja Samtleben
 Nander Wever
 Nathanael Huebbe
+Nikolai Ponomarev
 Nikolas Porz
-Nils Brüggemann
+Nils Brueggemann
 Nils Noll
 Nils-Arne Dreier
 Nora Schenk
+Nuno Serra
 Oliver Fuhrer
 Oliver Gutjahr
+Oliver Heidmann
 Panagiotis Adamidis
 Pavel Khain
 Peter Korn
+Philip Freese
 Philipp De-Vrese
 Philippe Marti
+Pinhsin Hu
 Pradipta Samanta
 Praveen Kumar Pothapakula
 Rainer Johanni
-Ralf Müller
+Ralf Mueller
 Raphael Schlarb
 Reiner Schnur
 Reinhard Budich
@@ -217,24 +234,26 @@ Roman Svoboda
 Ronny Petrik
 Sascha Bellaire
 Sebastian Borchert
+Sebastian Ortega
 Sebastian Rast
 Sergey Danilov
 Sergey Kosukhin
 Shweta Singh
 Slavko Brdar
-Sönke Zaehle
-Sophia Schäfer
+Soenke Zaehle
+Sophia Schaefer
 Stefan Koerner
 Stefan Poll
 Stefan Versick
 Stephan Lorenz
 Susanne Fuchs
+Sven Ulbrich
 Sven Werchner
 Sven Willner
 Tatiana Ilyina
 Thijs Heus
 Thomas Heinze
-Thomas Hüther
+Thomas Huether
 Thomas Jahns
 Thomas Kleinen
 Thomas Raddatz
@@ -250,13 +269,14 @@ Ulrich Schaettler
 Ulrike Niemeier
 Uwe Schulzweida
 Valentin Hanft
-Veit Lüchow
+Veit Luechow
 Vera Maurer
 Veronika Gayler
 Victor Fomichev
 Victor Gervilla Palomar
 Victoria Cherkas
 Vikram Singh
+Vishal Mehta
 Vladimir Lapin
 Walter Sauf
 Werner Bauer
@@ -268,3 +288,7 @@ Xingran Wang
 Yen-Chen Chen
 Yen-Sen Lu
 Yunchang He
+
+# ORGANIZATIONAL CONTRIBUTORS
+CSC - IT Center for Science Ltd.
+NVIDIA Corporation

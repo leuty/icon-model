@@ -108,7 +108,7 @@ style:general:
       icon_ci_log_section_start 'Checking general style' 'collapsed=false'
       (
         set -ux
-        "${CI_PROJECT_DIR}/scripts/ci_scripts/check_encoding.sh" ${ICON_SRC_PATHS} ${GIT_SUBMODULE_PATHS}
+        "${CI_PROJECT_DIR}/scripts/ci_scripts/check_encoding.sh" AUTHORS.TXT ${ICON_SRC_PATHS} ${GIT_SUBMODULE_PATHS}
         "${CI_PROJECT_DIR}/scripts/ci_scripts/check_src_noexec.sh" ${ICON_SRC_PATHS} ${GIT_SUBMODULE_PATHS}
         "${CI_PROJECT_DIR}/scripts/ci_scripts/check_fortran.py" ${ICON_SRC_PATHS} ${GIT_SUBMODULE_PATHS}
         "${CI_PROJECT_DIR}/scripts/ci_scripts/check_granule_encapsulation.sh"
