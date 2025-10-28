@@ -17,12 +17,17 @@ import sys
 
 sys.path.insert(0, "scripts/buildbot_scripts")
 sys.path.insert(0, "scripts/experiments")
+sys.path.insert(0, "doc/www")
 
+import conf as sphinx_config
 from buildbot_config import BuildbotConfig
 from yaml_experiment_test_processor import cscs_ci_to_data
 
+# Get base_url directly from Sphinx conf.py
+base_url = sphinx_config.myst_substitutions.get("base_url")
 
-def to_html_table(data):
+
+def to_html_table(data, base_url):
     """
     Convert a dictionary with machines, builders, experiments, and status
     into an HTML table with vertical headers. Builders with only negative
@@ -67,8 +72,9 @@ def to_html_table(data):
         out += "  <tbody>\n"
         row_class = "row-even"
         for exp, row in zip(experiments, status):
+            exp_name = os.path.basename(exp)
             out += f'    <tr class="{row_class}">\n'
-            out += f"      <td><p>{exp}</p></td>\n"
+            out += f'      <td><p><a class="reference external" href="{base_url}/run/{exp}"><code class="docutils literal notranslate"><span class="pre">{exp_name}</span></code></a></p></td>\n'
             for val in row:
                 out += (
                     "      <td><p>✔︎</p></td>\n"
@@ -103,7 +109,7 @@ for midx in data_ci["machines"]:
     }
 
 # Construct HTML table of test list
-ci_test_list_table = to_html_table(data)
+ci_test_list_table = to_html_table(data, base_url)
 
 # Read documentation file
 doc_path = "doc/www/infrastructure/testing/system_tests.md"

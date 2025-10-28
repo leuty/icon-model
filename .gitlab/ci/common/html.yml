@@ -78,3 +78,4 @@ include:
       - doc/www/**/*
       - scripts/experiments/**/*
       - scripts/buildbot_scripts/**/*
+      - scripts/ci_scripts/generate_test_list.py
