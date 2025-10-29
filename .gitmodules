@@ -27,9 +27,6 @@
 [submodule "externals/ecrad"]
 	path = externals/ecrad
 	url = ../../dwd-sw/libecrad.git
-[submodule "externals/dace_icon"]
-	path = externals/dace_icon
-	url = ../../dwd-sw/dace-icon-interface.git
 [submodule "externals/emvorado"]
 	path = externals/emvorado
 	url = ../../dwd-sw/emvorado-for-icon.git
