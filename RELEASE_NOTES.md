@@ -30,7 +30,7 @@ NWP Physics:
 
 - Allow for external specification of trace gases in ecrad
 - New mixed-phase Spectral Bin Microphysics
-- enable reading and interpolating ozone and Kinne aerosol data using YAC (icon-nwp!1716)
+- enable reading and interpolating ozone and Kinne aerosol data using YAC
 - Tuning changes for better prediction of fog / low stratus
 - Extension of adaptive parameter tuning to reduce cold/moist bias around sunset
 - Improved tuning of filtering time scales for adaptive parameter tuning
@@ -123,8 +123,8 @@ Climate: ICON-Land
 NWP: TERRA and other surface issues
 
 - Fixes:
-  - rime formation term for interception storage (icon-nwp!1740)
-  - w_i nonconservation (icon-nwp!1746)
+  - rime formation term for interception storage
+  - w_i nonconservation
   - bug fix for bare-soil evaporation
 
 ### ICON-ART
