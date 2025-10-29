@@ -21,10 +21,10 @@ MODULE mo_tmx_smagorinsky
 
   USE mo_kind,                ONLY: wp, vp
   USE mo_tmx_field_class,     ONLY: t_domain
+  USE mo_vdf_atmo_memory,     ONLY: t_vdf_atmo_config, t_vdf_atmo_inputs, t_vdf_atmo_diags
   USE mo_model_domain,        ONLY: t_patch
   USE mo_impl_constants,      ONLY: min_rlcell_int
   USE mo_loopindices,         ONLY: get_indices_c
-  USE mo_variable_list,       ONLY: t_variable_set
   USE mo_sync,                ONLY: SYNC_C, sync_patch_array
   USE mo_physical_constants,  ONLY: grav,rgrav
 
@@ -57,11 +57,10 @@ MODULE mo_tmx_smagorinsky
     !============================================================================
     SUBROUTINE Smagorinsky_init(domain,config,inputs,diagnostics)
 
-      TYPE(t_domain),        INTENT(in) :: domain
-      CLASS(t_variable_set), INTENT(in), TARGET :: config
-      CLASS(t_variable_set), INTENT(in), TARGET :: inputs
-
-      CLASS(t_variable_set), INTENT(inout), TARGET :: diagnostics
+      TYPE(t_domain),           INTENT(in)    :: domain
+      CLASS(t_vdf_atmo_config), INTENT(in)    :: config
+      CLASS(t_vdf_atmo_inputs), INTENT(in)    :: inputs
+      CLASS(t_vdf_atmo_diags),  INTENT(inout) :: diagnostics
 
       REAL(wp), POINTER, DIMENSION(:,:,:) :: mixing_length_sq, gepot_agl_ic
       REAL(vp), POINTER, DIMENSION(:,:,:) :: dzh
@@ -69,15 +68,14 @@ MODULE mo_tmx_smagorinsky
       REAL(wp), POINTER :: smag_constant, max_turb_scale
       LOGICAL,  POINTER :: use_louis
 
-      mixing_length_sq  => diagnostics%list%get_ptr_r3d('square of mixing length for Smagorinsky model')
+      mixing_length_sq  => diagnostics%mix_len_sq%Get_ptr_r3d()
 
-      use_louis         => config%list%Get_ptr_l0d('switch to activate Louis formula')
-      smag_constant     => config%list%Get_ptr_r0d('Smagorinsky constant')
-      max_turb_scale    => config%list%Get_ptr_r0d('maximum turbulence length scale')
+      use_louis         => config%use_louis%Get_ptr_l0d()
+      smag_constant     => config%smag_constant%Get_ptr_r0d()
+      max_turb_scale    => config%max_turb_scale%Get_ptr_r0d()
 
-      dzh               => inputs%list%get_ptr_s3d('layer thickness half')
-
-      gepot_agl_ic      => inputs%list%get_ptr_r3d('geopotential above groundlevel at interface and cell center')
+      dzh               => inputs%dz_ic%get_ptr_v3d()
+      gepot_agl_ic      => inputs%geopot_agl_ic%get_ptr_r3d()
 
       ! Compute mixing length for Smagorinsky model
       CALL compute_mixing_length(domain, dzh, gepot_agl_ic, smag_constant, max_turb_scale, mixing_length_sq)
@@ -88,7 +86,7 @@ MODULE mo_tmx_smagorinsky
         ! PROCEDURE POINTER ARE NOT SUPPORTED YET BY NVIDIA COMPILER
         !compute_stability_term => compute_stability_term_louis
 
-        scaling_factor_louis  => diagnostics%list%Get_ptr_r2d('scaling factor for Louis constant b')
+        scaling_factor_louis  => diagnostics%louis_factor%Get_ptr_r2d()
         __acc_attach(scaling_factor_louis)
 
         ! compute scaling_factor_louis in init!

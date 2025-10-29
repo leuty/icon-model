@@ -12,8 +12,8 @@
 PROGRAM test_start_mpi_serial
 
   USE mo_mpi, ONLY: start_mpi, stop_mpi, abort_mpi, &
-                    process_mpi_all_comm, split_global_mpi_communicator, &
-                    p_comm_size, p_comm_rank
+      process_mpi_all_comm, split_global_mpi_communicator, &
+      p_comm_size, p_comm_rank
   USE mo_test_common, ONLY: test_fail, test_pass
   USE mo_io_units, ONLY: nerr
 

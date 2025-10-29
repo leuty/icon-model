@@ -34,15 +34,18 @@ set -x
 
 ${icon_dir}/config/generic/gcc --enable-testbed "$@"
 
-make ${makeflags}
+time make ${makeflags}
 
 if test -n "${BB_NAME-}"; then
   "${icon_dir}/scripts/buildbot_scripts/build_checks/check_depgen_warnings.sh"
   "${icon_dir}/scripts/buildbot_scripts/build_checks/check_remake.sh"
   # Build the tests in parallel:
-  make ${makeflags} --keep-going TESTS= check
+  time make ${makeflags} --keep-going TESTS= check
   # Run the tests serially:
-  make --keep-going ICON_VERBOSE_TESTS=1 ICON_COLOR_TESTS=always check
+  time make --keep-going ICON_VERBOSE_TESTS=1 ICON_COLOR_TESTS=always \
+    TESTS_ENVIRONMENT='echo "$${mgn}RUNNING$${std}: $$f"; st=$$(perl -MTime::HiRes=time -e "print time");' \
+    AM_TESTS_FD_REDIRECT='; printf "$${brg}duration$${std}: %s: %0.2fs\n" "$$f" "$$(echo "$$(perl -MTime::HiRes=time -e "print time") - $${st}" | bc -l)"' \
+    check
   "${icon_dir}/scripts/buildbot_scripts/build_checks/check_git_untracked.sh"
   # Check that the script generator works as expected:
   ./make_runscripts --all

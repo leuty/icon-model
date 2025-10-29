@@ -36,7 +36,7 @@ PROGRAM test_index_list
 #endif
 
   CALL RANDOM_NUMBER(harvest)
-  conditions = INT(harvest*2)
+  conditions = INT(harvest * 2)
 
   !$ACC DATA COPYIN(conditions) CREATE(dev_indices, dev_nvalid)
 
@@ -59,12 +59,12 @@ PROGRAM test_index_list
   ! Test the non-batched async version
 
   CALL generate_index_list(conditions(:, 1), dev_indices(:, 1), 1, n, dev_nvalid(1), lacc=lacc, opt_acc_async_queue=1, &
-   &                       opt_acc_copy_to_host=.FALSE.)
+      &                       opt_acc_copy_to_host=.FALSE.)
   !$ACC UPDATE HOST(dev_indices(:,1), dev_nvalid(1)) ASYNC(1)
   !$ACC WAIT(1)
 
   PRINT *, "CHECK NON-BATCHED ASYNC: ", nvalid(1) == dev_nvalid(1), &
-   &                                    ALL(indices(:nvalid(1), 1) == dev_indices(:nvalid(1), 1))
+      &                                    ALL(indices(:nvalid(1), 1) == dev_indices(:nvalid(1), 1))
 
   ! Test the non-batched version with a shift
 
@@ -82,7 +82,7 @@ PROGRAM test_index_list
   !$ACC WAIT(1)
 
   PRINT *, "CHECK NON-BATCHED SHIFTED: ", nvalid(1) == dev_nvalid(1), &
-   &                                      ALL(indices(:nvalid(1), 1) == dev_indices(:nvalid(1), 1))
+      &                                      ALL(indices(:nvalid(1), 1) == dev_indices(:nvalid(1), 1))
 
   ! Test the batched version
 
@@ -102,7 +102,7 @@ PROGRAM test_index_list
   END DO
 
   CALL generate_index_list_batched(conditions, dev_indices, 1, n, dev_nvalid, &
-    &   lacc=.TRUE., opt_acc_async_queue=1)
+      &   lacc=.TRUE., opt_acc_async_queue=1)
   !$ACC UPDATE HOST(dev_indices, dev_nvalid) ASYNC(1)
   !$ACC WAIT(1)
 

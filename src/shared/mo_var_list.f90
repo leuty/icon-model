@@ -18,7 +18,7 @@ MODULE mo_var_list
   USE, INTRINSIC :: ieee_arithmetic
 #endif
 #endif
-  USE mo_kind,             ONLY: sp, dp, i8
+  USE mo_kind,             ONLY: sp, dp, i4, i8
   USE mo_cf_convention,    ONLY: t_cf_var
   USE mo_grib2,            ONLY: t_grib2_var, grib2_var
   USE mo_var_groups,       ONLY: var_groups_dyn, groups
@@ -32,11 +32,22 @@ MODULE mo_var_list
   USE mo_var,              ONLY: t_var, t_var_ptr, level_type_ml
   USE mo_exception,        ONLY: message, finish, message_text
   USE mo_util_texthash,    ONLY: text_hash_c
-  USE mo_util_string,      ONLY: tolower
+  USE mo_util_string,      ONLY: tolower, int2string
   USE mo_impl_constants,   ONLY: REAL_T, SINGLE_T, BOOL_T, INT_T, &
     & vlname_len, vname_len, TIMELEVEL_SUFFIX
   USE mo_fortran_tools,    ONLY: init_contiguous_dp, init_contiguous_sp, &
     &                            init_contiguous_i4, init_contiguous_l
+#ifndef __NO_AES__
+  USE memman,              ONLY: var_descriptor, add_var_real, add_var_integer, &
+    &                            allocate_var_real, allocate_var_integer, get_var_data
+#ifdef _OPENACC
+  USE memman,              ONLY: mm_host_device_uid, mm_invalid_device_uid, &
+    &                            mm_get_gpu_device_uid
+  USE mo_openacc, ONLY: acc_map_data
+  USE, INTRINSIC :: iso_c_binding, ONLY: c_loc
+#endif
+#endif
+
   USE mo_action_types,     ONLY: t_var_action
 
 #ifndef __NO_ICON_COMIN__
@@ -122,14 +133,20 @@ CONTAINS
             IF (this%p%vl(i)%p%info%allocated) THEN
               SELECT CASE(this%p%vl(i)%p%info%data_type)
               CASE(REAL_T)
-                !$ACC EXIT DATA DELETE(this%p%vl(i)%p%r_ptr) IF(this%p%vl(i)%p%info%lopenacc)
-                DEALLOCATE(this%p%vl(i)%p%r_ptr)
+                IF (.NOT. this%p%vl(i)%p%info%lmemman) THEN
+                  !$ACC EXIT DATA DELETE(this%p%vl(i)%p%r_ptr) IF(this%p%vl(i)%p%info%lopenacc)
+                  DEALLOCATE(this%p%vl(i)%p%r_ptr)
+                END IF
               CASE(SINGLE_T)
-                !$ACC EXIT DATA DELETE(this%p%vl(i)%p%s_ptr) IF(this%p%vl(i)%p%info%lopenacc)
-                DEALLOCATE(this%p%vl(i)%p%s_ptr)
+                IF (.NOT. this%p%vl(i)%p%info%lmemman) THEN
+                  !$ACC EXIT DATA DELETE(this%p%vl(i)%p%s_ptr) IF(this%p%vl(i)%p%info%lopenacc)
+                  DEALLOCATE(this%p%vl(i)%p%s_ptr)
+                END IF
               CASE(INT_T)
-                !$ACC EXIT DATA DELETE(this%p%vl(i)%p%i_ptr) IF(this%p%vl(i)%p%info%lopenacc)
-                DEALLOCATE(this%p%vl(i)%p%i_ptr)
+                IF (.NOT. this%p%vl(i)%p%info%lmemman) THEN
+                  DEALLOCATE(this%p%vl(i)%p%i_ptr)
+                  !$ACC EXIT DATA DELETE(this%p%vl(i)%p%i_ptr) IF(this%p%vl(i)%p%info%lopenacc)
+                END IF
               CASE(BOOL_T)
                 !$ACC EXIT DATA DELETE(this%p%vl(i)%p%l_ptr) IF(this%p%vl(i)%p%info%lopenacc)
                 DEALLOCATE(this%p%vl(i)%p%l_ptr)
@@ -257,7 +274,7 @@ CONTAINS
     & hor_interp, in_group, l_pp_scheduler_task, post_op, action_list,       &
     & tracer_info, p5_r, p5_s, p5_i, p5_l, initval_r, initval_s, initval_i,  &
     & initval_l, resetval_r, resetval_s, resetval_i, resetval_l, new_element,&
-    & missval_r, missval_s, missval_i, missval_l, var_class, lopenacc)
+    & missval_r, missval_s, missval_i, missval_l, var_class, lmemman, lopenacc)
     INTEGER, INTENT(IN) :: data_type, hgrid, vgrid, ldims(:)
     TYPE(t_var_list_ptr), INTENT(INOUT) :: list
     CHARACTER(*), INTENT(IN) :: varname
@@ -265,7 +282,7 @@ CONTAINS
     TYPE(t_grib2_var), INTENT(IN) :: grib2
     TYPE(t_var), POINTER, INTENT(OUT) :: new_elem
     LOGICAL, INTENT(IN), OPTIONAL :: loutput, lcontainer, lrestart, lrestart_cont, &
-      & lmiss, in_group(:), initval_l, resetval_l, missval_l, lopenacc
+      & lmiss, in_group(:), initval_l, resetval_l, missval_l, lopenacc, lmemman
     INTEGER, INTENT(IN), OPTIONAL :: isteptype, tlev_source, l_pp_scheduler_task, &
       & initval_i, resetval_i, missval_i, var_class
     TYPE(t_var_metadata), POINTER, OPTIONAL :: info
@@ -273,6 +290,25 @@ CONTAINS
     REAL(sp), CONTIGUOUS, TARGET, OPTIONAL :: p5_s(:,:,:,:,:)
     INTEGER, CONTIGUOUS, TARGET, OPTIONAL :: p5_i(:,:,:,:,:)
     LOGICAL, CONTIGUOUS, TARGET, OPTIONAL :: p5_l(:,:,:,:,:)
+
+#ifndef __NO_AES__
+    TYPE(var_descriptor)    :: memman_desc
+    REAL(dp),     PARAMETER :: one_dp = 1.0_dp
+    REAL(sp),     PARAMETER :: one_sp = 1.0_sp
+    INTEGER(i4),  PARAMETER :: one_i4 = 1_i4
+    INTEGER,      PARAMETER :: dp_size = storage_size(one_dp)/8
+    INTEGER,      PARAMETER :: sp_size = storage_size(one_sp)/8
+    INTEGER,      PARAMETER :: i4_size = bit_SIZE(one_i4)/8
+    REAL(dp),     POINTER   :: ptr_r5d_h(:,:,:,:,:)
+    REAL(dp),     POINTER   :: ptr_r5d_d(:,:,:,:,:)
+    REAL(sp),     POINTER   :: ptr_s5d_h(:,:,:,:,:)
+    REAL(sp),     POINTER   :: ptr_s5d_d(:,:,:,:,:)
+    INTEGER(i4),  POINTER   :: ptr_i5d_h(:,:,:,:,:)
+    INTEGER(i4),  POINTER   :: ptr_i5d_d(:,:,:,:,:)
+    INTEGER                 :: gpu_device
+    INTEGER                 :: tlev
+#endif
+
     TYPE(t_vert_interp_meta), INTENT(IN), OPTIONAL :: vert_interp
     TYPE(t_hor_interp_meta), INTENT(IN), OPTIONAL :: hor_interp
     TYPE(t_post_op_meta), INTENT(IN), OPTIONAL :: post_op
@@ -283,7 +319,8 @@ CONTAINS
     TYPE(t_var), POINTER, INTENT(OUT), OPTIONAL :: new_element
     TYPE(t_union_vals) :: missval, initval, resetval, ivals
     INTEGER :: d(5), istat, ndims
-    LOGICAL :: referenced, is_restart_var
+    LOGICAL :: referenced, is_restart_var, l_memman
+    INTEGER :: patch_id
     CHARACTER(*), PARAMETER :: routine = modname//":add_var_list_element_5d"
 
 #ifndef __NO_ICON_COMIN__
@@ -310,6 +347,37 @@ CONTAINS
         & CALL finish(routine, 'for list '//TRIM(list%p%vlname)//' restarting not enabled, '// &
                            & 'but restart of '//TRIM(varname)//' requested.')
     ENDIF
+
+#ifndef __NO_AES__
+
+    IF (PRESENT(lmemman)) THEN
+      l_memman = lmemman
+    ELSE
+      l_memman = .FALSE.
+    ENDIF
+
+    tlev = get_var_timelevel(varname)
+    patch_id = list%p%patch_id
+    IF (tlev == -1) THEN
+      memman_desc = var_descriptor(TRIM(varname), patch_id, 1, 1, tlev)
+    ELSE
+      ! Don't need to encode the timelevel in the variable name
+      memman_desc = var_descriptor(varname(1:LEN_TRIM(varname)-LEN_TRIM(TIMELEVEL_SUFFIX)-1), patch_id, 1, 1, tlev)
+    END IF
+
+#ifdef _OPENACC
+    IF (l_memman) THEN
+      gpu_device = mm_get_gpu_device_uid(0)
+      IF (gpu_device == mm_invalid_device_uid) THEN
+        CALL finish(routine, 'MemMan allocation requested but no GPU device found')
+      END IF
+    END IF
+#endif
+
+#else
+    l_memman = .FALSE.
+#endif
+
     IF (is_restart_var .AND. (.NOT. ANY(data_type == (/REAL_T, SINGLE_T, INT_T/)))) &
       & CALL finish(routine, 'unsupported data_type for "'//TRIM(varname)//'": '// &
         & 'data_type of restart variables must be floating-point or integer type.')
@@ -352,7 +420,8 @@ CONTAINS
       & resetval=resetval, tlev_source=tlev_source, vert_interp=vert_interp, &
       & hor_interp=hor_interp, l_pp_scheduler_task=l_pp_scheduler_task,      &
       & post_op=post_op, action_list=action_list, var_class=var_class,       &
-      & data_type=data_type, lopenacc=lopenacc, lmiss=lmiss, in_group=in_group)
+      & data_type=data_type, lopenacc=lopenacc, lmiss=lmiss,                 &
+      & in_group=in_group, lmemman=l_memman)
     ! set dynamic metadata, i.e. polymorphic tracer metadata
     CALL set_var_metadata_dyn (new_elem%info_dyn, tracer_info=tracer_info)
     new_elem%info%ndims = ndims
@@ -378,9 +447,28 @@ CONTAINS
         new_elem%r_ptr => p5_r
       ELSE
         new_elem%var_base_size = 8
-        ALLOCATE(new_elem%r_ptr(d(1), d(2), d(3), d(4), d(5)), STAT=istat)
-        IF (istat /= 0) CALL finish(routine, 'allocation of array '//TRIM(varname)//' failed')
-        !$ACC ENTER DATA CREATE(new_elem%r_ptr) IF(new_elem%info%lopenacc)
+        IF (l_memman) THEN
+#ifndef __NO_AES__
+          istat = add_var_real(memman_desc, dp, d)
+          istat = allocate_var_real(memman_desc, dp)
+          IF (istat /= 0) CALL finish(routine, 'MemMan allocation of '//TRIM(varname)//' failed')
+          istat = get_var_data(new_elem%r_ptr, memman_desc)
+          IF (istat /= 0) CALL finish(routine, 'MemMan accesss to '//TRIM(varname)//' failed')
+#ifdef _OPENACC
+          IF (lopenacc) THEN
+            istat = allocate_var_real(memman_desc, dp, gpu_device)
+            IF (istat /= 0) CALL finish(routine, 'MemMan allocation of '//TRIM(varname)//' on GPU failed')
+            istat = get_var_data(ptr_r5d_d, memman_desc, gpu_device)
+            IF (istat /= 0) CALL finish(routine, 'MemMan accesss to '//TRIM(varname)//' on GPU failed')
+            CALL acc_map_data(c_loc(new_elem%r_ptr), c_loc(ptr_r5d_d), dp_size*SIZE(new_elem%r_ptr))
+          END IF
+#endif
+#endif
+        ELSE
+          ALLOCATE(new_elem%r_ptr(d(1), d(2), d(3), d(4), d(5)), STAT=istat)
+          IF (istat /= 0) CALL finish(routine, 'allocation of array '//TRIM(varname)//' failed')
+          !$ACC ENTER DATA CREATE(new_elem%r_ptr) IF(new_elem%info%lopenacc)
+        END IF
       END IF
       !ICON_OMP PARALLEL
       CALL init_contiguous_dp(new_elem%r_ptr, PRODUCT(d(1:5)), ivals%rval, lacc=.FALSE.)
@@ -391,9 +479,28 @@ CONTAINS
         new_elem%s_ptr => p5_s
       ELSE
         new_elem%var_base_size = 4
-        ALLOCATE(new_elem%s_ptr(d(1), d(2), d(3), d(4), d(5)), STAT=istat)
-        IF (istat /= 0) CALL finish(routine, 'allocation of array '//TRIM(varname)//' failed')
-        !$ACC ENTER DATA CREATE(new_elem%s_ptr) IF(new_elem%info%lopenacc)
+        IF (l_memman) THEN
+#ifndef __NO_AES__
+          istat = add_var_real(memman_desc, sp, d)
+          istat = allocate_var_real(memman_desc, sp)
+          IF (istat /= 0) CALL finish(routine, 'MemMan allocation of '//TRIM(varname)//' failed')
+          istat = get_var_data(new_elem%s_ptr, memman_desc)
+          IF (istat /= 0) CALL finish(routine, 'MemMan accesss to '//TRIM(varname)//' failed')
+#ifdef _OPENACC
+          IF (lopenacc) THEN
+            istat = allocate_var_real(memman_desc, sp, gpu_device)
+            IF (istat /= 0) CALL finish(routine, 'MemMan allocation of '//TRIM(varname)//' on GPU failed')
+            istat = get_var_data(ptr_s5d_d, memman_desc, gpu_device)
+            IF (istat /= 0) CALL finish(routine, 'MemMan accesss to '//TRIM(varname)//' on GPU failed')
+            CALL acc_map_data(c_loc(new_elem%s_ptr), c_loc(ptr_s5d_d), sp_size*SIZE(new_elem%s_ptr))
+          END IF
+#endif
+#endif
+        ELSE
+          ALLOCATE(new_elem%s_ptr(d(1), d(2), d(3), d(4), d(5)), STAT=istat)
+          IF (istat /= 0) CALL finish(routine, 'allocation of array '//TRIM(varname)//' failed')
+          !$ACC ENTER DATA CREATE(new_elem%s_ptr) IF(new_elem%info%lopenacc)
+        END IF
       END IF
       !ICON_OMP PARALLEL
       CALL init_contiguous_sp(new_elem%s_ptr, PRODUCT(d(1:5)), ivals%sval, lacc=.FALSE.)
@@ -404,9 +511,28 @@ CONTAINS
         new_elem%i_ptr => p5_i
       ELSE
         new_elem%var_base_size = 4
-        ALLOCATE(new_elem%i_ptr(d(1), d(2), d(3), d(4), d(5)), STAT=istat)
-        IF (istat /= 0) CALL finish(routine, 'allocation of arrayb'//TRIM(varname)//' failed')
-        !$ACC ENTER DATA CREATE(new_elem%i_ptr) IF(new_elem%info%lopenacc)
+        IF (l_memman) THEN
+#ifndef __NO_AES__
+          istat = add_var_integer(memman_desc, i4, d)
+          istat = allocate_var_integer(memman_desc, i4)
+          IF (istat /= 0) CALL finish(routine, 'MemMan allocation of '//TRIM(varname)//' failed')
+          istat = get_var_data(new_elem%i_ptr, memman_desc)
+          IF (istat /= 0) CALL finish(routine, 'MemMan accesss to '//TRIM(varname)//' failed')
+#ifdef _OPENACC
+          IF (lopenacc) THEN
+            istat = allocate_var_integer(memman_desc, i4, gpu_device)
+            IF (istat /= 0) CALL finish(routine, 'MemMan allocation of '//TRIM(varname)//' on GPU failed')
+            istat = get_var_data(ptr_i5d_d, memman_desc, gpu_device)
+            IF (istat /= 0) CALL finish(routine, 'MemMan accesss to '//TRIM(varname)//' on GPU failed')
+            CALL acc_map_data(c_loc(new_elem%i_ptr), c_loc(ptr_i5d_d), i4_size*SIZE(new_elem%i_ptr))
+          END IF
+#endif
+#endif
+        ELSE
+          ALLOCATE(new_elem%i_ptr(d(1), d(2), d(3), d(4), d(5)), STAT=istat)
+          IF (istat /= 0) CALL finish(routine, 'allocation of arrayb'//TRIM(varname)//' failed')
+          !$ACC ENTER DATA CREATE(new_elem%i_ptr) IF(new_elem%info%lopenacc)
+        END IF
       END IF
       !ICON_OMP PARALLEL
       CALL init_contiguous_i4(new_elem%i_ptr, PRODUCT(d(1:5)), ivals%ival, lacc=.FALSE.)
@@ -417,7 +543,11 @@ CONTAINS
         new_elem%l_ptr => p5_l
       ELSE
         new_elem%var_base_size = 4
-        ALLOCATE(new_elem%l_ptr(d(1), d(2), d(3), d(4), d(5)), STAT=istat)
+        IF (l_memman) THEN
+          CALL finish(routine, 'allocation of BOOLEAN array '//TRIM(varname)//' failed')
+        ELSE
+          ALLOCATE(new_elem%l_ptr(d(1), d(2), d(3), d(4), d(5)), STAT=istat)
+        END IF
         IF (istat /= 0) CALL finish(routine, 'allocation of array '//TRIM(varname)//' failed')
         !$ACC ENTER DATA CREATE(new_elem%l_ptr) IF(new_elem%info%lopenacc)
       END IF
@@ -426,6 +556,12 @@ CONTAINS
       !ICON_OMP END PARALLEL
       !$ACC UPDATE DEVICE(new_elem%l_ptr) ASYNC(1) IF(new_elem%info%lopenacc)
     END SELECT
+
+#ifndef __NO_AES__
+    IF (l_memman) THEN
+      new_elem%mm_var_desc = memman_desc
+    END IF
+#endif
 
     CALL new_elem%set_auxiliary_pointers()
 
@@ -440,7 +576,7 @@ CONTAINS
     & cf, grib2, ldims, loutput, lcontainer, lrestart, lrestart_cont,     &
     & initval, isteptype, resetval, lmiss, missval, tlev_source, info,    &
     & p5, vert_interp, hor_interp, in_group, new_element,        &
-    & l_pp_scheduler_task, post_op, action_list, var_class, lopenacc)
+    & l_pp_scheduler_task, post_op, action_list, var_class, lmemman, lopenacc)
     TYPE(t_var_list_ptr), INTENT(INOUT) :: this_list
     CHARACTER(*), INTENT(IN) :: varname
     REAL(dp), POINTER, INTENT(OUT) :: ptr(:,:,:,:)
@@ -448,7 +584,7 @@ CONTAINS
     TYPE(t_cf_var), INTENT(IN) :: cf
     TYPE(t_grib2_var), INTENT(IN) :: grib2
     LOGICAL, INTENT(IN), OPTIONAL :: loutput, lcontainer, lrestart, &
-      & lrestart_cont, lmiss, in_group(:), lopenacc
+      & lrestart_cont, lmiss, in_group(:), lmemman, lopenacc
     INTEGER, INTENT(IN), OPTIONAL :: isteptype, l_pp_scheduler_task, &
       & tlev_source, var_class
     REAL(dp), INTENT(IN), OPTIONAL :: initval, resetval, missval
@@ -466,7 +602,8 @@ CONTAINS
       & lrestart_cont, isteptype, lmiss, tlev_source, info, vert_interp,   &
       & hor_interp, in_group, l_pp_scheduler_task, post_op, action_list,   &
       & p5_r=p5, initval_r=initval, resetval_r=resetval, missval_r=missval,&
-      & var_class=var_class, lopenacc=lopenacc, new_element=new_element)
+      & var_class=var_class, lopenacc=lopenacc, new_element=new_element, &
+      & lmemman=lmemman)
     ptr => element%r_ptr(:,:,:,:,1)
   END SUBROUTINE add_var_list_element_r4d
 
@@ -474,7 +611,7 @@ CONTAINS
     & cf, grib2, ldims, loutput, lcontainer, lrestart, lrestart_cont,     &
     & initval, isteptype, resetval, lmiss, missval, tlev_source, info,    &
     & p5, vert_interp, hor_interp, in_group, new_element, tracer_info, &
-    & l_pp_scheduler_task, post_op, action_list, var_class, lopenacc)
+    & l_pp_scheduler_task, post_op, action_list, var_class, lmemman, lopenacc)
     TYPE(t_var_list_ptr), INTENT(INOUT) :: this_list
     CHARACTER(*), INTENT(IN) :: varname
     REAL(dp), POINTER, INTENT(OUT) :: ptr(:,:,:)
@@ -482,7 +619,7 @@ CONTAINS
     TYPE(t_cf_var), INTENT(IN) :: cf
     TYPE(t_grib2_var), INTENT(IN) :: grib2
     LOGICAL, INTENT(IN), OPTIONAL :: loutput, lcontainer, lrestart, &
-      & lrestart_cont, lmiss, in_group(:), lopenacc
+      & lrestart_cont, lmiss, in_group(:), lopenacc, lmemman
     INTEGER, INTENT(IN), OPTIONAL :: isteptype, l_pp_scheduler_task, &
       & tlev_source, var_class
     REAL(dp), INTENT(IN), OPTIONAL :: initval, resetval, missval
@@ -497,12 +634,12 @@ CONTAINS
     TYPE(t_var), POINTER :: element
 
     CALL add_var_list_element_5d(REAL_T, this_list, varname, hgrid, vgrid, &
-      & cf, grib2, ldims, element, loutput, lcontainer, lrestart,          &
+      & cf, grib2, ldims, element, loutput, lcontainer, lrestart, &
       & lrestart_cont, isteptype, lmiss, tlev_source, info, vert_interp,   &
       & hor_interp, in_group, l_pp_scheduler_task, post_op, action_list,   &
       & p5_r=p5, initval_r=initval, resetval_r=resetval, missval_r=missval,&
       & var_class=var_class, lopenacc=lopenacc, new_element=new_element,   &
-      & tracer_info=tracer_info)
+      & tracer_info=tracer_info, lmemman=lmemman)
     ptr => element%r_ptr(:,:,:,1,1)
   END SUBROUTINE add_var_list_element_r3d
 
@@ -510,7 +647,7 @@ CONTAINS
     & cf, grib2, ldims, loutput, lcontainer, lrestart, lrestart_cont,     &
     & initval, isteptype, resetval, lmiss, missval, tlev_source, info,    &
     & p5, vert_interp, hor_interp, in_group, new_element, tracer_info, &
-    & l_pp_scheduler_task, post_op, action_list, var_class, lopenacc)
+    & l_pp_scheduler_task, post_op, action_list, var_class, lmemman, lopenacc)
     TYPE(t_var_list_ptr), INTENT(INOUT) :: this_list
     CHARACTER(*), INTENT(IN) :: varname
     REAL(dp), POINTER, INTENT(OUT) :: ptr(:,:)
@@ -518,7 +655,7 @@ CONTAINS
     TYPE(t_cf_var), INTENT(IN) :: cf
     TYPE(t_grib2_var), INTENT(IN) :: grib2
     LOGICAL, INTENT(IN), OPTIONAL :: loutput, lcontainer, lrestart, &
-      & lrestart_cont, lmiss, in_group(:), lopenacc
+      & lrestart_cont, lmiss, in_group(:), lmemman, lopenacc
     INTEGER, INTENT(IN), OPTIONAL :: isteptype, l_pp_scheduler_task, &
       & tlev_source, var_class
     REAL(dp), INTENT(IN), OPTIONAL :: initval, resetval, missval
@@ -538,7 +675,7 @@ CONTAINS
       & hor_interp, in_group, l_pp_scheduler_task, post_op, action_list,   &
       & p5_r=p5, initval_r=initval, resetval_r=resetval, missval_r=missval,&
       & var_class=var_class, lopenacc=lopenacc, new_element=new_element,   &
-      & tracer_info=tracer_info)
+      & tracer_info=tracer_info,  lmemman=lmemman)
     ptr => element%r_ptr(:,:,1,1,1)
   END SUBROUTINE add_var_list_element_r2d
 
@@ -546,7 +683,7 @@ CONTAINS
     & cf, grib2, ldims, loutput, lcontainer, lrestart, lrestart_cont,     &
     & initval, isteptype, resetval, lmiss, missval, tlev_source, info,    &
     & p5, vert_interp, hor_interp, in_group, new_element,        &
-    & l_pp_scheduler_task, post_op, action_list, var_class, lopenacc)
+    & l_pp_scheduler_task, post_op, action_list, var_class, lmemman, lopenacc)
     TYPE(t_var_list_ptr), INTENT(INOUT) :: this_list
     CHARACTER(*), INTENT(IN) :: varname
     REAL(dp), POINTER, INTENT(OUT) :: ptr(:)
@@ -554,7 +691,7 @@ CONTAINS
     TYPE(t_cf_var), INTENT(IN) :: cf
     TYPE(t_grib2_var), INTENT(IN) :: grib2
     LOGICAL, INTENT(IN), OPTIONAL :: loutput, lcontainer, lrestart, &
-      & lrestart_cont, lmiss, in_group(:), lopenacc
+      & lrestart_cont, lmiss, in_group(:), lmemman, lopenacc
     INTEGER, INTENT(IN), OPTIONAL :: isteptype, l_pp_scheduler_task, &
       & tlev_source, var_class
     REAL(dp), INTENT(IN), OPTIONAL :: initval, resetval, missval
@@ -572,7 +709,8 @@ CONTAINS
       & lrestart_cont, isteptype, lmiss, tlev_source, info, vert_interp,   &
       & hor_interp, in_group, l_pp_scheduler_task, post_op, action_list,   &
       & p5_r=p5, initval_r=initval, resetval_r=resetval, missval_r=missval,&
-      & var_class=var_class, lopenacc=lopenacc, new_element=new_element)
+      & var_class=var_class, lopenacc=lopenacc, new_element=new_element, &
+      & lmemman=lmemman )
     ptr => element%r_ptr(:,1,1,1,1)
   END SUBROUTINE add_var_list_element_r1d
 
@@ -580,7 +718,7 @@ CONTAINS
     & cf, grib2, ldims, loutput, lcontainer, lrestart, lrestart_cont,     &
     & initval, isteptype, resetval, lmiss, missval, tlev_source, info,    &
     & p5, vert_interp, hor_interp, in_group, new_element,        &
-    & l_pp_scheduler_task, post_op, action_list, var_class, lopenacc)
+    & l_pp_scheduler_task, post_op, action_list, var_class, lmemman, lopenacc)
     TYPE(t_var_list_ptr), INTENT(INOUT) :: this_list
     CHARACTER(*), INTENT(IN) :: varname
     REAL(sp), POINTER, INTENT(OUT) :: ptr(:,:,:,:)
@@ -588,7 +726,7 @@ CONTAINS
     TYPE(t_cf_var), INTENT(IN) :: cf
     TYPE(t_grib2_var), INTENT(IN) :: grib2
     LOGICAL, INTENT(IN), OPTIONAL :: loutput, lcontainer, lrestart, &
-      & lrestart_cont, lmiss, in_group(:), lopenacc
+      & lrestart_cont, lmiss, in_group(:), lmemman, lopenacc
     INTEGER, INTENT(IN), OPTIONAL :: isteptype, l_pp_scheduler_task, &
       & tlev_source, var_class
     REAL(sp), INTENT(IN), OPTIONAL :: initval, resetval, missval
@@ -606,7 +744,8 @@ CONTAINS
       & lrestart_cont, isteptype, lmiss, tlev_source, info, vert_interp,   &
       & hor_interp, in_group, l_pp_scheduler_task, post_op, action_list,   &
       & p5_s=p5, initval_s=initval, resetval_s=resetval, missval_s=missval,&
-      & var_class=var_class, lopenacc=lopenacc, new_element=new_element)
+      & var_class=var_class, lopenacc=lopenacc, new_element=new_element, &
+      & lmemman=lmemman)
     ptr => element%s_ptr(:,:,:,:,1)
   END SUBROUTINE add_var_list_element_s4d
 
@@ -614,7 +753,7 @@ CONTAINS
     & cf, grib2, ldims, loutput, lcontainer, lrestart, lrestart_cont,     &
     & initval, isteptype, resetval, lmiss, missval, tlev_source, info,    &
     & p5, vert_interp, hor_interp, in_group, new_element, tracer_info, &
-    & l_pp_scheduler_task, post_op, action_list, var_class, lopenacc)
+    & l_pp_scheduler_task, post_op, action_list, var_class, lmemman, lopenacc)
     TYPE(t_var_list_ptr), INTENT(INOUT) :: this_list
     CHARACTER(*), INTENT(IN) :: varname
     REAL(sp), POINTER, INTENT(OUT) :: ptr(:,:,:)
@@ -622,7 +761,7 @@ CONTAINS
     TYPE(t_cf_var), INTENT(IN) :: cf
     TYPE(t_grib2_var), INTENT(IN) :: grib2
     LOGICAL, INTENT(IN), OPTIONAL :: loutput, lcontainer, lrestart, &
-      & lrestart_cont, lmiss, in_group(:), lopenacc
+      & lrestart_cont, lmiss, in_group(:), lmemman, lopenacc
     INTEGER, INTENT(IN), OPTIONAL :: isteptype, l_pp_scheduler_task, &
       & tlev_source, var_class
     REAL(sp), INTENT(IN), OPTIONAL :: initval, resetval, missval
@@ -642,7 +781,7 @@ CONTAINS
       & hor_interp, in_group, l_pp_scheduler_task, post_op, action_list,   &
       & p5_s=p5, initval_s=initval, resetval_s=resetval, missval_s=missval,&
       & var_class=var_class, lopenacc=lopenacc, new_element=new_element,   &
-      & tracer_info=tracer_info)
+      & tracer_info=tracer_info, lmemman=lmemman)
     ptr => element%s_ptr(:,:,:,1,1)
   END SUBROUTINE add_var_list_element_s3d
 
@@ -650,7 +789,7 @@ CONTAINS
     & cf, grib2, ldims, loutput, lcontainer, lrestart, lrestart_cont,     &
     & initval, isteptype, resetval, lmiss, missval, tlev_source, info,    &
     & p5, vert_interp, hor_interp, in_group, new_element, tracer_info, &
-    & l_pp_scheduler_task, post_op, action_list, var_class, lopenacc)
+    & l_pp_scheduler_task, post_op, action_list, var_class, lmemman, lopenacc)
     TYPE(t_var_list_ptr), INTENT(INOUT) :: this_list
     CHARACTER(*), INTENT(IN) :: varname
     REAL(sp), POINTER, INTENT(OUT) :: ptr(:,:)
@@ -658,7 +797,7 @@ CONTAINS
     TYPE(t_cf_var), INTENT(IN) :: cf
     TYPE(t_grib2_var), INTENT(IN) :: grib2
     LOGICAL, INTENT(IN), OPTIONAL :: loutput, lcontainer, lrestart, &
-      & lrestart_cont, lmiss, in_group(:), lopenacc
+      & lrestart_cont, lmiss, in_group(:), lmemman, lopenacc
     INTEGER, INTENT(IN), OPTIONAL :: isteptype, l_pp_scheduler_task, &
       & tlev_source, var_class
     REAL(sp), INTENT(IN), OPTIONAL :: initval, resetval, missval
@@ -678,7 +817,7 @@ CONTAINS
       & hor_interp, in_group, l_pp_scheduler_task, post_op, action_list,   &
       & p5_s=p5, initval_s=initval, resetval_s=resetval, missval_s=missval,&
       & var_class=var_class, lopenacc=lopenacc, new_element=new_element,   &
-      & tracer_info=tracer_info)
+      & tracer_info=tracer_info, lmemman=lmemman)
     ptr => element%s_ptr(:,:,1,1,1)
   END SUBROUTINE add_var_list_element_s2d
 
@@ -686,7 +825,7 @@ CONTAINS
     & cf, grib2, ldims, loutput, lcontainer, lrestart, lrestart_cont,     &
     & initval, isteptype, resetval, lmiss, missval, tlev_source, info,    &
     & p5, vert_interp, hor_interp, in_group, new_element,        &
-    & l_pp_scheduler_task, post_op, action_list, var_class, lopenacc)
+    & l_pp_scheduler_task, post_op, action_list, var_class, lmemman, lopenacc)
     TYPE(t_var_list_ptr), INTENT(INOUT) :: this_list
     CHARACTER(*), INTENT(IN) :: varname
     REAL(sp), POINTER, INTENT(OUT) :: ptr(:)
@@ -694,7 +833,7 @@ CONTAINS
     TYPE(t_cf_var), INTENT(IN) :: cf
     TYPE(t_grib2_var), INTENT(IN) :: grib2
     LOGICAL, INTENT(IN), OPTIONAL :: loutput, lcontainer, lrestart, &
-      & lrestart_cont, lmiss, in_group(:), lopenacc
+      & lrestart_cont, lmiss, in_group(:), lmemman, lopenacc
     INTEGER, INTENT(IN), OPTIONAL :: isteptype, l_pp_scheduler_task, &
       & tlev_source, var_class
     REAL(sp), INTENT(IN), OPTIONAL :: initval, resetval, missval
@@ -712,7 +851,8 @@ CONTAINS
       & lrestart_cont, isteptype, lmiss, tlev_source, info, vert_interp,   &
       & hor_interp, in_group, l_pp_scheduler_task, post_op, action_list,   &
       & p5_s=p5, initval_s=initval, resetval_s=resetval, missval_s=missval,&
-      & var_class=var_class, lopenacc=lopenacc, new_element=new_element)
+      & var_class=var_class, lopenacc=lopenacc, new_element=new_element, &
+      & lmemman=lmemman)
     ptr => element%s_ptr(:,1,1,1,1)
   END SUBROUTINE add_var_list_element_s1d
 
@@ -720,7 +860,7 @@ CONTAINS
     & cf, grib2, ldims, loutput, lcontainer, lrestart, lrestart_cont,     &
     & initval, isteptype, resetval, lmiss, missval, tlev_source, info,    &
     & p5, vert_interp, hor_interp, in_group, new_element,        &
-    & l_pp_scheduler_task, post_op, action_list, var_class, lopenacc)
+    & l_pp_scheduler_task, post_op, action_list, var_class, lmemman, lopenacc)
     TYPE(t_var_list_ptr), INTENT(INOUT) :: this_list
     CHARACTER(*), INTENT(IN) :: varname
     INTEGER, POINTER, INTENT(OUT) :: ptr(:,:,:,:)
@@ -728,7 +868,7 @@ CONTAINS
     TYPE(t_cf_var), INTENT(IN) :: cf
     TYPE(t_grib2_var), INTENT(IN) :: grib2
     LOGICAL, INTENT(IN), OPTIONAL :: loutput, lcontainer, lrestart, &
-      & lrestart_cont, lmiss, in_group(:), lopenacc
+      & lrestart_cont, lmiss, in_group(:), lmemman, lopenacc
     INTEGER, INTENT(IN), OPTIONAL :: isteptype, l_pp_scheduler_task, &
       & tlev_source, var_class, initval, resetval, missval
     TYPE(t_var_metadata), POINTER, OPTIONAL :: info
@@ -745,7 +885,8 @@ CONTAINS
       & lrestart_cont, isteptype, lmiss, tlev_source, info, vert_interp,   &
       & hor_interp, in_group, l_pp_scheduler_task, post_op, action_list,   &
       & p5_i=p5, initval_i=initval, resetval_i=resetval, missval_i=missval,&
-      & var_class=var_class, lopenacc=lopenacc, new_element=new_element)
+      & var_class=var_class, lopenacc=lopenacc, new_element=new_element,   &
+      & lmemman=lmemman)
     ptr => element%i_ptr(:,:,:,:,1)
   END SUBROUTINE add_var_list_element_i4d
 
@@ -753,7 +894,7 @@ CONTAINS
     & cf, grib2, ldims, loutput, lcontainer, lrestart, lrestart_cont,     &
     & initval, isteptype, resetval, lmiss, missval, tlev_source, info,    &
     & p5, vert_interp, hor_interp, in_group, new_element,        &
-    & l_pp_scheduler_task, post_op, action_list, var_class, lopenacc)
+    & l_pp_scheduler_task, post_op, action_list, var_class, lmemman, lopenacc)
     TYPE(t_var_list_ptr), INTENT(INOUT) :: this_list
     CHARACTER(*), INTENT(IN) :: varname
     INTEGER, POINTER, INTENT(OUT) :: ptr(:,:,:)
@@ -761,7 +902,7 @@ CONTAINS
     TYPE(t_cf_var), INTENT(IN) :: cf
     TYPE(t_grib2_var), INTENT(IN) :: grib2
     LOGICAL, INTENT(IN), OPTIONAL :: loutput, lcontainer, lrestart, &
-      & lrestart_cont, lmiss, in_group(:), lopenacc
+      & lrestart_cont, lmiss, in_group(:), lmemman, lopenacc
     INTEGER, INTENT(IN), OPTIONAL :: isteptype, l_pp_scheduler_task, &
       & tlev_source, var_class, initval, resetval, missval
     TYPE(t_var_metadata), POINTER, OPTIONAL :: info
@@ -778,7 +919,8 @@ CONTAINS
       & lrestart_cont, isteptype, lmiss, tlev_source, info, vert_interp,   &
       & hor_interp, in_group, l_pp_scheduler_task, post_op, action_list,   &
       & p5_i=p5, initval_i=initval, resetval_i=resetval, missval_i=missval,&
-      & var_class=var_class, lopenacc=lopenacc, new_element=new_element)
+      & var_class=var_class, lopenacc=lopenacc, new_element=new_element,   &
+      & lmemman=lmemman)
     ptr => element%i_ptr(:,:,:,1,1)
   END SUBROUTINE add_var_list_element_i3d
 
@@ -786,7 +928,7 @@ CONTAINS
     & cf, grib2, ldims, loutput, lcontainer, lrestart, lrestart_cont,     &
     & initval, isteptype, resetval, lmiss, missval, tlev_source, info,    &
     & p5, vert_interp, hor_interp, in_group, new_element,        &
-    & l_pp_scheduler_task, post_op, action_list, var_class, lopenacc)
+    & l_pp_scheduler_task, post_op, action_list, var_class, lmemman, lopenacc)
     TYPE(t_var_list_ptr), INTENT(INOUT) :: this_list
     CHARACTER(*), INTENT(IN) :: varname
     INTEGER, POINTER, INTENT(OUT) :: ptr(:,:)
@@ -794,7 +936,7 @@ CONTAINS
     TYPE(t_cf_var), INTENT(IN) :: cf
     TYPE(t_grib2_var), INTENT(IN) :: grib2
     LOGICAL, INTENT(IN), OPTIONAL :: loutput, lcontainer, lrestart, &
-      & lrestart_cont, lmiss, in_group(:), lopenacc
+      & lrestart_cont, lmiss, in_group(:), lmemman, lopenacc
     INTEGER, INTENT(IN), OPTIONAL :: isteptype, l_pp_scheduler_task, &
       & tlev_source, var_class, initval, resetval, missval
     TYPE(t_var_metadata), POINTER, OPTIONAL :: info
@@ -811,7 +953,8 @@ CONTAINS
       & lrestart_cont, isteptype, lmiss, tlev_source, info, vert_interp,   &
       & hor_interp, in_group, l_pp_scheduler_task, post_op, action_list,   &
       & p5_i=p5, initval_i=initval, resetval_i=resetval, missval_i=missval,&
-      & var_class=var_class, lopenacc=lopenacc, new_element=new_element)
+      & var_class=var_class, lopenacc=lopenacc, new_element=new_element,   &
+      & lmemman=lmemman)
     ptr => element%i_ptr(:,:,1,1,1)
   END SUBROUTINE add_var_list_element_i2d
 
@@ -819,7 +962,7 @@ CONTAINS
     & cf, grib2, ldims, loutput, lcontainer, lrestart, lrestart_cont,     &
     & initval, isteptype, resetval, lmiss, missval, tlev_source, info,    &
     & p5, vert_interp, hor_interp, in_group, new_element,        &
-    & l_pp_scheduler_task, post_op, action_list, var_class, lopenacc)
+    & l_pp_scheduler_task, post_op, action_list, var_class, lmemman, lopenacc)
     TYPE(t_var_list_ptr), INTENT(INOUT) :: this_list
     CHARACTER(*), INTENT(IN) :: varname
     INTEGER, POINTER, INTENT(OUT) :: ptr(:)
@@ -827,7 +970,7 @@ CONTAINS
     TYPE(t_cf_var), INTENT(IN) :: cf
     TYPE(t_grib2_var), INTENT(IN) :: grib2
     LOGICAL, INTENT(IN), OPTIONAL :: loutput, lcontainer, lrestart, &
-      & lrestart_cont, lmiss, in_group(:), lopenacc
+      & lrestart_cont, lmiss, in_group(:), lmemman, lopenacc
     INTEGER, INTENT(IN), OPTIONAL :: isteptype, l_pp_scheduler_task, &
       & tlev_source, var_class, initval, resetval, missval
     TYPE(t_var_metadata), POINTER, OPTIONAL :: info
@@ -844,7 +987,8 @@ CONTAINS
       & lrestart_cont, isteptype, lmiss, tlev_source, info, vert_interp,   &
       & hor_interp, in_group, l_pp_scheduler_task, post_op, action_list,   &
       & p5_i=p5, initval_i=initval, resetval_i=resetval, missval_i=missval,&
-      & var_class=var_class, lopenacc=lopenacc, new_element=new_element)
+      & var_class=var_class, lopenacc=lopenacc, new_element=new_element,   &
+      & lmemman=lmemman)
     ptr => element%i_ptr(:,1,1,1,1)
   END SUBROUTINE add_var_list_element_i1d
 

@@ -34,9 +34,9 @@ PROGRAM test_add_var_fail1
 
   ! FAIL 1: test_add_var_fail1 - data_type=SINGLE_T, and passing rvals
   CALL add_var(SINGLE_T, var_list_ptr, dname//"2", info%hgrid, info%vgrid, info%cf, &
-    & info%grib2, info%used_dimensions(1:info%ndims), vl_elem, &
-    & initval_r=info%initval%rval, resetval_r=info%resetval%rval, &
-    & missval_r=info%missval%rval)
+      & info%grib2, info%used_dimensions(1:info%ndims), vl_elem, &
+      & initval_r=info%initval%rval, resetval_r=info%resetval%rval, &
+      & missval_r=info%missval%rval)
 
   CALL test_pass()
 

@@ -226,6 +226,7 @@ MODULE mo_ocean_types
       & Ts_sur,   & ! by_nils ts_budget
       & Ts_srf,   & ! by_nils ts_budget
       & Ts_tot,   & ! by_nils ts_budget
+      & vort_on_cells, & ! by_nils vort_on_cells
       & uT, &  !< product of temperature and u-velocity
       & uS, &  !< product of salinity and u-velocity
       & uR, &  !< product of density and u-velocity

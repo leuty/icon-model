@@ -1,3 +1,24 @@
+# Release notes for icon-2026.MM
+
+### ICON-Atmo
+
+AES Physics:
+
+- Correction of the roughness length computation over ocean in TMX
+- Use memory manager library for data management in TMX
+
+
+### Soil and Surface
+
+Climate: ICON-Land
+
+- Land initial files: Major update: 12 and 13 tile setups for jsbach and quincy (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1080)
+
+### Externals
+
+- Added Memory Manager library 1.0.0 as external in externals/memman
+
+
 # Release notes for icon-2025.10
 
 ### ICON-Atmo
@@ -200,6 +221,7 @@ NWP: TERRA and other surface issues
 - Further extension of skin temperature over the ocean in Vdiff
 - Add option to disable GPU memory usage output
 - Fixes for the quad-precision handling
+
 
 # Release notes for icon-2025.04-2
 

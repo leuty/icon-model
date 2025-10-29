@@ -175,6 +175,7 @@ MODULE mo_var_metadata_types
     ! Metadata for missing value masking
 
     LOGICAL                    :: lmiss = .FALSE.           ! flag: true, if variable should be initialized with missval
+    LOGICAL                    :: lmemman = .FALSE.         ! flag: true, if variable is allocated to the memory using memory-manager
     TYPE(t_union_vals)         :: missval                   ! missing value
     LOGICAL                    :: lmask_boundary = .FALSE.  ! flag: true, if interpolation zone should be masked *in output*
     ! Index of tracer in tracer and in diagnostics container

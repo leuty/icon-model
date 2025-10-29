@@ -27,6 +27,8 @@
 #
 # ICON external modules (i.e. Fortran modules that are used in ICON but are not
 # declared in its source code):
+#   MEMMAN:
+--fc-external-mods=memman
 #   COMIN:
 --fc-external-mods=comin_host_interface
 #   FORTRAN-SUPPORT:

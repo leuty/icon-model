@@ -18,18 +18,19 @@
 
 MODULE mo_interface_aes_tmx
 
-  USE mo_kind                ,ONLY: wp, vp
+  USE mo_kind                ,ONLY: wp, vp, dp
   USE mtime                  ,ONLY: datetime, OPERATOR(>)
 
   USE mo_exception           ,ONLY: finish, warning
 
   USE mo_parallel_config     ,ONLY: nproma
   USE mo_run_config          ,ONLY: ntracer
+  USE mo_dynamics_config     ,ONLY: nnow, nnew, nnow_rcf
   USE mo_aes_phy_config      ,ONLY: aes_phy_config, aes_phy_tc, dt_zero
-  USE mo_aes_phy_memory      ,ONLY: t_aes_phy_field, prm_field, &
-    &                               t_aes_phy_tend,  prm_tend
+  USE mo_aes_phy_memory      ,ONLY: t_aes_phy_field, prm_field, prm_field_list, &
+    &                               t_aes_phy_tend,  prm_tend, prm_tend_list
 
-  USE mo_timer               ,ONLY: ltimer, timer_start, timer_stop, timer_vdf
+  USE mo_timer               ,ONLY: ltimer, timer_start, timer_stop, timer_tmx
 
   USE mo_ccycle_config       ,ONLY: ccycle_config
   USE mo_physical_constants  ,ONLY: amco2, amd
@@ -40,7 +41,6 @@ MODULE mo_interface_aes_tmx
 
   USE mo_aes_sfc_indices     ,ONLY: nsfc_type, iwtr, iice, ilnd
   USE mo_surface_diag        ,ONLY: nsurf_diag
-  USE mo_run_config          ,ONLY: lart
   USE mo_aes_vdf_config      ,ONLY: aes_vdf_config
   USE mo_model_domain        ,ONLY: t_patch
   USE mo_impl_constants_grf  ,ONLY: grf_bdywidth_c
@@ -48,7 +48,7 @@ MODULE mo_interface_aes_tmx
   USE mo_loopindices         ,ONLY: get_indices_c
   USE mo_nh_testcases_nml    ,ONLY: nh_test_name
 
-  USE mo_aes_thermo,          ONLY: potential_temperature
+  USE memman, ONLY: var_descriptor
 
 #ifdef _OPENACC
   use openacc
@@ -79,9 +79,6 @@ CONTAINS
        &                         datetime_old         ,&
        &                         dtime               )
 
-    USE mo_variable, ONLY: unbind_variable, bind_variable
-    USE mo_vdf_atmo, ONLY: t_vdf_atmo_inputs
-    USE mo_vdf_sfc, ONLY: t_vdf_sfc_inputs
     USE mo_physical_constants, ONLY: vmr_to_mmr_co2
 
     ! Arguments
@@ -111,11 +108,10 @@ CONTAINS
     !
     ! Pointers to results (nproma,patch%nlev,patch%nblks_c)
     REAL(wp), POINTER, DIMENSION(:,:,:) :: &
-      & tend_ta_vdf, tend_ua_vdf, tend_va_vdf, &
-      & tend_qv_vdf, tend_qc_vdf, tend_qi_vdf, tend_co2_vdf
+      & tend_ta_vdf, tend_ua_vdf, tend_va_vdf
     ! Pointers to results (nproma,patch%nlev,patch%nblks_c,ntracer)
-    ! REAL(wp), POINTER, DIMENSION(:,:,:,:) :: &
-    !   & tend_qtrc_vdf
+    REAL(wp), POINTER, DIMENSION(:,:,:,:) :: &
+      & tend_tracer_vdf
     ! Pointers to results (nproma,patch%nlev+1,patch%nblks_c)
     REAL(wp), POINTER, DIMENSION(:,:,:) :: &
       & tend_wa_vdf
@@ -129,7 +125,7 @@ CONTAINS
       &         zco2(nproma,patch%nblks_c)
     REAL(wp)          :: mmr_co2
 
-    REAL(wp), POINTER :: ptr_r2d(:,:), ptr_r3d(:,:,:)
+    REAL(wp), POINTER :: ptr_r2d(:,:)
 
     !
     INTEGER, POINTER :: turb
@@ -137,7 +133,7 @@ CONTAINS
 
     CHARACTER(len=*), PARAMETER :: routine = modname//':interface_aes_tmx'
 
-    IF (ltimer) CALL timer_start(timer_vdf)
+    IF (ltimer) CALL timer_start(timer_tmx)
 
     jg           = patch%id
     nlev         = patch%nlev
@@ -228,106 +224,32 @@ CONTAINS
         ! that are different from the targets set during initialization of tmx.
         ! Here we need to make sure that the tmx variables point to the correct targets at each time step.
         !
-        SELECT TYPE (ins => vdf%atmo%inputs)
-        TYPE IS (t_vdf_atmo_inputs)
+        CALL vdf%atmo%states(vdf%atmo%tracer_idx)%p%Update(time_id=nnow_rcf(jg))
+        CALL vdf%atmo%states(vdf%atmo%temp_idx)  %p%Update(time_id=nnow(jg))
+        CALL vdf%atmo%states(vdf%atmo%wwind_idx) %p%Update(time_id=nnow(jg))
 
-          ptr_r3d => field% qtrc_phy(:,:,:,iqv)
-          CALL unbind_variable(vdf%atmo%states%search('water vapor'))
-          CALL bind_variable(vdf%atmo%states%search('water vapor'), ptr_r3d)
-          CALL unbind_variable(vdf%atmo%inputs%list%Search('water vapor'))
-          CALL bind_variable(vdf%atmo%inputs%list%Search('water vapor'), ptr_r3d)
-          ins%pqm1 => ins%list%Get_ptr_r3d('water vapor')
-          __acc_attach(ins%pqm1)
+        CALL vdf%atmo%inputs%tracer_c%Update  (time_id=nnow_rcf(jg))
+        CALL vdf%atmo%inputs%temp_c%Update    (time_id=nnow(jg))
+        CALL vdf%atmo%inputs%w_wind_ic%Update (time_id=nnow(jg))
+        CALL vdf%atmo%inputs%rho_c%Update     (time_id=nnew(jg))
 
-          ptr_r3d => field% qtrc_phy(:,:,:,iqc)
-          CALL unbind_variable(vdf%atmo%states%search('cloud water'))
-          CALL bind_variable(vdf%atmo%states%search('cloud water'), ptr_r3d)
-          CALL unbind_variable(vdf%atmo%inputs%list%Search('cloud water'))
-          CALL bind_variable(vdf%atmo%inputs%list%Search('cloud water'), ptr_r3d)
-          ins%pxlm1 => ins%list%Get_ptr_r3d('cloud water')
-          __acc_attach(ins%pxlm1)
+        ! TODO: using vn from prog state instead of computing it in tmx leads to differences. Why?
+        ! CALL vdf%atmo%inputs%vn_e%Update(name='vn', time_id=nnew(jg))
 
-          ptr_r3d => field% qtrc_phy(:,:,:,iqi)
-          CALL unbind_variable(vdf%atmo%states%search('cloud ice'))
-          CALL bind_variable(vdf%atmo%states%search('cloud ice'), ptr_r3d)
-          CALL unbind_variable(vdf%atmo%inputs%list%Search('cloud ice'))
-          CALL bind_variable(vdf%atmo%inputs%list%Search('cloud ice'), ptr_r3d)
-          ins%pxim1 => ins%list%Get_ptr_r3d('cloud ice')
-          __acc_attach(ins%pxim1)
+        CALL vdf%sfc%inputs%ta%Update(time_id=nnow(jg))
+        CALL vdf%sfc%inputs%rho_atm%Update(time_id=nnew(jg))
+        CALL vdf%sfc%inputs%qa%Update(time_id=nnow_rcf(jg))
 
-          ptr_r3d => field% qtrc_phy(:,:,:,iqr)
-          CALL unbind_variable(vdf%atmo%inputs%list%Search('rain'))
-          CALL bind_variable(vdf%atmo%inputs%list%Search('rain'), ptr_r3d)
-          ins%pxrm1 => ins%list%Get_ptr_r3d('rain')
-          __acc_attach(ins%pxrm1)
-
-          ptr_r3d => field% qtrc_phy(:,:,:,iqs)
-          CALL unbind_variable(vdf%atmo%inputs%list%Search('snow'))
-          CALL bind_variable(vdf%atmo%inputs%list%Search('snow'), ptr_r3d)
-          ins%pxsm1 => ins%list%Get_ptr_r3d('snow')
-          __acc_attach(ins%pxsm1)
-
-          ptr_r3d => field% qtrc_phy(:,:,:,iqg)
-          CALL unbind_variable(vdf%atmo%inputs%list%Search('graupel'))
-          CALL bind_variable(vdf%atmo%inputs%list%Search('graupel'), ptr_r3d)
-          ins%pxgm1 => ins%list%Get_ptr_r3d('graupel')
-          __acc_attach(ins%pxgm1)
-
-          IF (l_co2) THEN
-            ptr_r3d => field% qtrc_phy(:,:,:,ico2)
-            CALL unbind_variable(vdf%atmo%states%search('co2'))
-            CALL bind_variable(vdf%atmo%states%search('co2'), ptr_r3d)
-          END IF
-
-          CALL unbind_variable(vdf%atmo%states%search('temperature'))
-          CALL bind_variable(vdf%atmo%states%search('temperature'), field%ta)
-          CALL unbind_variable(vdf%atmo%inputs%list%Search('temperature'))
-          CALL bind_variable(vdf%atmo%inputs%list%Search('temperature'), field%ta)
-          ins%ptm1 => ins%list%Get_ptr_r3d('temperature')
-          __acc_attach(ins%ptm1)
-
-          CALL unbind_variable(vdf%atmo%states%search('vertical velocity'))
-          CALL bind_variable(vdf%atmo%states%search('vertical velocity'), field%wa)
-          CALL unbind_variable(vdf%atmo%inputs%list%Search('vertical wind'))
-          CALL bind_variable(vdf%atmo%inputs%list%Search('vertical wind'), field%wa)
-          ins%pwp1 => ins%list%Get_ptr_r3d('vertical wind')
-          __acc_attach(ins%pwp1)
-            ! CALL vdf%atmo%inputs%Set_pointers()
-
-          CALL unbind_variable(vdf%atmo%inputs%list%Search('air density'))
-          CALL bind_variable(vdf%atmo%inputs%list%Search('air density'), field%rho)
-          ins%rho => ins%list%Get_ptr_r3d('air density')
-          __acc_attach(ins%rho)
-
-        END SELECT
-
-        SELECT TYPE (ins => vdf%sfc%inputs)
-        TYPE IS (t_vdf_sfc_inputs)
-
-          ptr_r2d => field% qtrc_phy(:,nlev,:,iqv)
-          CALL unbind_variable(vdf%sfc%inputs%list%Search('atm total water'))
-          CALL bind_variable(vdf%sfc%inputs%list%Search('atm total water'), ptr_r2d)
-          ins%qa => ins%list%Get_ptr_r2d('atm total water')
-          __acc_attach(ins%qa)
-
-          ptr_r2d => ins%list%Get_ptr_r2d('atm CO2 concentration')
+        ptr_r2d => vdf%sfc%inputs%co2%Get_ptr_r2d()
 !$OMP PARALLEL DO PRIVATE(jb, jc, jcs, jce) ICON_OMP_DEFAULT_SCHEDULE
-          DO jb = jbs, jbe
-            CALL get_indices_c(patch, jb, jbs, jbe, jcs, jce, rls, rle)
-            !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(1)
-            DO jc = jcs, jce
-              ptr_r2d(jc,jb) = zco2(jc,jb)
-            END DO
+        DO jb = jbs, jbe
+          CALL get_indices_c(patch, jb, jbs, jbe, jcs, jce, rls, rle)
+          !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(1)
+          DO jc = jcs, jce
+            ptr_r2d(jc,jb) = zco2(jc,jb)
           END DO
+        END DO
 !$OMP END PARALLEL DO
-
-          ptr_r2d => field%ta(:,nlev,:)
-          CALL unbind_variable(vdf%sfc%inputs%list%Search('atm temperature'))
-          CALL bind_variable(vdf%sfc%inputs%list%Search('atm temperature'), ptr_r2d)
-          ins%ta => ins%list%Get_ptr_r2d('atm temperature')
-          __acc_attach(ins%ta)
-
-        END SELECT
 
         !
         ! Move forward one time step
@@ -335,38 +257,16 @@ CONTAINS
         CALL vdf%Compute(datetime_old)
 
         ! Retrieve computed tendency for temperature
-        tend_ta_vdf => vdf%atmo%Get_tendency_r3d('temperature')
-        ! Retrieve computed tendency for water vapor
-        tend_qv_vdf => vdf%atmo%Get_tendency_r3d('water vapor')
-        ! Retrieve computed tendency for cloud water
-        tend_qc_vdf => vdf%atmo%Get_tendency_r3d('cloud water')
-        ! Retrieve computed tendency for cloud ice
-        tend_qi_vdf => vdf%atmo%Get_tendency_r3d('cloud ice')
-        IF (l_co2) THEN
-          IF (ccycle_config(jg)%iccycle == 2) THEN
-!$OMP PARALLEL DO PRIVATE(jb, jc, jcs, jce, jk) ICON_OMP_DEFAULT_SCHEDULE
-            DO jb = jbs, jbe
-              CALL get_indices_c(patch, jb, jbs, jbe, jcs, jce, rls, rle)
-              !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR COLLAPSE(2) ASYNC(1)
-              DO jk = 1, nlev
-                DO jc = jcs, jce
-                  tend_co2_vdf(jc,jk,jb) = 0._wp
-                END DO
-              END DO
-            END DO
-!$OMP END PARALLEL DO
-          ELSE
-            ! Retrieve computed tendency for CO2
-            tend_co2_vdf => vdf%atmo%Get_tendency_r3d('co2')
-          END IF
-        END IF
+        tend_ta_vdf => vdf%atmo%Get_tendency_r3d(vdf%atmo%temp_idx)
         ! Retrieve computed tendencies for horizontal velocity
-        tend_ua_vdf => vdf%atmo%Get_tendency_r3d('eastward wind')
-        tend_va_vdf => vdf%atmo%Get_tendency_r3d('northward wind')
+        tend_ua_vdf => vdf%atmo%Get_tendency_r3d(vdf%atmo%uwind_idx)
+        tend_va_vdf => vdf%atmo%Get_tendency_r3d(vdf%atmo%vwind_idx)
         ! Retrieve computed tendency for vertical velocity
-        tend_wa_vdf => vdf%atmo%Get_tendency_r3d('vertical velocity')
+        tend_wa_vdf => vdf%atmo%Get_tendency_r3d(vdf%atmo%wwind_idx)
         ! Retrieve computed tendency for surface temperature on tiles (for output only)
-        tend_ts => vdf%sfc%Get_tendency_r3d('surface temperature')
+        tend_ts => vdf%sfc%Get_tendency_r3d(vdf%sfc%tsfc_idx)
+        ! Retrieve computed tendency for tracers
+        tend_tracer_vdf => vdf%atmo%Get_tendency_r4d(vdf%atmo%tracer_idx)
 
 !$OMP PARALLEL DO PRIVATE(jb,jc,jcs,jce,jk,jsfc) ICON_OMP_DEFAULT_SCHEDULE
         DO jb = jbs, jbe
@@ -386,28 +286,30 @@ CONTAINS
 
               ! Add tendency from turbulent transport to physics tendency
               ! (is used in iconam_aes interface)
-              tend%qtrc_phy (jc,jk,jb,iqv) = tend%qtrc_phy (jc,jk,jb,iqv) + tend_qv_vdf(jc,jk,jb)
+              tend%qtrc_phy (jc,jk,jb,iqv) = tend%qtrc_phy (jc,jk,jb,iqv) + tend_tracer_vdf(jc,jk,jb,iqv)
               ! Update physics state
-              field%qtrc_phy(jc,jk,jb,iqv) = field%qtrc_phy(jc,jk,jb,iqv) + tend_qv_vdf(jc,jk,jb) * dtime
+              field%qtrc_phy(jc,jk,jb,iqv) = field%qtrc_phy(jc,jk,jb,iqv) + tend_tracer_vdf(jc,jk,jb,iqv) * dtime
 
               ! Add tendency from turbulent transport to physics tendency
               ! (is used in iconam_aes interface)
-              tend%qtrc_phy(jc,jk,jb,iqc) = tend%qtrc_phy(jc,jk,jb,iqc) + tend_qc_vdf(jc,jk,jb)
+              tend%qtrc_phy(jc,jk,jb,iqc) = tend%qtrc_phy(jc,jk,jb,iqc) + tend_tracer_vdf(jc,jk,jb,iqc)
               ! Update physics state
-              field%qtrc_phy(jc,jk,jb,iqc) = field%qtrc_phy(jc,jk,jb,iqc) + tend_qc_vdf(jc,jk,jb) * dtime
+              field%qtrc_phy(jc,jk,jb,iqc) = field%qtrc_phy(jc,jk,jb,iqc) + tend_tracer_vdf(jc,jk,jb,iqc) * dtime
 
               ! Add tendency from turbulent transport to physics tendency
               ! (is used in iconam_aes interface)
-              tend%qtrc_phy(jc,jk,jb,iqi) = tend%qtrc_phy(jc,jk,jb,iqi) + tend_qi_vdf(jc,jk,jb)
+              tend%qtrc_phy(jc,jk,jb,iqi) = tend%qtrc_phy(jc,jk,jb,iqi) + tend_tracer_vdf(jc,jk,jb,iqi)
               ! Update physics state
-              field%qtrc_phy(jc,jk,jb,iqi) = field%qtrc_phy(jc,jk,jb,iqi) + tend_qi_vdf(jc,jk,jb) * dtime
+              field%qtrc_phy(jc,jk,jb,iqi) = field%qtrc_phy(jc,jk,jb,iqi) + tend_tracer_vdf(jc,jk,jb,iqi) * dtime
               !
               IF (l_co2) THEN
-              ! Add tendency from turbulent transport to physics tendency
-              ! (is used in iconam_aes interface)
-                tend%qtrc_phy(jc,jk,jb,ico2) = tend%qtrc_phy(jc,jk,jb,ico2) + tend_co2_vdf(jc,jk,jb)
-                ! Update physics state
-                field%qtrc_phy(jc,jk,jb,ico2) = field%qtrc_phy(jc,jk,jb,ico2) + tend_co2_vdf(jc,jk,jb) * dtime
+                IF (ccycle_config(jg)%iccycle /= 2) THEN
+                  ! Add tendency from turbulent transport to physics tendency
+                  ! (is used in iconam_aes interface)
+                  tend%qtrc_phy(jc,jk,jb,ico2) = tend%qtrc_phy(jc,jk,jb,ico2) + tend_tracer_vdf(jc,jk,jb,ico2)
+                  ! Update physics state
+                  field%qtrc_phy(jc,jk,jb,ico2) = field%qtrc_phy(jc,jk,jb,ico2) + tend_tracer_vdf(jc,jk,jb,ico2) * dtime
+                END IF
               END IF
               !
               tend%ua_phy(jc,jk,jb) = tend%ua_phy(jc,jk,jb) + tend_ua_vdf(jc,jk,jb)
@@ -458,10 +360,10 @@ CONTAINS
             !$ACC LOOP GANG(STATIC: 1) VECTOR COLLAPSE(2)
             DO jk = 1, nlev
               DO jc = jcs, jce
-                tend%qtrc_vdf(jc,jk,jb,iqv) = tend_qv_vdf(jc,jk,jb)
-                tend%qtrc_vdf(jc,jk,jb,iqc) = tend_qc_vdf(jc,jk,jb)
-                tend%qtrc_vdf(jc,jk,jb,iqi) = tend_qi_vdf(jc,jk,jb)
-                IF (l_co2) tend%qtrc_vdf(jc,jk,jb,ico2) = tend_co2_vdf(jc,jk,jb)
+                tend%qtrc_vdf(jc,jk,jb,iqv) = tend_tracer_vdf(jc,jk,jb,iqv)
+                tend%qtrc_vdf(jc,jk,jb,iqc) = tend_tracer_vdf(jc,jk,jb,iqc)
+                tend%qtrc_vdf(jc,jk,jb,iqi) = tend_tracer_vdf(jc,jk,jb,iqi)
+                IF (l_co2) tend%qtrc_vdf(jc,jk,jb,ico2) = tend_tracer_vdf(jc,jk,jb,ico2)
               END DO
             END DO
             !$ACC END LOOP
@@ -580,26 +482,25 @@ CONTAINS
       l_init_or_restart = .FALSE.
     END IF
 
-    IF (ltimer) CALL timer_stop(timer_vdf)
+    IF (ltimer) CALL timer_stop(timer_tmx)
 
   END SUBROUTINE interface_aes_tmx
 
   !New vdf
   SUBROUTINE init_tmx(p_patch, dtime)
 
-    USE mo_variable, ONLY: bind_variable, bind_variable_vp, t_variable
     USE mo_vdf,      ONLY: heat_type, momentum_type
-    USE mo_vdf_atmo, ONLY: t_vdf_atmo_inputs
     ! USE mo_vdf_sfc,  ONLY: t_vdf_sfc_diagnostics
     USE mo_tmx_field_class, ONLY: isfc_oce, isfc_ice, isfc_lnd
     ! USE mo_vdf_diag_smag
 
     USE mo_nonhydro_state,     ONLY: p_nh_state
-    USE mo_nonhydro_types,     ONLY: t_nh_metrics, t_nh_diag, t_nh_prog
-    USE mo_dynamics_config,    ONLY: nnow
+    USE mo_nonhydro_types,     ONLY: t_nh_metrics, t_nh_diag
+    USE mo_dynamics_config,    ONLY: nnow, nnow_rcf
     USE mo_physical_constants, ONLY: cpd, cpv, cvd, cvv, Tf, tmelt
 
     USE mo_master_config, ONLY: isRestart
+    USE mo_run_config,    ONLY: lmemman
 
     TYPE(t_patch), INTENT(inout), TARGET :: p_patch
     REAL(wp),      INTENT(in)    :: dtime
@@ -608,21 +509,25 @@ CONTAINS
     TYPE(t_aes_phy_tend), POINTER :: tend
     TYPE(t_nh_metrics),   POINTER :: p_nh_metrics
     TYPE(t_nh_diag),      POINTER :: p_nh_diag
-    TYPE(t_nh_prog),      POINTER :: p_nh_prog
 
     TYPE(t_vdf), POINTER :: vdf
 
     TYPE(t_patch), POINTER :: patch
     INTEGER :: nlev, nlevp1, jg
     INTEGER :: rls, rle, jbs, jbe, jcs, jce, jb, jc
-    REAL(wp), POINTER :: ptr_r2d(:,:), ptr_r3d(:,:,:)
-    REAL(vp), POINTER :: ptr_s2d(:,:)
     INTEGER, ALLOCATABLE :: sfc_types(:)
 
     REAL(wp), POINTER :: dz_srf(:,:)
+
+    TYPE(var_descriptor) :: var_desc
+
     LOGICAL           :: l_co2
 
     CHARACTER(len=*), PARAMETER :: routine = modname//':init_tmx'
+
+    IF (.NOT. lmemman) THEN
+      CALL finish(routine, 'ERROR: Memory manager must be activated (lmemman=.TRUE.)')
+    END IF
 
     patch => p_patch
 
@@ -641,7 +546,6 @@ CONTAINS
     tend      => prm_tend (jg)
     p_nh_metrics => p_nh_state(jg)%metrics
     p_nh_diag => p_nh_state(jg)%diag
-    p_nh_prog => p_nh_state(jg)%prog(nnow(jg))
     ! Question: use fields from AES field or from e.g. p_nh_state_lists(jg)%metrics p_nh_state_lists(jg)%diag? !!!!!!!!!!
 
     ! ALLOCATE(dz_srf(nproma,patch%nblks_c))
@@ -667,247 +571,220 @@ CONTAINS
     vdf => new_vdf(patch, nproma, nlev=nlev, nsfc_tiles=nsfc_type, sfc_types=sfc_types, dt=dtime)
     __acc_attach(vdf)
 
-    ! CALL vdf%atmo%Add_state('dry static energy', type=heat_type, field=field%cptgz)
-    ! CALL vdf%atmo%Add_state('temperature', heat_type, dims=[nproma,nlev,patch%nblks_c])
-    CALL vdf%atmo%Add_state('temperature',          type=heat_type,     field=field%ta)
-    ptr_r3d => field% qtrc_phy(:,:,:,iqv)
-    CALL vdf%atmo%Add_state('water vapor',          type=heat_type,     field=ptr_r3d)
-    ptr_r3d => field% qtrc_phy(:,:,:,iqc)
-    CALL vdf%atmo%Add_state('cloud water',          type=heat_type,     field=ptr_r3d)
-    ptr_r3d => field% qtrc_phy(:,:,:,iqi)
-    CALL vdf%atmo%Add_state('cloud ice',            type=heat_type,     field=ptr_r3d)
+    CALL vdf%atmo%Add_state(vdf%atmo%temp_idx,   diffusion_type=heat_type,     &
+      & var_desc=var_descriptor('theta_v',jg,1,1,nnow(jg)), rank=3)
+    CALL vdf%atmo%Add_state(vdf%atmo%uwind_idx,    diffusion_type=momentum_type, &
+      & var_desc=var_descriptor('u',jg,1,1,-1), rank=3)
+    CALL vdf%atmo%Add_state(vdf%atmo%vwind_idx,    diffusion_type=momentum_type, &
+      & var_desc=var_descriptor('v',jg,1,1,-1), rank=3)
+    CALL vdf%atmo%Add_state(vdf%atmo%wwind_idx,    diffusion_type=momentum_type, &
+      & var_desc=var_descriptor('w',jg,1,1,nnew(jg)), rank=3)
+
     IF (l_co2) THEN
-      ptr_r3d => field% qtrc_phy(:,:,:,ico2)
-      CALL vdf%atmo%Add_state('co2',                type=heat_type,     field=ptr_r3d)
+      CALL vdf%atmo%Add_state(vdf%atmo%tracer_idx, diffusion_type=heat_type, &
+        & var_desc=var_descriptor('tracer',jg,1,1,nnow_rcf(jg)), rank=4, ref_pos=4, ref_idx=[iqv,iqc,iqi,ico2])
+    ELSE
+      CALL vdf%atmo%Add_state(vdf%atmo%tracer_idx, diffusion_type=heat_type, &
+        & var_desc=var_descriptor('tracer',jg,1,1,nnow_rcf(jg)), rank=4, ref_pos=4, ref_idx=[iqv,iqc,iqi])
     END IF
-    CALL vdf%atmo%Add_state('eastward wind',        type=momentum_type, field=field%ua)
-    CALL vdf%atmo%Add_state('northward wind',       type=momentum_type, field=field%va)
-    CALL vdf%atmo%Add_state('vertical velocity',    type=momentum_type, field=field%wa)
 
     ! Bind variables to atmo config list
-    CALL bind_variable(vdf%atmo%config%list%Search('cpd'), cpd)
-    CALL bind_variable(vdf%atmo%config%list%Search('cvd'), cvd)
-    CALL bind_variable(vdf%atmo%config%list%Search('Smagorinsky constant'), aes_vdf_config(jg)%smag_constant)
-    CALL bind_variable(vdf%atmo%config%list%Search('maximum turbulence length scale'), aes_vdf_config(jg)%max_turb_scale)
-    CALL bind_variable(vdf%atmo%config%list%Search('minimum Km'),aes_vdf_config(jg)%km_min)
-    CALL bind_variable(vdf%atmo%config%list%Search('reverse prandtl number'),aes_vdf_config(jg)%rturb_prandtl)
-    CALL bind_variable(vdf%atmo%config%list%Search('prandtl number'),aes_vdf_config(jg)%turb_prandtl)
-    CALL bind_variable(vdf%atmo%config%list%Search('switch to activate Louis formula'),aes_vdf_config(jg)%use_louis)
-    CALL bind_variable(vdf%atmo%config%list%Search('Louis constant b'),aes_vdf_config(jg)%louis_constant_b)
-    CALL bind_variable(vdf%atmo%config%list%Search('switch to use constant turbulent viscosity'),aes_vdf_config(jg)%use_km_const)
-    CALL bind_variable(vdf%atmo%config%list%Search('constant Km'),aes_vdf_config(jg)%km_const)
-    CALL bind_variable(vdf%atmo%config%list%Search('switch to scale turbulent energy flux'),aes_vdf_config(jg)%use_scale_turb_energy_flux)
-    CALL bind_variable(vdf%atmo%config%list%Search('scaling factor turbulent energy flux'), aes_vdf_config(jg)%scale_turb_energy_flux)
-    CALL bind_variable(vdf%atmo%config%list%Search('time step'),dtime)
-    CALL bind_variable(vdf%atmo%config%list%Search('solver type'), aes_vdf_config(jg)%solver_type)
-    CALL bind_variable(vdf%atmo%config%list%Search('energy type'), aes_vdf_config(jg)%energy_type)
-    CALL bind_variable(vdf%atmo%config%list%Search('dissipation factor'), aes_vdf_config(jg)%dissipation_factor)
-    CALL bind_variable(vdf%atmo%config%list%Search('co2 tracer active'), l_co2)
+
+    CALL vdf%atmo%config%cpd%Assign_r0d(cpd)
+    CALL vdf%atmo%config%cvd%Assign_r0d(cvd)
+    CALL vdf%atmo%config%smag_constant%Assign_r0d(aes_vdf_config(jg)%smag_constant)
+    CALL vdf%atmo%config%max_turb_scale%Assign_r0d(aes_vdf_config(jg)%max_turb_scale)
+    CALL vdf%atmo%config%km_min%Assign_r0d(aes_vdf_config(jg)%km_min)
+    CALL vdf%atmo%config%rturb_prandtl%Assign_r0d(aes_vdf_config(jg)%rturb_prandtl)
+    CALL vdf%atmo%config%turb_prandtl%Assign_r0d(aes_vdf_config(jg)%turb_prandtl)
+    CALL vdf%atmo%config%use_louis%Assign_l0d(aes_vdf_config(jg)%use_louis)
+    CALL vdf%atmo%config%louis_constant_b%Assign_r0d(aes_vdf_config(jg)%louis_constant_b)
+    CALL vdf%atmo%config%use_km_const%Assign_l0d(aes_vdf_config(jg)%use_km_const)
+    CALL vdf%atmo%config%km_const%Assign_r0d(aes_vdf_config(jg)%km_const)
+    CALL vdf%atmo%config%use_scale_turb_energy_flux%Assign_l0d(aes_vdf_config(jg)%use_scale_turb_energy_flux)
+    CALL vdf%atmo%config%scale_turb_energy_flux%Assign_r0d(aes_vdf_config(jg)%scale_turb_energy_flux)
+    CALL vdf%atmo%config%dtime%Assign_r0d(dtime)
+    CALL vdf%atmo%config%solver_type%Assign_i0d(aes_vdf_config(jg)%solver_type)
+    CALL vdf%atmo%config%energy_type%Assign_i0d(aes_vdf_config(jg)%energy_type)
+    CALL vdf%atmo%config%dissipation_factor%Assign_r0d(aes_vdf_config(jg)%dissipation_factor)
+    CALL vdf%atmo%config%l_co2%Assign_l0d(l_co2)
 
     ! Bind variables to atmo input list
     ! 3d
-    CALL bind_variable(vdf%atmo%inputs%list%Search('temperature'),         field%ta)
-    CALL bind_variable(vdf%atmo%inputs%list%Search('zonal wind'),          field%ua)
-    CALL bind_variable(vdf%atmo%inputs%list%Search('meridional wind'),     field%va)
-    CALL bind_variable(vdf%atmo%inputs%list%Search('vertical wind'),       field%wa)
-    CALL bind_variable(vdf%atmo%inputs%list%Search('virtual temperature'), field%tv)
-    CALL bind_variable(vdf%atmo%inputs%list%Search('air density'),         field%rho)
-    CALL bind_variable(vdf%atmo%inputs%list%Search('moist air mass'),      field%mair)
-    CALL bind_variable(vdf%atmo%inputs%list%Search('specific heat of air at constant volume'),  field%cvair)
-    CALL bind_variable(vdf%atmo%inputs%list%Search('geometric height full'), field%zf)
-    CALL bind_variable(vdf%atmo%inputs%list%Search('geometric height half'), field%zh)
-    !
-    ptr_r3d => field% qtrc_phy(:,:,:,iqv)
-    CALL bind_variable(vdf%atmo%inputs%list%Search('water vapor'), ptr_r3d)
-    ptr_r3d => field% qtrc_phy(:,:,:,iqc)
-    CALL bind_variable(vdf%atmo%inputs%list%Search('cloud water'), ptr_r3d)
-    ! TODO: check for tracer existance
-    ptr_r3d => field% qtrc_phy(:,:,:,iqi)
-    CALL bind_variable(vdf%atmo%inputs%list%Search('cloud ice'), ptr_r3d)
-    ptr_r3d => field% qtrc_phy(:,:,:,iqr)
-    CALL bind_variable(vdf%atmo%inputs%list%Search('rain'), ptr_r3d)
-    ptr_r3d => field% qtrc_phy(:,:,:,iqs)
-    CALL bind_variable(vdf%atmo%inputs%list%Search('snow'), ptr_r3d)
-    ptr_r3d => field% qtrc_phy(:,:,:,iqg)
-    CALL bind_variable(vdf%atmo%inputs%list%Search('graupel'), ptr_r3d)
-    !
-    CALL bind_variable(vdf%atmo%inputs%list%Search('full level pressure'), field%pfull)
-    CALL bind_variable(vdf%atmo%inputs%list%Search('half level pressure'), field%phalf)
-    CALL bind_variable(vdf%atmo%inputs%list%Search('layer thickness'), field%dz)
-    CALL bind_variable(vdf%atmo%inputs%list%Search('layer thickness full'), p_nh_metrics%ddqz_z_full)
-    CALL bind_variable_vp(vdf%atmo%inputs%list%Search('inverse layer thickness full'), p_nh_metrics%inv_ddqz_z_full)
-    CALL bind_variable(vdf%atmo%inputs%list%Search('inverse layer thickness half'), p_nh_metrics%inv_ddqz_z_half)
-    CALL bind_variable_vp(vdf%atmo%inputs%list%Search('layer thickness half'), p_nh_metrics%ddqz_z_half)
-    CALL bind_variable(vdf%atmo%inputs%list%Search('geopotential above groundlevel at interface and cell center'), p_nh_metrics%geopot_agl_ifc)
-    ! 2d
-    ! CALL bind_variable(vdf%atmo%inputs%list%Search('area fraction with wet land surface'), field%csat)
-    ! CALL bind_variable(vdf%atmo%inputs%list%Search('area fraction with wet land surface (air)'), field%cair)
+    CALL vdf%atmo%inputs%tracer_c%Update      ('tracer',             patch_id=jg, time_id=nnow_rcf(jg), ref_pos=4)
+    CALL vdf%atmo%inputs%temp_c%Update        ('theta_v',            patch_id=jg, time_id=nnow(jg))
+    CALL vdf%atmo%inputs%u_wind_c%Update      ('u',                  patch_id=jg)
+    CALL vdf%atmo%inputs%v_wind_c%Update      ('v',                  patch_id=jg)
+    CALL vdf%atmo%inputs%w_wind_ic%Update     ('w',                  patch_id=jg, time_id=nnow(jg))
+    CALL vdf%atmo%inputs%temp_virt_c%Update   ('tempv',              patch_id=jg)
+    CALL vdf%atmo%inputs%moist_mass_c%Update  ('airmass_new',        patch_id=jg)
+    CALL vdf%atmo%inputs%cv_air_c%Update      ('cvair',              patch_id=jg)
+    CALL vdf%atmo%inputs%z_c%Update           ('z_mc',               patch_id=jg)
+    CALL vdf%atmo%inputs%z_ic%Update          ('z_ifc',              patch_id=jg)
+    CALL vdf%atmo%inputs%pres_c%Update        ('pres',               patch_id=jg)
+    CALL vdf%atmo%inputs%pres_ic%Update       ('pres_ifc',           patch_id=jg)
+    CALL vdf%atmo%inputs%dz_c%Update          ('ddqz_z_full',        patch_id=jg)
+    CALL vdf%atmo%inputs%dz_ic%Update         ('ddqz_z_half',        patch_id=jg)
+    CALL vdf%atmo%inputs%inv_dz_c%Update      ('inv_ddqz_z_full',    patch_id=jg)
+    CALL vdf%atmo%inputs%inv_dz_ic%Update     ('inv_ddqz_z_half',    patch_id=jg)
+    CALL vdf%atmo%inputs%geo_height_c%Update  ('z_mc',               patch_id=jg)
+    CALL vdf%atmo%inputs%geo_height_ic%Update ('z_ifc',              patch_id=jg)
+    CALL vdf%atmo%inputs%geopot_agl_ic%Update ('geopot_agl_ifc',     patch_id=jg)
+    CALL vdf%atmo%inputs%rho_c%Update         ('rho',                patch_id=jg, time_id=nnew(jg))
+    ! CALL vdf%atmo%inputs%vn_e%Update          ('vn',                 patch_id=jg, time_id=nnew(jg))
+
+    ! Bind diagnostic variables
+    CALL vdf%atmo%diagnostics%ctgz                 %Update('cptgz',   patch_id=jg)
+    CALL vdf%atmo%diagnostics%km                   %Update('cfm',     patch_id=jg)
+    CALL vdf%atmo%diagnostics%kh                   %Update('cfh',     patch_id=jg)
+    IF (ASSOCIATED(field%q_vdf)) THEN
+      CALL vdf%atmo%diagnostics%heating            %Update('q_vdf',   patch_id=jg)
+    END IF
+    IF (ASSOCIATED(field%kedisp)) THEN
+      CALL vdf%atmo%diagnostics%dissip_ke_vi       %Update('kedisp',  patch_id=jg)
+    END IF
+    IF (ASSOCIATED(field%cptgzvi)) THEN
+      CALL vdf%atmo%diagnostics%ctgzvi             %Update('cptgzvi', patch_id=jg)
+    END IF
+    IF (ASSOCIATED(field%utmxvi)) THEN
+      CALL vdf%atmo%diagnostics%int_energy_vi      %Update('utmxvi',  patch_id=jg)
+    END IF
+    IF (ASSOCIATED(tend%utmxvi)) THEN
+      CALL vdf%atmo%diagnostics%int_energy_vi_tend %Update('tend_utmxvi', patch_id=jg)
+    END IF
 
     !
     ! Surface
     !
-    CALL vdf%sfc%Add_state('saturation specific humidity', type=heat_type, dims=[nproma,patch%nblks_c,SIZE(sfc_types)])
-    CALL vdf%sfc%Add_state('surface temperature', type=heat_type, field=field%ts_tile)
+    CALL vdf%sfc%Add_state(vdf%sfc%qsat_idx, dims=[nproma,patch%nblks_c,SIZE(sfc_types)], diffusion_type=heat_type)
+    CALL vdf%sfc%Add_state(vdf%sfc%tsfc_idx, diffusion_type=heat_type, &
+      &                     var_desc=var_descriptor('ts_tile', jg, 1, 1, -1), rank=3)
 
     ! Bind variables to sfc config list
-    CALL bind_variable(vdf%sfc%config%list%Search('cpd'), cpd)
-    CALL bind_variable(vdf%sfc%config%list%Search('cvd'), cvd)
-    CALL bind_variable(vdf%sfc%config%list%Search('cvv'), cvv)
-    CALL bind_variable(vdf%sfc%config%list%Search('time step'),dtime)
-    CALL bind_variable(vdf%sfc%config%list%Search('minimum surface wind speed'), aes_vdf_config(jg)%min_sfc_wind)
-    CALL bind_variable(vdf%sfc%config%list%Search('wind gust parameter'),        aes_vdf_config(jg)%wind_g)
-    CALL bind_variable(vdf%sfc%config%list%Search('ocean roughness length'),     aes_vdf_config(jg)%z0m_oce)
-    CALL bind_variable(vdf%sfc%config%list%Search('ice roughness length'),       aes_vdf_config(jg)%z0m_ice)
-    CALL bind_variable(vdf%sfc%config%list%Search('minimal roughness length'),   aes_vdf_config(jg)%z0m_min)
-    CALL bind_variable(vdf%sfc%config%list%Search('weight for interpolation to surface_layer mid level'), aes_vdf_config(jg)%fsl)
-    CALL bind_variable(vdf%sfc%config%list%Search('number of sea ice thickness classes'), field%kice)
-    CALL bind_variable(vdf%sfc%config%list%Search('co2 tracer active'), l_co2)
+    CALL vdf%sfc%config%cpd%Assign_r0d(cpd)
+    CALL vdf%sfc%config%cvd%Assign_r0d(cvd)
+    CALL vdf%sfc%config%cvv%Assign_r0d(cvv)
+    CALL vdf%sfc%config%dtime%Assign_r0d(dtime)
+    CALL vdf%sfc%config%min_sfc_wind%Assign_r0d(aes_vdf_config(jg)%min_sfc_wind)
+    CALL vdf%sfc%config%wind_gustiness%Assign_r0d(aes_vdf_config(jg)%wind_g)
+    CALL vdf%sfc%config%rough_m_oce%Assign_r0d(aes_vdf_config(jg)%z0m_oce)
+    CALL vdf%sfc%config%rough_m_ice%Assign_r0d(aes_vdf_config(jg)%z0m_ice)
+    CALL vdf%sfc%config%min_rough%Assign_r0d(aes_vdf_config(jg)%z0m_min)
+    CALL vdf%sfc%config%fsl%Assign_r0d(aes_vdf_config(jg)%fsl)
+    CALL vdf%sfc%config%nice_thickness_classes%Assign_i0d(field%kice)
+    CALL vdf%sfc%config%l_co2%Assign_l0d(l_co2)
 
     ! Bind variables to sfc input list
-    ptr_r2d => field%ta(:,nlev,:)
-    CALL bind_variable(vdf%sfc%inputs%list%Search('atm temperature'), ptr_r2d)
-    ptr_r2d => field%tv(:,nlev,:)
-    CALL bind_variable(vdf%sfc%inputs%list%Search('atm virtual temperature'), ptr_r2d)
-    ptr_r2d => field%ua(:,nlev,:)
-    CALL bind_variable(vdf%sfc%inputs%list%Search('atm zonal wind'),     ptr_r2d)
-    ptr_r2d => field%va(:,nlev,:)
-    CALL bind_variable(vdf%sfc%inputs%list%Search('atm meridional wind'), ptr_r2d)
-    ptr_r2d => field% qtrc_phy(:,nlev,:,iqv)
-    CALL bind_variable(vdf%sfc%inputs%list%Search('atm total water'), ptr_r2d)
-    ptr_r2d => field%rho(:,nlev,:)
-    CALL bind_variable(vdf%sfc%inputs%list%Search('atm density'), ptr_r2d)
-    ptr_r2d => field%pfull(:,nlev,:)
-    CALL bind_variable(vdf%sfc%inputs%list%Search('atm full level pressure'), ptr_r2d)
-    ptr_r2d => field%phalf(:,nlevp1,:)
-    CALL bind_variable(vdf%sfc%inputs%list%Search('surface pressure'), ptr_r2d)
+    CALL vdf%sfc%inputs%qa%Update('tracer', time_id=nnow(jg), patch_id=jg, &
+      &                           ref_pos=2, ref=nlev, ref2_pos=4, ref2=iqv)
+    CALL vdf%sfc%inputs%ta%Update('theta_v', time_id=nnow(jg), patch_id=jg, ref_pos=2, ref=nlev)
+    CALL vdf%sfc%inputs%tv%Update('tempv', patch_id=jg, ref_pos=2, ref=nlev)
+    CALL vdf%sfc%inputs%ua%Update('u', patch_id=jg, ref_pos=2, ref=nlev)
+    CALL vdf%sfc%inputs%va%Update('v', patch_id=jg, ref_pos=2, ref=nlev)
+    CALL vdf%sfc%inputs%rho_atm%Update('rho', time_id=nnow(jg), patch_id=jg, ref_pos=2, ref=nlev)
+    CALL vdf%sfc%inputs%pa%Update('pres', patch_id=jg, ref_pos=2, ref=nlev)
+    CALL vdf%sfc%inputs%psfc%Update('pres_ifc', patch_id=jg, ref_pos=2, ref=nlevp1)
     ! CALL bind_variable(vdf%sfc%inputs%list%Search('surface pressure'), p_nh_diag%pres_sfc)
-    ptr_r2d => field%zf(:,nlev,:)
-    CALL bind_variable(vdf%sfc%inputs%list%Search('atm geometric height full'), ptr_r2d)
-    ptr_r2d => field%zh(:,nlevp1,:)
-    CALL bind_variable(vdf%sfc%inputs%list%Search('sfc geometric height half'), ptr_r2d)
+    CALL vdf%sfc%inputs%zf%Update('z_mc', patch_id=jg, ref_pos=2, ref=nlev)
+    CALL vdf%sfc%inputs%zh%Update('z_ifc', patch_id=jg, ref_pos=2, ref=nlevp1)
     !
-    CALL bind_variable(vdf%sfc%inputs%list%Search('surface rain flux, large-scale'), field%rsfl)
-    CALL bind_variable(vdf%sfc%inputs%list%Search('surface snow flux, large-scale'), field%ssfl)
+    CALL vdf%sfc%inputs%rsfl%Update('prlr', patch_id=jg)
+    CALL vdf%sfc%inputs%ssfl%Update('prls', patch_id=jg)
     !
-    CALL bind_variable(vdf%sfc%inputs%list%Search('surface downward longwave radiation'),                field%rlds)
-    CALL bind_variable(vdf%sfc%inputs%list%Search('surface downward shortwave radiation'),               field%rsds)
-    CALL bind_variable(vdf%sfc%inputs%list%Search('all-sky surface downward direct visible radiation'),  field%rvds_dir)
-    CALL bind_variable(vdf%sfc%inputs%list%Search('all-sky surface downward direct near-IR radiation'),  field%rnds_dir)
-    CALL bind_variable(vdf%sfc%inputs%list%Search('all-sky surface downward direct PAR radiation'),      field%rpds_dir)
-    CALL bind_variable(vdf%sfc%inputs%list%Search('all-sky surface downward diffuse visible radiation'), field%rvds_dif)
-    CALL bind_variable(vdf%sfc%inputs%list%Search('all-sky surface downward diffuse near-IR radiation'), field%rnds_dif)
-    CALL bind_variable(vdf%sfc%inputs%list%Search('all-sky surface downward diffuse PAR radiation'),     field%rpds_dif)
+    CALL vdf%sfc%inputs%rlds%Update('rlds', patch_id=jg)
+    CALL vdf%sfc%inputs%rsds%Update('rsds', patch_id=jg)
+    CALL vdf%sfc%inputs%rvds_dir%Update('rvds_dir', patch_id=jg)
+    CALL vdf%sfc%inputs%rnds_dir%Update('rnds_dir', patch_id=jg)
+    CALL vdf%sfc%inputs%rpds_dir%Update('rpds_dir', patch_id=jg)
+    CALL vdf%sfc%inputs%rvds_dif%Update('rvds_dif', patch_id=jg)
+    CALL vdf%sfc%inputs%rnds_dif%Update('rnds_dif', patch_id=jg)
+    CALL vdf%sfc%inputs%rpds_dif%Update('rpds_dif', patch_id=jg)
     !
-    CALL bind_variable(vdf%sfc%inputs%list%Search('surface temperature, tile'), field%ts_tile)
-    CALL bind_variable(vdf%sfc%inputs%list%Search('grid box fraction of tiles'), field%frac_tile)
+    CALL vdf%sfc%inputs%tsfc_tile%Update('ts_tile', patch_id=jg)
+    CALL vdf%sfc%inputs%fract_tile%Update('frac_tile', patch_id=jg)
     !
     ! TODO: lw surface emissivity should be tile-specific and, for land, should be returned from land model
-    CALL bind_variable(vdf%sfc%inputs%list%Search('longwave surface emissivity'), field%emissivity)
-    CALL bind_variable(vdf%sfc%inputs%list%Search('u-component of ocean current'), field%ocu)
-    CALL bind_variable(vdf%sfc%inputs%list%Search('v-component of ocean current'), field%ocv)
+    CALL vdf%sfc%inputs%emissivity%Update('emissivity', patch_id=jg)
+    CALL vdf%sfc%inputs%u_oce_current%Update('ocu', patch_id=jg)
+    CALL vdf%sfc%inputs%v_oce_current%Update('ocv', patch_id=jg)
     !
-    ptr_r2d => field%hi(:,1,:)
-    CALL bind_variable(vdf%sfc%inputs%list%Search('thickness of sea ice'), ptr_r2d)
+    CALL vdf%sfc%inputs%ice_thickness%Update('sit_icecl', patch_id=jg, ref_pos=2, ref=1)
     !
-    CALL bind_variable(vdf%sfc%inputs%list%Search('cosine of zenith angle'), field%cosmu0)
+    CALL vdf%sfc%inputs%cosmu0%Update('cosmu0', patch_id=jg)
     !
-    CALL bind_variable(vdf%sfc%inputs%list%Search('CO2 flux from anthropogenic sfc emissions'), field%fco2ant)
-    CALL bind_variable(vdf%sfc%diagnostics%list%Search('CO2 flux from natural sfc emissions'), field%fco2nat)
+    CALL vdf%sfc%inputs%co2flx_ant%Update('fco2ant', patch_id=jg)
+    CALL vdf%sfc%diagnostics%co2flx_nat%Update('fco2nat', patch_id=jg)
     !
-    ptr_s2d => p_nh_metrics%ddqz_z_half(:,nlevp1,:)
-    CALL bind_variable_vp(vdf%sfc%inputs%list%Search('reference height in surface layer times 2'), ptr_s2d)
+    CALL vdf%sfc%inputs%dz%Update('ddqz_z_half', patch_id=jg, ref_pos=2, ref=nlevp1)
     ! dz_srf(:,:) = 2._wp * (field%zh(:,nlev,:) - field%zh(:,nlevp1,:))
     ! dz_srf(:,:) = 2._wp * (p_nh_metrics%z_mc(:,nlev,:) - p_nh_metrics%z_ifc(:,nlevp1,:))
     ! CALL bind_variable(vdf%sfc%inputs%list%Search('reference height in surface layer times 2'), dz_srf)
     !
-    CALL bind_variable(vdf%atmo%diagnostics%list%Search('static energy'),                               field%cptgz)
-    IF (ASSOCIATED(field%cptgzvi)) THEN
-      CALL bind_variable(vdf%atmo%diagnostics%list%Search('static energy, vert. int.'),                 field%cptgzvi)
-    END IF
-    IF (ASSOCIATED(field%q_vdf)) THEN
-      CALL bind_variable(vdf%atmo%diagnostics%list%Search('layer heating'),                             field%q_vdf)
-    END IF
-    IF (ASSOCIATED(field%kedisp)) THEN
-      CALL bind_variable(vdf%atmo%diagnostics%list%Search('dissipation of kinetic energy, vert. int.'), field%kedisp)
-    END IF
-    IF (ASSOCIATED(field%utmxvi)) THEN
-      CALL bind_variable(vdf%atmo%diagnostics%list%Search('moist internal energy after tmx, vert. int.'), field%utmxvi)
-    END IF
-    IF (ASSOCIATED(tend%utmxvi)) THEN
-      CALL bind_variable(vdf%atmo%diagnostics%list%Search('tendency of vert. int. moist internal energy'), tend%utmxvi)
-    END IF
-    CALL bind_variable(vdf%atmo%diagnostics%list%Search('exchange coefficient momentum full'),          field%cfm)
-    CALL bind_variable(vdf%atmo%diagnostics%list%Search('exchange coefficient scalar full'),            field%cfh)
+    CALL vdf%sfc%diagnostics%tsfc%Update('ts', patch_id=jg)
+    CALL vdf%sfc%diagnostics%tsfc_rad%Update('ts_rad', patch_id=jg)
+    CALL vdf%sfc%diagnostics%lwfl_net_tile%Update('rlns_tile', patch_id=jg)
+    CALL vdf%sfc%diagnostics%swfl_net_tile%Update('rsns_tile', patch_id=jg)
+    CALL vdf%sfc%diagnostics%lwfl_up%Update('rlus', patch_id=jg)
+    CALL vdf%sfc%diagnostics%swfl_up%Update('rsus', patch_id=jg)
     !
-    CALL bind_variable(vdf%sfc%diagnostics%list%Search('sfc temperature'),                              field%ts)
-    CALL bind_variable(vdf%sfc%diagnostics%list%Search('sfc radiative temperature'),                    field%ts_rad)
-    CALL bind_variable(vdf%sfc%diagnostics%list%Search('sfc longwave net flux, tile'),                  field%lwflxsfc_tile)
-    CALL bind_variable(vdf%sfc%diagnostics%list%Search('sfc shortwave net flux, tile'),                 field%swflxsfc_tile)
-    CALL bind_variable(vdf%sfc%diagnostics%list%Search('sfc longwave upward flux'),                     field%rlus)
-    CALL bind_variable(vdf%sfc%diagnostics%list%Search('sfc shortwave upward flux'),                    field%rsus)
-    !
-    CALL bind_variable(vdf%sfc%diagnostics%list%Search('sfc evapotranspiration'),                       field%evap)
-    CALL bind_variable(vdf%sfc%diagnostics%list%Search('sfc latent heat flux'),                         field%lhflx)
-    CALL bind_variable(vdf%sfc%diagnostics%list%Search('sfc sensible heat flux'),                       field%shflx)
-    CALL bind_variable(vdf%sfc%diagnostics%list%Search('energy flux at surface from thermal exchange'), field%ufts)
-    CALL bind_variable(vdf%sfc%diagnostics%list%Search('energy flux at surface from vapor exchange'),   field%ufvs)
-    CALL bind_variable(vdf%sfc%diagnostics%list%Search('sfc zonal wind stress'),                        field%u_stress)
-    CALL bind_variable(vdf%sfc%diagnostics%list%Search('sfc mer. wind stress'),                         field%v_stress)
-    CALL bind_variable(vdf%sfc%diagnostics%list%Search('sfc evapotranspiration, tile'),                 field%evap_tile)
-    CALL bind_variable(vdf%sfc%diagnostics%list%Search('sfc latent heat flux, tile'),                   field%lhflx_tile)
-    CALL bind_variable(vdf%sfc%diagnostics%list%Search('sfc sensible heat flux, tile'),                 field%shflx_tile)
-    CALL bind_variable(vdf%sfc%diagnostics%list%Search('sfc zonal wind stress, tile'),                  field%u_stress_tile)
-    CALL bind_variable(vdf%sfc%diagnostics%list%Search('sfc mer. wind stress, tile'),                   field%v_stress_tile)
-    CALL bind_variable(vdf%sfc%diagnostics%list%Search('CO2 flux from natural sfc emissions, tile'),    field%co2_flux_tile)
+    CALL vdf%sfc%diagnostics%evapotrans%Update('evspsbl', patch_id=jg)
+    CALL vdf%sfc%diagnostics%lhfl%Update('hfls', patch_id=jg)
+    CALL vdf%sfc%diagnostics%shfl%Update('hfss', patch_id=jg)
+    CALL vdf%sfc%diagnostics%ustress%Update('tauu', patch_id=jg)
+    CALL vdf%sfc%diagnostics%vstress%Update('tauv', patch_id=jg)
+    CALL vdf%sfc%diagnostics%ufts%Update('ufts', patch_id=jg)
+    CALL vdf%sfc%diagnostics%ufvs%Update('ufvs', patch_id=jg)
+    CALL vdf%sfc%diagnostics%evapotrans_tile%Update('evspsbl_tile', patch_id=jg)
+    CALL vdf%sfc%diagnostics%lhfl_tile%Update('hfls_tile', patch_id=jg)
+    CALL vdf%sfc%diagnostics%shfl_tile%Update('hfss_tile', patch_id=jg)
+    CALL vdf%sfc%diagnostics%ustress_tile%Update('tauu_tile', patch_id=jg)
+    CALL vdf%sfc%diagnostics%vstress_tile%Update('tauv_tile', patch_id=jg)
+    CALL vdf%sfc%diagnostics%co2flx_nat_tile%Update('co2_flux_tile', patch_id=jg)
+
     IF (ASSOCIATED(field%z0m)) &
-      & CALL bind_variable(vdf%sfc%diagnostics%list%Search('roughness length momentum'),                    field%z0m)
+      & CALL vdf%sfc%diagnostics%rough_m%Update('z0m', patch_id=jg)
     IF (ASSOCIATED(field%z0h)) &
-      & CALL bind_variable(vdf%sfc%diagnostics%list%Search('roughness length heat'),                        field%z0h)
+      & CALL vdf%sfc%diagnostics%rough_h%Update('z0h', patch_id=jg)
     IF (ASSOCIATED(field%z0m_tile)) &
-      & CALL bind_variable(vdf%sfc%diagnostics%list%Search('roughness length momentum, tile'),              field%z0m_tile)
+      & CALL vdf%sfc%diagnostics%rough_m_tile%Update('z0m_tile', patch_id=jg)
     IF (ASSOCIATED(field%z0h_tile)) &
-      & CALL bind_variable(vdf%sfc%diagnostics%list%Search('roughness length heat, tile'),                  field%z0h_tile)
+      & CALL vdf%sfc%diagnostics%rough_h_tile%Update('z0h_tile', patch_id=jg)
     IF (ASSOCIATED(field%cfm_tile)) &
-      & CALL bind_variable(vdf%sfc%diagnostics%list%Search('exchange coefficient for momentum, tile'),  field%cfm_tile)
+      & CALL vdf%sfc%diagnostics%km_tile%Update('cfm_tile', patch_id=jg)
     IF (ASSOCIATED(field%cfh_tile)) &
-      & CALL bind_variable(vdf%sfc%diagnostics%list%Search('exchange coefficient for scalar, tile'),    field%cfh_tile)
+      & CALL vdf%sfc%diagnostics%kh_tile%Update('cfh_tile', patch_id=jg)
     !
-    CALL bind_variable(vdf%sfc%diagnostics%list%Search('albedo VIS direct, tile'),                      field%albvisdir_tile)
-    CALL bind_variable(vdf%sfc%diagnostics%list%Search('albedo VIS diffuse, tile'),                     field%albvisdif_tile)
-    CALL bind_variable(vdf%sfc%diagnostics%list%Search('albedo NIR direct, tile'),                      field%albnirdir_tile)
-    CALL bind_variable(vdf%sfc%diagnostics%list%Search('albedo NIR diffuse, tile'),                     field%albnirdif_tile)
-    CALL bind_variable(vdf%sfc%diagnostics%list%Search('albedo, tile'),                                 field%albedo_tile)
-    CALL bind_variable(vdf%sfc%diagnostics%list%Search('albedo VIS direct'),                            field%albvisdir)
-    CALL bind_variable(vdf%sfc%diagnostics%list%Search('albedo VIS diffuse'),                           field%albvisdif)
-    CALL bind_variable(vdf%sfc%diagnostics%list%Search('albedo NIR direct'),                            field%albnirdir)
-    CALL bind_variable(vdf%sfc%diagnostics%list%Search('albedo NIR diffuse'),                           field%albnirdif)
-    CALL bind_variable(vdf%sfc%diagnostics%list%Search('albedo'),                                       field%albedo)
+    CALL vdf%sfc%diagnostics%albvisdir_tile%Update('albvisdir_tile', patch_id=jg)
+    CALL vdf%sfc%diagnostics%albvisdif_tile%Update('albvisdif_tile', patch_id=jg)
+    CALL vdf%sfc%diagnostics%albnirdir_tile%Update('albnirdir_tile', patch_id=jg)
+    CALL vdf%sfc%diagnostics%albnirdif_tile%Update('albnirdif_tile', patch_id=jg)
+    CALL vdf%sfc%diagnostics%albedo_tile%Update('albedo_tile', patch_id=jg)
+    CALL vdf%sfc%diagnostics%albvisdir%Update('albvisdir', patch_id=jg)
+    CALL vdf%sfc%diagnostics%albvisdif%Update('albvisdif', patch_id=jg)
+    CALL vdf%sfc%diagnostics%albnirdir%Update('albnirdir', patch_id=jg)
+    CALL vdf%sfc%diagnostics%albnirdif%Update('albnirdif', patch_id=jg)
+    CALL vdf%sfc%diagnostics%albedo%Update('albedo', patch_id=jg)
 
-    ptr_r2d => field%Qtop(:,1,:)
-    CALL bind_variable(vdf%sfc%diagnostics%list%Search('energy flux available for surface melting of sea ice'), ptr_r2d)
-    ptr_r2d => field%Qbot(:,1,:)
-    CALL bind_variable(vdf%sfc%diagnostics%list%Search('energy flux at ice-ocean interface'),                   ptr_r2d)
-    ptr_r2d => field%hs(:,1,:)
-    CALL bind_variable(vdf%sfc%diagnostics%list%Search('thickness of snow on sea ice'),                         ptr_r2d)
+    CALL vdf%sfc%diagnostics%q_ice_top%Update('qtop_icecl', patch_id=jg, ref_pos=2, ref=1)
+    CALL vdf%sfc%diagnostics%q_ice_bot%Update('qbot_icecl', patch_id=jg, ref_pos=2, ref=1)
+    CALL vdf%sfc%diagnostics%snow_thickness%Update('hs_icecl', patch_id=jg, ref_pos=2, ref=1)
 
-    CALL bind_variable(vdf%sfc%diagnostics%list%Search('2m temperature'),                               field%tas)
-    CALL bind_variable(vdf%sfc%diagnostics%list%Search('2m temperature, tile'),                         field%tas_tile)
-    CALL bind_variable(vdf%sfc%diagnostics%list%Search('2m specific humidity'),                         field%qv2m)
-    CALL bind_variable(vdf%sfc%diagnostics%list%Search('2m specific humidity, tile'),                   field%qv2m_tile)
-    CALL bind_variable(vdf%sfc%diagnostics%list%Search('2m dewpoint temperature'),                      field%dew2)
-    CALL bind_variable(vdf%sfc%diagnostics%list%Search('2m dewpoint temperature, tile'),                field%dew2_tile)
-    CALL bind_variable(vdf%sfc%diagnostics%list%Search('10m wind speed'),                               field%sfcwind)
-    CALL bind_variable(vdf%sfc%diagnostics%list%Search('10m zonal wind'),                               field%uas)
-    CALL bind_variable(vdf%sfc%diagnostics%list%Search('10m meridional wind'),                          field%vas)
-    CALL bind_variable(vdf%sfc%diagnostics%list%Search('10m wind speed, tile'),                         field%sfcwind_tile)
-    CALL bind_variable(vdf%sfc%diagnostics%list%Search('10m zonal wind, tile'),                         field%uas_tile)
-    CALL bind_variable(vdf%sfc%diagnostics%list%Search('10m meridional wind, tile'),                    field%vas_tile)
-
-    CALL vdf%Lock_variable_sets()
+    CALL vdf%sfc%diagnostics%t2m%Update('tas', patch_id=jg)
+    CALL vdf%sfc%diagnostics%t2m_tile%Update('tas_tile', patch_id=jg)
+    CALL vdf%sfc%diagnostics%hus2m%Update('qv2m', patch_id=jg)
+    CALL vdf%sfc%diagnostics%hus2m_tile%Update('qv2m_tile', patch_id=jg)
+    CALL vdf%sfc%diagnostics%dew2m%Update('dew2', patch_id=jg)
+    CALL vdf%sfc%diagnostics%dew2m_tile%Update('dew2_tile', patch_id=jg)
+    CALL vdf%sfc%diagnostics%u10m%Update('uas', patch_id=jg)
+    CALL vdf%sfc%diagnostics%u10m_tile%Update('uas_tile', patch_id=jg)
+    CALL vdf%sfc%diagnostics%v10m%Update('vas', patch_id=jg)
+    CALL vdf%sfc%diagnostics%v10m_tile%Update('vas_tile', patch_id=jg)
+    CALL vdf%sfc%diagnostics%wind10m%Update('sfcwind', patch_id=jg)
+    CALL vdf%sfc%diagnostics%wind10m_tile%Update('sfcwind_tile', patch_id=jg)
 
     vdf_dom(jg)%p => vdf
 
-    CALL vdf%atmo%Init()
+    CALL vdf%Init()
 
   END SUBROUTINE init_tmx
 

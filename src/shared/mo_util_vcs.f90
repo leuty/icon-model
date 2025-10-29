@@ -270,6 +270,9 @@ CONTAINS
 #endif
 
       CALL message('', 'infrastructure and support libraries:')
+#ifndef __NO_AES__
+      CALL message('', '  MEMMAN: '//get_revision('memman'))
+#endif
       CALL message('', '  ICONMATH: '//get_revision('iconmath'))
       CALL message('', '  FORTRAN-SUPPORT: '//get_revision('fortran-support'))
 #ifndef __NO_ICON_COMIN__

@@ -18,7 +18,7 @@ PROGRAM test_kind
   USE mo_kind, ONLY: qp
 #endif
   USE mo_kind, ONLY: wp, xwp, vp, dp, sp, &
-    &                       i1, i2, i4, i8
+      &                       i1, i2, i4, i8
 
   IMPLICIT NONE
 

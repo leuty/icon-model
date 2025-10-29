@@ -37,7 +37,7 @@ MODULE mo_nml_crosscheck
   USE mo_run_config,               ONLY: nsteps, dtime, iforcing, output_mode,             &
     &                                    ltransport, ltestcase, ltimer, ldynamics,         &
     &                                    activate_sync_timers, timers_level, lart,         &
-    &                                    msg_level, luse_radarfwo
+    &                                    msg_level, luse_radarfwo, lmemman
   USE mo_dynamics_config,          ONLY: ldeepatmo, lmoist_thdyn
   USE mo_advection_config,         ONLY: advection_config
   USE mo_nonhydrostatic_config,    ONLY: itime_scheme_nh => itime_scheme,                  &
@@ -308,6 +308,12 @@ CONTAINS
 #ifdef __NO_AES__
     IF ( iforcing==iaes .OR. iforcing==ildf_echam) &
       CALL finish( routine, 'AES physics desired, but compilation with --disable-aes' )
+#else
+    ! Use memory manager, currently only if TMX is used with AES
+    IF (ANY(aes_vdf_config(:)%use_tmx)) THEN
+      lmemman = .TRUE.
+      CALL message(routine, ' TMX selected: Using memory manager')
+    END IF
 #endif
 
 #ifdef __NO_NWP__

@@ -18,9 +18,10 @@ MODULE mo_ragnarok
     SUBROUTINE init_ragnarok() BIND(c, name="init_ragnarok")
     END SUBROUTINE init_ragnarok
 
+
     FUNCTION get_kokkos_version_c(len) RESULT(ret) BIND(c, name="retrieve_kokkos_version_c")
       USE, INTRINSIC :: ISO_C_BINDING
-      INTEGER(kind=c_int), INTENT(inout) :: len
+      INTEGER(c_int), INTENT(INOUT) :: len
       TYPE(c_ptr) :: ret
     END FUNCTION get_kokkos_version_c
 
@@ -33,13 +34,13 @@ CONTAINS
   SUBROUTINE getKokkosVersion(str)
     USE, INTRINSIC :: ISO_C_BINDING
     IMPLICIT NONE
-    CHARACTER(kind=c_char), POINTER, INTENT(out) :: str(:)
+    CHARACTER(kind=c_char), POINTER, INTENT(OUT) :: str(:)
 
     TYPE(c_ptr) :: str_c
     INTEGER(c_int) :: len
 
     str_c = get_kokkos_version_c(len)
     CALL C_F_POINTER(str_c, str, (/len/))
-  END SUBROUTINE
+  END SUBROUTINE getKokkosVersion
 
 END MODULE mo_ragnarok
