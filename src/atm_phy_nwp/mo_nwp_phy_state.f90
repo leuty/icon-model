@@ -2899,7 +2899,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
                 & ldims=shape2d, lrestart=lrestart, opt_var_ref_pos = 2,         &
                 & var_class=CLASS_CHEM,                                          &
                 & in_group=groups("dwd_fg_sfc_vars","mode_iau_fg_in",            &
-                & "mode_iau_old_fg_in","mode_dwd_fg_in"),                        &
+                & "mode_iau_old_fg_in","mode_dwd_fg_in","opt_fg_vars"),          &
                 & hor_interp=create_hor_interp_metadata(                         &
                 &    hor_intp_type=HINTP_TYPE_LONLAT_BCTR,                       &
                 &    fallback_type=HINTP_TYPE_LONLAT_RBF )                       )
@@ -3677,7 +3677,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       CALL add_var( diag_list, 't_2m_filt', diag%t_2m_filt,                      &
         & GRID_UNSTRUCTURED_CELL, ZA_HEIGHT_2M_LAYER, cf_desc, grib2_desc,       &
         & ldims=shape2d, lrestart=.TRUE., lopenacc=.TRUE., initval=99.9_wp,      &
-        & in_group=groups("mode_iau_fg_in","mode_dwd_fg_in","mode_combined_in")  )
+        & in_group=groups("mode_iau_fg_in","mode_dwd_fg_in","mode_combined_in","opt_fg_vars")  )
       __acc_attach(diag%t_2m_filt)
     ENDIF
 
@@ -6095,7 +6095,7 @@ SUBROUTINE new_nwp_phy_stochconv_list( k_jg, kblks,    &
             & GRID_UNSTRUCTURED_CELL, ZA_CLOUD_BASE, cf_desc, grib2_desc, &
             & ldims=shape2d,                                              &
             & loutput=.TRUE.,lrestart=.TRUE.,                             &
-            & in_group=groups("mode_iau_fg_in","mode_dwd_fg_in","iau_restore_vars"))
+            & in_group=groups("mode_iau_fg_in","mode_dwd_fg_in","iau_restore_vars","opt_fg_vars"))
 
        ! perturbed cloud-base mass flux for active clouds
        cf_desc    = t_cf_var('clmf_a', 'kg s-1 m-2', 'cloud base mass flux associated with active clouds', datatype_flt32)
@@ -6105,7 +6105,7 @@ SUBROUTINE new_nwp_phy_stochconv_list( k_jg, kblks,    &
             & GRID_UNSTRUCTURED_CELL, ZA_CLOUD_BASE, cf_desc, grib2_desc, &
             & ldims=shape2d,                                              &
             & loutput=.TRUE.,lrestart=.TRUE.,                             &
-            & in_group=groups("mode_iau_fg_in","mode_dwd_fg_in","iau_restore_vars"))
+            & in_group=groups("mode_iau_fg_in","mode_dwd_fg_in","iau_restore_vars","opt_fg_vars"))
 
        ! number of passive clouds, normalised by grid point area
        cf_desc    = t_cf_var('clnum_p', 'm-2', 'number of passive clouds per unit area', datatype_flt32)
@@ -6115,7 +6115,7 @@ SUBROUTINE new_nwp_phy_stochconv_list( k_jg, kblks,    &
             & GRID_UNSTRUCTURED_CELL, ZA_CLOUD_BASE, cf_desc, grib2_desc, &
             & ldims=shape2d,                                              &
             & loutput=.TRUE.,lrestart=.TRUE. ,                            &
-            & in_group=groups("mode_iau_fg_in","mode_dwd_fg_in","iau_restore_vars"))
+            & in_group=groups("mode_iau_fg_in","mode_dwd_fg_in","iau_restore_vars","opt_fg_vars"))
 
        ! perturbed cloud-base mass flux for passive clouds
        cf_desc    = t_cf_var('clmf_p', 'kg s-1 m-2','cloud base mass flux associated with passive clouds', datatype_flt32)
@@ -6125,7 +6125,7 @@ SUBROUTINE new_nwp_phy_stochconv_list( k_jg, kblks,    &
             & GRID_UNSTRUCTURED_CELL, ZA_CLOUD_BASE,cf_desc, grib2_desc, &
             & ldims=shape2d,                                             &
             & loutput=.TRUE.,lrestart=.TRUE.,                            &
-            & in_group=groups("mode_iau_fg_in","mode_dwd_fg_in","iau_restore_vars"))
+            & in_group=groups("mode_iau_fg_in","mode_dwd_fg_in","iau_restore_vars","opt_fg_vars"))
 
     ELSE IF (atm_phy_nwp_config(k_jg)%lstoch_expl) THEN
        ! stochastic shallow convection (explicit)
@@ -6261,7 +6261,7 @@ SUBROUTINE new_nwp_phy_stochconv_list( k_jg, kblks,    &
             & GRID_UNSTRUCTURED_CELL, ZA_CLOUD_BASE, cf_desc, grib2_desc, &
             & ldims=shape2d,                                              &
             & loutput=.TRUE.,lrestart=.TRUE.,                             &
-            & in_group=groups("mode_iau_fg_in","mode_dwd_fg_in","iau_restore_vars"))
+            & in_group=groups("mode_iau_fg_in","mode_dwd_fg_in","iau_restore_vars","opt_fg_vars"))
 
        ! perturbed cloud-base mass flux for deep clouds
        cf_desc    = t_cf_var('clmf_d', 'kg s-1 m-2', 'cloud base mass flux associated with deep clouds', datatype_flt32)
@@ -6273,7 +6273,7 @@ SUBROUTINE new_nwp_phy_stochconv_list( k_jg, kblks,    &
             & GRID_UNSTRUCTURED_CELL, ZA_CLOUD_BASE, cf_desc, grib2_desc, &
             & ldims=shape2d,                                              &
             & loutput=.TRUE.,lrestart=.TRUE.,                             &
-            & in_group=groups("mode_iau_fg_in","mode_dwd_fg_in","iau_restore_vars"))
+            & in_group=groups("mode_iau_fg_in","mode_dwd_fg_in","iau_restore_vars","opt_fg_vars"))
     ELSE
        ALLOCATE(phy_stochconv%clmf_d(0,kblks),phy_stochconv%clnum_d(0,kblks))
     ENDIF

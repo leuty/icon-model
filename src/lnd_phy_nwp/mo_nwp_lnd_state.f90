@@ -1062,7 +1062,7 @@ MODULE mo_nwp_lnd_state
          & hor_interp=create_hor_interp_metadata(hor_intp_type=HINTP_TYPE_LONLAT_NNB ), &
          & in_group=groups("dwd_fg_sfc_vars","mode_dwd_fg_in", "mode_iau_fg_in", &
          &  "mode_iau_old_fg_in","mode_cosmo_in","mode_iniana",                  &
-         &  "mode_combined_in","iau_restore_vars"),                              &
+         &  "mode_combined_in","iau_restore_vars","opt_fg_vars"),                &
          & post_op=post_op(POST_OP_SCALE, arg1=100._wp, new_cf=new_cf_desc),     &
          & lopenacc=.TRUE. )
     __acc_attach(p_prog_wtr%alb_si)
@@ -1375,8 +1375,8 @@ MODULE mo_nwp_lnd_state
     CALL add_var( diag_list, vname_prefix//'t_sk', p_diag_lnd%t_sk,                &
          & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,                &
          & ldims=shape2d, lrestart=.FALSE., loutput=.TRUE., in_group=              &
-         & groups("dwd_fg_sfc_vars", "mode_iau_fg_in", "mode_dwd_fg_in", "mode_combined_in"), &
-         & lopenacc=.TRUE. )
+         & groups("dwd_fg_sfc_vars", "mode_iau_fg_in", "mode_dwd_fg_in",           &
+         &        "mode_combined_in","opt_fg_vars"), lopenacc=.TRUE. )
     __acc_attach(p_diag_lnd%t_sk)
 
 
@@ -1389,8 +1389,8 @@ MODULE mo_nwp_lnd_state
          & lmiss=.TRUE., missval=0.0_wp,                                                      &
          & hor_interp=create_hor_interp_metadata(hor_intp_type=HINTP_TYPE_LONLAT_NNB ),       &
          & in_group=groups("dwd_fg_sfc_vars","mode_dwd_ana_in","mode_iau_ana_in",             &
-         &     "mode_iau_old_ana_in","mode_dwd_fg_in","mode_iau_fg_in","mode_iau_old_fg_in"), &
-         & lopenacc=.TRUE. )
+         &     "mode_iau_old_ana_in","mode_dwd_fg_in","mode_iau_fg_in","mode_iau_old_fg_in",  &
+         &     "opt_fg_vars"), lopenacc=.TRUE. )
     __acc_attach(p_diag_lnd%t_seasfc)
 
 
@@ -1406,7 +1406,7 @@ MODULE mo_nwp_lnd_state
            & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,                     &
            & ldims=shape2d, lrestart=.TRUE., loutput=.TRUE., initval=0._wp,               &
            & hor_interp=create_hor_interp_metadata(hor_intp_type=HINTP_TYPE_LONLAT_NNB ), &
-           & in_group=groups("dwd_fg_sfc_vars","mode_dwd_fg_in",                          &
+           & in_group=groups("dwd_fg_sfc_vars","mode_dwd_fg_in","opt_fg_vars",            &
            &                 "mode_iau_fg_in","mode_iau_old_fg_in","iau_restore_vars") ,  &
            & lopenacc=.FALSE. )
  !     __acc_attach(p_diag_lnd%sst_warm_layer) !! not yet ported
@@ -1456,7 +1456,7 @@ MODULE mo_nwp_lnd_state
              & ldims=shape2d, lrestart=.TRUE.,                                   &
              & in_group=groups("dwd_fg_sfc_vars","mode_iau_fg_in",               &
              &                "mode_dwd_fg_in","mode_iniana","mode_combined_in", &
-             &                "iau_restore_vars"),                               &
+             &                "iau_restore_vars","opt_fg_vars"),                 &
              & lopenacc=.TRUE.)
       __acc_attach(p_diag_lnd%hsnow_max)
 
@@ -1468,7 +1468,7 @@ MODULE mo_nwp_lnd_state
              & ldims=shape2d, lrestart=.TRUE.,                                   &
              & in_group=groups("dwd_fg_sfc_vars","mode_iau_fg_in",               &
              &                "mode_dwd_fg_in","mode_iniana","mode_combined_in", &
-             &                "iau_restore_vars"),                               &
+             &                "iau_restore_vars","opt_fg_vars"),                 &
              & lopenacc=.TRUE.)
       __acc_attach(p_diag_lnd%snow_age)
 
@@ -1476,7 +1476,7 @@ MODULE mo_nwp_lnd_state
       cf_desc    = t_cf_var('qi_snowdrift_flx', 'kg m-2 s', &
           & 'upward cloud-ice surface flux from drifting snow', datatype_flt)
       grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
-      CALL add_var( diag_list, 'qi_snowdrift_flx', p_diag_lnd%qi_snowdrift_flx,              &
+      CALL add_var( diag_list, 'qi_snowdrift_flx', p_diag_lnd%qi_snowdrift_flx,  &
              & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,          &
              & ldims=shape2d, lrestart=.FALSE.,                                  &
              & lopenacc=.TRUE.)
@@ -1817,8 +1817,8 @@ MODULE mo_nwp_lnd_state
       CALL add_var( diag_list, vname_prefix//'plantevap', p_diag_lnd%plantevap,   &
            & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,             &
            & ldims=shape2d,in_group=groups("dwd_fg_sfc_vars", "mode_iau_fg_in",   &
-           & "mode_dwd_fg_in","mode_iniana","mode_combined_in"), lrestart=.FALSE.,&
-           & loutput=.TRUE., lopenacc=.TRUE. )
+           & "mode_dwd_fg_in","mode_iniana","mode_combined_in","opt_fg_vars"),    &
+           & lrestart=.FALSE., loutput=.TRUE., lopenacc=.TRUE. )
       __acc_attach(p_diag_lnd%plantevap)
 
       ! & p_diag_lnd%plantevap_t(nproma,nblks_c,ntiles_total)
@@ -2111,7 +2111,7 @@ MODULE mo_nwp_lnd_state
            & cf_desc, grib2_desc, ldims=(/nproma, nlev_snow, kblks/),              &
            & lrestart=.FALSE., loutput=.TRUE.,                                     &
            & in_group=groups("dwd_fg_sfc_vars","mode_dwd_fg_in","mode_iau_fg_in",  &
-           &                 "mode_iau_old_fg_in","multisnow_vars"),               &
+           &                 "mode_iau_old_fg_in","multisnow_vars","opt_fg_vars"), &
            & lopenacc=.TRUE. )
       __acc_attach(p_diag_lnd%rho_snow_mult)
 

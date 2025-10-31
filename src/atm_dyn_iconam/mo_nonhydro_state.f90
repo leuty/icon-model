@@ -820,7 +820,7 @@ MODULE mo_nonhydro_state
             &                           "dwd_fg_atm_vars","mode_dwd_fg_in",            &
             &                           "mode_iau_ana_in", "mode_iau_anaatm_in",       &
             &                           "mode_iau_fg_in","mode_iau_old_fg_in",         &
-            &                           "LATBC_PREFETCH_VARS",                         &
+            &                           "LATBC_PREFETCH_VARS","opt_fg_vars",           &
             &                           "mode_iniana","icon_lbc_vars") )
           __acc_attach(p_prog%tracer_ptr(iqg)%p_3d)
         END IF
@@ -852,7 +852,7 @@ MODULE mo_nonhydro_state
             &           in_group=groups("atmo_ml_vars","atmo_pl_vars","atmo_zl_vars",&
             &                         "dwd_fg_atm_vars","mode_dwd_fg_in",            &
             &                         "mode_iau_ana_in","mode_iau_anaatm_in",        &
-            &                         "mode_iau_fg_in",                              &
+            &                         "mode_iau_fg_in","opt_fg_vars",                &
             &                         "LATBC_PREFETCH_VARS")  )
           __acc_attach(p_prog%tracer_ptr(iqh)%p_3d)
         END IF
@@ -1169,7 +1169,7 @@ MODULE mo_nonhydro_state
             &           in_group=groups("atmo_ml_vars","atmo_pl_vars","atmo_zl_vars",  &
             &                           "dwd_fg_atm_vars","mode_dwd_fg_in",            &
             &                           "mode_iau_ana_in", "mode_iau_anaatm_in",       &
-            &                           "mode_iau_fg_in",                              &
+            &                           "mode_iau_fg_in","opt_fg_vars",                &
             &                           "LATBC_PREFETCH_VARS")  )
           __acc_attach(p_prog%tracer_ptr(iqni)%p_3d)
         END IF
@@ -1200,7 +1200,7 @@ MODULE mo_nonhydro_state
                     & in_group=groups("atmo_ml_vars","atmo_pl_vars","atmo_zl_vars",  &
                     &                 "dwd_fg_atm_vars","mode_dwd_fg_in",            &
                     &                 "mode_iau_ana_in","mode_iau_anaatm_in",        &
-                    &                 "mode_iau_fg_in",                              &
+                    &                 "mode_iau_fg_in","opt_fg_vars",                &
                     &                 "LATBC_PREFETCH_VARS")  )
           __acc_attach(p_prog%tracer_ptr(iqnr)%p_3d)
         END IF
@@ -1232,7 +1232,7 @@ MODULE mo_nonhydro_state
                     & in_group=groups("atmo_ml_vars","atmo_pl_vars","atmo_zl_vars",  &
                     &                 "dwd_fg_atm_vars","mode_dwd_fg_in",            &
                     &                 "mode_iau_ana_in","mode_iau_anaatm_in",        &
-                    &                 "mode_iau_fg_in",                              &
+                    &                 "mode_iau_fg_in","opt_fg_vars",                &
                     &                 "LATBC_PREFETCH_VARS")  )
           __acc_attach(p_prog%tracer_ptr(iqns)%p_3d)
         END IF
@@ -1263,7 +1263,7 @@ MODULE mo_nonhydro_state
                     & in_group=groups("atmo_ml_vars","atmo_pl_vars","atmo_zl_vars",  &
                     &                 "dwd_fg_atm_vars","mode_dwd_fg_in",            &
                     &                 "mode_iau_ana_in","mode_iau_anaatm_in",        &
-                    &                 "mode_iau_fg_in",                              &
+                    &                 "mode_iau_fg_in","opt_fg_vars",                &
                     &                 "LATBC_PREFETCH_VARS")  )
           __acc_attach(p_prog%tracer_ptr(iqng)%p_3d)
         END IF
@@ -1294,7 +1294,7 @@ MODULE mo_nonhydro_state
                     & in_group=groups("atmo_ml_vars","atmo_pl_vars","atmo_zl_vars",  &
                     &                 "dwd_fg_atm_vars","mode_dwd_fg_in",            &
                     &                 "mode_iau_ana_in","mode_iau_anaatm_in",        &
-                    &                 "mode_iau_fg_in",                              &
+                    &                 "mode_iau_fg_in","opt_fg_vars",                &
                     &                 "LATBC_PREFETCH_VARS")  )
           __acc_attach(p_prog%tracer_ptr(iqnh)%p_3d)
         END IF
@@ -1326,7 +1326,7 @@ MODULE mo_nonhydro_state
                     & in_group=groups("atmo_ml_vars","atmo_pl_vars","atmo_zl_vars",  &
                     &                 "dwd_fg_atm_vars","mode_dwd_fg_in",            &
                     &                 "mode_iau_ana_in","mode_iau_anaatm_in",        &
-                    &                 "mode_iau_fg_in",                              &
+                    &                 "mode_iau_fg_in","opt_fg_vars",                &
                     &                 "LATBC_PREFETCH_VARS")  )
           __acc_attach(p_prog%tracer_ptr(iqnc)%p_3d)
         END IF
@@ -3443,7 +3443,7 @@ MODULE mo_nonhydro_state
       CALL add_var( p_diag_list, 't2m_bias', p_diag%t2m_bias,                         &
         &           GRID_UNSTRUCTURED_CELL, ZA_HEIGHT_2M, cf_desc, grib2_desc,        &
         &           ldims=shape2d_c, lrestart=.true.,                                 &
-        &           in_group=groups("mode_iau_fg_in","mode_dwd_fg_in","mode_combined_in") )
+        &           in_group=groups("mode_iau_fg_in","mode_dwd_fg_in","mode_combined_in","opt_fg_vars") )
     ENDIF
 
     IF (icpl_da_sfcevap >= 2) THEN
@@ -3456,7 +3456,7 @@ MODULE mo_nonhydro_state
       CALL add_var( p_diag_list, 'rh_avginc', p_diag%rh_avginc,                            &
         &           GRID_UNSTRUCTURED_CELL, ZA_HEIGHT_10M, cf_desc, grib2_desc,            &
         &           ldims=shape2d_c, lrestart=.true.,                                      &
-        &           in_group=groups("mode_iau_fg_in","mode_dwd_fg_in","mode_combined_in"), &
+        &           in_group=groups("mode_iau_fg_in","mode_dwd_fg_in","mode_combined_in","opt_fg_vars"), &
         &           lopenacc = .TRUE. )
       __acc_attach(p_diag%rh_avginc)
     ENDIF
@@ -3471,7 +3471,7 @@ MODULE mo_nonhydro_state
       CALL add_var( p_diag_list, 't_avginc', p_diag%t_avginc,                       &
         &           GRID_UNSTRUCTURED_CELL, ZA_HEIGHT_10M, cf_desc, grib2_desc,     &
         &           ldims=shape2d_c, lrestart=.true.,                               &
-        &           in_group=groups("mode_iau_fg_in","mode_dwd_fg_in","mode_combined_in") )
+        &           in_group=groups("mode_iau_fg_in","mode_dwd_fg_in","mode_combined_in","opt_fg_vars") )
     ENDIF
 
     IF (icpl_da_sfcfric >= 1) THEN
@@ -3484,7 +3484,7 @@ MODULE mo_nonhydro_state
       CALL add_var( p_diag_list, 'vabs_avginc', p_diag%vabs_avginc,                 &
         &           GRID_UNSTRUCTURED_CELL, ZA_HEIGHT_10M, cf_desc, grib2_desc,     &
         &           ldims=shape2d_c, lrestart=.true.,                               &
-        &           in_group=groups("mode_iau_fg_in","mode_dwd_fg_in","mode_combined_in") )
+        &           in_group=groups("mode_iau_fg_in","mode_dwd_fg_in","mode_combined_in","opt_fg_vars") )
     ENDIF
 
     IF (icpl_da_skinc >= 1) THEN
@@ -3497,7 +3497,7 @@ MODULE mo_nonhydro_state
       CALL add_var( p_diag_list, 't_wgt_avginc', p_diag%t_wgt_avginc,               &
         &           GRID_UNSTRUCTURED_CELL, ZA_HEIGHT_10M, cf_desc, grib2_desc,     &
         &           ldims=shape2d_c, lrestart=.true.,                               &
-        &           in_group=groups("mode_iau_fg_in","mode_dwd_fg_in","mode_combined_in") )
+        &           in_group=groups("mode_iau_fg_in","mode_dwd_fg_in","mode_combined_in","opt_fg_vars") )
 
     ENDIF
 
@@ -3511,7 +3511,7 @@ MODULE mo_nonhydro_state
       CALL add_var( p_diag_list, 't_daywgt_avginc', p_diag%t_daywgt_avginc,         &
         &           GRID_UNSTRUCTURED_CELL, ZA_HEIGHT_10M, cf_desc, grib2_desc,     &
         &           ldims=shape2d_c, lrestart=.true.,                               &
-        &           in_group=groups("mode_iau_fg_in","mode_dwd_fg_in","mode_combined_in") )
+        &           in_group=groups("mode_iau_fg_in","mode_dwd_fg_in","mode_combined_in","opt_fg_vars") )
 
       !  Time-filtered near-surface level RH increment from data assimilation, weighted with peak in afternoon
       cf_desc    = t_cf_var('rh_daywgt_avginc', '1', 'Weighted filtered RH increment', datatype_flt)
@@ -3522,7 +3522,7 @@ MODULE mo_nonhydro_state
       CALL add_var( p_diag_list, 'rh_daywgt_avginc', p_diag%rh_daywgt_avginc,       &
         &           GRID_UNSTRUCTURED_CELL, ZA_HEIGHT_10M, cf_desc, grib2_desc,     &
         &           ldims=shape2d_c, lrestart=.true.,                               &
-        &           in_group=groups("mode_iau_fg_in","mode_dwd_fg_in","mode_combined_in") )
+        &           in_group=groups("mode_iau_fg_in","mode_dwd_fg_in","mode_combined_in","opt_fg_vars") )
     ENDIF
 
     IF (latbc_config%fac_latbc_presbiascor > 0._wp) THEN
@@ -3535,7 +3535,7 @@ MODULE mo_nonhydro_state
       CALL add_var( p_diag_list, 'p_avginc', p_diag%p_avginc,                       &
         &           GRID_UNSTRUCTURED_CELL, ZA_HEIGHT_10M, cf_desc, grib2_desc,     &
         &           ldims=shape2d_c, lrestart=.true.,                               &
-        &           in_group=groups("mode_iau_fg_in") )
+        &           in_group=groups("mode_iau_fg_in","opt_fg_vars") )
     ENDIF
 
 
