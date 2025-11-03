@@ -9,29 +9,19 @@
 #%#- SPDX-License-Identifier: BSD-3-Clause
 #%#- ------------------------------------------
 #
-# Check ready files from monitoring for update scripts
+# Check run log file for job information and update
 #
 # %{mkexp_input}
-# $Id: run/mkexp/defaults/DEFAULT.update.tmpl 3 2024-07-26 07:41:48Z m221078 $
+# $Id: run/mkexp/defaults/DEFAULT.update.tmpl 1 2025-10-27 22:05:34Z m221078 $
 # %{VERSIONS_|join('\n# ')}
 #
 
-START_DATE=$1
-WORK_DIR=$2
-
-POLL_INTERVAL=%{JOB.poll_interval|d(300)} # seconds
-READY_PATTERN="%{JOB.ready_pattern|d(namelists.mon_ready_file)}"
-PATTERN_KEYWORD=%{JOB.pattern_keyword|d('datetime2')}
-EXP_ID=%{EXP_ID}
-
-READY_PREFIX="${READY_PATTERN%<$PATTERN_KEYWORD>*}"
-READY_SUFFIX="${READY_PATTERN##*<$PATTERN_KEYWORD>}"
-
-cd $WORK_DIR
-while sleep $POLL_INTERVAL
-do
-    CURRENT_DATE=`{ ls -t "$READY_PREFIX"*"$READY_SUFFIX" 2> /dev/null || :; } |
-        sed -E "s|$READY_PREFIX(.+)(..)(..)T(..)(..)(..)Z$READY_SUFFIX|\
-            \1-\2-\3T\4:\5:\6|;q"`
-    %{JOB.progress_command} ${CURRENT_DATE:-$START_DATE}
-done
+tail -F %{SCRIPT_DIR}/%{EXP_ID}.run.log |
+awk -v COMMAND='%{JOB.progress_command|replace("'", "'\\''")}' '
+    /Time step/ {
+        gsub("^.*model time ", "");
+        gsub(":.*$", "");
+        CURRENT=$1 "T" $2
+    };
+    CURRENT!=LAST {system(COMMAND " " CURRENT); LAST=CURRENT}
+'

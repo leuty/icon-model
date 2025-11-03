@@ -13,7 +13,7 @@
 #
 # %{mkexp_input}
 #
-# $Id: run/mkexp/defaults/DEFAULT.run.tmpl 25 2025-08-01 12:15:22Z k202204 $
+# $Id: run/mkexp/defaults/DEFAULT.run.tmpl 26 2025-10-27 22:05:34Z m221078 $
 #
 # %{VERSIONS_|join('\n# ')}
 #
@@ -61,7 +61,7 @@ ln -snvf %{LOG_DIR}/%{JOB.log_file|d or EXP_ID+'.run.$(printf %08d ${'+JOB.id_en
 job_name="%{EXP_ID}.run"
 
 # Load traditional error handling
-. $PREFIX/run/add_run_routines
+. $MODEL_DIR/run/add_run_routines
 # Reset files and file names for check_error and check_final_status
 final_status_file=${SCRIPT_DIR}/${job_name}.final_status
 current_status_file=${SCRIPT_DIR}/${job_name}.status
@@ -343,7 +343,7 @@ y0=${start_date%%-*}
 yN=${end_date%%-*}
 
 # Mark current run as started in log
-echo $(date -u +'%Y-%m-%dT%H:%M:%SZ') ${start_date%:*} ${end_date%:*} ${%{JOB.id_environ}} start >> $exp_log_file
+echo $(date -u +'%Y-%m-%dT%H:%M:%SZ') ${start_date%:*} ${end_date%:*} ${%{JOB.id_environ}-} start >> $exp_log_file
 
 # Show current start date in job configuration
 %{JOB.progress_command} $start_date
@@ -798,7 +798,7 @@ mv bgcout bgcout_${start_date}
 #-----------------------------------------------------------------------------
 
 # Mark current run as successful in log
-echo $(date -u +'%Y-%m-%dT%H:%M:%SZ') ${start_date%:*} ${end_date%:*} ${%{JOB.id_environ}}  end >> $exp_log_file
+echo $(date -u +'%Y-%m-%dT%H:%M:%SZ') ${start_date%:*} ${end_date%:*} ${%{JOB.id_environ}-}  end >> $exp_log_file
 
 #%  if hiopy is defined:
 #%    if JOB.entry_point is set or JOB.init_zarr is set:
@@ -820,7 +820,8 @@ status=0
 
 #% for trigger in JOB['.trigger']|list:
 #%   set job = (trigger|split|list)[0]
-#%   set type = jobs[job]['.type']
+#%   set info = jobs[job]|d
+#%   set type = info['.type']|d('serial')
 #%   if type == 'restart':
 
 # Update date info for next run
