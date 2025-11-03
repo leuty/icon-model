@@ -13,6 +13,7 @@ AES Physics:
 Climate: ICON-Land
 
 - Land initial files: Major update: 12 and 13 tile setups for jsbach and quincy (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1080)
+- Land initial files: Fix for the skin layer conductivity (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1127)
 
 ### Externals
 
