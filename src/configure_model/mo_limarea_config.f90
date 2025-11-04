@@ -15,7 +15,7 @@
 MODULE mo_limarea_config
 
   USE mo_kind,               ONLY: wp
-  USE mo_impl_constants,     ONLY: MAX_CHAR_LENGTH
+  USE mo_impl_constants,     ONLY: MAX_CHAR_LENGTH, nintv_latbc
   USE mo_io_units,           ONLY: filename_max
   USE mo_util_string,        ONLY: t_keyword_list,                   &
                                    associate_keyword, with_keywords, &
@@ -47,6 +47,10 @@ MODULE mo_limarea_config
   INTEGER, PARAMETER :: LATBC_TYPE_EXT         = 1
 
 
+  TYPE t_interval_array
+    TYPE(timedelta), POINTER :: dtime_latbc_mtime => NULL()
+    TYPE(timedelta), POINTER :: bcintv_endtime => NULL()
+  END TYPE t_interval_array
 
   !>
   !!----------------------------------------------------------------------------
@@ -57,7 +61,7 @@ MODULE mo_limarea_config
 
     ! variables from namelist
     INTEGER                         :: itype_latbc         ! type of limited area boundary nudging
-    REAL(wp)                        :: dtime_latbc         ! dt between two consequtive external latbc files
+    REAL(wp)                        :: dtime_latbc(nintv_latbc) ! dt between two consecutive external latbc files
     CHARACTER(LEN=filename_max)     :: latbc_filename      ! prefix of latbc files
     CHARACTER(LEN=MAX_CHAR_LENGTH)  :: latbc_path          ! directory containing external latbc files
     LOGICAL                         :: latbc_contains_qcqi ! latbc data contain qc and qi (=T) or not (=F)
@@ -82,8 +86,7 @@ MODULE mo_limarea_config
     ! settings derived from the namelist parameters above:
     !
     LOGICAL                         :: lsparse_latbc       ! Flag: TRUE if only boundary rows are read.
-    TYPE(timedelta), POINTER        :: dtime_latbc_mtime   ! dt between two consequtive external latbc files
-
+    TYPE(t_interval_array)          :: intv(nintv_latbc)
 
   END TYPE t_latbc_config
   !------------------------------------------------------------------------
