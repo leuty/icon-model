@@ -81,8 +81,6 @@ MODULE mo_nwp_ecrad_utilities
   PUBLIC :: get_indices_rad_subblock
   PUBLIC :: lcalculate_fsd
 
-  ! helper functions to be removed once acc is merged into libecrad
-
 CONTAINS
 
 
