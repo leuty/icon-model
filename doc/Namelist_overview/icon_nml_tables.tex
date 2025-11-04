@@ -3937,11 +3937,23 @@ source (IFS, COSMO or a coarser-resolution ICON run)
 
 %\hline
 \textbf{dtime\_latbc}&
-R &
+R(3) &
 -1.0& s
 &
 Time difference between two consecutive boundary data.
-(Upper bound for asynchronous read-in: 1 day = 86400 s.)
+(Upper bound for asynchronous read-in: 1 day = 86400 s.) \\
+Up to 3 values for bc intervals are allowed; specifying more than one value requires setting interval bounds via bcintv\_endtime.
+&
+itype\_latbc $\ge$ 1
+\tabularnewline
+
+%\hline
+\textbf{bcintv\_endtime}&
+R(3) &
+-1.0& s
+&
+Upper interval bounds for dtime\_latbc, relative time w.r.t. model start (required if more than one value is specified for dtime\_latbc;
+in any case, one entry less is needed for bcintv\_endtime than for dtime\_latbc).
 &
 itype\_latbc $\ge$ 1
 \tabularnewline

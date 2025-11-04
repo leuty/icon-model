@@ -201,7 +201,7 @@ MODULE mo_async_latbc
   USE mo_async_latbc_utils,         ONLY: read_init_latbc_data
   USE mo_async_latbc_utils,         ONLY: reopen_latbc_file
 #endif
-  USE mo_impl_constants,            ONLY: SUCCESS, TIMELEVEL_SUFFIX, vname_len
+  USE mo_impl_constants,            ONLY: SUCCESS, TIMELEVEL_SUFFIX, vname_len, nintv_latbc
   USE mo_cdi_constants,             ONLY: GRID_UNSTRUCTURED_CELL, GRID_UNSTRUCTURED_EDGE
   USE mo_communication,             ONLY: idx_no, blk_no
   USE mo_nonhydro_state,            ONLY: p_nh_state, p_nh_state_lists
@@ -219,7 +219,7 @@ MODULE mo_async_latbc
   USE mo_run_config,                ONLY: iqs
   USE mo_util_sort,                 ONLY: quicksort
   USE mo_time_config,               ONLY: time_config
-  USE mtime,                        ONLY: datetime, OPERATOR(+)
+  USE mtime,                        ONLY: datetime, OPERATOR(+), OPERATOR(>=)
   USE mo_cdi,                       ONLY: vlistInqVarZaxis, streamInqVlist, &
        &                                  vlistNvars, zaxisInqSize, vlistInqVarName,         &
        &                                  streamInqFiletype,                                 &
@@ -286,6 +286,7 @@ CONTAINS
     LOGICAL                 :: done
     TYPE(t_latbc_data)      :: latbc
     TYPE(datetime)          :: latbc_read_datetime
+    INTEGER                 :: i, ji
 
     ! call to initalize the prefetch processor with grid data
     CALL init_prefetch(latbc)
@@ -308,7 +309,11 @@ CONTAINS
       CALL async_pref_wait_for_start(done)
       IF(done) CYCLE ! leave loop, we are done
       ! perform input prefetching
-      latbc_read_datetime = latbc%mtime_last_read + latbc%delta_dtime
+      ji = 1
+      DO i = 1, nintv_latbc-1
+        IF (latbc%mtime_last_read >= latbc%intv(i)%bcintv_enddate) ji = i+1
+      ENDDO
+      latbc_read_datetime = latbc%mtime_last_read + latbc%intv(ji)%delta_dtime
       CALL prefetch_latbc_data(latbc, latbc_read_datetime)
       ! Inform compute PEs that we are done
       CALL async_pref_send_handshake()

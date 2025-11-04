@@ -20,7 +20,7 @@ MODULE mo_limarea_nml
   USE mo_namelist,            ONLY: position_nml, positioned, open_nml, close_nml
   USE mo_mpi,                 ONLY: my_process_is_stdio
   USE mo_master_control,      ONLY: use_restart_namelists
-  USE mo_impl_constants,      ONLY: MAX_CHAR_LENGTH
+  USE mo_impl_constants,      ONLY: MAX_CHAR_LENGTH, nintv_latbc
   USE mo_restart_nml_and_att, ONLY: open_tmpfile, store_and_close_namelist     , &
                                   & open_and_restore_namelist, close_tmpfile
   USE mo_limarea_config,      ONLY: latbc_config
@@ -45,7 +45,7 @@ CONTAINS
 
     INTEGER                              :: istat, funit
     INTEGER                              :: iunit, errno
-    REAL(wp)                             :: dtime_latbc_in_ms
+    REAL(wp)                             :: dtime_latbc_in_ms, bcintv_endtime_in_ms
     CHARACTER(LEN=MAX_TIMEDELTA_STR_LEN) :: dtime_latbc_str
 
     !------------------------------------------------------------------------
@@ -53,8 +53,10 @@ CONTAINS
     !------------------------------------------------------------------------
     !> type of limited area boundary nudging
     INTEGER                         :: itype_latbc
-    !> dt between two consequtive external latbc files
-    REAL(wp)                        :: dtime_latbc
+    !> dt between two consecutive external latbc files
+    REAL(wp)                        :: dtime_latbc(nintv_latbc)
+    !> relative time for corresponding upper interval bounds
+    REAL(wp)                        :: bcintv_endtime(nintv_latbc)
     !> number of vertical levels in boundary data
     INTEGER                         :: nlev_latbc
     !> prefix of latbc files
@@ -84,12 +86,14 @@ CONTAINS
     !> if LatBC data is unavailable: idle wait seconds between retries
     INTEGER                         :: retry_wait_sec
 
+    INTEGER                         :: ji
+
 
     NAMELIST /limarea_nml/ itype_latbc, dtime_latbc, nlev_latbc,                         &
       &                     latbc_filename, latbc_path, latbc_boundary_grid,             &
       &                     latbc_varnames_map_file, init_latbc_from_fg,                 &
       &                     nudge_hydro_pres, latbc_contains_qcqi,                       &
-      &                     nretries, retry_wait_sec, fac_latbc_presbiascor
+      &                     nretries, retry_wait_sec, fac_latbc_presbiascor, bcintv_endtime
 
     !------------------------------------------------------------
     ! Default settings
@@ -97,6 +101,7 @@ CONTAINS
     itype_latbc         = 0
 
     dtime_latbc         = -1._wp
+    bcintv_endtime      = -1._wp
     nlev_latbc          = -1
 
     latbc_filename      = "prepiconR<nroot>B<jlev>_<y><m><d><h>.nc"
@@ -157,14 +162,21 @@ CONTAINS
     ! sanity checks
     !----------------------------------------------------
 
-    IF (dtime_latbc > 86400._wp) THEN
-      CALL finish(routine, "Namelist setting of limarea_nml/dtime_latbc too large for mtime conversion!")
-    END IF
+    IF (itype_latbc > 0) THEN
+      IF (ANY(dtime_latbc(:) > 86400._wp)) THEN
+        CALL finish(routine, "Namelist setting of limarea_nml/dtime_latbc too large for mtime conversion!")
+      END IF
 
-    IF ( (itype_latbc > 0) .AND. (dtime_latbc <= 0._wp) ) THEN
-      CALL finish(routine, "Illegal setting of limarea_nml/dtime_latbc. Must be > 0!")
-    END IF
+      IF ( (dtime_latbc(1) <= 0._wp) ) THEN
+        CALL finish(routine, "Illegal setting of limarea_nml/dtime_latbc. First entry must be > 0!")
+      END IF
 
+      DO ji = 2, nintv_latbc
+        IF (dtime_latbc(ji) > 0._wp .AND. bcintv_endtime(ji-1) <= 0._wp) THEN
+          CALL finish(routine, "Interval bounds (bcintv_endtime) must be set when specifying more than dtime_latbc in limarea_nml")
+        ENDIF
+      ENDDO
+    ENDIF
 
     !----------------------------------------------------
     ! Fill the configuration state
@@ -185,9 +197,16 @@ CONTAINS
     latbc_config%retry_wait_sec      = retry_wait_sec
 
     ! convert dtime_latbc into mtime object
-    dtime_latbc_in_ms = 1000._wp * dtime_latbc
-    CALL getPTStringFromMS(NINT(dtime_latbc_in_ms,i8), dtime_latbc_str)
-    latbc_config%dtime_latbc_mtime => newTimedelta(dtime_latbc_str, errno)
+    DO ji = 1, nintv_latbc
+      dtime_latbc_in_ms = 1000._wp * dtime_latbc(ji)
+      CALL getPTStringFromMS(NINT(dtime_latbc_in_ms,i8), dtime_latbc_str)
+      latbc_config%intv(ji)%dtime_latbc_mtime => newTimedelta(dtime_latbc_str, errno)
+
+      bcintv_endtime_in_ms = 1000._wp * bcintv_endtime(ji)
+      CALL getPTStringFromMS(NINT(bcintv_endtime_in_ms,i8), dtime_latbc_str)
+      latbc_config%intv(ji)%bcintv_endtime => newTimedelta(dtime_latbc_str, errno)
+    ENDDO
+
     IF (errno /= 0)  CALL finish(routine, "Error in initialization of dtime_latbc time delta.")
 
 

@@ -263,6 +263,9 @@ MODULE mo_impl_constants
   ! maximum allowed number of srh levels:
   INTEGER, PARAMETER :: max_srh = 10
 
+  ! maximum allowed number of different time intervals for lateral boundary conditions
+  INTEGER, PARAMETER :: nintv_latbc = 3
+
   ! identifiers for model initialization
   INTEGER, PARAMETER :: ianalytic      =  0 ! - from analytical functions
   INTEGER, PARAMETER :: irestart       =  1 ! - from restart file
