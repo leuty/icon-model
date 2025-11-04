@@ -57,6 +57,7 @@ MODULE mo_nml_crosscheck
     &                                    iRadAeroKinne, iRadAeroVolc, iRadAeroKinneVolc,   &
     &                                    iRadAeroKinneVolcSP, iRadAeroKinneSP,             &
     &                                    iRadAeroExternal,                                 &
+    &                                    islope_rad,                                       &
     &                                    irad_o3, irad_h2o, irad_co2, irad_ch4,            &
     &                                    irad_n2o, irad_o2, irad_cfc11, irad_cfc12,        &
     &                                    icld_overlap, ecrad_llw_cloud_scat, isolrad,      &
@@ -462,6 +463,10 @@ CONTAINS
 
           IF ( irad_aero == 5 ) THEN
             CALL finish(routine,'irad_aero=5 (Tanre climatology) has been removed')
+          ENDIF
+
+          IF ( (islope_rad(jg) == 2) ) THEN
+            CALL finish (routine,'islope_rad = 2 was removed, use islope_rad = 3 instead')
           ENDIF
 
           ! Transient solar radiation only works with ecRad

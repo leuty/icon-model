@@ -235,7 +235,6 @@ CONTAINS
       &     p_ext_atm%topo_t2mclim,    &
       &     p_ext_atm%fis,             &
       &     p_ext_atm%horizon,         &
-      &     p_ext_atm%skyview,         &
       &     p_ext_atm%o3,              &
       &     p_ext_atm%emi_bc,          &
       &     p_ext_atm%emi_oc,          &
@@ -391,7 +390,7 @@ CONTAINS
 
     IF ( iforcing == inwp ) THEN
 
-      IF (islope_rad(jg) >= 2) THEN
+      IF (islope_rad(jg) >= 3) THEN
         CALL message(routine, 'adding horizon angle - topography')
         ! horizon angle from flat topography in nhori sectors
         !
@@ -403,19 +402,8 @@ CONTAINS
           &           GRID_UNSTRUCTURED_CELL, ZA_REFERENCE, cf_desc,    &
           &           grib2_desc, ldims=shape3d_sfc_sec, loutput=.TRUE., lopenacc=.TRUE.)
         __acc_attach(p_ext_atm%horizon)
-        CALL message(routine, 'adding skyview factor')
-        ! geometric sky-view factor scaled with sinus(horizon)**2
-        !
-        ! skyview     p_ext_atm%skyview(nproma,nblks_c)
-        cf_desc    = t_cf_var('geometric sky-view factor', '-',      &
-          &                   'geometric sky-view factor', datatype_flt)
-        grib2_desc = grib2_var( 0,199, 0, ibits, GRID_UNSTRUCTURED, GRID_CELL)
-        CALL add_var( p_ext_atm_list, 'skyview', p_ext_atm%skyview,     &
-          &           GRID_UNSTRUCTURED_CELL, ZA_REFERENCE, cf_desc,    &
-          &           grib2_desc, ldims=shape2d_c, loutput=.TRUE. )
       ELSE
          ALLOCATE(p_ext_atm%horizon(0,nblks_c,nhori))
-         ALLOCATE(p_ext_atm%skyview(0,nblks_c))
       ENDIF
 
       ! ozone mixing ratio

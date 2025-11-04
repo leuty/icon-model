@@ -1840,7 +1840,6 @@ CONTAINS
               & cosmu0=zcosmu0(:,jb)                   ,&! in     cosine of solar zenith angle (w.r.t. plain surface)
               & cosmu0_slp=cosmu0_slope(:,jb)          ,&! in     slope-dependent cosine of solar zenith angle
               & shading_mask=shading_mask(:,jb)        ,&! in     mask field indicating orographic shading
-              & skyview=ext_data%atm%skyview(:,jb)     ,&! in     skyview factor for islope_rad=2
               & opt_nh_corr=.TRUE.                     ,&! in     switch for NH mode
               & ptsfc=lnd_prog_new%t_g(:,jb)           ,&! in     surface temperature         [K]
               & ptsfc_t=lnd_prog_new%t_g_t(:,jb,:)     ,&! in     tile-specific surface temperature         [K]

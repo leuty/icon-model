@@ -294,9 +294,6 @@ MODULE mo_ext_data_types
     REAL(wp), POINTER ::   &   !< horizon angle from flat topography in nhori sectors [ deg ]
       &  horizon(:,:,:)        ! index1=1,nproma, index2=1,nblks_c, index3=1,nhori
 
-    REAL(wp), POINTER ::   &   !< geometric sky-view factor scaled with sinus(horizon)**2 [1]
-      &  skyview(:,:)          ! index1=1,nproma, index2=1,nblks_c
-
     REAL(wp), POINTER ::   &   !< ozone mixing ratio                        [ kg kg^-1 ]
       &  o3(:,:,:)             ! index1=1,nproma, index2=nlev,index3=1,nblks_c
 

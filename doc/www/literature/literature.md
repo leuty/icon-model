@@ -148,6 +148,9 @@ Zaengl et al. 2015
 Brüggemann et al. 2024
    Brüggemann, N., and Coauthors (2024): Parameterized Internal Wave Mixing in Three Ocean General Circulation Models. Journal of Advances in Modeling Earth Systems, 16, e2023MS003768, <https://doi.org/10.1029/2023MS003768>.
 
+Buzzi 2008
+  Buzzi, M. (2008): Challenges in operational numerical weather prediction at high resolution in complex terrain. Phd thesis, ETH Zurich. Available at <https://doi.org/10.3929/ethz-a-005698833>.
+
 Danilov et al. 2015
   Danilov, S., Q. Wang, R. Timmermann, N. Iakovlev, D. Sidorenko, M. Kimmritz, T. Jung, and J. Schröter (2015): Finite-Element Sea Ice Model (FESIM), version 2. Geoscientific Model Development, 8, 1747-1761, <https://doi.org/10.5194/gmd-8-1747-2015>.
 
@@ -166,6 +169,9 @@ Ilyina et al. 2013
 Mehlmann and Korn 2021
   Mehlmann, C., and P. Korn (2021): Sea-ice dynamics on triangular grids. Journal of Computational Physics, 428, 110086, <https://doi.org/10.1016/j.jcp.2020.110086>.
 
+Müller and Scherer 2005
+  Müller, M. D. and D. Scherer (2005): A Grid- and Subgrid-Scale Radiation Parameterization of Topographic Effects for Mesoscale Weather Forecast Models. Monthly Weather Review, 133(6), 1431–1442, <https://doi.org/10.1175/MWR2927.1>.
+
 Olbers and Eden 2013
   Olbers, D., and C. Eden (2013): A Global Model for the Diapycnal Diffusivity Induced by Internal Gravity Waves. Journal of Physical Oceanography, 43, 1759-1779, <https://doi.org/10.1175/JPO-D-12-0207.1>.
 
@@ -175,8 +181,14 @@ Semtner 1976
 Six and Maier-Reimer 1996
   Six, K. D., and E. Maier-Reimer (1996): Effects of plankton dynamics on seasonal carbon fluxes in an ocean general circulation model. Global Biogeochemical Cycles, 10, 559-583, <https://doi.org/10.1029/96GB02561>.
 
+Spencer 1971
+  Spencer, J. W. (1971): Fourier series representation of the position of the sun. Search, 2, 162-172.
+
 Takaya, Bidlot, Beljaars and Janssen 2010
   Takaya, Y., Bidlot, J. R., Beljaars, A., & Janssen, P. A. E. M. (2010): Improved modeling of sea surface temperature diurnal cycle and its impact on coupled simulations. Journal of Advances in Modeling Earth Systems, 2(1).
+
+Zhang 2021
+  Zhang, T., P. W. Stackhouse, B. Macpherson, and J. C. Mikovitz (2021): A solar azimuth formula that renders circumstantial treatment unnecessary without compromising mathematical rigor: Mathematical setup, application and extension of a formula based on the subsolar point and atan2 function. Renewable Energy, 172, 1333–1340.
 
 Zeng and Beljaars 2005
   Zeng, X., & Beljaars, A. (2005): A prognostic scheme of sea surface skin temperature for modeling and data assimilation. Geophysical Research Letters, 32(14).

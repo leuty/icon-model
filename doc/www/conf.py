@@ -153,6 +153,15 @@ html_sidebars = {
 # -- Options for LaTeX syntax rendering
 
 mathjax_path = "tex-mml-chtml.js"
+# -- Mathjax line break currently not working, retry after next update
+# mathjax_options = {"displayOverflow": "scale"}
+#    "linebreaks": {
+#      "inline": True,
+#      "width": "100%",
+#      "lineleading": .2
+#      }
+#    }
+#  }
 
 # -- Options for LaTeX output ------------------------------------------------
 

@@ -131,8 +131,8 @@ MODULE mo_radiation_nml
   INTEGER :: islope_rad(max_dom)  ! slope correction for surface radiation
                                   ! 0: none
                                   ! 1: slope correction for solar radiation without shading effects
-                                  ! 2: is for slope-dependent radiation with shading and skyview
-                                  ! 3: slope-dependent radiation with shading without skyview
+                                  ! 2: option was removed
+                                  ! 3: slope-dependent radiation with shading
 
   ! --- Switches for radiative agents
   !     irad_x=0 : radiation uses tracer x = 0
