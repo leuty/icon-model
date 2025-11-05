@@ -1604,11 +1604,20 @@ CONTAINS
     ! in general nml output is writen based on the nnew status of the
     ! prognostics variables. Unfortunately, the initialization has to be written
     ! to the nold state. That's why the following manual copying is nec.
-    ocean_state%p_prog(nnew(1))%h      = ocean_state%p_prog(nold(1))%h
+      ocean_state%p_prog(nnew(1))%h         = ocean_state%p_prog(nold(1))%h
+    IF ( vert_cor_type == 1 ) THEN
+      ocean_state%p_prog(nnew(1))%eta_c     = ocean_state%p_prog(nold(1))%eta_c
+      ocean_state%p_prog(nnew(1))%stretch_c = ocean_state%p_prog(nold(1))%stretch_c
+    ENDIF
 
-    ocean_state%p_prog(nnew(1))%vn     = ocean_state%p_prog(nold(1))%vn
+    ! get the tracers
+    IF (no_tracer > 0) THEN
+      ocean_state%p_prog(nnew(1))%tracer    = ocean_state%p_prog(nold(1))%tracer
+    ENDIF
 
-    CALL calc_scalar_product_veloc_3d( patch_3d,  ocean_state%p_prog(nnew(1))%vn,&
+    ocean_state%p_prog(nnew(1))%vn          = ocean_state%p_prog(nold(1))%vn
+
+    CALL calc_scalar_product_veloc_3d(patch_3d, ocean_state%p_prog(nnew(1))%vn, &
       & ocean_state%p_diag, operators_coefficients)
     ! CALL update_height_depdendent_variables( patch_3d, ocean_state, p_ext_data, operators_coefficients, solvercoeff_sp)
 #ifdef _OPENACC
