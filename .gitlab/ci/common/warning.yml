@@ -22,6 +22,7 @@ include:
 .common:warning:
   extends: .utils:log
   variables:
+    # Internal variables:
     GIT_STRATEGY: none
   allow_failure: true
   script:

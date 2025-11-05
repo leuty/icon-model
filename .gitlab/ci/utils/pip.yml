@@ -17,24 +17,27 @@ include:
 # Jobs that extend the template must ensure that their runtime environments
 # provide the Python3 interpreter with the PIP module.
 #
-# The installation of the packages can be controlled with the following
-# variables:
-#   - PIP_REQUIREMENT (standard PIP environment variable, defaults to an empty
-#     string): a space-separated list of paths to PIP requirement files;
-#   - ICON_CI_UTILS_PIP_PYTHON (defaults to `python3`): Python3 interpreter to
-#     install the packages for;
-#   - ICON_CI_UTILS_PIP_UPGRADE (defaults to `false`): a boolean that controls
-#     whether the PIP module is upgraded before the installation of other
-#     packages;
-#   - ICON_CI_UTILS_PIP_PACKAGES (defaults to an empty string): a
-#     space-separated list of packages to intall with PIP;
-#   - ICON_CI_UTILS_PIP_CACHE_PATH (defaults to
-#     `$ICON_CI_UTILS_GIT_IGNORE_PATH/pip`, see .utils:git:ignore): path
-#     inside $CI_PROJECT_DIR to the PIP cache directory.
-#
 .utils:pip:
   extends: .utils:git:ignore
   variables:
+    # Space-separated list of paths to PIP requirement files:
+    ICON_CI_UTILS_PIP_REQUIREMENT: null
+
+    # Space-separated list of packages to intall with PIP:
+    ICON_CI_UTILS_PIP_PACKAGES: null
+
+    # Python3 interpreter to install the packages for:
+    ICON_CI_UTILS_PIP_PYTHON: python3
+
+    # Boolean that controls whether the PIP module is upgraded before the
+    # installation of other packages:
+    ICON_CI_UTILS_PIP_UPGRADE: false
+
+    # Path inside $CI_PROJECT_DIR to the PIP cache directory:
+    #   Hint: to disable caching, nullify this variable and the cache parameter, i.e.
+    #     variables:
+    #       ICON_CI_UTILS_PIP_CACHE_PATH: null
+    #     cache: null
     ICON_CI_UTILS_PIP_CACHE_PATH: ${ICON_CI_UTILS_GIT_IGNORE_PATH}/pip
   before_script:
     - |
@@ -43,28 +46,26 @@ include:
       (
         set -u
 
-        test -z "${ICON_CI_UTILS_PIP_PACKAGES-}${PIP_REQUIREMENT-}" && {
+        test -z "${ICON_CI_UTILS_PIP_PACKAGES-}${ICON_CI_UTILS_PIP_REQUIREMENT-}" && {
           icon_ci_log_info_msg \
-            'PIP_REQUIREMENT and ICON_CI_UTILS_PIP_PACKAGES are empty: nothing to install'
+            'ICON_CI_UTILS_PIP_REQUIREMENT and ICON_CI_UTILS_PIP_PACKAGES are empty: nothing to install'
           # Drop the cache if the list of required packages is empty:
           test -z "${ICON_CI_UTILS_PIP_CACHE_PATH-}" || (
             set -x
             rm -rf "${ICON_CI_UTILS_PIP_CACHE_PATH}"
           )
         } || {
-
-          ICON_CI_UTILS_PIP_PYTHON=${ICON_CI_UTILS_PIP_PYTHON:-python3}
-
-          PIP_BREAK_SYSTEM_PACKAGES=${PIP_BREAK_SYSTEM_PACKAGES:-true}
-          PIP_ROOT_USER_ACTION=${PIP_ROOT_USER_ACTION:-ignore}
-          export PIP_BREAK_SYSTEM_PACKAGES PIP_ROOT_USER_ACTION
-
           "${ICON_CI_UTILS_PIP_PYTHON}" --version
 
+          PIP_REQUIREMENT=
+          PIP_BREAK_SYSTEM_PACKAGES=${PIP_BREAK_SYSTEM_PACKAGES:-true}
+          PIP_ROOT_USER_ACTION=${PIP_ROOT_USER_ACTION:-ignore}
+          export PIP_REQUIREMENT PIP_BREAK_SYSTEM_PACKAGES PIP_ROOT_USER_ACTION
+
           # Upgrade the PIP module if required:
-          test false = "${ICON_CI_UTILS_PIP_UPGRADE-false}" || (
+          test false = "${ICON_CI_UTILS_PIP_UPGRADE}" || (
             set -x
-            PIP_REQUIREMENT= "${ICON_CI_UTILS_PIP_PYTHON}" \
+            "${ICON_CI_UTILS_PIP_PYTHON}" \
               -m pip --no-cache-dir install --upgrade pip
           )
 
@@ -83,7 +84,7 @@ include:
             cache_key="$("${ICON_CI_UTILS_PIP_PYTHON}" -c \
       'import sys, pip; print("python:", sys.version, "\npip:", pip.__version__)')
       ${ICON_CI_UTILS_PIP_PACKAGES-}
-      $(for r in ${PIP_REQUIREMENT-}; do
+      $(for r in ${ICON_CI_UTILS_PIP_REQUIREMENT-}; do
           cat "${r}" 2>/dev/null || continue
         done)"
             cache_key_path="${ICON_CI_UTILS_PIP_CACHE_PATH}/pip-cache-key"
@@ -106,8 +107,10 @@ include:
 
           set -x
           # Install the required packages:
-          "${ICON_CI_UTILS_PIP_PYTHON}" -m pip "$@" \
-            install ${ICON_CI_UTILS_PIP_PACKAGES-}
+          PIP_REQUIREMENT=${ICON_CI_UTILS_PIP_REQUIREMENT-}
+          export PIP_REQUIREMENT
+          "${ICON_CI_UTILS_PIP_PYTHON}" -m pip "$@" install \
+            ${ICON_CI_UTILS_PIP_PACKAGES-}
         }
       ) 2>&1
       icon_ci_log_section_end

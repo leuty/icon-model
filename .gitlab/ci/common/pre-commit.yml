@@ -18,6 +18,7 @@ include:
 .common:pre-commit:
   extends: .common:ubuntu
   variables:
+    # Internal variables:
     ICON_CI_UTILS_APT_PACKAGES: git pre-commit python3-minimal
     ICON_CI_COMMON_PRE_COMMIT_CACHE_PATH: ${ICON_CI_UTILS_GIT_IGNORE_PATH}/pre-commit
     PRE_COMMIT_HOME: ${ICON_CI_COMMON_PRE_COMMIT_CACHE_PATH}/cache
