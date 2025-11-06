@@ -23,6 +23,8 @@ Climate: ICON-Land
 
 #### Building
 
+- Added Add Levante dolpung wrapper using NVHPC 25.7 and OpenMPI 4.1.8 (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1052)
+- Fix for dolpung NVHPC config wrappers to support C++/CUDA with MemMan (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1130)
 - BLAS is made an optional dependency
 
 

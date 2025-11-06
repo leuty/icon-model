@@ -24,6 +24,9 @@ GCC_ROOT='/sw/spack-levante-0.23.1/linux-rhel9-neoverse_v2/gcc-14.2.0-am53qrz'
 STDCPP_ROOT=${GCC_ROOT}
 STDCPP_LIBS='-lstdc++'
 
+CUDA_ROOT="${NVHPC_ROOT}/cuda/12.8"
+CUDA_LIBS='-lcudart -lcuda'
+
 MPI_ROOT="${NVHPC_ROOT}/comm_libs/12.8/openmpi4/openmpi-4.1.5"
 
 HDF5_ROOT="${INSTALL_ROOT}/hdf5-1.14.3-igw2ryw"
@@ -46,8 +49,9 @@ FYAML_LIBS='-lfyaml'
 XML2_ROOT='/usr'
 XML2_LIBS='-lxml2'
 
-##########################################
-BUILD_ENV="export LD_LIBRARY_PATH=\"${STDCPP_ROOT}/lib64:${HDF5_ROOT}/lib:${NETCDF_ROOT}/lib64:${NETCDFF_ROOT}/lib:${ECCODES_ROOT}/lib64:${FYAML_ROOT}/lib:\${LD_LIBRARY_PATH}\";"
+################################################################################
+
+BUILD_ENV="export LD_LIBRARY_PATH=\"${STDCPP_ROOT}/lib64:${HDF5_ROOT}/lib:${NETCDF_ROOT}/lib64:${NETCDFF_ROOT}/lib:${ECCODES_ROOT}/lib64:${FYAML_ROOT}/lib:\${LD_LIBRARY_PATH}\"; export LIBRARY_PATH=\"${CUDA_ROOT}/lib64/stubs:\${LIBRARY_PATH}\"; export CUDAToolkit_ROOT='${CUDA_ROOT}';"
 
 CC="${MPI_ROOT}/bin/mpicc"
 CFLAGS='-g -O2'
