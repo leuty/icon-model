@@ -79,7 +79,7 @@ For **detailed information** please refer to section [](ref_buildrun_running).
     First, we recommend checking whether there is a suitable [](ref_buildrun_configuration_wrappers) in the {{ '[`config`]({}/config)'.format(base_url) }} directory that you could use instead of running the configure script directly. If that is not the case, you need at least to specify the `LIBS` variable telling the configure script which libraries to link the executables to. The content of the list depends on the configure options you specify (see [Table 1](tab_icon_depgraph)), for example:
 
     ```sh
-    ./configure --disable-mpi --disable-coupling LIBS='-lnetcdff -lnetcdf -llapack -lblas'
+    ./configure --disable-mpi --disable-coupling LIBS='-lnetcdff -lnetcdf -llapack'
     ```
 
     If the libraries reside in nonstandard directories, you might also need to specify the `FCFLAGS`, `CPPFLAGS`, and `LDFLAGS` variables to tell the script which directories need to be searched for header and library files (see section [](ref_buildrun_configuration)) for more details).

@@ -48,7 +48,7 @@ digraph ICON {
 		"ECRAD" [shape=box];
 		"ECRAD" -> {"NetCDF-Fortran"};
 
-		"BLAS" [fillcolor="#47A1F1"];
+		"BLAS";
 
 		"LAPACK" [fillcolor="#47A1F1"];
 		"LAPACK" -> {"BLAS"};

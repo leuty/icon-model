@@ -1794,17 +1794,23 @@ either disable usage of the ECMWF radiation scheme (--disable-ecrad) or use dnl
 the bundled version of ECRAD library (--without-external-ecrad), or set dnl
 FCFLAGS, LDFLAGS and LIBS accordingly])])])
 
-AC_CACHE_CHECK([whether Fortran BLAS library is available], [icon_cv_have_blas],
-  [icon_cv_have_blas=no
-   AC_LINK_IFELSE([AC_LANG_FUNC_LINK_TRY([dgemm])], [icon_cv_have_blas=yes])])
-AS_VAR_IF([icon_cv_have_blas], [no],
-  [AC_MSG_FAILURE([unable to link a test program using BLAS library: set dnl
-FCFLAGS, LDFLAGS and LIBS accordingly])])
+AS_IF([test x"$enable_dace" = xyes || test x"$enable_art" = xyes],
+  [AC_CACHE_CHECK([whether Fortran BLAS library is available],
+     [icon_cv_have_blas],
+     [icon_cv_have_blas=no
+      AC_LINK_IFELSE([AC_LANG_FUNC_LINK_TRY([dgemm])],
+        [icon_cv_have_blas=yes])])
+   AS_VAR_IF([icon_cv_have_blas], [no],
+     [AC_MSG_FAILURE([unable to link a test program using BLAS library: set dnl
+FCFLAGS, LDFLAGS and LIBS accordingly])])])
 
 AC_CACHE_CHECK([whether Fortran LAPACK library is available],
   [icon_cv_have_lapack],
   [icon_cv_have_lapack=no
-   AC_LINK_IFELSE([AC_LANG_FUNC_LINK_TRY([dgeev])], [icon_cv_have_lapack=yes])])
+   AS_VAR_IF([enable_single_precision], [yes],
+     [icon_tmp=sgesdd], [icon_tmp=dgesdd])
+   AC_LINK_IFELSE([AC_LANG_FUNC_LINK_TRY([$icon_tmp])],
+     [icon_cv_have_lapack=yes])])
 AS_VAR_IF([icon_cv_have_lapack], [no],
   [AC_MSG_FAILURE([unable to link a test program using LAPACK library: set dnl
 FCFLAGS, LDFLAGS and LIBS accordingly])])

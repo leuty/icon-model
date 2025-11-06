@@ -9325,13 +9325,14 @@ ${icon_usr_note}" "$LINENO" 5; }
 fi
 fi
 
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether Fortran BLAS library is available" >&5
+if test x"$enable_dace" = xyes || test x"$enable_art" = xyes; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether Fortran BLAS library is available" >&5
 $as_echo_n "checking whether Fortran BLAS library is available... " >&6; }
 if ${icon_cv_have_blas+:} false; then :
   $as_echo_n "(cached) " >&6
 else
   icon_cv_have_blas=no
-   cat > conftest.$ac_ext <<_ACEOF
+      cat > conftest.$ac_ext <<_ACEOF
       program main
       call dgemm
       end
@@ -9344,12 +9345,13 @@ rm -f core conftest.err conftest.$ac_objext \
 fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $icon_cv_have_blas" >&5
 $as_echo "$icon_cv_have_blas" >&6; }
-if test "x$icon_cv_have_blas" = xno; then :
+   if test "x$icon_cv_have_blas" = xno; then :
   { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
 as_fn_error $? "unable to link a test program using BLAS library: set FCFLAGS, LDFLAGS and LIBS accordingly
 See \`config.log' for more details
 ${icon_usr_note}" "$LINENO" 5; }
+fi
 fi
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether Fortran LAPACK library is available" >&5
@@ -9358,9 +9360,14 @@ if ${icon_cv_have_lapack+:} false; then :
   $as_echo_n "(cached) " >&6
 else
   icon_cv_have_lapack=no
+   if test "x$enable_single_precision" = xyes; then :
+  icon_tmp=sgesdd
+else
+  icon_tmp=dgesdd
+fi
    cat > conftest.$ac_ext <<_ACEOF
       program main
-      call dgeev
+      call $icon_tmp
       end
 _ACEOF
 if ac_fn_fc_try_link "$LINENO"; then :

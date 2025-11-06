@@ -19,6 +19,12 @@ Climate: ICON-Land
 
 - Added Memory Manager library 1.0.0 as external in externals/memman
 
+### Infrastructure
+
+#### Building
+
+- BLAS is made an optional dependency
+
 
 # Release notes for icon-2025.10
 
