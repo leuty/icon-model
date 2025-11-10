@@ -204,6 +204,13 @@ CONTAINS
          &        lrestart=.FALSE., loutput=.TRUE.,                              &
          &        ldims=shape2d_c, in_group=groups("wave_forcing") )
 
+     cf_desc    = t_cf_var('w_surf_den_c', 'kg/m*3','water surface density at cells', datatype_flt)
+     grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+     CALL add_var( p_forcing_list, 'w_surf_den_c', p_forcing%w_surf_den_c,            &
+          &        GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,       &
+          &        lrestart=.FALSE., loutput=.TRUE.,                              &
+          &        ldims=shape2d_c, in_group=groups("wave_forcing") )
+
   END SUBROUTINE new_wave_forcing_state_list
 
   !>

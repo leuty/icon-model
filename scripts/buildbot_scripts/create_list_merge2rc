@@ -119,13 +119,14 @@ $addexp "checksuite.icon-dev/check.atm_bubble_land_test"   --builders "${NVHPC_C
 # Other tests
 # limited area runs
 $addexp "checksuite.les/exp.ac3_les_20210211.run" --builders "levante_intel_hybrid" --list $listname
-# wave model tests, including coupled atmo-wave tests
+# wave model tests, including coupled atmo-wave and ocen-wave tests
 $addexp "checksuite.nwp/nwpexp.run_ICON_18_R2B4_waves_adv_nophys"         --builders "levante_intel_hybrid levante_nag dwd_nec_hybrid"  --list $listname
 $addexp "checksuite.nwp/nwpexp.run_ICON_21_R2B4_waves_standalone_restart" --builders "levante_intel_hybrid dwd_nec_hybrid"  --list $listname
 $addexp "checksuite.icon-dev/check.waves_R2B4_global_no_forcing"          --builders "dwd_nec_hybrid levante_nag levante_intel_hybrid" --list $listname
 # coupled tests
 $addexp "checksuite.nwp/nwpexp.run_ICON_23_R2B4_atmo_waves_coupled"       --builders "levante_gcc levante_intel" --list $listname --runflags "queue=compute"
 $addexp "checksuite.nwp/nwpexp.run_ICON_28_R2B6_IAU_atmo_waves_coupled"   --builders "dwd_nec_coupling" --list $listname
+$addexp "checksuite.nwp/nwpexp.run_ICON_30_R2B4_waves_ocean_coupled"      --builders "levante_intel" --list $listname --runflags "queue=compute"
 # implementation of coupling the nested atmosphere to the ocean
 $addexp "checksuite.atm/exp.test_coupled_160kmNestedAtm_40kmOce" --builders "levante_gcc_hybrid levante_nag" --list $listname  --runflags "cpu_time=00:20:00 no_of_nodes=2"
 #-----------------------------------------------------------
@@ -217,6 +218,8 @@ $addexp checksuite.nwp/nwpexp.run_ICON_20_R2B4_R2B6_AO_coupled                 -
 $addexp checksuite.nwp/nwpexp.run_ICON_26_R2B4_R2B6_AO-HD_coupled              --builders dwd_nec_coupling --list $listname
 # atmo-wave coupled test
 $addexp checksuite.nwp/nwpexp.run_ICON_23_R2B4_atmo_waves_coupled              --builders dwd_nec_coupling --list $listname
+# ocean-wave coupled test
+$addexp checksuite.nwp/nwpexp.run_ICON_30_R2B4_waves_ocean_coupled             --builders dwd_nec_coupling --list $listname
 # GRIB-IO in both AO
 $addexp checksuite.nwp/nwpexp.run_ICON_29_R2B5_R2B6_AO_coupled_gribInitOce     --builders dwd_nec_coupling --list $listname
 

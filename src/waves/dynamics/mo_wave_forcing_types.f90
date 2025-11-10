@@ -41,8 +41,9 @@ MODULE mo_wave_forcing_types
       & sp_soce_c(:,:),   & ! ocean surface current velocity at centers  (nproma,nblks_c) ( m/s )
       & dir_soce_c(:,:),  & ! ocean surface current direction at centers (nproma,nblks_c) ( rad )
       & usoce_e(:,:),     & ! zonal ocean surface current at edges (nproma,nblks_e)    ( m/s )
-      & vsoce_e(:,:)      & ! meridional ocean surface current at edges (nproma,nblks_e) ( m/s )
-      & => NULL()
+      & vsoce_e(:,:),     & ! meridional ocean surface current at edges (nproma,nblks_e) ( m/s )
+      & w_surf_den_c(:,:) & ! water surface density at cells (nproma,nblks_c) ( kg/m*3 )
+    & => NULL()
 
     INTEGER, POINTER, CONTIGUOUS :: &
       & ice_free_mask_c(:,:) & ! ice-free mask (nproma,nblks_c) 1 - no ice, 0 - ice

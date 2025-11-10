@@ -1109,8 +1109,7 @@ CONTAINS
            & lrestart=.FALSE., loutput=.TRUE.,                        &
            & ldims=shape3d_depth_c)
 
-   END IF
-
+    END IF
 
   END SUBROUTINE new_wave_state_diag_list
 

@@ -53,13 +53,14 @@ MODULE mo_wave_stepping
   USE mo_wave_td_update,           ONLY: update_speed_and_direction, update_ice_free_mask, &
     &                                    update_water_depth_and_grad
   USE mo_wave_advection_stepping,  ONLY: wave_step_advection
-  USE mo_coupling_config,          ONLY: is_coupled_to_atmo
+  USE mo_coupling_config,          ONLY: is_coupled_to_atmo, is_coupled_to_ocean
   USE mo_timer,                    ONLY: ltimer, timer_start, timer_stop, timer_coupling, timers_level
   USE mo_wave_timer,               ONLY: timer_wave_total, timer_wave_reader, timer_wave_time_integration, &
     &                                    timer_wave_src, timer_wave_src_wind_input, &
     &                                    timer_wave_src_dissipation, timer_wave_src_nonlinear, &
     &                                    timer_wave_diagnostics
   USE mo_wave_atmo_coupling,       ONLY: couple_wave_to_atmo
+  USE mo_wave_ocean_coupling,      ONLY: couple_wave_to_ocean
   ! restart
   USE mo_restart,                  ONLY: t_RestartDescriptor
   USE mo_restart_nml_and_att,      ONLY: getAttributesForRestarting
@@ -277,6 +278,49 @@ CONTAINS
 
         n_now  = nnow(jg)
         n_new  = nnew(jg)
+
+        IF (is_coupled_to_ocean()) THEN
+          IF (ltimer) CALL timer_start(timer_coupling)
+          CALL couple_wave_to_ocean(p_patch  = p_patch(jg),                         & ! IN
+            &                       stokes_u = p_wave_state(jg)%diag%u_stokes,      & ! IN
+            &                       stokes_v = p_wave_state(jg)%diag%v_stokes,      & ! IN
+            &                       tau_w    = p_wave_state(jg)%diag%tauw,          & ! IN
+            &                       h_s      = p_wave_state(jg)%diag%hs,            & ! IN
+            &                       tm02     = p_wave_state(jg)%diag%tm2,           & ! IN
+            &                       kp       = p_wave_state(jg)%diag%kp,            & ! IN
+            &                       cur_u    = wave_forcing_state(jg)%usoce_c,      & ! INOUT
+            &                       cur_v    = wave_forcing_state(jg)%vsoce_c,      & ! INOUT
+            &                       ssh      = wave_forcing_state(jg)%sea_level_c,  & ! INOUT
+            &                       ssd      = wave_forcing_state(jg)%w_surf_den_c, & ! INOUT
+            &                       lacc     = .FALSE.)
+          IF (ltimer) CALL timer_stop(timer_coupling)
+
+          ! get new forcing data (read from file and copy to forcing state vector)
+          IF (wave_config(jg)%lread_forcing) THEN
+            CALL reader_wave_forcing(jg)%update_forcing(                                &
+              &                destination_time = mtime_current,                        & !in
+              &                u10m             = wave_forcing_state(jg)%u10m,          & !out
+              &                v10m             = wave_forcing_state(jg)%v10m,          & !out
+              &                sp10m            = wave_forcing_state(jg)%sp10m,         & !out
+              &                dir10m           = wave_forcing_state(jg)%dir10m,        & !out
+              &                sic              = wave_forcing_state(jg)%sea_ice_c,     & !out
+              &                slh              = wave_forcing_state(jg)%sea_level_c,   & !out
+              &                uosc             = wave_forcing_state(jg)%usoce_c,       & !out
+              &                vosc             = wave_forcing_state(jg)%vsoce_c,       & !out
+              &                sp_osc           = wave_forcing_state(jg)%sp_soce_c,     & !out
+              &                dir_osc          = wave_forcing_state(jg)%dir_soce_c,    & !out
+              &                ice_free_mask_c  = wave_forcing_state(jg)%ice_free_mask_c) !out
+
+            ! update depth and gradient
+            CALL update_water_depth_and_grad(p_patch = p_patch(jg),                        & !in
+              &                     p_int_state      = p_int_state(jg),                    & !in
+              &                     bathymetry_c     = wave_ext_data(jg)%bathymetry_c,     & !in
+              &                     sea_level_c      = wave_forcing_state(jg)%sea_level_c, & !in
+              &                     depth_c          = wave_ext_data(jg)%depth_c,          & !out
+              &                     depth_e          = wave_ext_data(jg)%depth_e,          & !out
+              &                     geo_depth_grad_c = wave_ext_data(jg)%geo_depth_grad_c)   !out
+          END IF
+        END IF
 
         IF (is_coupled_to_atmo()) THEN
           ! send and receive coupling fields

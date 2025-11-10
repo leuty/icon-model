@@ -39,7 +39,9 @@ $addexp "checksuite.icon-dev/check.waves_R2B4_global_no_forcing"          --buil
 $addexp "checksuite.nwp/nwpexp.run_ICON_23_R2B4_atmo_waves_coupled"       --builders "levante_gcc levante_intel" --list $listname --runflags "queue=compute"
 $addexp "checksuite.nwp/nwpexp.run_ICON_23_R2B4_atmo_waves_coupled"       --builders "dwd_nec_coupling" --list $listname
 $addexp "checksuite.nwp/nwpexp.run_ICON_28_R2B6_IAU_atmo_waves_coupled"   --builders "dwd_nec_coupling" --list $listname
-
+# wave-ocean
+$addexp "checksuite.nwp/nwpexp.run_ICON_30_R2B4_waves_ocean_coupled"      --builders "levante_intel" --list $listname --runflags "queue=compute"
+$addexp "checksuite.nwp/nwpexp.run_ICON_30_R2B4_waves_ocean_coupled"      --builders "dwd_nec_coupling" --list $listname
 
 #lets see the list
 ./lslist $listname

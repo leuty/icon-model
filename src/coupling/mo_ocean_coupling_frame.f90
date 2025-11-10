@@ -27,11 +27,12 @@ MODULE mo_ocean_coupling_frame
   ! For the coupling
   !
   USE mo_coupling_utils,      ONLY: cpl_def_main, cpl_enddef
-  USE mo_coupling_config,     ONLY: is_coupled_run, is_coupled_to_atmo, &
+  USE mo_coupling_config,     ONLY: is_coupled_run, is_coupled_to_atmo, is_coupled_to_waves, &
     &                               is_coupled_to_output
   USE mo_output_coupling,     ONLY: construct_output_coupling, &
     &                               construct_output_coupling_finalize
   USE mo_ocean_atmo_coupling, ONLY: construct_ocean_atmo_coupling, construct_ocean_atmo_coupling_finalize
+  USE mo_ocean_wave_coupling, ONLY: construct_ocean_wave_coupling
   USE mo_time_config,         ONLY: time_config
 
   !-------------------------------------------------------------
@@ -40,6 +41,7 @@ MODULE mo_ocean_coupling_frame
 
   PRIVATE
 
+  CHARACTER(len=*), PARAMETER :: ocean_grid_name = 'icon_ocean_grid'
   CHARACTER(len=*), PARAMETER :: str_module = 'mo_ocean_coupling_frame' ! Output of module for debug
 
   PUBLIC :: construct_ocean_coupling, destruct_ocean_coupling
@@ -81,7 +83,7 @@ CONTAINS
     IF( is_coupled_to_output() ) THEN
       CALL cpl_def_main(routine,                 & !in
                         patch_3d%p_patch_2d(1:), & !in
-                        "icon_ocean_grid",       & !in
+                        ocean_grid_name,         & !in
                         comp_id,                 & !out
                         output_comp_id,          & !out
                         grid_id,                 & !out
@@ -90,7 +92,7 @@ CONTAINS
     ELSE
       CALL cpl_def_main(routine,                 & !in
                         patch_3d%p_patch_2d(1:), & !in
-                        "icon_ocean_grid",       & !in
+                        ocean_grid_name,         & !in
                         comp_id,                 & !out
                         grid_id,                 & !out
                         cell_point_id)             !out
@@ -116,6 +118,17 @@ CONTAINS
 
       CALL construct_ocean_atmo_coupling( &
         patch_3d, comp_id, grid_id(1), cell_point_id(1), timestepstring)
+
+    END IF
+
+    IF ( is_coupled_to_waves() ) THEN
+
+      ! Construct coupling frame for ocean-atmosphere
+      CALL message(str_module, 'Constructing the coupling frame ocean-waves.')
+
+      CALL construct_ocean_wave_coupling( &
+        patch_3d, comp_id, grid_id(1), cell_point_id(1), timestepstring, &
+        ocean_grid_name)
 
     END IF
 

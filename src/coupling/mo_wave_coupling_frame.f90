@@ -17,18 +17,19 @@
 
 MODULE mo_wave_coupling_frame
 
-  USE mo_exception,       ONLY: finish, message
-  USE mo_model_domain,    ONLY: t_patch
-  USE mo_master_control,  ONLY: get_my_process_name
-  USE mo_grid_config,     ONLY: n_dom
-  USE mo_run_config,      ONLY: ltimer, msg_level
-  USE mo_time_config,     ONLY: time_config
-  USE mtime,              ONLY: timedeltaToString, MAX_TIMEDELTA_STR_LEN
-  USE mo_coupling_config, ONLY: is_coupled_run, is_coupled_to_atmo
-  USE mo_wave_atmo_coupling, ONLY: construct_wave_atmo_coupling, &
-    &                              construct_wave_atmo_coupling_finalize
-  USE mo_coupling_utils,  ONLY: cpl_def_main, cpl_enddef, cpl_write_config_info
-  USE mo_timer,           ONLY: timer_start, timer_stop, timer_coupling_init
+  USE mo_exception,           ONLY: finish, message
+  USE mo_model_domain,        ONLY: t_patch
+  USE mo_master_control,      ONLY: get_my_process_name
+  USE mo_grid_config,         ONLY: n_dom
+  USE mo_run_config,          ONLY: ltimer, msg_level
+  USE mo_time_config,         ONLY: time_config
+  USE mtime,                  ONLY: timedeltaToString, MAX_TIMEDELTA_STR_LEN
+  USE mo_coupling_config,     ONLY: is_coupled_run, is_coupled_to_atmo, is_coupled_to_ocean
+  USE mo_wave_atmo_coupling,  ONLY: construct_wave_atmo_coupling, &
+    &                               construct_wave_atmo_coupling_finalize
+  USE mo_wave_ocean_coupling, ONLY: construct_wave_ocean_coupling_post_sync
+  USE mo_coupling_utils,      ONLY: cpl_def_main, cpl_enddef, cpl_write_config_info, cpl_sync_def
+  USE mo_timer,               ONLY: timer_start, timer_stop, timer_coupling_init
 
   IMPLICIT NONE
 
@@ -99,6 +100,19 @@ CONTAINS
 
       CALL construct_wave_atmo_coupling( &
         comp_id, cell_point_id(1), timestepstring)
+    END IF
+
+    ! Synchronize all definitions until this point with other components
+    CALL cpl_sync_def(str_module)
+
+    IF ( is_coupled_to_ocean() ) THEN
+
+      CALL message(str_module, 'Constructing the coupling frame wave-ocean.')
+
+      CALL construct_wave_ocean_coupling_post_sync( &
+        comp_id, cell_point_id(1), timestepstring, &
+        TRIM(get_my_process_name()), grid_name)
+
     END IF
 
     ! End definition of coupling fields and search
