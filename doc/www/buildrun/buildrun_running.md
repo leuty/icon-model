@@ -176,6 +176,37 @@ From `<n>` and `<k>` the resolution of the grid can be estimated by the formula:
 \Delta x \sim \frac{5050}{n \cdot 2^k} \quad km.
 ```
 
+#### Grid Point Search
+
+There are many options to find the nearest grid point to given latitude/longitude coordinates.
+Here, we provide an example which makes use of
+[`KDTree`](https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.KDTree.html)
+provided by [`SciPy`](https://docs.scipy.org/doc/scipy/index.html).
+
+:::{dropdown} Grid Point Search using Python/SciPy
+```python
+import numpy as np
+from scipy.spatial import KDTree
+import xarray
+
+def lonlat2xyz(lon, lat):
+    clat = np.cos(lat)
+    return clat * np.cos(lon), clat * np.sin(lon), np.sin(lat)
+
+# Example grid and coordinates
+gridFile = 'icon_grid_0026_R03B07_G.nc'
+lon = np.deg2rad(8.7708333)
+lat = np.deg2rad(50.099444)
+
+grid = xarray.open_dataset(gridFile)
+tree = KDTree(np.stack(lonlat2xyz(grid.clon.values, grid.clat.values), axis=-1))
+NNdistance, NNindex = tree.query(np.stack(lonlat2xyz(lon,lat), axis=-1), k=1)
+
+print(f'The closest cell to lon={np.rad2deg(lon):.4f} lat={np.rad2deg(lat):.4f} is:')
+print(f'{NNindex=} lon={np.rad2deg(grid.clon[NNindex].values):.4f} lat={np.rad2deg(grid.clat[NNindex].values):.4f}')
+```
+:::
+
 (ref_buildrun_external_param)=
 ### External Parameters (NWP)
 
