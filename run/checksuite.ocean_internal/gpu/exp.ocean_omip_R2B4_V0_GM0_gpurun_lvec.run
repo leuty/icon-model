@@ -394,7 +394,7 @@ autoPostProcessing="false"                         # submit postprocessing job
 iforc=12
 forcing_timescale=365  # length of OMIP/NCEP dataset: 1 = annual; 12 = monthly data; 365/else = daily data
 init_relax=1
-ocean_data_InputFolder="/pool/data/ICON/oes/input/r0005/${grid_name}"
+ocean_data_InputFolder="/pool/data/ICON/oes/input/r0006/${grid_name}"
 grids_folder=${ocean_data_InputFolder}
 #-----------------------------------------------------------------------------
 #icon_data_rootFolder=/pool/data/ICON
@@ -883,6 +883,7 @@ cat >> ${ocean_namelist} << EOF
   albim                           = 0.65      ! Albedo of ice (melting)
 
 ! Pstar                           = 40000
+  initialize_seaice_fromfile      = .true.
 /
 
 &ocean_forcing_nml
@@ -919,6 +920,8 @@ cat >> ${ocean_namelist} << EOF
 &ocean_initialConditions_nml
   initial_salinity_type           = 1         ! read from file
   initial_temperature_type        = 1         ! read from file
+  sea_surface_height_type         = 1
+  initial_velocity_type           = 1
 /
 
 &ocean_diagnostics_nml
@@ -951,7 +954,7 @@ EOF
 #. ${thisdir}/add_required_ocean_files
 
 
-add_link_file ${ocean_data_InputFolder}/${SUBDIR}${GRID}${LEV}_initial_state.nc initial_state.nc
+add_link_file ${ocean_data_InputFolder}/${SUBDIR}${GRID}${LEV}_oras5-2010-01-01.nc initial_state.nc
 add_link_file ${ocean_data_InputFolder}/${GRID}_ocean-flux.nc ocean-flux.nc
 add_link_file ${ocean_data_InputFolder}/${GRID}_ocean-relax.nc ocean-relax.nc
 # IDEMIX forcing fields

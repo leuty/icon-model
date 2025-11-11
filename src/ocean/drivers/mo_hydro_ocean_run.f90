@@ -1622,6 +1622,14 @@ CONTAINS
     ! CALL update_height_depdendent_variables( patch_3d, ocean_state, p_ext_data, operators_coefficients, solvercoeff_sp)
 #ifdef _OPENACC
     lzacc = .TRUE.
+    !$ACC UPDATE DEVICE(ocean_state%p_prog(nnew(1))%vn) IF(lzacc)
+!    !$ACC UPDATE DEVICE(ocean_state%p_prog(nold(1))%vn) IF(lzacc)
+    !$ACC UPDATE DEVICE(ocean_state%p_prog(nnew(1))%tracer) IF(lzacc .AND. no_tracer > 0)
+    !$ACC UPDATE DEVICE(ocean_state%p_prog(nnew(1))%h) IF(lzacc)
+    !$ACC UPDATE DEVICE(ocean_state%p_diag%u, ocean_state%p_diag%v) IF(lzacc)
+    !$ACC UPDATE DEVICE(ocean_state%p_diag%kin) IF(lzacc)
+    !$ACC UPDATE DEVICE(ocean_state%p_prog(nnew(1))%eta_c, ocean_state%p_prog(nnew(1))%stretch_c) IF(lzacc .AND. vert_cor_type == 1)
+
 #endif
     CALL update_statistics(lacc=lzacc)
 
