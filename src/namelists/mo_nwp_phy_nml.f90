@@ -501,6 +501,10 @@ CONTAINS
         CALL finish( TRIM(routine), 'Aerosol-microphysics coupling currently available only for inwp_gscp=1,2,3')
       ENDIF
 
+      IF (ALL((/0,1/) /= inwp_sso(jg))) THEN
+        CALL finish(routine,'Invalid option for inwp_sso; select 0 or 1.')
+      ENDIF
+
 #ifdef _OPENACC
       IF ( ALL((/0,1,5/) /= inwp_cldcover(jg)) ) THEN
         CALL finish(routine,'GPU version only available for cloud cover 0, 1 and 5')
