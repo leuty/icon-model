@@ -96,6 +96,11 @@
       - src/shared/mo_physical_constants.f90
       - test/microphysics_1mom_schemes/**/*
     mentions: [b382090]
+  # Unit tests:
+  - file_names:
+      - utils/test_driver.py
+      - test/unit-tests/**/*
+    mentions: [k202204]
   # ComIn
   - file_names:
       - src/io/shared/mo_comin_adapter.f90
