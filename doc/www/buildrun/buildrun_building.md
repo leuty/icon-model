@@ -2,7 +2,7 @@
 :orphan:
 ```
 
-(ref_buildrun_introduction)=
+(ref_buildrun_building_intro)=
 # Building ICON
 
 The process of building ICON consists of two parts: *configuring* the options and compiler flags, and *building* the source code with those options and flags.

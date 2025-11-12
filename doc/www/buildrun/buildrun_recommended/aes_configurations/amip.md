@@ -25,59 +25,8 @@ Sources:
 ## Description
 ICON can run in an AMIP configuration. This means solving the fluid dynamics equations in the atmopshere with three main paramaterization (microphysics, turbulence and radiation) on the entire globe. In this configuration, the atmosphere is coupled to a dynamical 1D land module. This means that land does not transport energy nor water horizontally. The ocean and the sea-ice are not dynamically active (uncoupled). In other words, sea surface temperature and sea-ice extension are prescribed.
 
-In the default configuration, the atmosphere is divided in 90 vertical levels and the land uses 5 soil layers. The configuration of the grid is global and it can be used with horizontal grid spacing of 160 km and finer. The type of grid supported by `mkexp` are R2B4, R2B6, R2B8, R02B9, and R2B10. See [here](ref_buildrun_gridextpar) more information about grids.
+In the default configuration, the atmosphere is divided in 90 vertical levels and the land uses 5 soil layers. The configuration of the grid is global and it can be used with horizontal grid spacing of 160 km and finer. The type of grid supported by `mkexp` are R2B4, R2B6, R2B8, R02B9, and R2B10. See [here](ref_buildrun_grid_files) more information about grids.
 
 The default configuration has the initial conditions of January 1st 2020. Other initial conditions can be found `/pool/data/ICON/grids/public/mpim/XXXX/initial_conditions/r0100`. Two dates are available to be used as initial conditions across the different grid configurations: 1979-01-01 and 2020-01-01. But certain grid configurations have more available dates, e.g., R02B08 has four: 1979-01-01, 1990-01-01, 2020-01-01, and 2020-08-01 (`/pool/data/ICON/grids/public/mpim/0054/initial_conditions/r0100`). If another date want to be used, use the script `/pool/data/ICON/grids/public/mpim/XXX/initial_conditions/r0100/11u-make-initial-data-ifs2icon-from-era5.sh` (only one script) to generate a new initial conditions from a pool of files in `/pool/data/ICON/grids/private/mpim/icon_preprocessing/source/ecmwf_initial_data/initial_conditions)`.
 
 Aside from the initial conditions, the AMIP configuration needs time-dependent input data from aerosols, ozone, land properties, sea surface temperature, and sea ice extent. These inputs are automatically updated with the simulation time.
-
-## Example
-### Run AMIP with a R02B08 grid in Levante
-
-- Follows steps for obtaining the code and configuring and building in [Quick Start](https://docs.icon-model.org/buildrun/buildrun_quickstart.html).
-
-- To use GPU, use the following command in the folder containing the repository before using `make`
-
-```
-./config/dkrz/levante.gpu.nvhpc
-```
-
-- Then copy the example of the desired configuration in the run folder. `amip-aes.config` for CPUs and `amip-aes_gpu.config` for GPUs.
-```
-cd run/
-cp ./example/amip-aes.config ./
-```
-
-- Open the amip-aes.config and choose the type of grid to use. Other grids are specified at the end of the file
-```
-EXP_TYPE = amip-aes-R2B8
-```
-
-- Change the account. The account starts with the letters mh or bb, following by numbers
-```
-ACCOUNT = mhXXXX
-```
-
-- Change the initial and last day of simulation as well as the interval for the restart file
-```
-INITIAL_DATE = 2020-01-01T00:00:00
-FINAL_DATE = 2020-01-01T03:00:00
-INTERVAL = PT3H
-```
-
-- Change the simulation ID to convenience
-```
-EXP_ID = amip-aes-R2B8
-```
-
-
-- Generate the run scripts using mkexp
-```
-../utils/mkexp/mkexp amip-aes.config
-```
-
-- This will generate a run script `../experiment/EXP_ID/scripts/EXP_ID.run_start`. Navigate to the folder and run the script
-```
-cd ../experiment/
-sbatch EXP_ID.run_start
-```
