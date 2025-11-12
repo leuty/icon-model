@@ -6724,7 +6724,19 @@ I&
 &
 Tuning variant of visibility diagnostics\\
 1: First operational implementation \\
-2: Optimized day-night conversion factor &
+2: Optimized day-night conversion factor \\
+3: (2) plus optimized RH-dependency &
+run\_nml:iforcing = inwp
+\tabularnewline
+
+\hline
+itune\_ceiling\_diag&
+I&
+1&
+&
+Method used for ceiling diagnostics\\
+1: Purely layer-wise diagnostic \\
+2: Vertical integral with overlap assumption like in cloud-cover diagnsotic &
 run\_nml:iforcing = inwp
 \tabularnewline
 

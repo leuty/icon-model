@@ -73,6 +73,7 @@ MODULE mo_nwp_tuning_config
   PUBLIC :: tune_gustlim_agl, tune_gustlim_fac
   PUBLIC :: itune_gust_diag
   PUBLIC :: itune_vis_diag
+  PUBLIC :: itune_ceiling_diag
   PUBLIC :: itune_albedo
   PUBLIC :: tune_albedo_wso
   PUBLIC :: itune_slopecorr
@@ -259,7 +260,13 @@ MODULE mo_nwp_tuning_config
   INTEGER :: &                     !< Type of visbility tuning
     &  itune_vis_diag              ! 1: first operational implementation
                                    ! 2: optimized day-night factor
+                                   ! 3: (2) plus retuned RH dependency
   !$ACC DECLARE CREATE(itune_vis_diag)
+
+  INTEGER :: &                     !< Type of ceiling calculation
+    &  itune_ceiling_diag          ! 1: purely layer-wise
+                                   ! 2: vertical integration with overlap assumption like for cloud cover diagnostic
+  !$ACC DECLARE CREATE(itune_ceiling_diag)
 
   REAL(wp) :: &                    !< Basic gust speed (m/s) at which the SSO correction starts to be reduced
     &  tune_gustsso_lim            !

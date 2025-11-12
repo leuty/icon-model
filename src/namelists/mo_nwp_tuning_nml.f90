@@ -80,6 +80,7 @@ MODULE mo_nwp_tuning_nml
     &                               config_tune_gustlim_agl      => tune_gustlim_agl,      &
     &                               config_tune_gustlim_fac      => tune_gustlim_fac,      &
     &                               config_itune_vis_diag        => itune_vis_diag,        &
+    &                               config_itune_ceiling_diag    => itune_ceiling_diag,    &
     &                               config_itune_albedo          => itune_albedo,          &
     &                               config_tune_albedo_wso       => tune_albedo_wso,       &
     &                               config_itune_slopecorr       => itune_slopecorr,       &
@@ -290,6 +291,11 @@ MODULE mo_nwp_tuning_nml
   INTEGER :: &                     !< Type of visbility tuning
     &  itune_vis_diag              ! 1: first operational implementation
                                    ! 2: optimized day-night factor
+                                   ! 3: (2) plus retuned RH dependency
+
+  INTEGER :: &                     !< Type of ceiling calculation
+    &  itune_ceiling_diag          ! 1: purely layer-wise
+                                   ! 2: vertical integration with overlap assumption like for cloud cover diagnostic
 
   LOGICAL :: &                     ! cloud cover calibration over land points
     &  lcalib_clcov
@@ -354,7 +360,8 @@ MODULE mo_nwp_tuning_nml
     &                      tune_minsso_gwd, tune_dursun_scaling, tune_sbmccn,     &
     &                      itune_slopecorr, tune_gustlim_agl, tune_gustlim_fac,   &
     &                      tune_urbahf, tune_urbisa, tune_box_ice, tune_supsat_limfac, &
-    &                      tune_grzdc_offset, itune_vis_diag, tune_entrainment_profile
+    &                      tune_grzdc_offset, itune_vis_diag, tune_entrainment_profile, &
+    &                      itune_ceiling_diag
 
 CONTAINS
 
@@ -510,6 +517,7 @@ CONTAINS
     tune_gustlim_fac(:) = 0.0_wp   ! Corresponding tuning factor (0 means that limiting is deactivated)
 
     itune_vis_diag = 1             ! Variant of visibility diagnostics
+    itune_ceiling_diag = 1         ! Variant of ceiling diagnostics
 
     tune_dust_abs   = 0._wp        ! no tuning of LW absorption of mineral dust
     tune_difrad_3dcont = 0.5_wp    ! tuning factor for 3D contribution to diagnosed diffuse radiation (no impact on prognostic results!)
@@ -694,6 +702,7 @@ CONTAINS
     config_tune_gustlim_agl      = tune_gustlim_agl
     config_tune_gustlim_fac      = tune_gustlim_fac
     config_itune_vis_diag        = itune_vis_diag
+    config_itune_ceiling_diag    = itune_ceiling_diag
     config_itune_albedo          = itune_albedo
     config_tune_albedo_wso       = tune_albedo_wso
     config_itune_slopecorr       = itune_slopecorr
@@ -715,6 +724,7 @@ CONTAINS
 
     !$ACC UPDATE DEVICE(config_tune_gust_factor, config_itune_gust_diag, config_itune_vis_diag, config_tune_gustsso_lim) ASYNC(1)
     !$ACC UPDATE DEVICE(config_tune_gustlim_agl, config_tune_gustlim_fac, config_tune_albedo_wso, config_tune_supsat_limfac) ASYNC(1)
+    !$ACC UPDATE DEVICE(config_itune_ceiling_diag) ASYNC(1)
 
     !-----------------------------------------------------
     ! 6. Store the namelist for restart
