@@ -19,7 +19,7 @@ icon_dir=$(cd "${script_dir}/../.."; pwd)
 
 INSTALL_ROOT='/sw/spack-levante-0.23.1/linux-rhel9-neoverse_v2'
 NVHPC_ROOT="${INSTALL_ROOT}/nvhpc-25.3-2i2wkyr/Linux_aarch64/25.3"
-GCC_ROOT='/sw/spack-levante-0.23.1/linux-rhel9-neoverse_v2/gcc-14.2.0-am53qrz'
+GCC_ROOT="${INSTALL_ROOT}/gcc-14.2.0-am53qrz"
 
 STDCPP_ROOT=${GCC_ROOT}
 STDCPP_LIBS='-lstdc++'
@@ -64,19 +64,20 @@ CXXFLAGS='-g -O2'
 
 CPPFLAGS="-I${HDF5_ROOT}/include -I${NETCDF_ROOT}/include -I${ECCODES_ROOT}/include -I${FYAML_ROOT}/include -I${XML2_ROOT}/include/libxml2"
 
-CUDACXX="${NVHPC_ROOT}/cuda/12.8/bin/nvcc"
-CUDAFLAGS="-ccbin=${CXX} -arch=sm_90 -g -O3"
-
 FC="${MPI_ROOT}/bin/mpifort"
 FCFLAGS="-I${NETCDFF_ROOT}/include -g -O2 -Mrecursive -Mallocatable=03 -Mstack_arrays -Minfo=accel,inline -acc=gpu,verystrict -gpu=cc90,cuda12.8"
 
-LDFLAGS="-cuda -L${STDCPP_ROOT}/lib64 -L${HDF5_ROOT}/lib -L${NETCDF_ROOT}/lib64 -L${NETCDFF_ROOT}/lib -L${ECCODES_ROOT}/lib64 -L${FYAML_ROOT}/lib"
-LIBS="-Wl,--as-needed ${XML2_LIBS} ${FYAML_LIBS} ${ECCODES_LIBS} ${BLAS_LAPACK_LIBS} ${NETCDFF_LIBS} ${NETCDF_LIBS} ${HDF5_LIBS} ${STDCPP_LIBS}"
+CUDACXX="${CUDA_ROOT}/bin/nvcc"
+CUDAFLAGS="-arch=sm_90 -g -O3" # workaround: use default cc compiler (gcc) instead of -ccbin=${CXX};
+
+ICON_LDFLAGS="-c++libs -nvmalloc" # avoid passing it to g++ compiler as linker flags
+LDFLAGS="-L${STDCPP_ROOT}/lib64 -L${HDF5_ROOT}/lib -L${NETCDF_ROOT}/lib64 -L${NETCDFF_ROOT}/lib -L${ECCODES_ROOT}/lib64 -L${FYAML_ROOT}/lib -L${CUDA_ROOT}/lib64 -L${CUDA_ROOT}/lib64"
+
+LIBS="-Wl,--as-needed ${XML2_LIBS} ${FYAML_LIBS} ${ECCODES_LIBS} ${BLAS_LAPACK_LIBS} ${NETCDFF_LIBS} ${NETCDF_LIBS} ${HDF5_LIBS} ${STDCPP_LIBS} ${CUDA_LIBS}"
 
 MPI_LAUNCH="${MPI_ROOT}/bin/mpiexec"
 
-EXTRA_CONFIG_ARGS='--enable-gpu --enable-mpi-gpu --enable-cuda-graphs --enable-bundled-python=mtime '
-EXTRA_CONFIG_ARGS+='--enable-realloc-buf --enable-pgi-inlib '
+EXTRA_CONFIG_ARGS='--enable-gpu --enable-mpi-gpu --enable-bundled-python=mtime --enable-cuda-graphs --enable-realloc-buf --enable-pgi-inlib'
 
 
 ################################################################################
@@ -94,6 +95,7 @@ FC="${FC}" \
 FCFLAGS="${FCFLAGS}" \
 ICON_YAC_CFLAGS="${ICON_YAC_CFLAGS}" \
 LDFLAGS="${LDFLAGS}" \
+ICON_LDFLAGS="${ICON_LDFLAGS}" \
 LIBS="${LIBS}" \
 MPI_LAUNCH="${MPI_LAUNCH}" \
 ${EXTRA_CONFIG_ARGS} \

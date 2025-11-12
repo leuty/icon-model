@@ -46,7 +46,8 @@ FYAML_LIBS='-lfyaml'
 XML2_ROOT='/usr'
 XML2_LIBS='-lxml2'
 
-##########################################
+################################################################################
+
 BUILD_ENV="export LD_LIBRARY_PATH=\"${STDCPP_ROOT}/lib64:${HDF5_ROOT}/lib:${NETCDF_ROOT}/lib64:${NETCDFF_ROOT}/lib:${ECCODES_ROOT}/lib64:${FYAML_ROOT}/lib:\${LD_LIBRARY_PATH}\";"
 
 CC="${MPI_ROOT}/bin/mpicc"
@@ -60,11 +61,11 @@ CXXFLAGS='-g -O2'
 
 CPPFLAGS="-I${HDF5_ROOT}/include -I${NETCDF_ROOT}/include -I${ECCODES_ROOT}/include -I${FYAML_ROOT}/include -I${XML2_ROOT}/include/libxml2"
 
-
 FC="${MPI_ROOT}/bin/mpifort"
 FCFLAGS="-I${NETCDFF_ROOT}/include -g -O2 -Mrecursive -Mallocatable=03 -Mstack_arrays -Minfo=inline"
 
 LDFLAGS="-L${STDCPP_ROOT}/lib64 -L${HDF5_ROOT}/lib -L${NETCDF_ROOT}/lib64 -L${NETCDFF_ROOT}/lib -L${ECCODES_ROOT}/lib64 -L${FYAML_ROOT}/lib"
+
 LIBS="-Wl,--as-needed ${STDCPP_LIBS} ${XML2_LIBS} ${FYAML_LIBS} ${ECCODES_LIBS} ${BLAS_LAPACK_LIBS} ${NETCDFF_LIBS} ${NETCDF_LIBS} ${HDF5_LIBS} "
 
 MPI_LAUNCH="${MPI_ROOT}/bin/mpiexec"

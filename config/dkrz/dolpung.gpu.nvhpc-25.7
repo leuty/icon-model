@@ -17,65 +17,66 @@ ulimit -c 0
 script_dir=$(cd "$(dirname "$0")"; pwd)
 icon_dir=$(cd "${script_dir}/../.."; pwd)
 
-NVHPC_ROOT="/sw/spack-levante-0.23.1/linux-rhel9-neoverse_v2/nvhpc-25.7-dsupkck/Linux_aarch64/25.7"
+INSTALL_ROOT='/sw/spack-levante-0.23.1/linux-rhel9-neoverse_v2'
+NVHPC_ROOT="${INSTALL_ROOT}/nvhpc-25.7-dsupkck/Linux_aarch64/25.7"
 
 STDCPP_ROOT="/opt/rh/gcc-toolset-14/root"
-STDCPP_LIBS="-lstdc++"
-
-MPI_ROOT="/sw/mpi/linux-rhel9-neoverse_v2/openmpi/4.1.8_cuda-12.9_nvhpc-25.7_gcc-14"
+STDCPP_LIBS='-lstdc++'
 
 CUDA_ROOT="${NVHPC_ROOT}/cuda/12.9"
 CUDA_LIBS='-lcudart -lcuda'
 
-HDF5_ROOT="/sw/spack-levante-0.23.1/linux-rhel9-neoverse_v2/hdf5-1.14.3-6y362yx"
-HDF5_LIBS="-lhdf5_hl -lhdf5"
+MPI_ROOT="/sw/mpi/linux-rhel9-neoverse_v2/openmpi/4.1.8_cuda-12.9_nvhpc-25.7_gcc-14"
 
-NETCDF_ROOT="/sw/spack-levante-0.23.1/linux-rhel9-neoverse_v2/netcdf-c-4.9.3-6xe2mx2"
-NETCDF_LIBS="-lnetcdf"
+HDF5_ROOT="${INSTALL_ROOT}/hdf5-1.14.3-6y362yx"
+HDF5_LIBS='-lhdf5_hl -lhdf5'
 
-NETCDFF_ROOT="/sw/spack-levante-0.23.1/linux-rhel9-neoverse_v2/netcdf-fortran-4.6.2-fmmiwe7"
-NETCDFF_LIBS="-lnetcdff"
+NETCDF_ROOT="${INSTALL_ROOT}/netcdf-c-4.9.3-6xe2mx2"
+NETCDF_LIBS='-lnetcdf'
 
-BLAS_LAPACK_LIBS="-llapack -lblas"
+NETCDFF_ROOT="${INSTALL_ROOT}/netcdf-fortran-4.6.2-fmmiwe7"
+NETCDFF_LIBS='-lnetcdff'
 
-ECCODES_ROOT="/sw/spack-levante-0.23.1/linux-rhel9-neoverse_v2/eccodes-2.34.0-jiaspzo"
-ECCODES_LIBS="-leccodes"
+BLAS_LAPACK_LIBS='-llapack -lblas'
 
-FYAML_ROOT="/sw/spack-levante-0.23.1/linux-rhel9-neoverse_v2/libfyaml-0.9-3ycnq47"
-FYAML_LIBS="-lfyaml"
+ECCODES_ROOT="${INSTALL_ROOT}/eccodes-2.34.0-jiaspzo"
+ECCODES_LIBS='-leccodes'
 
-XML2_ROOT="/usr"
-XML2_LIBS="-lxml2"
+FYAML_ROOT="${INSTALL_ROOT}/libfyaml-0.9-3ycnq47"
+FYAML_LIBS='-lfyaml'
 
-##########################################
+XML2_ROOT='/usr'
+XML2_LIBS='-lxml2'
+
+################################################################################
 
 BUILD_ENV="export LD_LIBRARY_PATH=\"${STDCPP_ROOT}/lib64:${HDF5_ROOT}/lib:${NETCDF_ROOT}/lib64:${NETCDFF_ROOT}/lib:${ECCODES_ROOT}/lib64:${FYAML_ROOT}/lib:\${LD_LIBRARY_PATH}\"; export LIBRARY_PATH=\"${CUDA_ROOT}/lib64/stubs:\${LIBRARY_PATH}\"; export CUDAToolkit_ROOT='${CUDA_ROOT}';"
 
 CC="${MPI_ROOT}/bin/mpicc"
-CFLAGS="-g -O2"
+CFLAGS='-g -O2'
 
 # Let YAC find LAPACK with the C compiler:
-ICON_YAC_CFLAGS="-fortranlibs"
+ICON_YAC_CFLAGS='-fortranlibs'
 
 CXX="${NVHPC_ROOT}/compilers/bin/nvc++"
-CXXFLAGS="-g -O2"
+CXXFLAGS='-g -O2'
 
 CPPFLAGS="-I${HDF5_ROOT}/include -I${NETCDF_ROOT}/include -I${ECCODES_ROOT}/include -I${FYAML_ROOT}/include -I${XML2_ROOT}/include/libxml2"
-
-CUDACXX="${NVHPC_ROOT}/cuda/12.9/bin/nvcc"
-CUDAFLAGS="-arch=sm_90 -g -O3" # workaround: use default cc compiler (gcc) instead of -ccbin=${CXX};
 
 FC="${MPI_ROOT}/bin/mpifort"
 FCFLAGS="-I${NETCDFF_ROOT}/include -g -O2 -Mrecursive -Mallocatable=03 -Mstack_arrays -Minfo=accel,inline -acc=gpu,verystrict -gpu=cc90,cuda12.9"
 
+CUDACXX="${CUDA_ROOT}/bin/nvcc"
+CUDAFLAGS="-arch=sm_90 -g -O3" # workaround: use default cc compiler (gcc) instead of -ccbin=${CXX};
+
 ICON_LDFLAGS="-c++libs -nvmalloc" # avoid passing it to g++ compiler as linker flags
-LDFLAGS="-L${CUDA_ROOT}/lib64 -L${STDCPP_ROOT}/lib64 -L${HDF5_ROOT}/lib -L${NETCDF_ROOT}/lib -L${NETCDFF_ROOT}/lib -L${ECCODES_ROOT}/lib64 -L${FYAML_ROOT}/lib"
+LDFLAGS="-L${STDCPP_ROOT}/lib64 -L${HDF5_ROOT}/lib -L${NETCDF_ROOT}/lib -L${NETCDFF_ROOT}/lib -L${ECCODES_ROOT}/lib64 -L${FYAML_ROOT}/lib -L${CUDA_ROOT}/lib64"
 
 LIBS="-Wl,--as-needed ${XML2_LIBS} ${FYAML_LIBS} ${ECCODES_LIBS} ${BLAS_LAPACK_LIBS} ${NETCDFF_LIBS} ${NETCDF_LIBS} ${HDF5_LIBS} ${STDCPP_LIBS} ${CUDA_LIBS}"
 
 MPI_LAUNCH="${MPI_ROOT}/bin/mpiexec"
 
-EXTRA_CONFIG_ARGS="--enable-gpu --enable-mpi-gpu --enable-realloc-buf --enable-pgi-inlib --enable-cuda-graphs --disable-mpi-checks --enable-bundled-python=mtime "
+EXTRA_CONFIG_ARGS='--enable-gpu --enable-mpi-gpu --enable-bundled-python=mtime --enable-cuda-graphs --enable-realloc-buf --enable-pgi-inlib --disable-mpi-checks'
 
 
 ################################################################################
