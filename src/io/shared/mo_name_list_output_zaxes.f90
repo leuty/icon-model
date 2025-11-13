@@ -167,7 +167,7 @@ CONTAINS
     CALL verticalAxisList%append(single_level_axis(ZA_lake_bottom_half, opt_unit="m"))
 
     ! for having ice variable in the atmosphere (like AMIP)
-    CALL verticalAxisList%append(t_verticalAxis(zaxisTypeList%getEntry(ZA_GENERIC_ICE), 1))
+    CALL verticalAxisList%append(single_level_axis(ZA_GENERIC_ICE, opt_grib2_level_type=152, opt_name="ice_class"))
 
     ! for having variable on the tropopause niveau
     CALL verticalAxisList%append(single_level_axis(ZA_TROPOPAUSE, opt_grib2_level_type=7))
@@ -449,11 +449,9 @@ CONTAINS
       &                          n_zlev+1,                              &
       &                          levels = levels_i,            &
       &                          level_selection=level_selection))
-    CALL verticalAxisList%append(single_level_axis(ZA_GENERIC_ICE))
-
     DEALLOCATE(levels_i, levels_m)
 
-    CALL verticalAxisList%append(t_verticalAxis(zaxisTypeList%getEntry(ZA_GENERIC_ICE), 1))
+    CALL verticalAxisList%append(single_level_axis(ZA_GENERIC_ICE, opt_grib2_level_type=152, opt_name="ice_class"))
     if(lhamocc)then
     ! ocean sediment
     ALLOCATE(levels_s(ks), levels_sp(ksp))
@@ -486,12 +484,14 @@ CONTAINS
   ! --------------------------------------------------------------------------------------
   !> Utility function: defines z-axis with a single level
   !
-  FUNCTION single_level_axis(za_type, opt_level_value, opt_unit, opt_grib2_level_type)
+  FUNCTION single_level_axis(za_type, opt_level_value, opt_unit, opt_grib2_level_type, opt_name)
     TYPE(t_verticalAxis) :: single_level_axis
     INTEGER,          INTENT(IN)           :: za_type               !< ICON-internal axis ID (see mo_zaxis_type)
     REAL(dp),         INTENT(IN), OPTIONAL :: opt_level_value       !< level value
     CHARACTER(LEN=*), INTENT(IN), OPTIONAL :: opt_unit              !< axis unit
     INTEGER,          INTENT(in), OPTIONAL :: opt_grib2_level_type  !< level type as defined in GRIB2
+    CHARACTER(LEN=*), INTENT(IN), OPTIONAL :: opt_name              !< axis name
+
     ! local variables
     REAL(dp) :: levels(1)
 
@@ -503,6 +503,7 @@ CONTAINS
          &                             zaxisDefLtype=opt_grib2_level_type)
 
     IF (PRESENT(opt_unit))  CALL single_level_axis%set(zaxisUnits=TRIM(opt_unit))
+    IF (PRESENT(opt_name)) CALL single_level_axis%set(zaxisName=TRIM(opt_name))
   END FUNCTION single_level_axis
 
 

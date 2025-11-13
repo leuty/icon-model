@@ -1,5 +1,9 @@
 # Release notes for icon-2025.10-1
 
+### ICON-Ocean
+
+- Use ice class as vertical axis attribute for 3d sea ice variables
+
 ### Infrastructure
 
 #### Building
