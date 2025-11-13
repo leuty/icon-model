@@ -52,7 +52,6 @@ MODULE mo_time_management
     &                                    dtime_proleptic_gregorian => proleptic_gregorian, &
     &                                    dtime_cly360              => cly360,              &
     &                                    dtime_julian_gregorian    => julian_gregorian
-  USE mo_math_constants,           ONLY: dbl_eps
   USE mo_exception,                ONLY: message, message_text, finish
   USE mo_grid_config,              ONLY: patch_weight, grid_rescale_factor, n_dom,         &
     &                                    start_time, lrescale_timestep
@@ -70,6 +69,7 @@ MODULE mo_time_management
     &                                    end_datetime_string
   USE mo_restart_nml_and_att,      ONLY: getAttributesForRestarting
   USE mo_key_value_store,          ONLY: t_key_value_store
+  USE mo_compare_float,            ONLY: notEqual
 
 #ifndef __NO_ICON_ATMO__
   USE mo_nonhydrostatic_config,    ONLY: divdamp_order
@@ -703,7 +703,8 @@ CONTAINS
       mtime_shift_in_sec = REAL(getTotalMilliSecondsTimeDelta(time_config%timeshift%mtime_shift, &
         &                                                     reference_dt),wp)/1000._wp
       CALL deallocateDatetime(reference_dt)
-      IF (ABS(mtime_shift_in_sec - time_config%timeshift%dt_shift) > dbl_eps) THEN
+
+      IF ( notEqual(mtime_shift_in_sec, time_config%timeshift%dt_shift) ) THEN
         WRITE(message_text,'(a,2f10.3,a)') 'time_config%timeshift: mtime_shift and dt_shift differ:', &
           &                               mtime_shift_in_sec, time_config%timeshift%dt_shift
         CALL finish(routine, message_text)
