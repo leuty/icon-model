@@ -12,6 +12,8 @@ AES Physics:
 
 Climate: ICON-Land
 
+- QUINCY development
+  - Updated the Jena-Soil-Model for use with QUINCY as an alternative to the simple soil-biogeochemistry model
 - Hydrology: Added ford inline documentation
 - Land initial files: Major update: 12 and 13 tile setups for jsbach and quincy
 - Land initial files: Fix for the skin layer conductivity
