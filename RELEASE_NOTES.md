@@ -16,6 +16,7 @@ Climate: ICON-Land
 - Land initial files: Major update: 12 and 13 tile setups for jsbach and quincy
 - Land initial files: Fix for the skin layer conductivity
 - Revised 'basic' output list
+- Anthropogenic emission files: Created anthropogenic emission data including aviation sources from the CMIP7 dataset
 
 ### Externals
 
