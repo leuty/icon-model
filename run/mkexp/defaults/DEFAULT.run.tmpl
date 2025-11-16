@@ -105,7 +105,7 @@ num_io_tasks=%{JOB.num_io_tasks}
 num_io_procs=$(( (num_io_tasks + no_of_nodes - 1) / no_of_nodes * no_of_nodes ))
 export io_procs_pernode=$(( num_io_procs / no_of_nodes ))
 # Calculate the number of MPI processes per node
-gpus_per_node=%{JOB.gpus_per_node|d(SLURM_GPUS_ON_NODE)}
+gpus_per_node=%{JOB.gpus_per_node|d("$SLURM_GPUS_PER_NODE")}
 mpi_procs_pernode=$(( gpus_per_node + io_procs_pernode))
 #%  else
 cpus_per_task=%{threads_per_task if JOB.hardware_threads is set else 2*threads_per_task}
