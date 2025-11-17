@@ -16,6 +16,11 @@ waves/waves.md
 land/land.md
 infrastructure/infrastructure.md
 literature/literature.md
+
+howto/overview.md
+howto/contributing.md
+howto/reviewing.md
+howto/gatekeeping.md
 ```
 
 :::{admonition} Release Information
@@ -91,6 +96,14 @@ Information on the changes are available in the {{ '[**Release Notes**]({}/RELEA
 [](ref_literature_tutorials)  
 [](ref_literature_technical)  
 [](ref_literature_science)  
+:::
+
+:::{grid-item-card}
+[**Development Workflow**](ref_dev_overview)
+^^^
+[](ref_contribute)  
+[](ref_review)  
+[](ref_gate_keeping)  
 :::
 
 ::::

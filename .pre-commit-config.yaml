@@ -24,7 +24,8 @@ repos:
           (?x)^(
             # Exclude external files:
             LICENSES/.* |
-            doc/www/_static/tex-mml-chtml.js
+            doc/www/_static/tex-mml-chtml.js |
+            doc/www/howto/wf.svg
           )$
   - repo: https://github.com/cheshirekow/cmake-format-precommit
     rev: v0.6.13
