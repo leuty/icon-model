@@ -218,14 +218,13 @@ CONTAINS
       llws_name = 'llws_'//TRIM(freq_ind_str)
       !PRINT *, llws_name
       CALL read_3D_1time(stream_id, on_cells, llws_name, data_3D_llws)
-      p_wave_state%source%llws(:,:,:,jf) = NINT(data_3D_llws(:,:,:))
-
+      p_wave_state%source%llws(:,:,jf,:) = NINT(data_3D_llws(:,:,:))
 
       !swmask
       swmask_name = 'swmask_'//TRIM(freq_ind_str)
       !PRINT *, swmask_name
       CALL read_3D_1time(stream_id, on_cells, swmask_name, data_3D_swmask)
-      p_wave_state%diag%swell_mask(:,:,:,jf) = NINT(data_3D_swmask(:,:,:))
+      p_wave_state%diag%swell_mask(:,:,jf,:) = NINT(data_3D_swmask(:,:,:))
 
     END DO !frequencies
 

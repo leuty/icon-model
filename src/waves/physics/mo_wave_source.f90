@@ -157,8 +157,8 @@ CONTAINS
             temp_2 = p_diag%ustar(jc,jb) * delfl &
                  &  * MAX(p_diag%femeanws(jc,jb),p_diag%femean(jc,jb))
 
-            temp_1 = dtime * p_source%sl(jc,jd,jb,jf) &
-                 / MAX(1._wp, 1._wp -  dtime * wc%impl_fac * p_source%fl(jc,jd,jb,jf))
+            temp_1 = dtime * p_source%sl(jc,jd,jf,jb) &
+              &   / MAX(1._wp, 1._wp -  dtime * wc%impl_fac * p_source%fl(jc,jd,jf,jb))
 
             temp_3 = MIN(ABS(temp_1),temp_2)
 
@@ -253,18 +253,18 @@ CONTAINS
               IF (zlog < 0._wp) THEN
                 zlog2x = zlog*zlog * x
                 ufac = EXP(zlog) * zlog2x*zlog2x + zbeta1
-                p_source%llws(jc,jd,jb,jf) = 1
+                p_source%llws(jc,jd,jf,jb) = 1
               ELSE
                 ufac = zbeta1
-                p_source%llws(jc,jd,jb,jf) = 0
+                p_source%llws(jc,jd,jf,jb) = 0
               END IF
             ELSE
               ufac = zbeta1
-              p_source%llws(jc,jd,jb,jf) = 0
+              p_source%llws(jc,jd,jf,jb) = 0
             END IF
 
-            p_source%fl(jc,jd,jb,jf) = cnsn * ufac
-            p_source%sl(jc,jd,jb,jf) = tracer(jc,jd,jb,jf) * p_source%fl(jc,jd,jb,jf) !SL
+            p_source%fl(jc,jd,jf,jb) = cnsn * ufac
+            p_source%sl(jc,jd,jf,jb) = tracer(jc,jd,jb,jf) * p_source%fl(jc,jd,jf,jb) !SL
           END DO
         END DO DIR
       END DO FRE
@@ -337,8 +337,8 @@ CONTAINS
             temp = sds(jc) * ((1.0_wp - DELTA) * temp +  DELTA * temp**2)
             sdiss = temp * tracer(jc,jd,jb,jf)
 
-            p_source%sl(jc,jd,jb,jf) = p_source%sl(jc,jd,jb,jf) + sdiss
-            p_source%fl(jc,jd,jb,jf) = p_source%fl(jc,jd,jb,jf) + temp
+            p_source%sl(jc,jd,jf,jb) = p_source%sl(jc,jd,jf,jb) + sdiss
+            p_source%fl(jc,jd,jf,jb) = p_source%fl(jc,jd,jf,jb) + temp
           END DO
         END DO
       END DO
@@ -420,8 +420,8 @@ CONTAINS
       DO jf = 1,wc%nfreqs
         DO jd = 1,wc%ndirs
           DO jc = i_startidx, i_endidx
-            p_source%sl(jc,jd,jb,jf) = p_source%sl(jc,jd,jb,jf) + sbr(jc) * tracer(jc,jd,jb,jf)
-            p_source%fl(jc,jd,jb,jf) = p_source%fl(jc,jd,jb,jf) + dsbr(jc)
+            p_source%sl(jc,jd,jf,jb) = p_source%sl(jc,jd,jf,jb) + sbr(jc) * tracer(jc,jd,jb,jf)
+            p_source%fl(jc,jd,jf,jb) = p_source%fl(jc,jd,jf,jb) + dsbr(jc)
           END DO
         END DO
       END DO
@@ -561,8 +561,8 @@ CONTAINS
 
         DO jd = 1, wc%ndirs
           DO jc = i_startidx, i_endidx
-            p_source%sl(jc,jd,jb,jf) = p_source%sl(jc,jd,jb,jf) + sbo(jc)*tracer(jc,jd,jb,jf)
-            p_source%fl(jc,jd,jb,jf) = p_source%fl(jc,jd,jb,jf) + sbo(jc)
+            p_source%sl(jc,jd,jf,jb) = p_source%sl(jc,jd,jf,jb) + sbo(jc)*tracer(jc,jd,jb,jf)
+            p_source%fl(jc,jd,jf,jb) = p_source%fl(jc,jd,jf,jb) + sbo(jc)
           END DO
         END DO
       END DO
@@ -756,28 +756,28 @@ CONTAINS
                          DELAP = (FIJ-2._wp*SAM)*wc%DAL1*FCEN
                          DELAM = (FIJ-2._wp*SAP)*wc%DAL2*FCEN
 
-                         p_source%sl(jc,K2 ,jb,MM ) = p_source%sl(jc,K2 ,jb,MM ) + AD*FKLAMM1 !SL
-                         p_source%sl(jc,K21,jb,MM ) = p_source%sl(jc,K21,jb,MM ) + AD*FKLAMM2 !SL
-                         p_source%fl(jc,K2 ,jb,MM ) = p_source%fl(jc,K2 ,jb,MM ) + DELAM*FKLAM12 !FL
-                         p_source%fl(jc,K21,jb,MM ) = p_source%fl(jc,K21,jb,MM ) + DELAM*FKLAM22 !FL
+                         p_source%sl(jc,K2 ,MM ,jb) = p_source%sl(jc,K2 ,MM ,jb) + AD*FKLAMM1 !SL
+                         p_source%sl(jc,K21,MM ,jb) = p_source%sl(jc,K21,MM ,jb) + AD*FKLAMM2 !SL
+                         p_source%fl(jc,K2 ,MM ,jb) = p_source%fl(jc,K2 ,MM ,jb) + DELAM*FKLAM12 !FL
+                         p_source%fl(jc,K21,MM ,jb) = p_source%fl(jc,K21,MM ,jb) + DELAM*FKLAM22 !FL
 
-                         p_source%sl(jc,K2 ,jb,MM1) = p_source%sl(jc,K2 ,jb,MM1) + AD*FKLAMMA
-                         p_source%sl(jc,K21,jb,MM1) = p_source%sl(jc,K21,jb,MM1) + AD*FKLAMMB
-                         p_source%fl(jc,K2 ,jb,MM1) = p_source%fl(jc,K2 ,jb,MM1) + DELAM*FKLAMA2
-                         p_source%fl(jc,K21,jb,MM1) = p_source%fl(jc,K21,jb,MM1) + DELAM*FKLAMB2
+                         p_source%sl(jc,K2 ,MM1,jb) = p_source%sl(jc,K2 ,MM1,jb) + AD*FKLAMMA
+                         p_source%sl(jc,K21,MM1,jb) = p_source%sl(jc,K21,MM1,jb) + AD*FKLAMMB
+                         p_source%fl(jc,K2 ,MM1,jb) = p_source%fl(jc,K2 ,MM1,jb) + DELAM*FKLAMA2
+                         p_source%fl(jc,K21,MM1,jb) = p_source%fl(jc,K21,MM1,jb) + DELAM*FKLAMB2
 
-                         p_source%sl(jc,K  ,jb,jf ) = p_source%sl(jc,K  ,jb,jf ) - 2._wp*AD
-                         p_source%fl(jc,K  ,jb,jf ) = p_source%fl(jc,K  ,jb,jf ) - 2._wp*DELAD
+                         p_source%sl(jc,K  ,jf ,jb) = p_source%sl(jc,K  ,jf ,jb) - 2._wp*AD
+                         p_source%fl(jc,K  ,jf ,jb) = p_source%fl(jc,K  ,jf ,jb) - 2._wp*DELAD
 
-                         p_source%sl(jc,K1 ,jb,MP ) = p_source%sl(jc,K1 ,jb,MP ) + AD*FKLAMP1
-                         p_source%sl(jc,K11,jb,MP ) = p_source%sl(jc,K11,jb,MP ) + AD*FKLAMP2
-                         p_source%fl(jc,K1 ,jb,MP ) = p_source%fl(jc,K1 ,jb,MP ) + DELAP*FKLAP12
-                         p_source%fl(jc,K11,jb,MP ) = p_source%fl(jc,K11,jb,MP ) + DELAP*FKLAP22
+                         p_source%sl(jc,K1 ,MP ,jb) = p_source%sl(jc,K1 ,MP ,jb) + AD*FKLAMP1
+                         p_source%sl(jc,K11,MP ,jb) = p_source%sl(jc,K11,MP ,jb) + AD*FKLAMP2
+                         p_source%fl(jc,K1 ,MP ,jb) = p_source%fl(jc,K1 ,MP ,jb) + DELAP*FKLAP12
+                         p_source%fl(jc,K11,MP ,jb) = p_source%fl(jc,K11,MP ,jb) + DELAP*FKLAP22
 
-                         p_source%sl(jc,K1 ,jb,MP1) = p_source%sl(jc,K1 ,jb,MP1) + AD*FKLAMPA
-                         p_source%sl(jc,K11,jb,MP1) = p_source%sl(jc,K11,jb,MP1) + AD*FKLAMPB
-                         p_source%fl(jc,K1 ,jb,MP1) = p_source%fl(jc,K1 ,jb,MP1) + DELAP*FKLAPA2
-                         p_source%fl(jc,K11,jb,MP1) = p_source%fl(jc,K11,jb,MP1) + DELAP*FKLAPB2
+                         p_source%sl(jc,K1 ,MP1,jb) = p_source%sl(jc,K1 ,MP1,jb) + AD*FKLAMPA
+                         p_source%sl(jc,K11,MP1,jb) = p_source%sl(jc,K11,MP1,jb) + AD*FKLAMPB
+                         p_source%fl(jc,K1 ,MP1,jb) = p_source%fl(jc,K1 ,MP1,jb) + DELAP*FKLAPA2
+                         p_source%fl(jc,K11,MP1,jb) = p_source%fl(jc,K11,MP1,jb) + DELAP*FKLAPB2
 
                       END DO MIR2
                     END DO  ! jc
@@ -821,23 +821,23 @@ CONTAINS
                         DELAP = (FIJ-2._wp*SAM)*wc%DAL1*FCEN
                         DELAM = (FIJ-2._wp*SAP)*wc%DAL2*FCEN
 
-                        p_source%sl(jc,K2 ,jb,MM ) = p_source%sl(jc,K2 ,jb,MM ) + AD*FKLAMM1
-                        p_source%sl(jc,K21,jb,MM ) = p_source%sl(jc,K21,jb,MM ) + AD*FKLAMM2
-                        p_source%fl(jc,K2 ,jb,MM ) = p_source%fl(jc,K2 ,jb,MM ) + DELAM*FKLAM12
-                        p_source%fl(jc,K21,jb,MM ) = p_source%fl(jc,K21,jb,MM ) + DELAM*FKLAM22
+                        p_source%sl(jc,K2 ,MM ,jb) = p_source%sl(jc,K2 ,MM ,jb) + AD*FKLAMM1
+                        p_source%sl(jc,K21,MM ,jb) = p_source%sl(jc,K21,MM ,jb) + AD*FKLAMM2
+                        p_source%fl(jc,K2 ,MM ,jb) = p_source%fl(jc,K2 ,MM ,jb) + DELAM*FKLAM12
+                        p_source%fl(jc,K21,MM ,jb) = p_source%fl(jc,K21,MM ,jb) + DELAM*FKLAM22
 
-                        p_source%sl(jc,K2 ,jb,MM1) = p_source%sl(jc,K2 ,jb,MM1) + AD*FKLAMMA
-                        p_source%sl(jc,K21,jb,MM1) = p_source%sl(jc,K21,jb,MM1) + AD*FKLAMMB
-                        p_source%fl(jc,K2 ,jb,MM1) = p_source%fl(jc,K2 ,jb,MM1) + DELAM*FKLAMA2
-                        p_source%fl(jc,K21,jb,MM1) = p_source%fl(jc,K21,jb,MM1) + DELAM*FKLAMB2
+                        p_source%sl(jc,K2 ,MM1,jb) = p_source%sl(jc,K2 ,MM1,jb) + AD*FKLAMMA
+                        p_source%sl(jc,K21,MM1,jb) = p_source%sl(jc,K21,MM1,jb) + AD*FKLAMMB
+                        p_source%fl(jc,K2 ,MM1,jb) = p_source%fl(jc,K2 ,MM1,jb) + DELAM*FKLAMA2
+                        p_source%fl(jc,K21,MM1,jb) = p_source%fl(jc,K21,MM1,jb) + DELAM*FKLAMB2
 
-                        p_source%sl(jc,K  ,jb,jf ) = p_source%sl(jc,K  ,jb,jf ) - 2._wp*AD
-                        p_source%fl(jc,K  ,jb,jf ) = p_source%fl(jc,K  ,jb,jf ) - 2._wp*DELAD
+                        p_source%sl(jc,K  ,jf ,jb) = p_source%sl(jc,K  ,jf ,jb) - 2._wp*AD
+                        p_source%fl(jc,K  ,jf ,jb) = p_source%fl(jc,K  ,jf ,jb) - 2._wp*DELAD
 
-                        p_source%sl(jc,K1 ,jb,MP ) = p_source%sl(jc,K1 ,jb,MP ) + AD*FKLAMP1
-                        p_source%sl(jc,K11,jb,MP ) = p_source%sl(jc,K11,jb,MP ) + AD*FKLAMP2
-                        p_source%fl(jc,K1 ,jb,MP ) = p_source%fl(jc,K1 ,jb,MP ) + DELAP*FKLAP12
-                        p_source%fl(jc,K11,jb,MP ) = p_source%fl(jc,K11,jb,MP ) + DELAP*FKLAP22
+                        p_source%sl(jc,K1 ,MP ,jb) = p_source%sl(jc,K1 ,MP ,jb) + AD*FKLAMP1
+                        p_source%sl(jc,K11,MP ,jb) = p_source%sl(jc,K11,MP ,jb) + AD*FKLAMP2
+                        p_source%fl(jc,K1 ,MP ,jb) = p_source%fl(jc,K1 ,MP ,jb) + DELAP*FKLAP12
+                        p_source%fl(jc,K11,MP ,jb) = p_source%fl(jc,K11,MP ,jb) + DELAP*FKLAP22
 
                       END DO MIR3
                     END DO !jc
@@ -882,18 +882,18 @@ CONTAINS
                       DELAP = (FIJ-2._wp*SAM)*wc%DAL1*FCEN
                       DELAM = (FIJ-2._wp*SAP)*wc%DAL2*FCEN
 
-                      p_source%sl(jc,K2 ,jb,MM ) = p_source%sl(jc,K2 ,jb,MM ) + AD*FKLAMM1
-                      p_source%sl(jc,K21,jb,MM ) = p_source%sl(jc,K21,jb,MM ) + AD*FKLAMM2
-                      p_source%fl(jc,K2 ,jb,MM ) = p_source%fl(jc,K2 ,jb,MM ) + DELAM*FKLAM12
-                      p_source%fl(jc,K21,jb,MM ) = p_source%fl(jc,K21,jb,MM ) + DELAM*FKLAM22
+                      p_source%sl(jc,K2 ,MM ,jb) = p_source%sl(jc,K2 ,MM ,jb) + AD*FKLAMM1
+                      p_source%sl(jc,K21,MM ,jb) = p_source%sl(jc,K21,MM ,jb) + AD*FKLAMM2
+                      p_source%fl(jc,K2 ,MM ,jb) = p_source%fl(jc,K2 ,MM ,jb) + DELAM*FKLAM12
+                      p_source%fl(jc,K21,MM ,jb) = p_source%fl(jc,K21,MM ,jb) + DELAM*FKLAM22
 
-                      p_source%sl(jc,K2 ,jb,MM1) = p_source%sl(jc,K2 ,jb,MM1) + AD*FKLAMMA
-                      p_source%sl(jc,K21,jb,MM1) = p_source%sl(jc,K21,jb,MM1) + AD*FKLAMMB
-                      p_source%fl(jc,K2 ,jb,MM1) = p_source%fl(jc,K2 ,jb,MM1) + DELAM*FKLAMA2
-                      p_source%fl(jc,K21,jb,MM1) = p_source%fl(jc,K21,jb,MM1) + DELAM*FKLAMB2
+                      p_source%sl(jc,K2 ,MM1,jb) = p_source%sl(jc,K2 ,MM1,jb) + AD*FKLAMMA
+                      p_source%sl(jc,K21,MM1,jb) = p_source%sl(jc,K21,MM1,jb) + AD*FKLAMMB
+                      p_source%fl(jc,K2 ,MM1,jb) = p_source%fl(jc,K2 ,MM1,jb) + DELAM*FKLAMA2
+                      p_source%fl(jc,K21,MM1,jb) = p_source%fl(jc,K21,MM1,jb) + DELAM*FKLAMB2
 
-                      p_source%sl(jc,K  ,jb,jf ) = p_source%sl(jc,K  ,jb,jf ) - 2._wp*AD
-                      p_source%fl(jc,K  ,jb,jf ) = p_source%fl(jc,K  ,jb,jf ) - 2._wp*DELAD
+                      p_source%sl(jc,K  ,jf ,jb) = p_source%sl(jc,K  ,jf ,jb) - 2._wp*AD
+                      p_source%fl(jc,K  ,jf ,jb) = p_source%fl(jc,K  ,jf ,jb) - 2._wp*DELAD
 
                     END DO MIR4
                   END DO !jc
@@ -938,15 +938,15 @@ CONTAINS
                     DELAP = (FIJ-2._wp*SAM)*wc%DAL1*FCEN
                     DELAM = (FIJ-2._wp*SAP)*wc%DAL2*FCEN
 
-                    p_source%sl(jc,K2 ,jb,MM ) = p_source%sl(jc,K2 ,jb,MM ) + AD*FKLAMM1
-                    p_source%sl(jc,K21,jb,MM ) = p_source%sl(jc,K21,jb,MM ) + AD*FKLAMM2
-                    p_source%fl(jc,K2 ,jb,MM ) = p_source%fl(jc,K2 ,jb,MM ) + DELAM*FKLAM12
-                    p_source%fl(jc,K21,jb,MM ) = p_source%fl(jc,K21,jb,MM ) + DELAM*FKLAM22
+                    p_source%sl(jc,K2 ,MM ,jb) = p_source%sl(jc,K2 ,MM ,jb) + AD*FKLAMM1
+                    p_source%sl(jc,K21,MM ,jb) = p_source%sl(jc,K21,MM ,jb) + AD*FKLAMM2
+                    p_source%fl(jc,K2 ,MM ,jb) = p_source%fl(jc,K2 ,MM ,jb) + DELAM*FKLAM12
+                    p_source%fl(jc,K21,MM ,jb) = p_source%fl(jc,K21,MM ,jb) + DELAM*FKLAM22
 
-                    p_source%sl(jc,K2 ,jb,MM1) = p_source%sl(jc,K2 ,jb,MM1) + AD*FKLAMMA
-                    p_source%sl(jc,K21,jb,MM1) = p_source%sl(jc,K21,jb,MM1) + AD*FKLAMMB
-                    p_source%fl(jc,K2 ,jb,MM1) = p_source%fl(jc,K2 ,jb,MM1) + DELAM*FKLAMA2
-                    p_source%fl(jc,K21,jb,MM1) = p_source%fl(jc,K21,jb,MM1) + DELAM*FKLAMB2
+                    p_source%sl(jc,K2 ,MM1,jb) = p_source%sl(jc,K2 ,MM1,jb) + AD*FKLAMMA
+                    p_source%sl(jc,K21,MM1,jb) = p_source%sl(jc,K21,MM1,jb) + AD*FKLAMMB
+                    p_source%fl(jc,K2 ,MM1,jb) = p_source%fl(jc,K2 ,MM1,jb) + DELAM*FKLAMA2
+                    p_source%fl(jc,K21,MM1,jb) = p_source%fl(jc,K21,MM1,jb) + DELAM*FKLAMB2
 
                   END DO MIR5
                 END DO !jc
@@ -991,10 +991,10 @@ CONTAINS
                   DELAP = (FIJ-2._wp*SAM)*wc%DAL1*FCEN
                   DELAM = (FIJ-2._wp*SAP)*wc%DAL2*FCEN
 
-                  p_source%sl(jc,K2 ,jb,MM ) = p_source%sl(jc,K2 ,jb,MM ) + AD*FKLAMM1
-                  p_source%sl(jc,K21,jb,MM ) = p_source%sl(jc,K21,jb,MM ) + AD*FKLAMM2
-                  p_source%fl(jc,K2 ,jb,MM ) = p_source%fl(jc,K2 ,jb,MM ) + DELAM*FKLAM12
-                  p_source%fl(jc,K21,jb,MM ) = p_source%fl(jc,K21,jb,MM ) + DELAM*FKLAM22
+                  p_source%sl(jc,K2 ,MM ,jb) = p_source%sl(jc,K2 ,MM ,jb) + AD*FKLAMM1
+                  p_source%sl(jc,K21,MM ,jb) = p_source%sl(jc,K21,MM ,jb) + AD*FKLAMM2
+                  p_source%fl(jc,K2 ,MM ,jb) = p_source%fl(jc,K2 ,MM ,jb) + DELAM*FKLAM12
+                  p_source%fl(jc,K21,MM ,jb) = p_source%fl(jc,K21,MM ,jb) + DELAM*FKLAM22
 
                 END DO MIR6
               END DO !jc
@@ -1032,17 +1032,17 @@ CONTAINS
                 DELAD = FAD1*FTEMP
                 DELAP = FIJ*wc%DAL1*FCEN
 
-                p_source%sl(jc,K  ,jb,jf ) = p_source%sl(jc,K  ,jb,jf ) - 2._wp*AD
-                p_source%sl(jc,K1 ,jb,MP ) = p_source%sl(jc,K1 ,jb,MP ) + AD*FKLAMP1
-                p_source%sl(jc,K11,jb,MP ) = p_source%sl(jc,K11,jb,MP ) + AD*FKLAMP2
-                p_source%sl(jc,K1 ,jb,MP1) = p_source%sl(jc,K1 ,jb,MP1) + AD*FKLAMPA
-                p_source%sl(jc,K11,jb,MP1) = p_source%sl(jc,K11,jb,MP1) + AD*FKLAMPB
+                p_source%sl(jc,K  ,jf ,jb) = p_source%sl(jc,K  ,jf ,jb) - 2._wp*AD
+                p_source%sl(jc,K1 ,MP ,jb) = p_source%sl(jc,K1 ,MP ,jb) + AD*FKLAMP1
+                p_source%sl(jc,K11,MP ,jb) = p_source%sl(jc,K11,MP ,jb) + AD*FKLAMP2
+                p_source%sl(jc,K1 ,MP1,jb) = p_source%sl(jc,K1 ,MP1,jb) + AD*FKLAMPA
+                p_source%sl(jc,K11,MP1,jb) = p_source%sl(jc,K11,MP1,jb) + AD*FKLAMPB
 
-                p_source%fl(jc,K  ,jb,jf ) = p_source%fl(jc,K  ,jb,jf ) - 2._wp*DELAD
-                p_source%fl(jc,K1 ,jb,MP ) = p_source%fl(jc,K1 ,jb,MP ) + DELAP*FKLAP12
-                p_source%fl(jc,K11,jb,MP ) = p_source%fl(jc,K11,jb,MP ) + DELAP*FKLAP22
-                p_source%fl(jc,K1 ,jb,MP1) = p_source%fl(jc,K1 ,jb,MP1) + DELAP*FKLAPA2
-                p_source%fl(jc,K11,jb,MP1) = p_source%fl(jc,K11,jb,MP1) + DELAP*FKLAPB2
+                p_source%fl(jc,K  ,jf ,jb) = p_source%fl(jc,K  ,jf ,jb) - 2._wp*DELAD
+                p_source%fl(jc,K1 ,MP ,jb) = p_source%fl(jc,K1 ,MP ,jb) + DELAP*FKLAP12
+                p_source%fl(jc,K11,MP ,jb) = p_source%fl(jc,K11,MP ,jb) + DELAP*FKLAP22
+                p_source%fl(jc,K1 ,MP1,jb) = p_source%fl(jc,K1 ,MP1,jb) + DELAP*FKLAPA2
+                p_source%fl(jc,K11,MP1,jb) = p_source%fl(jc,K11,MP1,jb) + DELAP*FKLAPB2
 
               END DO MIR7
             END DO !jc

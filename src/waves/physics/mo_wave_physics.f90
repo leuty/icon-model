@@ -432,7 +432,7 @@ CONTAINS
     TYPE(t_patch),               INTENT(IN)    :: p_patch
     TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
     REAL(wp), INTENT(IN)    :: tracer(:,:,:,:) !energy spectral bins (nproma,ndirs,nblks_c,nfreqs)
-    INTEGER,  INTENT(IN)    :: llws(:,:,:,:)   !=1 where wind_input is positive (nproma,ndirs,nblks_c,nfreqs)
+    INTEGER,  INTENT(IN)    :: llws(:,:,:,:)   !=1 where wind_input is positive (nproma,ndirs,nfreqs,nblks_c)
     REAL(wp), INTENT(INOUT) :: emean(:,:)      !total energy (nproma,nblks_c)
     REAL(wp), INTENT(INOUT) :: emeanws(:,:)    !total windsea energy (nproma,nblks_c)
     REAL(wp), INTENT(INOUT) :: femean(:,:)     !mean frequency energy (nproma,nblks_c)
@@ -470,7 +470,7 @@ CONTAINS
         DO jd = 1,wc%ndirs
           DO jc = i_startidx, i_endidx
             temp(jc,jf)   = temp(jc,jf)   + tracer(jc,jd,jb,jf)
-            temp_1(jc,jf) = temp_1(jc,jf) + tracer(jc,jd,jb,jf)*REAL(llws(jc,jd,jb,jf),wp)
+            temp_1(jc,jf) = temp_1(jc,jf) + tracer(jc,jd,jb,jf)*REAL(llws(jc,jd,jf,jb),wp)
           ENDDO
         ENDDO  ! jd
       END DO  ! jf
@@ -604,7 +604,7 @@ CONTAINS
 
         DO jd = 1, wc%ndirs
           DO jc = i_startidx, i_endidx
-            sinplus = MAX(sl(jc,jd,jb,jf),0._wp)
+            sinplus = MAX(sl(jc,jd,jf,jb),0._wp)
             sumt(jc) = sumt(jc) + sinplus
             sumx(jc) = sumx(jc) + sinplus * wc%sin_dir(jd)
             sumy(jc) = sumy(jc) + sinplus * wc%cos_dir(jd)

@@ -332,7 +332,7 @@ CONTAINS
 
         DO jd = 1,wc%ndirs
           DO jc = i_startidx, i_endidx
-            IF (mask(jc,jd,jb,jf)==1) THEN ! belongs to swell
+            IF (mask(jc,jd,jf,jb)==1) THEN ! belongs to swell
               temp(jc,jf) = temp(jc,jf) + tracer(jc,jd,jb,jf)
             ELSE
               temp1(jc,jf) = temp1(jc,jf) + tracer(jc,jd,jb,jf)
@@ -403,7 +403,7 @@ CONTAINS
     TYPE(t_patch),               INTENT(IN)    :: p_patch
     TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
     REAL(wp), INTENT(IN)    :: tracer(:,:,:,:) !energy spectral bins (nproma,ndirs,nblks_c,nfreqs)
-    INTEGER,  INTENT(IN)    :: mask(:,:,:,:)   !=1 - swell           (nproma,ndirs,nblks_c,nfreqs)
+    INTEGER,  INTENT(IN)    :: mask(:,:,:,:)   !=1 - swell           (nproma,ndirs,nfreqs,nblks_c)
     REAL(wp), INTENT(IN)    :: emeanws(:,:)    !wind sea energy      (nproma,nblks_c)
     REAL(wp), INTENT(IN)    :: emeans(:,:)     !swell energy         (nproma,nblks_c)
     REAL(wp), INTENT(INOUT) :: femeans(:,:)    !swell mean frequency energy    (nproma,nblks_c)
@@ -440,7 +440,7 @@ CONTAINS
 
         DO jd = 1,wc%ndirs
           DO jc = i_startidx, i_endidx
-            IF (mask(jc,jd,jb,jf)==1) THEN ! belongs to swell
+            IF (mask(jc,jd,jf,jb)==1) THEN ! belongs to swell
               temp(jc,jf) = temp(jc,jf) + tracer(jc,jd,jb,jf)
             ELSE ! belongs to wind sea
               temp_1(jc,jf) = temp_1(jc,jf) + tracer(jc,jd,jb,jf)
@@ -526,7 +526,7 @@ CONTAINS
 
         DO jd = 1,wc%ndirs
           DO jc = i_startidx, i_endidx
-            IF (mask(jc,jd,jb,jf) == 1) THEN
+            IF (mask(jc,jd,jf,jb) == 1) THEN
               sum1(jc,jf) = sum1(jc,jf) + tracer(jc,jd,jb,jf)
             ELSE
               sum2(jc,jf) = sum2(jc,jf) + tracer(jc,jd,jb,jf)
@@ -618,7 +618,7 @@ CONTAINS
           DO jc = i_startidx, i_endidx
 
             trhld = fric/dw_phase_vel * 1.2_wp*ustar(jc,jb)*COS(wc%dirs(jd) - dir10m(jc,jb))
-            swell_mask(jc,jd,jb,jf) = MERGE(1, 0, trhld < 1._wp)
+            swell_mask(jc,jd,jf,jb) = MERGE(1, 0, trhld < 1._wp)
 
           END DO
         END DO
@@ -780,7 +780,7 @@ CONTAINS
         END DO
         DO jd = 1,wc%ndirs
           DO jc = i_startidx, i_endidx
-            IF (mask(jc,jd,jb,jf) == 1) THEN !swell
+            IF (mask(jc,jd,jf,jb) == 1) THEN !swell
               temp1(jc,jf) = temp1(jc,jf) + tracer(jc,jd,jb,jf)
             ELSE
               temp2(jc,jf) = temp2(jc,jf) + tracer(jc,jd,jb,jf)
@@ -1033,7 +1033,7 @@ CONTAINS
       DO jf = 1,wc%nfreqs
         DO jd = 1, wc%ndirs
           DO jc = i_startidx, i_endidx
-            IF (mask(jc,jd,jb,jf).EQ.1) THEN
+            IF (mask(jc,jd,jf,jb).EQ.1) THEN
               temp1(jc,jd) = temp1(jc,jd) + tracer(jc,jd,jb,jf) * wc%DFIM(jf) ! swell
             ELSE
               temp2(jc,jd) = temp2(jc,jd) + tracer(jc,jd,jb,jf) * wc%DFIM(jf) ! wind sea

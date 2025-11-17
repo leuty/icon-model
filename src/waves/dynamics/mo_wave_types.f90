@@ -39,11 +39,11 @@ MODULE mo_wave_types
   !
   TYPE t_wave_source
     REAL(vp), POINTER, CONTIGUOUS :: &
-      &  sl(:,:,:,:),         & ! total source function                    (nproma,ndirs,nblks_c,nfreqs) (-)
-      &  fl(:,:,:,:)            ! diagonal matrix of functional derivative (nproma,ndirs,nblks_c,nfreqs) (-)
+      &  sl(:,:,:,:),         & ! total source function                    (nproma,ndirs,nfreqs,nblks_c) (-)
+      &  fl(:,:,:,:)            ! diagonal matrix of functional derivative (nproma,ndirs,nfreqs,nblks_c) (-)
 
     INTEGER, POINTER, CONTIGUOUS ::  &
-      &  llws(:,:,:,:)          ! 1 - where sinput is positive (nproma,ndirs,nblks_c,nfreqs) (-)
+      &  llws(:,:,:,:)          ! 1 - where sinput is positive (nproma,ndirs,nfreqs,nblks_c) (-)
 
     TYPE(t_ptr_2d3d_vp), ALLOCATABLE :: sl_ptr(:)   !< pointer array: one pointer for each frequency
     TYPE(t_ptr_2d3d_vp), ALLOCATABLE :: fl_ptr(:)   !< pointer array: one pointer for each frequency
@@ -134,7 +134,7 @@ MODULE mo_wave_types
 
     INTEGER, POINTER, CONTIGUOUS ::  &
       &  last_prog_freq_ind(:,:), & ! last frequency index of the prognostic range (nproma,nblks_c) (-)
-      &  swell_mask(:,:,:,:),     & ! swell separation mask (nproma,ndirs,nblks_c,nfreqs) (-)
+      &  swell_mask(:,:,:,:),     & ! swell separation mask (nproma,ndirs,nfreqs,nblks_c) (-)
       &  ikp(:), ikp1(:),         & ! for discrete approximation of nonlinear transfer (nfreqs+4) (-)
       &  ikm(:), ikm1(:),         & ! --//-- (nfreqs+4) (-)
       &  k1w(:,:), k2w(:,:),      & ! --//-- (ndirs, 2) (-)
