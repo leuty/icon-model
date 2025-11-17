@@ -63,7 +63,7 @@ MODULE mo_test_communication
   USE mo_sync,                ONLY: SYNC_C, SYNC_E, SYNC_V, SYNC_C1, sync_patch_array, &
     &                               sync_patch_array_mult, sync_patch_array_4de1, &
     &                               cumulative_sync_patch_array, complete_cumulative_sync, &
-    &                               enable_sync_checks, check_patch_array
+    &                               disable_sync_checks, enable_sync_checks, check_patch_array
   USE mo_icon_comm_lib,       ONLy: is_ready, until_sync, new_icon_comm_variable, &
     &                               delete_icon_comm_variable, icon_comm_var_is_ready, &
     &                               icon_comm_sync, icon_comm_sync_all
@@ -111,6 +111,7 @@ CONTAINS
     ltimer = .false.
     timers_level = 0
     activate_sync_timers = .false.
+    CALL disable_sync_checks()
     CALL construct_atmo_model(namelist_filename,shr_namelist_filename)
     CALL construct_atmo_nonhydrostatic(latbc)
     !---------------------------------------------------------------------

@@ -17,11 +17,12 @@ MODULE mo_rbf_coefficients_io
   USE mo_intp_data_strc, ONLY: t_int_state
   USE mo_exception, ONLY: message, message_text, warning, finish
   USE mo_mpi, ONLY: my_process_is_mpi_workroot, process_mpi_all_workroot_id, &
-      &                               work_mpi_barrier, p_bcast
+      &                               work_mpi_barrier, p_bcast, p_comm_work, &
+      &                               p_comm_work_test
   USE mo_interpol_config, ONLY: rbf_vec_dim_c, rbf_c2grad_dim, rbf_vec_dim_v, &
       &                               rbf_vec_dim_e, rbf_vec_scale_c, rbf_vec_scale_e, &
       &                               rbf_vec_scale_v, rbf_coeffs_filename
-  USE mo_parallel_config, ONLY: nproma
+  USE mo_parallel_config, ONLY: nproma, p_test_run
   USE mo_model_domain, ONLY: t_patch
   USE mo_netcdf_errhandler, ONLY: nf
   USE mo_netcdf, ONLY: NF90_CLOBBER, NF90_GLOBAL, NF90_NETCDF4, &
@@ -250,6 +251,7 @@ CONTAINS
     INTEGER :: attrib_int
     CHARACTER(len=UUID_STRING_LENGTH) :: attrib_str
     TYPE(t_uuid) :: attrib_grid_uuid ! unparsed from patch%grid_uuid
+    INTEGER :: p_comm
 
     CALL message(routine, 'Reading RBF coefficients')
 
@@ -312,7 +314,12 @@ CONTAINS
     END IF
 
     ! Broadcast rbf_read_status
-    CALL p_bcast(rbf_read_status, process_mpi_all_workroot_id)
+    IF (p_test_run) THEN
+      p_comm = p_comm_work_test
+    ELSE
+      p_comm = p_comm_work
+    END IF
+    CALL p_bcast(rbf_read_status, process_mpi_all_workroot_id, comm=p_comm)
     IF (rbf_read_status /= 0) RETURN
 
     ! Floating-point rbf coefficients only

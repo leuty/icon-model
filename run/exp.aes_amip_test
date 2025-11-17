@@ -104,6 +104,10 @@ grid_name=icon_grid_${grid_id}_${grid_refinement}_${grid_label}
 #
 atmo_dyn_grids="'${grid_name}.nc'"
 
+atmo_dyn_rbf_coeffs="${grid_name}-rbf_coeffs.nc"
+RBF_BASE_URL='https://swift.dkrz.de/v1/dkrz_ab6243f85fe24767bb1508712d1eb504/buildbot-grid_files'
+lrbf_read=.TRUE.
+
 # namelist files
 atmo_namelist=NAMELIST_${EXPNAME}_atm
 jsbach_namelist=NAMELIST_${EXPNAME}_lnd
@@ -221,6 +225,9 @@ cat > ${atmo_namelist} << EOF
  thslp_zdiffu         = 0.02
 /
 &interpol_nml
+ lrbf_write = .FALSE.
+ lrbf_read = $lrbf_read
+ rbf_coeffs_filename    = "${atmo_dyn_rbf_coeffs}",
 /
 &sleve_nml
  min_lay_thckn        = 25.    ! [m]

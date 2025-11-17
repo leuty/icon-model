@@ -35,8 +35,49 @@ listname=single
 #############################################################################
 
 # Activate all single-precision builders as build-only
-SINGLE_PRECISION_BUILDERS="levante_gcc_sp levante_intel_hybrid_sp levante_nag_sp levante_gpu_nvhpc_sp lumi_cpu_sp mpimac_gcc_sp dwd_nec_sp"
-./set_builder_flags build_only --builders "${SINGLE_PRECISION_BUILDERS}" --list $listname
+LEVANTE_SP_BUILDERS='levante_gcc_sp levante_gpu_nvhpc_sp levante_intel_hybrid_sp levante_nag_sp'
+SP_BUILDERS="dwd_nec_sp lumi_cpu_sp mpimac_gcc_sp ${LEVANTE_SP_BUILDERS}"
+./set_builder_flags Active --builders "${SP_BUILDERS}" --list $listname
+
+# unit tests
+$addexp "checksuite.infrastructure/checkICON/exp.check_icon" --builders "${SP_BUILDERS}" --list $listname
+
+# Communication tests
+$addexp "checksuite.infrastructure/testbed/exp.icon-testbed_communication_yaxt" --builders "${SP_BUILDERS}" --list $listname
+$addexp "checksuite.infrastructure/testbed/exp.icon-testbed_communication_orig" --builders "${SP_BUILDERS}" --list $listname
+$addexp "checksuite.infrastructure/testbed/exp.icon-testbed_sync"               --builders "${SP_BUILDERS}" --list $listname
+
+# tracer hadley advection with validation on periodic solution
+$addexp "exp.atm_tracer_Hadley_validate" --builders "${SP_BUILDERS}" --list $listname
+
+# Single-precision checksuites
+$addexp "checksuite.icon-dev/check.aes_amip_test" --builders "${LEVANTE_SP_BUILDERS}" --list $listname --runflags "ntasks=16 queue=compute memory=32G"
+
+# Remove `exp.` experiments from dwd_nec_sp, some work is needed to figure out
+# exp vs nwpexp runscript generation
+./rmexp "checksuite.infrastructure/testbed/exp.icon-testbed_communication_yaxt" --builders "dwd_nec_sp" --list $listname
+./rmexp "checksuite.infrastructure/testbed/exp.icon-testbed_communication_orig" --builders "dwd_nec_sp" --list $listname
+./rmexp "checksuite.infrastructure/testbed/exp.icon-testbed_sync"               --builders "dwd_nec_sp" --list $listname
+./rmexp "exp.atm_tracer_Hadley_validate"                                        --builders "dwd_nec_sp" --list $listname
+
+# Remove yaxt testbed from builders without yaxt
+./rmexp "checksuite.infrastructure/testbed/exp.icon-testbed_communication_yaxt" --builders "lumi_cpu_sp mpimac_gcc_sp" --list $listname
+
+# Issues with subroutines in testbed always passing OPTIONAL args to interfaced functions in mo_communication_{yaxt,orig}
+# This can be fixed by cleaning up testbed. Errors:
+# LUMI segfaults with no backtrace when calling check_exchange_data()->exchange_data()
+# NAG   1: Runtime Error: src/testbed/mo_test_communication.f90, line 3049: Reference to OPTIONAL argument OUT_ARRAY1 which is not PRESENT
+#       1: src/testbed/mo_test_communication.f90, line 3049: Error occurred in MO_TEST_COMMUNICATION:EXCHANGE_COMMUNICATION_TESTBED:CHECK_EXCHANGE_MULT
+./rmexp "checksuite.infrastructure/testbed/exp.icon-testbed_communication_orig" --builders "lumi_cpu_sp levante_nag_sp" --list $listname
+./rmexp "checksuite.infrastructure/testbed/exp.icon-testbed_communication_yaxt" --builders "levante_nag_sp" --list $listname
+
+# Remove communication_orig from mpimac as it seems to hang in cleanup of testbed
+#   https://buildbot.dkrz.de/#/builders/216/builds/212
+./rmexp "checksuite.infrastructure/testbed/exp.icon-testbed_communication_orig" --builders "mpimac_gcc_sp" --list $listname
+
+# Remove sync testbed from mpimac due to grid issues
+#   https://buildbot.dkrz.de/#/builders/216/builds/244
+./rmexp "checksuite.infrastructure/testbed/exp.icon-testbed_sync" --builders "mpimac_gcc_sp" --list $listname
 
 #############################################################################
 

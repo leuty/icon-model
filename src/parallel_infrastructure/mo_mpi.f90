@@ -9952,7 +9952,7 @@ CONTAINS
     INTEGER, OPTIONAL, INTENT(in)    :: root
     INTEGER, OPTIONAL, INTENT(in)    :: comm
 
-    REAL(dp) :: temp_in(1), temp_out(1)
+    REAL(sp) :: temp_in(1), temp_out(1)
     INTEGER :: temp_keyval(1), temp_proc_id(1)
     temp_in(1) = zfield
     IF (PRESENT(proc_id) .AND. PRESENT(keyval)) THEN

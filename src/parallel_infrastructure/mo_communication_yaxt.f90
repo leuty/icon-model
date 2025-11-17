@@ -1605,19 +1605,19 @@ CONTAINS
     TYPE(xt_redist), INTENT(IN) :: redist
     LOGICAL, INTENT(INOUT), TARGET :: recv(*)
     LOGICAL, INTENT(IN), TARGET :: send(*)
+#ifdef _OPENACC
     TYPE(c_ptr) :: send_ptr, recv_ptr
 
-    CALL xt_slice_c_loc(send, send_ptr)
-    CALL xt_slice_c_loc(recv, recv_ptr)
-
-#ifdef _OPENACC
     IF (lzacc) THEN
+      CALL xt_slice_c_loc(send, send_ptr)
+      CALL xt_slice_c_loc(recv, recv_ptr)
+
       CALL xt_redist_s_exchange1( &
         redist, acc_deviceptr(send_ptr), acc_deviceptr(recv_ptr))
       RETURN
     END IF
 #endif
-    CALL xt_redist_s_exchange1(redist, send_ptr, recv_ptr)
+    CALL xt_redist_s_exchange1(redist, c_loc(send), c_loc(recv))
 
   END SUBROUTINE
 
@@ -1625,18 +1625,18 @@ CONTAINS
 
     TYPE(xt_redist), INTENT(IN) :: redist
     LOGICAL, INTENT(INOUT), TARGET :: recv(*)
+#ifdef _OPENACC
     TYPE(c_ptr) :: recv_ptr
 
-    CALL xt_slice_c_loc(recv, recv_ptr)
-
-#ifdef _OPENACC
     IF (lzacc) THEN
+      CALL xt_slice_c_loc(recv, recv_ptr)
+
       CALL xt_redist_s_exchange1( &
         redist, acc_deviceptr(recv_ptr), acc_deviceptr(recv_ptr))
       RETURN
     END IF
 #endif
-    CALL xt_redist_s_exchange1(redist, recv_ptr, recv_ptr)
+    CALL xt_redist_s_exchange1(redist, c_loc(send), c_loc(recv))
 
   END SUBROUTINE
 
@@ -1646,10 +1646,9 @@ CONTAINS
     INTEGER, INTENT(in) :: n
     LOGICAL, INTENT(INOUT), TARGET :: recv(n)
     LOGICAL, TARGET :: send(n)
+#ifdef _OPENACC
     TYPE(c_ptr) :: send_ptr, recv_ptr
-
-    CALL xt_slice_c_loc(send, send_ptr)
-    CALL xt_slice_c_loc(recv, recv_ptr)
+#endif
 
     !$ACC DATA CREATE(send) IF(lzacc)
     !$ACC KERNELS ASYNC(1) IF(lzacc)
@@ -1657,12 +1656,15 @@ CONTAINS
     !$ACC END KERNELS
 #ifdef _OPENACC
     IF (lzacc) THEN
+      CALL xt_slice_c_loc(send, send_ptr)
+      CALL xt_slice_c_loc(recv, recv_ptr)
+
       !$ACC WAIT(1)
       CALL xt_redist_s_exchange1( &
         redist, acc_deviceptr(send_ptr), acc_deviceptr(recv_ptr))
     ELSE
 #endif
-      CALL xt_redist_s_exchange1(redist, send_ptr, recv_ptr)
+      CALL xt_redist_s_exchange1(redist, c_loc(send), c_loc(recv))
 #ifdef _OPENACC
     END IF
 #endif
