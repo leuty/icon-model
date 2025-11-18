@@ -3328,7 +3328,7 @@ dnl The make_runscripts generator should call run/collect.set-up.info and
 dnl generate run/set-up.info. This is currently not the case, therefore we
 dnl delegate this task to the configure script:
 AC_CONFIG_COMMANDS([run/set-up.info],
-  [run/collect.set-up.info "$ac_file" 2>/dev/null || dnl
+  [run/collect.set-up.info "$ac_file" 2>&AS_MESSAGE_LOG_FD || dnl
    AC_MSG_ERROR([failed to create $ac_file])])
 
 dnl An additional step to generate dummy dependencies:

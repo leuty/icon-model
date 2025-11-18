@@ -9,6 +9,8 @@
 #### Building
 
 - Clean up and clarify single-precision options
+- Fixes:
+  - Handle apostrophes in the hostname
 
 
 # Release notes for icon-2025.10

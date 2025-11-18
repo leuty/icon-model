@@ -13592,7 +13592,7 @@ $as_echo "$as_me: executing $ac_file commands" >&6;}
   case $ac_file$ac_mode in
     "collect.extra-libs":F) chmod +x "$ac_file" ;;
     "run/collect.set-up.info":F) chmod +x "$ac_file" ;;
-    "run/set-up.info":C) run/collect.set-up.info "$ac_file" 2>/dev/null ||    as_fn_error $? "failed to create $ac_file" "$LINENO" 5 ;;
+    "run/set-up.info":C) run/collect.set-up.info "$ac_file" 2>&5 ||    as_fn_error $? "failed to create $ac_file" "$LINENO" 5 ;;
     "depfiles":C) ${MAKE-make} -f icon.mk dummy-depend >/dev/null 2>&5
    sleep 1
    touch icon.mk ;;
