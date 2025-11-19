@@ -59,8 +59,10 @@ builder="unknown"
 [[ $BB_NAME ]] && builder=$(echo ${BB_NAME} | tr '[:upper:]' '[:lower:]')
 
 case $builder in
-    levante_gpu*) export MD='rng' ;;
-    *)            export MD='rno' ;;
+    levante_gpu*_sp) export MD='ng' ;; # 'rng' minus 'r' restarts fail in single-precision
+    levante_gpu*)    export MD='rng' ;;
+    *_sp)            export MD='no' ;; # 'rno' minus 'r' restart fails in single-precision
+    *)               export MD='rno' ;;
 esac
 
 #--------------------------------------------------------------------------------

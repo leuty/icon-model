@@ -1040,7 +1040,7 @@ CONTAINS
 
     CASE (220)
       CALL message(TRIM(method_name), 'Uniform horz velocity')
-      CALL velocity_uniHorz(patch_3d, normal_velocity)
+      CALL velocity_uniHorz(patch_3d, normal_velocity, velocity_amplitude=initial_velocity_amplitude)
 
 
      CASE (300)
@@ -1673,9 +1673,10 @@ write(0,*)'Williamson-Test6:vn', maxval(vn),minval(vn)
   !-------------------------------------------------------------------------------
   !> Uniform velocity
   !-------------------------------------------------------------------------
-  SUBROUTINE velocity_uniHorz(patch_3d, vn)
+  SUBROUTINE velocity_uniHorz(patch_3d, vn, velocity_amplitude)
     TYPE(t_patch_3d ),TARGET, INTENT(inout) :: patch_3d
     REAL(wp), TARGET :: vn(:,:,:)
+    REAL(wp) :: velocity_amplitude
 
     TYPE(t_patch),POINTER   :: patch_2d
     TYPE(t_subset_range), POINTER :: all_edges
@@ -1695,12 +1696,12 @@ write(0,*)'Williamson-Test6:vn', maxval(vn),minval(vn)
     patch_2d => patch_3d%p_patch_2d(1)
     all_edges => patch_2d%edges%ALL
 
+    uu = velocity_amplitude
+    vv =  0._wp
+
     DO edge_block = all_edges%start_block, all_edges%end_block
       CALL get_index_range(all_edges, edge_block, start_edges_index, end_edges_index)
       DO edge_index = start_edges_index, end_edges_index
-        uu = 10.0_wp
-
-        vv =  0._wp
 
         edge_vn = uu * patch_2d%edges%primal_normal(edge_index,edge_block)%v1 &
               & + vv * patch_2d%edges%primal_normal(edge_index,edge_block)%v2

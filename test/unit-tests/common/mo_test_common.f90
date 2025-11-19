@@ -34,13 +34,15 @@ CONTAINS
       CALL test_fail(name, "test_pass() called before mpi_finalize")
     END IF
 
-    IF (PRESENT(name)) WRITE (nerr, '(a,a)') name, ' passed.'
+    IF (PRESENT(name)) WRITE(nerr, '(a,a)') name, ' passed.'
     CALL util_exit(0)
   END SUBROUTINE test_pass
+
 
   SUBROUTINE test_skip()
     CALL util_exit(77)
   END SUBROUTINE test_skip
+
 
   SUBROUTINE test_fail(name, text)
     CHARACTER(*), OPTIONAL, INTENT(IN) :: name
@@ -49,7 +51,7 @@ CONTAINS
     INTEGER :: p_error
 #endif
 
-    IF (PRESENT(name) .AND. PRESENT(text)) WRITE (nerr, '(a)') name//':'//text
+    IF (PRESENT(name) .AND. PRESENT(text)) WRITE(nerr, '(a)') name//':'//text
 
 #ifndef NOMPI
     IF (is_mpi_live()) THEN
@@ -59,6 +61,7 @@ CONTAINS
     CALL util_exit(2)
   END SUBROUTINE test_fail
 
+
   FUNCTION is_mpi_live()
     LOGICAL :: is_mpi_live
 #ifndef NOMPI
@@ -67,17 +70,17 @@ CONTAINS
 
     CALL MPI_INITIALIZED(l_initialized, p_error)
     IF (p_error /= MPI_SUCCESS) THEN
-      WRITE (nerr, '(a,i4)') ' MPI_INITIALIZED check failed. Error = ', p_error
+      WRITE(nerr, '(a,i4)') ' MPI_INITIALIZED check failed. Error = ', p_error
       CALL util_exit(2)
     END IF
 
     CALL MPI_FINALIZED(l_finalized, p_error)
     IF (p_error /= MPI_SUCCESS) THEN
-      WRITE (nerr, '(a,i4)') ' MPI_FINALIZED check failed. Error = ', p_error
+      WRITE(nerr, '(a,i4)') ' MPI_FINALIZED check failed. Error = ', p_error
       CALL util_exit(2)
     END IF
 
-    is_mpi_live = (l_initialized .AND. .NOT. l_finalized)
+    is_mpi_live =(l_initialized .AND. .NOT.l_finalized)
 #else
     is_mpi_live = .FALSE.
 #endif

@@ -22,7 +22,7 @@
 #SBATCH --partition=%{JOB.partition|d('compute')|join(',')}
 #SBATCH --nodes=%{JOB.nodes}
 #% if JOB.use_gpus is set:
-#SBATCH --gpus-per-node=%{JOB.gpus_per_node}
+#SBATCH --gpus-per-node=%{JOB.gpus_per_node|d(JOB.default_gpus_per_node)}
 #% else
 #SBATCH --threads-per-core=2
 # the following is needed to work around a bug that otherwise leads to

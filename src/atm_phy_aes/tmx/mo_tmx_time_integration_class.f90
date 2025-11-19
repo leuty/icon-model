@@ -16,7 +16,6 @@ MODULE mo_tmx_time_integration_class
   USE mo_kind,              ONLY: wp
   USE mo_exception,         ONLY: finish
   USE mo_surrogate_class,   ONLY: t_surrogate
-  ! USE mo_variable_list, ONLY: t_variable_list
 
   IMPLICIT NONE
   PRIVATE

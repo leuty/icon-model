@@ -8,7 +8,7 @@ This website contains a collection of ICON documentation including references to
 
 ```{toctree}
 :hidden:
-buildrun/buildrun_quickstart.md
+buildrun/buildrun_gettingstarted.md
 tools/tools.md
 atmosphere/atmosphere.md
 ocean/ocean.md
@@ -33,13 +33,14 @@ Information on the changes are available in the {{ '[**Release Notes**]({}/RELEA
 :gutter: 1 1 1 2
 
 :::{grid-item-card}
-[**Getting Started**](ref_buildrun_quickstart)
+[**Getting Started**](ref_buildrun_gettingstarted)
 ^^^
-[Building](ref_buildrun_introduction) & [Running](ref_buildrun_running)  
+[](ref_buildrun_building_intro)  
+[](ref_buildrun_running)  
 [](ref_buildrun_environments)  
-[](ref_buildrun_gridextpar)  
-[](ref_buildrun_icbc)  
-[](ref_buildrun_recommconf)  
+[](ref_buildrun_input_data)  
+[](ref_buildrun_supportedconf)  
+[](ref_buildrun_faq)
 :::
 
 :::{grid-item-card}

@@ -11,7 +11,7 @@
 
 MODULE mo_ragnarok_f2c
   USE ISO_C_BINDING, ONLY: c_int, c_double, c_ptr, c_null_ptr, c_loc, c_funptr, &
-       & c_null_funptr, c_bool
+      & c_null_funptr, c_bool
   IMPLICIT NONE
   PRIVATE
   PUBLIC :: t_f2c_ftable
@@ -78,14 +78,15 @@ MODULE mo_ragnarok_f2c
   INTERFACE
     SUBROUTINE init_ragnarok_f2c(funtab) BIND(c)
       IMPORT t_f2c_ftable
-      TYPE(t_f2c_ftable), INTENT(in) :: funtab
+      TYPE(t_f2c_ftable), INTENT(IN) :: funtab
     END SUBROUTINE init_ragnarok_f2c
+
 
     SUBROUTINE ragnarok_sync_patch_array_r3_sync_c(pid, arr, arr_shape) BIND(c)
       IMPORT :: c_double, c_int
       INTEGER(c_int), VALUE :: pid
       REAL(c_double) :: arr(*)
-      INTEGER(c_int), INTENT(in) :: arr_shape(3)
+      INTEGER(c_int), INTENT(IN) :: arr_shape(3)
     END SUBROUTINE ragnarok_sync_patch_array_r3_sync_c
   END INTERFACE
 

@@ -20,8 +20,18 @@ testbed_namelist=NAMELIST_${EXPNAME}
 start_date="2000-01-01T00:00:00Z"
   end_date="2000-01-03T00:00:00Z"
 
-grids_folder="${icon_data_rootFolder:-/pool/data/ICON}/oes/grids/AquaPlanets/"
-atmo_dyn_grids="AquaPlanet_Icos_0158km_springOpt.nc"
+grids_folder="${icon_data_rootFolder:-/pool/data/ICON}/grids/public/edzw/"
+atmo_dyn_grids="icon_grid_0012_R02B04_G.nc"
+atmo_dyn_rbf_coeffs="${atmo_dyn_grids%.nc}-rbf_coeffs.nc"
+
+# Using MPI-M grid repository as backup if grid files not on file system, browse via url:
+#   http://icon-downloads.mpimet.mpg.de/
+GRID_BASE_URL='http://icon-downloads.mpimet.mpg.de/grids/public/edzw'
+# Using public swift server as backup if rbf files not on file system, browse via url:
+#   https://swiftbrowser.dkrz.de/public/dkrz_ab6243f85fe24767bb1508712d1eb504/buildbot-grid_files
+RBF_BASE_URL='https://swift.dkrz.de/v1/dkrz_ab6243f85fe24767bb1508712d1eb504/buildbot-grid_files'
+lrbf_read=.TRUE.
+
 #-----------------------------------------------------------------------------
 # write ICON namelist parameters
 # input: namelist_filename
@@ -85,6 +95,10 @@ cat > $namelist_filename << EOF
 &diffusion_nml
 /
 &transport_nml
+/
+&interpol_nml
+ lrbf_read              = ${lrbf_read}
+ rbf_coeffs_filename    = "${atmo_dyn_rbf_coeffs}",
 /
 EOF
 }

@@ -119,6 +119,7 @@ MODULE mo_physical_constants
   !
   !> H2O
   !! - gas
+  REAL(wp), PARAMETER :: nu    = 1.5e-5_wp        !! [m2/s] kin viscosity of air at 15 deg C temperature
   REAL(wp), PARAMETER :: rv    = 461.51_wp        !> [J/K/kg] gas constant for water vapor
   !$ACC DECLARE COPYIN(rv)
   REAL(wp), PARAMETER :: cpv   = 1869.46_wp       !! [J/K/kg] specific heat at constant pressure

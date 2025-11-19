@@ -17,6 +17,27 @@
 #
 # Marco Giorgetta, MPI-M, 2010-04-21
 #
+#=============================================================================
+#
+# Relevant shell variables:
+#   Grid-related:
+#     grids_folder        : path to folder to find input grid files (default: ${basedir}/run)
+#     atmo_dyn_grids, atmo_rad_grids, ocean_grids, wave_grids :
+#                         : comma separated list of input grids for each model component (defaults: ""), with additional
+#                           quotation marks removed. Each grid is soft-linked in experiment directory if found in
+#                           grids_folder. If a grid file is not found then either:
+#                             a) if `GRID_BASE_URL` is not defined - exit with code 1
+#                             b) if `GRID_BASE_URL` is defined - see explanation for `GRID_BASE_URL`
+#     GRID_BASE_URL       : Fallback if any input grids not found in grids_folder (default: not defined)
+#                           Will pull the grid from URL via `curl $GRID_BASE_URL/$gridfile`.
+#     atmo_dyn_rbf_coeffs : comma separated list of RBF coefficent files corresponding to atmo_dyn_grids (default: ""),
+#                           with additional quotation marks are removed. Each file is soft-linked in experiment
+#                           directory if found in grids_folder. If a grid file is not found then either:
+#                             a) if `RBF_BASE_URL` is not defined - exit with code 1
+#                             b) if `RBF_BASE_URL` is defined - see explanation for `RBF_BASE_URL`
+#     RBF_BASE_URL        : Fallback if any RBF coeffient files not found in grids_folder (default: not defined).
+#                           Will pull the grid from URL via `curl $RBF_BASE_URL/$rbffile`.
+#=============================================================================
 #-----------------------------------------------------------------------------
 final_status_file=${basedir}/run/${job_name}.final_status
 rm -f ${final_status_file}
@@ -162,13 +183,52 @@ for gridfile in ${all_grids}; do
   grfinfofile=${gridfile%.nc}-grfinfo.nc
   #
   ls -l ${HGRIDDIR}/$gridfile
-  check_error $? "${HGRIDDIR}/$gridfile does not exist."
-  add_link_file ${HGRIDDIR}/${gridfile} ./
-  if [ -f ${HGRIDDIR}/${grfinfofile} ]; then
-    add_link_file ${HGRIDDIR}/${grfinfofile} ./
+  #
+  if [[ -f ${HGRIDDIR}/$gridfile ]]; then
+    add_link_file ${HGRIDDIR}/${gridfile} ./
+    if [ -f ${HGRIDDIR}/${grfinfofile} ]; then
+      add_link_file ${HGRIDDIR}/${grfinfofile} ./
+    fi
+  else
+    warning 1 "${HGRIDDIR}/${gridfile} does not exist."
+
+    # Try to pull gridfile from GRID_BASE_URL if not found on file system
+    if [[ -n ${GRID_BASE_URL} ]]; then
+      curl --fail "${GRID_BASE_URL}/${gridfile}" -o ${gridfile}
+      check_error $? "Unable to curl ${GRID_BASE_URL}/${gridfile}"
+    else
+      check_error 1 "${HGRIDDIR}/$gridfile does not exist, and GRID_BASE_URL not defined"
+    fi
   fi
 done
 #-----------------------------------------------------------------------------
+# add rbf_file to required files
+if [[ "x$lrbf_read" == "x.TRUE." ]]; then
+  for rbf_file in ${atmo_dyn_rbf_coeffs}; do
+    #
+    rbf_file=${rbf_file//\'/} # strip all ' in case ' is used to delimit the file names
+    rbf_file=${rbf_file//\"/} # strip all " in case " is used to delimit the file names
+    rbf_file=${rbf_file//\,/} # strip all , in case , is used to separate the file names
+    #
+    ls -l ${HGRIDDIR}/$rbf_file
+    #
+    if [[ -f ${HGRIDDIR}/$rbf_file ]]; then
+      add_link_file ${HGRIDDIR}/${rbf_file} ./
+    else
+      warning 1 "${HGRIDDIR}/${rbf_file} does not exist."
+
+      # Try to pull rbf_file from RBF_BASE_URL if not found on file system
+      if [[ -n ${RBF_BASE_URL} ]]; then
+        curl --fail "${RBF_BASE_URL}/${rbf_file}" -o ${rbf_file}
+        check_error $? "Unable to curl ${RBF_BASE_URL}/${rbf_file}"
+      else
+        check_error 1 "${HGRIDDIR}/$rbf_file does not exist, and RBF_BASE_URL not defined"
+      fi
+    fi
+  done
+fi
+#-----------------------------------------------------------------------------
+#
 # print_required_files
 copy_required_files
 link_required_files
@@ -486,7 +546,8 @@ if [ "x${autoPostProcessing}" = "xtrue" ]; then
   # check if there is a postprocessing is available
   cd ${RUNSCRIPTDIR}
   targetPostProcessingScript="./post.${EXPNAME}.run"
-  [[ -x $targetPostProcessingScript ]] && ${submit} ${targetPostProcessingScript}
+  submitPostProcessing=${submitPostProcessing:-${submit}}
+  [[ -x $targetPostProcessingScript ]] && ${submitPostProcessing} ${targetPostProcessingScript}
   cd -
 fi
 

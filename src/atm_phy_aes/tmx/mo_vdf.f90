@@ -17,16 +17,19 @@
 
 MODULE mo_vdf
 
-  USE mo_kind,              ONLY: wp
+  USE mo_kind,              ONLY: wp, vp
   USE mo_exception,         ONLY: message, finish
   USE mo_fortran_tools,     ONLY: init, copy, insert_dimension
   USE mo_util_string,       ONLY: int2string, real2string
   USE mtime,                ONLY: t_datetime => datetime
+  USE mo_timer,             ONLY: timer_start, timer_stop, ltimer
   USE mo_tmx_process_class, ONLY: t_tmx_process
-  USE mo_tmx_field_class,   ONLY: t_domain
-  USE mo_vdf_atmo,          ONLY: t_vdf_atmo, t_vdf_atmo_config, t_vdf_atmo_inputs, &
-    &                             t_vdf_atmo_diagnostics, prepare_diffusion_matrix
-  USE mo_vdf_sfc,           ONLY: t_vdf_sfc, t_vdf_sfc_config, t_vdf_sfc_inputs, t_vdf_sfc_diagnostics
+  USE mo_tmx_field_class,   ONLY: t_tmx_field, t_domain
+  USE mo_vdf_atmo_memory,   ONLY: t_vdf_atmo_inputs, t_vdf_atmo_diags
+  USE mo_vdf_atmo,          ONLY: t_vdf_atmo, t_vdf_atmo_config, &
+    &                             prepare_diffusion_matrix
+  USE mo_vdf_sfc_memory,    ONLY: t_vdf_sfc_config, t_vdf_sfc_inputs, t_vdf_sfc_diags
+  USE mo_vdf_sfc,           ONLY: t_vdf_sfc
   USE mo_tmx_numerics,      ONLY: t_time_scheme_explicit_euler, &
     &                             diffuse_vertical_explicit, diffuse_vertical_implicit
   USE mo_math_utilities,    ONLY: tdma_solver
@@ -92,11 +95,21 @@ CONTAINS
   !============================================================================
   !
   SUBROUTINE Init_vdf(this)
+
     CLASS(t_vdf), INTENT(inout), TARGET :: this
+
+    INTEGER :: iproc
 
     CHARACTER(len=*), PARAMETER :: routine = modname//':Init'
 
     !CALL message(routine, '')
+
+    DO iproc=1,SIZE(this%processes)
+
+      CALL this%processes(iproc)%p%Init()
+
+    END DO
+
 
   END SUBROUTINE Init_vdf
   !
@@ -182,10 +195,10 @@ CONTAINS
     INTEGER :: jg
     TYPE(t_vdf_atmo_config),      POINTER :: conf_atmo
     TYPE(t_vdf_atmo_inputs),      POINTER :: ins_atmo
-    TYPE(t_vdf_atmo_diagnostics), POINTER :: diags_atmo
+    TYPE(t_vdf_atmo_diags),       POINTER :: diags_atmo
     TYPE(t_vdf_sfc_config),       POINTER :: conf_sfc
     TYPE(t_vdf_sfc_inputs),       POINTER :: ins_sfc
-    TYPE(t_vdf_sfc_diagnostics),  POINTER :: diags_sfc
+    TYPE(t_vdf_sfc_diags),        POINTER :: diags_sfc
 
     TYPE(t_nh_metrics) ,POINTER :: p_nh_metrics
     TYPE(t_int_state)  ,POINTER :: p_int         !< interpolation state
@@ -193,36 +206,20 @@ CONTAINS
 
     CHARACTER(len=*), PARAMETER :: routine = modname//':Compute'
 
-    SELECT TYPE (v => this%atmo%config)
-    TYPE IS (t_vdf_atmo_config)
-      conf_atmo => v
-    END SELECT
+    conf_atmo => this%atmo%config
     __acc_attach(conf_atmo)
-    SELECT TYPE (v => this%atmo%inputs)
-    TYPE IS (t_vdf_atmo_inputs)
-      ins_atmo => v
-    END SELECT
+    ins_atmo => this%atmo%inputs
     __acc_attach(ins_atmo)
-    SELECT TYPE (v => this%atmo%diagnostics)
-    TYPE IS (t_vdf_atmo_diagnostics)
-      diags_atmo => v
-    END SELECT
+
+    ! Get pointer to structure for diagnostic variables
+    diags_atmo => this%atmo%diagnostics
     __acc_attach(diags_atmo)
 
-    SELECT TYPE (v => this%sfc%config)
-    TYPE IS (t_vdf_sfc_config)
-      conf_sfc => v
-    END SELECT
+    conf_sfc => this%sfc%config
     __acc_attach(conf_sfc)
-    SELECT TYPE (v => this%sfc%inputs)
-    TYPE IS (t_vdf_sfc_inputs)
-      ins_sfc => v
-    END SELECT
+    ins_sfc => this%sfc%inputs
     __acc_attach(ins_sfc)
-    SELECT TYPE (v => this%sfc%diagnostics)
-    TYPE IS (t_vdf_sfc_diagnostics)
-      diags_sfc => v
-    END SELECT
+    diags_sfc => this%sfc%diagnostics
     __acc_attach(diags_sfc)
 
     patch => this%atmo%domain%patch
@@ -237,6 +234,8 @@ CONTAINS
     ! Possibly put needed variables at lowest atmo level into sfc inputs collection
     !----------------------------------------------------------------------------
     CALL this%Compute_diagnostics(datetime)
+
+    IF (ltimer) CALL timer_start(this%timer_compute)
 
     !----------------------------------------------------------------------------
     ! Call surface model and compute fluxes (so far, only explicit land/atmo is used!)
@@ -265,7 +264,7 @@ CONTAINS
     ! Call diffusion of horizontal wind
     !----------------------------------------------------------------------------
     CALL Compute_diffusion_hor_wind(patch,p_int,p_nh_metrics,this%atmo%domain, &
-                                   this%atmo,conf_atmo,ins_atmo,              &
+                                   this%atmo,conf_atmo,ins_atmo,               &
                                    diags_atmo,diags_sfc)
 
     !----------------------------------------------------------------------------
@@ -277,14 +276,15 @@ CONTAINS
     !----------------------------------------------------------------------------
     ! Update energy/temperature tendencies
     !----------------------------------------------------------------------------
-    CALL Update_energy_tendencies(patch,this%atmo%domain,this%atmo,conf_atmo,&
+    CALL Update_energy_tendencies(patch,this%atmo%domain,this%atmo,conf_atmo, &
                                   ins_atmo,diags_atmo,diags_sfc)
+
+    IF (ltimer) CALL timer_stop(this%timer_compute)
 
     !----------------------------------------------------------------------------
     ! Update diagnostics at end of time step
     !----------------------------------------------------------------------------
     CALL this%Update_diagnostics()
-
 
   END SUBROUTINE Compute
   !
@@ -307,6 +307,10 @@ CONTAINS
 
     END DO
 
+    ! IF (ltimer) CALL timer_start(this%timer_diagnostics)
+
+    ! IF (ltimer) CALL timer_stop(this%timer_diagnostics)
+
   END SUBROUTINE Compute_diagnostics
   !
   !============================================================================
@@ -319,20 +323,57 @@ CONTAINS
     CLASS(t_vdf), INTENT(inout), TARGET :: this
 
     TYPE(t_vdf_atmo_config),      POINTER :: conf_atmo
-    TYPE(t_vdf_atmo_inputs),      POINTER :: ins_atmo
-    TYPE(t_vdf_atmo_diagnostics), POINTER :: diags_atmo
+    TYPE(t_vdf_atmo_diags),       POINTER :: diags_atmo
     TYPE(t_vdf_sfc_config),       POINTER :: conf_sfc
     TYPE(t_vdf_sfc_inputs),       POINTER :: ins_sfc
-    TYPE(t_vdf_sfc_diagnostics),  POINTER :: diags_sfc
+    TYPE(t_vdf_sfc_diags),        POINTER :: diags_sfc
+
+    TYPE(t_tmx_field), POINTER :: field
+
     TYPE(t_vdf_aggregator) :: aggregator
 
     INTEGER :: iproc, jtile, nlev, nlevm1
     INTEGER :: jc, jb, jk
-    !LOGICAL, POINTER :: use_km_const
-    !REAL(wp), POINTER :: km_const, rturb_prandtl
+
+    ! Local pointers for atmospheric variables
+    REAL(wp),  POINTER :: &
+      & km_const, rturb_prandtl
+    LOGICAL,  POINTER :: &
+      & use_km_const
+
     REAL(wp), POINTER, DIMENSION(:,:,:) :: &
       & new_ta, new_qv, new_qc, new_qi, new_ua, new_va, &
       & new_tsfc
+    REAL(wp), POINTER, DIMENSION(:,:,:) :: &
+      & km, kh, km_ic, kh_ic
+
+    ! Local pointers for surface variables
+    REAL(wp), POINTER, DIMENSION(:,:,:) :: fract_tile
+    REAL(wp), POINTER, DIMENSION(:,:,:) :: &
+      & km_tile, kh_tile, km_neutral_tile, kh_neutral_tile, &
+      & moist_rich_tile, t2m_tile, hus2m_tile, dew2m_tile, &
+      & u10m_tile, v10m_tile, wind10m_tile
+
+    ! Local pointers for surface grid mean variables
+    REAL(wp), POINTER, DIMENSION(:,:) :: &
+      & km_sfc, kh_sfc, t2m, hus2m, dew2m, &
+      & u10m, v10m, wind10m
+
+    ! Local pointers for ocean currents
+    REAL(wp), POINTER, DIMENSION(:,:) :: &
+      & u_oce, v_oce
+
+    ! Local pointers to surface pressure and height variables
+    REAL(wp), POINTER, DIMENSION(:,:) :: &
+      & pa, psfc
+
+    ! Local pointers for surface boundary layer indices
+    INTEGER, POINTER, DIMENSION(:,:) :: nvalid
+    INTEGER, POINTER, DIMENSION(:,:,:) :: indices
+
+    ! Local pointers for height variables
+    REAL(wp), POINTER, DIMENSION(:,:) :: &
+      & zh, zf
 
     CHARACTER(len=*), PARAMETER :: routine = modname//':Update_diagnostics'
 
@@ -344,53 +385,83 @@ CONTAINS
 
     END DO
 
-    SELECT TYPE (v => this%atmo%config)
-    TYPE IS (t_vdf_atmo_config)
-      conf_atmo => v
-    END SELECT
-    SELECT TYPE (v => this%atmo%inputs)
-    TYPE IS (t_vdf_atmo_inputs)
-      ins_atmo => v
-    END SELECT
-    SELECT TYPE (v => this%atmo%diagnostics)
-    TYPE IS (t_vdf_atmo_diagnostics)
-      diags_atmo => v
-    END SELECT
+    IF (ltimer) CALL timer_start(this%timer_diagnostics)
 
-    SELECT TYPE (v => this%sfc%config)
-    TYPE IS (t_vdf_sfc_config)
-      conf_sfc => v
-    END SELECT
-    SELECT TYPE (v => this%sfc%inputs)
-    TYPE IS (t_vdf_sfc_inputs)
-      ins_sfc => v
-    END SELECT
-    SELECT TYPE (v => this%sfc%diagnostics)
-    TYPE IS (t_vdf_sfc_diagnostics)
-      diags_sfc => v
-    END SELECT
+    conf_atmo => this%atmo%config
+    __acc_attach(conf_atmo)
+    diags_atmo => this%atmo%diagnostics
+    __acc_attach(diags_atmo)
+
+    conf_sfc => this%sfc%config
+    __acc_attach(conf_sfc)
+    ins_sfc => this%sfc%inputs
+    __acc_attach(ins_sfc)
+    diags_sfc => this%sfc%diagnostics
+    __acc_attach(diags_sfc)
 
     ASSOCIATE( &
       domain => this%atmo%domain,    &
-      domain_sfc => this%sfc%domain, &
-      km     => diags_atmo%km,       &
-      kh     => diags_atmo%kh,       &
-      km_ic  => diags_atmo%km_ic,    &
-      kh_ic  => diags_atmo%kh_ic,    &
-      km_sfc => diags_sfc%km,        &
-      kh_sfc => diags_sfc%kh,        &
-      use_km_const => conf_atmo%use_km_const, &
-      km_const => conf_atmo%km_const, &
-      rturb_prandtl => conf_atmo%rturb_prandtl &
+      domain_sfc => this%sfc%domain  &
       & )
 
-    new_tsfc => this%sfc %new_states%Get_ptr_r3d('surface temperature')
-    new_ta   => this%atmo%new_states%Get_ptr_r3d('temperature')
-    new_qv   => this%atmo%new_states%Get_ptr_r3d('water vapor')
-    new_qc   => this%atmo%new_states%Get_ptr_r3d('cloud water')
-    new_qi   => this%atmo%new_states%Get_ptr_r3d('cloud ice')
-    new_ua   => this%atmo%new_states%Get_ptr_r3d('eastward wind')
-    new_va   => this%atmo%new_states%Get_ptr_r3d('northward wind')
+    ! Get pointers to atmospheric variables
+    new_tsfc => this%sfc %new_states(this%sfc%tsfc_idx)%p%Get_ptr_r3d()
+    new_ta   => this%atmo%new_states(this%atmo%temp_idx)%p%Get_ptr_r3d()
+    new_ua   => this%atmo%new_states(this%atmo%uwind_idx)%p%Get_ptr_r3d()
+    new_va   => this%atmo%new_states(this%atmo%vwind_idx)%p%Get_ptr_r3d()
+
+    ! TODO
+    field => this%atmo%states(this%atmo%tracer_idx)%p
+    new_qv => this%atmo%new_states(this%atmo%tracer_idx)%p%Get_ptr_r3d(ref=field%ref_idx(1)) ! water vapor
+    new_qc => this%atmo%new_states(this%atmo%tracer_idx)%p%Get_ptr_r3d(ref=field%ref_idx(2)) ! cloud water
+    new_qi => this%atmo%new_states(this%atmo%tracer_idx)%p%Get_ptr_r3d(ref=field%ref_idx(3)) ! cloud ice
+
+    ! Get pointers to atmospheric configs
+    use_km_const  => conf_atmo%use_km_const%Get_ptr_l0d()
+    km_const      => conf_atmo%km_const%Get_ptr_r0d()
+    rturb_prandtl => conf_atmo%rturb_prandtl%Get_ptr_r0d()
+
+    ! Get pointers to atmospheric diagnostics
+    km     => diags_atmo%km%Get_ptr_r3d()
+    kh     => diags_atmo%kh%Get_ptr_r3d()
+    km_ic  => diags_atmo%km_ic%Get_ptr_r3d()
+    kh_ic  => diags_atmo%kh_ic%Get_ptr_r3d()
+
+    ! Get pointers to surface input variables
+    fract_tile => ins_sfc%fract_tile%Get_ptr_r3d()
+    zh => ins_sfc%zh%Get_ptr_r2d()
+    zf => ins_sfc%zf%Get_ptr_r2d()
+    pa => ins_sfc%pa%Get_ptr_r2d()
+    psfc => ins_sfc%psfc%Get_ptr_r2d()
+    u_oce => ins_sfc%u_oce_current%Get_ptr_r2d()
+    v_oce => ins_sfc%v_oce_current%Get_ptr_r2d()
+
+    ! Get pointers to surface tile diagnostics
+    km_tile => diags_sfc%km_tile%Get_ptr_r3d()
+    kh_tile => diags_sfc%kh_tile%Get_ptr_r3d()
+    km_neutral_tile => diags_sfc%km_neutral_tile%Get_ptr_r3d()
+    kh_neutral_tile => diags_sfc%kh_neutral_tile%Get_ptr_r3d()
+    moist_rich_tile => diags_sfc%moist_rich_tile%Get_ptr_r3d()
+    t2m_tile => diags_sfc%t2m_tile%Get_ptr_r3d()
+    hus2m_tile => diags_sfc%hus2m_tile%Get_ptr_r3d()
+    dew2m_tile => diags_sfc%dew2m_tile%Get_ptr_r3d()
+    u10m_tile => diags_sfc%u10m_tile%Get_ptr_r3d()
+    v10m_tile => diags_sfc%v10m_tile%Get_ptr_r3d()
+    wind10m_tile => diags_sfc%wind10m_tile%Get_ptr_r3d()
+
+    ! Get pointers to surface grid-mean diagnostics
+    km_sfc => diags_sfc%km%Get_ptr_r2d()
+    kh_sfc => diags_sfc%kh%Get_ptr_r2d()
+    t2m => diags_sfc%t2m%Get_ptr_r2d()
+    hus2m => diags_sfc%hus2m%Get_ptr_r2d()
+    dew2m => diags_sfc%dew2m%Get_ptr_r2d()
+    u10m => diags_sfc%u10m%Get_ptr_r2d()
+    v10m => diags_sfc%v10m%Get_ptr_r2d()
+    wind10m => diags_sfc%wind10m%Get_ptr_r2d()
+
+    ! Get pointers to boundary layer indices
+    nvalid => diags_sfc%nvalid%Get_ptr_i2d()
+    indices => diags_sfc%indices%Get_ptr_i3d()
 
     nlev = domain%nlev
     nlevm1 = nlev - 1
@@ -398,40 +469,39 @@ CONTAINS
     DO jtile = 1, domain_sfc%ntiles
 
       CALL compute_10m_wind( &
-        & domain_sfc, domain_sfc%sfc_types(jtile), diags_sfc%nvalid(:,jtile), diags_sfc%indices(:,:,jtile), &
-        & ins_sfc%zf(:,:), ins_sfc%zh(:,:), &
-        & new_ua(:,nlev,:), new_va(:,nlev,:), ins_sfc%u_oce_current(:,:), ins_sfc%v_oce_current(:,:), &
-        & diags_sfc%moist_rich_tile(:,:,jtile), diags_sfc%km_tile(:,:,jtile), diags_sfc%km_neutral_tile(:,:,jtile), &
-        & diags_sfc%u10m_tile(:,:,jtile), diags_sfc%v10m_tile(:,:,jtile), diags_sfc%wind10m_tile(:,:,jtile) &
+        & domain_sfc, domain_sfc%sfc_types(jtile), nvalid(:,jtile), indices(:,:,jtile), &
+        & zf(:,:), zh(:,:), &
+        & new_ua(:,nlev,:), new_va(:,nlev,:), u_oce(:,:), v_oce(:,:), &
+        & moist_rich_tile(:,:,jtile), km_tile(:,:,jtile), km_neutral_tile(:,:,jtile), &
+        & u10m_tile(:,:,jtile), v10m_tile(:,:,jtile), wind10m_tile(:,:,jtile) &
         & )
 
       CALL compute_2m_temperature( &
-          & domain_sfc, domain_sfc%sfc_types(jtile), diags_sfc%nvalid(:,jtile), diags_sfc%indices(:,:,jtile), &
-          & ins_sfc%zf(:,:), ins_sfc%zh(:,:), new_ta(:,nlev,:), new_tsfc(:,:,jtile), &
-          & diags_sfc%moist_rich_tile(:,:,jtile), diags_sfc%kh_tile(:,:,jtile), diags_sfc%km_tile(:,:,jtile), &
-          & diags_sfc%kh_neutral_tile(:,:,jtile), diags_sfc%km_neutral_tile(:,:,jtile), &
-          & diags_sfc%t2m_tile(:,:,jtile) &
+          & domain_sfc, domain_sfc%sfc_types(jtile), nvalid(:,jtile), indices(:,:,jtile), &
+          & zf(:,:), zh(:,:), new_ta(:,nlev,:), new_tsfc(:,:,jtile), &
+          & moist_rich_tile(:,:,jtile), kh_tile(:,:,jtile), km_tile(:,:,jtile), &
+          & kh_neutral_tile(:,:,jtile), km_neutral_tile(:,:,jtile), &
+          & t2m_tile(:,:,jtile) &
           & )
 
       CALL compute_2m_humidity_and_dewpoint( &
-        & domain_sfc, diags_sfc%nvalid(:,jtile), diags_sfc%indices(:,:,jtile), &
-        & ins_sfc%pa(:,:), ins_sfc%psfc(:,:), &
-        & new_ta(:,nlev,:), diags_sfc%t2m_tile(:,:,jtile), &
+        & domain_sfc, nvalid(:,jtile), indices(:,:,jtile), &
+        & pa(:,:), psfc(:,:), &
+        & new_ta(:,nlev,:), t2m_tile(:,:,jtile), &
         & new_qv(:,nlev,:), new_qc(:,nlev,:), new_qi(:,nlev,:), &
-        & diags_sfc%hus2m_tile(:,:,jtile), &
-        & diags_sfc%dew2m_tile(:,:,jtile) &
+        & hus2m_tile(:,:,jtile), &
+        & dew2m_tile(:,:,jtile) &
         & )
 
     END DO
 
     CALL aggregator%BeginAggregate()
-    CALL aggregator%Aggregate(domain_sfc, ins_sfc%fract_tile, diags_sfc%nvalid, diags_sfc%indices, diags_sfc%t2m_tile,   diags_sfc%t2m)
-    CALL aggregator%Aggregate(domain_sfc, ins_sfc%fract_tile, diags_sfc%nvalid, diags_sfc%indices, diags_sfc%hus2m_tile, diags_sfc%hus2m)
-    CALL aggregator%Aggregate(domain_sfc, ins_sfc%fract_tile, diags_sfc%nvalid, diags_sfc%indices, diags_sfc%dew2m_tile, diags_sfc%dew2m)
-    CALL aggregator%Aggregate(domain_sfc, ins_sfc%fract_tile, diags_sfc%nvalid, diags_sfc%indices, diags_sfc%u10m_tile,  diags_sfc%u10m)
-    CALL aggregator%Aggregate(domain_sfc, ins_sfc%fract_tile, diags_sfc%nvalid, diags_sfc%indices, diags_sfc%v10m_tile,  diags_sfc%v10m)
-    CALL aggregator%Aggregate(domain_sfc, ins_sfc%fract_tile, diags_sfc%nvalid, diags_sfc%indices, &
-      & diags_sfc%wind10m_tile, diags_sfc%wind10m)
+    CALL aggregator%Aggregate(domain_sfc, fract_tile, nvalid, indices, t2m_tile, t2m)
+    CALL aggregator%Aggregate(domain_sfc, fract_tile, nvalid, indices, hus2m_tile, hus2m)
+    CALL aggregator%Aggregate(domain_sfc, fract_tile, nvalid, indices, dew2m_tile, dew2m)
+    CALL aggregator%Aggregate(domain_sfc, fract_tile, nvalid, indices, u10m_tile, u10m)
+    CALL aggregator%Aggregate(domain_sfc, fract_tile, nvalid, indices, v10m_tile, v10m)
+    CALL aggregator%Aggregate(domain_sfc, fract_tile, nvalid, indices, wind10m_tile, wind10m)
     CALL aggregator%EndAggregate()
 
 !$OMP PARALLEL DO PRIVATE(jb,jc,jk) ICON_OMP_DEFAULT_SCHEDULE
@@ -466,6 +536,8 @@ CONTAINS
 
     END ASSOCIATE
 
+    IF (ltimer) CALL timer_stop(this%timer_diagnostics)
+
   END SUBROUTINE Update_diagnostics
   !
   !============================================================================
@@ -483,8 +555,8 @@ CONTAINS
     TYPE(t_vdf_atmo),             INTENT(in), POINTER :: atmo
     TYPE(t_vdf_atmo_config),      INTENT(in), POINTER :: conf_atmo
     TYPE(t_vdf_atmo_inputs),      INTENT(in), POINTER :: ins_atmo
-    TYPE(t_vdf_atmo_diagnostics), INTENT(in), POINTER :: diags_atmo
-    TYPE(t_vdf_sfc_diagnostics),  INTENT(in), POINTER :: diags_sfc
+    TYPE(t_vdf_atmo_diags),       INTENT(in), POINTER :: diags_atmo
+    TYPE(t_vdf_sfc_diags),        INTENT(in), POINTER :: diags_sfc
 
     INTEGER :: jb, jc, je, jk, itrac, no_of_tracers
     INTEGER :: nproma, nlev, nblks_c, rl_start, rl_end
@@ -503,7 +575,26 @@ CONTAINS
       rhs(domain%nproma,atmo%domain%nlev,domain%nblks_c)
 
     REAL(wp) :: inv_mair(domain%nproma,atmo%domain%nlev,domain%nblks_c)
+
     REAL(wp), POINTER :: state(:,:,:), tend(:,:,:), new_state(:,:,:)
+
+    REAL(wp), POINTER :: &
+      & dtime, rturb_prandtl
+    INTEGER,  POINTER :: &
+      & solver_type
+    LOGICAL, POINTER :: &
+      & l_co2
+    REAL(wp), POINTER, DIMENSION(:,:,:) :: &
+      & zf, mair, rho, inv_dzh
+    REAL(wp), POINTER, DIMENSION(:,:,:) :: &
+      & kh_ic, km_ie, rho_ic
+
+    ! Local pointers for surface variables
+    REAL(wp), POINTER, DIMENSION(:,:) :: &
+      & evapotrans, &
+      & co2flx
+
+    TYPE(t_tmx_field), POINTER :: field
 
     iecidx => patch%edges%cell_idx;     iecblk => patch%edges%cell_blk
     ieidx  => patch%cells%edge_idx;     ieblk  => patch%cells%edge_blk
@@ -521,25 +612,30 @@ CONTAINS
       i_startblk_c => domain%i_startblk_c,    &
       i_endblk_c   => domain%i_endblk_c,      &
       i_startidx_c => domain%i_startidx_c(:), &
-      i_endidx_c   => domain%i_endidx_c(:),   &
-      dtime        => conf_atmo%dtime,      &
-      solver_type  => conf_atmo%solver_type,&
-      rturb_prandtl=> conf_atmo%rturb_prandtl,&
-      l_co2        => conf_atmo%l_co2,         &
-      kh_ic        => diags_atmo%kh_ic,        &
-      km_ie        => diags_atmo%km_ie,        &
-      evapotrans   => diags_sfc%evapotrans, &
-      co2flx       => diags_sfc%co2flx,     &
-      rho_ic    => diags_atmo%rho_ic,       &
-      zf        => ins_atmo%zf,             &
-      mair      => ins_atmo%mair,           &
-      rho       => ins_atmo%rho,            &
-      inv_dzh   => ins_atmo%inv_dzh         &
+      i_endidx_c   => domain%i_endidx_c(:)    &
     )
 
 !$OMP PARALLEL
     CALL init(top_flx, lacc=.TRUE.)
 !$OMP END PARALLEL
+
+    dtime        => conf_atmo%dtime%Get_ptr_r0d()
+    rturb_prandtl=> conf_atmo%rturb_prandtl%Get_ptr_r0d()
+    solver_type  => conf_atmo%solver_type%Get_ptr_i0d()
+    l_co2        => conf_atmo%l_co2%Get_ptr_l0d()
+
+    zf        => ins_atmo%dz_c%Get_ptr_r3d()
+    mair      => ins_atmo%moist_mass_c%Get_ptr_r3d()
+    rho       => ins_atmo%rho_c%Get_ptr_r3d()
+    inv_dzh   => ins_atmo%inv_dz_ic%Get_ptr_r3d()
+
+    kh_ic        => diags_atmo%kh_ic%Get_ptr_r3d()
+    km_ie        => diags_atmo%km_ie%Get_ptr_r3d()
+    rho_ic       => diags_atmo%rho_ic%Get_ptr_r3d()
+
+    ! Get pointers to surface variables
+    evapotrans => diags_sfc%evapotrans%Get_ptr_r2d()
+    co2flx     => diags_sfc%co2flx%Get_ptr_r2d()
 
     rdtime = 1._wp / dtime
 
@@ -574,37 +670,32 @@ CONTAINS
     END DO
 !$OMP END PARALLEL DO
 
+    field => atmo%states(atmo%tracer_idx)%p
+
     ! Check if CO2 tracer is to be included
     no_of_tracers = 3
     IF (l_co2) no_of_tracers = 4
 
     DO itrac=1,no_of_tracers
+
+      state     => atmo%states    (atmo%tracer_idx)%p%Get_ptr_r3d(ref=field%ref_idx(itrac))
+      tend      => atmo%tendencies(atmo%tracer_idx)%p%Get_ptr_r3d(ref=field%ref_idx(itrac))
+      new_state => atmo%new_states(atmo%tracer_idx)%p%Get_ptr_r3d(ref=field%ref_idx(itrac))
+
       SELECT CASE(itrac)
-      CASE (1)
-        state => atmo%states%Get_ptr_r3d('water vapor')
-        tend => atmo%tendencies%Get_ptr_r3d('water vapor')
-        new_state => atmo%new_states%Get_ptr_r3d('water vapor')
+      CASE (1) ! water vapor
 !$OMP PARALLEL
         CALL copy(evapotrans, sfc_flx, lacc=.TRUE.)
 !$OMP END PARALLEL
-      CASE (2)
-        state => atmo%states%Get_ptr_r3d('cloud water')
-        tend => atmo%tendencies%Get_ptr_r3d('cloud water')
-        new_state => atmo%new_states%Get_ptr_r3d('cloud water')
+      CASE (2) ! cloud water
 !$OMP PARALLEL
         CALL init(sfc_flx, lacc=.TRUE.)
 !$OMP END PARALLEL
-      CASE (3)
-        state => atmo%states%Get_ptr_r3d('cloud ice')
-        tend => atmo%tendencies%Get_ptr_r3d('cloud ice')
-        new_state => atmo%new_states%Get_ptr_r3d('cloud ice')
+      CASE (3) ! cloud ice
 !$OMP PARALLEL
         CALL init(sfc_flx, lacc=.TRUE.)
 !$OMP END PARALLEL
       CASE (4)
-        state => atmo%states%Get_ptr_r3d('co2')
-        tend => atmo%tendencies%Get_ptr_r3d('co2')
-        new_state => atmo%new_states%Get_ptr_r3d('co2')
 !$OMP PARALLEL
         CALL copy(co2flx, sfc_flx, lacc=.TRUE.)
 !$OMP END PARALLEL
@@ -791,8 +882,8 @@ CONTAINS
     TYPE(t_vdf_atmo),             INTENT(in), POINTER :: atmo
     TYPE(t_vdf_atmo_config),      INTENT(in), POINTER :: conf_atmo
     TYPE(t_vdf_atmo_inputs),      INTENT(in), POINTER :: ins_atmo
-    TYPE(t_vdf_atmo_diagnostics), INTENT(in), POINTER :: diags_atmo
-    TYPE(t_vdf_sfc_diagnostics),  INTENT(in), POINTER :: diags_sfc
+    TYPE(t_vdf_atmo_diags),       INTENT(in), POINTER :: diags_atmo
+    TYPE(t_vdf_sfc_diags),        INTENT(in), POINTER :: diags_sfc
 
     INTEGER :: jb, jc, je, jk
     INTEGER :: nproma, nlev, nblks_c, rl_start, rl_end
@@ -818,6 +909,22 @@ CONTAINS
 
     REAL(wp), POINTER :: state_ta(:,:,:), tend_ta(:,:,:), new_state_ta(:,:,:)
 
+    REAL(wp), POINTER :: &
+      & dtime, rturb_prandtl, scale_turb_energy_flux
+    INTEGER,  POINTER :: &
+      & solver_type
+    LOGICAL,  POINTER :: &
+      & use_scale_turb_energy_flux
+
+    REAL(wp), POINTER, DIMENSION(:,:,:) :: &
+      & zf, mair, rho, inv_dzh
+    REAL(wp), POINTER, DIMENSION(:,:,:) :: &
+      & kh_ic, km_ie, rho_ic
+
+    ! Local pointers for surface variables
+    REAL(wp), POINTER, DIMENSION(:,:) :: &
+      & shfl, ufts, ufvs, q_snocpymlt
+
     iecidx => patch%edges%cell_idx;     iecblk => patch%edges%cell_blk
     ieidx  => patch%cells%edge_idx;     ieblk  => patch%cells%edge_blk
 
@@ -833,31 +940,36 @@ CONTAINS
       i_startblk_c => domain%i_startblk_c,    &
       i_endblk_c   => domain%i_endblk_c,      &
       i_startidx_c => domain%i_startidx_c(:), &
-      i_endidx_c   => domain%i_endidx_c(:),   &
-      dtime        => conf_atmo%dtime,      &
-      solver_type  => conf_atmo%solver_type,&
-      rturb_prandtl=> conf_atmo%rturb_prandtl,&
-      use_scale_turb_energy_flux=>conf_atmo%use_scale_turb_energy_flux,&
-      scale_turb_energy_flux=>conf_atmo%scale_turb_energy_flux,&
-      kh_ic        => diags_atmo%kh_ic,        &
-      km_ie        => diags_atmo%km_ie,        &
-      heating      => diags_atmo%heating,   &
-      shfl         => diags_sfc%shfl,          &
-      ufts         => diags_sfc%ufts, &
-      ufvs         => diags_sfc%ufvs, &
-      q_snocpymlt  => diags_sfc%q_snocpymlt_lnd, &
-      rho_ic       => diags_atmo%rho_ic,       &
-      zf        => ins_atmo%zf,             &
-      mair      => ins_atmo%mair,           &
-      rho       => ins_atmo%rho,            &
-      inv_dzh   => ins_atmo%inv_dzh         &
+      i_endidx_c   => domain%i_endidx_c(:)    &
     )
+
+    use_scale_turb_energy_flux => conf_atmo%use_scale_turb_energy_flux%Get_ptr_l0d()
+    scale_turb_energy_flux     => conf_atmo%scale_turb_energy_flux%Get_ptr_r0d()
+    dtime        => conf_atmo%dtime%Get_ptr_r0d()
+    rturb_prandtl=> conf_atmo%rturb_prandtl%Get_ptr_r0d()
+    solver_type  => conf_atmo%solver_type%Get_ptr_i0d()
+
+    zf        => ins_atmo%dz_c%Get_ptr_r3d()
+    mair      => ins_atmo%moist_mass_c%Get_ptr_r3d()
+    rho       => ins_atmo%rho_c%Get_ptr_r3d()
+    inv_dzh   => ins_atmo%inv_dz_ic%Get_ptr_r3d()
+
+    kh_ic        => diags_atmo%kh_ic%Get_ptr_r3d()
+    km_ie        => diags_atmo%km_ie%Get_ptr_r3d()
+    rho_ic       => diags_atmo%rho_ic%Get_ptr_r3d()
+
+    state_ta     => atmo%states    (atmo%temp_idx)%p%Get_ptr_r3d()
+    tend_ta      => atmo%tendencies(atmo%temp_idx)%p%Get_ptr_r3d()
+    new_state_ta => atmo%new_states(atmo%temp_idx)%p%Get_ptr_r3d()
+
+    ! Get pointers to surface variables
+    shfl => diags_sfc%shfl%Get_ptr_r2d()
+    ufts => diags_sfc%ufts%Get_ptr_r2d()
+    ufvs => diags_sfc%ufvs%Get_ptr_r2d()
+    q_snocpymlt => diags_sfc%q_snocpymlt_lnd%Get_ptr_r2d()
 
     rdtime = 1._wp / dtime
 
-    state_ta => atmo%states%Get_ptr_r3d('temperature')
-    tend_ta  => atmo%tendencies%Get_ptr_r3d('temperature')
-    new_state_ta => atmo%new_states%Get_ptr_r3d('temperature')
 
 !$OMP PARALLEL
     CALL init(top_flx, lacc=.TRUE.)
@@ -1066,8 +1178,8 @@ CONTAINS
     TYPE(t_vdf_atmo),             INTENT(in), POINTER :: atmo
     TYPE(t_vdf_atmo_config),      INTENT(in), POINTER :: conf_atmo
     TYPE(t_vdf_atmo_inputs),      INTENT(in), POINTER :: ins_atmo
-    TYPE(t_vdf_atmo_diagnostics), INTENT(in), POINTER :: diags_atmo
-    TYPE(t_vdf_sfc_diagnostics),  INTENT(in), POINTER :: diags_sfc
+    TYPE(t_vdf_atmo_diags),       INTENT(in), POINTER :: diags_atmo
+    TYPE(t_vdf_sfc_diags),        INTENT(in), POINTER :: diags_sfc
 
     INTEGER :: jb, jc, je, jk, jcn, jbn, jvn
     INTEGER :: nproma, nlev, nblks_c, rl_start, rl_end
@@ -1099,17 +1211,55 @@ CONTAINS
       & state_u(:,:,:),  tend_u(:,:,:),  new_state_u(:,:,:),  &
       & state_v(:,:,:),  tend_v(:,:,:),  new_state_v(:,:,:)
 
+    REAL(wp), POINTER :: &
+      & dtime, rturb_prandtl
+    INTEGER,  POINTER :: &
+      & solver_type
+    REAL(wp), POINTER, DIMENSION(:,:,:) :: &
+      & pwp1, zf, mair, rho, inv_dzh !, vn
+    REAL(wp), POINTER, DIMENSION(:,:,:) :: &
+      & km_c, km_iv, km_ic, km_ie, rho_ic, u_vert, v_vert, vn, div_c
+
+    ! Local pointers for surface variables
+    REAL(wp), POINTER, DIMENSION(:,:) :: &
+      & mflux_u, mflux_v
+
     iecidx => patch%edges%cell_idx;     iecblk => patch%edges%cell_blk
     ividx  => patch%edges%vertex_idx;   ivblk  => patch%edges%vertex_blk
 
     nlev    = domain%nlev
 
-    state_u     => atmo%states%Get_ptr_r3d('eastward wind')
-    tend_u      => atmo%tendencies%Get_ptr_r3d('eastward wind')
-    new_state_u => atmo%new_states%Get_ptr_r3d('eastward wind')
-    state_v     => atmo%states%Get_ptr_r3d('northward wind')
-    tend_v      => atmo%tendencies%Get_ptr_r3d('northward wind')
-    new_state_v => atmo%new_states%Get_ptr_r3d('northward wind')
+    state_u     => atmo%states    (atmo%uwind_idx)%p%Get_ptr_r3d()
+    tend_u      => atmo%tendencies(atmo%uwind_idx)%p%Get_ptr_r3d()
+    new_state_u => atmo%new_states(atmo%uwind_idx)%p%Get_ptr_r3d()
+    state_v     => atmo%states    (atmo%vwind_idx)%p%Get_ptr_r3d()
+    tend_v      => atmo%tendencies(atmo%vwind_idx)%p%Get_ptr_r3d()
+    new_state_v => atmo%new_states(atmo%vwind_idx)%p%Get_ptr_r3d()
+
+    dtime        => conf_atmo%dtime%Get_ptr_r0d()
+    rturb_prandtl=> conf_atmo%rturb_prandtl%Get_ptr_r0d()
+    solver_type  => conf_atmo%solver_type%Get_ptr_i0d()
+
+    pwp1      => ins_atmo%w_wind_ic%Get_ptr_r3d()
+    zf        => ins_atmo%z_c%Get_ptr_r3d()
+    mair      => ins_atmo%moist_mass_c%Get_ptr_r3d()
+    rho       => ins_atmo%rho_c%Get_ptr_r3d()
+    inv_dzh   => ins_atmo%inv_dz_ic%Get_ptr_r3d()
+    ! vn        => ins_atmo%vn_e%Get_ptr_r3d()
+
+    km_c         => diags_atmo%km_c%Get_ptr_r3d()
+    km_iv        => diags_atmo%km_iv%Get_ptr_r3d()
+    km_ic        => diags_atmo%km_ic%Get_ptr_r3d()
+    km_ie        => diags_atmo%km_ie%Get_ptr_r3d()
+    rho_ic       => diags_atmo%rho_ic%Get_ptr_r3d()
+    u_vert       => diags_atmo%u_vert%Get_ptr_r3d()
+    v_vert       => diags_atmo%v_vert%Get_ptr_r3d()
+    vn           => diags_atmo%vn%Get_ptr_r3d()
+    div_c        => diags_atmo%div_c%Get_ptr_r3d()
+
+    ! Get pointers to surface variables
+    mflux_u => diags_sfc%ustress%Get_ptr_r2d()
+    mflux_v => diags_sfc%vstress%Get_ptr_r2d()
 
 !$OMP PARALLEL
     CALL init(tend_u, lacc=.TRUE.)
@@ -1124,27 +1274,7 @@ CONTAINS
       i_startblk_c => domain%i_startblk_c,    &
       i_endblk_c   => domain%i_endblk_c,      &
       i_startidx_c => domain%i_startidx_c(:), &
-      i_endidx_c   => domain%i_endidx_c(:),   &
-      dtime        => conf_atmo%dtime,             &
-      solver_type  => conf_atmo%solver_type,       &
-      rturb_prandtl=> conf_atmo%rturb_prandtl,&
-      km_c         => diags_atmo%km_c,         &
-      km_iv        => diags_atmo%km_iv,        &
-      km_ic        => diags_atmo%km_ic,        &
-      km_ie        => diags_atmo%km_ie,        &
-      mflux_u      => diags_sfc%ustress,       &
-      mflux_v      => diags_sfc%vstress,       &
-      rho_ic       => diags_atmo%rho_ic,       &
-      u_vert       => diags_atmo%u_vert,       &
-      v_vert       => diags_atmo%v_vert,       &
-      vn           => diags_atmo%vn,           &
-      pwp1         => ins_atmo%pwp1,           &
-      div_c        => diags_atmo%div_c,        &
-      zf           => ins_atmo%zf,             &
-      mair         => ins_atmo%mair,           &
-      rho          => ins_atmo%rho,            &
-      inv_dzh      => ins_atmo%inv_dzh,        &
-      dissip_kin_energy => diags_atmo%dissip_kin_energy &
+      i_endidx_c   => domain%i_endidx_c(:)    &
     )
 
     rdtime = 1._wp / dtime
@@ -1442,7 +1572,7 @@ CONTAINS
     TYPE(t_vdf_atmo),             INTENT(in), POINTER :: atmo
     TYPE(t_vdf_atmo_config),      INTENT(in), POINTER :: conf_atmo
     TYPE(t_vdf_atmo_inputs),      INTENT(in), POINTER :: ins_atmo
-    TYPE(t_vdf_atmo_diagnostics), INTENT(in), POINTER :: diags_atmo
+    TYPE(t_vdf_atmo_diags),       INTENT(in), POINTER :: diags_atmo
 
     INTEGER :: jb, jc, je, jk, jcn, jbn, jvn
     INTEGER :: nlev, rl_start, rl_end
@@ -1472,15 +1602,48 @@ CONTAINS
     REAL(wp),                     POINTER :: &
       & state(:,:,:), tend(:,:,:), new_state(:,:,:)
 
+    REAL(wp), POINTER :: &
+      & dtime, rturb_prandtl
+    REAL(wp), POINTER, DIMENSION(:,:,:) :: &
+      & pum1, pvm1, pwp1, zf, rho, inv_dzh !, vn
+    REAL(wp), POINTER, DIMENSION(:,:,:) :: &
+      & km_ie, km_c, km_ic, km_iv, w_ie, rho_ic, u_vert, v_vert, w_vert, vn, div_c
+    REAL(vp), POINTER, DIMENSION(:,:,:) :: &
+      & inv_dzf
+
     iecidx => patch%edges%cell_idx;     iecblk => patch%edges%cell_blk
     ividx  => patch%edges%vertex_idx;   ivblk  => patch%edges%vertex_blk
     ieidx  => patch%cells%edge_idx;     ieblk  => patch%cells%edge_blk
 
     nlev    = domain%nlev
 
-    state => atmo%states%Get_ptr_r3d('vertical velocity')
-    tend  => atmo%tendencies%Get_ptr_r3d('vertical velocity')
-    new_state => atmo%new_states%Get_ptr_r3d('vertical velocity')
+    state     => atmo%states    (atmo%wwind_idx)%p%Get_ptr_r3d()
+    tend      => atmo%tendencies(atmo%wwind_idx)%p%Get_ptr_r3d()
+    new_state => atmo%new_states(atmo%wwind_idx)%p%Get_ptr_r3d()
+
+    dtime     => conf_atmo%dtime%Get_ptr_r0d()
+    rturb_prandtl => conf_atmo%rturb_prandtl%Get_ptr_r0d()
+
+    pum1      => ins_atmo%u_wind_c%Get_ptr_r3d()
+    pvm1      => ins_atmo%v_wind_c%Get_ptr_r3d()
+    pwp1      => ins_atmo%w_wind_ic%Get_ptr_r3d()
+    zf        => ins_atmo%z_c%Get_ptr_r3d()
+    rho       => ins_atmo%rho_c%Get_ptr_r3d()
+    inv_dzf   => ins_atmo%inv_dz_c%Get_ptr_v3d()
+    inv_dzh   => ins_atmo%inv_dz_ic%Get_ptr_r3d()
+    ! vn        => ins_atmo%vn_e%Get_ptr_r3d()
+
+    km_ie     => diags_atmo%km_ie%Get_ptr_r3d()
+    km_c      => diags_atmo%km_c%Get_ptr_r3d()
+    km_ic     => diags_atmo%km_ic%Get_ptr_r3d()
+    km_iv     => diags_atmo%km_iv%Get_ptr_r3d()
+    w_ie      => diags_atmo%w_ie%Get_ptr_r3d()
+    rho_ic    => diags_atmo%rho_ic%Get_ptr_r3d()
+    u_vert    => diags_atmo%u_vert%Get_ptr_r3d()
+    v_vert    => diags_atmo%v_vert%Get_ptr_r3d()
+    w_vert    => diags_atmo%w_vert%Get_ptr_r3d()
+    vn        => diags_atmo%vn%Get_ptr_r3d()
+    div_c     => diags_atmo%div_c%Get_ptr_r3d()
 
     !$ACC DATA &
     !$ACC   CREATE(hori_tend_e) &
@@ -1490,27 +1653,7 @@ CONTAINS
       i_startblk_c => domain%i_startblk_c,    &
       i_endblk_c   => domain%i_endblk_c,      &
       i_startidx_c => domain%i_startidx_c(:), &
-      i_endidx_c   => domain%i_endidx_c(:),   &
-      dtime        => conf_atmo%dtime,      &
-      rturb_prandtl=> conf_atmo%rturb_prandtl,&
-      km_ie     => diags_atmo%km_ie,        &
-      km_c      => diags_atmo%km_c,         &
-      km_ic     => diags_atmo%km_ic,        &
-      km_iv     => diags_atmo%km_iv,        &
-      w_ie      => diags_atmo%w_ie,         &
-      rho_ic    => diags_atmo%rho_ic,       &
-      u_vert    => diags_atmo%u_vert,       &
-      v_vert    => diags_atmo%v_vert,       &
-      w_vert    => diags_atmo%w_vert,       &
-      vn        => diags_atmo%vn,           &
-      div_c     => diags_atmo%div_c,        &
-      pum1      => ins_atmo%pum1,           &
-      pvm1      => ins_atmo%pvm1,           &
-      pwp1      => ins_atmo%pwp1,           &
-      zf        => ins_atmo%zf,             &
-      rho       => ins_atmo%rho,            &
-      inv_dzf   => ins_atmo%inv_dzf,        &
-      inv_dzh   => ins_atmo%inv_dzh         &
+      i_endidx_c   => domain%i_endidx_c(:)    &
       )
 
       rdtime = 1._wp / dtime
@@ -1764,8 +1907,8 @@ CONTAINS
     TYPE(t_vdf_atmo),             INTENT(in), POINTER :: atmo
     TYPE(t_vdf_atmo_config),      INTENT(in), POINTER :: conf_atmo
     TYPE(t_vdf_atmo_inputs),      INTENT(in), POINTER :: ins_atmo
-    TYPE(t_vdf_atmo_diagnostics), INTENT(in), POINTER :: diags_atmo
-    TYPE(t_vdf_sfc_diagnostics),  INTENT(in), POINTER :: diags_sfc
+    TYPE(t_vdf_atmo_diags),       INTENT(in), POINTER :: diags_atmo
+    TYPE(t_vdf_sfc_diags),        INTENT(in), POINTER :: diags_sfc
 
     INTEGER :: jb, jk, jc, nlev
     REAL(wp) :: rdtime
@@ -1775,29 +1918,44 @@ CONTAINS
       & state_u(:,:,:),  new_state_u(:,:,:),  &
       & state_v(:,:,:),  new_state_v(:,:,:)
 
-    state_ta      => atmo%states%Get_ptr_r3d('temperature')
-    tend_ta       => atmo%tendencies%Get_ptr_r3d('temperature')
-    new_state_ta  => atmo%new_states%Get_ptr_r3d('temperature')
-    state_u       => atmo%states%Get_ptr_r3d('eastward wind')
-    new_state_u   => atmo%new_states%Get_ptr_r3d('eastward wind')
-    state_v       => atmo%states%Get_ptr_r3d('northward wind')
-    new_state_v   => atmo%new_states%Get_ptr_r3d('northward wind')
+    REAL(wp), POINTER :: &
+      & dtime, dissipation_factor
+    REAL(wp), POINTER, DIMENSION(:,:,:) :: &
+      & mair, cvair
+    REAL(wp), POINTER, DIMENSION(:,:,:) :: &
+      & heating, dissip_kin_energy
+
+    ! Local pointers for surface variables
+    REAL(wp), POINTER, DIMENSION(:,:) :: &
+      & q_snocpymlt
+
+    state_ta      => atmo%states    (atmo%temp_idx) %p%Get_ptr_r3d()
+    tend_ta       => atmo%tendencies(atmo%temp_idx) %p%Get_ptr_r3d()
+    new_state_ta  => atmo%new_states(atmo%temp_idx) %p%Get_ptr_r3d()
+    state_u       => atmo%states    (atmo%uwind_idx)%p%Get_ptr_r3d()
+    new_state_u   => atmo%new_states(atmo%uwind_idx)%p%Get_ptr_r3d()
+    state_v       => atmo%states    (atmo%vwind_idx)%p%Get_ptr_r3d()
+    new_state_v   => atmo%new_states(atmo%vwind_idx)%p%Get_ptr_r3d()
+
+    dtime         => conf_atmo%dtime%Get_ptr_r0d()
+    dissipation_factor => conf_atmo%dissipation_factor%Get_ptr_r0d()
+
+    mair          => ins_atmo%moist_mass_c%Get_ptr_r3d()
+    cvair         => ins_atmo%cv_air_c%Get_ptr_r3d()
+
+    heating      => diags_atmo%heating%Get_ptr_r3d()
+    dissip_kin_energy => diags_atmo%dissip_ke%Get_ptr_r3d()
+
+    ! Get pointers to surface variables
+    q_snocpymlt => diags_sfc%q_snocpymlt_lnd%Get_ptr_r2d()
 
     nlev    = domain%nlev
-
 
     ASSOCIATE ( &
       i_startblk_c => domain%i_startblk_c,    &
       i_endblk_c   => domain%i_endblk_c,      &
       i_startidx_c => domain%i_startidx_c(:), &
-      i_endidx_c   => domain%i_endidx_c(:),   &
-      dtime        => conf_atmo%dtime,      &
-      heating      => diags_atmo%heating,   &
-      dissipation_factor => conf_atmo%dissipation_factor, &
-      dissip_kin_energy => diags_atmo%dissip_kin_energy, &
-      q_snocpymlt       => diags_sfc%q_snocpymlt_lnd, &
-      mair              => ins_atmo%mair,           &
-      cvair             => ins_atmo%cvair           &
+      i_endidx_c   => domain%i_endidx_c(:)    &
     )
 
     rdtime = 1._wp / dtime

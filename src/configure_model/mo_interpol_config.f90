@@ -20,6 +20,7 @@ MODULE mo_interpol_config
   USE mo_lib_grid_geometry_info,  ONLY: t_grid_geometry_info, planar_torus_geometry
   USE mo_grid_config,         ONLY: grid_rescale_factor
   USE mo_run_config,          ONLY: msg_level
+  USE mo_io_units,            ONLY: filename_max
 
 
   IMPLICIT NONE
@@ -34,7 +35,7 @@ MODULE mo_interpol_config
   PUBLIC :: rbf_scale_mode_ll                                                   !< variables
   PUBLIC :: support_baryctr_intp                                                !< variables
   PUBLIC :: lreduced_nestbdry_stencil                                           !< variables
-  PUBLIC :: lrbf_read, lrbf_write                                               !< variables
+  PUBLIC :: rbf_coeffs_filename, lrbf_read, lrbf_write                 !< variables
   PUBLIC :: configure_interpolation                                             !< subroutine
 
   PUBLIC :: t_lsq_set
@@ -127,6 +128,8 @@ MODULE mo_interpol_config
     LOGICAL :: lreduced_nestbdry_stencil
 
     ! Reading/writing rbf coefficients from file
+    CHARACTER(LEN=filename_max) :: rbf_coeffs_filename(max_dom) ! Filename for rbf coefficients for each grid file in
+                                                                ! grid_nml::dynamics_grid_filename(max_dom)
     LOGICAL :: lrbf_read                  ! Read RBF coefficients from file
     LOGICAL :: lrbf_write                 ! Write RBF coefficients to file
 

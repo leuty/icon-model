@@ -85,7 +85,7 @@ cat > ${ocean_namelist} << EOF
   include_last     = .false.
   output_grid      = .TRUE.
   filename_format  = "<output_filename>_<datetime2>"
-  ml_varlist       = 'group:oce_default','group:oce_essentials', 'group:ice_default'
+  ml_varlist       = 'group:oce_default','group:oce_essentials', 'group:ice_default','vort_on_cells'
 /
 &output_nml
   filetype         =  5 ! output format: 2=GRIB2, 4=NETCDFv2
@@ -98,7 +98,7 @@ cat > ${ocean_namelist} << EOF
   include_last     = .false.
   output_grid      = .TRUE.
   filename_format  = "<output_filename>_<datetime2>"
-  ml_varlist       = 'group:oce_default','group:oce_essentials', 'group:ice_default'
+  ml_varlist       = 'group:oce_default','group:oce_essentials', 'group:ice_default','vort_on_cells'
 /
 &output_nml
   filetype         =  5 ! output format: 2=GRIB2, 4=NETCDFv2
@@ -348,6 +348,7 @@ cat > ${ocean_namelist} << EOF
    greenStartDate = '2001-01-01'
    greenStopDate = '2001-01-10'
    do_ts_budget = .true.
+   do_vort_on_cells = .true.
 /
 EOF
 #-----------------------------------------------------------------------------

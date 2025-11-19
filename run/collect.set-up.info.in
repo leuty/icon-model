@@ -63,7 +63,9 @@ PYTHON='@PYTHON@'
 BUNDLED_PYTHONPATH='@BUNDLED_PYTHONPATH@'
 
 # Set use_site:
-use_host='@host_fqdn@'
+use_host=`cat <<\_EOF
+@host_fqdn@
+_EOF`
 use_site='local.net'
 case "$use_host" in
   kfa-juelich.de|fz-juelich.de|*jureca*|*juwels*|*jpbl*) use_site=juelich.de ;;

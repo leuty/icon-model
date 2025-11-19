@@ -2,7 +2,7 @@
 :orphan:
 ```
 
-(ref_buildrun_introduction)=
+(ref_buildrun_building_intro)=
 # Building ICON
 
 The process of building ICON consists of two parts: *configuring* the options and compiler flags, and *building* the source code with those options and flags.
@@ -13,7 +13,7 @@ The process of building ICON consists of two parts: *configuring* the options an
 The configuration step is done by calling the {{ '[`configure`]({}/configure)'.format(base_url) }} script with arguments specifying the location of libraries and tools required for building, as well as options enabling or disabling particular model features. For example:
 
 ```sh
-./configure CC=mpicc FC=mpif90 LIBS='-lnetcdff -lnetcdf -llapack -lblas' --disable-ocean --disable-coupling
+./configure CC=mpicc FC=mpif90 LIBS='-lnetcdff -lnetcdf -llapack' --disable-ocean --disable-coupling
 ```
 
 :::{admonition} Full list of configuration options
@@ -68,7 +68,7 @@ The list of packages required for successful configuration and building depends 
 | [SCT](https://gitlab.dkrz.de/dkrz-sw/sct) (Fortran interface) | `--enable-sct --with-external-sct` | `FCFLAGS='-I/path/to/sct/include' LDFLAGS='-L/path/to/sct/lib' LIBS='-lsct'` |
 | [RTTOV](https://www.nwpsaf.eu/site/software/rttov/) | `--enable-rttov` | `FCFLAGS='-I/path/to/rttov/include -I/path/to/rttov/mod' LDFLAGS='-L/path/to/rttov/lib' LIBS='-lrttov_other -lrttov_emis_atlas -lrttov_brdf_atlas -lrttov_parallel -lrttov_coef_io -lrttov_hdf -lrttov_main'` |
 | [LAPACK](http://www.netlib.org/lapack/) (or analogue) | mandatory | `LDFLAGS='-L/path/to/lapack/lib' LIBS='-llapack'` (depends on the implementation) |
-| [BLAS](http://www.netlib.org/blas/) (or analogue) | mandatory | `LDFLAGS='-L/path/to/blas/lib' LIBS='-lblas'` (depends on the implementation) |
+| [BLAS](http://www.netlib.org/blas/) (or analogue) | `--enable-dace` or `--enable-art` | `LDFLAGS='-L/path/to/blas/lib' LIBS='-lblas'` (depends on the implementation) |
 | [ECRAD](https://confluence.ecmwf.int/display/ECRAD/ECMWF+Radiation+Scheme+Home) | `--enable-ecrad --with-external-ecrad` | `FCFLAGS='-I/path/to/ecrad/include' LDFLAGS='-L/path/to/ecrad/lib' LIBS='-lradiation -lifsrrtm -lutilities -lifsaux'` |
 | [RTE+RRTMGP](https://github.com/earth-system-radiation/rte-rrtmgp) | `--enable-rte-rrtmgp --with-external-rte-rrtmgp` | `FCFLAGS='-I/path/to/rte-rrtmgp/include' LDFLAGS='-L/path/to/rte-rrtmgp/lib' LIBS='-lrrtmgp -lrte'` |
 | [NetCDF-Fortran](https://docs.unidata.ucar.edu/netcdf-fortran/current/) | mandatory | `FCFLAGS='-I/path/to/netcdf-fortran/include' LDFLAGS='-L/path/to/netcdf-fortran/lib' LIBS='-lnetcdff'` |

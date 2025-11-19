@@ -17,16 +17,17 @@ MODULE mo_rbf_coefficients_io
   USE mo_intp_data_strc, ONLY: t_int_state
   USE mo_exception, ONLY: message, message_text, warning, finish
   USE mo_mpi, ONLY: my_process_is_mpi_workroot, process_mpi_all_workroot_id, &
-    &                               work_mpi_barrier, p_bcast
+      &                               work_mpi_barrier, p_bcast, p_comm_work, &
+      &                               p_comm_work_test
   USE mo_interpol_config, ONLY: rbf_vec_dim_c, rbf_c2grad_dim, rbf_vec_dim_v, &
-    &                               rbf_vec_dim_e, rbf_vec_scale_c, rbf_vec_scale_e, &
-    &                               rbf_vec_scale_v
-  USE mo_parallel_config, ONLY: nproma
+      &                               rbf_vec_dim_e, rbf_vec_scale_c, rbf_vec_scale_e, &
+      &                               rbf_vec_scale_v, rbf_coeffs_filename
+  USE mo_parallel_config, ONLY: nproma, p_test_run
   USE mo_model_domain, ONLY: t_patch
   USE mo_netcdf_errhandler, ONLY: nf
   USE mo_netcdf, ONLY: NF90_CLOBBER, NF90_GLOBAL, NF90_NETCDF4, &
-    & nf90_create, nf90_put_att, nf90_enddef, nf90_close, nf90_get_att, nf90_def_dim, &
-    & nf90_def_var, nf90_put_var, nf90_noerr
+      & nf90_create, nf90_put_att, nf90_enddef, nf90_close, nf90_get_att, nf90_def_dim, &
+      & nf90_def_var, nf90_put_var, nf90_noerr
 #ifdef __SINGLE_PRECISION
   USE mo_netcdf, ONLY: NF90_FLOAT
 #else
@@ -34,11 +35,12 @@ MODULE mo_rbf_coefficients_io
 #endif
   USE mo_communication, ONLY: exchange_data, t_comm_gather_pattern
   USE mo_read_interface, ONLY: openInputFile, closeFile, on_cells, on_edges, &
-    &                               on_vertices, t_stream_id, read_3D
+      &                               on_vertices, t_stream_id, read_3D
   USE mo_sync, ONLY: sync_patch_array, SYNC_C, SYNC_E, SYNC_V
   USE mo_read_netcdf_types, ONLY: t_alloc_3d
   USE mo_util_uuid_types, ONLY: t_uuid, UUID_STRING_LENGTH
   USE mo_util_uuid, ONLY: uuid_parse, uuid_unparse, OPERATOR(==)
+  USE mo_io_units, ONLY: filename_max
 
   IMPLICIT NONE
 
@@ -60,7 +62,6 @@ MODULE mo_rbf_coefficients_io
   END INTERFACE unpack_from_nlev
 
   ! Module variables
-  INTEGER, PARAMETER :: MAX_LEN_FILENAME = 65
   INTEGER, PARAMETER :: MAX_LEN_NAMES = 30
   INTEGER, PARAMETER :: MAX_NDIMS = 4
   CHARACTER(*), PARAMETER :: modname = "mo_rbf_coefficients_io"
@@ -113,7 +114,7 @@ CONTAINS
     ! Local vars
     INTEGER :: ncid ! Only used on root
     INTEGER :: i
-    CHARACTER(len=MAX_LEN_FILENAME) :: filename
+    CHARACTER(len=filename_max) :: filename
     LOGICAL :: is_root ! root proc for gather and io
     CHARACTER(*), PARAMETER :: routine = modname//":rbf_coefficients_write"
 
@@ -135,19 +136,45 @@ CONTAINS
     is_root = my_process_is_mpi_workroot()
 
     ! i = 1, ndimids
-    i = 1; dims_def(i) = 2; dimnames_def(i) = 'two'
-    i = 2; dims_def(i) = rbf_vec_dim_c; dimnames_def(i) = 'rbf_vec_dim_c'
-    i = 3; dims_def(i) = rbf_vec_dim_e; dimnames_def(i) = 'rbf_vec_dim_e'
-    i = 4; dims_def(i) = rbf_vec_dim_v; dimnames_def(i) = 'rbf_vec_dim_v'
-    i = 5; dims_def(i) = rbf_c2grad_dim; dimnames_def(i) = 'rbf_c2grad_dim'
-    i = 6; dims_def(i) = ptr_patch%n_patch_cells_g; dimnames_def(i) = 'ncells'
-    i = 7; dims_def(i) = ptr_patch%n_patch_edges_g; dimnames_def(i) = 'nedges'
-    i = 8; dims_def(i) = ptr_patch%n_patch_verts_g; dimnames_def(i) = 'nverts'
-    i = 9; dims_def(i) = 2*rbf_vec_dim_c; dimnames_def(i) = 'two_x_rbf_vec_dim_c'
-    i = 10; dims_def(i) = 2*rbf_vec_dim_e; dimnames_def(i) = 'two_x_rbf_vec_dim_e'
-    i = 11; dims_def(i) = 2*rbf_vec_dim_v; dimnames_def(i) = 'two_x_rbf_vec_dim_v'
-    i = 12; dims_def(i) = 2*rbf_c2grad_dim; dimnames_def(i) = 'two_x_rbf_c2grad_dim'
-    i = 13; dims_def(i) = 1; dimnames_def(i) = 'one'
+    i = 1
+    dims_def(i) = 2
+    dimnames_def(i) = 'two'
+    i = 2
+    dims_def(i) = rbf_vec_dim_c
+    dimnames_def(i) = 'rbf_vec_dim_c'
+    i = 3
+    dims_def(i) = rbf_vec_dim_e
+    dimnames_def(i) = 'rbf_vec_dim_e'
+    i = 4
+    dims_def(i) = rbf_vec_dim_v
+    dimnames_def(i) = 'rbf_vec_dim_v'
+    i = 5
+    dims_def(i) = rbf_c2grad_dim
+    dimnames_def(i) = 'rbf_c2grad_dim'
+    i = 6
+    dims_def(i) = ptr_patch%n_patch_cells_g
+    dimnames_def(i) = 'ncells'
+    i = 7
+    dims_def(i) = ptr_patch%n_patch_edges_g
+    dimnames_def(i) = 'nedges'
+    i = 8
+    dims_def(i) = ptr_patch%n_patch_verts_g
+    dimnames_def(i) = 'nverts'
+    i = 9
+    dims_def(i) = 2 * rbf_vec_dim_c
+    dimnames_def(i) = 'two_x_rbf_vec_dim_c'
+    i = 10
+    dims_def(i) = 2 * rbf_vec_dim_e
+    dimnames_def(i) = 'two_x_rbf_vec_dim_e'
+    i = 11
+    dims_def(i) = 2 * rbf_vec_dim_v
+    dimnames_def(i) = 'two_x_rbf_vec_dim_v'
+    i = 12
+    dims_def(i) = 2 * rbf_c2grad_dim
+    dimnames_def(i) = 'two_x_rbf_c2grad_dim'
+    i = 13
+    dims_def(i) = 1
+    dimnames_def(i) = 'one'
 
     ! Floating-point rbf coefficients only
     CALL allocate_and_pack_into_nlev(ptr_int_state%rbf_vec_coeff_c, buf_wp(1)%a, ptr_patch%nblks_c)
@@ -163,7 +190,7 @@ CONTAINS
     IF (is_root) THEN
 
       CALL get_filename(jg, filename)
-      WRITE (message_text, '(A,A,A)') "filename '", TRIM(filename), "'"
+      WRITE(message_text, '(A,A,A)') "filename '", TRIM(filename), "'"
       CALL message(routine, message_text)
 
       ! Create file
@@ -193,7 +220,7 @@ CONTAINS
     DO i = 1, nvars
       CALL gather_and_write_rbf_netcdf_var(ncid, ptr_patch, rbf_vars(i), is_root)
 
-      IF (ALLOCATED(buf_wp(i)%a)) DEALLOCATE (buf_wp(i)%a)
+      IF (ALLOCATED(buf_wp(i)%a)) DEALLOCATE(buf_wp(i)%a)
     END DO
 
     ! Close file
@@ -218,17 +245,18 @@ CONTAINS
     ! Local vars
     CHARACTER(*), PARAMETER :: routine = modname//":rbf_coefficients_read"
     TYPE(t_stream_id) :: stream_id !< file stream_id on workroot proc
-    CHARACTER(len=MAX_LEN_FILENAME) :: filename
+    CHARACTER(len=filename_max) :: filename
     REAL(wp), ALLOCATABLE :: buf_wp(:, :, :)
     REAL(wp) :: attrib_wp
     INTEGER :: attrib_int
     CHARACTER(len=UUID_STRING_LENGTH) :: attrib_str
     TYPE(t_uuid) :: attrib_grid_uuid ! unparsed from patch%grid_uuid
+    INTEGER :: p_comm
 
     CALL message(routine, 'Reading RBF coefficients')
 
     CALL get_filename(jg, filename)
-    WRITE (message_text, '(A,A)') 'Reading file ', TRIM(filename)
+    WRITE(message_text, '(A,A)') 'Reading file ', TRIM(filename)
     CALL message('mo_rbf_coefficients', message_text)
 
     CALL openInputFile(stream_id, filename, ptr_patch)
@@ -257,7 +285,7 @@ CONTAINS
       IF (nf90_get_att(stream_id%file_id, NF90_GLOBAL, 'uuidOfHGrid', attrib_str) == nf90_noerr) THEN
         ! uuid provided, check if it matches ptr_patch%grid_uuid
         CALL uuid_parse(attrib_str, attrib_grid_uuid)
-        IF (.NOT. (ptr_patch%grid_uuid == attrib_grid_uuid)) THEN
+        IF (.NOT.(ptr_patch%grid_uuid == attrib_grid_uuid)) THEN
           rbf_read_status = -1
           CALL warning(routine, "uuidOfHGrid does not match input file")
         END IF
@@ -286,29 +314,34 @@ CONTAINS
     END IF
 
     ! Broadcast rbf_read_status
-    CALL p_bcast(rbf_read_status, process_mpi_all_workroot_id)
+    IF (p_test_run) THEN
+      p_comm = p_comm_work_test
+    ELSE
+      p_comm = p_comm_work
+    END IF
+    CALL p_bcast(rbf_read_status, process_mpi_all_workroot_id, comm=p_comm)
     IF (rbf_read_status /= 0) RETURN
 
     ! Floating-point rbf coefficients only
     CALL read_3D(stream_id, on_cells, 'rbf_vec_coeff_c', alloc_array=buf_wp)
     CALL sync_patch_array(SYNC_C, ptr_patch, buf_wp, .FALSE.)
     CALL unpack_from_nlev(buf_wp, ptr_int_state%rbf_vec_coeff_c, ptr_patch%nblks_c)
-    DEALLOCATE (buf_wp)
+    DEALLOCATE(buf_wp)
 
     CALL read_3D(stream_id, on_cells, 'rbf_c2grad_coeff', alloc_array=buf_wp)
     CALL sync_patch_array(SYNC_C, ptr_patch, buf_wp, .FALSE.)
     CALL unpack_from_nlev(buf_wp, ptr_int_state%rbf_c2grad_coeff, ptr_patch%nblks_c)
-    DEALLOCATE (buf_wp)
+    DEALLOCATE(buf_wp)
 
     CALL read_3D(stream_id, on_edges, 'rbf_vec_coeff_e', alloc_array=buf_wp)
     CALL sync_patch_array(SYNC_E, ptr_patch, buf_wp, .FALSE.)
     CALL unpack_from_nlev(buf_wp, ptr_int_state%rbf_vec_coeff_e, ptr_patch%nblks_e)
-    DEALLOCATE (buf_wp)
+    DEALLOCATE(buf_wp)
 
     CALL read_3D(stream_id, on_vertices, 'rbf_vec_coeff_v', alloc_array=buf_wp)
     CALL sync_patch_array(SYNC_V, ptr_patch, buf_wp, .FALSE.)
     CALL unpack_from_nlev(buf_wp, ptr_int_state%rbf_vec_coeff_v, ptr_patch%nblks_v)
-    DEALLOCATE (buf_wp)
+    DEALLOCATE(buf_wp)
 
     CALL closeFile(stream_id)
 
@@ -353,7 +386,7 @@ CONTAINS
     IF (SIZE(dst, 4) /= nblks) CALL finish(routine, "dim(ndims)/=nblks")
     DO j = 1, SIZE(dst, 2)
       DO i = 1, SIZE(dst, 1)
-        dst(i, j, :, :) = src(:, (j - 1)*SIZE(dst, 1) + i, :)
+        dst(i, j, :, :) = src(:, (j - 1) * SIZE(dst, 1) + i, :)
       END DO
     END DO
   END SUBROUTINE unpack_from_nlev_4d_wp
@@ -372,7 +405,7 @@ CONTAINS
 
     IF (SIZE(src, 2) /= nproma) CALL finish(routine, "dim(ndims-1)/=nproma")
     IF (SIZE(src, 3) /= nblks) CALL finish(routine, "dim(ndims)/=nblks")
-    ALLOCATE (alloc_array(nproma, SIZE(src, 1), nblks))
+    ALLOCATE(alloc_array(nproma, SIZE(src, 1), nblks))
 
     DO i = 1, SIZE(src, 1)
       DO j = 1, SIZE(src, 2)
@@ -394,13 +427,13 @@ CONTAINS
 
     IF (SIZE(src, 3) /= nproma) CALL finish(routine, "dim(ndims-1)/=nproma")
     IF (SIZE(src, 4) /= nblks) CALL finish(routine, "dim(ndims)/=nblks")
-    ALLOCATE (alloc_array(nproma, SIZE(src, 1)*SIZE(src, 2), nblks))
+    ALLOCATE(alloc_array(nproma, SIZE(src, 1) * SIZE(src, 2), nblks))
 
     DO j = 1, SIZE(src, 2)
       DO i = 1, SIZE(src, 1)
         DO k = 1, SIZE(src, 3)
           DO l = 1, SIZE(src, 4)
-            alloc_array(k, (j - 1)*SIZE(src, 1) + i, l) = src(i, j, k, l)
+            alloc_array(k, (j - 1) * SIZE(src, 1) + i, l) = src(i, j, k, l)
           END DO
         END DO
       END DO
@@ -426,6 +459,7 @@ CONTAINS
 
   END SUBROUTINE create_and_put_nc_varids
 
+
   SUBROUTINE create_nc_dimids(ncid, dims, dimnames, dimids, ndimids)
     INTEGER, INTENT(IN) :: ncid
     INTEGER, INTENT(IN) :: ndimids !< global number of defined dimensions
@@ -441,6 +475,7 @@ CONTAINS
     END DO
 
   END SUBROUTINE create_nc_dimids
+
 
   SUBROUTINE put_dimids_rbf_netcdf_var(rbf_netcdf_vars, nvars, dimids_g, ndimids)
     INTEGER, INTENT(IN) :: nvars
@@ -462,8 +497,9 @@ CONTAINS
 
   END SUBROUTINE put_dimids_rbf_netcdf_var
 
+
   SUBROUTINE init_rbf_netcdf_var(rbf_netcdf_var, varname, dims_def, ndims_def, dim_indices, ndims, &
-    &                            ptr_wp, pat_type)
+      &                            ptr_wp, pat_type)
 
     TYPE(t_rbf_netcdf_var), INTENT(OUT) :: rbf_netcdf_var
 
@@ -491,6 +527,7 @@ CONTAINS
     rbf_netcdf_var%pat_type = pat_type
   END SUBROUTINE init_rbf_netcdf_var
 
+
   SUBROUTINE gather_and_write_rbf_netcdf_var(ncid, ptr_patch, var, is_root)
     INTEGER, INTENT(IN) :: ncid
     TYPE(t_patch), TARGET, INTENT(IN) :: ptr_patch
@@ -506,9 +543,9 @@ CONTAINS
 
     ! Allocate buffer on io proc
     IF (is_root) THEN
-      ALLOCATE (out_buf_wp(var%dims(1), var%dims(2)))
+      ALLOCATE(out_buf_wp(var%dims(1), var%dims(2)))
     ELSE
-      ALLOCATE (out_buf_wp(0, 0))
+      ALLOCATE(out_buf_wp(0, 0))
     END IF
 
     ! Choose correct gather_pattern
@@ -528,20 +565,21 @@ CONTAINS
     !INTEGER, INTENT(IN   ) :: in_array(:,:,:)  !! dimension (nproma, nlev, nblk)
     !INTEGER, INTENT(INOUT) :: out_array(:,:)   !! dimension (global length, nlev); only required on root
     CALL exchange_data(in_array=var%ptr_wp(:, :, :), out_array=out_buf_wp(:, :), &
-      &                gather_pattern=gather_pattern, fill_value=REAL(fill_value, KIND=wp))
+        &                gather_pattern=gather_pattern, fill_value=REAL(fill_value, KIND=wp))
 
     ! Output
     IF (is_root) THEN
       CALL nf(nf90_put_var(ncid, var%varid, out_buf_wp), "")
     END IF
-    DEALLOCATE (out_buf_wp)
+    DEALLOCATE(out_buf_wp)
 
   END SUBROUTINE gather_and_write_rbf_netcdf_var
 
+
   SUBROUTINE get_filename(jg, filename)
     INTEGER, INTENT(IN) :: jg
-    CHARACTER(LEN=MAX_LEN_FILENAME), INTENT(OUT) :: filename
-    WRITE (filename, '(A,I2.2,A)') 'rbf_coeffs_dom', jg, '.nc'
+    CHARACTER(LEN=filename_max), INTENT(OUT) :: filename
+    WRITE(filename, '(A)') rbf_coeffs_filename(jg)
   END SUBROUTINE get_filename
 
 END MODULE mo_rbf_coefficients_io

@@ -248,6 +248,7 @@ CONTAINS
 
     ! local variables
     INTEGER :: jstep, jg, return_status
+    INTEGER :: jstep_shift ! start counter for time loop
     !LOGICAL                         :: l_outputtime
     CHARACTER(LEN=32)               :: datestring
     TYPE(t_patch), POINTER :: patch_2d
@@ -364,7 +365,14 @@ CONTAINS
     END IF
 #endif
 
-    jstep = jstep0
+    IF (time_config%timeshift%dt_shift < 0._wp  .AND. .NOT. isRestart()) THEN
+      jstep_shift = NINT(time_config%timeshift%dt_shift/dtime)
+      WRITE(message_text,'(a,i6,a)') 'Model start shifted backwards by ', ABS(jstep_shift),' time steps'
+      CALL message(routine, message_text)
+    ELSE
+      jstep_shift = 0
+    ENDIF
+    jstep = jstep0 + jstep_shift
     TIME_LOOP: DO
 
       IF(lsediment_only) THEN
@@ -553,7 +561,7 @@ CONTAINS
 
         start_timer(timer_solve_ab,1)
         CALL solve_free_surface_eq_ab (patch_3d, ocean_state(jg), p_ext_data(jg), &
-          & p_as, p_oce_sfc, p_phys_param, jstep, operators_coefficients, solvercoeff_sp, return_status, lacc = lzacc)!, p_int(jg))
+          & p_as, p_oce_sfc, p_phys_param, jstep-jstep_shift, operators_coefficients, solvercoeff_sp, return_status, lacc = lzacc)!, p_int(jg))
         IF (return_status /= 0) THEN
          CALL output_ocean(              &
            & patch_3d=patch_3d,          &
@@ -1053,7 +1061,7 @@ CONTAINS
         start_timer(timer_solve_ab,1)
         CALL solve_free_surface_eq_zstar( patch_3d, ocean_state, p_ext_data,  &
           & p_oce_sfc , p_as, p_phys_param, operators_coefficients, solvercoeff_sp, &
-          & jstep, ocean_state(jg)%p_prog(nold(1))%eta_c, ocean_state(jg)%p_prog(nold(1))%stretch_c, &
+          & jstep-jstep_shift, ocean_state(jg)%p_prog(nold(1))%eta_c, ocean_state(jg)%p_prog(nold(1))%stretch_c, &
           & stretch_e, ocean_state(jg)%p_prog(nnew(1))%eta_c, ocean_state(jg)%p_prog(nnew(1))%stretch_c, &
           & lacc=lzacc)
 
@@ -1596,15 +1604,32 @@ CONTAINS
     ! in general nml output is writen based on the nnew status of the
     ! prognostics variables. Unfortunately, the initialization has to be written
     ! to the nold state. That's why the following manual copying is nec.
-    ocean_state%p_prog(nnew(1))%h      = ocean_state%p_prog(nold(1))%h
+      ocean_state%p_prog(nnew(1))%h         = ocean_state%p_prog(nold(1))%h
+    IF ( vert_cor_type == 1 ) THEN
+      ocean_state%p_prog(nnew(1))%eta_c     = ocean_state%p_prog(nold(1))%eta_c
+      ocean_state%p_prog(nnew(1))%stretch_c = ocean_state%p_prog(nold(1))%stretch_c
+    ENDIF
 
-    ocean_state%p_prog(nnew(1))%vn     = ocean_state%p_prog(nold(1))%vn
+    ! get the tracers
+    IF (no_tracer > 0) THEN
+      ocean_state%p_prog(nnew(1))%tracer    = ocean_state%p_prog(nold(1))%tracer
+    ENDIF
 
-    CALL calc_scalar_product_veloc_3d( patch_3d,  ocean_state%p_prog(nnew(1))%vn,&
+    ocean_state%p_prog(nnew(1))%vn          = ocean_state%p_prog(nold(1))%vn
+
+    CALL calc_scalar_product_veloc_3d(patch_3d, ocean_state%p_prog(nnew(1))%vn, &
       & ocean_state%p_diag, operators_coefficients)
     ! CALL update_height_depdendent_variables( patch_3d, ocean_state, p_ext_data, operators_coefficients, solvercoeff_sp)
 #ifdef _OPENACC
     lzacc = .TRUE.
+    !$ACC UPDATE DEVICE(ocean_state%p_prog(nnew(1))%vn) IF(lzacc)
+!    !$ACC UPDATE DEVICE(ocean_state%p_prog(nold(1))%vn) IF(lzacc)
+    !$ACC UPDATE DEVICE(ocean_state%p_prog(nnew(1))%tracer) IF(lzacc .AND. no_tracer > 0)
+    !$ACC UPDATE DEVICE(ocean_state%p_prog(nnew(1))%h) IF(lzacc)
+    !$ACC UPDATE DEVICE(ocean_state%p_diag%u, ocean_state%p_diag%v) IF(lzacc)
+    !$ACC UPDATE DEVICE(ocean_state%p_diag%kin) IF(lzacc)
+    !$ACC UPDATE DEVICE(ocean_state%p_prog(nnew(1))%eta_c, ocean_state%p_prog(nnew(1))%stretch_c) IF(lzacc .AND. vert_cor_type == 1)
+
 #endif
     CALL update_statistics(lacc=lzacc)
 

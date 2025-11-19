@@ -217,7 +217,7 @@ iconbot:
     ICONBOT_GIT_BRANCH: production
     ICONBOT_GIT_CLONE_PATH: ${CI_PROJECT_DIR}/iconbot
     ICONBOT_CONFIG_REL_PATH: .gitlab/iconbot/notifier.yml
-    PIP_REQUIREMENT: ${ICONBOT_GIT_CLONE_PATH}/requirements/notifier/config.txt
+    ICON_CI_UTILS_PIP_REQUIREMENT: ${ICONBOT_GIT_CLONE_PATH}/requirements/notifier/config.txt
   before_script:
     - !reference [.utils:log, before_script]
     - |
@@ -337,3 +337,65 @@ doc:html:publish:osr:
       when: manual
   manual_confirmation: >-
     This job updates the open-source release documentation at https://docs.icon-model.org
+
+codee-check:
+  stage: basic
+  extends:
+    - .utils:log
+    - .utils:git:fast_and_small
+  variables:
+    DOCKER_AUTH_CONFIG: "{\"auths\":{\"registry.gitlab.dkrz.de\":{\"auth\":\"$CI_DOCKER_AUTH\"}}}"
+    REPORT_DIRECTORY: "${CI_PROJECT_DIR}/htmlReport"
+    GIT_SUBMODULE_STRATEGY: normal
+  image: registry.gitlab.dkrz.de/icon/ci-tooling/codee-check-container/codee:v2025.3.8
+  before_script:
+    - !reference [.utils:log, before_script]
+  script:
+    - |
+      icon_ci_log_section_start 'Running static analysis with codee' 'collapsed=false'
+      (
+        set -ux
+        LIBS="-lxml2 -lfyaml -llapack -lopenblas -lnetcdff -lnetcdf -lstdc++"
+        FCFLAGS="-I/usr/include -O0 -fmodule-private -fimplicit-none"
+        FCFLAGS+=" -fmax-identifier-length=63 -fall-intrinsics"
+        ICON_CFLAGS="-O0"
+        ICON_BUNDLED_CFLAGS="-O0"
+        ICON_BUNDLED_CXXFLAGS="-O0"
+
+        mkdir build && cd $_
+        ../config/generic/gcc --disable-delayed-config --disable-grib2 \
+        LIBS="${LIBS}"                                                 \
+        FCFLAGS="${FCFLAGS}"                                           \
+        ICON_CFLAGS="${ICON_CFLAGS}"                                   \
+        ICON_BUNDLED_CFLAGS=${ICON_BUNDLED_CFLAGS}                     \
+        ICON_BUNDLED_CXXFLAGS=${ICON_BUNDLED_CXXFLAGS}
+
+        bear -- make -j $(($(nproc)/4))
+
+        codee checks --html "$REPORT_DIRECTORY" --accept-eula \
+        --exclude "${PWD}"/externals                          \
+        --exclude "$(realpath $PWD/../externals)"             \
+        --fortran-flags "-I${PWD}/externals/yaxt/src/"        \
+        --check-id pwr007,pwr008,pwr063,pwr069,pwr072,pwr079  \
+        -p compile_commands.json
+      ) 2>&1
+      icon_ci_log_section_end
+  environment:
+    name: codee-report
+    url: https://${CI_PAGES_HOSTNAME}/-/${CI_PROJECT_NAME}/-/jobs/${CI_JOB_ID}/artifacts/htmlReport/index.html
+  artifacts:
+    expire_in: 2week
+    paths:
+      - ${REPORT_DIRECTORY}
+  rules:
+    - if: $CI_PROJECT_PATH == "icon/icon-model"
+      when: never
+    - if: $CI_PIPELINE_SOURCE == "web"
+      when: manual
+    - if: >-
+        $CI_PIPELINE_SOURCE == "schedule" &&
+          $ICON_CI_TEST_SCHEDULE == "nightly"
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: never
+  tags:
+    - dkrz, docker-any-image

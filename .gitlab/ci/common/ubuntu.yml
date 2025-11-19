@@ -21,6 +21,7 @@ include:
     - .utils:log
     - .utils:apt
   variables:
+    # Internal variables:
     GIT_SUBMODULE_UPDATE_FLAGS: --jobs=4
   before_script:
     - !reference [.utils:log, before_script]

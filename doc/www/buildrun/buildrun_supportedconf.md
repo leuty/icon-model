@@ -2,23 +2,11 @@
 :orphan:
 ```
 
-(ref_buildrun_recommconf)=
-# Recommended Configurations
+(ref_buildrun_supportedconf)=
+# Supported Configurations
 
-For testing purposes we provide a number of use cases. All use cases provide everything necessary for running ICON:
+ICON partners provide a number of supported scientific configurations, which already provide everything necessary for running ICON. Please note that there is no support for configurations that are not listed below.
 
-* [grids and external parameters](ref_buildrun_gridextpar),
-* [initial and (where necessary) boundary conditions](ref_buildrun_icbc),
-* namelist input to start the ICON run
-
-_Please note that the preparation of further use cases is on-going._
-
-
-:::{admonition} Support
-:class: admonition-icontheme
-Besides testing, these use cases serve as recommended configurations which are supported by the developers.
-There will be no support from the ICON partners for configurations that are not listed below.
-:::
 
 ## AES Configurations
 

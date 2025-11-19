@@ -99,7 +99,6 @@ atm_file_interval="P3D" # superior to 48h so we write everything into one file
 # output_<xyz>=yes : yes --> output files for <xyz>, any other value --> no files for <xyz>
 
 output_atm_vgrid=no               # produces 1 file, but only once
-output_atm_2d_hiopy=no           # produces 3 files (15M, 3H, 1D)
 output_atm_gmean=no              # produces 2 files
 output_atm_2d=yes                 # produces 1 file
 output_atm_3d=yes                 # produces 4 files
@@ -504,57 +503,7 @@ if [[ "$output_atm_vgrid" == "yes" ]]; then
 EOF
 fi
 #
-if [[ "$output_atm_2d_hiopy" == "yes" ]]; then
-  #
-  cat >> ${atmo_namelist} << EOF
-&output_nml
- output_filename  = "${EXPNAME}_atm_2d_15m_ml"
- filename_format  = "<output_filename>_DOM<physdom>_<datetime2>"
- filetype         = 5
- mode             = 1
- output_start     = "${start_date}"
- output_end       = "${end_date}"
- output_interval  = "PT15M" !
- file_interval    = "${atm_file_interval}"    !     the file interval
- operation        = 'mean'
- ml_varlist       = 'pr', 'qv2m', 'rlut', 'rsds', 'sfcwind', 'tas'
-/
-&output_nml
- output_filename  = "${EXPNAME}_atm_2d_3h_m"
- filename_format  = "<output_filename>_DOM<physdom>_<datetime2>"
- filetype         = 5
- mode             = 1
- output_start     = "${start_date}"
- output_end       = "${end_date}"
- output_interval  = "PT3H" !
- file_interval    = "${atm_file_interval}"    !     the file interval
- operation        = 'mean'
- ml_varlist       = 'qivi', 'cllvi', 'qv2m', 'hfls', 'hfss', 'pr',
-                    'pres_msl', 'pres_sfc', 'prls', 'prw',
-                    'qgvi', 'qrvi', 'qsvi', 'rlds','rlus', 'rlut',
-                    'rsds', 'rsdt', 'rsus','rsut', 'sfcwind',
-                    'sic', 'sit', 'tas','tauu', 'tauv', 'ts',
-                    'uas', 'vas',
-/
-&output_nml
- output_filename  = "${EXPNAME}_atm_2d_1D_ml"
- filename_format  = "<output_filename>_DOM<physdom>_<datetime2>"
- filetype         = 5
- mode             = 1
- output_start     = "${start_date}"
- output_end       = "${end_date}"
- output_interval  = "P1D" !
- file_interval    = "${atm_file_interval}"    !     the file interval
- operation        = 'mean'
- ml_varlist       = 'qivi', 'cllvi', 'qv2m', 'hfls', 'hfss', 'pr',
-                    'pres_msl', 'pres_sfc', 'prls', 'prw',
-                    'qgvi', 'qrvi', 'qsvi', 'rlds','rlus', 'rlut',
-                    'rsds', 'rsdt', 'rsus','rsut', 'sfcwind',
-                    'sic', 'sit', 'tas','tauu', 'tauv', 'ts',
-                    'uas', 'vas',
-/
-EOF
-fi
+
 #
 if [[ "$output_atm_gmean" == "yes" ]]; then
   #

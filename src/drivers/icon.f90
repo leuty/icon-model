@@ -72,7 +72,9 @@ PROGRAM icon
   USE mo_mtrace,            ONLY: start_memory_tracing
 #  endif
 #endif
-
+#ifndef __NO_AES__
+  USE memman,           ONLY: mm_initialize, mm_finalize
+#endif
 #ifndef __NO_ICON_COMIN__
   USE mo_kind, ONLY: wp
   USE comin_host_interface,  ONLY: comin_setup_check,      &
@@ -209,6 +211,9 @@ PROGRAM icon
   ! Initialize the master control
 
   master_control_status = init_master_control(TRIM(master_namelist_filename))
+#ifndef __NO_AES__
+  IF (mm_initialize() /= 0) CALL finish('icon.f90', 'mm_initialize() failed')
+#endif
 
 #ifndef __NO_ICON_COMIN__
   !-------------------------------------------------------------------
@@ -341,6 +346,10 @@ PROGRAM icon
       CLOSE(500)
     END IF
   END IF
+
+#ifndef __NO_AES__
+  IF (mm_finalize() /= 0) CALL finish('icon.f90', 'mm_finalize() failed')
+#endif
 
   ! Shut down MPI
   CALL stop_mpi

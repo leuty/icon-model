@@ -9,20 +9,22 @@
 # ---------------------------------------------------------------
 
 include:
-  - local: .gitlab/ci/common/alpine.yml
+  - local: .gitlab/ci/common/ubuntu.yml
 
 # Implements the common template for jobs that require the pre-commit package.
 # Enables the pre-commit command in the environment and installs all hooks
 # listed in .pre-commit-config.yaml.
 #
 .common:pre-commit:
-  extends: .common:alpine
+  extends: .common:ubuntu
   variables:
-    ICON_CI_UTILS_APK_PACKAGES: git pre-commit python3
+    # Internal variables:
+    ICON_CI_UTILS_APT_PACKAGES: git pre-commit python3-minimal
     ICON_CI_COMMON_PRE_COMMIT_CACHE_PATH: ${ICON_CI_UTILS_GIT_IGNORE_PATH}/pre-commit
     PRE_COMMIT_HOME: ${ICON_CI_COMMON_PRE_COMMIT_CACHE_PATH}/cache
+    PRE_COMMIT_COLOR: always
   before_script:
-    - !reference [.common:alpine, before_script]
+    - !reference [.common:ubuntu, before_script]
     - |
       # !reference [.common:pre-commit, before_script]
       icon_ci_log_section_start 'Installing pre-commit hooks'
@@ -57,9 +59,9 @@ include:
       ) 2>&1
       icon_ci_log_section_end
   cache:
-    - key: alpine-pre-commit
+    - key: ubuntu-pre-commit
       paths:
-        - ${ICON_CI_UTILS_APK_CACHE_PATH}
+        - ${ICON_CI_UTILS_APT_CACHE_PATH}
     - key:
         prefix: pre-commit-hooks
         files:

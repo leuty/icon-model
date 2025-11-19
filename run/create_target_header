@@ -302,6 +302,10 @@ set_run_target_default()
 
     start_header
 
+cat >> "$output_script" << EOF
+$use_build_env
+EOF
+
 }
 
 #-----------------------------------------------------------------------------

@@ -35,7 +35,7 @@ Create intake directory entries for a given period
 #%        set filename_format = group_data.filename_format
 #%        set output_filename = group_data.output_filename
 #%        set levtype_l = level_types[-1]
-#%        set extension = extension_map[group_data.filetype|d(4)|int]
+#%        set extension = extension_map[group_data.filetype|d(4)|int]|d
 #%        set output_start = group_data.output_start
 #%        set output_start = output_start|replace('{initial_date}', INITIAL_DATE)
 #%        set output_start = output_start|replace('{final_date}', FINAL_DATE)
@@ -59,12 +59,14 @@ Create intake directory entries for a given period
 #%        do info.update(grid_label = 'gn')
 #%        do info.update(level_type = levtype_l)
 #%        do info.update(grid_id = 'not implemented')
-#%        do info.update(format = format_map[extension])
+#%        do info.update(format = format_map[extension]|d)
 #%        do info.update(output_start = output_start)
 #%        do info.update(output_end = output_end)
 #%        do info.update(file_interval = file_interval)
 #%        do info.update(filename_tmpl = filename_format|replace('<output_filename>', output_filename)|replace('<levtype_l>', levtype_l)+'.'+extension)
-#%        do file_infos.append(info)
+#%        if extension:
+#%          do file_infos.append(info)
+#%        endif
 #%      endif
 #%    endfor
 #%  endfor
@@ -106,7 +108,7 @@ command_line.add_argument('-f', '--force', action='store_true', help=
 command_line.add_argument('-m', '--maintenance', action='store_true', help=
     'delete non-existing files from catalog')
 command_line.add_argument('-V', '--version', action='version', version="""
-$Id: run/mkexp/defaults/DEFAULT.intake.tmpl 1 2025-05-19 09:29:56Z m221078 $
+$Id: run/mkexp/defaults/DEFAULT.intake.tmpl 2 2025-10-27 22:05:34Z m221078 $
 %{VERSIONS_|join('\n')}
 """)
 args = command_line.parse_args()

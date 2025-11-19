@@ -17,46 +17,46 @@ ulimit -c 0
 script_dir=$(cd "$(dirname "$0")"; pwd)
 icon_dir=$(cd "${script_dir}/../.."; pwd)
 
-NVHPC_ROOT='/p/software/jupiter/stages/2025/software/NVHPC/25.5-CUDA-12'
-GCC_ROOT='/p/software/jupiter/stages/2025/software/GCCcore/13.3.0'
+NVHPC_ROOT='/e/software/jupiter/stages/2025/software/NVHPC/25.5-CUDA-12'
+GCC_ROOT='/e/software/jupiter/stages/2025/software/GCCcore/13.3.0'
 
 STDCPP_ROOT=${GCC_ROOT}
 STDCPP_LIBS='-lstdc++'
 
-CUDA_ROOT="/p/software/jupiter/stages/2025/software/CUDA/12"
+CUDA_ROOT="/e/software/jupiter/stages/2025/software/CUDA/12"
 CUDA_LIBS='-lcuda -lcudart'
 
-MPI_ROOT='/p/software/default/stages/2025/software/OpenMPI/5.0.5-NVHPC-24.9-CUDA-12'
+MPI_ROOT='/e/software/default/stages/2025/software/OpenMPI/5.0.5-NVHPC-24.9-CUDA-12-gpfs'
 
-HDF5_ROOT='/p/software/default/stages/2025/software/HDF5/1.14.5-nvompic-2024a'
+HDF5_ROOT='/e/software/default/stages/2025/software/HDF5/1.14.5-nvompic-2024a'
 HDF5_LIBS='-lhdf5_hl -lhdf5'
 
 
-NETCDF_ROOT='/p/software/default/stages/2025/software/netCDF/4.9.2-nvompic-2024a'
+NETCDF_ROOT='/e/software/default/stages/2025/software/netCDF/4.9.2-nvompic-2024a'
 # long list of netcdf deps, not handled by pkg-config like eccodes
-NETCDF_extra_ldflags='-L/p/software/jupiter/stages/2025/software/zstd/1.5.6-GCCcore-13.3.0/lib -L/p/software/default/stages/2025/software/Szip/2.1.1-GCCcore-13.3.0/lib -L/p/software/default/stages/2025/software/PnetCDF/1.13.0-nvompic-2024a/lib -L/p/software/jupiter/stages/2025/software/cURL/8.7.1-GCCcore-13.3.0/lib -L/p/software/jupiter/stages/2025/software/bzip2/1.0.8-GCCcore-13.3.0/lib -L/p/software/default/stages/2025/software/Blosc/1.21.6-GCCcore-13.3.0/lib'
+NETCDF_extra_ldflags='-L/e/software/jupiter/stages/2025/software/zstd/1.5.6-GCCcore-13.3.0/lib -L/e/software/default/stages/2025/software/Szip/2.1.1-GCCcore-13.3.0/lib -L/e/software/default/stages/2025/software/PnetCDF/1.13.0-nvompic-2024a/lib -L/e/software/jupiter/stages/2025/software/cURL/8.7.1-GCCcore-13.3.0/lib -L/e/software/jupiter/stages/2025/software/bzip2/1.0.8-GCCcore-13.3.0/lib -L/e/software/default/stages/2025/software/Blosc/1.21.6-GCCcore-13.3.0/lib'
 NETCDF_LIBS='-lnetcdf -lm -lz -lblosc -lzstd -lbz2 -lsz -lcurl -lpnetcdf'
 
-NETCDFF_ROOT='/p/software/default/stages/2025/software/netCDF-Fortran/4.6.1-nvompic-2024a'
+NETCDFF_ROOT='/e/software/default/stages/2025/software/netCDF-Fortran/4.6.1-nvompic-2024a'
 NETCDFF_LIBS='-lnetcdff'
 
 BLAS_LAPACK_LIBS='-llapack -lblas'
 
-ECCODES_ROOT='/p/software/default/stages/2025/software/ecCodes/2.39.0-nvompic-2024a'
+ECCODES_ROOT='/e/software/default/stages/2025/software/ecCodes/2.39.0-nvompic-2024a'
 ECCODES_extra_ldflags="$(PKG_CONFIG_PATH=${ECCODES_ROOT}/lib64/pkgconfig:${PKG_CONFIG_PATH-} pkg-config --libs-only-L --libs-only-other --static eccodes)"
 ECCODES_LIBS="$(PKG_CONFIG_PATH=${ECCODES_ROOT}/lib64/pkgconfig:${PKG_CONFIG_PATH-} pkg-config --libs-only-l --static eccodes)"
 
-FYAML_ROOT='/p/software/default/stages/2025/software/libfyaml/0.9-GCCcore-13.3.0'
+FYAML_ROOT='/e/software/default/stages/2025/software/libfyaml/0.9-GCCcore-13.3.0'
 FYAML_LIBS='-lfyaml'
 
-XML2_ROOT='/p/software/jupiter/stages/2025/software/libxml2/2.12.7-GCCcore-13.3.0'
+XML2_ROOT='/e/software/jupiter/stages/2025/software/libxml2/2.12.7-GCCcore-13.3.0'
 XML2_LIBS='-lxml2'
 
-extra_ldflags='-L/p/software/jupiter/stages/2025/software/OpenSSL/3/lib'
+extra_ldflags='-L/e/software/jupiter/stages/2025/software/OpenSSL/3/lib'
 
 ################################################################################
 
-MODULES='Stages/2025 NVHPC/25.5-CUDA-12 OpenMPI/5.0.5 ecCodes/2.39.0 netCDF-Fortran/4.6.1 libfyaml/.0.9 CMake make'
+MODULES='Stages/2025 NVHPC/25.5-CUDA-12 OpenMPI/5.0.5-gpfs ecCodes/2.39.0 netCDF-Fortran/4.6.1 libfyaml/.0.9 CMake make'
 BUILD_ENV="module --force purge; module load ${MODULES}; module list;"
 
 CC="${MPI_ROOT}/bin/mpicc"

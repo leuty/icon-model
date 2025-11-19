@@ -18,7 +18,12 @@ MODULE mo_derived_variable_handling
   USE mo_model_domain,        ONLY: t_patch
   USE mo_io_config,           ONLY: lnetcdf_flt64_output
   USE mo_dynamics_config,     ONLY: nnow, nnew, nold
-  USE mo_impl_constants,      ONLY: vname_len, REAL_T, TIMELEVEL_SUFFIX, max_dom
+  USE mo_impl_constants,      ONLY: vname_len, TIMELEVEL_SUFFIX, max_dom
+#ifdef __SINGLE_PRECISION
+  USE mo_impl_constants,      ONLY: SINGLE_T
+#else
+  USE mo_impl_constants,      ONLY: REAL_T
+#endif
   USE mo_cdi_constants,       ONLY: GRID_UNSTRUCTURED_CELL, GRID_UNSTRUCTURED_EDGE, &
                               & GRID_ZONAL, GRID_UNSTRUCTURED_VERT
   USE mo_name_list_output_types, ONLY: t_output_name_list
@@ -135,20 +140,6 @@ CONTAINS
     CHARACTER(LEN=vname_len) :: dname, eString, dname_suffix
     TYPE(t_var_list_ptr) :: src_list
     CHARACTER(*), PARAMETER :: routine = modname//":init_op"
-
-#ifdef __SINGLE_PRECISION
-    ! The call below in copy_var_to_list() to add_var() is hard-coded for `wp==dp`
-    ! by its use of datatype=REAL_T and t_union_vals eg missval_r=info%missval%rval.
-    ! For single-precision it might look something like:
-    ! CALL add_var(data_type = SINGLE_T, initval_s = initval%sval,
-    !              resetval_s = resetval%s, ...)
-    !
-    ! The rest of this module, particularly `perform_op()` and use of t_union_vals
-    ! needs further investigation into its logic for when running in single-precision.
-    ! A foundation for single-precision was established when introducing t_var auxiliary
-    ! pointers for working precision, but it remains to be tested.
-    CALL finish(routine, "Not ported to single-precision")
-#endif
 
     IF (ANY(1 < [p_onl%stream_partitions_ml, p_onl%stream_partitions_pl,  &
       &          p_onl%stream_partitions_hl, p_onl%stream_partitions_il])) &
@@ -269,6 +260,19 @@ CONTAINS
     TYPE(t_var_metadata), POINTER :: info
 
     info => deriv%src(1)%p%info
+
+#ifdef __SINGLE_PRECISION
+    CALL add_var(SINGLE_T, src_list, dname, info%hgrid, info%vgrid, info%cf, &
+      & info%grib2, info%used_dimensions(1:info%ndims), vl_elem, &
+      & tlev_source=info%tlev_source, isteptype=info%isteptype, &
+      & post_op=info%post_op, initval_s=info%initval%sval, &
+      & resetval_s=info%resetval%sval, lmiss=info%lmiss, &
+      & missval_s=info%missval%sval, &
+      & vert_interp=info%vert_interp, hor_interp=info%hor_interp, &
+      & in_group=info%in_group, &
+      & loutput=.TRUE., lrestart=.FALSE., var_class=info%var_class, &
+      & lopenacc = info%lopenacc )
+#else
     CALL add_var(REAL_T, src_list, dname, info%hgrid, info%vgrid, info%cf, &
       & info%grib2, info%used_dimensions(1:info%ndims), vl_elem, &
       & tlev_source=info%tlev_source, isteptype=info%isteptype, &
@@ -279,6 +283,8 @@ CONTAINS
       & in_group=info%in_group, &
       & loutput=.TRUE., lrestart=.FALSE., var_class=info%var_class, &
       & lopenacc = info%lopenacc )
+#endif
+
     SELECT CASE(info%hgrid)
     CASE(GRID_UNSTRUCTURED_CELL)
       vl_elem%info%subset = patch_2d%cells%owned

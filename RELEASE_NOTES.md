@@ -1,8 +1,83 @@
+# Release notes for icon-2026.MM
+
+### ICON-Atmo
+
+#### AES Physics
+
+- Correction of the roughness length computation over ocean in TMX
+- Use memory manager library for data management in TMX
+
+#### NWP Physics
+
+- Bugfix in vdiff interface concerning restart reproducibility
+
+### ICON-Ocean
+
+- Include jstep_shift to fix timing of ocean output in case of enabled timeshift (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/983)
+- Feature ocean vorticity on cells (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1086)
+- Add constant initial u velocity for torus tests (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1103)
+- Fix variable assignment of some vars for write_initial_state (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/993)
+- Bugfix ocean initial state on GPU (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1133)
+- Fix for surface-level-type for Sea Ice Vars (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1098)
+
+### Soil and Surface
+
+#### Climate: ICON-Land
+
+- QUINCY development
+  - Updated the Jena-Soil-Model for use with QUINCY as an alternative to the simple soil-biogeochemistry model
+- Hydrology: Added ford inline documentation
+- Land initial files: Major update: 12 and 13 tile setups for jsbach and quincy
+- Land initial files: Fix for the skin layer conductivity
+- Revised 'basic' output list
+- Anthropogenic emission files: Created anthropogenic emission data including aviation sources from the CMIP7 dataset
+
+### Externals
+
+- Added Memory Manager library 1.0.0 as external in externals/memman
+- Switch to YAC v3.12
+
+### Infrastructure
+
+- Add namelist parameter for RBF coefficients filenames (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1057)
+- Clean up mo_kind for single and double w/o ecrad (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1009)
+- Fix for timeshift crosscheck affecting dwd_nec_sp (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1144)
+- Add single precision buildbot tests and download of grids (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1058)
+
+#### Scripting and testing
+
+- Add integration tests for Ragnarok (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1091)
+- Add summary of mkexp input file settings for ICON (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1084)
+- Make-runscripts: Removed unused and deprecated hiopy nml configs (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1114)
+- mkexp config updates from use in DYAMOND3 hackathon (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1115)
+- Clarify interfaces of the reusable CI templates (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1119)
+- mkexp: fix handling of SLURM variables on non-SLURM systems (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1128)
+- mkexp: update to 1.5.0, drop six dependency (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1143)
+- Add static analysis with Codee as nightly job (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1112)
+- mkexp: Update hardware parameters of the Levante gpu partition (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1148)
+
+#### Building
+
+- Added Add Levante dolpung wrapper using NVHPC 25.7 and OpenMPI 4.1.8 (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1052)
+- Fix for dolpung NVHPC config wrappers to support C++/CUDA with MemMan (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1130)
+- BLAS is made an optional dependency
+- Add kokkos/ragnarok for building on levante dolpung (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1131)
+- Fix up MPI-M configure and Buildbot wrappers (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1095)
+- Update JUPITER config wrapper (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1085)
+- Add dolpung config wrappers and links (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1101)
+
+#### Miscellaneous
+
+- Switch from fprettify to Codee for Fortran formatting (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1059)
+- Add unit-tests section to iconbot notifications (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1146)
+- Improve entry point of documentation and add tutorial for beginners (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1027)
+
+
 # Release notes for icon-2025.10
 
 ### ICON-Atmo
 
-AES Physics:
+#### AES Physics
 
 - Implemented a new convective boundary layer (CBL) test case for TMX validation
 - Optimization of the read-in of ozone data
@@ -26,7 +101,7 @@ AES Physics:
   - surface exchange coefficients in TMX
   - Implemented additional checks and fixes for using 6-hourly SST/SIC data
 
-NWP Physics:
+#### NWP Physics
 
 - Allow for external specification of trace gases in ecrad
 - New mixed-phase Spectral Bin Microphysics
@@ -54,7 +129,6 @@ NWP Physics:
   - Bug fix in pressure bias correction for IFS lateral boundary data
   - Bugfix in mo_nonhydro_state for turbdiff, affecting SCM
 
-
 ### ICON-Ocean
 
 - Add optimised variant of the CG-solver for ocean sea surface height
@@ -71,7 +145,6 @@ NWP Physics:
   - Fix concurrent HAMOCC
   - Correct vertical axis attributes for some HAMOCC and sea ice variables
 
-
 ### ICON-Waves
 
 - Implementation of Stokes depth diagnostic
@@ -81,7 +154,7 @@ NWP Physics:
 
 ### Soil and Surface
 
-Climate: ICON-Land
+#### Climate: ICON-Land
 
 - QUINCY development
   - Integrated QUINCY processes with JSBACH physics processes (HYDRO, SEB, SSE, TURB, RAD)
@@ -120,7 +193,7 @@ Climate: ICON-Land
 - Revised effect of phase change in snow, surface water and top layer soil storages
 - Updated snow density parametrization to include a dependency on mean snow temperature
 
-NWP: TERRA and other surface issues
+#### NWP: TERRA and other surface issues
 
 - Fixes:
   - rime formation term for interception storage
@@ -201,6 +274,7 @@ NWP: TERRA and other surface issues
 - Add option to disable GPU memory usage output
 - Fixes for the quad-precision handling
 
+
 # Release notes for icon-2025.04-2
 
 ### Infrastructure
@@ -212,7 +286,7 @@ NWP: TERRA and other surface issues
 
 ### ICON-Atmo
 
-NWP Physics:
+#### NWP Physics
 
 - Fixes:
   - Enables using spun-up FLake variables from first guess in MODE_COMBINED
@@ -234,7 +308,7 @@ Fixes:
 
 ### ICON-Atmo
 
-AES Physics:
+#### AES Physics
 
 - Add new radiation fields:
     - rsntcs: toa net clear-sky shortwave
@@ -253,7 +327,7 @@ AES Physics:
     - Initialization for nesting and latbc
     - Nesting and restarting with sea-ice on GPU
 
-NWP Physics:
+#### NWP Physics
 
 - 1-moment Microphysics
   - Option to use more accurate coefficients for saturation pressure from IFS: itype_satpres_coeffs
@@ -287,7 +361,7 @@ NWP Physics:
   - Add accumulated and max/min diagnostic fields to nest start interpolation
   - EMVORADO: Bugfix call to polarimetric dbz diagnostic in case of Tmatrix
 
-Modifications by the CLM Community:
+#### Modifications by the CLM Community
 
 - Fixes in soil-moisture dependent albedo tuning to enable reproducibilty of ICON-CLM on GPU
 
@@ -322,7 +396,7 @@ Modifications by the CLM Community:
 
 ### Soil and Surface
 
-Climate: ICON-Land
+#### Climate: ICON-Land
 
 - Added per-process namelist option lrestart_cont to allow restarting from other experiments run
   without that process
@@ -385,7 +459,7 @@ Climate: ICON-Land
   - Simulations with JSBACH assimilation and LAI prescribed from climatology
   - HD global water conservation test
 
-NWP: TERRA and other surface issues
+#### NWP: TERRA and other surface issues
 
 - Modularization: The one long TERRA routine has been split into smaller subroutines containing one task each. Some issues for the water budget have been fixed
 - nwp_sfc_interface: move accumulation of runoff_[sg] to nwp_statistics
@@ -469,10 +543,9 @@ The following lists give an overview on the main changes since the last release 
 Note that this release now also contains the external model HD-couple, which is ready for
 open source now.
 
-
 ### ICON-Atmo
 
-DyCore:
+#### DyCore
 
 - Revise projection to tangent plane for the FFSL scheme
 - Algorithmic optimization of the MIURA3 transport scheme
@@ -484,7 +557,8 @@ DyCore:
 - OpenACC bugfix in interpolation of ozone from pressure levels to model levels
 - Cleaned up some time-related constants (wrong place / doubled definitions)
 
-NWP Physics:
+#### NWP Physics
+
 - Extension of adaptive parameter tuning
 - Preparing a major revision of the NWP turbulence code including the integration of some not yet
   considered effects of surface roughness
@@ -495,7 +569,7 @@ NWP Physics:
 - Cleanup in radiation and aerosol code parts
 - Initialise aerosol fields in case of Kinne/CAMS Aerosol
 
-AES Physics:
+#### AES Physics
 
 - VDIFF turbulence: deep-atmosphere fixes (similar to NWP Physics)
   - Consistently use full geopotential when converting between dry static energy and temperature
@@ -508,7 +582,6 @@ AES Physics:
 - Re-activate output of aerosol optical properties with RTE-RRTMGP
 - Revise clear sky radiation computations
 
-
 ### ICON-Ocean
 
 - Add ocean isopycnal transport diagnostic
@@ -519,10 +592,9 @@ AES Physics:
 - ICON-Waves: prepare coupling of surface waves to the ocean
 - ICON-Waves: Add restart and checkpointing functionality
 
-
 ### Soil and Surface
 
-Climate: ICON-Land
+#### Climate: ICON-Land
 
 - Fixes for using older restart files from before the JSBACH pond scheme was implemented
 - Improvements in JSBACH soil hydrology
@@ -555,11 +627,10 @@ Climate: ICON-Land
 - Fix too cold soil temperatures for partially snow-covered grid cells
 - Fixes for natural land cover change
 
-NWP: TERRA
+#### NWP: TERRA
 
 - Encapsulate initialization of land use-related parameters for NWP
 - Add option for ICON-internal soil moisture adjustment
-
 
 ### Externals
 
@@ -571,13 +642,11 @@ NWP: TERRA
 - Introduce the math-support and math-interpolation libraries
 - Update to MTIME 1.2.2
 
-
 ### Infrastructure
 
 - MPI: check worker architecture during communicator creation
 - Restructured Subroutine initicon_inverse_post_op
 - Update the mechanism for source provenance collection
-
 
 #### Coupling
 
@@ -585,7 +654,6 @@ NWP: TERRA
 - Fix OpenACC bugs that affect coupled het jobs
 - Do runoff diagnostic only when new data are received from YAC
 - Interface aes/ocean: move ocean coupling call from `mo_interface_iconam_aes.f90` to `mo_nh_stepping.f90`
-
 
 #### Scripting and testing
 
@@ -602,7 +670,6 @@ NWP: TERRA
 - Update of JSC run scripts
 - Fix buildbot test scripts for Juwels and Booster
 
-
 #### Building
 
 - Several minor fixes for the configure script
@@ -612,7 +679,6 @@ NWP: TERRA
 - Several minor fixes and improvements for the build system
 - Introduce configure option `--enable-bundled-python` to build the Python
    interfaces of `MTIME`, `YAC` and `COMIN`
-
 
 #### GPU port, technical developments and optimizations
 
@@ -633,13 +699,13 @@ Below the main changes as compared to the previous ICON release.
 
 ### ICON-Atmo
 
-DyCore:
+#### DyCore
 
 - Improve adaptive CFL reduction at model start
 - Update and extend diagnostics in supervise_total_integrals_nh
 - Fix OpenACC loops in vertical advection
 
-NWP Physics:
+#### NWP Physics
 
 - Improvements to adaptive parameter tuning
 - Implemented option for Cloud droplet number from MODIS climatology
@@ -661,14 +727,14 @@ NWP Physics:
 - Wave-dependent sea surface roughness in icon-nwp
 - Fix initialisation of aerosol fields in case of Kinne/CAMS Aerosol
 
-Modifications by the CLM Community:
+#### Modifications by the CLM Community
 
 - CDNC scaling for climate projections
 - Removed the alteration of Modis Cdnc
 - Add namelist parameter (rat_lam,rsmin_fac) to enhance tuning capabilities
 - Added correction for albedo dependent on soil moisture for soil types 3 to 6
 
-Various bug fixes:
+#### Various bug fixes
 
 - Several bug fixes for OpenACC and Cray compiler
 - Make limited-area model (LAM) and nested grids work on CPU
@@ -684,7 +750,7 @@ Various bug fixes:
 - Performance fixes for OpenACC and fixes for OpenMP in TMX turbulence package
 - Fixed some potentially non-contiguous OpenACC transfers in coupling code plus removed some OpenACC KERNELS constructs in VDIFF
 
-New features and other modifications:
+#### New features and other modifications
 
 - Replace `lrad_yac` for coupling O3 and aerosols via python processes
 - Add namelist parameter for lower tropospheric stability correction
@@ -698,7 +764,6 @@ New features and other modifications:
 - Added a cloud inhomogeneity factor for snow and clean-up of factors for cloud liquid water
 - Remove unused code in the RTE-RRTMGP interface
 - Change setup for Sapphire base/nextGEMS prefinal
-
 
 ### ICON-ART
 
@@ -714,7 +779,6 @@ New features and other modifications:
 - Bugfix for wrong pressure unit in PSC scheme in ART
 - Water content computation of sea salt aerosol
 - Refactored and GPU-ported OEM (Online Emission Module) code
-
 
 ### ICON-Ocean
 
@@ -758,7 +822,6 @@ New features and other modifications:
 - Update to CDI version 2.4.0
 - Update to RTE+RRTMGP version 1.7
 
-
 ### Infrastructure
 
 Several bug and technical fixes, below the most relevant ones:
@@ -782,7 +845,6 @@ And some modifications to coupling:
 - Online diagnose of global sum runoffs before and after the YAC coupling
 - Correct calculation of Qtop and re-enable LSM patching in NWP-Ocean coupling
 
-
 ### GPU
 
 - GPU performance fixes and workarounds for NVIDIA and AMD GPUs
@@ -797,6 +859,7 @@ And some modifications to coupling:
 A workaround for the NVIDIA compiler has been implemented to be able to compile yac.
 
 Necessary backports from the main ICON repository for buildbot testing are also included.
+
 
 # Release notes for icon-2024.01
 

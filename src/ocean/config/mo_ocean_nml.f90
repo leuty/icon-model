@@ -1084,6 +1084,9 @@ MODULE mo_ocean_nml
   INTEGER :: mode_layers = 1                     ! mode to derive layer transport
   REAL(wp) :: rho_lev_in(max_allocated_levels)   ! density levels rho_lev_in(n_dlev+1)
 
+  ! vorticity on cells diagnostics
+  LOGICAL :: do_vort_on_cells = .FALSE.                ! switch for vorticity on cells diagnostics
+
   ! run eddy diagnostics
   LOGICAL  :: eddydiag             = .FALSE.
   LOGICAL  :: do_ts_budget         = .FALSE. ! by_nils
@@ -1107,6 +1110,7 @@ MODULE mo_ocean_nml
     & diagnose_for_horizontalVelocity, &
     & eddydiag, &
     & do_ts_budget, & ! by_nils
+    & do_vort_on_cells, & ! by_nils
     & diagnose_for_tendencies, &
     & diagnose_for_heat_content, &
     & diagnose_age, &

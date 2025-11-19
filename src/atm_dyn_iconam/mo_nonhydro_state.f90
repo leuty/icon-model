@@ -56,7 +56,8 @@ MODULE mo_nonhydro_state
     &                                iqb_water_start, iqb_water_end,            &
     &                                iqb_snow_start, iqb_snow_end,              &
     &                                iqb_graupel_start, iqb_graupel_end,        &
-    &                                iqb_ccn_start, iqb_ccn_end, iqbin
+    &                                iqb_ccn_start, iqb_ccn_end, iqbin,         &
+    &                                lmemman
   USE mo_coupling_config,      ONLY: is_coupled_to_ocean
   USE mo_radiation_config,     ONLY: irad_aero, iRadAeroCAMSclim, iRadAeroCAMStd
   USE mo_io_config,            ONLY: inextra_2d, inextra_3d, lnetcdf_flt64_output, &
@@ -515,6 +516,7 @@ MODULE mo_nonhydro_state
       &                           "mode_dwd_fg_in","mode_iau_fg_in",            &
       &                           "mode_iau_old_fg_in","LATBC_PREFETCH_VARS",   &
       &                           "iau_restore_vars"),                          &
+      &           lmemman=lmemman,                                              &
       &           lopenacc = .TRUE. )
     __acc_attach(p_prog%vn)
 
@@ -533,6 +535,7 @@ MODULE mo_nonhydro_state
       &                          "LATBC_PREFETCH_VARS",                        &
       &                          "mode_iniana","icon_lbc_vars",                &
       &                          "iau_restore_vars"),                          &
+      &          lmemman=lmemman,                                              &
       &          lopenacc = .TRUE.)
     __acc_attach(p_prog%w)
 
@@ -549,6 +552,7 @@ MODULE mo_nonhydro_state
       &                           "mode_dwd_fg_in","mode_iau_fg_in",           &
       &                           "mode_iau_old_fg_in","LATBC_PREFETCH_VARS",  &
       &                           "iau_restore_vars"),                         &
+      &           lmemman=lmemman,                                             &
       &           lopenacc = .TRUE. )
     __acc_attach(p_prog%rho)
 
@@ -563,6 +567,7 @@ MODULE mo_nonhydro_state
       &           "mode_dwd_fg_in","mode_iau_fg_in","mode_iau_old_fg_in",             &
       &           "LATBC_PREFETCH_VARS",                                              &
       &           "iau_restore_vars"),                                                &
+      &           lmemman=lmemman,                                                    &
       &           lopenacc = .TRUE. )
     __acc_attach(p_prog%theta_v)
 
@@ -575,6 +580,7 @@ MODULE mo_nonhydro_state
         &           GRID_UNSTRUCTURED_CELL, ZA_REFERENCE, cf_desc, grib2_desc,        &
         &           ldims=shape3d_c,                                                  &
         &           in_group=groups("nh_prog_vars","iau_restore_vars"),               &
+        &           lmemman=lmemman,                                                  &
         &           lopenacc = .TRUE. )
       __acc_attach(p_prog%exner)
 
@@ -591,6 +597,7 @@ MODULE mo_nonhydro_state
           &           lcontainer=.TRUE., lrestart=.FALSE.,                        &
           &           in_group=groups("iau_restore_vars"),                        &
           &           loutput=.FALSE.,                                            &
+          &           lmemman=lmemman,                                            &
           &           lopenacc = .TRUE. )
         __acc_attach(p_prog%tracer)
       ENDIF
@@ -1457,6 +1464,7 @@ MODULE mo_nonhydro_state
           &           GRID_UNSTRUCTURED_CELL, ZA_REFERENCE_HALF,                  &
           &           cf_desc, grib2_desc, ldims=shape3d_chalf,                   &
           &           tlev_source=TLEV_NNOW_RCF,                                  &
+          &           lmemman=lmemman,                                            &
           &           vert_interp=create_vert_interp_metadata(                    &
           &                       vert_intp_type=vintp_types("P","Z","I"),        &
           &                       vert_intp_method=VINTP_METHOD_LIN_NLEVP1 ),     &
@@ -1785,6 +1793,7 @@ MODULE mo_nonhydro_state
                 &                 "mode_iau_ana_in","mode_iau_old_ana_in",      &
                 &                 "mode_iau_anaatm_in","LATBC_PREFETCH_VARS",   &
                 &                 "mode_iniana","icon_lbc_vars"),               &
+                & lmemman=lmemman,                                              &
                 & lopenacc = .TRUE. )
     __acc_attach(p_diag%u)
 
@@ -1804,6 +1813,7 @@ MODULE mo_nonhydro_state
                 &                 "mode_iau_ana_in","mode_iau_old_ana_in",      &
                 &                 "mode_iau_anaatm_in","LATBC_PREFETCH_VARS",   &
                 &                 "mode_iniana","icon_lbc_vars"),               &
+                & lmemman=lmemman,                                              &
                 & lopenacc = .TRUE. )
     __acc_attach(p_diag%v)
 
@@ -1825,6 +1835,7 @@ MODULE mo_nonhydro_state
                 & GRID_UNSTRUCTURED_EDGE, ZA_REFERENCE, cf_desc, grib2_desc,             &
                 & ldims=shape3d_e,                                                       &
                 & hor_interp=create_hor_interp_metadata(hor_intp_type=HINTP_TYPE_NONE ), &
+                & lmemman=lmemman,                                                       &
                 & lopenacc = .TRUE. )
     __acc_attach(p_diag%vt)
 
@@ -1836,6 +1847,7 @@ MODULE mo_nonhydro_state
     CALL add_var( p_diag_list, 'omega_z', p_diag%omega_z,                       &
                 & GRID_UNSTRUCTURED_VERT, ZA_REFERENCE, cf_desc, grib2_desc,       &
                 & ldims=shape3d_v, lrestart=.FALSE., in_group=groups("atmo_derived_vars"), &
+                & lmemman=lmemman,                                                         &
                 & lopenacc = .TRUE. )
     __acc_attach(p_diag%omega_z)
 
@@ -1848,6 +1860,7 @@ MODULE mo_nonhydro_state
                 & GRID_UNSTRUCTURED_EDGE, ZA_REFERENCE, cf_desc, grib2_desc,    &
                 & ldims=shape3d_e,                                              &
                 & in_group=groups("iau_init_vars"),                             &
+                & lmemman=lmemman,                                              &
                 & lopenacc = .TRUE. )
     __acc_attach(p_diag%ddt_vn_phy)
 
@@ -1862,6 +1875,7 @@ MODULE mo_nonhydro_state
                   & cf_desc, grib2_desc,                                         &
                   & ldims=shape3d_e ,                                            &
                   & lrestart=.FALSE., loutput=.TRUE.,                            &
+                  & lmemman=lmemman,                                             &
                   & lopenacc = .TRUE.                                            )
       __acc_attach(p_diag%ddt_vn_dyn)
       p_diag%ddt_vn_dyn_is_associated=.TRUE.
@@ -1878,6 +1892,7 @@ MODULE mo_nonhydro_state
                   & cf_desc, grib2_desc,                                         &
                   & ldims=shape3d_c ,                                            &
                   & lrestart=.FALSE., loutput=.TRUE.,                            &
+                  & lmemman=lmemman,                                             &
                   & lopenacc = .TRUE.                                            )
       __acc_attach(p_diag%ddt_ua_dyn)
       p_diag%ddt_ua_dyn_is_associated=.TRUE.
@@ -1894,6 +1909,7 @@ MODULE mo_nonhydro_state
                   & cf_desc, grib2_desc,                                         &
                   & ldims=shape3d_c ,                                            &
                   & lrestart=.FALSE., loutput=.TRUE.,                            &
+                  & lmemman=lmemman,                                             &
                   & lopenacc = .TRUE.                                            )
       __acc_attach(p_diag%ddt_va_dyn)
       p_diag%ddt_va_dyn_is_associated=.TRUE.
@@ -1911,6 +1927,7 @@ MODULE mo_nonhydro_state
                   & cf_desc, grib2_desc,                                         &
                   & ldims=shape3d_e ,                                            &
                   & lrestart=.FALSE., loutput=.TRUE.,                            &
+                  & lmemman=lmemman,                                             &
                   & lopenacc = .TRUE.                                            )
       __acc_attach(p_diag%ddt_vn_dmp)
       p_diag%ddt_vn_dmp_is_associated=.TRUE.
@@ -1927,6 +1944,7 @@ MODULE mo_nonhydro_state
                   & cf_desc, grib2_desc,                                         &
                   & ldims=shape3d_c ,                                            &
                   & lrestart=.FALSE., loutput=.TRUE.,                            &
+                  & lmemman=lmemman,                                             &
                   & lopenacc = .TRUE.                                            )
       __acc_attach(p_diag%ddt_ua_dmp)
       p_diag%ddt_ua_dmp_is_associated=.TRUE.
@@ -1943,6 +1961,7 @@ MODULE mo_nonhydro_state
                   & cf_desc, grib2_desc,                                         &
                   & ldims=shape3d_c ,                                            &
                   & lrestart=.FALSE., loutput=.TRUE.,                            &
+                  & lmemman=lmemman,                                             &
                   & lopenacc = .TRUE.                                            )
       __acc_attach(p_diag%ddt_va_dmp)
       p_diag%ddt_va_dmp_is_associated=.TRUE.
@@ -1960,6 +1979,7 @@ MODULE mo_nonhydro_state
                   & cf_desc, grib2_desc,                                         &
                   & ldims=shape3d_e ,                                            &
                   & lrestart=.FALSE., loutput=.TRUE.,                            &
+                  & lmemman=lmemman,                                             &
                   & lopenacc = .TRUE.                                            )
       __acc_attach(p_diag%ddt_vn_hdf)
       p_diag%ddt_vn_hdf_is_associated=.TRUE.
@@ -1976,6 +1996,7 @@ MODULE mo_nonhydro_state
                   & cf_desc, grib2_desc,                                         &
                   & ldims=shape3d_c ,                                            &
                   & lrestart=.FALSE., loutput=.TRUE.,                            &
+                  & lmemman=lmemman,                                             &
                   & lopenacc = .TRUE.                                            )
       __acc_attach(p_diag%ddt_ua_hdf)
       p_diag%ddt_ua_hdf_is_associated=.TRUE.
@@ -1992,6 +2013,7 @@ MODULE mo_nonhydro_state
                   & cf_desc, grib2_desc,                                         &
                   & ldims=shape3d_c ,                                            &
                   & lrestart=.FALSE., loutput=.TRUE.,                            &
+                  & lmemman=lmemman,                                             &
                   & lopenacc = .TRUE.                                            )
       __acc_attach(p_diag%ddt_va_hdf)
       p_diag%ddt_va_hdf_is_associated=.TRUE.
@@ -2009,6 +2031,7 @@ MODULE mo_nonhydro_state
                   & cf_desc, grib2_desc,                                         &
                   & ldims=shape3d_e ,                                            &
                   & lrestart=.FALSE., loutput=.TRUE.,                            &
+                  & lmemman=lmemman,                                             &
                   & lopenacc = .TRUE.                                            )
       __acc_attach(p_diag%ddt_vn_adv)
       p_diag%ddt_vn_adv_is_associated=.TRUE.
@@ -2025,6 +2048,7 @@ MODULE mo_nonhydro_state
                   & cf_desc, grib2_desc,                                         &
                   & ldims=shape3d_c ,                                            &
                   & lrestart=.FALSE., loutput=.TRUE.,                            &
+                  & lmemman=lmemman,                                             &
                   & lopenacc = .TRUE.                                            )
       __acc_attach(p_diag%ddt_ua_adv)
       p_diag%ddt_ua_adv_is_associated=.TRUE.
@@ -2041,6 +2065,7 @@ MODULE mo_nonhydro_state
                   & cf_desc, grib2_desc,                                         &
                   & ldims=shape3d_c ,                                            &
                   & lrestart=.FALSE., loutput=.TRUE.,                            &
+                  & lmemman=lmemman,                                             &
                   & lopenacc = .TRUE.                                            )
       __acc_attach(p_diag%ddt_va_adv)
       p_diag%ddt_va_adv_is_associated=.TRUE.
@@ -2058,6 +2083,7 @@ MODULE mo_nonhydro_state
                   & cf_desc, grib2_desc,                                         &
                   & ldims=shape3d_e ,                                            &
                   & lrestart=.FALSE., loutput=.TRUE.,                            &
+                  & lmemman=lmemman,                                             &
                   & lopenacc = .TRUE.                                            )
       __acc_attach(p_diag%ddt_vn_cor)
       p_diag%ddt_vn_cor_is_associated=.TRUE.
@@ -2074,6 +2100,7 @@ MODULE mo_nonhydro_state
                   & cf_desc, grib2_desc,                                         &
                   & ldims=shape3d_c ,                                            &
                   & lrestart=.FALSE., loutput=.TRUE.,                            &
+                  & lmemman=lmemman,                                             &
                   & lopenacc = .TRUE.                                            )
       __acc_attach(p_diag%ddt_ua_cor)
       p_diag%ddt_ua_cor_is_associated=.TRUE.
@@ -2090,6 +2117,7 @@ MODULE mo_nonhydro_state
                   & cf_desc, grib2_desc,                                         &
                   & ldims=shape3d_c ,                                            &
                   & lrestart=.FALSE., loutput=.TRUE.,                            &
+                  & lmemman=lmemman,                                             &
                   & lopenacc = .TRUE.                                            )
       __acc_attach(p_diag%ddt_va_cor)
       p_diag%ddt_va_cor_is_associated=.TRUE.
@@ -2107,6 +2135,7 @@ MODULE mo_nonhydro_state
                   & cf_desc, grib2_desc,                                         &
                   & ldims=shape3d_e ,                                            &
                   & lrestart=.FALSE., loutput=.TRUE.,                            &
+                  & lmemman=lmemman,                                             &
                   & lopenacc = .TRUE.                                            )
       __acc_attach(p_diag%ddt_vn_pgr)
       p_diag%ddt_vn_pgr_is_associated=.TRUE.
@@ -2123,6 +2152,7 @@ MODULE mo_nonhydro_state
                   & cf_desc, grib2_desc,                                         &
                   & ldims=shape3d_c ,                                            &
                   & lrestart=.FALSE., loutput=.TRUE.,                            &
+                  & lmemman=lmemman,                                             &
                   & lopenacc = .TRUE.                                            )
       __acc_attach(p_diag%ddt_ua_pgr)
       p_diag%ddt_ua_pgr_is_associated=.TRUE.
@@ -2139,6 +2169,7 @@ MODULE mo_nonhydro_state
                   & cf_desc, grib2_desc,                                         &
                   & ldims=shape3d_c ,                                            &
                   & lrestart=.FALSE., loutput=.TRUE.,                            &
+                  & lmemman=lmemman,                                             &
                   & lopenacc = .TRUE.                                            )
       __acc_attach(p_diag%ddt_va_pgr)
       p_diag%ddt_va_pgr_is_associated=.TRUE.
@@ -2156,6 +2187,7 @@ MODULE mo_nonhydro_state
                   & cf_desc, grib2_desc,                                         &
                   & ldims=shape3d_e ,                                            &
                   & lrestart=.FALSE., loutput=.TRUE.,                            &
+                  & lmemman=lmemman,                                             &
                   & lopenacc = .TRUE.                                            )
       __acc_attach(p_diag%ddt_vn_phd)
       p_diag%ddt_vn_phd_is_associated=.TRUE.
@@ -2172,6 +2204,7 @@ MODULE mo_nonhydro_state
                   & cf_desc, grib2_desc,                                         &
                   & ldims=shape3d_c ,                                            &
                   & lrestart=.FALSE., loutput=.TRUE.,                            &
+                  & lmemman=lmemman,                                             &
                   & lopenacc = .TRUE.                                            )
       __acc_attach(p_diag%ddt_ua_phd)
       p_diag%ddt_ua_phd_is_associated=.TRUE.
@@ -2188,6 +2221,7 @@ MODULE mo_nonhydro_state
                   & cf_desc, grib2_desc,                                         &
                   & ldims=shape3d_c ,                                            &
                   & lrestart=.FALSE., loutput=.TRUE.,                            &
+                  & lmemman=lmemman,                                             &
                   & lopenacc = .TRUE.                                            )
       __acc_attach(p_diag%ddt_va_phd)
       p_diag%ddt_va_phd_is_associated=.TRUE.
@@ -2205,6 +2239,7 @@ MODULE mo_nonhydro_state
                   & cf_desc, grib2_desc,                                         &
                   & ldims=shape3d_e ,                                            &
                   & lrestart=.FALSE., loutput=.TRUE.,                            &
+                  & lmemman=lmemman,                                             &
                   & lopenacc = .TRUE.                                            )
       __acc_attach(p_diag%ddt_vn_iau)
       p_diag%ddt_vn_iau_is_associated=.TRUE.
@@ -2221,6 +2256,7 @@ MODULE mo_nonhydro_state
                   & cf_desc, grib2_desc,                                         &
                   & ldims=shape3d_c ,                                            &
                   & lrestart=.FALSE., loutput=.TRUE.,                            &
+                  & lmemman=lmemman,                                             &
                   & lopenacc = .TRUE.                                            )
       __acc_attach(p_diag%ddt_ua_iau)
       p_diag%ddt_ua_iau_is_associated=.TRUE.
@@ -2237,6 +2273,7 @@ MODULE mo_nonhydro_state
                   & cf_desc, grib2_desc,                                         &
                   & ldims=shape3d_c ,                                            &
                   & lrestart=.FALSE., loutput=.TRUE.,                            &
+                  & lmemman=lmemman,                                             &
                   & lopenacc = .TRUE.                                            )
       __acc_attach(p_diag%ddt_va_iau)
       p_diag%ddt_va_iau_is_associated=.TRUE.
@@ -2254,6 +2291,7 @@ MODULE mo_nonhydro_state
                   & cf_desc, grib2_desc,                                         &
                   & ldims=shape3d_e ,                                            &
                   & lrestart=.FALSE., loutput=.TRUE.,                            &
+                  & lmemman=lmemman,                                             &
                   & lopenacc = .TRUE.                                            )
       __acc_attach(p_diag%ddt_vn_ray)
       p_diag%ddt_vn_ray_is_associated=.TRUE.
@@ -2270,6 +2308,7 @@ MODULE mo_nonhydro_state
                   & cf_desc, grib2_desc,                                         &
                   & ldims=shape3d_c ,                                            &
                   & lrestart=.FALSE., loutput=.TRUE.,                            &
+                  & lmemman=lmemman,                                             &
                   & lopenacc = .TRUE.                                            )
       __acc_attach(p_diag%ddt_ua_ray)
       p_diag%ddt_ua_ray_is_associated=.TRUE.
@@ -2286,6 +2325,7 @@ MODULE mo_nonhydro_state
                   & cf_desc, grib2_desc,                                         &
                   & ldims=shape3d_c ,                                            &
                   & lrestart=.FALSE., loutput=.TRUE.,                            &
+                  & lmemman=lmemman,                                             &
                   & lopenacc = .TRUE.                                            )
       __acc_attach(p_diag%ddt_va_ray)
       p_diag%ddt_va_ray_is_associated=.TRUE.
@@ -2303,6 +2343,7 @@ MODULE mo_nonhydro_state
                   & cf_desc, grib2_desc,                                         &
                   & ldims=shape3d_e ,                                            &
                   & lrestart=.FALSE., loutput=.TRUE.,                            &
+                  & lmemman=lmemman,                                             &
                   & lopenacc = .TRUE.                                            )
       __acc_attach(p_diag%ddt_vn_grf)
       p_diag%ddt_vn_grf_is_associated=.TRUE.
@@ -2319,6 +2360,7 @@ MODULE mo_nonhydro_state
                   & cf_desc, grib2_desc,                                         &
                   & ldims=shape3d_c ,                                            &
                   & lrestart=.FALSE., loutput=.TRUE.,                            &
+                  & lmemman=lmemman,                                             &
                   & lopenacc = .TRUE.                                            )
       __acc_attach(p_diag%ddt_ua_grf)
       p_diag%ddt_ua_grf_is_associated=.TRUE.
@@ -2335,6 +2377,7 @@ MODULE mo_nonhydro_state
                   & cf_desc, grib2_desc,                                         &
                   & ldims=shape3d_c ,                                            &
                   & lrestart=.FALSE., loutput=.TRUE.,                            &
+                  & lmemman=lmemman,                                             &
                   & lopenacc = .TRUE.                                            )
       __acc_attach(p_diag%ddt_va_grf)
       p_diag%ddt_va_grf_is_associated=.TRUE.
@@ -2353,6 +2396,7 @@ MODULE mo_nonhydro_state
                 & vert_interp=create_vert_interp_metadata(                      &
                 &             vert_intp_type=vintp_types("P","Z","I"),          &
                 &             vert_intp_method=VINTP_METHOD_LIN ),              &
+                & lmemman=lmemman,                                              &
                 & lopenacc = .TRUE. )
     __acc_attach(p_diag%ddt_exner_phy)
 
@@ -2369,6 +2413,7 @@ MODULE mo_nonhydro_state
                 &             vert_intp_type=vintp_types("P","Z","I"),          &
                 &             vert_intp_method=VINTP_METHOD_LIN ),              &
                 & in_group=groups("iau_init_vars"),                             &
+                & lmemman=lmemman,                                              &
                 & lopenacc = .TRUE. )
     __acc_attach(p_diag%ddt_temp_dyn)
 
@@ -2379,6 +2424,7 @@ MODULE mo_nonhydro_state
     CALL add_var( p_diag_list, 'exner_pr', p_diag%exner_pr,                     &
                 & GRID_UNSTRUCTURED_CELL, ZA_REFERENCE, cf_desc, grib2_desc,    &
                 & ldims=shape3d_c,                                              &
+                & lmemman=lmemman,                                              &
                 & lopenacc = .TRUE. )
     __acc_attach(p_diag%exner_pr)
 
@@ -2391,6 +2437,7 @@ MODULE mo_nonhydro_state
                 & GRID_UNSTRUCTURED_CELL, ZA_REFERENCE, cf_desc, grib2_desc,    &
                 & ldims=shape3d_c, lrestart=.FALSE.,                            &
                 & in_group=groups("iau_init_vars"),                             &
+                & lmemman=lmemman,                                              &
                 & lopenacc = .TRUE. )
     __acc_attach(p_diag%exner_dyn_incr)
 
@@ -2402,6 +2449,7 @@ MODULE mo_nonhydro_state
                 & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,      &
                 & ldims=shape2d_c, lrestart=.FALSE.,                            &
                 & in_group=groups("dwd_fg_atm_vars", "LATBC_PREFETCH_VARS" ),   &
+                & lmemman=lmemman,                                              &
                 & lopenacc = .TRUE. )
     __acc_attach(p_diag%pres_sfc)
 
@@ -2414,6 +2462,7 @@ MODULE mo_nonhydro_state
       CALL add_var( p_diag_list, 'pres_sfc_old', p_diag%pres_sfc_old,             &
                   & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,      &
                   & ldims=shape2d_c, lrestart=.FALSE., loutput=.FALSE.,           &
+                  & lmemman=lmemman,                                              &
                   & lopenacc = .TRUE. )
       __acc_attach(p_diag%pres_sfc_old)
 
@@ -2424,6 +2473,7 @@ MODULE mo_nonhydro_state
       CALL add_var( p_diag_list, 'ddt_pres_sfc', p_diag%ddt_pres_sfc,             &
                   & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,      &
                   & ldims=shape2d_c, lrestart=.FALSE.,                            &
+                  & lmemman=lmemman,                                              &
                   & lopenacc = .TRUE. )
       __acc_attach(p_diag%ddt_pres_sfc)
     ENDIF
@@ -2446,6 +2496,7 @@ MODULE mo_nonhydro_state
                 &                 "mode_iau_ana_in","mode_iau_old_ana_in",      &
                 &                 "mode_iau_anaatm_in","LATBC_PREFETCH_VARS",   &
                 &                 "mode_iniana","icon_lbc_vars"),               &
+                & lmemman=lmemman,                                              &
                 & lopenacc = .TRUE. )
     __acc_attach(p_diag%temp)
 
@@ -2459,6 +2510,7 @@ MODULE mo_nonhydro_state
                 & vert_interp=create_vert_interp_metadata(                      &
                 &             vert_intp_type=vintp_types("P","Z","I"),          &
                 &             vert_intp_method=VINTP_METHOD_LIN ),              &
+                & lmemman=lmemman,                                              &
                 & lopenacc = .TRUE. )
     __acc_attach(p_diag%tempv)
 
@@ -2472,6 +2524,7 @@ MODULE mo_nonhydro_state
                 & vert_interp=create_vert_interp_metadata(                      &
                 &             vert_intp_type=vintp_types("P","Z","I"),          &
                 &             vert_intp_method=VINTP_METHOD_LIN_NLEVP1 ),       &
+                & lmemman=lmemman,                                              &
                 & lopenacc = .TRUE. )
     __acc_attach(p_diag%temp_ifc)
 
@@ -2491,7 +2544,8 @@ MODULE mo_nonhydro_state
                 & "mode_iau_ana_in","mode_iau_old_ana_in",                      &
                 & "mode_iau_anaatm_in","LATBC_PREFETCH_VARS",                   &
                 & "mode_iniana","icon_lbc_vars"),                               &
-                &  lopenacc = .TRUE. )
+                & lmemman=lmemman,                                              &
+                & lopenacc = .TRUE. )
     __acc_attach(p_diag%pres)
 
     ! pres_ifc     p_diag%pres_ifc(nproma,nlevp1,nblks_c)
@@ -2504,6 +2558,7 @@ MODULE mo_nonhydro_state
                 & vert_interp=create_vert_interp_metadata(                      &
                 &             vert_intp_type=vintp_types("Z","I"),              &
                 &             vert_intp_method=VINTP_METHOD_LIN_NLEVP1 ),       &
+                & lmemman=lmemman,                                              &
                 & lopenacc = .TRUE. )
     __acc_attach(p_diag%pres_ifc)
 
@@ -2518,6 +2573,7 @@ MODULE mo_nonhydro_state
                 & vert_interp=create_vert_interp_metadata(                      &
                 &             vert_intp_type=vintp_types("P","Z","I"),          &
                 &             vert_intp_method=VINTP_METHOD_LIN ),              &
+                & lmemman=lmemman,                                              &
                 & lopenacc = .TRUE. )
     __acc_attach(p_diag%dpres_mc)
 
@@ -2533,6 +2589,7 @@ MODULE mo_nonhydro_state
                 &             vert_intp_type=vintp_types("P","Z","I"),          &
                 &             vert_intp_method=VINTP_METHOD_LIN ),              &
                 & in_group=groups("atmo_derived_vars"),                         &
+                & lmemman=lmemman,                                              &
                 & lopenacc = .TRUE. )
     __acc_attach(p_diag%div)
 
@@ -2545,6 +2602,7 @@ MODULE mo_nonhydro_state
       CALL add_var( p_diag_list, 'div_ic', p_diag%div_ic,                          &
                   & GRID_UNSTRUCTURED_CELL, ZA_REFERENCE_HALF, cf_desc, grib2_desc,&
                   & ldims=shape3d_chalf, lrestart=.FALSE.,                         &
+                  & lmemman=lmemman,                                               &
                   & lopenacc = .TRUE. )
       __acc_attach(p_diag%div_ic)
 
@@ -2556,6 +2614,7 @@ MODULE mo_nonhydro_state
       CALL add_var( p_diag_list, 'hdef_ic', p_diag%hdef_ic,                            &
                   & GRID_UNSTRUCTURED_CELL, ZA_REFERENCE_HALF, cf_desc, grib2_desc,    &
                   & ldims=shape3d_chalf, lrestart=.FALSE.,                             &
+                  & lmemman=lmemman,                                                   &
                   & lopenacc = .TRUE. )
       __acc_attach(p_diag%hdef_ic)
 
@@ -2571,6 +2630,7 @@ MODULE mo_nonhydro_state
       CALL add_var( p_diag_list, 'dwdx', p_diag%dwdx,                                  &
                   & GRID_UNSTRUCTURED_CELL, ZA_REFERENCE_HALF, cf_desc, grib2_desc,    &
                   & ldims=shape3d_chalf, lrestart=.FALSE.,                             &
+                  & lmemman=lmemman,                                                   &
                   & lopenacc = .TRUE. )
       __acc_attach(p_diag%dwdx)
 
@@ -2784,6 +2844,7 @@ MODULE mo_nonhydro_state
     CALL add_var( p_diag_list, 'airmass_new', p_diag%airmass_new,                &
                 & GRID_UNSTRUCTURED_CELL, ZA_REFERENCE, cf_desc, grib2_desc,       &
                 & ldims=shape3d_c, loutput=.FALSE., lrestart=.FALSE.,              &
+                & lmemman=lmemman,                                                 &
                 & lopenacc = .TRUE. )
     __acc_attach(p_diag%airmass_new)
 
@@ -3975,6 +4036,7 @@ MODULE mo_nonhydro_state
                 &   vert_intp_type=vintp_types("P","Z","I"),                    &
                 &   vert_intp_method=VINTP_METHOD_LIN_NLEVP1 ),                 &
                 & in_group=group, isteptype=TSTEP_CONSTANT,                     &
+                & lmemman = .TRUE.,                                             &
                 & lopenacc = .TRUE. )
     __acc_attach(p_metrics%z_ifc)
 
@@ -3991,6 +4053,7 @@ MODULE mo_nonhydro_state
                 &    vert_intp_type=vintp_types("P","Z","I"),                   &
                 &    vert_intp_method=VINTP_METHOD_LIN ),                       &
                 & isteptype=TSTEP_CONSTANT,                                     &
+                & lmemman = .TRUE.,                                             &
                 & lopenacc = .TRUE. )
     __acc_attach(p_metrics%z_mc)
 
@@ -4178,6 +4241,7 @@ MODULE mo_nonhydro_state
                 & GRID_UNSTRUCTURED_CELL, ZA_REFERENCE_HALF, cf_desc, grib2_desc,  &
                 & ldims=shape3d_chalf, loutput=.TRUE.,                          &
                 & isteptype=TSTEP_CONSTANT,                                     &
+                & lmemman=lmemman,                                              &
                 & lopenacc = .TRUE. )
     __acc_attach(p_metrics%ddqz_z_half)
 
@@ -4192,6 +4256,7 @@ MODULE mo_nonhydro_state
                 & GRID_UNSTRUCTURED_CELL, ZA_REFERENCE, cf_desc, grib2_desc,    &
                 & ldims=shape3d_c, loutput=.TRUE.,                              &
                 & isteptype=TSTEP_CONSTANT,                                     &
+                & lmemman=lmemman,                                              &
                 & lopenacc = .TRUE. )
     __acc_attach(p_metrics%ddqz_z_full)
 
@@ -4235,6 +4300,7 @@ MODULE mo_nonhydro_state
     CALL add_var( p_metrics_list, 'geopot_agl_ifc', p_metrics%geopot_agl_ifc,   &
                 & GRID_UNSTRUCTURED_CELL, ZA_REFERENCE_HALF, cf_desc, grib2_desc,  &
                 & ldims=shape3d_chalf,                                          &
+                & lmemman=lmemman,                                              &
                 & lopenacc = .TRUE. )
     __acc_attach(p_metrics%geopot_agl_ifc)
 
@@ -4445,6 +4511,7 @@ MODULE mo_nonhydro_state
                   & GRID_UNSTRUCTURED_CELL, ZA_REFERENCE, cf_desc, grib2_desc,    &
                   & ldims=shape3d_c, loutput=.FALSE.,                             &
                   & isteptype=TSTEP_CONSTANT,                                     &
+                  & lmemman=lmemman,                                              &
                   & lopenacc = .TRUE. )
       __acc_attach(p_metrics%inv_ddqz_z_full)
 
@@ -4840,6 +4907,7 @@ MODULE mo_nonhydro_state
                   & GRID_UNSTRUCTURED_CELL, ZA_REFERENCE_HALF, cf_desc, grib2_desc,   &
                   & ldims=shape3d_chalf,                                              &
                   & isteptype=TSTEP_CONSTANT,                                         &
+                  & lmemman=lmemman,                                                  &
                   & lopenacc = .TRUE. )
       __acc_attach(p_metrics%inv_ddqz_z_half)
 

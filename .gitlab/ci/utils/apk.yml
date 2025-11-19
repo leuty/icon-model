@@ -17,18 +17,17 @@ include:
 # Jobs that extend the template must ensure that their runtime environments
 # provide the apk command, i.e. they run in an Alpine-based Docker image.
 #
-# The installation of the packages can be controlled with the following
-# variables:
-#   - ICON_CI_UTILS_APK_PACKAGES (defaults to an empty string): a
-#     space-separated list of packages to install with APK;
-#   - ICON_CI_UTILS_APK_CACHE_PATH (defaults to
-#     `$ICON_CI_UTILS_GIT_IGNORE_PATH/apk`, see .common:git:ignore): path
-#     inside $CI_PROJECT_DIR to the APK cache directory (the caching is disabled
-#     if the variable is set to an empty string).
-#
 .utils:apk:
   extends: .utils:git:ignore
   variables:
+    # Space-separated list of packages to install with APK:
+    ICON_CI_UTILS_APK_PACKAGES: null
+
+    # Path inside $CI_PROJECT_DIR to the APK cache directory:
+    #   Hint: to disable caching, nullify this variable and the cache parameter, i.e.
+    #     variables:
+    #       ICON_CI_UTILS_APK_CACHE_PATH: null
+    #     cache: null
     ICON_CI_UTILS_APK_CACHE_PATH: ${ICON_CI_UTILS_GIT_IGNORE_PATH}/apk
   before_script:
     - |

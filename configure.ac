@@ -505,9 +505,21 @@ AC_ARG_ENABLE([single-precision],
 
 AC_ARG_ENABLE([single-precision-ecrad],
   [AS_HELP_STRING([--enable-single-precision-ecrad],
-     [enable single precision for ECRAD @<:@default=no@:>@])],
-  [AS_IF([test x"$enableval" != xno], [enable_single_precision_ecrad=yes])],
-  [enable_single_precision_ecrad=no])
+     [enable single precision for ECRAD @<:@default=auto@:>@])],
+  [AS_IF([test x"$enableval" != xno && test x"$enableval" != xauto],
+     [enable_single_precision_ecrad=yes])],
+  [enable_single_precision_ecrad=auto])
+
+AS_VAR_IF([enable_single_precision_ecrad], [auto],
+  [AS_IF([test "x$enable_ecrad$enable_single_precision" = xyesyes],
+     [AC_MSG_NOTICE([single precision for ECRAD is enabled because single dnl
+precision as the working precision is requested])
+      enable_single_precision_ecrad=yes],
+     [enable_single_precision_ecrad=no])],
+  [AS_VAR_IF([enable_ecrad], [no],
+     [AC_MSG_WARN([option dnl
+'--enable-single-precision-ecrad=$enable_single_precision_ecrad' is ignored: dnl
+the usage of the ECMWF radiation scheme (ECRAD) is disabled])])])
 
 AC_ARG_ENABLE([intel-consistency],
   [AS_HELP_STRING([--enable-intel-consistency],
@@ -709,11 +721,20 @@ AC_ARG_WITH([external-comin],
 
 AS_VAR_IF([enable_single_precision], [yes],
   [AS_VAR_IF([enable_mixed_precision], [yes],
-    [AC_MSG_ERROR([unsupported combination of the configure options: you are dnl
-trying to configure with the single precision as the working precision and dnl
-the mixed precision dycore: either disable the single precision dnl
+     [AC_MSG_ERROR([unsupported combination of the configure options: you dnl
+are trying to configure with the single precision as the working precision dnl
+and the mixed precision dycore: either disable the single precision dnl
 (--disable-single-precision) or disable the mixed precision dycore dnl
 (--disable-mixed-precision)])])])
+
+AS_VAR_IF([enable_ecrad], [yes],
+  [AS_IF(
+     [test "x$enable_single_precision$enable_single_precision_ecrad" = xyesno],
+     [AC_MSG_ERROR([unsupported combination of the configure options: you dnl
+are trying to configure with the single precision as the working precision dnl
+but the single precision for ECRAD is disabled: either disable the single dnl
+precision as the working precision (--disable-single-precision) or enable dnl
+the single precision for ECRAD (--enable-single-precision-ecrad)])])])
 
 AS_VAR_IF([enable_jsbach], [no],
   [AS_VAR_IF([enable_jsbach_hd], [yes],
@@ -1773,17 +1794,23 @@ either disable usage of the ECMWF radiation scheme (--disable-ecrad) or use dnl
 the bundled version of ECRAD library (--without-external-ecrad), or set dnl
 FCFLAGS, LDFLAGS and LIBS accordingly])])])
 
-AC_CACHE_CHECK([whether Fortran BLAS library is available], [icon_cv_have_blas],
-  [icon_cv_have_blas=no
-   AC_LINK_IFELSE([AC_LANG_FUNC_LINK_TRY([dgemm])], [icon_cv_have_blas=yes])])
-AS_VAR_IF([icon_cv_have_blas], [no],
-  [AC_MSG_FAILURE([unable to link a test program using BLAS library: set dnl
-FCFLAGS, LDFLAGS and LIBS accordingly])])
+AS_IF([test x"$enable_dace" = xyes || test x"$enable_art" = xyes],
+  [AC_CACHE_CHECK([whether Fortran BLAS library is available],
+     [icon_cv_have_blas],
+     [icon_cv_have_blas=no
+      AC_LINK_IFELSE([AC_LANG_FUNC_LINK_TRY([dgemm])],
+        [icon_cv_have_blas=yes])])
+   AS_VAR_IF([icon_cv_have_blas], [no],
+     [AC_MSG_FAILURE([unable to link a test program using BLAS library: set dnl
+FCFLAGS, LDFLAGS and LIBS accordingly])])])
 
 AC_CACHE_CHECK([whether Fortran LAPACK library is available],
   [icon_cv_have_lapack],
   [icon_cv_have_lapack=no
-   AC_LINK_IFELSE([AC_LANG_FUNC_LINK_TRY([dgeev])], [icon_cv_have_lapack=yes])])
+   AS_VAR_IF([enable_single_precision], [yes],
+     [icon_tmp=sgesdd], [icon_tmp=dgesdd])
+   AC_LINK_IFELSE([AC_LANG_FUNC_LINK_TRY([$icon_tmp])],
+     [icon_cv_have_lapack=yes])])
 AS_VAR_IF([icon_cv_have_lapack], [no],
   [AC_MSG_FAILURE([unable to link a test program using LAPACK library: set dnl
 FCFLAGS, LDFLAGS and LIBS accordingly])])
@@ -3108,6 +3135,67 @@ RAGNAROK library @<:@default=$ICON_BUNDLED_HIPFLAGS@:>@])dnl
      ["${FC_MOD_IN}ragnarok/build/mod " ])
    BUNDLED_LIBFILES="ragnarok/build/libragnarok.a $BUNDLED_LIBFILES"])
 
+AS_VAR_IF([enable_aes], [yes],
+  [icon_subdir_srcdir="$srcdir/externals/memman"
+   icon_subdir_unique_file="src/bindings/fortran/memman_f.F90"
+   AS_IF([test ! -r "$icon_subdir_srcdir/$icon_subdir_unique_file"],
+     [AC_MSG_ERROR([unable to find sources of the bundled version of MEMMAN dnl
+library ($icon_subdir_unique_file) in '$icon_subdir_srcdir'])])
+   AC_ARG_VAR([ICON_MEMMAN_FCFLAGS],
+     [Fortran compiler flags to be appended to FCFLAGS when configuring the
+bundled version of MEMMAN library @<:@default=$ICON_BUNDLED_FCFLAGS@:>@])dnl
+   ICON_MEMMAN_FCFLAGS=${ICON_MEMMAN_FCFLAGS-$ICON_BUNDLED_FCFLAGS}
+   AC_ARG_VAR([ICON_MEMMAN_CFLAGS],
+     [C compiler flags to be appended to CFLAGS when configuring the bundled
+version of MEMMAN library @<:@default=$ICON_BUNDLED_CFLAGS@:>@])dnl
+   ICON_MEMMAN_CFLAGS=${ICON_MEMMAN_CFLAGS-$ICON_BUNDLED_CFLAGS}
+   AC_ARG_VAR([ICON_MEMMAN_CXXFLAGS],
+     [C++ compiler flags to be appended to CXXFLAGS when configuring the bundled
+version of MEMMAN library @<:@default=$ICON_BUNDLED_CXXFLAGS@:>@])dnl
+   ICON_MEMMAN_CXXFLAGS=${ICON_MEMMAN_CXXFLAGS-$ICON_BUNDLED_CXXFLAGS}
+   ACX_SUBDIR_INIT_CMAKE([utils/cmake-wrapper],
+     [no-run no-adjust-compilers no-adjust-utilities],
+     [externals/memman/build], ['${CMAKE}'])
+   ACX_SUBDIR_REMOVE_ARGS([externals/memman/build],
+     [-DCMAKE_C_FLAGS=*|-DCMAKE_Fortran_FLAGS=*|-DCMAKE_CXX_FLAGS=*])
+   icon_memman_extra_args=
+   AS_CASE([$icon_gpu_secondary],
+     [cuda],
+     [AS_VAR_APPEND([icon_memman_extra_args],
+        [' -DMM_ENABLE_BACKEND_CUDA=ON -DMM_ENABLE_BACKEND_HIP=OFF'])],
+     [hip],
+     [AS_VAR_APPEND([icon_memman_extra_args],
+        [' -DMM_ENABLE_BACKEND_CUDA=OFF -DMM_ENABLE_BACKEND_HIP=ON'])],
+     [AS_VAR_APPEND([icon_memman_extra_args],
+        [' -DMM_ENABLE_BACKEND_CUDA=OFF -DMM_ENABLE_BACKEND_HIP=OFF'])])
+   ACX_SUBDIR_APPEND_ARGS([externals/memman/build],
+     [-DCMAKE_AR="$AR"], [-DCMAKE_RANLIB="$RANLIB"],
+     [-DCMAKE_C_FLAGS="$subdir_CFLAGS $ICON_MEMMAN_CFLAGS $subdir_CPPFLAGS"],
+     [-DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_MEMMAN_FCFLAGS"],
+     [-DCMAKE_CXX_FLAGS=dnl
+"$subdir_CXXFLAGS $ICON_MEMMAN_CXXFLAGS $subdir_CPPFLAGS"],
+     [-DCMAKE_BUILD_TYPE=None],
+     [-DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH"],
+     [-DBUILD_SHARED_LIBS=OFF], [-DBUILD_TESTING=OFF],
+     [-DICON_DEP_SOURCE_DIR="${icon_abs_top_srcdir}/externals/memman"],
+     [-DMM_BUILD_DOC=OFF], [-DMM_GENERATE_BINDINGS=OFF], [-DMM_ENABLE_C=ON],
+     [-DMM_ENABLE_FORTRAN=ON], [$icon_memman_extra_args])
+   AS_VAR_APPEND([bundled_CMAKE_PREFIX_PATH],
+     ["${bundled_CMAKE_PREFIX_PATH:+";"}dnl
+${icon_abs_top_builddir}/externals/memman/build/_icon"])
+   AS_VAR_APPEND([bundled_includes],
+       ["${FC_MOD_IN}externals/memman/build/_icon/src/bindings/fortran/mod "])
+   BUNDLED_LIBFILES=dnl
+"externals/memman/build/_icon/src/core/libmemman.a $BUNDLED_LIBFILES"
+   BUNDLED_LIBFILES=dnl
+"externals/memman/build/_icon/src/bindings/cpp/libmemmancpp.a $BUNDLED_LIBFILES"
+   BUNDLED_LIBFILES=dnl
+"externals/memman/build/_icon/src/bindings/c/libmemmanc.a $BUNDLED_LIBFILES"
+   BUNDLED_LIBFILES=dnl
+"externals/memman/build/_icon/src/bindings/fortran/libmemmanf.a dnl
+$BUNDLED_LIBFILES"
+   AS_VAR_APPEND([icon_pvcs_subdirs], [' externals/memman'])])
+
 dnl Prepend the include search flags to FCFLAGS:
 FCFLAGS="${bundled_includes}${FCFLAGS}"
 
@@ -3307,7 +3395,7 @@ dnl The make_runscripts generator should call run/collect.set-up.info and
 dnl generate run/set-up.info. This is currently not the case, therefore we
 dnl delegate this task to the configure script:
 AC_CONFIG_COMMANDS([run/set-up.info],
-  [run/collect.set-up.info "$ac_file" 2>/dev/null || dnl
+  [run/collect.set-up.info "$ac_file" 2>&AS_MESSAGE_LOG_FD || dnl
    AC_MSG_ERROR([failed to create $ac_file])])
 
 dnl An additional step to generate dummy dependencies:

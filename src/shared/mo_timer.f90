@@ -117,7 +117,7 @@ MODULE mo_timer
   ! aes physics
   PUBLIC :: timer_cov
   PUBLIC :: timer_rad , timer_rht
-  PUBLIC :: timer_vdf , timer_vdf_dn , timer_vdf_sf , timer_vdf_up
+  PUBLIC :: timer_vdf , timer_vdf_dn , timer_vdf_sf , timer_vdf_up, timer_tmx
   PUBLIC :: timer_car
   PUBLIC :: timer_wmo , timer_two
   PUBLIC :: timer_mig , timer_cld_mig
@@ -424,7 +424,7 @@ MODULE mo_timer
   ! aes physics
   INTEGER :: timer_cov
   INTEGER :: timer_rad , timer_rht
-  INTEGER :: timer_vdf , timer_vdf_dn , timer_vdf_sf , timer_vdf_up
+  INTEGER :: timer_vdf , timer_vdf_dn , timer_vdf_sf , timer_vdf_up, timer_tmx
   INTEGER :: timer_car
   INTEGER :: timer_wmo , timer_two
   INTEGER :: timer_mig , timer_cld_mig
@@ -774,6 +774,7 @@ CONTAINS
        timer_vdf_dn = new_timer("vdiff_down")
        timer_vdf_sf = new_timer("update_surface")
        timer_vdf_up = new_timer("vdiff_up")
+       timer_tmx    = new_timer("interface_aes_tmx")
        timer_two    = new_timer("interface_cloud_two")
        timer_mig    = new_timer("interface_cloud_mig")
        timer_cld_mig= new_timer('cloud_mig')
