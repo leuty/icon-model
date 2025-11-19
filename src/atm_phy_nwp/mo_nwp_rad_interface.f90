@@ -52,7 +52,7 @@ MODULE mo_nwp_rad_interface
   USE mo_o3_util,              ONLY: o3_interface
   USE mo_nwp_aerosol,          ONLY: nwp_aerosol_interface, nwp_aerosol_cleanup
   USE mo_fortran_tools,        ONLY: set_acc_host_or_device
-  USE mo_run_config,           ONLY: msg_level
+  USE mo_run_config,           ONLY: msg_level, ico2
 
   IMPLICIT NONE
 
@@ -202,7 +202,11 @@ MODULE mo_nwp_rad_interface
           &     (msg_level >= 5 .AND. is_new_month)) &
         )
     END IF
-
+    ! FIXME: This is a hack to make interactive CO2 work with the radiation scheme.
+    ! Should be replaced by a proper implementation of an `irad_co2 = 1` case.
+    IF (ico2 > 0 .AND. irad_co2 == -1) THEN
+      prm_diag%co2rad_ext(:,:,:) = pt_prog%tracer(:,:,:,ico2)
+    ENDIF
 
 #ifdef __ECRAD
     IF (isolrad == 2 .AND. atm_phy_nwp_config(jg)%inwp_radiation == 4) THEN

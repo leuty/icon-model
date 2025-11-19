@@ -5,6 +5,7 @@
 #### NWP Physics
 
 - Bugfix in vdiff interface concerning restart reproducibility
+- Introducing CO2 prognostic tracer to ecRad to enable emission-driven simulations with interactive land-ocean-atmosphere carbon cycle
 
 ### ICON-Ocean
 
