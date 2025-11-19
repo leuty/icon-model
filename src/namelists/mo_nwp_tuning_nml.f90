@@ -84,6 +84,7 @@ MODULE mo_nwp_tuning_nml
     &                               config_itune_albedo          => itune_albedo,          &
     &                               config_tune_albedo_wso       => tune_albedo_wso,       &
     &                               config_itune_slopecorr       => itune_slopecorr,       &
+    &                               config_tune_ssolim_sfcfric   => tune_ssolim_sfcfric,   &
     &                               config_itune_o3              => itune_o3,              &
     &                               config_lcalib_clcov          => lcalib_clcov,          &
     &                               config_max_calibfac_clcl     => max_calibfac_clcl,     &
@@ -269,6 +270,9 @@ MODULE mo_nwp_tuning_nml
   INTEGER :: &                     !< slope-dependent tuning of parameters affecting stable PBLs
     &  itune_slopecorr             ! 1: slope-dependent reduction of rlam_heat and near-surface tkhmin
 
+  REAL(wp):: &                     ! SSO stdev limit (m) above which adaptive surface friction is reduced
+    & tune_ssolim_sfcfric(max_dom)
+
   INTEGER :: &                     !< type of artificial ozone tuning
     &  itune_o3                    ! 0: no tuning
                                    ! 1: old tuning for RRTM radiation
@@ -361,7 +365,7 @@ MODULE mo_nwp_tuning_nml
     &                      itune_slopecorr, tune_gustlim_agl, tune_gustlim_fac,   &
     &                      tune_urbahf, tune_urbisa, tune_box_ice, tune_supsat_limfac, &
     &                      tune_grzdc_offset, itune_vis_diag, tune_entrainment_profile, &
-    &                      itune_ceiling_diag
+    &                      tune_ssolim_sfcfric, itune_ceiling_diag
 
 CONTAINS
 
@@ -525,6 +529,7 @@ CONTAINS
     tune_albedo_wso = (/0._wp, 0._wp/) ! no bare soil albedo correction for soil types 3-6 (dry soil, wet soil)
     itune_o3        = 2            ! standard ozone tuning for EcRad
     itune_slopecorr  = 0           ! slope-dependent reduction of rlam_heat and near-surface tkhmin
+    tune_ssolim_sfcfric(:) = 1.e4_wp ! SSO stdev limit (m) above which adaptive surface friction is reduced
     !
     ! IAU increment tuning
     max_freshsnow_inc = 0.025_wp   ! maximum allowed positive freshsnow increment
@@ -706,6 +711,7 @@ CONTAINS
     config_itune_albedo          = itune_albedo
     config_tune_albedo_wso       = tune_albedo_wso
     config_itune_slopecorr       = itune_slopecorr
+    config_tune_ssolim_sfcfric   = tune_ssolim_sfcfric
     config_itune_o3              = itune_o3
     config_lcalib_clcov          = lcalib_clcov
     config_max_calibfac_clcl     = max_calibfac_clcl

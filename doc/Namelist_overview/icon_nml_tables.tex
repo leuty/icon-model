@@ -6718,6 +6718,17 @@ itune\_gust\_diag = 4
 \tabularnewline
 
 \hline
+tune\_ssolim\_sfcfric&
+R(max\_dom)&
+10000.0&
+m &
+Threshold value of SSO standard deviation above which the adaptive parameter tuning for surface friction is reduced (with a
+linear transition from 1 to 0 between the specified value and twice this value). Recommendation: use a value slightly above
+the threshold used in the data assimilation scheme for 10-m winds (70 m at DWD). &
+icpl\_da\_sfcfric $\ge$ 1; inwp\_sso = 1
+\tabularnewline
+
+\hline
 itune\_vis\_diag&
 I&
 1&

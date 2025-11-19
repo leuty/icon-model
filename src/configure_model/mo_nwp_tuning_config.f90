@@ -77,6 +77,7 @@ MODULE mo_nwp_tuning_config
   PUBLIC :: itune_albedo
   PUBLIC :: tune_albedo_wso
   PUBLIC :: itune_slopecorr
+  PUBLIC :: tune_ssolim_sfcfric
   PUBLIC :: itune_o3
   PUBLIC :: lcalib_clcov
   PUBLIC :: max_calibfac_clcl
@@ -290,6 +291,9 @@ MODULE mo_nwp_tuning_config
 
   INTEGER :: &                     !< slope-dependent tuning of parameters affecting stable PBLs
     &  itune_slopecorr             ! 1: slope-dependent reduction of rlam_heat and near-surface tkhmin
+
+  REAL(wp):: &                     ! SSO stdev limit (m) above which adaptive surface friction is reduced
+    & tune_ssolim_sfcfric(max_dom)
 
   INTEGER :: &                     !< type of artificial ozone tuning
     &  itune_o3                    ! 0: no tuning
