@@ -7,6 +7,9 @@ AES Physics:
 - Correction of the roughness length computation over ocean in TMX
 - Use memory manager library for data management in TMX
 
+NWP Physics:
+
+- Bugfix in vdiff interface concerning restart reproducibility
 
 ### Soil and Surface
 
