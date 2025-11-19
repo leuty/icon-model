@@ -1,5 +1,11 @@
 # Release notes for icon-2025.10-1
 
+### ICON-Atmo
+
+#### NWP Physics
+
+- Bugfix in vdiff interface concerning restart reproducibility
+
 ### ICON-Ocean
 
 - Use ice class as vertical axis attribute for 3d sea ice variables

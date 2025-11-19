@@ -13,7 +13,7 @@
 
 MODULE mo_nwp_vdiff_interface
 
-  USE mo_bc_greenhouse_gases, ONLY: ghg_co2mmr
+  USE mo_bc_greenhouse_gases, ONLY: ghg_co2mmr, bc_greenhouse_gases_time_interpolation
   USE mo_ccycle_config, ONLY: &
       & CCYCLE_MODE_NONE, CCYCLE_MODE_INTERACTIVE, CCYCLE_MODE_PRESCRIBED, CCYCLE_CO2CONC_CONST, &
       & CCYCLE_CO2CONC_FROMFILE, t_ccycle_config
@@ -614,7 +614,7 @@ CONTAINS
       CALL alb%init(nproma, patch%nblks_c, lacc=.TRUE.)
     !$OMP END PARALLEL
 
-    CALL get_surface_co2_concentration(patch, ccycle_config, tracer(:,:,:,:), &
+    CALL get_surface_co2_concentration(patch, ccycle_config, datetime_now, tracer(:,:,:,:), &
         & co2_concentration_srf, lacc=.TRUE.)
 
     ! Routine queues on async queue 1. No need to wait.
@@ -1599,10 +1599,12 @@ CONTAINS
   !>
   !! Collect the surface CO2 concentration according to the carbon-cycle configuration.
   !! Time-dependent values are retrieved from `mo_bc_greenhouse_gases::ghg_co2mmr`.
-  SUBROUTINE get_surface_co2_concentration (patch, ccycle_config, tracer, co2_concentration_srf, lacc)
+  SUBROUTINE get_surface_co2_concentration (patch, ccycle_config, datetime_now, tracer, co2_concentration_srf, lacc)
     TYPE(t_patch), INTENT(IN) :: patch !< Current patch.
     !> Carbon-cycle configuration.
     TYPE(t_ccycle_config), INTENT(IN) :: ccycle_config
+    !> Current time
+    TYPE(datetime), POINTER, INTENT(IN) :: datetime_now
     !> Tracer concentrations at current time step [kg/kg].
     REAL(wp), INTENT(IN) :: tracer(:,:,:,:)
     LOGICAL, INTENT(IN) :: lacc
@@ -1686,7 +1688,7 @@ CONTAINS
 
       CASE(CCYCLE_CO2CONC_FROMFILE)
         ! Time-dependent concentration (location independent).
-
+        CALL bc_greenhouse_gases_time_interpolation(datetime_now)
         !$OMP PARALLEL
         !$OMP DO PRIVATE(i_blk, ics, ice, ic)
         DO i_blk = i_startblk, i_endblk
