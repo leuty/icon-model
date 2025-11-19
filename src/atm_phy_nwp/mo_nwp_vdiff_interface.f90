@@ -556,12 +556,11 @@ CONTAINS
             !$ACC LOOP GANG VECTOR
             DO ic = ics, ice
               tracer_srf_emission(ic,ico2 - iqt + 1,i_blk) = &
-                & (mem%flx_co2_natural_land(ic,i_blk) + mem%fco2ant(ic,i_blk)) * fr_sft(ic,i_blk,SFT_LAND)
-                IF (lhave_flx_co2_natural_sea) THEN
+                & mem%flx_co2_natural_land(ic,i_blk) * fr_sft(ic,i_blk,SFT_LAND) + mem%fco2ant(ic,i_blk)
+              IF (lhave_flx_co2_natural_sea) THEN
                 tracer_srf_emission(ic,ico2 - iqt + 1,i_blk) = &
-                  & tracer_srf_emission(ic,ico2 - iqt + 1,i_blk) &
-                  & + (mem%sea_state%flx_co2_natural_sea(ic,i_blk) + mem%fco2ant(ic,i_blk)) &
-                  & * (fr_sft(ic,i_blk,SFT_SWTR) + fr_sft(ic,i_blk,SFT_SICE))
+                  & tracer_srf_emission(ic,ico2 - iqt + 1,i_blk)  &
+                  & + mem%sea_state%flx_co2_natural_sea(ic,i_blk) * fr_sft(ic,i_blk,SFT_SWTR)
               END IF
             END DO
           END IF
