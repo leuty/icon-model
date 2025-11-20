@@ -11,7 +11,7 @@
 #-----------------------------------------------------------------------------
 # Hostfile Generation for openmp_hack   #TODO JD: WHAT IS THIS?
 #
-# $Id: run/mkexp/environments/hostfiles_levante/hostfile_openmp_hack.tmpl 1 2025-01-09 k202123 $
+# $Id: run/mkexp/environments/hostfiles_levante/hostfile_openmp_hack.tmpl 2 2025-11-14 k202123 $
 #
 export SLURM_HOSTFILE=$EXPDIR/hst_file
 
@@ -58,7 +58,7 @@ for block in $(seq 1 $numblocks); do
    done
 done
 
-#oce out and hiopy
+#oce out
 n_atmo_out_left=$mpi_atm_io_procs
 for i in $(seq $(($no_of_nodes-$no_io_nodes)) $(($no_of_nodes-1))); do
    hst=${hostarr[$i]}
@@ -104,7 +104,6 @@ elif [ \$rank -lt $(($mpi_atm_procs + $mpi_atm_io_procs + $mpi_oce_procs + $mpi_
         hwloc-bind \${mask_out[\$SLURM_LOCALID]} \$*
 else
         export OMP_NUM_THREADS=4
-        echo hiopy
         hwloc-bind \${mask_out[\$SLURM_LOCALID]} ${EXPDIR}/mpmd_jobs/run_\$(( \$SLURM_PROCID -$mpi_atm_procs - $mpi_atm_io_procs - $mpi_oce_procs - $mpi_oce_io_procs))
 fi
 EOF
