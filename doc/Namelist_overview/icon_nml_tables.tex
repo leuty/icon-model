@@ -2961,6 +2961,19 @@ Requires:
 i2daero\_fire = 1
 \tabularnewline
 
+%\hline
+parallel\_grib\_decoding&
+L & .FALSE.& &
+Parallel decoding of GRIB2 input data by Work PEs:\\
+{\textasteriskcentered} .FALSE.: Workroot PE reads and decodes the records of a GRIB input file sequentially.\\
+{\textasteriskcentered} .TRUE.: Workroot PE reads the records and distributes them to all Work PEs for decoding in parallel.\\
+The second case requires input files of format GRIB2.
+In addition, a dictionary is mandatory (ana\_varnames\_map\_file).\\
+(A few corresponding timers are implemented and subordinated to the init\_icon timer.
+Activating them requires run\_nml: timers\_level > 8.)
+& init\_mode=1, 5, 7
+\tabularnewline
+
 \end{longtab}
 
 Defined and used in: \verb+src/namelists/mo_initicon_nml.f90+

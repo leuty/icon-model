@@ -244,7 +244,8 @@ cat > ${atmo_namelist} << EOF
  icpl_da_tkhmin               = 1
  adjust_tso_tsnow             = .true.
  dt_ana                       = 3600             ! ... to control evaporation relevant parameters
-
+ parallel_grib_decoding       = .TRUE.           ! .FALSE.: Workroot PE reads and decodes GRIB file records
+                                                 ! .TRUE.:  Workroot PE reads GRIB file records, Work PEs decode them
 
  ! init_mode             = 5
  ! lread_ana             = .true.

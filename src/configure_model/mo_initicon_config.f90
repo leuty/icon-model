@@ -71,6 +71,7 @@ MODULE mo_initicon_config
   PUBLIC :: pinit_seed
   PUBLIC :: pinit_amplitude
   PUBLIC :: fire2d_filename
+  PUBLIC :: parallel_grib_decoding
 
   ! Subroutines
   PUBLIC :: configure_initicon
@@ -229,6 +230,18 @@ MODULE mo_initicon_config
 
   CHARACTER(LEN=filename_max) :: & !< Filename that contains wildfire precursor emissions (2d-aerosol, i2daero_fire == 1)
     &  fire2d_filename             !< Allowed keywords: <species>, <gridfile>, <nroot>, <nroot0>, <jlev>, <idom>, <yyyymmdd>
+
+  LOGICAL :: parallel_grib_decoding ! Decoding of GRIB2 input data by Work PEs in parallel:
+                                    ! - .FALSE.: "Decoding by single process"
+                                    !   * Workroot PE reads and decodes input data
+                                    !   * Used library: CDI
+                                    !   * Allowed filetypes: (NetCDF), GRIB2
+                                    ! - .TRUE.: "Decoding by multiple processes"
+                                    !   * Workroot PE reads records and distributes them
+                                    !     to all other Work PEs for decoding
+                                    !   * Other Work PEs decode data
+                                    !   * Used library: ecCodes
+                                    !   * Allowed filetypes: GRIB2
 
 CONTAINS
 

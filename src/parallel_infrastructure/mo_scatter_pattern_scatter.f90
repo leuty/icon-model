@@ -16,7 +16,7 @@ MODULE mo_scatter_pattern_scatter
     USE mo_kind, ONLY: dp, sp, i8
     USE mo_scatter_pattern_base
     USE mo_mpi, ONLY: my_process_is_stdio, &
-    &                 p_max, p_gather, p_scatter
+    &                 p_max, p_allgather, p_scatter
     USE mo_parallel_config, ONLY: blk_no, idx_no
     USE mo_exception, ONLY: finish
 
@@ -61,7 +61,7 @@ CONTAINS
 
         CHARACTER(*), PARAMETER :: routine &
              = modname//":costructScatterPatternScatter"
-        INTEGER :: ierr, pt_shape(2)
+        INTEGER :: ierr
         INTEGER, ALLOCATABLE :: myIndices(:)
         LOGICAL :: l_write_debug_info
 
@@ -70,45 +70,51 @@ CONTAINS
         IF (l_write_debug_info) WRITE(0,*) "entering ", routine
         CALL constructScatterPattern(me, jg, loc_arr_len, glb_index, communicator, root_rank)
         me%slapSize = p_max(me%myPointCount, comm = communicator)
-        pt_shape(1) = MERGE(me%slapSize, 1, me%rank == me%root_rank)
-        pt_shape(2) = MERGE(me%comm_size, 1, me%rank == me%root_rank)
-        ALLOCATE(me%pointIndices(pt_shape(1), pt_shape(2)), &
-                 me%point_counts(pt_shape(2)), myIndices(me%slapSize), &
-                 stat = ierr)
+        ALLOCATE(me%pointIndices(me%slapSize,me%comm_size), &
+          &      me%point_counts(me%comm_size),             &
+          &      myIndices(me%slapSize),                    &
+          &      stat = ierr)
         IF(ierr /= SUCCESS) CALL finish(routine, "error allocating memory")
         myIndices(1:me%myPointCount) = glb_index
         myIndices(me%myPointCount+1:me%slapSize) = -1
-        CALL p_gather(me%myPointCount, me%point_counts, me%root_rank, &
-             communicator)
-        CALL p_gather(myIndices, me%pointIndices, me%root_rank, communicator)
+        ! Every worker in communicator needs information from all the others
+        CALL p_allgather(me%myPointCount, me%point_counts, 1, 1, communicator)
+        CALL p_allgather(myIndices, me%pointIndices, me%slapSize, me%slapSize, communicator)
+        DEALLOCATE (myIndices, stat = ierr)
+        IF(ierr /= SUCCESS) CALL finish(routine, "error deallocating memory")
         IF (l_write_debug_info) WRITE(0,*) "leaving ", routine
     END SUBROUTINE constructScatterPatternScatter
 
     !-------------------------------------------------------------------------------------------------------------------------------
     !> implementation of t_scatterPattern::distribute_dp
     !-------------------------------------------------------------------------------------------------------------------------------
-    SUBROUTINE distributeDataScatter_dp(me, globalArray, localArray, ladd_value)
+    SUBROUTINE distributeDataScatter_dp(me, globalArray, localArray, ladd_value, nsender)
         CLASS(t_scatterPatternScatter), INTENT(INOUT) :: me
         REAL(dp), INTENT(IN   ) :: globalArray(:)
         REAL(dp), INTENT(INOUT) :: localArray(:,:)
         LOGICAL, INTENT(IN) :: ladd_value
+        INTEGER, OPTIONAL, INTENT(IN) :: nsender
 
         CHARACTER(*), PARAMETER :: routine &
              = modname//":distributeDataScatter_dp"
         REAL(dp), ALLOCATABLE :: sendArray(:,:), recvArray(:)
-        INTEGER :: i, j, blk, idx, ierr, send_shape(2)
+        INTEGER :: i, j, blk, idx, ierr, send_rank
         LOGICAL :: l_write_debug_info
 
         l_write_debug_info = debugmodule .AND. me%rank == me%root_rank
 
         IF (l_write_debug_info) WRITE(0,*) "entering ", routine
+        IF (PRESENT(nsender)) THEN
+          send_rank = nsender
+        ELSE
+          send_rank = me%root_rank
+        ENDIF
         CALL me%startDistribution()
 
-        send_shape = SHAPE(me%pointIndices)
-        ALLOCATE(sendArray(send_shape(1), send_shape(2)), &
-             recvArray(me%slapSize), stat = ierr)
+        ALLOCATE(sendArray(me%slapSize, me%comm_size), &
+          &      recvArray(me%slapSize), stat = ierr)
         IF(ierr /= SUCCESS) CALL finish(routine, "error allocating memory")
-        IF (me%rank == me%root_rank) THEN
+        IF (me%rank == send_rank) THEN
 !$OMP PARALLEL DO PRIVATE(i,j)
           DO j = 1, me%comm_size
             DO i = 1, me%point_counts(j)
@@ -117,7 +123,7 @@ CONTAINS
           END DO
 !$OMP END PARALLEL DO
         END IF
-        CALL p_scatter(sendArray, recvArray, me%root_rank, me%communicator)
+        CALL p_scatter(sendArray, recvArray, send_rank, me%communicator)
         IF(ladd_value) THEN
 !$NEC ivdep
             DO i = 1, me%myPointCount
@@ -131,36 +137,41 @@ CONTAINS
             END DO
         END IF
 
-        DEALLOCATE(recvArray, sendArray)
-        CALL me%endDistribution(INT(send_shape(1), i8) * INT(send_shape(2), i8) * 8_i8)
+        DEALLOCATE(recvArray, sendArray, stat = ierr)
+        IF(ierr /= SUCCESS) CALL finish(routine, "error deallocating memory")
+        CALL me%endDistribution(INT(me%slapSize, i8) * INT(me%comm_size, i8) * 8_i8)
         IF (l_write_debug_info) WRITE(0,*) "leaving ", routine
     END SUBROUTINE distributeDataScatter_dp
 
     !-------------------------------------------------------------------------------------------------------------------------------
     !> implementation of t_scatterPattern::distribute_dpsp
     !-------------------------------------------------------------------------------------------------------------------------------
-    SUBROUTINE distributeDataScatter_dpsp(me, globalArray, localArray, ladd_value)
+    SUBROUTINE distributeDataScatter_dpsp(me, globalArray, localArray, ladd_value, nsender)
         CLASS(t_scatterPatternScatter), INTENT(INOUT) :: me
         REAL(dp), INTENT(IN   ) :: globalArray(:)
         REAL(sp), INTENT(INOUT) :: localArray(:,:)
         LOGICAL, INTENT(IN) :: ladd_value
+        INTEGER, OPTIONAL, INTENT(IN) :: nsender
 
         CHARACTER(*), PARAMETER :: routine = modname//":distributeDataScatter_spdp"
         REAL(sp), ALLOCATABLE :: sendArray(:,:), recvArray(:)
-        INTEGER :: i, j, blk, idx, ierr, send_shape(2)
+        INTEGER :: i, j, blk, idx, ierr, send_rank
         LOGICAL :: l_write_debug_info
 
         l_write_debug_info = debugmodule .AND. me%rank == me%root_rank
 
         IF (l_write_debug_info) WRITE(0,*) "entering ", routine
-
+        IF (PRESENT(nsender)) THEN
+          send_rank = nsender
+        ELSE
+          send_rank = me%root_rank
+        ENDIF
         CALL me%startDistribution()
 
-        send_shape = SHAPE(me%pointIndices)
-        ALLOCATE(sendArray(send_shape(1), send_shape(2)), &
-             recvArray(me%slapSize), stat = ierr)
+        ALLOCATE(sendArray(me%slapSize, me%comm_size), &
+          &      recvArray(me%slapSize), stat = ierr)
         IF(ierr /= SUCCESS) CALL finish(routine, "error allocating memory")
-        IF (me%rank == me%root_rank) THEN
+        IF (me%rank == send_rank) THEN
 !$OMP PARALLEL DO PRIVATE(i,j)
           DO j = 1, me%comm_size
             DO i = 1, me%point_counts(j)
@@ -169,7 +180,7 @@ CONTAINS
           END DO
 !$OMP END PARALLEL DO
         END IF
-        CALL p_scatter(sendArray, recvArray, me%root_rank, me%communicator)
+        CALL p_scatter(sendArray, recvArray, send_rank, me%communicator)
         IF(ladd_value) THEN
 !$NEC ivdep
             DO i = 1, me%myPointCount
@@ -183,36 +194,41 @@ CONTAINS
             END DO
         END IF
 
-        DEALLOCATE(recvArray, sendArray)
-        CALL me%endDistribution(INT(send_shape(1), i8) * INT(send_shape(2), i8) * 4_i8)
+        DEALLOCATE(recvArray, sendArray, stat = ierr)
+        IF(ierr /= SUCCESS) CALL finish(routine, "error deallocating memory")
+        CALL me%endDistribution(INT(me%slapSize, i8) * INT(me%comm_size, i8) * 8_i8)
         IF (l_write_debug_info) WRITE(0,*) "leaving ", routine
     END SUBROUTINE distributeDataScatter_dpsp
 
     !-------------------------------------------------------------------------------------------------------------------------------
     !> implementation of t_scatterPattern::distribute_spdp
     !-------------------------------------------------------------------------------------------------------------------------------
-    SUBROUTINE distributeDataScatter_spdp(me, globalArray, localArray, ladd_value)
+    SUBROUTINE distributeDataScatter_spdp(me, globalArray, localArray, ladd_value, nsender)
         CLASS(t_scatterPatternScatter), INTENT(INOUT) :: me
         REAL(sp), INTENT(IN   ) :: globalArray(:)
         REAL(dp), INTENT(INOUT) :: localArray(:,:)
         LOGICAL, INTENT(IN) :: ladd_value
+        INTEGER, OPTIONAL, INTENT(IN) :: nsender
 
         CHARACTER(*), PARAMETER :: routine = modname//":distributeDataScatter_spdp"
         REAL(sp), ALLOCATABLE :: sendArray(:,:), recvArray(:)
-        INTEGER :: i, j, blk, idx, ierr, send_shape(2)
+        INTEGER :: i, j, blk, idx, ierr, send_rank
         LOGICAL :: l_write_debug_info
 
         l_write_debug_info = debugmodule .AND. me%rank == me%root_rank
 
         IF (l_write_debug_info) WRITE(0,*) "entering ", routine
-
+        IF (PRESENT(nsender)) THEN
+          send_rank = nsender
+        ELSE
+          send_rank = me%root_rank
+        ENDIF
         CALL me%startDistribution()
 
-        send_shape = SHAPE(me%pointIndices)
-        ALLOCATE(sendArray(send_shape(1), send_shape(2)), &
-             recvArray(me%slapSize), stat = ierr)
+        ALLOCATE(sendArray(me%slapSize, me%comm_size), &
+          &      recvArray(me%slapSize), stat = ierr)
         IF(ierr /= SUCCESS) CALL finish(routine, "error allocating memory")
-        IF (me%rank == me%root_rank) THEN
+        IF (me%rank == send_rank) THEN
 !$OMP PARALLEL DO PRIVATE(i,j)
           DO j = 1, me%comm_size
             DO i = 1, me%point_counts(j)
@@ -221,7 +237,7 @@ CONTAINS
           END DO
 !$OMP END PARALLEL DO
         END IF
-        CALL p_scatter(sendArray, recvArray, me%root_rank, me%communicator)
+        CALL p_scatter(sendArray, recvArray, send_rank, me%communicator)
         IF(ladd_value) THEN
 !$NEC ivdep
             DO i = 1, me%myPointCount
@@ -235,37 +251,42 @@ CONTAINS
             END DO
         END IF
 
-        DEALLOCATE(recvArray, sendArray)
-        CALL me%endDistribution(INT(send_shape(1), i8) * INT(send_shape(2), i8) * 4_i8)
+        DEALLOCATE(recvArray, sendArray, stat = ierr)
+        IF(ierr /= SUCCESS) CALL finish(routine, "error deallocating memory")
+        CALL me%endDistribution(INT(me%slapSize, i8) * INT(me%comm_size, i8) * 8_i8)
         IF (l_write_debug_info) WRITE(0,*) "leaving ", routine
     END SUBROUTINE distributeDataScatter_spdp
 
     !-------------------------------------------------------------------------------------------------------------------------------
     !> implementation of t_scatterPattern::distribute_sp
     !-------------------------------------------------------------------------------------------------------------------------------
-    SUBROUTINE distributeDataScatter_sp(me, globalArray, localArray, ladd_value)
+    SUBROUTINE distributeDataScatter_sp(me, globalArray, localArray, ladd_value, nsender)
         CLASS(t_scatterPatternScatter), INTENT(INOUT) :: me
         REAL(sp), INTENT(IN   ) :: globalArray(:)
         REAL(sp), INTENT(INOUT) :: localArray(:,:)
         LOGICAL, INTENT(IN) :: ladd_value
+        INTEGER, OPTIONAL, INTENT(IN) :: nsender
 
         CHARACTER(*), PARAMETER :: routine &
              = modname//":distributeDataScatter_sp"
         REAL(sp), ALLOCATABLE :: sendArray(:,:), recvArray(:)
-        INTEGER :: i, j, blk, idx, ierr, send_shape(2)
+        INTEGER :: i, j, blk, idx, ierr, send_rank
         LOGICAL :: l_write_debug_info
 
         l_write_debug_info = debugmodule .AND. me%rank == me%root_rank
 
         IF (l_write_debug_info) WRITE(0,*) "entering ", routine
-
+        IF (PRESENT(nsender)) THEN
+          send_rank = nsender
+        ELSE
+          send_rank = me%root_rank
+        ENDIF
         CALL me%startDistribution()
 
-        send_shape = SHAPE(me%pointIndices)
-        ALLOCATE(sendArray(send_shape(1), send_shape(2)), &
-             recvArray(me%slapSize), stat = ierr)
+        ALLOCATE(sendArray(me%slapSize, me%comm_size), &
+          &      recvArray(me%slapSize), stat = ierr)
         IF(ierr /= SUCCESS) CALL finish(routine, "error allocating memory")
-        IF(me%rank == me%root_rank) THEN
+        IF(me%rank == send_rank) THEN
 !$OMP PARALLEL DO PRIVATE(i,j)
             DO j = 1, me%comm_size
               DO i = 1, me%point_counts(j)
@@ -274,7 +295,7 @@ CONTAINS
             END DO
 !$OMP END PARALLEL DO
         END IF
-        CALL p_scatter(sendArray, recvArray, me%root_rank, me%communicator)
+        CALL p_scatter(sendArray, recvArray, send_rank, me%communicator)
         IF(ladd_value) THEN
 !$NEC ivdep
             DO i = 1, me%myPointCount
@@ -288,43 +309,49 @@ CONTAINS
             END DO
         END IF
 
-        DEALLOCATE(recvArray, sendArray)
-        CALL me%endDistribution(INT(send_shape(1), i8) * INT(send_shape(2), i8) * 4_i8)
+        DEALLOCATE(recvArray, sendArray, stat = ierr)
+        IF(ierr /= SUCCESS) CALL finish(routine, "error deallocating memory")
+        CALL me%endDistribution(INT(me%slapSize, i8) * INT(me%comm_size, i8) * 8_i8)
         IF (l_write_debug_info) WRITE(0,*) "leaving ", routine
     END SUBROUTINE distributeDataScatter_sp
 
     !-------------------------------------------------------------------------------------------------------------------------------
     !> implementation of t_scatterPattern::distribute_int
     !-------------------------------------------------------------------------------------------------------------------------------
-    SUBROUTINE distributeDataScatter_int(me, globalArray, localArray, ladd_value)
+    SUBROUTINE distributeDataScatter_int(me, globalArray, localArray, ladd_value, nsender)
         CLASS(t_scatterPatternScatter), INTENT(INOUT) :: me
         INTEGER, INTENT(IN   ) :: globalArray(:)
         INTEGER, INTENT(INOUT) :: localArray(:,:)
         LOGICAL, INTENT(IN) :: ladd_value
+        INTEGER, OPTIONAL, INTENT(IN) :: nsender
 
         CHARACTER(*), PARAMETER :: routine &
              = modname//":distributeDataScatter_sp"
         INTEGER, ALLOCATABLE :: sendArray(:,:), recvArray(:)
-        INTEGER :: i, j, blk, idx, ierr, send_shape(2)
+        INTEGER :: i, j, blk, idx, ierr, send_rank
         LOGICAL :: l_write_debug_info
 
         l_write_debug_info = debugmodule .AND. me%rank == me%root_rank
 
         IF (l_write_debug_info) WRITE(0,*) "entering ", routine
+        IF (PRESENT(nsender)) THEN
+          send_rank = nsender
+        ELSE
+          send_rank = me%root_rank
+        ENDIF
         CALL me%startDistribution()
 
-        send_shape = SHAPE(me%pointIndices)
-        ALLOCATE(sendArray(send_shape(1), send_shape(2)), &
-             recvArray(me%slapSize), stat = ierr)
+        ALLOCATE(sendArray(me%slapSize, me%comm_size), &
+          &      recvArray(me%slapSize), stat = ierr)
         IF(ierr /= SUCCESS) CALL finish(routine, "error allocating memory")
-        IF (me%rank == me%root_rank) THEN
+        IF (me%rank == send_rank) THEN
             DO j = 1, me%comm_size
               DO i = 1, me%point_counts(j)
                 sendArray(i, j) = globalArray(me%pointIndices(i, j))
               END DO
             END DO
         END IF
-        CALL p_scatter(sendArray, recvArray, me%root_rank, me%communicator)
+        CALL p_scatter(sendArray, recvArray, send_rank, me%communicator)
         IF(ladd_value) THEN
 !$NEC ivdep
             DO i = 1, me%myPointCount
@@ -338,8 +365,9 @@ CONTAINS
             END DO
         END IF
 
-        DEALLOCATE(recvArray, sendArray)
-        CALL me%endDistribution(INT(send_shape(1), i8) * INT(send_shape(2), i8) * 4_i8)
+        DEALLOCATE(recvArray, sendArray, stat = ierr)
+        IF(ierr /= SUCCESS) CALL finish(routine, "error deallocating memory")
+        CALL me%endDistribution(INT(me%slapSize, i8) * INT(me%comm_size, i8) * 8_i8)
         IF (l_write_debug_info) WRITE(0,*) "leaving ", routine
     END SUBROUTINE distributeDataScatter_int
 

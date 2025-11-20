@@ -395,6 +395,8 @@ cat > ${atmo_namelist} << EOF
  !icpl_da_tkhmin        = 1
  !icpl_da_seaice        = 2
  !scalfac_da_sfcfric    = 5
+ parallel_grib_decoding = .TRUE.  ! .FALSE.: Workroot PE reads and decodes GRIB file records
+                                  ! .TRUE.:  Workroot PE reads GRIB file records, Work PEs decode them
 /
 &io_nml
  dt_checkpoint        = 0

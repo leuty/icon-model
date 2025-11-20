@@ -23,6 +23,8 @@
 
 ### Infrastructure
 
+- Add distributed GRIB decoding
+
 #### Building
 
 - Clean up and clarify single-precision options
