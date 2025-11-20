@@ -243,6 +243,14 @@ MODULE mo_timer
 
   PUBLIC :: timer_global_nudging
 
+  ! Sub-timer to timer_init_icon
+  PUBLIC :: timer_file_reading
+  PUBLIC :: timer_raw_data_distribution
+  PUBLIC :: timer_metadata_decoding
+  PUBLIC :: timer_raw_data_decompression
+  PUBLIC :: timer_data_distribution
+  PUBLIC :: timer_file_inventory
+
   ! upper atmosphere
   PUBLIC :: timer_expol
   PUBLIC :: timer_upatmo, timer_upatmo_constr, timer_upatmo_destr, timer_upatmo_phy, &
@@ -520,6 +528,14 @@ MODULE mo_timer
   INTEGER :: timer_feedback
 
   INTEGER :: timer_global_nudging
+
+  ! Sub-timer to timer_init_icon
+  INTEGER :: timer_file_reading
+  INTEGER :: timer_raw_data_distribution
+  INTEGER :: timer_metadata_decoding
+  INTEGER :: timer_raw_data_decompression
+  INTEGER :: timer_data_distribution
+  INTEGER :: timer_file_inventory
 
   ! upper atmosphere
   INTEGER :: timer_expol
@@ -954,6 +970,14 @@ CONTAINS
     timer_feedback   = new_timer("nesting.feedback")
 
     timer_global_nudging = new_timer("global_nudging")
+
+    ! Sub-timer to timer_init_icon
+    timer_file_reading           = new_timer("file_reading")
+    timer_raw_data_distribution  = new_timer("raw_data_distribution")
+    timer_metadata_decoding      = new_timer("metadata_decoding")
+    timer_raw_data_decompression = new_timer("raw_data_decompression")
+    timer_data_distribution      = new_timer("data_distribution")
+    timer_file_inventory         = new_timer("file_inventory")
 
     ! upper atmosphere
     timer_expol           = new_timer("upatmo_expol")

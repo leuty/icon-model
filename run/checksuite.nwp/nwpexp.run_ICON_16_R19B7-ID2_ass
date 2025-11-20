@@ -216,6 +216,8 @@ cat > ${atmo_namelist} << EOF
  qcana_mode            = 2
  qiana_mode            = 0  ! due to KENDA, before: 1
  use_lakeiceana        = .true.
+ parallel_grib_decoding = .TRUE.  ! .FALSE.: Workroot PE reads and decodes GRIB file records
+                                  ! .TRUE.:  Workroot PE reads GRIB file records, Work PEs decode them
 /
 &limarea_nml
  dtime_latbc             = 3600          ! 3600.
