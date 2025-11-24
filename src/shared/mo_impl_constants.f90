@@ -515,8 +515,8 @@ MODULE mo_impl_constants
   ! maximum string length for variable names
 
   INTEGER, PARAMETER :: &
-    MAX_NVARS      = 999, & ! maximum number of output variables (total)
-    max_var_ml     = 999, & ! maximum number of output model-level variables
+    MAX_NVARS      = 1400,& ! maximum number of output variables (total)
+    max_var_ml     = 1400,& ! maximum number of output model-level variables
     max_var_pl     = 150, & ! maximum number of pressure-level variables
     max_var_hl     = 150, & ! maximum number of height-level variables
     max_var_il     = 150, & ! maximum number of variables on isentropes

@@ -21,6 +21,7 @@ MODULE mo_wave_refraction
   USE mo_kind,                ONLY: wp
   USE mo_impl_constants,      ONLY: MAX_CHAR_LENGTH, min_rlcell
   USE mo_model_domain,        ONLY: t_patch
+  USE mo_wave_types,          ONLY: t_wesd
   USE mo_wave_config,         ONLY: t_wave_config
   USE mo_grid_config,         ONLY: grid_sphere_radius
   USE mo_parallel_config,     ONLY: nproma
@@ -45,7 +46,7 @@ CONTAINS
   !! P_SPHER_SHALLOW_CURR
   !!
   SUBROUTINE wave_refraction(p_patch, wave_config, dtime, wave_num_c, gv_c, depth, &
-    &                        depth_grad, tracer_now, tracer_new)
+    &                        depth_grad, wesd_now, wesd_new)
 
     CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER :: &
          routine = modname//':wave_refraction'
@@ -57,9 +58,8 @@ CONTAINS
     REAL(wp),                    INTENT(IN)   :: gv_c(:,:,:)          ! group velocity at cell centers
     REAL(wp),                    INTENT(IN)   :: depth(:,:)
     REAL(wp),                    INTENT(IN)   :: depth_grad(:,:,:)    ! bathymetry gradient (2,nproma,nblks_c)
-    REAL(wp), TARGET,            INTENT(IN)   :: tracer_now(:,:,:,:)  ! energy before transport
-    REAL(wp),                    INTENT(INOUT):: tracer_new(:,:,:,:)  ! (nproma,ndirs,nblks_c,nfreqs)
-
+    TYPE(t_wesd),                INTENT(IN)   :: wesd_now(:)          ! energy before transport
+    TYPE(t_wesd),                INTENT(INOUT):: wesd_new(:)          ! dim: wesd(nfreqs)%(nproma,ndirs,nblks_c)
 
     TYPE(t_wave_config), POINTER :: wc => NULL()
 
@@ -70,10 +70,10 @@ CONTAINS
 
     REAL(wp) :: DELTHR, DELTH, DELTR, DELTH0, sm, sp, akd, DTP, DTM, dDTC, temp, dtime_sub
     REAL(wp) :: thdd(nproma,wave_config%ndirs)
-    REAL(wp) :: delta_ref(nproma,wave_config%ndirs,wave_config%nfreqs)
+    REAL(wp) :: delta_ref(nproma,wave_config%ndirs)
     REAL(wp) :: tsihkd(nproma), tan_lat(nproma)
-    REAL(wp), TARGET :: tracer_tmp(nproma,wave_config%ndirs,wave_config%nfreqs)
-    REAL(wp), POINTER :: tracer_ptr(:,:,:)
+    REAL(wp), TARGET  :: wesd_tmp(nproma,wave_config%ndirs)
+    REAL(wp), POINTER, CONTIGUOUS :: wesd_ptr(:,:)
 
     wc => wave_config
 
@@ -91,8 +91,8 @@ CONTAINS
 
 
 !$OMP PARALLEL
-!$OMP DO PRIVATE(jb,jf,jd,jc,i_startidx,i_endidx,isub,temp,akd,tsihkd,thdd,tracer_ptr, &
-!$OMP            tracer_tmp,sm,sp,jdm1,jdp1,dtp,dtm,dDTC,delta_ref,tan_lat) ICON_OMP_DEFAULT_SCHEDULE
+!$OMP DO PRIVATE(jb,jf,jd,jc,i_startidx,i_endidx,isub,temp,akd,tsihkd,thdd,wesd_ptr, &
+!$OMP            wesd_tmp,sm,sp,jdm1,jdp1,dtp,dtm,dDTC,delta_ref,tan_lat) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = i_startblk, i_endblk
       CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,           &
            &                 i_startidx, i_endidx, i_rlstart, i_rlend)
@@ -101,35 +101,36 @@ CONTAINS
         tan_lat(jc) = TAN(p_patch%cells%center(jc,jb)%lat)
       ENDDO
 
-      DO isub = 1,wc%nsubs_refrac
-        IF (isub == 1) THEN
-          tracer_ptr => tracer_now(:,:,jb,:)
-        ELSE
-          tracer_ptr => tracer_tmp
-        ENDIF
+      DO jf = 1,wc%nfreqs
 
-        DO jf = 1,wc%nfreqs
+        DO jc = i_startidx, i_endidx
+          akd = wave_num_c(jc,jf,jb) * depth(jc,jb)
+          IF (akd <= 10.0_wp) THEN
+            tsihkd(jc) = (pi2 * wc%freqs(jf))/SINH(2.0_wp*akd)
+          ELSE
+            tsihkd(jc) = 0.0_wp
+          END IF
+        ENDDO
 
+        DO jd = 1,wc%ndirs
           DO jc = i_startidx, i_endidx
-            akd = wave_num_c(jc,jf,jb) * depth(jc,jb)
-            IF (akd <= 10.0_wp) THEN
-              tsihkd(jc) = (pi2 * wc%freqs(jf))/SINH(2.0_wp*akd)
-            ELSE
-              tsihkd(jc) = 0.0_wp
-            END IF
-          ENDDO
 
-          DO jd = 1,wc%ndirs
-            DO jc = i_startidx, i_endidx
+            temp = (wc%sin_dir(jd) + wc%sin_dir(wc%dir_neig_ind(2,jd))) * depth_grad(2,jc,jb) &
+                 - (wc%cos_dir(jd) + wc%cos_dir(wc%dir_neig_ind(2,jd))) * depth_grad(1,jc,jb)
 
-              temp = (wc%sin_dir(jd) + wc%sin_dir(wc%dir_neig_ind(2,jd))) * depth_grad(2,jc,jb) &
-                   - (wc%cos_dir(jd) + wc%cos_dir(wc%dir_neig_ind(2,jd))) * depth_grad(1,jc,jb)
+            thdd(jc,jd) = temp * tsihkd(jc)
 
-              thdd(jc,jd) = temp * tsihkd(jc)
+          END DO !jc
+        END DO !jd
 
-            END DO !jc
-          END DO !jd
+        ! substepping
+        DO isub = 1,wc%nsubs_refrac
 
+          IF (isub == 1) THEN
+            wesd_ptr => wesd_now(jf)%ptr(:,:,jb)
+          ELSE
+            wesd_ptr => wesd_tmp(:,:)
+          ENDIF
 
           DO jd = 1,wc%ndirs
 
@@ -150,31 +151,29 @@ CONTAINS
               DTP  = -MIN(0._wp , DTP)
               DTM  =  MAX(0._wp , DTM)
 
-              delta_ref(jc,jd,jf) = dDTC*tracer_ptr(jc,jd,jf) + DTM*tracer_ptr(jc,jdm1,jf) + DTP*tracer_ptr(jc,jdp1,jf)
+              delta_ref(jc,jd) = dDTC*wesd_ptr(jc,jd) + DTM*wesd_ptr(jc,jdm1) + DTP*wesd_ptr(jc,jdp1)
             END DO !jc
           END DO !jd
-        END DO !jf
 
-        IF (isub < wc%nsubs_refrac) THEN
-          DO jf = 1,wc%nfreqs
+          IF (isub < wc%nsubs_refrac) THEN
             DO jd = 1,wc%ndirs
               DO jc = i_startidx, i_endidx
-                tracer_tmp(jc,jd,jf) = tracer_ptr(jc,jd,jf) + delta_ref(jc,jd,jf)
+                wesd_tmp(jc,jd) = wesd_ptr(jc,jd) + delta_ref(jc,jd)
               END DO !jc
             END DO !jd
-          END DO !jf
-        ELSE
-          DO jf = 1,wc%nfreqs
+          ELSE
             DO jd = 1,wc%ndirs
               DO jc = i_startidx, i_endidx
-                tracer_new(jc,jd,jb,jf) = tracer_new(jc,jd,jb,jf) + delta_ref(jc,jd,jf) + &
-                                          (tracer_ptr(jc,jd,jf)-tracer_now(jc,jd,jb,jf))
-              END DO !jc
-            END DO !jd
-          END DO !jf
-        ENDIF
+                ! the last term in brackets is the total increment delta_ref,
+                ! however, with the increment for the last substep nsubs_refrac excluded!
+                wesd_new(jf)%ptr(jc,jd,jb) = wesd_new(jf)%ptr(jc,jd,jb) + delta_ref(jc,jd) &
+                  &                        + (wesd_ptr(jc,jd) - wesd_now(jf)%ptr(jc,jd,jb))
+              ENDDO
+            ENDDO
+          ENDIF
 
-      ENDDO ! isub
+        ENDDO ! isub
+      END DO !jf
 
     END DO !jb
 !$OMP ENDDO NOWAIT

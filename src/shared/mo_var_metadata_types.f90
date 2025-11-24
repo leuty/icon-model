@@ -67,6 +67,7 @@ MODULE mo_var_metadata_types
   INTEGER, PARAMETER, PUBLIC :: CLASS_DISTR         = 7   !< variable based on a distribuition function (PDT 57)
   INTEGER, PARAMETER, PUBLIC :: CLASS_DISTR_STAT    = 8   !< variable based on a distribuition function (PDT 67)
                                                           !< statistical process
+  INTEGER, PARAMETER, PUBLIC :: CLASS_WAVE_SPECTRUM = 9   !< sprectral wave energy density informtion (PDT 101/102)
 
   ! ---------------------------------------------------------------
   ! META-DATA TYPE DEFINITIONS

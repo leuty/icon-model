@@ -2393,7 +2393,7 @@ create_target_header()
                     ;;
             esac
             ;;
-        *run_ICON_23_R2B4_atmo_waves_coupled*|*run_ICON_28_R2B6_IAU_atmo_waves_coupled*)
+        *run_ICON_23_R2B4_atmo_waves_coupled*|*run_ICON_28_R2B6_IAU_atmo_waves_*_cpl*)
             case $use_target in
                 rcl)
                     use_nodes=4

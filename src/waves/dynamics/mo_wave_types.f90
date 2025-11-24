@@ -26,12 +26,22 @@ MODULE mo_wave_types
   PUBLIC :: t_wave_diag
   PUBLIC :: t_wave_state
   PUBLIC :: t_wave_state_lists
+  PUBLIC :: t_wesd
+
+  ! derived type for wave energy spectral density
+  !
+  TYPE t_wesd
+    REAL(wp), POINTER, CONTIGUOUS :: & ! wave energy spectral density for fixed frequency [m^2 s]
+    ptr(:,:,:) => NULL()               ! over all directions and cells (nproma,ndirs,nblks_c)
+
+    TYPE(t_ptr_2d3d), ALLOCATABLE :: dir(:) !< pointer array for direction bins
+  END TYPE t_wesd
+
 
   TYPE t_wave_prog
-    REAL(wp), POINTER, CONTIGUOUS :: &
-    tracer(:,:,:,:) => NULL()
-    !! wave energy (spectral bins) over frequencies and directions (nproma,ndirs,nblks_c,nfreqs) [m^2 ?]
-    TYPE(t_ptr_2d3d), ALLOCATABLE :: tracer_ptr(:) !< pointer array: one pointer for each tracer
+    !
+    TYPE(t_wesd), ALLOCATABLE :: wesd(:)  ! wave energy spectral density array [m^2 s]
+                                          ! wesd(nfreqs)%ptr(nproma,ndirs,nblks_c)
   END TYPE t_wave_prog
 
 

@@ -53,8 +53,8 @@ $addexp "checksuite.icon-dev/check.atm_qubicc"             --machines "levante" 
 $addexp "checksuite.icon-dev/check.atm_qubicc_grb"         --machines "levante" --list $listname --runflags="ntasks=16 queue=shared,compute memory=32G"
 $addexp "checksuite.icon-dev/check.atm_qubicc_nofor"       --machines "levante" --list $listname --runflags="ntasks=16 queue=shared,compute memory=32G"
 $addexp "checksuite.icon-dev/check.atm_qubicc_onlyfor"     --machines "levante" --list $listname --runflags="ntasks=16 queue=shared,compute memory=32G"
-$addexp "checksuite.icon-dev/check.atm_qubicc_pfts"        --machines "levante" --list $listname --runflags "ntasks=16 queue=shared,compute memory=32G"
-$addexp "checksuite.icon-dev/check.atm_qubicc_tmx"         --machines "levante" --list $listname --runflags "ntasks=16 queue=shared,compute memory=32G"
+$addexp "checksuite.icon-dev/check.atm_qubicc_pfts"        --machines "levante" --list $listname --runflags "ntasks=16 queue=shared,compute memory=64G"
+$addexp "checksuite.icon-dev/check.atm_qubicc_tmx"         --machines "levante" --list $listname --runflags "ntasks=16 queue=shared,compute memory=64G"
 $addexp "checksuite.icon-dev/check.atm_qubicc_update"      --machines "levante" --list $listname --runflags "ntasks=16 queue=shared,compute memory=32G"
 ./set_builder_flags Inactive --builders "${NVHPC_CPU_BUILDERS}" --list $listname
 ./set_builder_flags Active   --builders "levante_nag_serial"    --list $listname

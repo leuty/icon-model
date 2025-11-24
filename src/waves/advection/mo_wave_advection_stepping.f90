@@ -29,9 +29,11 @@ MODULE mo_wave_advection_stepping
   USE mo_impl_constants_grf,        ONLY: grf_bdywidth_c
   USE mo_loopindices,               ONLY: get_indices_c
   USE mo_model_domain,              ONLY: t_patch
+  USE mo_parallel_config,           ONLY: nproma
   USE mo_grid_config,               ONLY: l_limited_area
   USE mo_interpol_config,           ONLY: llsq_lin_consv
   USE mo_intp_data_strc,            ONLY: t_int_state
+  USE mo_wave_types,                ONLY: t_wesd
   USE mo_wave_config,               ONLY: t_wave_config
   USE mo_wave_refraction,           ONLY: wave_refraction
   USE mo_wave_physics,              ONLY: set_energy2emin, wave_group_velocity_nt
@@ -43,6 +45,7 @@ MODULE mo_wave_advection_stepping
   USE mo_timer,                     ONLY: timer_start, timer_stop, timers_level
   USE mo_wave_timer,                ONLY: timer_wave_propagation, timer_wave_energy_propagation, &
     &                                     timer_wave_grid_refraction
+  USE fortran_support,              ONLY: t_ptr_3d_wp
 
   IMPLICIT NONE
 
@@ -55,7 +58,7 @@ CONTAINS
 
   SUBROUTINE wave_step_advection( p_patch, p_int_state, wave_config, energy_propagation_config, &
     &                             p_dtime, wave_num_c, gv_c, gv_e, depth_c, geo_depth_grad_c, &
-    &                             p_tracer_now, p_tracer_new )
+    &                             wesd_now, wesd_new )
 
     TYPE(t_patch), TARGET,            INTENT(IN):: &  !< patch on which computation is performed
       &  p_patch
@@ -87,15 +90,15 @@ CONTAINS
     REAL(wp),                         INTENT(IN):: & !< gradient of water depth [m/m]
       &  geo_depth_grad_c(:,:,:)                      !< dim: (2,nproma,nblks_c)
 
-    REAL(wp), CONTIGUOUS,            INTENT(INOUT):: & !< spectral wave energy
-      &  p_tracer_now(:,:,:,:)                       !< at current time level n (before transport)
-                                                     !< [kg/kg]
-                                                     !< dim: (nproma,ndirs,nblks_c,nfreqs)
+    TYPE(t_wesd),                  INTENT(INOUT):: & !< spectral wave energy
+      &  wesd_now(:)                                 !< at current time level n (before transport)
+                                                     !< [m**2 s]
+                                                     !< dim: wesd_now(nfreqs)%ptr(nproma,ndirs,nblks_c)
 
-    REAL(wp), CONTIGUOUS,            INTENT(INOUT) :: & !< spectral wave energy
-      &  p_tracer_new(:,:,:,:)                       !< at time level n+1 (after transport)
-                                                     !< [kg/kg]
-                                                     !< dim: (nproma,ndirs,nblks_c,nfreqs)
+    TYPE(t_wesd),                 INTENT(INOUT) :: & !< spectral wave energy
+      &  wesd_new(:)                                 !< at time level n+1 (after transport)
+                                                     !< [m**2 s]
+                                                     !< dim: wesd_new(nfreqs)%ptr(nproma,ndirs,nblks_c)
 
     ! local
     INTEGER :: jb, jc, jd, jf
@@ -105,6 +108,7 @@ CONTAINS
     INTEGER :: i_startblk_c, i_endblk_c
     INTEGER :: i_rlstart_bdy, i_rlend_bdy
     INTEGER :: i_startblk_bdy, i_endblk_bdy
+    INTEGER :: n
 
     TYPE(t_energy_propagation_config), POINTER :: &
       &  enprop_conf                                      !< convenience pointer to save fome paperwork
@@ -116,10 +120,10 @@ CONTAINS
     REAL(wp):: z_dthalf                   !< 0.5 * timestep
 
     REAL(wp)::  &                         !< horizontal fluxes of wave energy
-      &  z_mflx_tracer_h(SIZE(p_tracer_now,1),SIZE(p_tracer_now,2),p_patch%nblks_e)
+      &  z_mflx_tracer_h(nproma,wave_config%ndirs,p_patch%nblks_e)
 
     ! direction-specific group velocities (nproma,ndirs,nblks_e)
-    REAL(wp), DIMENSION(SIZE(p_tracer_now,1),SIZE(p_tracer_now,2),p_patch%nblks_e) :: gvn_e, gvt_e
+    REAL(wp), DIMENSION(nproma,wave_config%ndirs,p_patch%nblks_e) :: gvn_e, gvt_e
 
     REAL(wp):: z_fluxdiv_c                !< flux divergence at cell center
 
@@ -132,29 +136,33 @@ CONTAINS
     ! dummy density weighted cell height [kg/m**2]
     ! set to 1 below
     REAL(wp)::  &
-      &  z_rhodz(SIZE(p_tracer_now,1),SIZE(p_tracer_now,2),SIZE(p_tracer_now,3))
+      &  z_rhodz(nproma,wave_config%ndirs,p_patch%nblks_c)
     !
     ! dummy lateral boundary tendencies of transported wave energy
     ! in preparation for WAVE-LAM
     ! set to 0 below
     REAL(wp), TARGET:: &
-      &  z_grf_tend_tracer(SIZE(p_tracer_now,1),SIZE(p_tracer_now,2),SIZE(p_tracer_now,3))
+      &  z_grf_tend_tracer(nproma,wave_config%ndirs,p_patch%nblks_c)
     !
     REAL(wp), POINTER, CONTIGUOUS:: p_grf_tend_tracer(:,:,:)
     !
-
+    TYPE(t_ptr_3d_wp) :: wesd_ptr(SIZE(wesd_now))
     !-----------------------------------------------------------------------
 
     IF (timers_level >= 5) CALL timer_start(timer_wave_propagation)
 
     IF (timers_level >= 8) CALL timer_start(timer_wave_energy_propagation)
 
+    DO n = 1,SIZE(wesd_now)
+      wesd_ptr(n)%p => wesd_now(n)%ptr(:,:,:)
+    ENDDO
+
     ! halo synchronization for spectral energy, before transport
     CALL sync_patch_array_mult(typ        = SYNC_C,              &
       &                        p_patch    = p_patch,             &
-      &                        nfields    = SIZE(p_tracer_now,4),&
-      &                        f4din      = p_tracer_now,        &
-      &                        opt_varname='p_tracer_now',       &
+      &                        nfields    = SIZE(wesd_ptr),      &
+      &                        f3din_arr  = wesd_ptr,            &
+      &                        opt_varname='wesd_now',           &
       &                        lacc       = .FALSE.)
 
 
@@ -168,11 +176,11 @@ CONTAINS
     p_grf_tend_tracer => z_grf_tend_tracer(:,:,:)
 
 
-    !$OMP PARALLEL
+!$OMP PARALLEL
     CALL init(init_var=z_rhodz, init_val=1._wp, lacc=.FALSE.)
     CALL init(init_var=z_grf_tend_tracer, lacc=.FALSE.)
     CALL init(init_var=z_mflx_tracer_h, lacc=.FALSE.)
-    !$OMP END PARALLEL
+!$OMP END PARALLEL
 
 
     ! start and end cells for flux divergence calculation
@@ -201,7 +209,7 @@ CONTAINS
     z_dthalf = 0.5_wp * p_dtime
 
     ! frequency loop
-    FREQS: DO jf = 1,UBOUND(p_tracer_now,4)
+    FREQS: DO jf = 1,SIZE(wesd_now)
 
       ! Compute wave group velocities
       ! This could be done once at the beginning because the group velocities are not time-dependent
@@ -212,7 +220,7 @@ CONTAINS
       ! 1st order backward trajectory
       ! note, that the group velocity depends on wave frequency.
       ! Hence, the computation of backward trajectories is required
-      ! for each energy bin.
+      ! for each frequency bin.
       !
       CALL btraj_compute_o1( btraj       = btraj,               & !inout
         &                  ptr_p         = p_patch,             & !in
@@ -232,7 +240,7 @@ CONTAINS
       ! CALL MIURA with second order accurate reconstruction
       CALL upwind_hflux_miura(                                &
         &         p_patch         = p_patch,                  & !in
-        &         p_cc            = p_tracer_now(:,:,:,jf),   & !in
+        &         p_cc            = wesd_now(jf)%ptr(:,:,:),  & !in
         &         p_mass_flx_e    = gvn_e(:,:,:),             & !in
         &         p_dtime         = p_dtime,                  & !in
         &         p_int           = p_int_state,              & !in
@@ -246,8 +254,7 @@ CONTAINS
         &         opt_rlstart_e   = i_rlstart_e,              & !in
         &         opt_rlend_e     = i_rlend_e,                & !in
         &         opt_slev        = 1,                        & !in
-        &         opt_elev        = UBOUND(p_tracer_now,2)      ) !in
-
+        &         opt_elev        = UBOUND(wesd_now(jf)%ptr,2)) !in
 
 
       ! update wave energy, by computing the horizontal flux divergence
@@ -260,7 +267,7 @@ CONTAINS
                      i_startidx, i_endidx, i_rlstart_c, i_rlend_c)
 
         ! direction loop
-        DIRS: DO jd = 1, SIZE(p_tracer_new,2)
+        DIRS: DO jd = 1, SIZE(wesd_now(jf)%ptr,2)
           ! compute horizontal flux divergences and update wave energy
           !
           DO jc = i_startidx, i_endidx
@@ -271,7 +278,7 @@ CONTAINS
 
              ! update wave energy field, by applying the flux divergence
              !
-             p_tracer_new(jc,jd,jb,jf) = p_tracer_now(jc,jd,jb,jf) - p_dtime * z_fluxdiv_c
+             wesd_new(jf)%ptr(jc,jd,jb) = wesd_now(jf)%ptr(jc,jd,jb) - p_dtime * z_fluxdiv_c
           ENDDO  !jc
         ENDDO DIRS
       ENDDO  !jb
@@ -289,13 +296,13 @@ CONTAINS
           CALL get_indices_c(p_patch, jb, i_startblk_bdy, i_endblk_bdy, &
                              i_startidx, i_endidx, i_rlstart_bdy, i_rlend_bdy)
 
-          DO jd = 1, SIZE(p_tracer_new,2) ! direction loop
+          DO jd = 1, SIZE(wesd_now(jf)%ptr,2) ! direction loop
             ! Tracer values are clipped here to avoid generation of negative values
             ! For mass conservation, a correction has to be applied in the
             ! feedback routine anyway
             DO jc = i_startidx, i_endidx
-              p_tracer_new(jc,jd,jb,jf) =                            &
-                &     MAX(0._wp, p_tracer_now(jc,jd,jb,jf)           &
+              wesd_new(jf)%ptr(jc,jd,jb) =                            &
+                &     MAX(0._wp, wesd_now(jf)%ptr(jc,jd,jb)           &
                 &   + p_dtime * p_grf_tend_tracer(jc,jd,jb) )
             ENDDO
           ENDDO !jd
@@ -322,13 +329,13 @@ CONTAINS
         &                  gv_c        = gv_c(:,:,:),              & !in
         &                  depth       = depth_c(:,:),             & !in
         &                  depth_grad  = geo_depth_grad_c(:,:,:),  & !in
-        &                  tracer_now  = p_tracer_now(:,:,:,:),    & !in
-        &                  tracer_new  = p_tracer_new(:,:,:,:))      !inout
+        &                  wesd_now    = wesd_now(:),              & !in
+        &                  wesd_new    = wesd_new(:))                !inout
 
       ! Set energy to absolute allowed minimum
       CALL set_energy2emin(p_patch     = p_patch,               & !in
         &                  wave_config = wave_config,           & !in
-        &                  tracer      = p_tracer_new(:,:,:,:))   !inout
+        &                  wesd        = wesd_new(:) )            !inout
     END IF
     IF (timers_level >= 8) CALL timer_stop(timer_wave_grid_refraction)
 

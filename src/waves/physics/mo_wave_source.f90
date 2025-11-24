@@ -31,7 +31,7 @@ MODULE mo_wave_source
   USE mo_run_config,          ONLY: dtime
   USE mo_physical_constants,  ONLY: grav
   USE mo_math_constants,      ONLY: pi2
-  USE mo_wave_types,          ONLY: t_wave_source, t_wave_diag
+  USE mo_wave_types,          ONLY: t_wave_source, t_wave_diag, t_wesd
   USE mo_wave_config,         ONLY: t_wave_config
   USE mo_wave_constants,      ONLY: DELTA, CONSS
 
@@ -97,7 +97,7 @@ CONTAINS
   !!
   !! Adaptation of WAM 4.5 code.
   !!
-  SUBROUTINE integrate_in_time_src(p_patch, wave_config, p_diag, p_source, sp10m, dir10m, tracer)
+  SUBROUTINE integrate_in_time_src(p_patch, wave_config, p_diag, p_source, sp10m, dir10m, wesd)
     CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER ::  &
          &  routine = 'integrate_in_time_src'
 
@@ -107,7 +107,7 @@ CONTAINS
     TYPE(t_wave_source),         INTENT(IN)    :: p_source
     REAL(wp),                    INTENT(IN)    :: sp10m(:,:)
     REAL(wp),                    INTENT(IN)    :: dir10m(:,:)
-    REAL(wp),                    INTENT(INOUT) :: tracer(:,:,:,:)
+    TYPE(t_wesd),                INTENT(INOUT) :: wesd(:)
 
     TYPE(t_wave_config), POINTER :: wc => NULL()
 
@@ -162,8 +162,8 @@ CONTAINS
 
             temp_3 = MIN(ABS(temp_1),temp_2)
 
-            tracer(jc,jd,jb,jf) = tracer(jc,jd,jb,jf) + SIGN(temp_3,temp_1)
-            tracer(jc,jd,jb,jf) = MAX(tracer(jc,jd,jb,jf), flminfr(jc)*sprd(jc,jd))
+            wesd(jf)%ptr(jc,jd,jb) = wesd(jf)%ptr(jc,jd,jb) + SIGN(temp_3,temp_1)
+            wesd(jf)%ptr(jc,jd,jb) = MAX(wesd(jf)%ptr(jc,jd,jb), flminfr(jc)*sprd(jc,jd))
           END DO
         END DO
       END DO
@@ -187,14 +187,14 @@ CONTAINS
   !! P. Janssen, JPO, 1989.
   !! P. Janssen, JPO., 1991.
   !!
-  SUBROUTINE src_wind_input(p_patch, wave_config, dir10m, tracer, p_diag, p_source)
+  SUBROUTINE src_wind_input(p_patch, wave_config, dir10m, wesd, p_diag, p_source)
     CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER :: &
          & routine =  modname//'src_wind_input'
 
     TYPE(t_patch),               INTENT(IN)    :: p_patch
     TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
     REAL(wp),                    INTENT(IN)    :: dir10m(:,:)
-    REAL(wp),                    INTENT(IN)    :: tracer(:,:,:,:)
+    TYPE(t_wesd),                INTENT(IN)    :: wesd(:)
     TYPE(t_wave_diag),           INTENT(IN)    :: p_diag
     TYPE(t_wave_source),         INTENT(INOUT) :: p_source
 
@@ -264,7 +264,7 @@ CONTAINS
             END IF
 
             p_source%fl(jc,jd,jf,jb) = cnsn * ufac
-            p_source%sl(jc,jd,jf,jb) = tracer(jc,jd,jb,jf) * p_source%fl(jc,jd,jf,jb) !SL
+            p_source%sl(jc,jd,jf,jb) = wesd(jf)%ptr(jc,jd,jb) * p_source%fl(jc,jd,jf,jb) !SL
           END DO
         END DO DIR
       END DO FRE
@@ -293,14 +293,14 @@ CONTAINS
   !! G.Komen, S. Hasselmann And K. Hasselmann, On The Existence
   !!          Of A Fully Developed Windsea Spectrum, JGR, 1984.
   !!
-  SUBROUTINE src_dissipation(p_patch, wave_config, wave_num_c, tracer, p_diag, p_source)
+  SUBROUTINE src_dissipation(p_patch, wave_config, wave_num_c, wesd, p_diag, p_source)
     CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER :: &
          & routine =  modname//'src_dissipation'
 
     TYPE(t_patch),               INTENT(IN)    :: p_patch
     TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
     REAL(wp),                    INTENT(IN)    :: wave_num_c(:,:,:) !< wave number (1/m)
-    REAL(wp),                    INTENT(IN)    :: tracer(:,:,:,:)
+    TYPE(t_wesd),                INTENT(IN)    :: wesd(:)
     TYPE(t_wave_diag),           INTENT(IN)    :: p_diag
     TYPE(t_wave_source),         INTENT(INOUT) :: p_source
 
@@ -335,7 +335,7 @@ CONTAINS
           DO jc = i_startidx, i_endidx
             temp = wave_num_c(jc,jf,jb) / p_diag%xkmean(jc,jb)
             temp = sds(jc) * ((1.0_wp - DELTA) * temp +  DELTA * temp**2)
-            sdiss = temp * tracer(jc,jd,jb,jf)
+            sdiss = temp * wesd(jf)%ptr(jc,jd,jb)
 
             p_source%sl(jc,jd,jf,jb) = p_source%sl(jc,jd,jf,jb) + sdiss
             p_source%fl(jc,jd,jf,jb) = p_source%fl(jc,jd,jf,jb) + temp
@@ -361,14 +361,14 @@ CONTAINS
   !! Reference
   !! Battjes & Janssen (Coastal Engineering, 1978)
   !!
-  SUBROUTINE src_wave_breaking(p_patch, wave_config, depth_c, tracer, p_diag, p_source)
+  SUBROUTINE src_wave_breaking(p_patch, wave_config, depth_c, wesd, p_diag, p_source)
     CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER :: &
          & routine =  modname//'src_wave_breaking'
 
     TYPE(t_patch),       INTENT(IN)         :: p_patch
     TYPE(t_wave_config), TARGET, INTENT(IN) :: wave_config
     REAL(wp),            INTENT(IN)         :: depth_c(:,:)
-    REAL(wp),            INTENT(IN)         :: tracer(:,:,:,:)
+    TYPE(t_wesd),        INTENT(IN)         :: wesd(:)
     TYPE(t_wave_diag),   INTENT(INOUT)      :: p_diag
     TYPE(t_wave_source), INTENT(INOUT)      :: p_source
 
@@ -420,7 +420,7 @@ CONTAINS
       DO jf = 1,wc%nfreqs
         DO jd = 1,wc%ndirs
           DO jc = i_startidx, i_endidx
-            p_source%sl(jc,jd,jf,jb) = p_source%sl(jc,jd,jf,jb) + sbr(jc) * tracer(jc,jd,jb,jf)
+            p_source%sl(jc,jd,jf,jb) = p_source%sl(jc,jd,jf,jb) + sbr(jc) * wesd(jf)%ptr(jc,jd,jb)
             p_source%fl(jc,jd,jf,jb) = p_source%fl(jc,jd,jf,jb) + dsbr(jc)
           END DO
         END DO
@@ -519,7 +519,7 @@ CONTAINS
   !!  HASSELMANN ET AL, D. HYDR. Z SUPPL A12(1973) (JONSWAP)
   !!  BOUWS AND KOMEN, JPO 13(1983)1653-1658
   !!
-  SUBROUTINE src_bottom_friction(p_patch, wave_config, wave_num_c, depth, tracer, p_source)
+  SUBROUTINE src_bottom_friction(p_patch, wave_config, wave_num_c, depth, wesd, p_source)
     CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER :: &
          & routine =  modname//'src_bottom_friction'
 
@@ -527,7 +527,7 @@ CONTAINS
     TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
     REAL(wp),                    INTENT(IN)    :: wave_num_c(:,:,:) !< wave number (1/m)
     REAL(wp),                    INTENT(IN)    :: depth(:,:)
-    REAL(wp),                    INTENT(IN)    :: tracer(:,:,:,:)
+    TYPE(t_wesd),                INTENT(IN)    :: wesd(:)
     TYPE(t_wave_source),         INTENT(INOUT) :: p_source
 
     TYPE(t_wave_config), POINTER :: wc => NULL()
@@ -561,7 +561,7 @@ CONTAINS
 
         DO jd = 1, wc%ndirs
           DO jc = i_startidx, i_endidx
-            p_source%sl(jc,jd,jf,jb) = p_source%sl(jc,jd,jf,jb) + sbo(jc)*tracer(jc,jd,jb,jf)
+            p_source%sl(jc,jd,jf,jb) = p_source%sl(jc,jd,jf,jb) + sbo(jc)*wesd(jf)%ptr(jc,jd,jb)
             p_source%fl(jc,jd,jf,jb) = p_source%fl(jc,jd,jf,jb) + sbo(jc)
           END DO
         END DO
@@ -587,14 +587,14 @@ CONTAINS
   !! H. Guenther  GKSS  February 2002   FT 90
   !! E. Myklebust       February 2005   optimization
   !!
-  SUBROUTINE src_nonlinear_transfer(p_patch, wave_config, depth, tracer, p_diag, p_source)
+  SUBROUTINE src_nonlinear_transfer(p_patch, wave_config, depth, wesd, p_diag, p_source)
     CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER :: &
          & routine =  modname//'src_nonlinear_transfer'
 
     TYPE(t_patch),               INTENT(IN)    :: p_patch
     TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
     REAL(wp),                    INTENT(IN)    :: depth(:,:)
-    REAL(wp),                    INTENT(IN)    :: tracer(:,:,:,:)
+    TYPE(t_wesd),                INTENT(IN)    :: wesd(:)
     TYPE(t_wave_diag),           INTENT(IN)    :: p_diag
     TYPE(t_wave_source),         INTENT(INOUT) :: p_source
 
@@ -735,18 +735,18 @@ CONTAINS
                          K21 = p_diag%K21W(K,KH)
 
                          SAP = &
-                              GW1*tracer(jc,K1 ,jb,IP ) + &
-                              GW2*tracer(jc,K11,jb,IP ) + &
-                              GW3*tracer(jc,K1 ,jb,IP1) + &
-                              GW4*tracer(jc,K11,jb,IP1)
+                              GW1*wesd(IP )%ptr(jc,K1 ,jb) + &
+                              GW2*wesd(IP )%ptr(jc,K11,jb) + &
+                              GW3*wesd(IP1)%ptr(jc,K1 ,jb) + &
+                              GW4*wesd(IP1)%ptr(jc,K11,jb)
                          SAM = &
-                              GW5*tracer(jc,K2 ,jb,IM ) + &
-                              GW6*tracer(jc,K21,jb,IM ) + &
-                              GW7*tracer(jc,K2 ,jb,IM1) + &
-                              GW8*tracer(jc,K21,jb,IM1)
+                              GW5*wesd(IM )%ptr(jc,K2 ,jb) + &
+                              GW6*wesd(IM )%ptr(jc,K21,jb) + &
+                              GW7*wesd(IM1)%ptr(jc,K2 ,jb) + &
+                              GW8*wesd(IM1)%ptr(jc,K21,jb)
 
                          FTEMP = p_diag%AF11(jf) * enh(jc)
-                         FIJ = tracer(jc,K,jb,IC)*FTAIL
+                         FIJ = wesd(IC)%ptr(jc,K,jb)*FTAIL
                          FAD1 = FIJ*(SAP+SAM)
                          FAD2 = FAD1-2._wp*SAP*SAM
                          FAD1 = FAD1+FAD2
@@ -800,18 +800,18 @@ CONTAINS
                         K21 = p_diag%K21W(K,KH)
 
                         SAP = &
-                             GW1*tracer(jc,K1 ,jb,IP ) + &
-                             GW2*tracer(jc,K11,jb,IP ) + &
-                             GW3*tracer(jc,K1 ,jb,IP1) + &
-                             GW4*tracer(jc,K11,jb,IP1)
+                             GW1*wesd(IP )%ptr(jc,K1 ,jb) + &
+                             GW2*wesd(IP )%ptr(jc,K11,jb) + &
+                             GW3*wesd(IP1)%ptr(jc,K1 ,jb) + &
+                             GW4*wesd(IP1)%ptr(jc,K11,jb)
                         SAM = &
-                             GW5*tracer(jc,K2 ,jb,IM ) + &
-                             GW6*tracer(jc,K21,jb,IM ) + &
-                             GW7*tracer(jc,K2 ,jb,IM1) + &
-                             GW8*tracer(jc,K21,jb,IM1)
+                             GW5*wesd(IM )%ptr(jc,K2 ,jb) + &
+                             GW6*wesd(IM )%ptr(jc,K21,jb) + &
+                             GW7*wesd(IM1)%ptr(jc,K2 ,jb) + &
+                             GW8*wesd(IM1)%ptr(jc,K21,jb)
 
                         FTEMP = p_diag%AF11(jf) * enh(jc)
-                        FIJ = tracer(jc,K,jb,IC)*FTAIL
+                        FIJ = wesd(IC)%ptr(jc,K,jb)*FTAIL
                         FAD1 = FIJ*(SAP+SAM)
                         FAD2 = FAD1-2._wp*SAP*SAM
                         FAD1 = FAD1+FAD2
@@ -861,18 +861,18 @@ CONTAINS
                       K21 = p_diag%K21W(K,KH)
 
                       SAP = &
-                           GW1*tracer(jc,K1 ,jb,IP ) + &
-                           GW2*tracer(jc,K11,jb,IP ) + &
-                           GW3*tracer(jc,K1 ,jb,IP1) + &
-                           GW4*tracer(jc,K11,jb,IP1)
+                           GW1*wesd(IP )%ptr(jc,K1 ,jb) + &
+                           GW2*wesd(IP )%ptr(jc,K11,jb) + &
+                           GW3*wesd(IP1)%ptr(jc,K1 ,jb) + &
+                           GW4*wesd(IP1)%ptr(jc,K11,jb)
                       SAM = &
-                           GW5*tracer(jc,K2 ,jb,IM ) + &
-                           GW6*tracer(jc,K21,jb,IM ) + &
-                           GW7*tracer(jc,K2 ,jb,IM1) + &
-                           GW8*tracer(jc,K21,jb,IM1)
+                           GW5*wesd(IM )%ptr(jc,K2 ,jb) + &
+                           GW6*wesd(IM )%ptr(jc,K21,jb) + &
+                           GW7*wesd(IM1)%ptr(jc,K2 ,jb) + &
+                           GW8*wesd(IM1)%ptr(jc,K21,jb)
 
                       FTEMP = p_diag%AF11(jf) * enh(jc)
-                      FIJ = tracer(jc,K,jb,IC)*FTAIL
+                      FIJ = wesd(IC)%ptr(jc,K,jb)*FTAIL
                       FAD1 = FIJ*(SAP+SAM)
                       FAD2 = FAD1-2._wp*SAP*SAM
                       FAD1 = FAD1+FAD2
@@ -917,18 +917,18 @@ CONTAINS
                     K21 = p_diag%K21W(K,KH)
 
                     SAP = &
-                         GW1*tracer(jc,K1 ,jb,IP ) + &
-                         GW2*tracer(jc,K11,jb,IP ) + &
-                         GW3*tracer(jc,K1 ,jb,IP1) + &
-                         GW4*tracer(jc,K11,jb,IP1)
+                         GW1*wesd(IP )%ptr(jc,K1 ,jb) + &
+                         GW2*wesd(IP )%ptr(jc,K11,jb) + &
+                         GW3*wesd(IP1)%ptr(jc,K1 ,jb) + &
+                         GW4*wesd(IP1)%ptr(jc,K11,jb)
                     SAM = &
-                         GW5*tracer(jc,K2 ,jb,IM ) + &
-                         GW6*tracer(jc,K21,jb,IM ) + &
-                         GW7*tracer(jc,K2 ,jb,IM1) + &
-                         GW8*tracer(jc,K21,jb,IM1)
+                         GW5*wesd(IM )%ptr(jc,K2 ,jb) + &
+                         GW6*wesd(IM )%ptr(jc,K21,jb) + &
+                         GW7*wesd(IM1)%ptr(jc,K2 ,jb) + &
+                         GW8*wesd(IM1)%ptr(jc,K21,jb)
 
                     FTEMP = p_diag%AF11(jf) * enh(jc)
-                    FIJ = tracer(jc,K,jb,IC)*FTAIL
+                    FIJ = wesd(IC)%ptr(jc,K,jb)*FTAIL
                     FAD1 = FIJ*(SAP+SAM)
                     FAD2 = FAD1-2._wp*SAP*SAM
                     FAD1 = FAD1+FAD2
@@ -970,18 +970,18 @@ CONTAINS
                   K21 = p_diag%K21W(K,KH)
 
                   SAP = &
-                       GW1*tracer(jc,K1 ,jb,IP ) + &
-                       GW2*tracer(jc,K11,jb,IP ) + &
-                       GW3*tracer(jc,K1 ,jb,IP1) + &
-                       GW4*tracer(jc,K11,jb,IP1)
+                       GW1*wesd(IP )%ptr(jc,K1 ,jb) + &
+                       GW2*wesd(IP )%ptr(jc,K11,jb) + &
+                       GW3*wesd(IP1)%ptr(jc,K1 ,jb) + &
+                       GW4*wesd(IP1)%ptr(jc,K11,jb)
                   SAM = &
-                       GW5*tracer(jc,K2 ,jb,IM ) + &
-                       GW6*tracer(jc,K21,jb,IM ) + &
-                       GW7*tracer(jc,K2 ,jb,IM1) + &
-                       GW8*tracer(jc,K21,jb,IM1)
+                       GW5*wesd(IM )%ptr(jc,K2 ,jb) + &
+                       GW6*wesd(IM )%ptr(jc,K21,jb) + &
+                       GW7*wesd(IM1)%ptr(jc,K2 ,jb) + &
+                       GW8*wesd(IM1)%ptr(jc,K21,jb)
 
                   FTEMP = p_diag%AF11(jf) * enh(jc)
-                  FIJ = tracer(jc,K,jb,IC)*FTAIL
+                  FIJ = wesd(IC)%ptr(jc,K,jb)*FTAIL
                   FAD1 = FIJ*(SAP+SAM)
                   FAD2 = FAD1-2._wp*SAP*SAM
                   FAD1 = FAD1+FAD2
@@ -1018,13 +1018,13 @@ CONTAINS
                 K21 = p_diag%K21W(K,KH)
 
                 SAP = &
-                     GW1*tracer(jc,K1 ,jb,IP ) + &
-                     GW2*tracer(jc,K11,jb,IP ) + &
-                     GW3*tracer(jc,K1 ,jb,IP1) + &
-                     GW4*tracer(jc,K11,jb,IP1)
+                     GW1*wesd(IP )%ptr(jc,K1 ,jb) + &
+                     GW2*wesd(IP )%ptr(jc,K11,jb) + &
+                     GW3*wesd(IP1)%ptr(jc,K1 ,jb) + &
+                     GW4*wesd(IP1)%ptr(jc,K11,jb)
 
                 FTEMP = p_diag%AF11(jf) * enh(jc)
-                FIJ = tracer(jc,K,jb,IC)
+                FIJ = wesd(IC)%ptr(jc,K,jb)
                 FAD2 = FIJ*SAP
                 FAD1 = 2._wp*FAD2
                 FCEN = FTEMP*FIJ

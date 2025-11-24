@@ -172,7 +172,7 @@ CONTAINS
           &     wave_config = wave_config(jg),                               & !in
           &     sp10m       = wave_forcing_state(jg)%sp10m(:,:),             & !in
           &     dir10m      = wave_forcing_state(jg)%dir10m(:,:),            & !in
-          &     tracer      = wave_state(jg)%prog(nnow(jg))%tracer(:,:,:,:))   !out
+          &     wesd        = wave_state(jg)%prog(nnow(jg))%wesd(:))           !out
 
       CASE DEFAULT
         CALL finish(routine, "Invalid operation mode!")

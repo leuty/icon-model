@@ -26,7 +26,7 @@ MODULE mo_wave_physics
   USE mo_physical_constants,  ONLY: grav
   USE mo_math_constants,      ONLY: dbl_eps, pi, pi2
   USE mo_fortran_tools,       ONLY: init
-  USE mo_wave_types,          ONLY: t_wave_diag
+  USE mo_wave_types,          ONLY: t_wave_diag, t_wesd
   USE mo_wave_config,         ONLY: t_wave_config
   USE mo_wave_constants,      ONLY: EPS1, EMIN
 
@@ -235,7 +235,7 @@ CONTAINS
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
     INTEGER :: i_startidx, i_endidx
     INTEGER :: jb,jd,je,ic,jje,jjb
-    INTEGER :: nfreqs, ndirs
+    INTEGER :: ndirs
     LOGICAL :: is_towards_coastline
 
     REAL(wp) :: gvu, gvv, gv
@@ -425,18 +425,19 @@ CONTAINS
   !! of the subroutines FEMEAN and TOTAL_ENERGY developed by S.D. HASSELMANN,
   !! optimized by L. Zambresky and H. Guenther, GKSS, 2001                              !
   !!
-  SUBROUTINE mean_frequency_and_total_energy(p_patch, wave_config, tracer, llws, emean, emeanws, femean, femeanws)
+  SUBROUTINE mean_frequency_and_total_energy(p_patch, wave_config, wesd, llws, emean, emeanws, femean, femeanws)
     CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER :: &
          & routine =  modname//'mean_frequency_and_total_energy'
 
-    TYPE(t_patch),               INTENT(IN)    :: p_patch
-    TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
-    REAL(wp), INTENT(IN)    :: tracer(:,:,:,:) !energy spectral bins (nproma,ndirs,nblks_c,nfreqs)
-    INTEGER,  INTENT(IN)    :: llws(:,:,:,:)   !=1 where wind_input is positive (nproma,ndirs,nfreqs,nblks_c)
-    REAL(wp), INTENT(INOUT) :: emean(:,:)      !total energy (nproma,nblks_c)
-    REAL(wp), INTENT(INOUT) :: emeanws(:,:)    !total windsea energy (nproma,nblks_c)
-    REAL(wp), INTENT(INOUT) :: femean(:,:)     !mean frequency energy (nproma,nblks_c)
-    REAL(wp), INTENT(INOUT) :: femeanws(:,:)   !mean windsea frequency energy (nproma,nblks_c)
+    TYPE(t_patch),               INTENT(IN) :: p_patch
+    TYPE(t_wave_config), TARGET, INTENT(IN) :: wave_config
+    TYPE(t_wesd), INTENT(IN)    :: wesd(:)        !energy spectral bins
+                                                  ! wesd(nfreqs)%(nproma,ndirs,nblks_c)
+    INTEGER,      INTENT(IN)    :: llws(:,:,:,:)  !=1 where wind_input is positive (nproma,ndirs,nfreqs,nblks_c)
+    REAL(wp),     INTENT(INOUT) :: emean(:,:)     !total energy (nproma,nblks_c)
+    REAL(wp),     INTENT(INOUT) :: emeanws(:,:)   !total windsea energy (nproma,nblks_c)
+    REAL(wp),     INTENT(INOUT) :: femean(:,:)    !mean frequency energy (nproma,nblks_c)
+    REAL(wp),     INTENT(INOUT) :: femeanws(:,:)  !mean windsea frequency energy (nproma,nblks_c)
 
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
     INTEGER :: i_startidx, i_endidx
@@ -469,8 +470,8 @@ CONTAINS
 !nec$ outerloop_unroll(4)
         DO jd = 1,wc%ndirs
           DO jc = i_startidx, i_endidx
-            temp(jc,jf)   = temp(jc,jf)   + tracer(jc,jd,jb,jf)
-            temp_1(jc,jf) = temp_1(jc,jf) + tracer(jc,jd,jb,jf)*REAL(llws(jc,jd,jf,jb),wp)
+            temp(jc,jf)   = temp(jc,jf)   + wesd(jf)%ptr(jc,jd,jb)
+            temp_1(jc,jf) = temp_1(jc,jf) + wesd(jf)%ptr(jc,jd,jb)*REAL(llws(jc,jd,jf,jb),wp)
           ENDDO
         ENDDO  ! jd
       END DO  ! jf
@@ -524,7 +525,7 @@ CONTAINS
   !!       G. KOMEN, S. HASSELMANN AND K. HASSELMANN, JPO, 1984.
   !!       P. JANSSEN, JPO, 1985
   !!
-  SUBROUTINE wave_stress(p_patch, wave_config, dir10m, sl, tracer, p_diag)
+  SUBROUTINE wave_stress(p_patch, wave_config, dir10m, sl, wesd, p_diag)
      CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER ::  &
           &  routine = modname//'wave_stress'
 
@@ -532,7 +533,7 @@ CONTAINS
     TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
     REAL(wp),                    INTENT(IN)    :: dir10m(:,:)
     REAL(vp),                    INTENT(IN)    :: sl(:,:,:,:)
-    REAL(wp),                    INTENT(IN)    :: tracer(:,:,:,:)
+    TYPE(t_wesd),                INTENT(IN)    :: wesd(:)
     TYPE(t_wave_diag),           INTENT(INOUT) :: p_diag
 
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
@@ -636,8 +637,8 @@ CONTAINS
           jf_lp = p_diag%last_prog_freq_ind(jc,jb)
 
           cosw = MAX(COS(wc%dirs(jd)-dir10m(jc,jb)),0.0_wp)
-          temp1(jc) = temp1(jc) + tracer(jc,jd,jb,jf_lp) * cosw**3
-          temp2(jc) = temp2(jc) + tracer(jc,jd,jb,jf_lp) * cosw**2
+          temp1(jc) = temp1(jc) + wesd(jf_lp)%ptr(jc,jd,jb) * cosw**3
+          temp2(jc) = temp2(jc) + wesd(jf_lp)%ptr(jc,jd,jb) * cosw**2
         END DO
       END DO
 
@@ -833,7 +834,7 @@ CONTAINS
   !! Adaptation of WAM 4.5 code.
   !! IMPHFTAIL
   !!
-  SUBROUTINE impose_high_freq_tail(p_patch, wave_config, wave_num_c, depth, last_prog_freq_ind, tracer)
+  SUBROUTINE impose_high_freq_tail(p_patch, wave_config, wave_num_c, depth, last_prog_freq_ind, wesd)
     CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER :: &
          & routine =  modname//'impose_high_freq_tail'
 
@@ -842,7 +843,7 @@ CONTAINS
     REAL(wp),                    INTENT(IN)    :: wave_num_c(:,:,:)  !< wave number (1/m)
     REAL(wp),                    INTENT(IN)    :: depth(:,:)
     INTEGER,                     INTENT(IN)    :: last_prog_freq_ind(:,:)
-    REAL(wp),                    INTENT(INOUT) :: tracer(:,:,:,:)
+    TYPE(t_wesd),                INTENT(INOUT) :: wesd(:)
 
 
     TYPE(t_wave_config), POINTER :: wc => NULL()
@@ -894,13 +895,13 @@ CONTAINS
       DO jd = 1, wc%ndirs
         DO jc = i_startidx, i_endidx
           jf_lp = last_prog_freq_ind(jc,jb)
-          tfac(jc) = tracer(jc,jd,jb,jf_lp)
+          tfac(jc) = wesd(jf_lp)%ptr(jc,jd,jb)
         ENDDO
         !
         DO jf = 1, wc%nfreqs
           DO jc = i_startidx, i_endidx
             IF (jf >=last_prog_freq_ind(jc,jb)+1) THEN
-              tracer(jc,jd,jb,jf) = temp(jc,jf) * tfac(jc)
+              wesd(jf)%ptr(jc,jd,jb) = temp(jc,jf) * tfac(jc)
             END IF
           END DO  !jc
         END DO  !jf
@@ -925,7 +926,7 @@ CONTAINS
   !!   WM1 IS SQRT(1/K)*F
   !!   WM2 IS SQRT(K)*F
   !!
-  SUBROUTINE tm1_tm2_periods_and_wm1_wm2_wavenumber(p_patch, wave_config, wave_num_c, tracer, emean, &
+  SUBROUTINE tm1_tm2_periods_and_wm1_wm2_wavenumber(p_patch, wave_config, wave_num_c, wesd, emean, &
     &                                               tm1, tm2, f1mean, akmean, xkmean)
     CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER :: &
          & routine =  modname//'tm1_tm2_periods_and_wm1_wm2_wavenumber'
@@ -933,7 +934,7 @@ CONTAINS
     TYPE(t_patch),               INTENT(IN)    :: p_patch
     TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
     REAL(wp),                    INTENT(IN)    :: wave_num_c(:,:,:) !< wave number (1/m)
-    REAL(wp),                    INTENT(IN)    :: tracer(:,:,:,:)
+    TYPE(t_wesd),                INTENT(IN)    :: wesd(:)
     REAL(wp),                    INTENT(IN)    :: emean(:,:)    !< total wave energy
     REAL(wp),                    INTENT(INOUT) :: tm1(:,:)        !< tm1 period (nproma,nblks_c)
     REAL(wp),                    INTENT(INOUT) :: tm2(:,:)        !< tm2 period (nproma,nblks_c)
@@ -974,7 +975,7 @@ CONTAINS
 !nec$ outerloop_unroll(4)
         DO jd = 1,wc%ndirs
           DO jc = i_startidx, i_endidx
-            temp(jc,jf) = temp(jc,jf) + tracer(jc,jd,jb,jf)
+            temp(jc,jf) = temp(jc,jf) + wesd(jf)%ptr(jc,jd,jb)
           END DO
         ENDDO
       END DO  !jf
@@ -1235,7 +1236,7 @@ CONTAINS
   ! Limits the level of total energy such that the wave height
   ! does not exceed the maximum wave height allowed for a given depth
   !
-  SUBROUTINE sdepth_lim(p_patch, wave_config, depth, emean, tracer)
+  SUBROUTINE sdepth_lim(p_patch, wave_config, depth, emean, wesd)
     CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER ::  &
          &  routine = 'sdepth_lim'
 
@@ -1243,7 +1244,7 @@ CONTAINS
     TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
     REAL(wp),                    INTENT(IN)    :: depth(:,:)
     REAL(wp),                    INTENT(INOUT) :: emean(:,:)
-    REAL(wp),                    INTENT(INOUT) :: tracer(:,:,:,:)
+    TYPE(t_wesd),                INTENT(INOUT) :: wesd(:)
 
     INTEGER  :: i_rlstart, i_rlend, i_startblk, i_endblk
     INTEGER  :: i_startidx, i_endidx
@@ -1275,7 +1276,7 @@ CONTAINS
       DO jf = 1,wc%nfreqs
         DO jd = 1,wc%ndirs
           DO jc = i_startidx, i_endidx
-            tracer(jc,jd,jb,jf) = tracer(jc,jd,jb,jf) * em(jc)
+            wesd(jf)%ptr(jc,jd,jb) = wesd(jf)%ptr(jc,jd,jb) * em(jc)
           END DO
         END DO
       END DO
@@ -1289,13 +1290,13 @@ CONTAINS
   !! Set wave spectrum to absolute allowed minimum
   !! Adaptation of WAM 4.5 code.
   !!
-  SUBROUTINE set_energy2emin(p_patch, wave_config, tracer)
+  SUBROUTINE set_energy2emin(p_patch, wave_config, wesd)
     CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER ::  &
          &  routine = 'set_energy2emin'
 
     TYPE(t_patch),               INTENT(IN)    :: p_patch
     TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
-    REAL(wp),                    INTENT(INOUT) :: tracer(:,:,:,:)
+    TYPE(t_wesd),                INTENT(INOUT) :: wesd(:)
 
     TYPE(t_wave_config), POINTER :: wc => NULL()
 
@@ -1318,7 +1319,7 @@ CONTAINS
       DO jf = 1,wc%nfreqs
         DO jd = 1,wc%ndirs
           DO jc = i_startidx, i_endidx
-            tracer(jc,jd,jb,jf) = MAX(tracer(jc,jd,jb,jf),EMIN)
+            wesd(jf)%ptr(jc,jd,jb) = MAX(wesd(jf)%ptr(jc,jd,jb),EMIN)
           END DO
         END DO
       END DO
@@ -1332,14 +1333,14 @@ CONTAINS
   !! Set wave spectrum to zero according to 0,1 mask by
   !! multiplication of tracers and mask
   !!
-  SUBROUTINE mask_energy(p_patch, wave_config, mask, tracer)
+  SUBROUTINE mask_energy(p_patch, wave_config, mask, wesd)
     CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER ::  &
          &  routine = 'mask_energy'
 
     TYPE(t_patch),               INTENT(IN)    :: p_patch
     TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
     INTEGER,                     INTENT(IN)    :: mask(:,:)
-    REAL(wp),                    INTENT(INOUT) :: tracer(:,:,:,:)
+    TYPE(t_wesd),                INTENT(INOUT) :: wesd(:)
 
     TYPE(t_wave_config), POINTER :: wc => NULL()
 
@@ -1363,7 +1364,7 @@ CONTAINS
       DO jf = 1,wc%nfreqs
         DO jd = 1,wc%ndirs
           DO jc = i_startidx, i_endidx
-            tracer(jc,jd,jb,jf) = tracer(jc,jd,jb,jf) * REAL(mask(jc,jb),wp)
+            wesd(jf)%ptr(jc,jd,jb) = wesd(jf)%ptr(jc,jd,jb) * REAL(mask(jc,jb),wp)
           END DO
         END DO
       END DO
