@@ -30,6 +30,9 @@ MODULE mo_nwp_gpu_util
   USE mo_var_list_gpu,            ONLY: gpu_update_var_list
   USE mo_sppt_config,             ONLY: sppt_config
 #endif
+  USE mo_timer,                    ONLY: ltimer, timers_level, timer_start, &
+                                         timer_stop, timer_acc_data_copies, &
+                                         timer_dace_acc_data_copies
 
   IMPLICIT NONE
 
@@ -52,6 +55,8 @@ MODULE mo_nwp_gpu_util
     LOGICAL, INTENT(IN), OPTIONAL :: lacc ! If true, use openacc
 
     TYPE(t_atm_phy_nwp_config), POINTER :: a
+
+    IF (timers_level > 9) CALL timer_start(timer_acc_data_copies)
 
     CALL assert_acc_device_only("gpu_d2h_nh_nwp", lacc)
 
@@ -147,6 +152,7 @@ MODULE mo_nwp_gpu_util
     ENDIF
 
     !$ACC WAIT(1)
+    IF (timers_level > 9) CALL timer_stop(timer_acc_data_copies)
 
   END SUBROUTINE gpu_d2h_nh_nwp
 
@@ -163,6 +169,8 @@ MODULE mo_nwp_gpu_util
     LOGICAL, INTENT(IN), OPTIONAL :: lacc ! If true, use openacc
 
     TYPE(t_atm_phy_nwp_config), POINTER :: a
+
+    IF (timers_level > 9) CALL timer_start(timer_acc_data_copies)
 
     CALL assert_acc_device_only("gpu_d2h_nh_nwp", lacc)
 
@@ -258,6 +266,8 @@ MODULE mo_nwp_gpu_util
       !$ACC   ASYNC(1)
     ENDIF
 
+    IF (timers_level > 9) CALL timer_stop(timer_acc_data_copies)
+
   END SUBROUTINE gpu_h2d_nh_nwp
 
 #ifdef __ICON_ART
@@ -269,6 +279,8 @@ MODULE mo_nwp_gpu_util
 
     ! local scalars
     INTEGER :: ipoll
+
+    IF (timers_level > 9) CALL timer_start(timer_acc_data_copies)
 
     CALL assert_acc_device_only("gpu_d2h_art", lacc)
 
@@ -297,6 +309,8 @@ MODULE mo_nwp_gpu_util
       !$ACC WAIT(1)
     END IF
 
+    IF (timers_level > 9) CALL timer_stop(timer_acc_data_copies)
+
   END SUBROUTINE gpu_d2h_art
 
   SUBROUTINE gpu_h2d_art(jg, p_art_data, lacc)
@@ -310,6 +324,7 @@ MODULE mo_nwp_gpu_util
 
     TYPE(t_atm_phy_nwp_config), POINTER :: a
 
+    IF (timers_level > 9) CALL timer_start(timer_acc_data_copies)
 
     CALL assert_acc_device_only("gpu_h2d_art", lacc)
 
@@ -337,25 +352,35 @@ MODULE mo_nwp_gpu_util
       ENDIF
     END IF
 
+    IF (timers_level > 9) CALL timer_stop(timer_acc_data_copies)
+
   END SUBROUTINE gpu_h2d_art
 #endif
 
   SUBROUTINE devcpy_nwp(lacc)
     LOGICAL, INTENT(IN), OPTIONAL :: lacc ! If true, use openacc
 
+    IF (timers_level > 9) CALL timer_start(timer_acc_data_copies)
+
     CALL assert_acc_device_only("devcpy_nwp", lacc)
 
     !$ACC ENTER DATA COPYIN(kstart_moist, kstart_tracer)
+
+    IF (timers_level > 9) CALL timer_stop(timer_acc_data_copies)
 
   END SUBROUTINE devcpy_nwp
 
   SUBROUTINE hostcpy_nwp(lacc)
     LOGICAL, INTENT(IN), OPTIONAL :: lacc ! If true, use openacc
 
+    IF (timers_level > 9) CALL timer_start(timer_acc_data_copies)
+
     CALL assert_acc_device_only("hostcpy_nwp", lacc)
 
     !$ACC WAIT(1)
     !$ACC EXIT DATA DELETE(kstart_moist, kstart_tracer)
+
+    IF (timers_level > 9) CALL timer_stop(timer_acc_data_copies)
 
   END SUBROUTINE hostcpy_nwp
 
@@ -367,6 +392,8 @@ MODULE mo_nwp_gpu_util
     TYPE(t_lnd_state),          INTENT(inout):: p_lnd_state
 
     LOGICAL :: lqr, lqs, lqg
+
+    IF (timers_level > 9) CALL timer_start(timer_dace_acc_data_copies)
 
     lqr = iqr > 0
     lqs = iqs > 0
@@ -430,6 +457,8 @@ MODULE mo_nwp_gpu_util
 #endif
 
     !$ACC WAIT(1)
+
+    IF (timers_level > 9) CALL timer_stop(timer_dace_acc_data_copies)
 
   END SUBROUTINE gpu_d2h_dace
 

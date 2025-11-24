@@ -45,7 +45,8 @@ MODULE mo_timer
   PUBLIC :: init_timer                                        !< procedure of this module
 
   PUBLIC :: timer_total                                       !< IDs of timers
-  PUBLIC :: timer_exch_data, timer_exch_data_rv, timer_exch_data_async, timer_exch_data_wait
+  PUBLIC :: timer_exch_data, timer_exch_data_rv, timer_exch_data_async, &
+            timer_exch_data_wait, timer_acc_data_copies
   PUBLIC :: timer_global_sum, timer_omp_global_sum, timer_ordglb_sum, timer_omp_ordglb_sum
   PUBLIC :: timer_icon_comm_sync
   PUBLIC :: timer_icon_comm_fillrecv, timer_icon_comm_wait, timer_icon_comm_isend,       &
@@ -287,7 +288,8 @@ MODULE mo_timer
   PUBLIC :: timer_restart_indices_setup
 
   ! Timer for data assimilation
-  PUBLIC :: timer_datass, timer_lhn, timer_init_dace, timer_dace_coupling
+  PUBLIC :: timer_datass, timer_lhn, timer_init_dace, timer_dace_coupling, &
+            timer_dace_acc_data_copies
 
   PUBLIC :: timer_extra1,  timer_extra2,  timer_extra3,  timer_extra4,  timer_extra5,  &
             timer_extra6,  timer_extra7,  timer_extra8,  timer_extra9,  timer_extra10, &
@@ -341,7 +343,7 @@ MODULE mo_timer
 
   ! ID of timer for total model integration time
   INTEGER :: timer_total
-  INTEGER :: timer_exch_data, timer_exch_data_rv, timer_exch_data_async, timer_exch_data_wait
+  INTEGER :: timer_exch_data, timer_exch_data_rv, timer_exch_data_async, timer_exch_data_wait, timer_acc_data_copies
   INTEGER :: timer_global_sum, timer_omp_global_sum, timer_ordglb_sum, timer_omp_ordglb_sum
   INTEGER :: timer_icon_comm_sync
   INTEGER :: timer_icon_comm_fillrecv, timer_icon_comm_wait, timer_icon_comm_isend, &
@@ -572,7 +574,8 @@ MODULE mo_timer
   INTEGER :: timer_restart_indices_setup
 
   ! Data assimilation
-  INTEGER :: timer_datass, timer_lhn, timer_init_dace, timer_dace_coupling
+  INTEGER :: timer_datass, timer_lhn, timer_init_dace, timer_dace_coupling, &
+             timer_dace_acc_data_copies
 
   ! The purpose of these "extra" timers is to have otherwise unused timers available for
   ! special-purpose measurements. Please do not remove them and do not use them permanently.
@@ -729,6 +732,7 @@ CONTAINS
     timer_exch_data_rv = new_timer("exch_data_rv")
     timer_exch_data_async = new_timer("exch_data_async")
     timer_exch_data_wait = new_timer("exch_data.wait")
+    timer_acc_data_copies = new_timer("acc_data_copies")
     timer_global_sum = new_timer("global_sum")
     timer_omp_global_sum = new_timer("omp_global_sum")
     timer_ordglb_sum = new_timer("ordglb_sum")
@@ -1045,6 +1049,7 @@ CONTAINS
     timer_lhn     = new_timer("lhn")
     timer_init_dace     = new_timer("init_dace")
     timer_dace_coupling = new_timer("dace_coupling")
+    timer_dace_acc_data_copies = new_timer("dace_acc_data_copies")
 
   ! extra timers for on-demand (non-permanent) timings
     timer_extra1  = new_timer("extra1")
