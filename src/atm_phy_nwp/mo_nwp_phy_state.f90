@@ -4242,7 +4242,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
 
 
     ! &      diag%u_10m_t(nproma,nblks_c,ntiles_total+ntiles_water)
-    cf_desc    = t_cf_var('u_10m_t', 'm s-1 ', 'tile-based zonal wind in 2m', datatype_flt)
+    cf_desc    = t_cf_var('u_10m_t', 'm s-1 ', 'tile-based zonal wind in 10m', datatype_flt)
     grib2_desc = grib2_var(0, 2, 2, ibits, GRID_UNSTRUCTURED, GRID_CELL)
     CALL add_var( diag_list, 'u_10m_t', diag%u_10m_t,                                  &
       & GRID_UNSTRUCTURED_CELL, ZA_HEIGHT_10M, cf_desc, grib2_desc, ldims=shape3dsubsw,&
@@ -4266,7 +4266,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
 
 
     ! &      diag%v_10m_t(nproma,nblks_c,ntiles_total+ntiles_water)
-    cf_desc    = t_cf_var('v_10m_t', 'm s-1 ', 'tile-based meridional wind in 2m', &
+    cf_desc    = t_cf_var('v_10m_t', 'm s-1 ', 'tile-based meridional wind in 10m', &
          &                datatype_flt)
     grib2_desc = grib2_var(0, 2, 3, ibits, GRID_UNSTRUCTURED, GRID_CELL)
     CALL add_var( diag_list, 'v_10m_t', diag%v_10m_t,                                  &
