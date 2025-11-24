@@ -1095,9 +1095,6 @@ set_run_target_rcl()
 #-----------------------------------------------------------------------------
 #PBS -q ${use_queue:-sx_norm}
 #PBS -v NE=${use_nodes},CPE=${use_mpi_procs_pernode}
-#PBS -v NMPI_MALLOC_HEAP_EXPANSION_SIZE=512
-#PBS -v NMPI_MALLOC_MMAP_THRESHOLD=512
-#PBS -v MPI_IB_VBUF_TOTAL_SIZE=131072
 #PBS -v BB_NAME
 #PBS -l elapstim_req=00:40:00
 #PBS --venode=\${NE}
