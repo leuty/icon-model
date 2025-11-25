@@ -1036,7 +1036,7 @@ CONTAINS
 
     CHARACTER(len=*),       INTENT(in)    :: filebasename
     ! To cross-check that the table matches the desired hydrometeor type:
-    CLASS(particle),        INTENT(in)    :: parti
+    TYPE(particle),        INTENT(in)     :: parti
     ! File unit number for ASCII file reading:
     INTEGER,                INTENT(in)    :: unitnr
     ! Desired number of elements for the fine equidistant grid vector for T:
@@ -1230,7 +1230,7 @@ CONTAINS
 
     CHARACTER(len=*), INTENT(in)       :: filebasename
     ! To cross-check that the table matches the desired hydrometeor type:
-    CLASS(particle),  INTENT(in)       :: parti
+    TYPE(particle),  INTENT(in)        :: parti
     ! File unit number for ASCII file reading:
     INTEGER,          INTENT(in)       :: unitnr
     TYPE(lookupt_4D), INTENT(inout)    :: ltab
@@ -1841,7 +1841,7 @@ CONTAINS
 
   SUBROUTINE dmin_wetgrowth_fun_check(parti, ltab)
     implicit none
-    CLASS(particle) :: parti
+    TYPE(particle) :: parti
     TYPE(lookupt_4D), INTENT(in) :: ltab
 
     integer  :: i,j,k,m
@@ -1875,7 +1875,7 @@ CONTAINS
   END SUBROUTINE dmin_wetgrowth_fun_check
 
   LOGICAL FUNCTION dmin_wetgrowth_fit_check(p)
-    CLASS(particle) :: p
+    TYPE(particle) :: p
     REAL(wp), PARAMETER :: dmin_fit_a_geo = 1.42e-01_wp
     REAL(wp), PARAMETER :: dmin_fit_b_geo = 0.314_wp
     REAL(wp), PARAMETER :: dmin_fit_a_vel = 86.89371_wp

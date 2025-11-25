@@ -14,6 +14,7 @@ spack:
   - icon @develop %nvhpc +grib2 +eccodes-definitions +ecrad +emvorado +art +dace gpu=nvidia-80
     +mpi-gpu +realloc-buf ~aes ~jsbach ~ocean ~coupling ~rte-rrtmgp ~loop-exchange
     ~async-io-rma ~cuda-graphs fflags="-traceback"
+  - eccodes%nvhpc
   view: true
   concretizer:
     unify: true

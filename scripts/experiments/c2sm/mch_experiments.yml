@@ -123,6 +123,16 @@ experiments:
     types: ['atm_3d_ml']
     dates: ['20221201T000000Z']
     restart_date: ['20221201T000000Z']
+  - name: mch_opr_r19b07_2m_impl
+    check: checksuite.icon-dev/check.mch_opr_r19b07_2m_impl
+    types: ['atm_3d_ml']
+    dates: ['20210620T150000Z']
+    restart_date: ['20210620T150000Z']
+  - name: mch_opr_r19b07_2m_expl
+    check: checksuite.icon-dev/check.mch_opr_r19b07_2m_expl
+    types: ['atm_3d_ml']
+    dates: ['20210620T150000Z']
+    restart_date: ['20210620T150000Z']
   - name: mch_opr_r19b07_lpi
     check: checksuite.icon-dev/check.mch_opr_r19b07_lpi
     types: ['atm_3d_ml']
