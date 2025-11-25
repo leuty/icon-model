@@ -63,6 +63,9 @@ MODULE mo_nwp_tuning_nml
     &                               config_tune_qexc             => tune_qexc,             &
     &                               config_tune_rcapqadv         => tune_rcapqadv,         &
     &                               config_tune_minsnowfrac      => tune_minsnowfrac,      &
+    &                               config_tune_tau_shallow      => tune_tau_shallow,      &
+    &                               config_tune_tau_mid          => tune_tau_mid,          &
+    &                               config_tune_tau_deep         => tune_tau_deep,         &
     &                               config_tune_box_liq          => tune_box_liq,          &
     &                               config_tune_box_ice          => tune_box_ice,          &
     &                               config_tune_box_liq_asy      => tune_box_liq_asy,      &
@@ -217,6 +220,15 @@ MODULE mo_nwp_tuning_nml
   REAL(wp) :: &                    !< Minimum value to which the snow cover fraction is artificially reduced
     &  tune_minsnowfrac            !  in case of melting show (in case of idiag_snowfrac = 20)
 
+  REAL(wp) :: &                    !< Decay time scale for shallow convective anvils
+    &  tune_tau_shallow            ! (in case of inwp_cldcover = 1)
+
+  REAL(wp) :: &                    !< Decay time scale for mid-level convective anvils
+    &  tune_tau_mid                ! (in case of inwp_cldcover = 1)
+
+  REAL(wp) :: &                    !< Decay time scale for deep convective anvils
+    &  tune_tau_deep               ! (in case of inwp_cldcover = 1)
+
   REAL(wp) :: &                    !< Box width for liquid clouds assumed in the cloud cover scheme
     &  tune_box_liq                ! (in case of inwp_cldcover = 1)
 
@@ -353,8 +365,9 @@ MODULE mo_nwp_tuning_nml
     &                      tune_capethresh, tune_gkdrag_enh, tune_grcrit_enh,     &
     &                      tune_minsso_gwd, tune_dursun_scaling, tune_sbmccn,     &
     &                      itune_slopecorr, tune_gustlim_agl, tune_gustlim_fac,   &
-    &                      tune_urbahf, tune_urbisa, tune_box_ice, tune_supsat_limfac, &
-    &                      tune_grzdc_offset, itune_vis_diag, tune_entrainment_profile
+    &                      tune_urbahf, tune_urbisa, tune_box_ice, tune_supsat_limfac,  &
+    &                      tune_grzdc_offset, itune_vis_diag, tune_entrainment_profile, &
+    &                      tune_tau_shallow, tune_tau_mid, tune_tau_deep
 
 CONTAINS
 
@@ -491,6 +504,9 @@ CONTAINS
                                    ! in case of melting show (in case of idiag_snowfrac = 20)
     !
     ! cloud cover
+    tune_tau_shallow = 1500.0_wp   ! decay time scale for shallow convective anvils (s)
+    tune_tau_mid     = 1500.0_wp   ! decay time scale for mid-level convective anvils (s)
+    tune_tau_deep    = 1500.0_wp   ! decay time scale for deep convective anvils (s)
     tune_box_liq     = 0.05_wp     ! box width scale of liquid clouds
     tune_box_ice     = 0.05_wp     ! box width scale of ice clouds
     tune_thicklayfac = 0.005_wp    ! factor [1/m] for increasing the box with for layer thicknesses exceeding 150 m
@@ -677,6 +693,9 @@ CONTAINS
     config_tune_qexc             = tune_qexc
     config_tune_rcapqadv         = tune_rcapqadv
     config_tune_minsnowfrac      = tune_minsnowfrac
+    config_tune_tau_shallow      = tune_tau_shallow
+    config_tune_tau_mid          = tune_tau_mid
+    config_tune_tau_deep         = tune_tau_deep
     config_tune_box_liq          = tune_box_liq
     config_tune_box_ice          = tune_box_ice
     config_tune_box_liq_asy      = tune_box_liq_asy
@@ -715,6 +734,7 @@ CONTAINS
 
     !$ACC UPDATE DEVICE(config_tune_gust_factor, config_itune_gust_diag, config_itune_vis_diag, config_tune_gustsso_lim) ASYNC(1)
     !$ACC UPDATE DEVICE(config_tune_gustlim_agl, config_tune_gustlim_fac, config_tune_albedo_wso, config_tune_supsat_limfac) ASYNC(1)
+    !$ACC UPDATE DEVICE(config_tune_tau_shallow, config_tune_tau_mid, config_tune_tau_deep) ASYNC(1)
 
     !-----------------------------------------------------
     ! 6. Store the namelist for restart

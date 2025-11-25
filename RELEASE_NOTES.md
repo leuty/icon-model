@@ -8,6 +8,7 @@
 - Introducing CO2 prognostic tracer to ecRad to enable emission-driven simulations with interactive land-ocean-atmosphere carbon cycle
 - Allow more than one time interval for lateral boundary conditions
 - EMVORADO: Bugfix in the determination of the nearest ICON cell
+- Set taudecay in cover_koe separately for shallow, mid-level and deep convection
 
 ### ICON-Ocean
 

@@ -90,6 +90,7 @@ MODULE mo_nwp_tuning_config
   PUBLIC :: tune_dursun_scaling
   PUBLIC :: tune_sbmccn
   PUBLIC :: tune_urbahf, tune_urbisa
+  PUBLIC :: tune_tau_shallow, tune_tau_mid, tune_tau_deep
 
   !!--------------------------------------------------------------------------
   !! Basic configuration setup for physics tuning
@@ -211,6 +212,16 @@ MODULE mo_nwp_tuning_config
 
   REAL(wp) :: &                    !< Minimum value to which the snow cover fraction is artificially reduced
     &  tune_minsnowfrac            !  in case of melting show (in case of idiag_snowfrac = 20)
+
+  REAL(wp) :: &                    !< Decay time scale for shallow convective anvils (s)
+    &  tune_tau_shallow            ! (relevant for inwp_cldcover = 1)
+
+  REAL(wp) :: &                    !< Decay time scale for mid-level convective anvils (s)
+    &  tune_tau_mid                ! (relevant for inwp_cldcover = 1)
+
+  REAL(wp) :: &                    !< Decay time scale for deep convective anvils (s)
+    &  tune_tau_deep               ! (relevant for inwp_cldcover = 1)
+  !$ACC DECLARE CREATE(tune_tau_shallow, tune_tau_mid, tune_tau_deep)
 
   REAL(wp) :: &                    !< Box width for liquid clouds assumed in the cloud cover scheme
     &  tune_box_liq                ! (in case of inwp_cldcover = 1)
