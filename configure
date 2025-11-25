@@ -9805,6 +9805,7 @@ else
       implicit none
       type(t_comin_setup_version_info) :: version
       version = comin_setup_get_version()
+      write(*,"(i0)") version%version_no_major
       end
 _ACEOF
 if ac_fn_fc_try_link "$LINENO"; then :

@@ -2036,7 +2036,8 @@ AS_IF([test "x$enable_comin" = xyes && test "x$with_external_comin" = xyes],
                                     & comin_setup_get_version
       implicit none
       type(t_comin_setup_version_info) :: version
-      version = comin_setup_get_version()]])],
+      version = comin_setup_get_version()
+      write(*,"(i0)") version%version_no_major]])],
         [icon_cv_have_comin=yes])])
    AS_VAR_IF([icon_cv_have_comin], [no],
      [AC_MSG_FAILURE([unable to link a test program using COMIN library: dnl

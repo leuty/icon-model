@@ -49,9 +49,10 @@ The list of packages required for successful configuration and building depends 
 :align: center
 :name: tab_icon_depgraph
 
-| Package | Dependency condition<a name="f1back"> <sup><a href="#f1">1</a></sup> | Required flags<sup><a href="#f1">1</a></sup> |
+| Package | Dependency condition<sup><a href="#f1">1</a></sup><a name="f1back"/> | Required flags<sup><a href="#f1">1</a></sup> |
 | :---: | :---: | :---: |
 | [FORTRAN-SUPPORT](https://gitlab.dkrz.de/icon-libraries/libfortran-support) | `--with-external-fortran-support` | `FCFLAGS='-I/path/to/fortran-support/include' LDFLAGS='-L/path/to/fortran-support/lib' LIBS='-lfortran-support'` |
+| [COMIN](https://gitlab.dkrz.de/icon-comin/comin) | `--enable-comin --with-external-comin` | `FCFLAGS='-I/path/to/comin/include' LDFLAGS='-L/path/to/comin/lib' LIBS='-lcomin'` |
 | [ICON-TIXI](https://gitlab.dkrz.de/icon-libraries/libtixi) (a modified version of [TIXI](https://github.com/DLR-SC/tixi)) | `--enable-art --with-external-tixi` | `FCFLAGS='-I/path/to/tixi/include' LDFLAGS='-L/path/to/tixi/lib' LIBS='-licon_tixi'` |
 | [XML2](https://gitlab.gnome.org/GNOME/libxml2/-/wikis/home) | `--enable-art` | `CPPFLAGS='-I/path/to/libxml2/include/libxml2' LDFLAGS='-L/path/to/libxml2/lib' LIBS='-lxml2'` |
 | [YAC](https://gitlab.dkrz.de/dkrz-sw/yac) | `--enable-coupling --with-external-yac` | `FCFLAGS='-I/path/to/yac/include' LDFLAGS='-L/path/to/yac/lib' LIBS='-lyac'` |
@@ -75,13 +76,13 @@ The list of packages required for successful configuration and building depends 
 | [NetCDF-C](https://docs.unidata.ucar.edu/netcdf-c/current/) | `--without-external-cdi` or `--enable-coupling` | `CPPFLAGS='-I/path/to/netcdf/include' LDFLAGS='-L/path/to/netcdf/lib' LIBS='-lnetcdf'` |
 | [HDF5](https://www.hdfgroup.org/solutions/hdf5/) (low- and high-level Fortran interfaces) | `--enable-emvorado` or `--enable-rttov` | `FCFLAGS='-I/path/to/hdf5/include' LDFLAGS='-L/path/to/hdf5/lib' LIBS='-lhdf5_hl_fortran -lhdf5_fortran'` |
 | [HDF5](https://www.hdfgroup.org/solutions/hdf5/) (low-level C interface) | `--enable-sct --without-external-sct` | `CPPFLAGS='-I/path/to/hdf5/include' LDFLAGS='-L/path/to/hdf5/lib' LIBS='-lhdf5'` |
-| [ZLIB](https://zlib.net) | `--enable-emvorado` | `LDFLAGS='-L/path/to/zlib/lib' LIBS='-lz'`<sup><a href="#f2">2</a></sup><a name="f2back"> |
+| [ZLIB](https://zlib.net) | `--enable-emvorado` | `LDFLAGS='-L/path/to/zlib/lib' LIBS='-lz'`<sup><a href="#f2">2</a></sup><a name="f2back"/> |
 | [AEC](https://gitlab.dkrz.de/k202009/libaec) | static linking | `LDFLAGS='-L/path/to/aec/lib' LIBS='-lsz -laec'` |
 | [MPI](https://www.mpi-forum.org) (Fortran interface) | `--enable-mpi` | `FC='/path/to/mpi/bin/mpif90'` or `FCFLAGS='-I/path/to/mpi/include' LDFLAGS='-L/path/to/mpi/lib' LIBS='-lmpifort -lmpi'` (depends on the implementation) |
 | [MPI](https://www.mpi-forum.org) (C interface) | `--enable-coupling` or `--enable-yaxt --without-external-yaxt` or `--enable-mpi --enable-sct --without-external-sct` or `--enable-cdi-pio --without-external-cdi` | `CC=/path/to/mpi/bin/mpicc` or `CPPFLAGS='-I/path/to/mpi/include' LDFLAGS='-L/path/to/mpi/lib' LIBS='-lmpi'` (depends on the implementation) |
 | [ROCm](https://www.amd.com/en/products/software/rocm.html) | `--enable-gpu=openacc+hip` | `LDFLAGS='-L/path/to/rocm/lib' LIBS='-lamdhip64'` (depends on the platform) |
 | [CUDA](https://developer.nvidia.com/cuda-zone) | `--enable-gpu=openacc+cuda` | `LDFLAGS='-L/path/to/cuda/lib' LIBS='-lcudart'` |
-| [STDC++](https://isocpp.org/)<sup><a href="#f3">3</a></sup><a name="f3back"> | `--enable-gpu=openacc+cuda` or `--enable-gpu=openacc+hip` or `--enable-comin` | `LDFLAGS='-L/path/to/gcc/used/by/CUDACXX-or-HIPCXX-or-COMIN/lib' LIBS='-lstdc++'` (depends on the implementation) |
+| [STDC++](https://isocpp.org/)<sup><a href="#f3">3</a></sup><a name="f3back"/> | `--enable-gpu=openacc+cuda` or `--enable-gpu=openacc+hip` or `--enable-comin` | `LDFLAGS='-L/path/to/gcc/used/by/CUDACXX-or-HIPCXX-or-COMIN/lib' LIBS='-lstdc++'` (depends on the implementation) |
 :::
 
 1. <a name="f1"/>The dependency conditions and required flags are specified assuming that the shared versions of the libraries containing `RPATH` entries pointing to their dependencies are used (see section [](ref_buildrun_configuration_dynlibs)).<a href="#f1back">{octicon}`undo;1em;pst-color-secondary`</a>
