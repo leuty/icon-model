@@ -5,6 +5,7 @@
 #### NWP Physics
 
 - Correction of the roughness length computation over ocean in TMX
+- Add multiscale stochastic pattern generator and iSPPT
 
 ### Soil and Surface
 

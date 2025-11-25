@@ -710,7 +710,7 @@ CONTAINS
     !>  stochastic pattern generator
     !!-------------------------------------------------------------------------
 
-    IF (atm_phy_nwp_config(jg)%lstochastic_pattern_generator) THEN
+    IF (atm_phy_nwp_config(jg)%lstoch_pattern_generator) THEN
 
       IF (msg_level >= 15) CALL message('mo_nh_interface_nwp:', 'stochastic pattern')
 
@@ -735,13 +735,13 @@ CONTAINS
              & i_startidx, i_endidx, rl_start, rl_end)
 
         ! Stochastic pattern generator
-        CALL stochastic_pattern_generator(                   &
-             nproma  = nproma,                                  & ! nproma
-             istart  = i_startidx,                              & ! start index
-             iend    = i_endidx,                                & ! end index
-             spg     = prm_diag%spg(:,jb),                      & ! spatial random patter
-             clat    = pt_patch%cells%center(:,jb)%lat,         & ! latitude
-             clon    = pt_patch%cells%center(:,jb)%lon          & ! longitude
+        CALL stochastic_pattern_generator(                     &
+             nproma  = nproma,                                 & ! nproma
+             istart  = i_startidx,                             & ! start index
+             iend    = i_endidx,                               & ! end index
+             spg     = prm_diag%spg(:,:,jb),                   & ! spatial random pattern
+             clat    = pt_patch%cells%center(:,jb)%lat,        & ! latitude
+             clon    = pt_patch%cells%center(:,jb)%lon         & ! longitude
              )
       END DO
 !$OMP END DO NOWAIT

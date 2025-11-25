@@ -37,7 +37,9 @@ MODULE mo_nwp_phy_nml
     &                               config_i2daero_fire    => i2daero_fire,    &
     &                               config_icpl_o3_tp      => icpl_o3_tp,      &
     &                               config_itype_dissip_heat => itype_dissip_heat, &
+    &                               config_itype_stoch_phys  => itype_stoch_phys,  &
     &                               config_icpl_aero_ice   => icpl_aero_ice,   &
+    &                               config_spg_num         => spg_num,         &
     &                               config_lcuda_graph_turb_tran => lcuda_graph_turb_tran, &
     &                               config_icpl_gwd_prec   => icpl_gwd_prec
 
@@ -99,6 +101,7 @@ MODULE mo_nwp_phy_nml
   INTEGER  :: i2daero_fire       !! 2D-Aerosol: Activate wildfire sinks & sources (additional to i2daero_anthro)
   INTEGER  :: icpl_o3_tp         !! type of ozone-tropopause coupling
   INTEGER  :: itype_dissip_heat  !! Options for the calculation of dissipative heating
+  INTEGER  :: itype_stoch_phys   !! Options for stochastically perturbed physical tendencies scheme
   REAL(wp) :: qi0, qc0           !! variables for hydci_pp
   REAL(wp) :: ustart_raylfric    !! velocity at which extra Rayleigh friction starts
   REAL(wp) :: efdt_min_raylfric  !! e-folding time corresponding to maximum relaxation coefficient
@@ -119,13 +122,14 @@ MODULE mo_nwp_phy_nml
 
   LOGICAL  :: lcuda_graph_turb_tran  !! Activate CUDA GRAPH in turbulent transfer
 
-  LOGICAL  :: lstochastic_pattern_generator   !! use stochastic pattern generator
-  LOGICAL  :: spg_use_asl           !! stochastic pattern generator, use ASL library
-  LOGICAL  :: spg_fourier_modes     !! stochastic pattern generator, Fourier modes
-  REAL(wp) :: spg_length_scale      !! stochastic pattern generator, length scale
-  REAL(wp) :: spg_time_scale        !! stochastic pattern generator, time scale of AR1 process
-  INTEGER  :: spg_spec_modes        !! stochastic pattern generator, number of spectral modes
-  REAL(wp) :: spg_variance          !! stochastic pattern generator, variance in grid point space
+  LOGICAL  :: lstoch_pattern_generator !! use stochastic pattern generator
+  INTEGER  :: spg_num                  !! number of stochastic patterns in grid point space
+  LOGICAL  :: spg_use_asl              !! stochastic pattern generator, use ASL library
+  LOGICAL  :: spg_fourier_modes        !! stochastic pattern generator, Fourier modes
+  REAL(wp), DIMENSION(5) :: spg_length_scale      !! stochastic pattern generator, length scale
+  REAL(wp), DIMENSION(5) :: spg_time_scale        !! stochastic pattern generator, time scale of AR1 process
+  INTEGER,  DIMENSION(5) :: spg_spec_modes        !! stochastic pattern generator, number of spectral modes
+  REAL(wp), DIMENSION(5) :: spg_variance          !! stochastic pattern generator, variance in grid point space
 
   !> NetCDF file containing longwave absorption coefficients and other data
   !> for RRTMG_LW k-distribution model ('rrtmg_lw.nc')
@@ -157,9 +161,10 @@ MODULE mo_nwp_phy_nml
     &                    lsbm_coupled, lcuda_graph_turb_tran,        &
     &                    scale_cdnc_mode, lvariable_rain_n0,         &
     &                    itype_dissip_heat,                          &
-    &                    lstochastic_pattern_generator,              &
+    &                    itype_stoch_phys,                           &
+    &                    lstoch_pattern_generator,                   &
     &                    spg_length_scale, spg_time_scale,           &
-    &                    spg_spec_modes, spg_variance,               &
+    &                    spg_spec_modes, spg_variance, spg_num,      &
     &                    spg_fourier_modes, spg_use_asl,             &
     &                    icpl_gwd_prec
 
@@ -250,13 +255,18 @@ CONTAINS
     qc0      = 0.0_wp
 
     ! stochastic pattern generator
-    lstochastic_pattern_generator = .false.
+    lstoch_pattern_generator = .false.
+    spg_num           = 0
     spg_use_asl       = .false.
     spg_fourier_modes = .true.
-    spg_length_scale  = 1000e3_wp
-    spg_time_scale    = 3600.0_wp
-    spg_spec_modes    = 50
-    spg_variance      = 1.0_wp
+    spg_length_scale  = 0.0_wp
+    spg_time_scale    = 0.0_wp
+    spg_spec_modes    = 0
+    spg_variance      = 0.0_wp
+    spg_length_scale(1) = 1000e3_wp
+    spg_time_scale(1)   = 3600.0_wp
+    spg_spec_modes(1)   = 50
+    spg_variance(1)     = 1.0_wp
 
     ! shape parameter for gamma distribution for rain and snow
     mu_rain = 0.0_wp
@@ -321,6 +331,11 @@ CONTAINS
     itype_dissip_heat = 1   ! 0 = none; switch is automatically reset to 0 if dissipative heating is calculated in turbulence scheme
                             ! 1 = SSO + GWD + Rayleigh friction
                             ! 2 = 1 + momemtum dissipation by turbulence
+
+    ! options for stochastically perturbed physical tendendcies scheme
+    itype_stoch_phys = 0    ! 0 = none, 1 = CONV only, 2 = GWD only
+                            ! 3 = CONV + GWD using single stochastic pattern (SPPT-like)
+                            ! 4 = CONV + GWD using uncorrelated patterns (iSPPT-like)
 
     ! Calculation of effective radius
     icalc_reff(:)   =  icalc_reff_def ! 0      = no calculation (current default)
@@ -514,8 +529,12 @@ CONTAINS
         CALL finish(routine,'GPU version not available for Stochastic Bin Microphysics (inwp_gscp=8).')
       ENDIF
 
-      IF (lstochastic_pattern_generator) THEN
-        CALL finish(routine,'The spectral stochastic pattern generatore has not yet been ported to GPU.')
+      IF (lstoch_pattern_generator) THEN
+        CALL finish(routine,'The spectral stochastic pattern generator has not yet been ported to GPU.')
+      END IF
+
+      IF ( itype_stoch_phys > 0 ) THEN
+        CALL finish(routine,'Stochastic physics with itype_stoch_phys > 0 is not supported on GPU')
       END IF
 #endif
 
@@ -545,6 +564,36 @@ CONTAINS
 
     IF ( ALL((/1,2/) /= itype_satpres_coeffs) ) THEN
       CALL finish( TRIM(routine), 'Incorrect setting for itype_satpres_coeffs. Must be 1 or 2.')
+    END IF
+
+#ifdef __NEC__
+#ifndef __ASL__
+    IF (lstoch_pattern_generator .AND. spg_use_asl) THEN
+      CALL finish(routine,'Stochastic pattern generator using Advanced Scientific Library (ASL) has to be linked with ASL')
+    ENDIF
+#endif
+#else
+#ifndef __NEC_VH__
+    IF (lstoch_pattern_generator .AND. spg_use_asl) THEN
+      CALL finish(routine,'Stochastic pattern generator using Advanced Scientific Library (ASL) is only available on NEC')
+    ENDIF
+#endif
+#endif
+#ifdef __NEC__
+    IF (lstoch_pattern_generator .AND. .not.spg_use_asl) THEN
+      CALL finish(routine, 'Stochastic pattern generator on NEC without ASL. This is inefficient, please use ASL.')
+    END IF
+#endif
+    IF ( itype_stoch_phys > 0 .AND. .not.lstoch_pattern_generator ) THEN
+      CALL finish(routine, 'Stochastic pattern generator needed for global SPPT with itype_sppt > 0')
+    END IF
+
+    IF ( itype_stoch_phys == 4 .AND. spg_num /= 2 ) THEN
+      CALL finish(routine, 'Stochastic physics with itype_stoch_phys = 4 needs two stochastic patterns but spg_num /= 2')
+    END IF
+
+    IF ( ANY(itype_stoch_phys == (/1,2,3/)) .AND. spg_num /= 1 ) THEN
+      CALL finish(routine, 'Stochastic physics with itype_stoch_phys = 1, 2, or 3 needs one stochastic patterns but spg_num /= 1')
     END IF
 
     ! deactivate cuda graph if no cpp key => make sure ACC WAIT is activated where needed
@@ -606,13 +655,13 @@ CONTAINS
       atm_phy_nwp_config(jg)%ithermo_water   = ithermo_water(jg)
       atm_phy_nwp_config(jg)%lmicrophysicsFirst = lmicrophysicsFirst
       atm_phy_nwp_config(jg)%lsbm_coupled    = lsbm_coupled
-      atm_phy_nwp_config(jg)%lstochastic_pattern_generator = lstochastic_pattern_generator
-      atm_phy_nwp_config(jg)%spg_use_asl       = spg_use_asl
-      atm_phy_nwp_config(jg)%spg_length_scale  = spg_length_scale
-      atm_phy_nwp_config(jg)%spg_time_scale    = spg_time_scale
-      atm_phy_nwp_config(jg)%spg_spec_modes    = spg_spec_modes
-      atm_phy_nwp_config(jg)%spg_variance      = spg_variance
-      atm_phy_nwp_config(jg)%spg_fourier_modes = spg_fourier_modes
+      atm_phy_nwp_config(jg)%lstoch_pattern_generator = lstoch_pattern_generator
+      atm_phy_nwp_config(jg)%spg_use_asl         = spg_use_asl
+      atm_phy_nwp_config(jg)%spg_length_scale(:) = spg_length_scale
+      atm_phy_nwp_config(jg)%spg_time_scale(:)   = spg_time_scale
+      atm_phy_nwp_config(jg)%spg_spec_modes(:)   = spg_spec_modes
+      atm_phy_nwp_config(jg)%spg_variance(:)     = spg_variance
+      atm_phy_nwp_config(jg)%spg_fourier_modes   = spg_fourier_modes
     ENDDO
 
     config_lrtm_filename         = TRIM(lrtm_filename)
@@ -624,9 +673,11 @@ CONTAINS
     config_i2daero_fire          = i2daero_fire
     config_icpl_o3_tp            = icpl_o3_tp
     config_itype_dissip_heat     = itype_dissip_heat
+    config_itype_stoch_phys      = itype_stoch_phys
     config_lcuda_graph_turb_tran = lcuda_graph_turb_tran
     config_icpl_aero_ice         = icpl_aero_ice
     config_icpl_gwd_prec         = icpl_gwd_prec
+    config_spg_num               = spg_num
 
     !$ACC UPDATE DEVICE(config_icpl_o3_tp, config_itype_dissip_heat)
     !-----------------------------------------------------

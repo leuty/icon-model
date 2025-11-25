@@ -73,7 +73,7 @@ USE mo_run_config,          ONLY: nqtendphy, iqv, iqc, iqi, iqr, iqs, iqg, iqh, 
 USE mo_exception,           ONLY: message, finish !,message_text
 USE mo_model_domain,        ONLY: t_patch, p_patch, p_patch_local_parent
 USE mo_grid_config,         ONLY: n_dom, n_dom_start, nexlevs_rrg_vnest
-USE mo_atm_phy_nwp_config,  ONLY: atm_phy_nwp_config, icpl_aero_conv, &
+USE mo_atm_phy_nwp_config,  ONLY: atm_phy_nwp_config, icpl_aero_conv, spg_num, &
   &                               i2daero_dust, i2daero_seas, i2daero_anthro
 USE mo_turbdiff_config,     ONLY: turbdiff_config, t_turbdiff_config
 USE mo_initicon_config,     ONLY: icpl_da_sfcevap, icpl_da_snowalb, icpl_da_landalb, icpl_da_skinc, icpl_da_seaice
@@ -104,7 +104,7 @@ USE mo_zaxis_type,          ONLY: ZA_REFERENCE, ZA_REFERENCE_HALF,          &
   &                               ZA_SURFACE, ZA_HEIGHT_2M, ZA_HEIGHT_10M,       &
   &                               ZA_HEIGHT_2M_LAYER, ZA_TOA, ZA_DEPTH_BELOW_LAND,   &
   &                               ZA_PRESSURE_0, ZA_PRESSURE_400, ZA_SRH, &
-  &                               ZA_PRESSURE_800, ZA_CLOUD_BASE, ZA_CLOUD_TOP,  &
+  &                               ZA_PRESSURE_800, ZA_CLOUD_BASE, ZA_CLOUD_TOP,  ZA_SPG_GENERIC, &
   &                               ZA_ISOTHERM_ZERO, ZA_ECHOTOP, ZA_WSHEAR, ZA_PRESSURE_LAPSERATE
 USE mo_physical_constants,  ONLY: grav
 #ifndef __NO_ICON_LES__
@@ -333,7 +333,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
     TYPE(t_grib2_var) :: grib2_desc
 
     INTEGER :: shape2d(2), shape3d(3), shape3dsubs(3), &
-      &        shape3dsubsw(3), shape3d_synsat(3),     &
+      &        shape3dsubsw(3), shape3d_synsat(3), shape3d_spg(3),     &
       &        shape2d_synsat(2), shape3d_aero(3), shape3dechotop(3), shape3dwshear(3),shape3d_hail(3)
     INTEGER :: shape3dkp1(3), shape3dflux(3), shape3d_uh_max(3), shape3dturb(3), shape3dsrh(3)
     INTEGER :: shape3duse(3) ! used shape for conditionally allocated 3D arrays
@@ -390,6 +390,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
     shape3dwshear  = (/nproma, n_wshear,     kblks/)
     shape3dsrh     = (/nproma, n_srh,        kblks/)
     shape3d_hail   = (/nproma, 5,            kblks/)
+    shape3d_spg    = (/nproma, spg_num,      kblks/)
     shape4d_lwbands= (/nproma, klev,         kblks, ecrad_nbands_lw/)
     shape4d_swbands= (/nproma, klev,         kblks, ecrad_nbands_sw/)
 
@@ -3040,13 +3041,13 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       __acc_attach(diag%ch4rad_ext)
     ENDIF
 
-    IF ( atm_phy_nwp_config(k_jg)%lstochastic_pattern_generator ) THEN
-      ! &      diag%spg(nproma,nblks_c)
+    IF ( atm_phy_nwp_config(k_jg)%lstoch_pattern_generator ) THEN
+      ! &      diag%spg(nproma,spg_num,nblks_c)
       cf_desc    = t_cf_var('spg', '-', 'stochastic pattern generator perturbation field', datatype_flt)
       grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
       CALL add_var( diag_list, 'spg', diag%spg,                 &
-           & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,          &
-           & ldims=shape2d, lrestart=.false., lopenacc=.FALSE. )
+           & GRID_UNSTRUCTURED_CELL, ZA_SPG_GENERIC, cf_desc, grib2_desc,          &
+           & ldims=shape3d_spg, lrestart=.false., loutput=.TRUE.,lopenacc=.FALSE. )
     END IF
 
     ! &      diag%cloud_num(nproma,nblks_c)

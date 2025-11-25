@@ -53,6 +53,7 @@ MODULE mo_stoch_pattern_generator
   ! for the NEC Auroa VEs is it convenient to use the vectorized Advanced Scientific Library (ASL)
 #ifdef __ASL__
   USE asl_unified, ONLY : asl_library_initialize,        &
+                          asl_library_is_initialized,    &
                           asl_random_create,             &
                           asl_random_initialize,         &
                           asl_random_generate_s,         &
@@ -71,23 +72,24 @@ MODULE mo_stoch_pattern_generator
   !==============================================================================
 
   INTEGER, PARAMETER :: nmaxwave = 250      ! largest zonal wave number
+  INTEGER, PARAMETER :: smax = 5            ! maximum number of scales
+                                            ! note: smax=5 is hardcoded in the ICON namelist modules
+  INTEGER :: nmax, ntime
 
-  INTEGER :: nmax, nstart, nend, nlen, ntime
+  COMPLEX(KIND=sp), ALLOCATABLE, DIMENSION(:,:,:) ::  rcoeff   ! spectral coefficient in single precision
+  REAL(KIND=sp),    ALLOCATABLE, DIMENSION(:,:)   ::  sigma    ! spectral variance for global (spherical harmonics)
+  REAL(KIND=sp),    ALLOCATABLE, DIMENSION(:,:,:) ::  gcoeff   ! spectral variance for limited area (Fourier modes)
 
-  COMPLEX(KIND=sp), ALLOCATABLE, DIMENSION(:,:) ::  rcoeff   ! spectral coefficient in single precision
-  REAL(KIND=sp),    ALLOCATABLE, DIMENSION(:)   ::  sigma    ! spectral variance for global (spherical harmonics)
-  REAL(KIND=sp),    ALLOCATABLE, DIMENSION(:,:) ::  gcoeff   ! spectral variance for limited area (Fourier modes)
+  REAL(KIND=sp), DIMENSION(smax) :: tau_spg
+  INTEGER,       DIMENSION(smax) :: nstart, nend, nlen
 
   INTEGER :: itype_random_normals = 0            ! 0: built-in, 1: NEC's ASL
   INTEGER :: itype_legendre_polys = 0            ! 0: SHTOOLS,  1: NEC's ASL
 
   INTEGER :: randomhandle       ! unique handle for ASL random number generator
   INTEGER :: nstep              ! multiple of model timestep
-  REAL(KIND=sp) ::            &
-       tau_spg = 3600.0_sp,   & ! time scale in s
-       var_r   = 1.00_sp,     & ! variance in grid point space
-       kappaT  = 1e-4_sp        ! determines the horizontal length scale (but see pattern length below)
-
+  INTEGER :: nspg               ! number of spatial patterns
+  INTEGER :: nscales            ! number of spatio-temporal scales
   LOGICAL :: lfourier
 
   REAL(KIND=wp) :: lat_min, lat_max, lon_min, lon_max, lat_ctr, lon_ctr, lat_len, lon_len
@@ -106,25 +108,48 @@ CONTAINS
   !  This is called from mo_nwp_phy_init.
   !------------------------------------------------------------------------------
 
-  SUBROUTINE stochastic_pattern_init(dtime,mtime_current,plam,plength,ptime,pvar,pasl,pmodes)
-    REAL(KIND=wp),  INTENT(IN)      :: dtime          ! time step
-    REAL(KIND=wp),  INTENT(IN)      :: plength        ! pattern length scale
-    REAL(KIND=wp),  INTENT(IN)      :: ptime          ! pattern time scale
-    REAL(KIND=wp),  INTENT(IN)      :: pvar           ! pattern variance
-    INTEGER,        INTENT(IN)      :: pmodes         ! number of wave modes
-    LOGICAL,        INTENT(IN)      :: plam           ! Fourier mode
-    LOGICAL,        INTENT(IN)      :: pasl           ! ASL library on NEC
-    TYPE(datetime), INTENT(IN)      :: mtime_current  ! current datetime
+  SUBROUTINE stochastic_pattern_init(dtime,mtime_current,pspg,plam,plength,ptime,pvar,pasl,pmodes)
+    REAL(KIND=wp),  INTENT(IN)               :: dtime          ! time step
+    INTEGER,        INTENT(IN)               :: pspg           ! number of patterns in grid point space
+    REAL(KIND=wp),  INTENT(IN), DIMENSION(:) :: plength        ! pattern length scale
+    REAL(KIND=wp),  INTENT(IN), DIMENSION(:) :: ptime          ! pattern time scale
+    REAL(KIND=wp),  INTENT(IN), DIMENSION(:) :: pvar           ! pattern variance
+    INTEGER,        INTENT(IN), DIMENSION(:) :: pmodes         ! number of wave modes
+    LOGICAL,        INTENT(IN)               :: plam           ! Fourier mode
+    LOGICAL,        INTENT(IN)               :: pasl           ! ASL library on NEC
+    TYPE(datetime), INTENT(IN)               :: mtime_current  ! current datetime
 
     ! local variables
-    REAL(KIND=sp) :: phi, fsum, fzero, sigm
     REAL(KIND=wp) :: dlength
-    INTEGER :: iseed
-    INTEGER :: n,m,j,k,nloc,jmax,istat
+    REAL(KIND=sp) :: fsum, sigm
+    INTEGER :: iseed, nstart0, nend0, ndim
+    INTEGER :: n,m,i,j,jj,k,nloc,kmax,istat
     COMPLEX(KIND=sp), DIMENSION(nmaxwave*nmaxwave/2+nmaxwave+1) :: random_normals
-    REAL(KIND=sp),    DIMENSION(nmaxwave)                       :: sigmacoeff
+    REAL(KIND=sp),    DIMENSION(nmaxwave,smax)                  :: sigmacoeff
 
+    REAL(KIND=sp), DIMENSION(smax) ::    &
+       phi,         & ! one-step correlation of AR1 process
+       fzero,       & ! normalization factor of spectral coefficients
+       var_r,       & ! variance in grid point space
+       kappaT         ! determines the horizontal length scale (but see pattern length below)
+
+    nspg = pspg
     nmax = nmaxwave
+
+    ! set number of scales based on length scale entries and check for consistency
+    nscales  = COUNT(plength(1:nspg) > 0.0_wp)
+    IF (nscales /= COUNT(ptime > 0.0_wp)) THEN
+      IF(istat /= SUCCESS) CALL finish(modname, 'number of non-zero length and time scales has to be the same')
+    END IF
+    IF (nscales /= COUNT(pvar > 0.0_wp)) THEN
+      IF(istat /= SUCCESS) CALL finish(modname, 'number of non-zero variances has to match length scales')
+    END IF
+    IF (nscales /= COUNT(pmodes > 0.0_wp)) THEN
+      IF(istat /= SUCCESS) CALL finish(modname, 'number of non-zero modes has to match length scales')
+    END IF
+    IF (nscales > smax) THEN
+      IF(istat /= SUCCESS) CALL finish(modname, 'number of length scales is larger than smax=6')
+    END IF
 
     IF (pasl) THEN
       itype_random_normals = 1     ! use NEC's ASL
@@ -156,168 +181,188 @@ CONTAINS
     ! time step of pattern generator has to be smaller than tau_spg but can be
     ! larger than dtime. Here we set nstep to run the pattern generator at an
     ! integer multiple of dtime with an upper limit of 10
-    nstep = MAX(MIN(INT(ptime/(4.0_wp*dtime)),10),1)
+    nstep = MAX(MIN(INT(MINVAL(ptime)/(4.0_wp*dtime)),10),1)
 
-    ! core parameters of stochastic pattern generator set from namelist
-    kappaT  = REAL( (plength/dlength)**2, kind=sp) * 0.5_sp
-    tau_spg = REAL( ptime, kind=sp)
-    var_r   = REAL( pvar,  kind=sp)
+    ! initialize random number generator
+    iseed = mtime_current%date%year  + mtime_current%time%minute * 13  &
+          + mtime_current%date%month * mtime_current%date%day          &
+          + mtime_current%time%hour  * 42                              &
+          + gribout_config(1)%perturbationNumber * 3 + 1
 
-    ! one-step correlation of AR1 process
-    phi = EXP( -REAL(dtime,kind=sp)/tau_spg*nstep)
+    ! get size of random seed
+    CALL random_seed(size=k)
 
-    IF (lfourier) THEN
+    ! initialize random number generator
+    CALL random_initialize(k, iseed)
 
-      ! Equation (A4) of appendix of Berner et al. (2015, MWR)
-      ! (see also Thompson et al. 2021, MWR)
-      fsum = 0.0_sp
-      DO n=nstart,nend
-        DO m=nstart,nend
-          fsum = fsum + EXP(-pi8*kappaT*(n*n+m*m))
+    DO j=1,nscales   ! loop over scales
+
+      ! core parameters of stochastic pattern generator set from namelist
+      kappaT(j)  = REAL( (plength(j)/dlength)**2, kind=sp) * 0.5_sp
+      tau_spg(j) = REAL( ptime(j), kind=sp)
+      var_r(j)   = REAL( pvar(j),  kind=sp)
+
+      ! one-step correlation of AR1 process
+      phi(j) = EXP( -REAL(dtime,kind=sp)/tau_spg(j)*nstep)
+
+      IF (lfourier) THEN
+
+        ! use full wave number spectrum up to pmodes in limited area
+        nstart(j) = 1
+        nend(j)   = pmodes(j)
+        nlen(j)   = (nend(j)-nstart(j)+1)*(nend(j)-nstart(j)+1)
+        nloc      = 0
+
+        ! Equation (A4) of appendix of Berner et al. (2015, MWR)
+        ! (see also Thompson et al. 2021, MWR)
+        fsum = 0.0_sp
+        DO n=nstart(j),nend(j)
+          DO m=nstart(j),nend(j)
+            fsum = fsum + EXP(-pi8*kappaT(j)*(n*n+m*m))
+          END DO
         END DO
-      END DO
-      ! additional factor 4 in denominator because we use only 1/4 of the spectral domain
-      ! and factor (2*pi)**2 as normalization of spectral (normalized) domain size
-      fzero = SQRT( var_r * (1.0_sp - phi**2) / (8.0_sp*fsum*pi2*pi2) )
+        ! additional factor 4 in denominator because we use only 1/4 of the spectral domain
+        ! and factor (2*pi)**2 as normalization of spectral (normalized) domain size
+        fzero(j) = SQRT( var_r(j) * (1.0_sp - phi(j)**2) / (8.0_sp*fsum*pi2*pi2) )
 
-      ! use full wave number spectrum up to pmodes in limited area
-      nstart = 1
-      nend   = pmodes
-      nlen   = (nend-nstart+1)*(nend-nstart+1)
-      nloc   = 0
-
-    ELSE
-
-      ! calculate sigma_n using equations (17) and (18) of Palmer et al.
-      fsum = 0.0_sp
-      DO n=1,nmax
-        fsum = fsum + (2*n+1) * EXP(-kappaT*n*(n+1))
-      END DO
-      fzero = SQRT( var_r * (1.0_sp - phi**2) / (2.0_sp*fsum) )
-      DO n=1,nmax
-        sigmacoeff(n) = fzero * EXP( -kappaT * n*(n+1)/2.0_sp )
-      END DO
-
-      ! determine dominant wave number
-      nloc = 0
-      sigm = 0.0_sp
-      DO n=1,nmax
-        IF ( n*sigmacoeff(n).GT.sigm ) THEN
-          sigm = n*sigmacoeff(n)
-          nloc = n
-        END IF
-      END DO
-
-      ! limit to most relevant wave modes
-      IF (pmodes.GT.0) THEN
-        nend   = nloc+pmodes/2
-        nstart = nloc-pmodes/2
       ELSE
-        nend   = nmax
-        nstart = nloc/3
-      ENDIF
 
-      IF (msg_level > 0 .AND. nend > nmax) &
-           CALL message(modname,'WARNING: nend > nmax, increasing nmaxwave might be necessary')
+        ! calculate sigma_n using equations (17) and (18) of Palmer et al.
+        fsum = 0.0_sp
+        DO n=1,nmax
+          fsum = fsum + (2*n+1) * EXP(-kappaT(j)*n*(n+1))
+        END DO
+        fzero(j) = SQRT( var_r(j) * (1.0_sp - phi(j)**2) / (2.0_sp*fsum) )
+        DO n=1,nmax
+          sigmacoeff(n,j) = fzero(j) * EXP( -kappaT(j) * n*(n+1)/2.0_sp )
+        END DO
 
-      nend   = MIN(nend,nmax)
-      nstart = MAX(nstart,1)
-      nlen   = nend*(nend+3)/2 - (nstart-3)*nstart/2 + 1
+        ! determine dominant wave number
+        nloc = 0
+        sigm = 0.0_sp
+        DO n=1,nmax
+          IF ( n*sigmacoeff(n,j).GT.sigm ) THEN
+            sigm = n*sigmacoeff(n,j)
+            nloc = n
+          END IF
+        END DO
 
-    END IF
+        ! limit to most relevant wave modes
+        IF (pmodes(j).GT.0) THEN
+          nend(j)   = nloc+pmodes(j)/2
+          nstart(j) = nloc-pmodes(j)/2
+        ELSE
+          nend(j)   = nmax
+          nstart(j) = nloc/3
+        ENDIF
+
+        IF (msg_level > 0 .AND. nend(j) > nmax) &
+             CALL message(modname,'WARNING: nend(j) > nmax, increasing nmaxwave might be necessary')
+
+        nend(j)   = MIN(nend(j),nmax)
+        nstart(j) = MAX(nstart(j),1)
+        nlen(j)   = nend(j)*(nend(j)+3)/2 - (nstart(j)-3)*nstart(j)/2 + 1
+
+      END IF
+      !
+    END DO
 
     ! allocate array for spherical harmonics coefficients for random pattern generator
     ! The if(allocated) statement is needed because the IAU calls phy_init twice
     IF (.NOT.ALLOCATED(rcoeff)) THEN
 
+      nstart0 = MINVAL(nstart(1:nspg))
+      nend0   = MAXVAL(nend(1:nspg))
+      ndim    = nspg*nscales
+
       IF (lfourier) THEN
-        ALLOCATE(rcoeff(nstart:nend,0:nend), STAT=istat)
+        ALLOCATE(rcoeff(0:nend0,nstart0:nend0,ndim), STAT=istat)
         IF(istat /= SUCCESS) CALL finish(modname, 'Allocation of rcoeff failed')
-        ALLOCATE(gcoeff(nstart:nend,nstart:nend), STAT=istat)
+        ALLOCATE(gcoeff(nstart0:nend0,nstart0:nend0,ndim), STAT=istat)
         IF(istat /= SUCCESS) CALL finish(modname, 'Allocation of gcoeff failed')
-        rcoeff(:,:) = 0.0_wp
-        gcoeff(:,:) = 0.0_wp
+        rcoeff(:,:,:) = 0.0_wp
+        gcoeff(:,:,:) = 0.0_wp
       ELSE
-        ALLOCATE(rcoeff(nstart:nend,0:nend), STAT=istat)
+        ALLOCATE(rcoeff(0:nend0,nstart0:nend0,ndim), STAT=istat)
         IF(istat /= SUCCESS) CALL finish(modname, 'Allocation of rcoeff failed')
-        ALLOCATE(sigma(nstart:nend), STAT=istat)
+        ALLOCATE(sigma(nstart0:nend0,nscales), STAT=istat)
         IF(istat /= SUCCESS) CALL finish(modname, 'Allocation of gcoeff failed')
-        rcoeff(:,:) = 0.0_wp
-        sigma(:) = 0.0_wp
+        rcoeff(:,:,:) = 0.0_wp
+        sigma(:,:) = 0.0_wp
       ENDIF
       IF (msg_level > 0) CALL message(modname,'spectral coefficients allocated')
+    END IF
 
-      iseed = mtime_current%date%year  + mtime_current%time%minute * 13 &
-            + mtime_current%date%month * mtime_current%date%day         &
-            + mtime_current%time%hour  * 42                             &
-            + gribout_config(1)%perturbationNumber * 3 + 1
 
-      ! get size of random seed
-      CALL random_seed(size=k)
+    DO i=1,nspg      ! loop over patterns in grid point space
+      DO j=1,nscales   ! loop over scales per pattern
 
-      ! initialize random number generator
-      CALL random_initialize(k, iseed)
+        jj = j + (i-1)*nscales
 
-      ! calculate random normals
-      CALL get_complex_random_normals(nlen,random_normals)
+        ! calculate random normals
+        CALL get_complex_random_normals(nlen(j),random_normals)
 
-      ! initialization of spectral coefficients
-      j = 1
-      IF (lfourier) THEN
-        DO m=nstart,nend
-          DO n=nstart,nend
-
-            ! g(n,m) as given by Eq. (A4) of Berner et al (2015, MWR)
-            ! see also Thompson et al (2021, MWR), their Equations (1)-(3)
-            gcoeff(n,m) = fzero*EXP(-pi4*kappaT*(n*n+m*m))
-
-            ! here we adopt Eq. (19) of Palmer et al.
-            rcoeff(n,m) = 1.0_sp/SQRT(1.0_sp - phi**2) * gcoeff(n,m) * random_normals(j)
-
-            j = j+1
-          END DO
-        END DO
-        jmax = j-1
-      ELSE
-        DO n=nstart,nend
-          sigma(n) = sigmacoeff(n)
-          DO m=0,n
-
-            ! here we use Eq. (19) of Palmer et al.
-            rcoeff(n,m) = 1.0_sp/SQRT(1.0_sp - phi**2) * sigma(n) * random_normals(j)
-
-            j = j+1
-          END DO
-        END DO
-        jmax = j-1
-      END IF
-
-      WRITE (txt,'(A,L1)') 'initialization complete, spg_fourier_mode = ',lfourier
-      CALL message(modname,txt)
-      IF (msg_level > 5) THEN
+        ! initialization of spectral coefficients
+        k = 1
         IF (lfourier) THEN
-          WRITE (txt,'(A,f10.2)') '   lat_max = ',lat_max*rad2deg ; CALL message('   ',txt)
-          WRITE (txt,'(A,f10.2)') '   lat_min = ',lat_min*rad2deg ; CALL message('   ',txt)
-          WRITE (txt,'(A,f10.2)') '   lon_max = ',lon_max*rad2deg ; CALL message('   ',txt)
-          WRITE (txt,'(A,f10.2)') '   lon_min = ',lon_min*rad2deg ; CALL message('   ',txt)
-        END IF
-        WRITE (txt,'(A,f10.1)') '   tau_spg = ',tau_spg; CALL message('   ',txt)
-        WRITE (txt,'(A,e10.3)') '   phi     = ',phi    ; CALL message('   ',txt)
-        WRITE (txt,'(A,i10)')   '   iseed   = ',iseed  ; CALL message('   ',txt)
-        WRITE (txt,'(A,i10)')   '   nmax    = ',nmax   ; CALL message('   ',txt)
-        WRITE (txt,'(A,i10)')   '   jmax    = ',jmax   ; CALL message('   ',txt)
-        WRITE (txt,'(A,i10)')   '   nstart  = ',nstart ; CALL message('   ',txt)
-        WRITE (txt,'(A,i10)')   '   nend    = ',nend   ; CALL message('   ',txt)
-        WRITE (txt,'(A,i10)')   '   nlen    = ',nlen   ; CALL message('   ',txt)
-        WRITE (txt,'(A,i10)')   '   nloc    = ',nloc   ; CALL message('   ',txt)
-        WRITE (txt,'(A,i10)')   '   nstep   = ',nstep  ; CALL message('   ',txt)
-        WRITE (txt,'(A,f10.1)') '   dtime   = ',dtime  ; CALL message('   ',txt)
-        WRITE (txt,'(A,e10.3)') '   kappaT  = ',kappaT ; CALL message('   ',txt)
-        WRITE (txt,'(A,e10.3)') '   plength = ',plength ; CALL message('   ',txt)
-        WRITE (txt,'(A,e10.3)') '   dlength = ',dlength ; CALL message('   ',txt)
-        WRITE (txt,'(A,f10.2)') '   var_r   = ',var_r  ; CALL message('   ',txt)
-      END IF
+          DO n=nstart(j),nend(j)
+            DO m=nstart(j),nend(j)
 
+              ! g(n,m) as given by Eq. (A4) of Berner et al (2015, MWR)
+              ! see also Thompson et al (2021, MWR), their Equations (1)-(3)
+              gcoeff(m,n,jj) = fzero(j)*EXP(-pi4*kappaT(j)*(n*n+m*m))
+
+              ! here we adopt Eq. (19) of Palmer et al.
+              rcoeff(m,n,jj) = 1.0_sp/SQRT(1.0_sp - phi(j)**2) * gcoeff(m,n,j) * random_normals(k)
+
+              k = k+1
+            END DO
+          END DO
+          kmax = k-1
+        ELSE
+          DO n=nstart(j),nend(j)
+            sigma(n,j) = sigmacoeff(n,j)
+            DO m=0,n
+
+              ! here we use Eq. (19) of Palmer et al.
+              rcoeff(m,n,jj) = 1.0_sp/SQRT(1.0_sp - phi(j)**2) * sigma(n,j) * random_normals(k)
+
+              k = k+1
+            END DO
+          END DO
+          kmax = k-1
+        END IF
+
+      END DO
+    END DO
+
+    WRITE (txt,'(A,L1)') 'initialization complete, spg_fourier_mode = ',lfourier
+    CALL message(modname,txt)
+    IF (msg_level > 5) THEN
+      IF (lfourier) THEN
+        WRITE (txt,'(A,f10.2)') '   lat_max = ',lat_max*rad2deg ; CALL message('   ',txt)
+        WRITE (txt,'(A,f10.2)') '   lat_min = ',lat_min*rad2deg ; CALL message('   ',txt)
+        WRITE (txt,'(A,f10.2)') '   lon_max = ',lon_max*rad2deg ; CALL message('   ',txt)
+        WRITE (txt,'(A,f10.2)') '   lon_min = ',lon_min*rad2deg ; CALL message('   ',txt)
+      END IF
+      WRITE (txt,'(A,i10)')   '   nspg    = ',nspg    ; CALL message('   ',txt)
+      WRITE (txt,'(A,i10)')   '   nscales = ',nscales ; CALL message('   ',txt)
+      DO j=1,nscales   ! loop over scales
+        WRITE (txt,'(A,I4)')    '   scale j = ',j         ; CALL message('   ',txt)
+        WRITE (txt,'(A,f10.1)') '   tau_spg = ',tau_spg(j); CALL message('   ',txt)
+        WRITE (txt,'(A,e10.3)') '   kappaT  = ',kappaT(j) ; CALL message('   ',txt)
+        WRITE (txt,'(A,e10.3)') '   plength = ',plength(j); CALL message('   ',txt)
+        WRITE (txt,'(A,f10.2)') '   var_r   = ',var_r(j)  ; CALL message('   ',txt)
+        WRITE (txt,'(A,i10)')   '   nstart  = ',nstart(j) ; CALL message('   ',txt)
+        WRITE (txt,'(A,i10)')   '   nend    = ',nend(j)   ; CALL message('   ',txt)
+        WRITE (txt,'(A,i10)')   '   nlen    = ',nlen(j)   ; CALL message('   ',txt)
+      END DO
+      WRITE (txt,'(A,i10)')   '   iseed   = ',iseed  ; CALL message('   ',txt)
+      WRITE (txt,'(A,i10)')   '   nmax    = ',nmax   ; CALL message('   ',txt)
+      WRITE (txt,'(A,i10)')   '   kmax    = ',kmax   ; CALL message('   ',txt)
+      WRITE (txt,'(A,i10)')   '   nstep   = ',nstep  ; CALL message('   ',txt)
+      WRITE (txt,'(A,f10.1)') '   dtime   = ',dtime  ; CALL message('   ',txt)
+      WRITE (txt,'(A,e10.3)') '   dlength = ',dlength ; CALL message('   ',txt)
     END IF
 
   END SUBROUTINE stochastic_pattern_init
@@ -329,7 +374,7 @@ CONTAINS
   SUBROUTINE stochastic_pattern_step(dtime)
     REAL(wp), INTENT(IN) ::  dtime          ! time step
     REAL(KIND=sp) :: phi
-    INTEGER       :: n,m,j
+    INTEGER       :: n,m,i,j,jj,k
     COMPLEX(KIND=sp), DIMENSION(nmaxwave*nmaxwave) ::  random_normals
 
     ntime = ntime+1
@@ -340,29 +385,37 @@ CONTAINS
         WRITE (txt,'(A,i8)')  'step, ntime = ',ntime  ; CALL message(modname,txt)
       END IF
 
-      ! one-step correlation of AR1 process
-      phi = EXP( -dtime/tau_spg*nstep )
+      DO i=1,nspg
+        DO j=1,nscales
 
-      ! calculate new random normals
-      CALL get_complex_random_normals(nlen,random_normals)
+          jj = j + (i-1)*nscales
 
-      ! time stepping of AR1 process for all spectral coefficients
-      j = 1
-      IF (lfourier) THEN
-        DO m=nstart,nend
-          DO n=nstart,nend
-            rcoeff(n,m) = phi*rcoeff(n,m) + gcoeff(n,m) * random_normals(j)
-            j = j+1
-          END DO
+          ! one-step correlation of AR1 process
+          phi = EXP( -dtime/tau_spg(j)*nstep )
+
+          ! calculate new random normals
+          CALL get_complex_random_normals(nlen(j),random_normals)
+
+          ! time stepping of AR1 process for all spectral coefficients
+          k = 1
+          IF (lfourier) THEN
+            DO n=nstart(j),nend(j)
+              DO m=nstart(j),nend(j)
+                rcoeff(m,n,jj) = phi*rcoeff(m,n,jj) + gcoeff(m,n,jj) * random_normals(k)
+                k = k+1
+              END DO
+            END DO
+          ELSE
+            DO n=nstart(j),nend(j)
+              DO m=0,n
+                rcoeff(m,n,jj) = phi*rcoeff(m,n,jj) + sigma(n,j) * random_normals(k)
+                k = k+1
+              END DO
+            END DO
+          END IF
         END DO
-      ELSE
-        DO n=nstart,nend
-          DO m=0,n
-            rcoeff(n,m) = phi*rcoeff(n,m) + sigma(n) * random_normals(j)
-            j = j+1
-          END DO
-        END DO
-      END IF
+      END DO
+
     END IF
 
   END SUBROUTINE stochastic_pattern_step
@@ -376,12 +429,12 @@ CONTAINS
        clat,                       & ! latitude
        clon)                         ! longitude
     INTEGER,  INTENT(IN)        ::  nproma, istart, iend
-    REAL(wp), INTENT(INOUT)     ::  spg(:)            ! spatial random patter
+    REAL(wp), INTENT(INOUT)     ::  spg(:,:)          ! spatial random pattern
     REAL(wp), INTENT(IN)        ::  clat(:)           ! center latitude
     REAL(wp), INTENT(IN)        ::  clon(:)           ! center longitude
 
     ! local variables (only on VE to avoid warning from VH compiler)
-    INTEGER  :: jc, nn, mm, ierr
+    INTEGER  :: js, jk, jj, jc, nn, mm, ierr
 
     ! Legendre polynomials need double precision
     REAL(sp), DIMENSION(nproma)              :: xlat, xlon
@@ -410,15 +463,20 @@ CONTAINS
         xlat(:) = pi2*REAL((clat(:)-lat_ctr)/lat_len, kind=sp)
         xlon(:) = pi2*REAL((clon(:)-lon_ctr)/lon_len, kind=sp)
 
-        spg(:) = 0.0_wp
-        DO nn=nstart,nend
-          DO mm=nstart,nend
-            IF ( rcoeff(nn,mm)%re > 1e-16_sp .OR. rcoeff(nn,mm)%im > 1e-16_sp ) THEN
-              DO jc=istart,iend
-                spg(jc) = spg(jc) + REAL( rcoeff(nn,mm)%re * COS(mm*xlon(jc)) * COS(nn*xlat(jc)) &
-                        &               - rcoeff(nn,mm)%im * SIN(mm*xlon(jc)) * SIN(nn*xlat(jc)), kind=wp)
+        spg(:,:) = 0.0_wp
+        DO jk=1,nspg
+          DO js=1,nscales
+            jj = js + (jk-1)*nscales
+            DO nn=nstart(js),nend(js)
+              DO mm=nstart(js),nend(js)
+                IF ( rcoeff(mm,nn,jj)%re > 1e-16_sp .OR. rcoeff(mm,nn,jj)%im > 1e-16_sp ) THEN
+                  DO jc=istart,iend
+                    spg(jc,jk) = spg(jc,jk) + REAL( rcoeff(mm,nn,jj)%re * COS(mm*xlon(jc)) * COS(nn*xlat(jc)) &
+                         &                        - rcoeff(mm,nn,jj)%im * SIN(mm*xlon(jc)) * SIN(nn*xlat(jc)), kind=wp)
+                  END DO
+                END IF
               END DO
-            END IF
+            END DO
           END DO
         END DO
 
@@ -429,20 +487,25 @@ CONTAINS
         xvec(:) = clat(:)*rpi_2
         xlon(:) = REAL( clon(:), kind=sp)
 
-        spg(:) = 0.0_wp
+        spg(:,:) = 0.0_wp
 
         IF ( itype_legendre_polys == 1 ) THEN
           IF (msg_level > 15 .or. ntime < 2) &
-            CALL message(modname,'spectral pattern with winplg')
+               CALL message(modname,'spectral pattern with winplg')
 #ifdef __ASL__
-          DO nn=nstart,nend
-            ! calculates Legendre polynomials for this nn and all mm
-            CALL winplg(nproma,xvec,nn,plg,nproma,pwork,ierr)
-            DO mm=0,nn
-              DO jc=istart,iend
-                ! we need only the real part of spherical harmonics
-                spg(jc) = spg(jc) + plg(jc,mm+1) * REAL( ( rcoeff(nn,mm)%re * COS(mm*xlon(jc)) &
-                     &                                   - rcoeff(nn,mm)%im * SIN(mm*xlon(jc)) ), kind=wp)
+          DO jk=1,nspg
+            DO js=1,nscales
+              jj = js + (jk-1)*nscales
+              DO nn=nstart(js),nend(js)
+                ! calculates Legendre polynomials for this nn and all mm
+                CALL winplg(nproma,xvec,nn,plg,nproma,pwork,ierr)
+                DO mm=0,nn
+                  DO jc=istart,iend
+                    ! we need only the real part of spherical harmonics
+                    spg(jc,jk) = spg(jc,jk) + plg(jc,mm+1) * REAL( ( rcoeff(mm,nn,jj)%re * COS(mm*xlon(jc)) &
+                         &                                         - rcoeff(mm,nn,jj)%im * SIN(mm*xlon(jc)) ), kind=wp)
+                  END DO
+                END DO
               END DO
             END DO
           END DO
@@ -451,13 +514,18 @@ CONTAINS
           IF (msg_level > 25) &  ! within OpenMP loop
              CALL message(modname,'spectral pattern with PlmON')
 #ifndef __ASL__
-          DO jc=istart,iend
-            CALL PlmON(plm,nend,xvec(jc),1,0,ierr)
-            DO nn=nstart,nend
-              DO mm=0,nn
-                ! we need only the real part of spherical harmonics
-                spg(jc) = spg(jc) + plm(PlmIndex(nn,mm)) * REAL( ( rcoeff(nn,mm)%re * COS(mm*xlon(jc)) &
-                     &                                           - rcoeff(nn,mm)%im * SIN(mm*xlon(jc)) ), kind=wp)
+          DO jk=1,nspg
+            DO js=1,nscales
+              jj = js + (jk-1)*nscales
+              DO jc=istart,iend
+                CALL PlmON(plm,nend(js),xvec(jc),1,0,ierr)
+                DO nn=nstart(js),nend(js)
+                  DO mm=0,nn
+                    ! we need only the real part of spherical harmonics
+                    spg(jc,jk) = spg(jc,jk) + plm(PlmIndex(nn,mm)) * REAL( ( rcoeff(mm,nn,jj)%re * COS(mm*xlon(jc)) &
+                         &                                                 - rcoeff(mm,nn,jj)%im * SIN(mm*xlon(jc)) ), kind=wp)
+                  END DO
+                END DO
               END DO
             END DO
           END DO
@@ -538,8 +606,11 @@ CONTAINS
       IF (msg_level > 0) CALL message(modname,'Initalize ASL random number generator')
 
 #ifdef __ASL__
-      ! initialize ASL libary
-      CALL asl_library_initialize()
+
+      IF (.not.asl_library_is_initialized()) THEN
+        ! initialize ASL libary
+        CALL asl_library_initialize()
+      END IF
 
       ! initialize ASL random number generator
       CALL asl_random_create(randomhandle, 0, ierr)
