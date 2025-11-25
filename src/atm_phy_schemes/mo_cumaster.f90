@@ -85,7 +85,7 @@ SUBROUTINE cumastrn &
  & nsrc_cgw, ktype_cgw, kcbot_cgw, kctop_cgw,    &
  & heat_cgw, tupd_cgw, test_cgw,                 &
 #endif
-! stochastic, extra diagnostics and logical switches
+ & pertb,                                        &
  & lspinup, k650,k700, temp_s,                   &
  & cell_area,iseed,                              &
  & mf_bulk,mf_perturb,mf_num,p_cloud_ensemble,   &
@@ -149,6 +149,8 @@ SUBROUTINE cumastrn &
 
 !    *temp_s*       TEMPERATURE IN LOWEST MODEL LEVEL                K
 !    *cell_area*    GRID CELL AREA                                  M2?
+!!!  FOR SPP
+!    *pertb*        STOCHASTIC PATTERN FOR PERTURBATION
 !!!  ALLOCATED ONLY IF lstoch_sde=.TRUE. !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !    *pclnum_a*     ACTIVE CLOUD NUMBER (T)               M-2
 !    *pclmf_a*      ACTIVE MASS FLUX (T)                KG/(M2*S)
@@ -346,6 +348,7 @@ REAL(KIND=jprb)   ,INTENT(in)    :: pgeo(klon,klev)
 REAL(KIND=jprb)   ,INTENT(in)    :: pgeoh(klon,klev+1)
 REAL(KIND=jprb)   ,INTENT(in)    :: zdgeoh(klon,klev)
 REAL(KIND=jprb)   ,INTENT(in)    :: pcloudnum(klon)
+REAL(KIND=jprb)   ,INTENT(in), POINTER :: pertb(:)
 TYPE(t_ptr_tracer),INTENT(in), POINTER :: pcen(:)
 TYPE(t_ptr_tracer),INTENT(inout), POINTER :: ptenrhoc(:)
 REAL(KIND=jprb)   ,INTENT(inout) :: ptent(klon,klev)
@@ -510,6 +513,8 @@ REAL(KIND=jprb) :: msee(klon,klev)
 REAL(KIND=jprb) :: plude_expl(klon,klev)
 #endif
 
+LOGICAL :: lspp
+
 !#include "cuascn.intfb.h"
 !#include "cubasen.intfb.h"
 !#include "cuddrafn.intfb.h"
@@ -577,6 +582,11 @@ ELSE
   ktrac = 0
 ENDIF
 
+IF (ASSOCIATED(pertb)) THEN
+  lspp = .true.
+ELSE
+  lspp = .false.
+ENDIF
 
 !---------------------------------------------------------------------
 !*UPG Change to operations call SATUR routine here
@@ -1148,6 +1158,7 @@ DO jl=kidia,kfdia
     ztau(jl)=MAX(720._jprb,ztau(jl))
     zmfub1(jl)=(zcape(jl)*zmfub(jl))/(zheat(jl)*ztau(jl))
     zmfub1(jl)=MAX(zmfub1(jl),0.001_jprb)
+    IF (lspp) zmfub1(jl)=zmfub1(jl)*(1.0_jprb+SIGN(1.0_jprb,pertb(jl))*MIN(0.5_jprb,ABS(pertb(jl))))
     zmfmax=(paph(jl,ikb)-paph(jl,ikb-1))*zcons2*rmflic+rmflia
     zmfub1(jl)=MIN(zmfub1(jl),zmfmax)
   ENDIF

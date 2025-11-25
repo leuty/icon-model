@@ -276,12 +276,14 @@ cat > NAMELIST_${EXPID} << EOF
           efdt_min_raylfric = 7200.
           icapdcycl         = 3
           icpl_o3_tp        = 1
-          lstochastic_pattern_generator = .true.
+          lstoch_pattern_generator = .true.
+          itype_stoch_phys  = 4
           spg_use_asl       = ${spg_use_asl}
-          spg_length_scale  = 500e3
-          spg_time_scale    = 7200.
-          spg_spec_modes    = 5
-          spg_variance      = 1.
+          spg_length_scale  = 1000e3, 2000e3
+          spg_time_scale    = 14400., 28800.
+          spg_spec_modes    = 5, 5
+          spg_variance      = 0.3, 0.1
+          spg_num           = 2
         /
         &nwp_tuning_nml
           tune_gust_factor =7 ! iref: 8

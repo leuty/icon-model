@@ -44,7 +44,7 @@ MODULE mo_nml_crosscheck
     &                                    rayleigh_type, ivctype, iadv_rhotheta
   USE mo_atm_phy_nwp_config,       ONLY: atm_phy_nwp_config, icpl_aero_conv, i2daero_dust, &
     &                                    i2daero_seas, i2daero_anthro, i2daero_fire,       &
-    &                                    icpl_aero_ice, itype_dissip_heat
+    &                                    icpl_aero_ice, itype_dissip_heat, itype_stoch_phys, spg_num
   USE mo_lnd_nwp_config,           ONLY: ntiles_lnd, lsnowtile, sstice_mode, llake
 #ifndef __NO_AES__
   USE mo_aes_phy_config,           ONLY: aes_phy_config
@@ -635,26 +635,6 @@ CONTAINS
           CALL finish(routine,' Turbulence enhancement of collisions '//  &
                       'in two-moment scheme (lturb_enhc) not applicable for aes physics.')
         ENDIF
-
-#ifdef __NEC__
-#ifndef __ASL__
-        IF ( atm_phy_nwp_config(jg)%lstochastic_pattern_generator .AND. atm_phy_nwp_config(jg)%spg_use_asl) THEN
-          CALL finish( routine,'Stochastic pattern generator using Advanced Scientific Library (ASL) has to be linked with ASL')
-        ENDIF
-#endif
-#else
-#ifndef __NEC_VH__
-        IF ( atm_phy_nwp_config(jg)%lstochastic_pattern_generator .AND. atm_phy_nwp_config(jg)%spg_use_asl) THEN
-          CALL finish( routine,'Stochastic pattern generator using Advanced Scientific Library (ASL) is only available on NEC')
-        ENDIF
-#endif
-#endif
-#ifdef __NEC__
-        IF ( atm_phy_nwp_config(jg)%lstochastic_pattern_generator .AND. .not.atm_phy_nwp_config(jg)%spg_use_asl) THEN
-          CALL finish(modname, 'Stochastic pattern generator on NEC without ASL. This is inefficient, please use ASL.')
-        END IF
-#endif
-
 
         ! ltmpcor activates the calculation of dissipative heating in turbdiff;
         ! to prevent double-counting, the respective calculations in the NWP interface need to be skipped

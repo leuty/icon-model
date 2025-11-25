@@ -64,7 +64,7 @@ MODULE mo_name_list_output_zaxes
     &                                             ZA_sediment_bottom_tw_half, ZA_snow, ZA_snow_half, ZA_toa,     &
     &                                             ZA_OCE_LAYER_INTERFACE, ZA_OCE_LAYER_CENTRE,                           &
     &                                             ZA_OCEAN_SEDIMENT, ZA_height_2m_layer, ZA_ECHOTOP,             &
-    &                                             ZA_TROPOPAUSE, ZA_WSHEAR, ZA_PRESSURE_LAPSERATE, ZA_SRH
+    &                                             ZA_TROPOPAUSE, ZA_WSHEAR, ZA_PRESSURE_LAPSERATE, ZA_SRH, ZA_SPG_GENERIC
   USE mo_level_selection_types,             ONLY: t_level_selection
   USE mo_util_vgrid_types,                  ONLY: vgrid_buffer
   USE mo_math_utilities,                    ONLY: set_zlev, t_value_set
@@ -74,6 +74,7 @@ MODULE mo_name_list_output_zaxes
   USE mo_io_config,                         ONLY: echotop_meta, wshear_uv_heights, srh_heights
   USE mo_nonhydrostatic_config,             ONLY: ivctype
   USE mo_lnd_nwp_config,                    ONLY: nlev_snow, zml_soil
+  USE mo_atm_phy_nwp_config,                ONLY: spg_num
 #endif
 #ifndef __NO_ICON_OCEAN__
   USE mo_ocean_nml,                         ONLY: dzlev_m,lhamocc, n_zlev
@@ -316,6 +317,22 @@ CONTAINS
         &                                         zaxisUnits="mm"))
       DEALLOCATE(lbounds, ubounds, levels)
     ENDIF
+
+    ! --------------------------------------------------------------------------------------
+    ! Pseudo axis for stochastic patterns          -----------------------------------------
+    ! --------------------------------------------------------------------------------------
+
+    ! ZA_SPG_GENERIC
+    ! axis for 3D field of 2D stochastic patterns
+    IF (spg_num > 0) THEN
+      CALL verticalAxisList%append(vertical_axis(                                    &
+        &                           za_type          = ZA_SPG_GENERIC,               &
+        &                           in_nlevs         = spg_num,                      &
+        &                           levels           = (/(REAL(k,dp),k=1,spg_num)/), &
+        &                           level_selection  = level_selection,              &
+        &                           opt_name         = "pattern",                    &
+        &                           opt_unit         = "-"))
+    END IF
 
     ! --------------------------------------------------------------------------------------
     ! Axes for multi-layer snow model (ZAXIS_SNOW) -----------------------------------------

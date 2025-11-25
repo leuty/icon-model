@@ -6062,7 +6062,7 @@ ICON\_USE\_CUDA\_GRAPH activated
 \tabularnewline
 
 %\hline
-lstochastic\_pattern\_generator &
+lstoch\_pattern\_generator &
 L &
 .FALSE. &
 -&
@@ -6075,7 +6075,7 @@ L &
 .TRUE. &
 -&
 Use Fourier modes for stochastic pattern generator in LAM configurations. For LAM simulations spherical harmonics can be used by setting this switch to .false. but this is computationally inefficient and only useful for tests or consistency with a global configuration. & \scriptsize
-lstochastic\_pattern\_generator=.true. \\ and l\_limited\_area=.true.
+lstoch\_pattern\_generator=.true. \\ and l\_limited\_area=.true.
 \tabularnewline
 
 %\hline
@@ -6084,44 +6084,72 @@ L &
 .FALSE. &
 -&
 Use Advanced Scientific Library (ASL) provided by NEC. & \scriptsize
-lstochastic\_pattern\_generator=.true.
+lstoch\_pattern\_generator=.true.
 \tabularnewline
 
+%\hline
+spg\_num &
+I  &
+0  &
+-  &
+Number of independent 2D stochastic patterns & \scriptsize
+lstoch\_pattern\_generator=.true. \\
+Note that all patterns have the same length and time scales.
+\tabularnewline
 
 %\hline
 spg\_length\_scale &
-R &
+R(:) &
 1000e3 &
 m &
-Length scale of stochastic pattern & \scriptsize
-lstochastic\_pattern\_generator=.true.
+Length scales of stochastic pattern & \scriptsize
+lstoch\_pattern\_generator=.true. \\
+The maximum array size is 5. The number of length scales is independent from the number of patterns.
 \tabularnewline
 
 %\hline
 spg\_time\_scale &
-R &
+R(:) &
 3600.0 &
 s &
-Time scale of stochastic pattern & \scriptsize
-lstochastic\_pattern\_generator=.true.
+Time scales of stochastic pattern & \scriptsize
+lstoch\_pattern\_generator=.true. \\
+The maximum array size is 5. The number of time scales is independent from the number of patterns.
 \tabularnewline
 
 %\hline
 spg\_spec\_modes &
-I &
+I(:) &
 50 &
 - &
 Number of spectral modes used for stochastic pattern generator & \scriptsize
-lstochastic\_pattern\_generator=.true.
+lstoch\_pattern\_generator=.true. \\
+The maximum array size is 5. The number of modes should adjusted to the length scales used.
 \tabularnewline
 
 %\hline
 spg\_variance &
-R &
+R(:) &
 1.0 &
 - &
 Variance of stochastic pattern in grid point space & \scriptsize
-lstochastic\_pattern\_generator=.true.
+lstoch\_pattern\_generator=.true. \\
+The maximum array size is 5.
+\tabularnewline
+
+%\hline
+itype\_stoch\_phys &
+I &
+0 &
+- &
+Type of stochastically perturbed physics based on spectral pattern generator: \\
+0: none \\
+1: CONV only \\
+2: GW only (SSO and non-oro.~GWD) \\
+3: CONV + GW using single pattern \\
+4: CONV + GW using independent patterns \\  & \scriptsize
+lstoch\_pattern\_generator=.true. \\
+Note that itype\_stoch\_phys=4 requires spg\_num=2
 \tabularnewline
 
 \end{longtab}

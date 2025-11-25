@@ -42,7 +42,7 @@ MODULE mo_nwp_phy_init
   USE mo_run_config,          ONLY: ltestcase, iqv, iqc, inccn, ininpot, msg_level, dtime
   USE mo_atm_phy_nwp_config,  ONLY: atm_phy_nwp_config, lrtm_filename,               &
     &                               cldopt_filename, icpl_aero_conv, icpl_aero_ice,  &
-    &                               i2daero_dust, i2daero_seas, i2daero_anthro
+    &                               i2daero_dust, i2daero_seas, i2daero_anthro, spg_num
   USE mo_extpar_config,       ONLY: ext_o3_attr, itype_vegetation_cycle
 
   !radiation
@@ -818,16 +818,16 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
   !< initialize stochastic pattern generator
   !------------------------------------------
 
-  IF (atm_phy_nwp_config(jg)%lstochastic_pattern_generator.AND.jg==1) THEN
+  IF (atm_phy_nwp_config(jg)%lstoch_pattern_generator.AND.jg==1) THEN
     CALL stochastic_pattern_boundaries(p_patch)
-    CALL stochastic_pattern_init(                           &
-          dtime=dtime, mtime_current=ini_date,              &
-          plam=atm_phy_nwp_config(jg)%spg_fourier_modes,    &
-          plength=atm_phy_nwp_config(jg)%spg_length_scale,  &
-          ptime=atm_phy_nwp_config(jg)%spg_time_scale,      &
-          pmodes=atm_phy_nwp_config(jg)%spg_spec_modes,     &
-          pasl=atm_phy_nwp_config(jg)%spg_use_asl,          &
-          pvar=atm_phy_nwp_config(jg)%spg_variance          )
+    CALL stochastic_pattern_init(                            &
+          dtime=dtime, mtime_current=ini_date, pspg=spg_num, &
+          plam=atm_phy_nwp_config(jg)%spg_fourier_modes,     &
+          plength=atm_phy_nwp_config(jg)%spg_length_scale,   &
+          ptime=atm_phy_nwp_config(jg)%spg_time_scale,       &
+          pmodes=atm_phy_nwp_config(jg)%spg_spec_modes,      &
+          pasl=atm_phy_nwp_config(jg)%spg_use_asl,           &
+          pvar=atm_phy_nwp_config(jg)%spg_variance           )
   ENDIF
 
   !------------------------------------------
