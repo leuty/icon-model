@@ -25,6 +25,7 @@
 ### Infrastructure
 
 - Add distributed GRIB decoding
+- Merge 2-Moment Microphysics Type Extensions into Parent Types
 
 #### Building
 

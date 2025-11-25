@@ -44,9 +44,8 @@ MODULE mo_2mom_mcrph_setup
        & e_ws  => sat_pres_water,  & ! saturation pressure over liquid water
        & sat_pres_ice                ! saturation pressure over ice
   USE mo_2mom_mcrph_types, ONLY: &
-       & particle, particle_frozen, particle_lwf, atmosphere, &
-       & particle_sphere, particle_rain_coeffs, particle_cloud_coeffs, aerosol_ccn, &
-       & particle_ice_coeffs, particle_snow_coeffs, particle_graupel_coeffs, &
+       & particle, atmosphere, &
+       & aerosol_ccn, &
        & particle_coeffs, collection_coeffs, rain_riming_coeffs, dep_imm_coeffs, &
        & coll_coeffs_ir_pm ! , lookupt_1D, lookupt_4D
   USE mo_fortran_tools,      ONLY: init
@@ -82,7 +81,6 @@ MODULE mo_2mom_mcrph_setup
 
   ! Functions
   PUBLIC :: particle_mass, particle_meanmass, particle_diameter, particle_normdiameter
-  PUBLIC :: particle_assign, particle_frozen_assign, particle_lwf_assign
   PUBLIC :: particle_velocity, particle_lwf_idx
   PUBLIC :: rain_mue_dm_relation
   PUBLIC :: moment_gamma
@@ -105,93 +103,18 @@ CONTAINS
   !*******************************************************************************
   ! Functions and subroutines working on particle class
   !*******************************************************************************
-  ! (1) CLASS procedures for particle class
+  ! (1) TYPE procedures for particle type
   !*******************************************************************************
-
-  subroutine particle_assign(that,this)
-    CLASS(particle), INTENT(in)   :: this
-    TYPE(particle), INTENT(inout) :: that
-
-    that%name = this%name
-    that%nu = this%nu
-    that%mu = this%mu
-    that%x_max = this%x_max
-    that%x_min = this%x_min
-    that%a_geo = this%a_geo
-    that%b_geo = this%b_geo
-    that%a_vel = this%a_vel
-    that%b_vel = this%b_vel
-    that%a_ven = this%a_ven
-    that%b_ven = this%b_ven
-    that%cap   = this%cap
-    that%vsedi_max = this%vsedi_max
-    that%vsedi_min = this%vsedi_min
-  END subroutine particle_assign
-
-  subroutine particle_frozen_assign(that,this)
-    TYPE(particle_frozen), INTENT(in)    :: this
-    TYPE(particle_frozen), INTENT(inout) :: that
-
-    that%name = this%name
-    that%nu = this%nu
-    that%mu = this%mu
-    that%x_max = this%x_max
-    that%x_min = this%x_min
-    that%a_geo = this%a_geo
-    that%b_geo = this%b_geo
-    that%a_vel = this%a_vel
-    that%b_vel = this%b_vel
-    that%a_ven = this%a_ven
-    that%b_ven = this%b_ven
-    that%cap   = this%cap
-    that%vsedi_max = this%vsedi_max
-    that%vsedi_min = this%vsedi_min
-    that%ecoll_c   = this%ecoll_c
-    that%D_crit_c  = this%D_crit_c
-    that%q_crit_c  = this%q_crit_c
-    that%s_vel     = this%s_vel
-  END subroutine particle_frozen_assign
-
-  subroutine particle_lwf_assign(that,this)
-    TYPE(particle_lwf), INTENT(in)    :: this
-    TYPE(particle_lwf), INTENT(inout) :: that
-
-    that%name = this%name
-    that%nu = this%nu
-    that%mu = this%mu
-    that%x_max = this%x_max
-    that%x_min = this%x_min
-    that%a_geo = this%a_geo
-    that%b_geo = this%b_geo
-    that%a_vel = this%a_vel
-    that%b_vel = this%b_vel
-    that%a_ven = this%a_ven
-    that%b_ven = this%b_ven
-    that%cap   = this%cap
-    that%vsedi_max = this%vsedi_max
-    that%vsedi_min = this%vsedi_min
-
-    that%ecoll_c   = this%ecoll_c
-    that%D_crit_c  = this%D_crit_c
-    that%q_crit_c  = this%q_crit_c
-    that%s_vel     = this%s_vel
-
-    that%lwf_cnorm1 = this%lwf_cnorm1
-    that%lwf_cnorm2 = this%lwf_cnorm2
-    that%lwf_cnorm3 = this%lwf_cnorm3
-    that%lwf_cmelt1 = this%lwf_cmelt1
-    that%lwf_cmelt2 = this%lwf_cmelt2
-  END subroutine particle_lwf_assign
 
   ! mean mass with limiters, Eq. (94) of SB2006
   ELEMENTAL FUNCTION particle_meanmass(this,q,n) RESULT(xmean)
 
     !$ACC ROUTINE SEQ
 
-    CLASS(particle), INTENT(in) :: this
-    REAL(wp),        INTENT(in) :: q, n
-    REAL(wp)                    :: xmean
-    REAL(wp), PARAMETER         :: eps = 1e-20_wp
+    TYPE(particle), INTENT(in) :: this
+    REAL(wp),       INTENT(in) :: q, n
+    REAL(wp)                   :: xmean
+    REAL(wp), PARAMETER        :: eps = 1e-20_wp
 
     xmean = MIN(MAX(q/(n+eps),this%x_min),this%x_max)
   END FUNCTION particle_meanmass
@@ -201,9 +124,9 @@ CONTAINS
 
     !$ACC ROUTINE SEQ
 
-    CLASS(particle), INTENT(in) :: this
-    REAL(wp),        INTENT(in) :: x
-    REAL(wp)                    :: D
+    TYPE(particle), INTENT(in) :: this
+    REAL(wp),       INTENT(in) :: x
+    REAL(wp)                   :: D
 
     D = this%a_geo * EXP(this%b_geo*LOG(x))    ! D = a_geo * x**b_geo
   END FUNCTION particle_diameter
@@ -213,9 +136,9 @@ CONTAINS
 
     !$ACC ROUTINE SEQ
 
-    CLASS(particle), INTENT(in) :: this
-    REAL(wp),        INTENT(in) :: D
-    REAL(wp)                    :: x
+    TYPE(particle), INTENT(in) :: this
+    REAL(wp),       INTENT(in) :: D
+    REAL(wp)                   :: x
 
     x = EXP((1.0_wp/this%b_geo)*LOG(D/this%a_geo))    ! x = (D/a_geo)**(1/b_geo)
   END FUNCTION particle_mass
@@ -223,7 +146,7 @@ CONTAINS
   ! normalized diameter for rational function approx.
   ! in lwf-melting scheme
   PURE FUNCTION particle_normdiameter(this,D_m) RESULT(dnorm)
-    CLASS(particle_lwf), intent(in) :: this
+    TYPE(particle), intent(in) :: this
     REAL(wp), INTENT(in) :: D_m
     REAL(wp)             :: dnorm
 
@@ -233,10 +156,10 @@ CONTAINS
 
   ! lwf of mixed particle
   PURE FUNCTION particle_lwf_idx(this,i,j) RESULT(lwf)
-    CLASS(particle_lwf), INTENT(in) :: this
-    INTEGER,         INTENT(in) :: i,j
-    REAL(wp)                    :: lwf
-    REAL(wp), PARAMETER         :: eps = 1e-20_wp
+    TYPE(particle), INTENT(in) :: this
+    INTEGER,        INTENT(in) :: i,j
+    REAL(wp)                   :: lwf
+    REAL(wp), PARAMETER        :: eps = 1e-20_wp
 
     lwf = MAX(MIN(this%l(i,j)/(this%q(i,j)+eps),1.0_wp),0.0_wp)
     RETURN
@@ -251,9 +174,9 @@ CONTAINS
 #endif
     !$ACC ROUTINE SEQ
 
-    CLASS(particle), INTENT(in) :: this
-    REAL(wp),        INTENT(in) :: x
-    REAL(wp)                    :: v
+    TYPE(particle), INTENT(in) :: this
+    REAL(wp),       INTENT(in) :: x
+    REAL(wp)                   :: v
 
     v = this%a_vel * EXP(this%b_vel * LOG(x))  ! v = a_vel * x**b_vel
   END FUNCTION particle_velocity
@@ -268,7 +191,7 @@ CONTAINS
 
     !$ACC ROUTINE SEQ
 
-    TYPE(particle_rain_coeffs), INTENT(in) :: this
+    TYPE(particle_coeffs), INTENT(in) :: this
     REAL(wp), INTENT(in) :: D_m
     REAL(wp)             :: mue, delta
 
@@ -281,14 +204,14 @@ CONTAINS
   END FUNCTION rain_mue_dm_relation
 
   !*******************************************************************************
-  ! (2) More functions working on particle class, these are not CLASS procedures
+  ! (2) More functions working on particle type
   !*******************************************************************************
 
   ! bulk ventilation coefficient, Eq. (88) of SB2006
   REAL(wp) FUNCTION vent_coeff_a(parti,n)
     IMPLICIT NONE
     INTEGER, INTENT(IN)        :: n
-    CLASS(particle), INTENT(IN) :: parti
+    TYPE(particle), INTENT(IN) :: parti
 
     vent_coeff_a = parti%a_ven * GAMMA((parti%nu+n+parti%b_geo)/parti%mu)                 &
          &                     / GAMMA((parti%nu+1.0_wp)/parti%mu)                        &
@@ -300,7 +223,7 @@ CONTAINS
   REAL(wp) FUNCTION vent_coeff_b(parti,n)
     IMPLICIT NONE
     INTEGER, INTENT(in)         :: n
-    CLASS(particle), INTENT(in) :: parti
+    TYPE(particle), INTENT(in) :: parti
 
     REAL(wp), PARAMETER :: m_f = 0.500 ! see PK, S.541. Do not change.
 
@@ -315,8 +238,8 @@ CONTAINS
   ! complete mass moment of particle size distribution, Eq (82) of SB2006
   REAL(wp) FUNCTION moment_gamma(p,n)
     IMPLICIT NONE
-    INTEGER, INTENT(in)           :: n
-    CLASS(particle), INTENT(in)   :: p
+    INTEGER, INTENT(in)          :: n
+    TYPE(particle), INTENT(in)   :: p
 
     moment_gamma  = GAMMA((n+p%nu+1.0_wp)/p%mu) / GAMMA((p%nu+1.0_wp)/p%mu)        &
          &      * ( GAMMA((  p%nu+1.0_wp)/p%mu) / GAMMA((p%nu+2.0_wp)/p%mu) )**n
@@ -327,7 +250,7 @@ CONTAINS
   REAL(wp) FUNCTION fracmoment_gamma(p,fexp)
     IMPLICIT NONE
     REAL(wp), INTENT(in) :: fexp
-    CLASS(particle), INTENT(in)   :: p
+    TYPE(particle), INTENT(in)   :: p
 
     fracmoment_gamma  = GAMMA((fexp+p%nu+1.0_wp)/p%mu) / GAMMA((p%nu+1.0_wp)/p%mu)        &
          &          * ( GAMMA((     p%nu+1.0_wp)/p%mu) / GAMMA((p%nu+2.0_wp)/p%mu) )**fexp
@@ -337,7 +260,7 @@ CONTAINS
   REAL(wp) FUNCTION lambda_gamma(p,x)
     IMPLICIT NONE
     REAL(wp), INTENT(in) :: x
-    CLASS(particle), INTENT(in)   :: p
+    TYPE(particle), INTENT(in)   :: p
 
     lambda_gamma  = ( GAMMA((p%nu+1.0_wp)/p%mu) / GAMMA((p%nu+2.0_wp)/p%mu) * x)**(-p%mu)
   END FUNCTION lambda_gamma
@@ -350,8 +273,8 @@ CONTAINS
   ! the original function.
   REAL(wp) FUNCTION coll_delta(p1,n)
     IMPLICIT NONE
-    CLASS(particle), INTENT(in) :: p1
-    INTEGER, INTENT(in)         :: n
+    TYPE(particle), INTENT(in) :: p1
+    INTEGER, INTENT(in)        :: n
 
     coll_delta = GAMMA((2.0_wp*p1%b_geo+p1%nu+1.0_wp+n)/p1%mu)    &
          &                     / GAMMA((p1%nu+1.0_wp+n)/p1%mu)    &
@@ -363,16 +286,16 @@ CONTAINS
 
   ! wrapper for coll_delta (unnecessary and unused argument p2, but do not remove this)
   REAL(wp) FUNCTION coll_delta_11(p1,p2,n)
-    CLASS(particle), INTENT(in) :: p1,p2
-    INTEGER, INTENT(in)         :: n
+    TYPE(particle), INTENT(in) :: p1,p2
+    INTEGER, INTENT(in)        :: n
     coll_delta_11 = coll_delta(p1,n)
     RETURN
   END FUNCTION coll_delta_11
 
   ! wrapper for coll_delta (unnecessary and unused argument p2, but do not remove this)
   REAL(wp) FUNCTION coll_delta_22(p1,p2,n)
-    CLASS(particle), INTENT(in) :: p1,p2
-    INTEGER, INTENT(in)         :: n
+    TYPE(particle), INTENT(in) :: p1,p2
+    INTEGER, INTENT(in)        :: n
     coll_delta_22 = coll_delta(p2,n)
     RETURN
   END FUNCTION coll_delta_22
@@ -384,8 +307,8 @@ CONTAINS
   ! changes of the resulting coefficients in the 10th significant digit compared to
   ! the original function.
   REAL(wp) FUNCTION coll_delta_12(p1,p2,n)
-    CLASS(particle), INTENT(in) :: p1,p2
-    INTEGER, INTENT(in)         :: n
+    TYPE(particle), INTENT(in) :: p1,p2
+    INTEGER, INTENT(in)        :: n
 
     coll_delta_12 = 2.0_wp * GAMMA((p1%b_geo+p1%nu+1.0_wp)/p1%mu)     &
          &                 / GAMMA((p1%nu+1.0_wp)/p1%mu)              &
@@ -400,8 +323,8 @@ CONTAINS
 
   ! coefficient for general collision integral, Eq. (92) of SB2006
   REAL(wp) FUNCTION coll_theta(p1,n)
-    CLASS(particle), INTENT(in) :: p1
-    INTEGER, INTENT(in)         :: n
+    TYPE(particle), INTENT(in) :: p1
+    INTEGER, INTENT(in)        :: n
 
     coll_theta = GAMMA((2.0_wp*p1%b_vel+2.0_wp*p1%b_geo+p1%nu+1.0_wp+n)/p1%mu)    &
          &                     / GAMMA((2.0_wp*p1%b_geo+p1%nu+1.0_wp+n)/p1%mu)    &
@@ -412,8 +335,8 @@ CONTAINS
 
   ! wrapper for coll_theta (unnecessary and unused argument p2, but do not remove this)
   REAL(wp) FUNCTION coll_theta_11(p1,p2,n)
-    CLASS(particle), INTENT(in) :: p1,p2
-    INTEGER, INTENT(in)         :: n
+    TYPE(particle), INTENT(in) :: p1,p2
+    INTEGER, INTENT(in)        :: n
 
     coll_theta_11 = coll_theta(p1,n)
     RETURN
@@ -421,8 +344,8 @@ CONTAINS
 
   ! wrapper for coll_theta (unnecessary and unused argument p2, but do not remove this)
   REAL(wp) FUNCTION coll_theta_22(p1,p2,n)
-    CLASS(particle), INTENT(in) :: p1,p2
-    INTEGER, INTENT(in)         :: n
+    TYPE(particle), INTENT(in) :: p1,p2
+    INTEGER, INTENT(in)        :: n
 
     coll_theta_22 = coll_theta(p2,n)
     RETURN
@@ -430,8 +353,8 @@ CONTAINS
 
   ! coefficient for general collision integral, Eq. (93) of SB2006
   REAL(wp) FUNCTION coll_theta_12(p1,p2,n)
-    CLASS(particle), INTENT(in) :: p1,p2
-    INTEGER, INTENT(in)         :: n
+    TYPE(particle), INTENT(in) :: p1,p2
+    INTEGER, INTENT(in)        :: n
 
     coll_theta_12 = 2.0_wp * GAMMA((p1%b_vel+2.0_wp*p1%b_geo+p1%nu+1.0_wp)/p1%mu)   &
          &                 / GAMMA((2.0_wp*p1%b_geo+p1%nu+1.0_wp)/p1%mu)            &
@@ -461,8 +384,8 @@ CONTAINS
   ! regardless of lower or upper truncation:
   REAL(wp) FUNCTION coll_delta_aa_pm_fix(pa,pb,n,m)
 
-    CLASS(PARTICLE), INTENT(in) :: pa,pb
-    INTEGER, INTENT(in)         :: n,m
+    TYPE(particle), INTENT(in) :: pa,pb
+    INTEGER, INTENT(in)        :: n,m
 
     coll_delta_aa_pm_fix =  ( GAMMA((pa%nu+1.0_wp)/pa%mu) / &
                               GAMMA((pa%nu+2.0_wp)/pa%mu) )**(2.0_wp*pa%b_geo) / &
@@ -475,8 +398,8 @@ CONTAINS
   ! regardless of lower or upper truncation:
   REAL(wp) FUNCTION coll_delta_ab_pm_fix(pa,pb,n,m)
 
-    CLASS(PARTICLE), INTENT(in) :: pa,pb
-    INTEGER, INTENT(in)         :: n,m
+    TYPE(particle), INTENT(in) :: pa,pb
+    INTEGER, INTENT(in)        :: n,m
 
     coll_delta_ab_pm_fix =  2.0_wp * &
          ( GAMMA((pa%nu+1.0_wp)/pa%mu) / GAMMA((pa%nu+2.0_wp)/pa%mu) )**(pa%b_geo) * &
@@ -490,7 +413,7 @@ CONTAINS
   ! for the approximation of the charact. velocity difference, regardless of lower or upper truncation:
   REAL(wp) FUNCTION coll_theta_aa_pm_fix(pa)
 
-    CLASS(PARTICLE), INTENT(in) :: pa
+    TYPE(particle), INTENT(in) :: pa
 
     coll_theta_aa_pm_fix =  ( GAMMA((pa%nu+1.0_wp)/pa%mu) / &
                               GAMMA((pa%nu+2.0_wp)/pa%mu) )**(2.0_wp*pa%b_vel)
@@ -502,7 +425,7 @@ CONTAINS
   ! for the approximation of the charact. velocity difference, regardless of lower or upper truncation:
   REAL(wp) FUNCTION coll_theta_ab_pm_fix(pa,pb)
 
-    CLASS(PARTICLE), INTENT(in) :: pa,pb
+    TYPE(particle), INTENT(in) :: pa,pb
 
     coll_theta_ab_pm_fix =  2.0_wp * &
          ( GAMMA((pa%nu+1.0_wp)/pa%mu) / GAMMA((pa%nu+2.0_wp)/pa%mu) )**(pa%b_vel) * &
@@ -516,8 +439,8 @@ CONTAINS
   ! if integration over b is from 0 to infinity (full moment):
   REAL(wp) FUNCTION coll_delta_aa_pm_bfull_fix(pa,pb,n,m)
 
-    CLASS(PARTICLE), INTENT(in) :: pa,pb
-    INTEGER, INTENT(in)         :: n,m
+    TYPE(particle), INTENT(in) :: pa,pb
+    INTEGER, INTENT(in)        :: n,m
 
     coll_delta_aa_pm_bfull_fix =  &
          ( GAMMA((pa%nu+1.0_wp)/pa%mu) / &
@@ -531,8 +454,8 @@ CONTAINS
   ! if integration over b is from 0 to infinity (full moment):
   REAL(wp) FUNCTION coll_delta_bb_pm_bfull_fix(pa,pb,n,m)
 
-    CLASS(PARTICLE), INTENT(in) :: pa,pb
-    INTEGER, INTENT(in)         :: n,m
+    TYPE(particle), INTENT(in) :: pa,pb
+    INTEGER, INTENT(in)        :: n,m
 
     coll_delta_bb_pm_bfull_fix =  &
          ( GAMMA((pa%nu+1.0_wp)/pa%mu) / &
@@ -547,8 +470,8 @@ CONTAINS
   ! if integration over b is from 0 to infinity (full moment):
   REAL(wp) FUNCTION coll_delta_ab_pm_bfull_fix(pa,pb,n,m)
 
-    CLASS(PARTICLE), INTENT(in) :: pa,pb
-    INTEGER, INTENT(in)         :: n,m
+    TYPE(particle), INTENT(in) :: pa,pb
+    INTEGER, INTENT(in)        :: n,m
 
     coll_delta_ab_pm_bfull_fix =  2.0_wp * &
          ( GAMMA((pa%nu+1.0_wp)/pa%mu) / GAMMA((pa%nu+2.0_wp)/pa%mu) )**(pa%b_geo) * &
@@ -564,7 +487,7 @@ CONTAINS
   ! if integration over b is from 0 to infinity (full moment):
   REAL(wp) FUNCTION coll_theta_aa_pm_bfull_fix(pa)
 
-    CLASS(PARTICLE), INTENT(in) :: pa
+    TYPE(particle), INTENT(in) :: pa
 
     coll_theta_aa_pm_bfull_fix =  ( GAMMA((pa%nu+1.0_wp)/pa%mu) / &
                                     GAMMA((pa%nu+2.0_wp)/pa%mu) )**(2.0_wp*pa%b_vel)
@@ -577,8 +500,8 @@ CONTAINS
   ! if integration over b is from 0 to infinity (full moment):
   REAL(wp) FUNCTION coll_theta_bb_pm_bfull_fix(pb,m)
 
-    CLASS(PARTICLE), INTENT(in) :: pb
-    INTEGER, INTENT(in)         :: m
+    TYPE(particle), INTENT(in) :: pb
+    INTEGER, INTENT(in)        :: m
 
     coll_theta_bb_pm_bfull_fix =  &
          ( GAMMA((pb%nu+1.0_wp)/pb%mu) / GAMMA((pb%nu+2.0_wp)/pb%mu) )**(2.0_wp*pb%b_vel) * &
@@ -594,8 +517,8 @@ CONTAINS
   ! if integration over b is from 0 to infinity (full moment):
   REAL(wp) FUNCTION coll_theta_ab_pm_bfull_fix(pa,pb,m)
 
-    CLASS(PARTICLE), INTENT(in) :: pa,pb
-    INTEGER, INTENT(in)         :: m
+    TYPE(particle), INTENT(in) :: pa,pb
+    INTEGER, INTENT(in)        :: m
 
     coll_theta_ab_pm_bfull_fix =  2.0_wp * &
          ( GAMMA((pa%nu+1.0_wp)/pa%mu) / GAMMA((pa%nu+2.0_wp)/pa%mu) )**(pa%b_vel) * &
@@ -616,10 +539,10 @@ CONTAINS
   FUNCTION momarg_coll (p,n,c1,c2,c3,c4) RESULT (a)
     IMPLICIT NONE
 
-    CLASS(PARTICLE), INTENT(in) :: p
-    INTEGER, INTENT(in)         :: n
-    REAL(wp), INTENT(in)        :: c1, c2, c3, c4
-    REAL(wp)                    :: a
+    TYPE(particle), INTENT(in) :: p
+    INTEGER, INTENT(in)        :: n
+    REAL(wp), INTENT(in)       :: c1, c2, c3, c4
+    REAL(wp)                   :: a
 
     a = ( c1*p%nu + c2*p%b_geo + c3*p%b_vel + c4*n + 1.0_wp) / p%mu
 
@@ -639,9 +562,9 @@ CONTAINS
   FUNCTION momargs_coll_gam (p,n) RESULT (a)
     IMPLICIT NONE
 
-    CLASS(PARTICLE), INTENT(in) :: p
-    INTEGER, INTENT(in)         :: n
-    REAL(wp)                    :: a(5)
+    TYPE(particle), INTENT(in) :: p
+    INTEGER, INTENT(in)        :: n
+    REAL(wp)                   :: a(5)
 
     a(1) = momarg_coll (p,n,1.0_wp,0.0_wp,0.0_wp,1.0_wp)
     a(2) = momarg_coll (p,n,1.0_wp,1.0_wp,0.0_wp,1.0_wp)
@@ -658,7 +581,7 @@ CONTAINS
     !     gueltig fuer D = a_geo * x^b_geo
     !     Berechnung des mittleren Durchmessers: D_average = parti%b_geo * D_average_factor * (q/qn)**parti%b_geo
     REAL(wp) :: D_average_factor
-    CLASS(particle), INTENT(in) :: parti
+    TYPE(particle), INTENT(in) :: parti
 
     D_average_factor = &
          ( GAMMA( (parti%b_geo+parti%nu+1.0_wp)/parti%mu ) / &
@@ -718,8 +641,8 @@ CONTAINS
   !********************************************************************************
 
   SUBROUTINE setup_particle_coeffs(ptype,pcoeffs)
-    CLASS(particle),        INTENT(in)    :: ptype
-    CLASS(particle_coeffs), INTENT(inout) :: pcoeffs
+    TYPE(particle),        INTENT(in)    :: ptype
+    TYPE(particle_coeffs), INTENT(inout) :: pcoeffs
 
     pcoeffs%c_i = 1.0 / ptype%cap
     pcoeffs%a_f = vent_coeff_a(ptype,1)
@@ -729,8 +652,8 @@ CONTAINS
   END SUBROUTINE setup_particle_coeffs
 
   SUBROUTINE setup_cloud_autoconversion_sb(cloud,cloud_coeffs)
-    CLASS(particle), INTENT(in) :: cloud
-    TYPE(particle_cloud_coeffs), INTENT(inout) :: cloud_coeffs
+    TYPE(particle), INTENT(in) :: cloud
+    TYPE(particle_coeffs), INTENT(inout) :: cloud_coeffs
     REAL(wp) :: nu, mu
     REAL(wp), PARAMETER :: kc_autocon  = 9.44e+9_wp  !..Long-Kernel
 
@@ -754,8 +677,8 @@ CONTAINS
   END SUBROUTINE setup_cloud_autoconversion_sb
 
   SUBROUTINE setup_ice_selfcollection(ice,ice_coeffs)
-    CLASS(particle), INTENT(in)              :: ice
-    TYPE(particle_ice_coeffs), INTENT(inout) :: ice_coeffs
+    TYPE(particle), INTENT(in)              :: ice
+    TYPE(particle_coeffs), INTENT(inout)    :: ice_coeffs
 
     ! local variables
     REAL(wp) :: delta_n_11,delta_n_12,delta_n_22
@@ -811,8 +734,8 @@ CONTAINS
   END SUBROUTINE setup_ice_selfcollection
 
   SUBROUTINE setup_snow_selfcollection(snow, snow_coeffs)
-    CLASS(particle), INTENT(in)               :: snow
-    TYPE(particle_snow_coeffs), INTENT(inout) :: snow_coeffs
+    TYPE(particle), INTENT(in)               :: snow
+    TYPE(particle_coeffs), INTENT(inout)     :: snow_coeffs
 
     REAL(wp) :: delta_n_11,delta_n_12
     REAL(wp) :: theta_n_11,theta_n_12
@@ -844,8 +767,8 @@ CONTAINS
   END SUBROUTINE setup_snow_selfcollection
 
   SUBROUTINE setup_graupel_selfcollection(graupel,graupel_coeffs)
-    CLASS(particle), INTENT(in) :: graupel
-    TYPE(particle_graupel_coeffs)  :: graupel_coeffs
+    TYPE(particle), INTENT(in) :: graupel
+    TYPE(particle_coeffs)      :: graupel_coeffs
     REAL(wp) :: delta_n_11,delta_n_12
     REAL(wp) :: theta_n_11,theta_n_12
     REAL(wp) :: delta_n, theta_n
@@ -874,7 +797,7 @@ CONTAINS
   END SUBROUTINE setup_graupel_selfcollection
 
   SUBROUTINE setup_particle_collection_type1(ptype,qtype,coll_coeffs)
-    CLASS(particle), INTENT(in) :: ptype, qtype
+    TYPE(particle), INTENT(in)  :: ptype, qtype
     TYPE(collection_coeffs)     :: coll_coeffs
     CHARACTER(len=*), PARAMETER :: routi = 'setup_particle_collection_type1'
 
@@ -895,7 +818,7 @@ CONTAINS
   END SUBROUTINE setup_particle_collection_type1
 
   SUBROUTINE setup_particle_collection_type2(ptype,qtype,coll_coeffs)
-    CLASS(particle), INTENT(in) :: ptype, qtype
+    TYPE(particle), INTENT(in)  :: ptype, qtype
     TYPE(rain_riming_coeffs)    :: coll_coeffs
     CHARACTER(len=*), PARAMETER :: routi = 'setup_particle_collection_type2'
 
@@ -918,7 +841,7 @@ CONTAINS
   END SUBROUTINE setup_particle_collection_type2
 
   SUBROUTINE setup_particle_coll_pm_type1(pa,pb,coeffs)
-    CLASS(particle), INTENT(in)          :: pa, pb
+    TYPE(particle), INTENT(in)           :: pa, pb
     TYPE(coll_coeffs_ir_pm), INTENT(out) :: coeffs
     CHARACTER(len=*), PARAMETER :: routi = 'setup_particle_coll_pm_type1'
 
@@ -950,7 +873,7 @@ CONTAINS
   END SUBROUTINE setup_particle_coll_pm_type1
 
   SUBROUTINE setup_particle_coll_pm_type1_bfull(pa,pb,coeffs)
-    CLASS(particle), INTENT(in)          :: pa, pb
+    TYPE(particle), INTENT(in)           :: pa, pb
     TYPE(coll_coeffs_ir_pm), INTENT(out) :: coeffs
     CHARACTER(len=*), PARAMETER :: routi = 'setup_particle_coll_pm_type1'
 

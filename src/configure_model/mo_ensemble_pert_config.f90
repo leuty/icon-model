@@ -47,7 +47,7 @@ MODULE mo_ensemble_pert_config
                                   get_terminal_fall_velocity_ice, &
                                   set_terminal_fall_velocity_ice
   USE mo_2mom_mcrph_config,  ONLY: copy_cfg_2mom_all2pert, copy_cfg_2mom_pert2all
-  USE mo_2mom_mcrph_types,   ONLY: aerosol_ccn, particle, particle_frozen, particle_lwf
+  USE mo_2mom_mcrph_types,   ONLY: aerosol_ccn, particle
   USE mo_2mom_mcrph_main,    ONLY: init_2mom_types_base
   USE mo_2mom_mcrph_setup,   ONLY: set_ccn_cloud_type
   USE mo_ext_data_types,     ONLY: t_external_data
@@ -444,13 +444,12 @@ MODULE mo_ensemble_pert_config
 
     ! These are the fundamental hydrometeor particle variables for the two-moment scheme,
     ! needed to get the actual hydrometeor config parameters:
-    TYPE(particle)                :: cloud, rain
-    TYPE(particle_frozen)         :: ice, snow
-    TYPE(particle_frozen), TARGET :: graupel_frz, hail_frz
-    TYPE(particle_lwf), TARGET    :: graupel_lwf, hail_lwf
+    TYPE(particle)                :: cloud, rain, ice, snow
+    TYPE(particle), TARGET        :: graupel_frz, hail_frz
+    TYPE(particle), TARGET        :: graupel_lwf, hail_lwf
 
     ! Pointers to these derived types that are actually needed in calling init_2mom_types_base():
-    CLASS(particle_frozen), POINTER  :: graupel, hail
+    TYPE(particle), POINTER  :: graupel, hail
 
     INTEGER               :: zccn_type, zcloud_type ! dummies
     TYPE(aerosol_ccn)     :: zccn_coeffs

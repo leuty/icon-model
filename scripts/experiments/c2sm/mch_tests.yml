@@ -177,6 +177,24 @@ tests:
       - balfrin_cpu_nvidia: [50,23,40,18,19]
       - balfrin_cpu_nvidia_mixed: [18,20,42,9,13,12,31]
       - santis_cpu_nvhpc: [1,11,16]
+  - name: mch_opr_r19b07_2m_impl
+    tags: ['atm','merge2rc','probtest']
+    machines:
+      - name: santis
+    refgen: ['santis_cpu_nvhpc']
+    checksuite_modes:
+      - santis: 't'
+    ensemble_num:
+      - santis_cpu_nvhpc: [1,11,17,28,43]
+  - name: mch_opr_r19b07_2m_expl
+    tags: ['atm','merge2rc','probtest']
+    machines:
+      - name: santis
+    refgen: ['santis_cpu_nvhpc']
+    checksuite_modes:
+      - santis: 't'
+    ensemble_num:
+      - santis_cpu_nvhpc: [1,2,5,16,25]
   - name: mch_opr_r19b07_lpi
     tags: ['atm','merge2rc','probtest']
     machines:

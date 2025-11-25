@@ -29,7 +29,7 @@ USE mo_physical_constants, ONLY: r_v   => rv    , & !> gas constant for water va
 
 USE mo_exception,          ONLY: finish, message, message_text
 
-USE mo_2mom_mcrph_types,   ONLY: particle, particle_frozen, particle_ice_coeffs
+USE mo_2mom_mcrph_types,   ONLY: particle, particle_coeffs
 USE mo_2mom_mcrph_setup,   ONLY: setup_ice_selfcollection
 
 !==============================================================================
@@ -225,8 +225,12 @@ REAL    (KIND=wp   ), PARAMETER ::  &
   bgeo_ice = x1o3,                  &
   ageo_ice = zami**(-bgeo_ice)
 
-TYPE(particle_frozen), PARAMETER :: &
-       &        ice2mom =  particle_frozen( &
+! The following parameter is supposed to raise an error, if mistakenly used.
+! ieee_signaling_nan is not allowed as a parameter by some compiler
+REAL(wp), PARAMETER    :: missing =  -HUGE(1.0_wp)
+
+TYPE(particle), PARAMETER :: &
+       &        ice2mom =  particle( &
        &        'ice_gscp3', & !..name
        &        2.000000, & !..nu
        &        0.500000, & !..mu
@@ -247,10 +251,16 @@ TYPE(particle_frozen), PARAMETER :: &
        &        0.80,     & !..ecoll_c
        &        150.0d-6, & !..D_crit_c
        &        1.000d-5, & !..q_crit_c
-       &        0.20      & !..sigma_vel
+       &        0.20,     & !..sigma_vel
+       &        missing,  &
+       &        missing,  &
+       &        missing,  &
+       &        missing,  &
+       &        missing,  &
+       &        null() &
        &        )
 
-TYPE(particle_ice_coeffs) :: ice_coeffs
+TYPE(particle_coeffs) :: ice_coeffs
 
 !$ACC DECLARE CREATE(zvz0i, zceff_min)
 
