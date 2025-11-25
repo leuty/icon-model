@@ -18,7 +18,7 @@ for python in python3 python; do
 done
 
 "${python}" "${my_dir}/mkhelper/deplist.py" --reverse -t icon -f - <<_EOF
-icon: stdc++ cuda rocm mpi netcdf-fortran rte-rrtmgp ecrad rttov sct yaxt cdi serialbox2 mtime blas lapack yac tixi eccodes hdf5 zlib comin fortran-support memman
+icon: stdc++ cuda rocm mpi netcdf-fortran rte-rrtmgp ecrad rttov sct yaxt cdi serialbox2 mtime blas lapack yac tixi eccodes hdf5 zlib comin fortran-support kokkos memman iconmath
 netcdf-fortran: netcdf
 netcdf: hdf5 zlib
 cdi: eccodes netcdf aec mpi yaxt ppm
@@ -37,5 +37,7 @@ rocm: stdc++ cuda
 xml2: zlib
 ppm: mpi netcdf
 comin: stdc++
+kokkos: stdc++ cuda rocm
 memman: stdc++ cuda rocm
+iconmath: fortran-support
 _EOF
