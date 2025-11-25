@@ -11,6 +11,7 @@
 include:
   - local: .gitlab/ci/utils/log.yml
   - local: .gitlab/ci/utils/pip.yml
+  - local: .gitlab/ci/common/any-image.yml
   - local: .gitlab/ci/common/alpine.yml
   - local: .gitlab/ci/common/pre-commit.yml
   - local: .gitlab/ci/common/html.yml
@@ -340,16 +341,12 @@ doc:html:publish:osr:
 
 codee-check:
   stage: basic
-  extends:
-    - .utils:log
-    - .utils:git:fast_and_small
+  extends: .common:any-image
   variables:
     DOCKER_AUTH_CONFIG: "{\"auths\":{\"registry.gitlab.dkrz.de\":{\"auth\":\"$CI_DOCKER_AUTH\"}}}"
     REPORT_DIRECTORY: "${CI_PROJECT_DIR}/htmlReport"
     GIT_SUBMODULE_STRATEGY: normal
   image: registry.gitlab.dkrz.de/icon/ci-tooling/codee-check-container/codee:v2025.3.8
-  before_script:
-    - !reference [.utils:log, before_script]
   script:
     - |
       icon_ci_log_section_start 'Running static analysis with codee' 'collapsed=false'
@@ -397,5 +394,3 @@ codee-check:
           $ICON_CI_TEST_SCHEDULE == "nightly"
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       when: never
-  tags:
-    - dkrz, docker-any-image

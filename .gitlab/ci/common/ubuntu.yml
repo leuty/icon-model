@@ -9,8 +9,8 @@
 # ---------------------------------------------------------------
 
 include:
-  - local: .gitlab/ci/utils/log.yml
   - local: .gitlab/ci/utils/apt.yml
+  - local: .gitlab/ci/common/any-image.yml
 
 # Implements the recommended default template for a job based on the ubuntu
 # Docker image. Installs the required Advanced Package Tool (APT) packages (see
@@ -18,15 +18,9 @@ include:
 #
 .common:ubuntu:
   extends:
-    - .utils:log
+    - .common:any-image
     - .utils:apt
-  variables:
-    # Internal variables:
-    GIT_SUBMODULE_UPDATE_FLAGS: --jobs=4
   before_script:
-    - !reference [.utils:log, before_script]
+    - !reference [.common:any-image, before_script]
     - !reference [.utils:apt, before_script]
-  tags:
-    - docker-any-image
-  image:
-    name: ubuntu:latest
+  image: ubuntu:latest
