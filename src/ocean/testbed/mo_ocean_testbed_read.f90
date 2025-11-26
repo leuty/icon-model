@@ -198,15 +198,15 @@ CONTAINS
       dummy_patch%comm_pat_scatter_c => &
         makeScatterPattern(1, dummy_patch%n_patch_cells, &
         &                  dummy_patch%cells%decomp_info%glb_index, &
-        &                  p_comm_work)
+        &                  p_comm_work, .FALSE.)
       dummy_patch%comm_pat_scatter_e => &
         makeScatterPattern(1, dummy_patch%n_patch_edges, &
         &                  dummy_patch%edges%decomp_info%glb_index, &
-        &                  p_comm_work)
+        &                  p_comm_work, .FALSE.)
       dummy_patch%comm_pat_scatter_v => &
         makeScatterPattern(1, dummy_patch%n_patch_verts, &
         &                  dummy_patch%verts%decomp_info%glb_index, &
-        &                  p_comm_work)
+        &                  p_comm_work, .FALSE.)
 
       IF (p_pe_work == 0) &
         CALL generate_test_file("testfile.nc", nlev=10, ntime=5)

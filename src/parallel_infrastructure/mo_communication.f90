@@ -2341,19 +2341,20 @@ CONTAINS
   !-----------------------------------------------------------------------------
   !> Factory method for t_ScatterPattern. Destroy with deleteScatterPattern().
   !-----------------------------------------------------------------------------
-  FUNCTION makeScatterPattern(jg, loc_arr_len, glb_index, communicator)
+  FUNCTION makeScatterPattern(jg, loc_arr_len, glb_index, communicator, all_workers)
     USE mo_scatter_pattern_scatter
     IMPLICIT NONE
     CLASS(t_ScatterPattern), POINTER :: makeScatterPattern
     INTEGER, VALUE :: jg, loc_arr_len, communicator
     INTEGER, INTENT(IN) :: glb_index(:)
+    LOGICAL, INTENT(IN) :: all_workers
 
     CHARACTER(*), PARAMETER :: routine = modname//":makeScatterPattern"
     INTEGER :: ierr
 
     ALLOCATE(t_ScatterPatternScatter::makeScatterPattern, stat = ierr)
     IF(ierr /= SUCCESS) CALL finish(routine, "error allocating memory")
-    CALL makeScatterPattern%construct(jg, loc_arr_len, glb_index, communicator)
+    CALL makeScatterPattern%construct(jg, loc_arr_len, glb_index, communicator, all_workers)
   END FUNCTION makeScatterPattern
 
 END MODULE mo_communication

@@ -16,7 +16,7 @@ MODULE mo_scatter_pattern_scatter
     USE mo_kind, ONLY: dp, sp, i8
     USE mo_scatter_pattern_base
     USE mo_mpi, ONLY: my_process_is_stdio, &
-    &                 p_max, p_allgather, p_scatter
+    &                 p_max, p_gather, p_allgather, p_scatter
     USE mo_parallel_config, ONLY: blk_no, idx_no
     USE mo_exception, ONLY: finish
 
@@ -53,33 +53,45 @@ CONTAINS
     !> constructor
     !-------------------------------------------------------------------------------------------------------------------------------
     SUBROUTINE constructScatterPatternScatter(me, jg, loc_arr_len, glb_index, &
-         communicator, root_rank)
+         communicator, all_workers, root_rank)
         CLASS(t_scatterPatternScatter), TARGET, INTENT(OUT) :: me
         INTEGER, VALUE :: jg, loc_arr_len, communicator
         INTEGER, INTENT(IN) :: glb_index(:)
+        LOGICAL, INTENT(IN) :: all_workers
         INTEGER, OPTIONAL, INTENT(in) :: root_rank
 
         CHARACTER(*), PARAMETER :: routine &
              = modname//":costructScatterPatternScatter"
-        INTEGER :: ierr
+        INTEGER :: ierr, pt_shape(2)
         INTEGER, ALLOCATABLE :: myIndices(:)
         LOGICAL :: l_write_debug_info
 
         l_write_debug_info = debugmodule .AND. me%rank == me%root_rank
 
         IF (l_write_debug_info) WRITE(0,*) "entering ", routine
-        CALL constructScatterPattern(me, jg, loc_arr_len, glb_index, communicator, root_rank)
+        CALL constructScatterPattern(me, jg, loc_arr_len, glb_index, communicator, all_workers, root_rank)
         me%slapSize = p_max(me%myPointCount, comm = communicator)
-        ALLOCATE(me%pointIndices(me%slapSize,me%comm_size), &
-          &      me%point_counts(me%comm_size),             &
-          &      myIndices(me%slapSize),                    &
-          &      stat = ierr)
+        IF (all_workers) THEN
+          pt_shape(1) = me%slapSize
+          pt_shape(2) = me%comm_size
+        ELSE
+          pt_shape(1) = MERGE(me%slapSize, 1, me%rank == me%root_rank)
+          pt_shape(2) = MERGE(me%comm_size, 1, me%rank == me%root_rank)
+        ENDIF
+        ALLOCATE(me%pointIndices(pt_shape(1), pt_shape(2)),            &
+                 me%point_counts(pt_shape(2)), myIndices(me%slapSize), &
+                 stat = ierr)
         IF(ierr /= SUCCESS) CALL finish(routine, "error allocating memory")
         myIndices(1:me%myPointCount) = glb_index
         myIndices(me%myPointCount+1:me%slapSize) = -1
-        ! Every worker in communicator needs information from all the others
-        CALL p_allgather(me%myPointCount, me%point_counts, 1, 1, communicator)
-        CALL p_allgather(myIndices, me%pointIndices, me%slapSize, me%slapSize, communicator)
+        IF (all_workers) THEN
+          ! Every worker in communicator needs information from all the others
+          CALL p_allgather(me%myPointCount, me%point_counts, 1, 1, communicator)
+          CALL p_allgather(myIndices, me%pointIndices, me%slapSize, me%slapSize, communicator)
+        ELSE
+          CALL p_gather(me%myPointCount, me%point_counts, me%root_rank, communicator)
+          CALL p_gather(myIndices, me%pointIndices, me%root_rank, communicator)
+        ENDIF
         DEALLOCATE (myIndices, stat = ierr)
         IF(ierr /= SUCCESS) CALL finish(routine, "error deallocating memory")
         IF (l_write_debug_info) WRITE(0,*) "leaving ", routine
