@@ -195,10 +195,11 @@ CONTAINS
     !> constructor
     !-------------------------------------------------------------------------------------------------------------------------------
     SUBROUTINE constructScatterPattern(me, jg, loc_arr_len, glb_index, &
-         communicator, root_rank)
+         communicator, all_workers, root_rank)
         CLASS(t_ScatterPattern), TARGET, INTENT(OUT) :: me
         INTEGER, VALUE :: jg, loc_arr_len, communicator
         INTEGER, INTENT(IN) :: glb_index(:)
+        LOGICAL, INTENT(IN) :: all_workers
         INTEGER, OPTIONAL, INTENT(in) :: root_rank
 
         CHARACTER(*), PARAMETER :: routine = modname//":constructScatterPattern"
