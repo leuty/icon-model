@@ -43,11 +43,7 @@ for irun in 0 2; do
 
     dtime=360  #86400      # output interval [s]
 
-    if [[ irun == 0 ]]; then
-        threshold="1*10^-11"     # threshold in MAE of water budget
-    else
-        threshold="3*10^-11"
-    fi
+    threshold="1*10^-11"     # threshold in MAE of water budget
 
     # -------------------------------------------------
 

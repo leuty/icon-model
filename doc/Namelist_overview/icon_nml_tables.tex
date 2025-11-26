@@ -2677,11 +2677,11 @@ init\_mode=5
 % \hline
 qnxana\_2mom\_mode&
 I & 0 & &
-Only effective in case of 2-moment microphysics (inwp\_gscp=4,5,6).
+Only effective in case of 2-moment microphysics (inwp\_gscp=3,4,5,6).
 Affects the analysis increments of the the number concentrations of those hydrometeors in IAU which have been selected by the settings of qcana\_mode, qiana\_mode and qrsgana\_mode: \\
 0: analysis increments are not taken from analysis files but diagnosed based on the mass concentrations (from fg) and mass increments.  \\
 1: analysis increments are taken from the analysis files. If missing for a specific hydrometeor type, they are diagnosed similar to option 0 as a fallback. &
-init\_mode=5, inwp\_gscp=4,5,6
+init\_mode=5, inwp\_gscp=3,4,5,6
 \tabularnewline
 
 
@@ -5537,7 +5537,7 @@ I&
 0&
 &
 Controls scaling of external climatological cloud droplet number concentration (CDNC) data. Only effective if external CDNC is used. \\
-0: No scaling applied; external CDNC is used as provided. \\
+0: No additional scaling applied, only scaling from tuning namelist is used. \\
 1: Apply time-varying, spatially resolved scaling factors derived from the simple plume scheme during the model run. The scaling field varies daily in time and 2D in space, and is applied according to the experiment’s actual (simulation) year. \\
 Note: For years 2000–2020, it is usually preferable to disable scaling (mode 0), since MODIS data are available for those years directly. \\
 2: Apply constant scaling of external CDNC to represent pre-industrial conditions. All years are scaled to 1850 values, using spatially varying scaling factors. \\
@@ -5796,6 +5796,11 @@ lsgs\_cond&
 L (max\_ dom) & .TRUE. &  & Apply subgrid-scale condensational heating related to the non-convective
 part of diagnosed cloud water&
 inwp\_cldcover = 1
+\tabularnewline
+
+itype\_icecloud\_diag&
+I & 1 &  & 1: standard \\ 2: option for two-moment microphysics &
+inwp\_cldcover = 1, \\ option 2 requires inwp\_gscp=3,4,5,6,7,8
 \tabularnewline
 
 %\hline
@@ -6715,6 +6720,22 @@ run\_nml:iforcing = inwp; inwp\_clcover = 1
 \tabularnewline
 
 \hline
+\hline
+\multicolumn{6}{|l|}{\textbf{Effective radius}}
+\tabularnewline
+
+\hline
+tune\_reff\_qi&
+R&
+1.0&
+&
+Linear tuning factor for effective radius of clouds (affects both, grid-scale and sub-grid) &
+run\_nml:iforcing = inwp; icpl\_rad\_reff = 1; inwp\_gscp=3
+\tabularnewline
+
+
+\hline
+\hline
 \multicolumn{6}{|l|}{\textbf{Saturation adjustment}}
 \tabularnewline
 
@@ -6923,6 +6944,13 @@ Lower and upper bound for variable ISA parameterization (fraction of impervious 
 depending on smoothed urban fraction & lterra\_urb=.TRUE.
 \tabularnewline
 
+\hline
+tune\_cdnc&
+R(3)&
+10e6, 300e6, 1.0&
+m$^{-3}$, m$^{-3}$, -&
+Lower and upper bound and scaling factor for external cloud droplet number concentration climatology & icpl\_aero\_gscp=3.
+\tabularnewline
 
 \hline
 \hline

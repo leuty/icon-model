@@ -89,6 +89,8 @@ MODULE mo_nwp_tuning_config
   PUBLIC :: tune_cu_alfa
   PUBLIC :: tune_cu_cdnc
   PUBLIC :: tune_dice_conv
+  PUBLIC :: tune_reff_qi
+  PUBLIC :: tune_cdnc
   PUBLIC :: tune_dursun_scaling
   PUBLIC :: tune_sbmccn
   PUBLIC :: tune_urbahf, tune_urbisa
@@ -342,6 +344,13 @@ MODULE mo_nwp_tuning_config
 
   REAL(wp) :: &                    !< mean diameter of detrained cloud ice of parameterized convection
        &  tune_dice_conv           !< for two-moment schemes
+
+  REAL(wp) :: &                    !< linear tuning factor for effective radius of cloud ice
+       &  tune_reff_qi             !<
+  !$ACC DECLARE CREATE(tune_reff_qi)
+
+  REAL(wp), DIMENSION(3) :: &      !< tuning parameters for 2d cloud droplet number cloud_num (1/m3)
+       &  tune_cdnc                !< 1: lower bound, 2: upper bound, 3: scaling factor
 
   REAL(wp) :: &                    !< scaling of direct solar rediation to tune sunshine duration
        &  tune_dursun_scaling      !< in corresponding diagnostic

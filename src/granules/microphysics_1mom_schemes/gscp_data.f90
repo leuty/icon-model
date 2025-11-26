@@ -219,8 +219,8 @@ REAL    (KIND=wp   ), PARAMETER ::  &
 ! ---------------------------------------------------------------------------------------
 
 REAL (KIND=wp), PARAMETER ::  &
-  zxidrift = zami * 100.0e-6_wp**3         ! mean crystal mass for blowing snow (gscp3 only)
-                                           ! (50e-6 according to Alexis Berne, pers. comm. March 2025)
+  zxidrift = zami * 200.0e-6_wp**3      ! mean crystal mass for blowing snow (gscp3 only)
+                                        ! (50e-6 according to Alexis Berne, pers. comm. March 2025)
 REAL    (KIND=wp   ), PARAMETER ::  &
   bgeo_ice = x1o3,                  &
   ageo_ice = zami**(-bgeo_ice)

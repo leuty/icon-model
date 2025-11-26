@@ -40,8 +40,8 @@ MODULE mo_nwp_reff_interface
   USE mo_nonhydrostatic_config,ONLY: kstart_moist
   USE mo_atm_phy_nwp_config,   ONLY: atm_phy_nwp_config, i2daero_dust, i2daero_seas, i2daero_anthro, icpl_aero_ice
   USE mo_radiation_config,     ONLY: irad_aero, iRadAeroTegen, iRadAeroCAMSclim, iRadAeroCAMStd
-  USE mo_nwp_tuning_config,    ONLY: tune_zceff_min, tune_v0snow, tune_zvz0i, tune_icesedi_exp, tune_zcsg, tune_dice_conv
-
+  USE mo_nwp_tuning_config,    ONLY: tune_zceff_min, tune_v0snow, tune_zvz0i, tune_icesedi_exp, tune_zcsg, &
+                                     tune_dice_conv, tune_reff_qi
   USE mo_reff_types,           ONLY: t_reff_calc_dom,  nreff_max_calc
   USE mo_reff_main,            ONLY: init_reff_calc, mapping_indices, mapping_indices_gscp3, calculate_ncn, &
                                      calculate_reff, combine_reff, set_max_reff
@@ -318,7 +318,8 @@ MODULE mo_nwp_reff_interface
                     &     p_q           = p_prog%tracer(:,:,:,iqi),      & ! Grid ice
                     &     p_qtot        = prm_diag%tot_cld(:,:,:,iqi),   & ! Total ice
                     &     p_ncn3D       = p_prog%tracer(:,:,:,iqni),     & ! Number concentration from 2 mom
-                    &     reff_param    = 1 ,                            & !  Fu param
+                    &     reff_param    = 11,                            & ! Fu param with bugfix
+                    &     reff_fac      = tune_reff_qi,                  & ! namelist tuning parameter for reff
                     &     ncn_param     = 4,                             & ! 2 mom ncn
                     &     dsd_type      = 1,                             & ! 1: monodisperse, 2: polydisperse
                     &     p_reff = prm_diag%reff_qi(:,:,:) )               ! Output
@@ -333,6 +334,7 @@ MODULE mo_nwp_reff_interface
                     &     p_q           = p_prog%tracer(:,:,:,iqi),      & ! Grid ice
                     &     p_qtot        = prm_diag%tot_cld(:,:,:,iqi),   & ! Total ice
                     &     reff_param    = 1 ,                            & ! Fu param
+                    &     reff_fac      = tune_reff_qi,                  & ! namelist tuning parameter for reff
                     &     ncn_param     = 1,                             & ! ncn from 1 moment scheme
                     &     p_reff        = prm_diag%reff_qi(:,:,:) )        ! Output
 

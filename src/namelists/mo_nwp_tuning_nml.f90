@@ -99,6 +99,8 @@ MODULE mo_nwp_tuning_nml
     &                               config_tune_cu_alfa          => tune_cu_alfa,          &
     &                               config_tune_cu_cdnc          => tune_cu_cdnc,          &
     &                               config_tune_dice_conv        => tune_dice_conv,        &
+    &                               config_tune_reff_qi          => tune_reff_qi,          &
+    &                               config_tune_cdnc             => tune_cdnc,             &
     &                               config_tune_dursun_scaling   => tune_dursun_scaling,   &
     &                               config_tune_sbmccn           => tune_sbmccn,           &
     &                               config_tune_urbahf           => tune_urbahf,           &
@@ -343,6 +345,12 @@ MODULE mo_nwp_tuning_nml
   REAL(wp) :: &                    !< mean diameter of detrained cloud ice of parameterized convection
        &  tune_dice_conv           !< for two-moment schemes
 
+  REAL(wp) :: &                    !< linear tuning factor for effective radius of cloud ice
+       &  tune_reff_qi
+
+  REAL(wp), DIMENSION(3) :: &      !< tuning parameters for 2d cloud droplet number cloud_num (1/m3)
+       &  tune_cdnc                !  1: lower bound, 2: upper bound, 3: scaling factor
+
   REAL(wp) :: &                    !< scaling of direct solar rediation to tune sunshine duration
        &  tune_dursun_scaling      !< in corresponding diagnostic
 
@@ -378,7 +386,7 @@ MODULE mo_nwp_tuning_nml
     &                      tune_urbahf, tune_urbisa, tune_box_ice, tune_supsat_limfac,  &
     &                      tune_grzdc_offset, itune_vis_diag, tune_entrainment_profile, &
     &                      tune_tau_shallow, tune_tau_mid, tune_tau_deep,               &
-    &                      tune_ssolim_sfcfric, itune_ceiling_diag
+    &                      tune_ssolim_sfcfric, itune_ceiling_diag, tune_reff_qi
 
 CONTAINS
 
@@ -545,7 +553,12 @@ CONTAINS
     tune_albedo_wso = (/0._wp, 0._wp/) ! no bare soil albedo correction for soil types 3-6 (dry soil, wet soil)
     itune_o3        = 2            ! standard ozone tuning for EcRad
     itune_slopecorr  = 0           ! slope-dependent reduction of rlam_heat and near-surface tkhmin
-    tune_ssolim_sfcfric(:) = 1.e4_wp ! SSO stdev limit (m) above which adaptive surface friction is reduced
+    tune_reff_qi    = 1._wp        ! tuning factor for effective radius of cloud ice
+    tune_cdnc       = (/ 10.0e6_wp,  & ! lower bound for 2d cloud droplet number cloud_num
+                         300.0e6_wp, & ! upper bound for 2d cloud droplet number cloud_num
+                         1.0_wp/)      ! scaling factor for 2d cloud droplet number cloud_num
+    tune_ssolim_sfcfric(:) = 1.e4_wp   ! SSO stdev limit (m) above which adaptive surface friction is reduced
+
     !
     ! IAU increment tuning
     max_freshsnow_inc = 0.025_wp   ! maximum allowed positive freshsnow increment
@@ -742,6 +755,8 @@ CONTAINS
     config_tune_cu_alfa          = tune_cu_alfa
     config_tune_cu_cdnc          = tune_cu_cdnc
     config_tune_dice_conv        = tune_dice_conv
+    config_tune_reff_qi          = tune_reff_qi
+    config_tune_cdnc             = tune_cdnc
     config_tune_dursun_scaling   = tune_dursun_scaling
     config_tune_sbmccn           = tune_sbmccn
     config_tune_urbisa           = tune_urbisa
@@ -749,7 +764,7 @@ CONTAINS
 
     !$ACC UPDATE DEVICE(config_tune_gust_factor, config_itune_gust_diag, config_itune_vis_diag, config_tune_gustsso_lim) ASYNC(1)
     !$ACC UPDATE DEVICE(config_tune_gustlim_agl, config_tune_gustlim_fac, config_tune_albedo_wso, config_tune_supsat_limfac) ASYNC(1)
-    !$ACC UPDATE DEVICE(config_itune_ceiling_diag) ASYNC(1)
+    !$ACC UPDATE DEVICE(config_itune_ceiling_diag, config_tune_reff_qi) ASYNC(1)
     !$ACC UPDATE DEVICE(config_tune_tau_shallow, config_tune_tau_mid, config_tune_tau_deep) ASYNC(1)
 
     !-----------------------------------------------------

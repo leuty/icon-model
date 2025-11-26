@@ -105,6 +105,7 @@ MODULE mo_initicon_utils
   PUBLIC :: printChecksums
   PUBLIC :: init_aerosol
   PUBLIC :: init_qnx_from_qx_twomom
+  PUBLIC :: init_qni_from_qi_gscp3
   PUBLIC :: init_qnxinc_from_qxinc_twomom
   PUBLIC :: get_diag_stat_comm_work
   PUBLIC :: new_land_from_ocean
@@ -2937,6 +2938,37 @@ MODULE mo_initicon_utils
     END IF
 
   END SUBROUTINE init_qnx_from_qx_twomom
+
+  SUBROUTINE init_qni_from_qi_gscp3 (caller, p_patch, p_prog)
+
+    CHARACTER(len=*), INTENT(in)    :: caller   ! Name of calling routine for messages
+    TYPE(t_patch)   , INTENT(in)    :: p_patch
+    TYPE(t_nh_prog) , INTENT(inout) :: p_prog
+
+    INTEGER                             :: jb, jk, jc, nlen
+    REAL(wp), POINTER, DIMENSION(:,:,:) :: my_qi, my_qni
+    CHARACTER(len=110)                  :: ncmaxstr
+
+    my_qi  => p_prog%tracer(:,:,:,iqi)
+    my_qni => p_prog%tracer(:,:,:,iqni)
+
+!$OMP PARALLEL
+!$OMP DO PRIVATE(jb,jk,jc,nlen) ICON_OMP_DEFAULT_SCHEDULE
+    DO jb = 1, p_patch%nblks_c
+      nlen = MERGE(nproma, p_patch%npromz_c, jb /= p_patch%nblks_c)
+      DO jk = 1, p_patch%nlev
+        DO jc = 1, nlen
+          my_qni(jc,jk,jb) = set_qni( MAX(my_qi(jc,jk,jb), 0.0_wp) )
+        END DO
+      END DO
+    END DO
+!$OMP END DO
+!$OMP END PARALLEL
+
+    ncmaxstr = get_diag_stat_str_3d ( p_patch, my_qni )
+    CALL message(caller, 'init_qni_from_qi_gscp3: set_qni() from qi, '//TRIM(ncmaxstr))
+
+  END SUBROUTINE init_qni_from_qi_gscp3
 
   SUBROUTINE init_qnxinc_from_qxinc_twomom (caller, p_patch, p_prog, initicon, lqx_avail, lqxinc_avail, lqnxinc_init)
 

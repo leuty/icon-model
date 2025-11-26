@@ -451,7 +451,7 @@ MODULE mo_reff_main
     REAL(wp)                         :: bf, bf2
     LOGICAL                          :: monodisperse
 
-    REAL(wp) :: zami, zmi0, tune_reff_qi
+    REAL(wp) :: zami, zmi0
 
     ! Check input return_fct
     IF (.NOT. return_fct) THEN
@@ -466,16 +466,11 @@ MODULE mo_reff_main
     ! properties of ice hydrometeor class
     b_geo           = 1.0_wp/3.0_wp
     a_geo           = (1.0_wp/zami)**b_geo
-    mu              = 5.0   ! arbitrary but narrow
-    nu              = 0.5   ! particle size distribution
-    reff_calc%x_min = zmi0  ! minimum size
-    reff_calc%x_max = 1e-8  ! needs to be larger than zmimax because we have qitot instead of qi
-    monodisperse    = .false.
-    tune_reff_qi    = 1.0_wp
-
-    ! tuning factor, e.g., to compensate that cover_koe modifies ice mass but not number
-    ! here we change the local a_geo to get a consistent change in reff
-    a_geo = tune_reff_qi * a_geo
+    mu              = 5.0_wp     ! arbitrary but narrow
+    nu              = 0.5_wp     ! particle size distribution
+    reff_calc%x_min  = zmi0      ! minimum size
+    reff_calc%x_max  = 1e-7_wp   ! needs to be larger than zmimax because we have qitot instead of qi
+    monodisperse     = .false.
 
     ! Overwrite monodisperse/polydisperse according to options
     SELECT CASE (reff_calc%dsd_type)
@@ -504,7 +499,7 @@ MODULE mo_reff_main
         reff_calc%reff_coeff(1) = reff_calc%reff_coeff(1)*bf
       END IF
 
-    CASE (1)                                 ! Fu Random Hexagonal needles:  Dge = 1/(c1 * x**[c2] + c3 * x**[c4])
+    CASE (1,11)                              ! Fu Random Hexagonal needles:  Dge = 1/(c1 * x**[c2] + c3 * x**[c4])
                                              ! Parameterization based on Fu, 1996; Fu et al., 1998; Fu ,2007
       ! First calculate monodisperse
       reff_calc%reff_coeff(1)   = SQRT( 3.0_wp *SQRT(3.0_wp) * rhoi * a_geo / 8.0_wp )
@@ -534,8 +529,8 @@ MODULE mo_reff_main
                       &        p_q,p_reff,                                        &
                       &        return_fct,                                        &
                       &        p_qtot, p_ncn3D, p_ncn2D,                          &
-                      &        ncn_param, dsd_type,    reff_param,                &
-                      &        x_min, x_max, mu, nu, r_max, r_min  )
+                      &        ncn_param, dsd_type, reff_param, reff_fac,         &
+                      &        x_min, x_max, mu, nu, r_max, r_min )
 
     ! Output
     TYPE(t_reff_calc), INTENT(INOUT)            :: reff_calc     ! Reff calculation parameters and pointers
@@ -568,9 +563,10 @@ MODULE mo_reff_main
     REAL(wp), OPTIONAL, INTENT(IN)              :: mu            ! Given Gamma parameter in DSD (only for dsd_type=2)
     REAL(wp), OPTIONAL, INTENT(IN)              :: nu            ! Given Nu parameter in DSD    (only for dsd_type=2)
 
+    ! Tuning factor for reff
+    REAL(wp), OPTIONAL, INTENT(IN)              :: reff_fac      ! linear tuning factor
+
     ! End of subroutine variable declaration
-
-
 
     REAL(wp)                                    :: bf            ! Increase in reff due to DSD broadening
 
@@ -599,25 +595,22 @@ MODULE mo_reff_main
     reff_calc%reff_param    = 0                                                   ! Spheroids
     reff_calc%dsd_type      = 0                                                   ! Consistent with param
     reff_calc%ncn_param     = 0                                                   ! Constant incloud-number
+    reff_calc%reff_fac      = 1.0_wp
 
     ! Set pointers
     IF(PRESENT(p_qtot))     reff_calc%p_qtot=>p_qtot
     IF(PRESENT(p_ncn3D))    reff_calc%p_ncn3D=>p_ncn3D
     IF(PRESENT(p_ncn2D))    reff_calc%p_ncn2D=>p_ncn2D
 
-
-
     reff_calc%p_q=>p_q
     reff_calc%p_reff=>p_reff
-
-
 
     IF (PRESENT(dsd_type) )  reff_calc%dsd_type    = dsd_type
     IF (PRESENT(mu))         reff_calc%mu          = mu
     IF (PRESENT(nu))         reff_calc%nu          = nu
     IF (PRESENT(reff_param)) reff_calc%reff_param  = reff_param
     IF (PRESENT(ncn_param))  reff_calc%ncn_param   = ncn_param
-
+    IF (PRESENT(reff_fac))   reff_calc%reff_fac    = reff_fac
 
     ! Consistency checks
     IF      ( (( reff_calc%ncn_param >= 4 .AND. reff_calc%ncn_param <= 7) .OR. reff_calc%ncn_param == 9 ) &
@@ -1151,10 +1144,28 @@ MODULE mo_reff_main
           !$ACC LOOP GANG VECTOR PRIVATE(jc, x)
           DO ic  = 1,n_ind(k)
             jc         =  indices(ic,k)
-            x          =  rho(jc,k)* q(jc,k) / ( ncn(jc,k) + eps )
+            x          =  rho(jc,k)* q(jc,k) / ( ncn(jc,k) + eps )    ! rho bug?
             x          =  MAX( MIN( x,x_max),x_min)
             reff(jc,k) =  0.5_wp/( reff_calc%reff_coeff(1) * EXP( reff_calc%reff_coeff(2) * LOG( x ) ) + &
-                        & reff_calc%reff_coeff(3) * EXP( reff_calc%reff_coeff(4) * LOG( x ) ) )
+                                 & reff_calc%reff_coeff(3) * EXP( reff_calc%reff_coeff(4) * LOG( x ) ) )
+          END DO
+        END DO
+        !$ACC END PARALLEL
+        !$ACC END DATA
+      CASE (11)  ! currently only used for gscp3
+                 ! but should replace CASE(1) after testing in the operational RUC with gscp4
+        !$ACC DATA PRESENT(indices, ncn, n_ind, rho, q, reff_calc, reff, reff_calc%reff_coeff(4))
+        !$ACC PARALLEL DEFAULT(NONE) ASYNC(1) FIRSTPRIVATE(k_start, k_end, x_max, x_min)
+        !$ACC LOOP SEQ
+        DO k = k_start,k_end
+          !$ACC LOOP GANG VECTOR PRIVATE(jc, x)
+          DO ic  = 1,n_ind(k)
+            jc         =  indices(ic,k)
+            x          =  q(jc,k) / ( ncn(jc,k) + eps )
+            x          =  MAX( MIN( x,x_max),x_min)
+            reff(jc,k) =  0.5_wp/( reff_calc%reff_coeff(1) * EXP( reff_calc%reff_coeff(2) * LOG( x ) ) + &
+                                 & reff_calc%reff_coeff(3) * EXP( reff_calc%reff_coeff(4) * LOG( x ) ) )
+            reff(jc,k) = reff_calc%reff_fac * reff(jc,k)
           END DO
         END DO
         !$ACC END PARALLEL
@@ -1197,6 +1208,7 @@ MODULE mo_reff_main
       END SELECT
 
     END SELECT
+
 
 
   END SUBROUTINE calculate_reff

@@ -49,6 +49,7 @@ MODULE mo_td_ext_data
   USE mo_bcs_time_interpolation, ONLY: t_time_interpolation_weights,         &
     &                                  calculate_time_interpolation_weights
   USE mo_dynamics_config,     ONLY: nnow_rcf
+  USE mo_nwp_tuning_config,   ONLY: tune_cdnc
 
   IMPLICIT NONE
 
@@ -242,11 +243,16 @@ CONTAINS
 
     INTEGER  :: rl_start, rl_end, i_startblk, i_endblk, i_startidx, i_endidx
     INTEGER  :: jb, jc
+    REAL(wp) :: tune_cdnc_min, tune_cdnc_max, tune_cdnc_fac
 
     rl_start   = 1
     rl_end     = min_rlcell_int
     i_startblk = p_patch%cells%start_block(rl_start)
     i_endblk   = p_patch%cells%end_block(rl_end)
+
+    tune_cdnc_min = tune_cdnc(1)    ! lower bound
+    tune_cdnc_max = tune_cdnc(2)    ! upper bound
+    tune_cdnc_fac = tune_cdnc(3)    ! scaling factor
 
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jb,jc,i_startidx,i_endidx)
@@ -255,7 +261,8 @@ CONTAINS
         CALL get_indices_c(p_patch, jb, i_startblk, i_endblk, i_startidx, i_endidx, rl_start, rl_end)
         DO jc = i_startidx, i_endidx
 
-          prm_diag%cloud_num(jc,jb) = ext_data%atm%cdnc(jc,jb)
+          ! allow some tuning/calibration of CDNC with upper and lower bound and a scaling factor
+          prm_diag%cloud_num(jc,jb) = MIN(MAX(tune_cdnc_fac*ext_data%atm%cdnc(jc,jb),tune_cdnc_min),tune_cdnc_max)
 
         ENDDO
 

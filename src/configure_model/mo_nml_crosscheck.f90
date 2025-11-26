@@ -44,7 +44,8 @@ MODULE mo_nml_crosscheck
     &                                    rayleigh_type, ivctype, iadv_rhotheta
   USE mo_atm_phy_nwp_config,       ONLY: atm_phy_nwp_config, icpl_aero_conv, i2daero_dust, &
     &                                    i2daero_seas, i2daero_anthro, i2daero_fire,       &
-    &                                    icpl_aero_ice, itype_dissip_heat, itype_stoch_phys, spg_num
+    &                                    icpl_aero_ice, itype_dissip_heat,                 &
+    &                                    itype_stoch_phys, spg_num, itype_icecloud_diag
   USE mo_lnd_nwp_config,           ONLY: ntiles_lnd, lsnowtile, sstice_mode, llake
 #ifndef __NO_AES__
   USE mo_aes_phy_config,           ONLY: aes_phy_config
@@ -448,6 +449,10 @@ CONTAINS
           IF ( icpl_aero_ice == 1 .AND. atm_phy_nwp_config(jg)%inwp_gscp == 3 ) &
                & CALL finish(routine,'icpl_aero_ice = 1 not supported for inwp_gscp = 3')
 
+          ! check if revised ice cloud cover is only used for two-moment microphysics
+          IF (itype_icecloud_diag == 2 .AND. .NOT. ANY(atm_phy_nwp_config(jg)%inwp_gscp == (/3,4,5,6,7,8/) ) ) &
+            & CALL finish(routine,'itype_icecloud_diag = 2 requires inwp_gscp= 3,4,5,6,7 or 8')
+
 #ifdef _OPENACC
           IF ( icpl_aero_ice == 1 ) THEN
             CALL finish(routine,'DeMott ice nucleation icpl_aero_ice > 0 is currently not supported on GPU.')
@@ -604,6 +609,16 @@ CONTAINS
         IF (   ANY(atm_phy_nwp_config(1:n_dom)%inwp_gscp == 2) .AND. &
              & ANY(atm_phy_nwp_config(1:n_dom)%inwp_gscp == 1) ) THEN
           CALL finish(routine,'combining inwp_gscp=1 and inwp_gscp=2 in nested runs is not allowed')
+        END IF
+
+        IF (   ANY(atm_phy_nwp_config(1:n_dom)%inwp_gscp == 2) .AND. &
+             & ANY(atm_phy_nwp_config(1:n_dom)%inwp_gscp == 3) ) THEN
+          CALL finish(routine,'combining inwp_gscp=2 and inwp_gscp=3 in nested runs is not allowed')
+        END IF
+
+        IF (   ANY(atm_phy_nwp_config(1:n_dom)%inwp_gscp == 1) .AND. &
+             & ANY(atm_phy_nwp_config(1:n_dom)%inwp_gscp == 3) ) THEN
+          CALL finish(routine,'combining inwp_gscp=1 and inwp_gscp=3 in nested runs is not allowed')
         END IF
 
         !! SB two-moment not supported with deep convection parameterization

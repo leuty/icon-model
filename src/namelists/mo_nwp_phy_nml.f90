@@ -37,6 +37,7 @@ MODULE mo_nwp_phy_nml
     &                               config_i2daero_fire    => i2daero_fire,    &
     &                               config_icpl_o3_tp      => icpl_o3_tp,      &
     &                               config_itype_dissip_heat => itype_dissip_heat, &
+    &                               config_itype_icecloud_diag => itype_icecloud_diag, &
     &                               config_itype_stoch_phys  => itype_stoch_phys,  &
     &                               config_icpl_aero_ice   => icpl_aero_ice,   &
     &                               config_spg_num         => spg_num,         &
@@ -101,6 +102,7 @@ MODULE mo_nwp_phy_nml
   INTEGER  :: i2daero_fire       !! 2D-Aerosol: Activate wildfire sinks & sources (additional to i2daero_anthro)
   INTEGER  :: icpl_o3_tp         !! type of ozone-tropopause coupling
   INTEGER  :: itype_dissip_heat  !! Options for the calculation of dissipative heating
+  INTEGER  :: itype_icecloud_diag!! Options for ice clouds in cloud cover scheme
   INTEGER  :: itype_stoch_phys   !! Options for stochastically perturbed physical tendencies scheme
   REAL(wp) :: qi0, qc0           !! variables for hydci_pp
   REAL(wp) :: ustart_raylfric    !! velocity at which extra Rayleigh friction starts
@@ -160,7 +162,7 @@ MODULE mo_nwp_phy_nml
     &                    lmicrophysicsFirst,                         &
     &                    lsbm_coupled, lcuda_graph_turb_tran,        &
     &                    scale_cdnc_mode, lvariable_rain_n0,         &
-    &                    itype_dissip_heat,                          &
+    &                    itype_dissip_heat, itype_icecloud_diag,     &
     &                    itype_stoch_phys,                           &
     &                    lstoch_pattern_generator,                   &
     &                    spg_length_scale, spg_time_scale,           &
@@ -331,6 +333,10 @@ CONTAINS
     itype_dissip_heat = 1   ! 0 = none; switch is automatically reset to 0 if dissipative heating is calculated in turbulence scheme
                             ! 1 = SSO + GWD + Rayleigh friction
                             ! 2 = 1 + momemtum dissipation by turbulence
+
+    ! options for ice clouds in cloud cover scheme
+    itype_icecloud_diag = 1 ! 1 = standard for one-moment microphysics
+                            ! 2 = extended for two-moment microphysics
 
     ! options for stochastically perturbed physical tendendcies scheme
     itype_stoch_phys = 0    ! 0 = none, 1 = CONV only, 2 = GWD only
@@ -677,13 +683,14 @@ CONTAINS
     config_i2daero_fire          = i2daero_fire
     config_icpl_o3_tp            = icpl_o3_tp
     config_itype_dissip_heat     = itype_dissip_heat
+    config_itype_icecloud_diag   = itype_icecloud_diag
     config_itype_stoch_phys      = itype_stoch_phys
     config_lcuda_graph_turb_tran = lcuda_graph_turb_tran
     config_icpl_aero_ice         = icpl_aero_ice
     config_icpl_gwd_prec         = icpl_gwd_prec
     config_spg_num               = spg_num
 
-    !$ACC UPDATE DEVICE(config_icpl_o3_tp, config_itype_dissip_heat)
+    !$ACC UPDATE DEVICE(config_icpl_o3_tp, config_itype_dissip_heat, config_itype_icecloud_diag)
     !-----------------------------------------------------
     ! 6. Store the namelist for restart
     !-----------------------------------------------------

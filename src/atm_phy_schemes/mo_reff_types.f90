@@ -86,8 +86,7 @@ MODULE mo_reff_types
 
     REAL(wp)              :: mu                ! Given Gamma parameter in DSD (only for dsd_type=2)
     REAL(wp)              :: nu                ! Given Nu parameter in DSD    (only for dsd_type=2)
-
-
+    REAL(wp)              :: reff_fac          ! linear tuning factor for effective radius
 
     REAL(wp), POINTER, DIMENSION(:,:,:) :: p_q           ! Hydrometeor mixing ratio
     REAL(wp), POINTER, DIMENSION(:,:,:) :: p_reff        ! Effective radius output

@@ -62,7 +62,8 @@ MODULE mo_initicon_io
   USE mo_master_config,       ONLY: getModelBaseDir
   USE mo_nwp_sfc_interp,      ONLY: smi_to_wsoil
   USE mo_initicon_utils,      ONLY: allocate_extana_atm, allocate_extana_sfc, &
-       &                            init_qnx_from_qx_twomom, init_qnxinc_from_qxinc_twomom
+       &                            init_qnx_from_qx_twomom, init_qnxinc_from_qxinc_twomom, &
+       &                            init_qni_from_qi_gscp3
   USE mo_physical_constants,  ONLY: cpd, rd, cvd_o_rd, p0ref, vtmpc1, tmelt
   USE mo_fortran_tools,       ONLY: init
   USE mo_input_request_list,  ONLY: t_InputRequestList
@@ -1189,6 +1190,15 @@ MODULE mo_initicon_io
               ! If any of the number conc. qnx could not be read from fg, this will diagnose them from qx:
               CALL init_qnx_from_qx_twomom (routine, p_patch(jg), prognosticFields, &
                                             .NOT. atm_phy_nwp_config(jg)%lhydrom_read_from_fg(:) )
+            END IF
+            IF ( atm_phy_nwp_config(jg)%inwp_gscp == 3 ) THEN
+              CALL message(routine, 'Initialize QNI for two-moment cloud ice gscp3')
+              my_ptr3d => prognosticFields%tracer(:,:,:,iqni)
+              CALL fetch3d_with_status (routine, 'dwdfg file', params, 'qni', jg, my_ptr3d, &
+                   atm_phy_nwp_config(jg)%lhydrom_read_from_fg(iqni))
+              ! If qni could not be read, diagnose it from qi borrowing set_qni from 2mom scheme
+              IF (.not.atm_phy_nwp_config(jg)%lhydrom_read_from_fg(iqni)) &
+                   CALL init_qni_from_qi_gscp3 (routine, p_patch(jg), prognosticFields )
             END IF
 
             IF (lvert_remap_fg) THEN

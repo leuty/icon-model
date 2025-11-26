@@ -55,7 +55,7 @@ MODULE mo_nh_interface_nwp
   USE mo_parallel_config,         ONLY: nproma, p_test_run, use_physics_barrier
   USE mo_diffusion_config,        ONLY: diffusion_config
   USE mo_initicon_config,         ONLY: is_iau_active, icpl_da_sfcevap
-  USE mo_run_config,              ONLY: ntracer, iqv, iqc, iqi, iqs, iqr, iqg, iqtke,  &
+  USE mo_run_config,              ONLY: ntracer, iqv, iqc, iqi, iqs, iqr, iqg, iqni, iqtke,  &
     &                                   msg_level, ltimer, timers_level, lart, ldass_lhn, lmsgwam
   USE mo_grid_config,             ONLY: l_limited_area
   USE mo_io_config,               ONLY: var_in_output
@@ -273,6 +273,9 @@ CONTAINS
       & z_ddt_v_tot (nproma,pt_patch%nlev,pt_patch%nblks_c),&   !< hor. wind tendencies
       & z_ddt_temp  (nproma,pt_patch%nlev)                      !< Temperature tendency
 
+    REAL(wp), CONTIGUOUS, POINTER :: &
+      &  pt_qni(:,:)                                            !< pointers to pass qni to cover_koe
+
     REAL(wp) :: z_exner_sv(nproma,pt_patch%nlev,pt_patch%nblks_c), z_tempv, sqrt_ri(nproma), n2, dvdz2, &
       zddt_u_raylfric(nproma,pt_patch%nlev), zddt_v_raylfric(nproma,pt_patch%nlev), wfac
 
@@ -345,7 +348,6 @@ CONTAINS
     !define pointers
     iidx  => pt_patch%edges%cell_idx
     iblk  => pt_patch%edges%cell_blk
-
 
     IF (lcall_phy_jg(itsatad) .OR. lcall_phy_jg(itgscp) .OR. &
         lcall_phy_jg(itturb)  .OR. lcall_phy_jg(itsfc)) THEN
@@ -1518,7 +1520,7 @@ CONTAINS
       !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "cover", .TRUE., opt_dt=mtime_datetime)
 #ifndef __GFORTRAN__
 ! FIXME: libgomp seems to run in deadlock here
-!$OMP PARALLEL DO PRIVATE(jb,jc,i_startidx,i_endidx,kc_entr_zone) ICON_OMP_GUIDED_SCHEDULE
+!$OMP PARALLEL DO PRIVATE(jb,jc,i_startidx,i_endidx,kc_entr_zone,pt_qni) ICON_OMP_GUIDED_SCHEDULE
 #endif
       DO jb = i_startblk, i_endblk
         !
@@ -1548,7 +1550,11 @@ CONTAINS
           !$ACC END PARALLEL
         ENDIF
 
-
+        IF (iqni > 0) THEN
+          pt_qni => pt_prog_rcf%tracer(:,:,jb,iqni)
+        ELSEIF (iqi > 0) THEN
+          pt_qni => pt_prog_rcf%tracer(:,:,jb,iqi)  ! avoid NOT PRESENT issue on GPU
+        END IF
 
         IF ( ASSOCIATED(prm_diag%cloud_fsd) ) cloud_fsd_2d => prm_diag%cloud_fsd(:,:,jb)
 
@@ -1582,7 +1588,8 @@ CONTAINS
 &              rhoc_tend= prm_nwp_tend%ddt_tracer_pconv(:,:,jb,iqc),& !! in:  convective rho_c tendency
 &              qv     = pt_prog_rcf%tracer   (:,:,jb,iqv) ,       & !! in:  spec. humidity
 &              qc     = pt_prog_rcf%tracer   (:,:,jb,iqc) ,       & !! in:  cloud water
-&              qi     = pt_prog_rcf%tracer   (:,:,jb,iqi) ,       & !! in:  cloud ice
+&              qi     = pt_prog_rcf%tracer   (:,:,jb,iqi) ,       & !! in:  cloud ice mass
+&              qni    = pt_qni                            ,       & !! in:  cloud ice number
 &              qs     = pt_prog_rcf%tracer   (:,:,jb,iqs) ,       & !! in:  snow
 &              lacc=lacc                                  ,       & !! in
 &              ttend_clcov = prm_nwp_tend%ddt_temp_clcov(:,:,jb) ,& !! out: temp tendency from sgs condensation
