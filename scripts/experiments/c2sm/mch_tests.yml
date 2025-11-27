@@ -74,7 +74,7 @@ tests:
       - santis: 't'
     ensemble_num:
       - balfrin_cpu_nvidia: [50,21,39,38,15]
-      - balfrin_cpu_nvidia_mixed: [30,16,4,19,10,15,20,44]
+      - balfrin_cpu_nvidia_mixed: [1,4,7,8,10,20,34,40]
       - santis_cpu_nvhpc: [1,2,11]
     tolerance_factor:
       - santis: 6
