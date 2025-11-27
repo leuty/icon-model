@@ -1058,6 +1058,21 @@ cat >> ${ocean_namelist} << EOF
   !ml_varlist       =  'wet_c','basin_c','regio_c','lsm_ctr_c'
   ml_varlist       =  'group:oce_geometry'
 /
+&output_nml
+  filetype         =  5                               ! output format: 2=GRIB2, 4=NETCDFv2, 5=NETCDFv4
+  output_grid      = .TRUE.
+  output_filename  = "${EXPNAME}_oce_vort"
+  filename_format  = "<output_filename>_<datetime2>"
+  output_start     = "1979-01-01T00:30:00Z"           ! start in ISO-format
+  output_end       = "${end_date}"                    ! end in ISO-format
+  output_interval  = "PT30M"                          ! interval in ISO-format
+  file_interval    = "${oce_file_interval}"
+  mode             =  2                               ! 1: forecast mode (relative t-axis); 2: climate mode
+  include_last     = .TRUE.
+  output_grid      = .TRUE.
+  !m_levels        = "1...64"
+  ml_varlist       =  'vort'
+/
 EOF
 #
 if [[ "$output_oce_def" == "yes" ]]; then
@@ -1423,6 +1438,8 @@ if [[ "$START" == *"srun"* ]]; then
 1 ${basedir}/externals/yac/examples/toy_output/toy_output.x ocean_output icon_ocean_grid to
 2 ${basedir}/externals/yac/examples/toy_output/toy_output.x atmo_output icon_atmos_grid temp
 3 ${basedir}/externals/yac/examples/toy_output/toy_output.x atmo_output icon_atmos_grid pl::temp
+4 ${basedir}/externals/yac/examples/toy_output/toy_output.x ocean_output icon_ocean_grid vort
+5 ${basedir}/externals/yac/examples/toy_output/toy_output.x ocean_output icon_ocean_grid valid_mask_half
 * ${MODEL}
 EOF
     add_required_file ${basedir}/run/mpmd.conf                        ./

@@ -50,3 +50,14 @@ echo "minimal to is ${min_to}"
 if echo "${min_to} < -50 || ${min_to} > 50" | bc -l | grep -q 1 ; then
   exit 1
 fi
+
+
+# check if vort values are similar to the ones generated via async-output
+vort_diff=`cdo -s -diff,abslim=1e-10 vort.nc -sellonlatbox,-180,180,-90,90 -remapnn,global_1 esm_bb_ruby0_oce_vort_19790101T003000Z.nc`
+if [ -z "$vort_diff" ]; then
+    echo "The output via async-io remaped using cdo have differences within tolerance of 1e-10 to the one generated with the output coupling."
+else
+    echo "Significant differences were found between async-io output & yac-output:"
+    echo "$vort_diff"
+    exit 1
+fi
