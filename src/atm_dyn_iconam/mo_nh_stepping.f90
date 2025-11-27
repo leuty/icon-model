@@ -91,7 +91,8 @@ MODULE mo_nh_stepping
     &                                    MODE_IFSANA,MODE_COMBINED,MODE_COSMO,MODE_ICONVREMAP, &
     &                                    SSTICE_AVG_MONTHLY, SSTICE_AVG_DAILY, SSTICE_INST,    &
     &                                    max_dom, min_rlcell, min_rlvert, ismag, iprog,        &
-    &                                    ivdiff, TLEV_NNOW_RCF, TLEV_NNOW
+    &                                    ivdiff, TLEV_NNOW_RCF, TLEV_NNOW,                     &
+    &                                    UPDATE_LOCATION_ADVECTION
   USE mo_math_divrot,              ONLY: rot_vertex, div_avg !, div
   USE mo_solve_nonhydro,           ONLY: solve_nh
   USE mo_update_dyn_scm,           ONLY: add_slowphys_scm
@@ -2162,7 +2163,7 @@ MODULE mo_nh_stepping
 
 #ifndef __NO_ICON_COMIN__
         IF (comin_config%nplugins /= 0) THEN
-           CALL icon_update_expose_variables(TLEV_NNOW, nnew(jg))
+           CALL icon_update_expose_variables(TLEV_NNOW, nnew(jg), UPDATE_LOCATION_ADVECTION)
         END IF
         CALL icon_call_callback(EP_ATM_ADVECTION_BEFORE, jg, lacc=.TRUE.)
 #endif
@@ -2237,7 +2238,7 @@ MODULE mo_nh_stepping
 
 #ifndef __NO_ICON_COMIN__
           IF (comin_config%nplugins /= 0) THEN
-             CALL icon_update_expose_variables(TLEV_NNOW_RCF, nnew_rcf(jg))
+             CALL icon_update_expose_variables(TLEV_NNOW_RCF, nnew_rcf(jg), UPDATE_LOCATION_ADVECTION)
           END IF
 #endif
 

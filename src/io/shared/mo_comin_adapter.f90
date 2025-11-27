@@ -13,9 +13,10 @@ MODULE mo_comin_adapter
 
 #ifndef __NO_ICON_COMIN__
   USE mo_kind,                    ONLY : wp, dp, sp
-  USE mo_impl_constants,          ONLY : SUCCESS, vname_len, TLEV_NNOW_RCF, MIURA, ippm_v, &
-    &                                    max_ntracer,  ifluxl_sm, islopel_vsm,             &
-    &                                    REAL_T, SINGLE_T, INT_T
+  USE mo_impl_constants,          ONLY : SUCCESS, vname_len, TLEV_NNOW_RCF, MIURA, ippm_v,  &
+    &                                    max_ntracer,  ifluxl_sm, islopel_vsm,              &
+    &                                    REAL_T, SINGLE_T, INT_T, UPDATE_LOCATION_MAX,      &
+    &                                    UPDATE_LOCATION_GROUPNAME, TLEV_NNOW
   USE mo_cdi_constants,           ONLY : GRID_UNSTRUCTURED_CELL, GRID_UNSTRUCTURED_VERT,   &
     &                                    GRID_UNSTRUCTURED_EDGE
   USE mo_cdi,                     ONLY:  DATATYPE_PACK16, GRID_UNSTRUCTURED
@@ -33,7 +34,7 @@ MODULE mo_comin_adapter
   USE mo_var_metadata_types,      ONLY : t_var_metadata
   USE mo_var,                     ONLY : t_var, level_type_ml
   USE mo_var_list,                ONLY : add_var, add_ref, t_var_list_ptr, find_list_element
-  USE mo_var_groups,              ONLY : groups
+  USE mo_var_groups,              ONLY : groups, var_groups_dyn
   USE mo_cf_convention,           ONLY : t_cf_var
   USE mo_grib2,                   ONLY : t_grib2_var
   USE mo_nonhydro_types,          ONLY : t_nh_state, t_nh_state_lists
@@ -71,9 +72,11 @@ MODULE mo_comin_adapter
     &                                    COMIN_HGRID_UNSTRUCTURED_CELL,           &
     &                                    COMIN_HGRID_UNSTRUCTURED_EDGE,           &
     &                                    COMIN_HGRID_UNSTRUCTURED_VERTEX,         &
+    &                                    comin_var_descr_match,                   &
     &                                    comin_var_set_sync_device_mem,           &
     &                                    comin_var_set_sync_halo,                 &
     &                                    comin_var_set_cptr,                      &
+    &                                    comin_var_is_used,                       &
     &                                    COMIN_METADATA_TYPEID_INTEGER,           &
     &                                    COMIN_METADATA_TYPEID_REAL,              &
     &                                    COMIN_METADATA_TYPEID_CHARACTER,         &
@@ -123,18 +126,22 @@ MODULE mo_comin_adapter
   PUBLIC :: icon_expose_timesteplength_domain
   PUBLIC :: icon_update_expose_variables
   PUBLIC :: icon_call_callback
+  PUBLIC :: icon_prune_unused_variables
 
   CHARACTER(LEN=*), PARAMETER :: modname = 'mo_comin_adapter'
 
   ! variable lists (domain-wise) for additional ComIn variables
   TYPE(t_var_list_ptr), TARGET, ALLOCATABLE :: p_comin_varlist(:)
-   TYPE :: t_exposed_timedep_vars_list
-         TYPE(t_var), POINTER      :: icon_var => NULL()
-         INTEGER                   :: iref_pos = -99
-         TYPE(t_comin_var_handle)  :: comin_var_handle
-         TYPE(t_exposed_timedep_vars_list), POINTER :: next => NULL()
-   END TYPE t_exposed_timedep_vars_list
-   TYPE(t_exposed_timedep_vars_list), POINTER :: exposed_timedep_vars_head => NULL()
+  TYPE :: t_exposed_timedep_vars_list
+     TYPE(t_var), POINTER      :: icon_var => NULL()
+     INTEGER                   :: iref_pos = -99
+     TYPE(t_comin_var_handle)  :: comin_var_handle
+     TYPE(t_exposed_timedep_vars_list), POINTER :: next => NULL()
+  END TYPE t_exposed_timedep_vars_list
+  TYPE t_exposed_timedep_vars
+     TYPE(t_exposed_timedep_vars_list), POINTER :: ptr => NULL()
+  END TYPE t_exposed_timedep_vars
+  TYPE(t_exposed_timedep_vars), DIMENSION(UPDATE_LOCATION_MAX) :: exposed_timedep_vars_head
 
 #ifdef _OPENACC
  INTERFACE
@@ -266,7 +273,7 @@ CONTAINS
             &          advconf,                                                  &
             &          ldims=shape3d_c,                                          &
             &          loutput=.TRUE., tlev_source=TLEV_NNOW_RCF,                &
-            &          in_group=groups("comin_vars"),                            &
+            &          in_group=groups("comin_vars","TLEV_UPDATE_ADVECTION"),    &
             &          tracer_info=create_tracer_metadata(lis_tracer=.TRUE.,     &
             &                        name        = tracer_name,                  &
             &                        lfeedback   = .FALSE.,                      &
@@ -536,15 +543,14 @@ CONTAINS
         CALL comin_metadata_get_or(item%metadata, "grib_discipline", grib2_desc%discipline, 255)
         CALL comin_metadata_get_or(item%metadata, "grib_category", grib2_desc%category, 255)
         CALL comin_metadata_get_or(item%metadata, "grib_number", grib2_desc%number, 255)
+        CALL comin_metadata_get_or(item%metadata, "zaxis_id", comin_vgrid_id, COMIN_ZAXIS_3D)
+        CALL comin_metadata_get_or(item%metadata, "hgrid_id", comin_hgrid_id, COMIN_HGRID_UNSTRUCTURED_CELL)
+        CALL comin_metadata_get_or(item%metadata, "datatype", datatype, default_datatype)
         grib2_desc%bits        = ibits
         grib2_desc%gridtype    = GRID_UNSTRUCTURED
         grib2_desc%subgridtype = comin_hgrid_id
         grib2_desc%additional_keys%nint_keys = 0
         grib2_desc%additional_keys%ndbl_keys = 0
-
-        CALL comin_metadata_get_or(item%metadata, "zaxis_id", comin_vgrid_id, COMIN_ZAXIS_3D)
-        CALL comin_metadata_get_or(item%metadata, "hgrid_id", comin_hgrid_id, COMIN_HGRID_UNSTRUCTURED_CELL)
-        CALL comin_metadata_get_or(item%metadata, "datatype", datatype, default_datatype)
 
         SELECT CASE (comin_hgrid_id)
         CASE(COMIN_HGRID_UNSTRUCTURED_CELL)
@@ -643,21 +649,20 @@ CONTAINS
   !
   SUBROUTINE icon_expose_variables()
     CHARACTER(*), PARAMETER          :: routine = modname//"::icon_expose_variables"
-    CHARACTER(:), ALLOCATABLE        :: temp_name
     TYPE(t_vl_register_iter)         :: vl_iter
     LOGICAL                          :: is_2d_field,  multi_timelevel_logical
     LOGICAL                          :: lirregular
     INTEGER                          :: zaxis_id, comin_zaxis_id, pos_jcjkjb(3), &
       &                                 ierr, jg, iv, ic, itrac, comin_hgrid_id, &
-      &                                 iref_pos, array_shape(5), type_id, &
-      &                                 pos_jc, pos_jb, pos_jk, pos_jn
+      &                                 iref_pos, array_shape(5), type_id, ix,   &
+      &                                 pos_jc, pos_jb, pos_jk, pos_jn, exploc
     INTEGER                          :: dim_semantics(5)
     TYPE(t_var),            POINTER  :: elem => NULL()
     REAL(dp),       CONTIGUOUS, POINTER :: r_ptr(:,:,:,:,:)
     INTEGER(C_INT), CONTIGUOUS, POINTER :: i_ptr(:,:,:,:,:)
     REAL(sp),       CONTIGUOUS, POINTER :: s_ptr(:,:,:,:,:)
 
-    TYPE(t_comin_var_descriptor)     :: descriptor
+    TYPE(t_comin_var_descriptor)     :: descriptor, temp_descriptor
     TYPE(t_advection_config),POINTER :: advconf => NULL()
     TYPE(t_zaxisType)                :: zaxisType
     TYPE(t_exposed_timedep_vars_list), POINTER :: exposed_timedep_vars_temp => NULL()
@@ -863,8 +868,7 @@ CONTAINS
           CYCLE ! something is fishy here, we dont expose this variable
         ENDIF
 
-        descriptor%name=get_var_name(elem%info)
-        descriptor%id=jg
+        descriptor = t_comin_var_descriptor(get_var_name(elem%info), jg)
         CALL comin_var_list_append(descriptor, &
              & cptr, &
              & device_ptr, &
@@ -922,8 +926,9 @@ CONTAINS
            exposed_timedep_vars_temp%icon_var => elem
            exposed_timedep_vars_temp%iref_pos = iref_pos
            exposed_timedep_vars_temp%comin_var_handle = comin_handle
-           exposed_timedep_vars_temp%next => exposed_timedep_vars_head
-           exposed_timedep_vars_head => exposed_timedep_vars_temp
+           exploc = expose_location(elem)
+           exposed_timedep_vars_temp%next => exposed_timedep_vars_head(exploc)%ptr
+           exposed_timedep_vars_head(exploc)%ptr => exposed_timedep_vars_temp
         END IF
      END DO
     END DO
@@ -938,24 +943,47 @@ CONTAINS
           elem => vl_iter%cur%p%vl(iv)%p
           !consider only variables for time level 2
           IF (get_var_timelevel(elem%info%name) <= 1)  CYCLE
-          temp_ptr => exposed_timedep_vars_head
-          temp_name = TRIM(ADJUSTL(get_var_name(elem%info)))
-          search_loop: DO WHILE(ASSOCIATED(temp_ptr))
-             descriptor = temp_ptr%comin_var_handle%descriptor()
-             IF (descriptor%id==jg .AND. temp_name == TRIM(ADJUSTL(descriptor%name))) THEN
-                ALLOCATE(exposed_timedep_vars_temp)
-                exposed_timedep_vars_temp%icon_var => elem
-                exposed_timedep_vars_temp%comin_var_handle = temp_ptr%comin_var_handle
-                exposed_timedep_vars_temp%iref_pos = temp_ptr%iref_pos
-                exposed_timedep_vars_temp%next => exposed_timedep_vars_head
-                exposed_timedep_vars_head => exposed_timedep_vars_temp
-                EXIT search_loop
-             END IF
-             temp_ptr => temp_ptr%next
-          END DO search_loop
+          search_all_lists: DO ix = 1, UPDATE_LOCATION_MAX
+             temp_ptr => exposed_timedep_vars_head(ix)%ptr
+             temp_descriptor = t_comin_var_descriptor(get_var_name(elem%info), jg)
+             search_loop: DO WHILE(ASSOCIATED(temp_ptr))
+                descriptor = temp_ptr%comin_var_handle%descriptor()
+                IF (comin_var_descr_match(temp_descriptor, descriptor)) THEN
+                   ALLOCATE(exposed_timedep_vars_temp)
+                   exposed_timedep_vars_temp%icon_var => elem
+                   exposed_timedep_vars_temp%comin_var_handle = temp_ptr%comin_var_handle
+                   exposed_timedep_vars_temp%iref_pos = temp_ptr%iref_pos
+                   exploc = expose_location(elem)
+                   exposed_timedep_vars_temp%next => exposed_timedep_vars_head(exploc)%ptr
+                   exposed_timedep_vars_head(exploc)%ptr => exposed_timedep_vars_temp
+                   EXIT search_all_lists
+                END IF
+                temp_ptr => temp_ptr%next
+             END DO search_loop
+          END DO search_all_lists
        END DO
     END DO
     IF (timers_level > 2) CALL timer_stop(timer_comin_init)
+
+  CONTAINS
+
+    INTEGER FUNCTION expose_location(elem)
+
+      TYPE(t_var), POINTER  :: elem  ! INTENT(IN)
+      INTEGER  :: ix
+
+      expose_location = -99
+
+      DO ix = 1, UPDATE_LOCATION_MAX
+         IF (elem%info%in_group(var_groups_dyn%group_id(UPDATE_LOCATION_GROUPNAME(ix)))) THEN
+            expose_location = ix
+            RETURN
+         END IF
+      END DO
+      CALL finish('expose_location' ,'update locations does not exist')
+
+    END FUNCTION expose_location
+
   END SUBROUTINE icon_expose_variables
 
   !> Expose all metadata coming from the plugins via request list
@@ -980,8 +1008,7 @@ CONTAINS
     VAR_LOOP : DO WHILE (.NOT. comin_ftnlist_is_end(list,it))
       CALL comin_ftnlist_iterator_value(it, cptr)
       CALL C_F_POINTER(cptr, item)
-      IF (TRIM(descriptor%name) == TRIM(item%descriptor%name) &
-        & .AND. descriptor%id == item%descriptor%id) THEN
+      IF (comin_var_descr_match(descriptor, item%descriptor)) THEN
 
         ! Iterate through request list metadata, forward metadata to var list
         CALL item%metadata%get_iterator(metadata_it)
@@ -1174,10 +1201,10 @@ CONTAINS
       ! cell, vertex and edge independent variables
       comin_descrdata_domain(jg)%grid_filename => patch(jg)%grid_filename
       comin_descrdata_domain(jg)%grid_uuid => patch(jg)%grid_uuid%DATA
-      ALLOCATE(comin_descrdata_domain(jg)%number_of_grid_used(SIZE(number_of_grid_used)))
-      ! Note: number_of_grid_used is not part of a pointer structure
-      comin_descrdata_domain(jg)%number_of_grid_used = number_of_grid_used
+      comin_descrdata_domain(jg)%number_of_grid_used = number_of_grid_used(jg)
       comin_descrdata_domain(jg)%id => patch(jg)%id
+      comin_descrdata_domain(jg)%parent_id => patch(jg)%parent_id
+      comin_descrdata_domain(jg)%child_id => patch(jg)%child_id
       comin_descrdata_domain(jg)%n_childdom => patch(jg)%n_childdom
       comin_descrdata_domain(jg)%dom_start = start_time(jg)
       comin_descrdata_domain(jg)%dom_end = end_time(jg)
@@ -1197,8 +1224,6 @@ CONTAINS
       comin_descrdata_domain(jg)%cells%start_block => patch(jg)%cells%start_block
       comin_descrdata_domain(jg)%cells%end_block => patch(jg)%cells%end_block
       comin_descrdata_domain(jg)%cells%child_id => patch(jg)%cells%child_id
-      comin_descrdata_domain(jg)%cells%child_idx => patch(jg)%cells%child_idx
-      comin_descrdata_domain(jg)%cells%child_blk => patch(jg)%cells%child_blk
       IF (ALLOCATED(patch(jg)%cells%parent_glb_idx)) THEN
         comin_descrdata_domain(jg)%cells%parent_glb_idx => patch(jg)%cells%parent_glb_idx
       ENDIF
@@ -1254,8 +1279,6 @@ CONTAINS
       comin_descrdata_domain(jg)%edges%start_block => patch(jg)%edges%start_block
       comin_descrdata_domain(jg)%edges%end_block => patch(jg)%edges%end_block
       comin_descrdata_domain(jg)%edges%child_id => patch(jg)%edges%child_id
-      comin_descrdata_domain(jg)%edges%child_idx => patch(jg)%edges%child_idx
-      comin_descrdata_domain(jg)%edges%child_blk => patch(jg)%edges%child_blk
       IF (ALLOCATED(patch(jg)%edges%parent_glb_idx)) THEN
         comin_descrdata_domain(jg)%edges%parent_glb_idx => patch(jg)%edges%parent_glb_idx
       ENDIF
@@ -1340,8 +1363,8 @@ CONTAINS
 
   !> Update pointers to current timelevel of exposed ICON variables.
   !
-  SUBROUTINE icon_update_expose_variables(tlev_source, tlev)
-    INTEGER, INTENT(IN)     :: tlev_source, tlev
+  SUBROUTINE icon_update_expose_variables(tlev_source, tlev, updatelocation)
+    INTEGER, INTENT(IN)     :: tlev_source, tlev, updatelocation
     CHARACTER(*), PARAMETER :: routine = modname//"::icon_update_expose_variables"
     REAL(dp), CONTIGUOUS, POINTER       :: r_ptr(:,:,:,:,:) => NULL()
     INTEGER(C_INT),  CONTIGUOUS,POINTER :: i_ptr(:,:,:,:,:)
@@ -1358,7 +1381,7 @@ CONTAINS
       WRITE (message_text,*) "Update pointers to current timelevel of exposed ICON variables."
       CALL message(routine, message_text)
     ENDIF
-    current => exposed_timedep_vars_head
+    current => exposed_timedep_vars_head(updatelocation)%ptr
     DO WHILE (ASSOCIATED(current))
       IF (.NOT. ASSOCIATED(current%icon_var%r_ptr) &
              .AND. .NOT. ASSOCIATED(current%icon_var%s_ptr) &
@@ -1543,7 +1566,37 @@ CONTAINS
         CALL sync_patch_array(sync_c, p_patch(jg), i_ptr(:,:,:,1,1), lacc=.FALSE.)
       END IF
     END SELECT
-    END SUBROUTINE icon_halo_sync_variable
+  END SUBROUTINE icon_halo_sync_variable
+
+  !> Prune variables not used by plugins from the list of multi-timelevel variables.
+  SUBROUTINE icon_prune_unused_variables
+    TYPE(t_exposed_timedep_vars_list), POINTER :: p, prev
+
+    INTEGER :: update_location
+
+    DO update_location = 1, SIZE(exposed_timedep_vars_head)
+      prev => NULL()
+      p => exposed_timedep_vars_head(update_location)%ptr
+
+      DO WHILE(ASSOCIATED(p))
+        IF (comin_var_is_used(p%comin_var_handle%descriptor())) THEN
+          prev => p
+          p => p%next
+          CYCLE
+        END IF
+
+        IF (ASSOCIATED(prev)) THEN
+          prev%next => p%next
+          DEALLOCATE(p)
+          p => prev%next
+        ELSE
+          DEALLOCATE(p)
+          exposed_timedep_vars_head(update_location)%ptr => exposed_timedep_vars_head(update_location)%ptr%next
+          p => exposed_timedep_vars_head(update_location)%ptr
+        END IF
+      END DO
+    END DO
+  END SUBROUTINE
 
 #endif
 END MODULE mo_comin_adapter

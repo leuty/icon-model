@@ -515,7 +515,7 @@ MODULE mo_nonhydro_state
       &           in_group=groups("nh_prog_vars","dwd_fg_atm_vars",             &
       &                           "mode_dwd_fg_in","mode_iau_fg_in",            &
       &                           "mode_iau_old_fg_in","LATBC_PREFETCH_VARS",   &
-      &                           "iau_restore_vars"),                          &
+      &                           "iau_restore_vars","TLEV_UPDATE_ADVECTION"),  &
       &           lmemman=lmemman,                                              &
       &           lopenacc = .TRUE. )
     __acc_attach(p_prog%vn)
@@ -534,7 +534,7 @@ MODULE mo_nonhydro_state
       &                          "mode_iau_fg_in","mode_iau_old_fg_in",        &
       &                          "LATBC_PREFETCH_VARS",                        &
       &                          "mode_iniana","icon_lbc_vars",                &
-      &                          "iau_restore_vars"),                          &
+      &                          "iau_restore_vars","TLEV_UPDATE_ADVECTION"),  &
       &          lmemman=lmemman,                                              &
       &          lopenacc = .TRUE.)
     __acc_attach(p_prog%w)
@@ -551,7 +551,7 @@ MODULE mo_nonhydro_state
       &           in_group=groups("nh_prog_vars","dwd_fg_atm_vars",            &
       &                           "mode_dwd_fg_in","mode_iau_fg_in",           &
       &                           "mode_iau_old_fg_in","LATBC_PREFETCH_VARS",  &
-      &                           "iau_restore_vars"),                         &
+      &                           "iau_restore_vars","TLEV_UPDATE_ADVECTION"), &
       &           lmemman=lmemman,                                             &
       &           lopenacc = .TRUE. )
     __acc_attach(p_prog%rho)
@@ -566,7 +566,7 @@ MODULE mo_nonhydro_state
       &           in_group=groups("nh_prog_vars","dwd_fg_atm_vars",                   &
       &           "mode_dwd_fg_in","mode_iau_fg_in","mode_iau_old_fg_in",             &
       &           "LATBC_PREFETCH_VARS",                                              &
-      &           "iau_restore_vars"),                                                &
+      &           "iau_restore_vars","TLEV_UPDATE_ADVECTION"),                        &
       &           lmemman=lmemman,                                                    &
       &           lopenacc = .TRUE. )
     __acc_attach(p_prog%theta_v)
@@ -579,7 +579,8 @@ MODULE mo_nonhydro_state
       CALL add_var( p_prog_list, vname_prefix(1:vntl)//'exner'//suffix, p_prog%exner, &
         &           GRID_UNSTRUCTURED_CELL, ZA_REFERENCE, cf_desc, grib2_desc,        &
         &           ldims=shape3d_c,                                                  &
-        &           in_group=groups("nh_prog_vars","iau_restore_vars"),               &
+        &           in_group=groups("nh_prog_vars","iau_restore_vars",                &
+        &                           "TLEV_UPDATE_ADVECTION"),                         &
         &           lmemman=lmemman,                                                  &
         &           lopenacc = .TRUE. )
       __acc_attach(p_prog%exner)
@@ -595,7 +596,7 @@ MODULE mo_nonhydro_state
           &           GRID_UNSTRUCTURED_CELL, ZA_REFERENCE, cf_desc, grib2_desc,  &
           &           ldims=shape4d_c, tlev_source=TLEV_NNOW_RCF,                 &
           &           lcontainer=.TRUE., lrestart=.FALSE.,                        &
-          &           in_group=groups("iau_restore_vars"),                        &
+          &           in_group=groups("iau_restore_vars","TLEV_UPDATE_ADVECTION"),&
           &           loutput=.FALSE.,                                            &
           &           lmemman=lmemman,                                            &
           &           lopenacc = .TRUE. )
@@ -661,7 +662,8 @@ MODULE mo_nonhydro_state
             &                           "mode_iau_old_fg_in","mode_iau_ana_in",        &
             &                           "mode_iau_anaatm_in",                          &
             &                           "mode_iau_old_ana_in",                         &
-            &                           "mode_iniana","icon_lbc_vars") )
+            &                           "mode_iniana","icon_lbc_vars",                 &
+            &                           "TLEV_UPDATE_ADVECTION") )
           __acc_attach(p_prog%tracer_ptr(iqv)%p_3d)
         END IF
 
@@ -671,13 +673,15 @@ MODULE mo_nonhydro_state
             &                           "mode_iau_ana_in", "mode_iau_anaatm_in",     &
             &                           "mode_iau_fg_in","mode_iau_old_fg_in",       &
             &                           "LATBC_PREFETCH_VARS",                       &
-            &                           "mode_iniana","icon_lbc_vars")
+            &                           "mode_iniana","icon_lbc_vars",               &
+            &                           "TLEV_UPDATE_ADVECTION")
         ELSE
           ingroup=groups("atmo_ml_vars","atmo_pl_vars","atmo_zl_vars",               &
             &                           "dwd_fg_atm_vars","mode_dwd_fg_in",          &
             &                           "mode_iau_ana_in", "mode_iau_anaatm_in",     &
             &                           "mode_iau_fg_in","mode_iau_old_fg_in",       &
-            &                           "mode_iniana","icon_lbc_vars")
+            &                           "mode_iniana","icon_lbc_vars",               &
+            &                           "TLEV_UPDATE_ADVECTION")
         ENDIF
 
         !QC
@@ -764,7 +768,8 @@ MODULE mo_nonhydro_state
             &                           "mode_iau_ana_in", "mode_iau_anaatm_in",       &
             &                           "mode_iau_fg_in","mode_iau_old_fg_in",         &
             &                           "LATBC_PREFETCH_VARS",                         &
-            &                           "mode_iniana","icon_lbc_vars") )
+            &                           "mode_iniana","icon_lbc_vars",                 &
+            &                           "TLEV_UPDATE_ADVECTION") )
           __acc_attach(p_prog%tracer_ptr(iqr)%p_3d)
         END IF
 
@@ -796,7 +801,8 @@ MODULE mo_nonhydro_state
             &                           "mode_iau_ana_in", "mode_iau_anaatm_in",       &
             &                           "mode_iau_fg_in","mode_iau_old_fg_in",         &
             &                           "LATBC_PREFETCH_VARS",                         &
-            &                           "mode_iniana","icon_lbc_vars") )
+            &                           "mode_iniana","icon_lbc_vars",                 &
+            &                           "TLEV_UPDATE_ADVECTION") )
           __acc_attach(p_prog%tracer_ptr(iqs)%p_3d)
         END IF
 
@@ -828,7 +834,8 @@ MODULE mo_nonhydro_state
             &                           "mode_iau_ana_in", "mode_iau_anaatm_in",       &
             &                           "mode_iau_fg_in","mode_iau_old_fg_in",         &
             &                           "LATBC_PREFETCH_VARS",                         &
-            &                           "mode_iniana","icon_lbc_vars") )
+            &                           "mode_iniana","icon_lbc_vars",                 &
+            &                           "TLEV_UPDATE_ADVECTION") )
           __acc_attach(p_prog%tracer_ptr(iqg)%p_3d)
         END IF
 
@@ -860,7 +867,8 @@ MODULE mo_nonhydro_state
             &                         "dwd_fg_atm_vars","mode_dwd_fg_in",            &
             &                         "mode_iau_ana_in","mode_iau_anaatm_in",        &
             &                         "mode_iau_fg_in",                              &
-            &                         "LATBC_PREFETCH_VARS")  )
+            &                         "LATBC_PREFETCH_VARS",                         &
+            &                         "TLEV_UPDATE_ADVECTION")  )
           __acc_attach(p_prog%tracer_ptr(iqh)%p_3d)
         END IF
 
@@ -893,7 +901,8 @@ MODULE mo_nonhydro_state
             &                           "dwd_fg_atm_vars","mode_dwd_fg_in",           &
             &                           "mode_iau_ana_in","mode_iau_anaatm_in",       &
             &                           "mode_iau_fg_in",                             &
-            &                           "LATBC_PREFETCH_VARS")  )
+            &                           "LATBC_PREFETCH_VARS",                        &
+            &                           "TLEV_UPDATE_ADVECTION")  )
           __acc_attach(p_prog%tracer_ptr(iqgl)%p_3d)
         END IF
 
@@ -925,7 +934,8 @@ MODULE mo_nonhydro_state
             &                         "dwd_fg_atm_vars","mode_dwd_fg_in",            &
             &                         "mode_iau_ana_in","mode_iau_anaatm_in",        &
             &                         "mode_iau_fg_in",                              &
-            &                         "LATBC_PREFETCH_VARS")  )
+            &                         "LATBC_PREFETCH_VARS",                         &
+            &                         "TLEV_UPDATE_ADVECTION")  )
           __acc_attach(p_prog%tracer_ptr(iqhl)%p_3d)
         END IF
 
@@ -956,7 +966,8 @@ MODULE mo_nonhydro_state
                     &                 "dwd_fg_atm_vars","mode_dwd_fg_in",            &
                     &                 "mode_iau_ana_in","mode_iau_anaatm_in",        &
                     &                 "mode_iau_fg_in",                              &
-                    &                 "LATBC_PREFETCH_VARS")  )
+                    &                 "LATBC_PREFETCH_VARS",                         &
+                    &                 "TLEV_UPDATE_ADVECTION")  )
           END IF
         END DO
 
@@ -1049,7 +1060,8 @@ MODULE mo_nonhydro_state
                     &                 "dwd_fg_atm_vars","mode_dwd_fg_in",            &
                     &                 "mode_iau_ana_in","mode_iau_anaatm_in",        &
                     &                 "mode_iau_fg_in",                              &
-                    &                 "LATBC_PREFETCH_VARS")  )
+                    &                 "LATBC_PREFETCH_VARS",                         &
+                    &                 "TLEV_UPDATE_ADVECTION")  )
           END IF
         END DO
 
@@ -1073,7 +1085,8 @@ MODULE mo_nonhydro_state
             &           vert_interp=create_vert_interp_metadata(                       &
             &                       vert_intp_type=vintp_types("P","Z","I"),           &
             &                       vert_intp_method=VINTP_METHOD_LIN,                 &
-            &                       lower_limit=0.0_wp )                               )
+            &                       lower_limit=0.0_wp ),                              &
+            &           in_group=groups("TLEV_UPDATE_ADVECTION")                         )
           __acc_attach(p_prog%tracer_ptr(io3)%p_3d)
         END IF
 
@@ -1097,7 +1110,8 @@ MODULE mo_nonhydro_state
             &           vert_interp=create_vert_interp_metadata(                       &
             &                       vert_intp_type=vintp_types("P","Z","I"),           &
             &                       vert_intp_method=VINTP_METHOD_LIN,                 &
-            &                       lower_limit=0.0_wp )                               )
+            &                       lower_limit=0.0_wp ),                              &
+            &           in_group=groups("TLEV_UPDATE_ADVECTION")                         )
           __acc_attach(p_prog%tracer_ptr(ico2)%p_3d)
         END IF
 
@@ -1121,7 +1135,8 @@ MODULE mo_nonhydro_state
             &           vert_interp=create_vert_interp_metadata(                       &
             &                       vert_intp_type=vintp_types("P","Z","I"),           &
             &                       vert_intp_method=VINTP_METHOD_LIN,                 &
-            &                       lower_limit=0.0_wp )                               )
+            &                       lower_limit=0.0_wp ),                              &
+            &           in_group=groups("TLEV_UPDATE_ADVECTION")                         )
           __acc_attach(p_prog%tracer_ptr(ich4)%p_3d)
         END IF
 
@@ -1145,7 +1160,8 @@ MODULE mo_nonhydro_state
             &           vert_interp=create_vert_interp_metadata(                       &
             &                       vert_intp_type=vintp_types("P","Z","I"),           &
             &                       vert_intp_method=VINTP_METHOD_LIN,                 &
-            &                       lower_limit=0.0_wp )                               )
+            &                       lower_limit=0.0_wp ),                              &
+            &           in_group=groups("TLEV_UPDATE_ADVECTION")                       )
           __acc_attach(p_prog%tracer_ptr(in2o)%p_3d)
         END IF
 
@@ -1177,7 +1193,7 @@ MODULE mo_nonhydro_state
             &                           "dwd_fg_atm_vars","mode_dwd_fg_in",            &
             &                           "mode_iau_ana_in", "mode_iau_anaatm_in",       &
             &                           "mode_iau_fg_in",                              &
-            &                           "LATBC_PREFETCH_VARS")  )
+            &                           "LATBC_PREFETCH_VARS","TLEV_UPDATE_ADVECTION") )
           __acc_attach(p_prog%tracer_ptr(iqni)%p_3d)
         END IF
 
@@ -1208,7 +1224,7 @@ MODULE mo_nonhydro_state
                     &                 "dwd_fg_atm_vars","mode_dwd_fg_in",            &
                     &                 "mode_iau_ana_in","mode_iau_anaatm_in",        &
                     &                 "mode_iau_fg_in",                              &
-                    &                 "LATBC_PREFETCH_VARS")  )
+                    &                 "LATBC_PREFETCH_VARS","TLEV_UPDATE_ADVECTION") )
           __acc_attach(p_prog%tracer_ptr(iqnr)%p_3d)
         END IF
 
@@ -1240,7 +1256,7 @@ MODULE mo_nonhydro_state
                     &                 "dwd_fg_atm_vars","mode_dwd_fg_in",            &
                     &                 "mode_iau_ana_in","mode_iau_anaatm_in",        &
                     &                 "mode_iau_fg_in",                              &
-                    &                 "LATBC_PREFETCH_VARS")  )
+                    &                 "LATBC_PREFETCH_VARS","TLEV_UPDATE_ADVECTION") )
           __acc_attach(p_prog%tracer_ptr(iqns)%p_3d)
         END IF
 
@@ -1271,7 +1287,7 @@ MODULE mo_nonhydro_state
                     &                 "dwd_fg_atm_vars","mode_dwd_fg_in",            &
                     &                 "mode_iau_ana_in","mode_iau_anaatm_in",        &
                     &                 "mode_iau_fg_in",                              &
-                    &                 "LATBC_PREFETCH_VARS")  )
+                    &                 "LATBC_PREFETCH_VARS","TLEV_UPDATE_ADVECTION"))
           __acc_attach(p_prog%tracer_ptr(iqng)%p_3d)
         END IF
 
@@ -1302,7 +1318,7 @@ MODULE mo_nonhydro_state
                     &                 "dwd_fg_atm_vars","mode_dwd_fg_in",            &
                     &                 "mode_iau_ana_in","mode_iau_anaatm_in",        &
                     &                 "mode_iau_fg_in",                              &
-                    &                 "LATBC_PREFETCH_VARS")  )
+                    &                 "LATBC_PREFETCH_VARS","TLEV_UPDATE_ADVECTION"))
           __acc_attach(p_prog%tracer_ptr(iqnh)%p_3d)
         END IF
 
@@ -1334,7 +1350,7 @@ MODULE mo_nonhydro_state
                     &                 "dwd_fg_atm_vars","mode_dwd_fg_in",            &
                     &                 "mode_iau_ana_in","mode_iau_anaatm_in",        &
                     &                 "mode_iau_fg_in",                              &
-                    &                 "LATBC_PREFETCH_VARS")  )
+                    &                 "LATBC_PREFETCH_VARS","TLEV_UPDATE_ADVECTION"))
           __acc_attach(p_prog%tracer_ptr(iqnc)%p_3d)
         END IF
 
@@ -1362,7 +1378,8 @@ MODULE mo_nonhydro_state
                     &             l_loglin=.FALSE.,                                  &
                     &             l_extrapol=.FALSE., l_pd_limit=.FALSE.,            &
                     &             lower_limit=0._wp  ),                              &
-                    & in_group=groups("atmo_ml_vars", "atmo_pl_vars", "atmo_zl_vars")  )
+                    & in_group=groups("atmo_ml_vars", "atmo_pl_vars", "atmo_zl_vars", &
+                    &                 "TLEV_UPDATE_ADVECTION")  )
           __acc_attach(p_prog%tracer_ptr(ininact)%p_3d)
         END IF ! inwp_gscp==4,5,6,7,8
 
@@ -1390,7 +1407,8 @@ MODULE mo_nonhydro_state
                     &             l_loglin=.FALSE.,                                  &
                     &             l_extrapol=.FALSE., l_pd_limit=.FALSE.,            &
                     &             lower_limit=0._wp  ),                              &
-                    & in_group=groups("atmo_ml_vars", "atmo_pl_vars", "atmo_zl_vars")  )
+                    & in_group=groups("atmo_ml_vars", "atmo_pl_vars", "atmo_zl_vars",&
+                    &                 "TLEV_UPDATE_ADVECTION")  )
           __acc_attach(p_prog%tracer_ptr(inccn)%p_3d)
         END IF
 
@@ -1417,7 +1435,8 @@ MODULE mo_nonhydro_state
                     &             l_loglin=.FALSE.,                                  &
                     &             l_extrapol=.FALSE., l_pd_limit=.FALSE.,            &
                     &             lower_limit=0._wp  ),                              &
-                    & in_group=groups("atmo_ml_vars", "atmo_pl_vars", "atmo_zl_vars")  )
+                    & in_group=groups("atmo_ml_vars", "atmo_pl_vars", "atmo_zl_vars",&
+                    &                 "TLEV_UPDATE_ADVECTION")  )
           __acc_attach(p_prog%tracer_ptr(ininpot)%p_3d)
         END IF
 
@@ -1442,7 +1461,8 @@ MODULE mo_nonhydro_state
                     &             vert_intp_method=VINTP_METHOD_LIN,                 &
                     &             l_loglin=.FALSE.,                                  &
                     &             l_pd_limit=.FALSE.,                                &
-                    &             lower_limit=0._wp  )  )
+                    &             lower_limit=0._wp  ),                              &
+                    & in_group=groups("TLEV_UPDATE_ADVECTION")  )
           __acc_attach(p_prog%tracer_ptr(iqtke)%p_3d)
         ENDIF
 
@@ -1471,7 +1491,8 @@ MODULE mo_nonhydro_state
           &           in_group=groups("atmo_ml_vars", "atmo_pl_vars",             &
           &           "atmo_zl_vars", "dwd_fg_atm_vars", "mode_dwd_fg_in",        &
           &           "mode_iau_fg_in","mode_iau_old_fg_in",                      &
-          &           "mode_iniana","icon_lbc_vars","iau_restore_vars"),          &
+          &           "mode_iniana","icon_lbc_vars","iau_restore_vars",           &
+          &           "TLEV_UPDATE_ADVECTION"),                                   &
           &           lopenacc = .TRUE.  )
         __acc_attach(p_prog%tke)
 
@@ -1503,7 +1524,8 @@ MODULE mo_nonhydro_state
             &             vert_intp_method=VINTP_METHOD_LIN,                    &
             &             l_loglin=.FALSE.,                                     &
             &             l_extrapol=.FALSE., l_pd_limit=.FALSE.,               &
-            &             lower_limit=0._wp  )  )
+            &             lower_limit=0._wp  ),                                 &
+            &           in_group=groups("TLEV_UPDATE_ADVECTION")  )
           __acc_attach(p_prog%tracer_ptr(jt)%p_3d)
         END DO
       ENDIF
@@ -1540,7 +1562,8 @@ MODULE mo_nonhydro_state
           &                              name = tracer_name,                         &
           &                              lfeedback   = .TRUE.,                       &
           &                              ihadv_tracer=advconf%ihadv_tracer(tracer_idx), &
-          &                              ivadv_tracer=advconf%ivadv_tracer(tracer_idx)) )
+          &                              ivadv_tracer=advconf%ivadv_tracer(tracer_idx)),&
+          &                  in_group=groups("TLEV_UPDATE_ADVECTION") )
       ENDDO
 
     ENDIF ! allocation only if not extra_timelev
@@ -1599,7 +1622,7 @@ MODULE mo_nonhydro_state
 
     LOGICAL :: lrestart
 
-    CHARACTER(LEN=3) :: ctrc
+    CHARACTER(LEN=4) :: ctrc
     CHARACTER(len=4) :: suffix
     !--------------------------------------------------------------
 
@@ -2755,6 +2778,7 @@ MODULE mo_nonhydro_state
                 & GRID_UNSTRUCTURED_EDGE, ZA_REFERENCE, cf_desc, grib2_desc,     &
                 & ldims=shape4d_entl ,&
                 & lcontainer=.TRUE., lrestart=.FALSE., loutput=.FALSE.,          &
+                & in_group=groups("TLEV_UPDATE_ADVECTION"),                      &
                 & lopenacc = .TRUE. )
     __acc_attach(p_diag%ddt_vn_apc_pc)
 
@@ -2767,7 +2791,8 @@ MODULE mo_nonhydro_state
                   & t_cf_var('ddt_vn_apc_pc'//suffix, 'm s-2','', datatype_flt), &
                   & grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED,GRID_EDGE),&
                   & ref_idx=jt,                                                  &
-                  & ldims=shape3d_e, lrestart=.FALSE. )
+                  & ldims=shape3d_e, lrestart=.FALSE.,                           &
+                  & in_group=groups("TLEV_UPDATE_ADVECTION") )
     ENDDO
 
 
@@ -2807,6 +2832,7 @@ MODULE mo_nonhydro_state
                 & GRID_UNSTRUCTURED_CELL, ZA_REFERENCE_HALF, cf_desc, grib2_desc,&
                 & ldims=shape4d_chalfntl,                                        &
                 & lcontainer=.TRUE., lrestart=.FALSE., loutput=.FALSE.,          &
+                & in_group=groups("TLEV_UPDATE_ADVECTION"),                      &
                 & lopenacc = .TRUE. )
     __acc_attach(p_diag%ddt_w_adv_pc)
 
@@ -2819,7 +2845,8 @@ MODULE mo_nonhydro_state
                   & t_cf_var('ddt_w_adv_pc'//suffix, 'm s-2','', datatype_flt),   &
                   & grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL),&
                   & ref_idx=jt,                                                   &
-                  & ldims=shape3d_chalf, lrestart=.TRUE. )
+                  & ldims=shape3d_chalf, lrestart=.TRUE. ,                        &
+                  & in_group=groups("TLEV_UPDATE_ADVECTION"))
     ENDDO
 
 
@@ -3053,7 +3080,7 @@ MODULE mo_nonhydro_state
 
       ALLOCATE(p_diag%ddt_grf_trc_ptr(ntracer))
       DO jt =1,ntracer
-        WRITE(ctrc,'(I3.3)')jt
+        WRITE(ctrc,'(I4.4)')jt
         CALL add_ref( p_diag_list, 'grf_tend_tracer',                              &
                     & 'ddt_grf_q'//ctrc, p_diag%ddt_grf_trc_ptr(jt)%p_3d,          &
                     & GRID_UNSTRUCTURED_CELL, ZA_REFERENCE,                        &
@@ -3078,7 +3105,7 @@ MODULE mo_nonhydro_state
 
       ALLOCATE(p_diag%hfl_trc_ptr(ntracer))
       DO jt =1,ntracer
-        WRITE(ctrc,'(I3.3)')jt
+        WRITE(ctrc,'(I4.4)')jt
         CALL add_ref( p_diag_list, 'hfl_tracer',                                    &
                     & 'hfl_q'//ctrc, p_diag%hfl_trc_ptr(jt)%p_3d,                   &
                     & GRID_UNSTRUCTURED_EDGE, ZA_REFERENCE,                         &
@@ -3103,7 +3130,7 @@ MODULE mo_nonhydro_state
 
       ALLOCATE(p_diag%vfl_trc_ptr(ntracer))
       DO jt =1,ntracer
-        WRITE(ctrc,'(I3.3)')jt
+        WRITE(ctrc,'(I4.4)')jt
         CALL add_ref( p_diag_list, 'vfl_tracer',                                  &
                     & 'vfl_q'//ctrc, p_diag%vfl_trc_ptr(jt)%p_3d,                 &
                     & GRID_UNSTRUCTURED_CELL, ZA_REFERENCE_HALF,                  &
@@ -3129,7 +3156,7 @@ MODULE mo_nonhydro_state
 
       ALLOCATE(p_diag%ddt_trc_adv_ptr(ntracer))
       DO jt =1,ntracer
-        WRITE(ctrc,'(I3.3)')jt
+        WRITE(ctrc,'(I4.4)')jt
         CALL add_ref( p_diag_list, 'ddt_tracer_adv',                                &
                     & 'ddt_adv_q'//ctrc, p_diag%ddt_trc_adv_ptr(jt)%p_3d,           &
                     & GRID_UNSTRUCTURED_CELL, ZA_REFERENCE,                            &

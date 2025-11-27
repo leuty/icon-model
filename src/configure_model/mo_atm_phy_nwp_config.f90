@@ -157,6 +157,7 @@ MODULE mo_atm_phy_nwp_config
     LOGICAL :: lenabled(iphysproc) !> contains information about status of
                                    !! corresponding physical process
                                    !! enabled: TRUE; disabled: FALSE
+                                   !! (externally specified: disabled)
 
     LOGICAL, ALLOCATABLE :: &      !> ith physics package must be called at the current time step
       &  lcall_phy(:)              !! TRUE/FALSE, time dependent

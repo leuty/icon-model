@@ -408,7 +408,8 @@ MODULE mo_nwp_lnd_state
          & tlev_source=TLEV_NNOW_RCF,                      &! for output take field from nnow_rcf slice
          & in_group=groups("land_vars","dwd_fg_sfc_vars","mode_dwd_fg_in",     &
          &                 "mode_iau_fg_in","mode_iau_old_fg_in",              &
-         &                 "mode_combined_in","mode_cosmo_in","mode_iniana"),  &
+         &                 "mode_combined_in","mode_cosmo_in","mode_iniana",   &
+         &                 "TLEV_UPDATE_SURFACE"),                             &
          & lopenacc=.TRUE. )
     __acc_attach(p_prog_lnd%t_g)
 
@@ -421,7 +422,7 @@ MODULE mo_nwp_lnd_state
          & ldims=shape3d_subsw, lcontainer=.TRUE., lrestart=.FALSE.,           &
          & loutput=.FALSE.,                                                    &
          & tlev_source=TLEV_NNOW_RCF,                                          &
-         & in_group=groups("iau_restore_vars"),                                &
+         & in_group=groups("iau_restore_vars","TLEV_UPDATE_SURFACE"),          &
          & lopenacc=.TRUE. )
     __acc_attach(p_prog_lnd%t_g_t)
 
@@ -441,7 +442,8 @@ MODULE mo_nwp_lnd_state
                & ldims=shape2d,                                                &
                & var_class=CLASS_TILE,                                         &
                & tlev_source=TLEV_NNOW_RCF,                                    & ! for output take field from nnow_rcf slice
-               & in_group=groups("land_tile_vars","dwd_fg_sfc_vars_t") )
+               & in_group=groups("land_tile_vars","dwd_fg_sfc_vars_t",         &
+               &                 "TLEV_UPDATE_SURFACE") )
       ENDDO
 
     IF ( atm_phy_nwp_config(p_jg)%inwp_surface > 0 ) THEN
@@ -452,6 +454,8 @@ MODULE mo_nwp_lnd_state
     CALL add_var( prog_list, vname_prefix//'t_s_t'//suffix, p_prog_lnd%t_s_t,  &
          & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,            &
          & ldims=shape3d_subsw, lcontainer=.TRUE., lrestart=.FALSE., loutput=.FALSE.,&
+         & tlev_source = TLEV_NNOW_RCF,                                        &
+         & in_group=groups("TLEV_UPDATE_SURFACE"),                             &
          & lopenacc=.TRUE.)
     __acc_attach(p_prog_lnd%t_s_t)
 
@@ -469,7 +473,8 @@ MODULE mo_nwp_lnd_state
            & ref_idx=jsfc,                                                 &
            & ldims=shape2d,                                                &
            & var_class=CLASS_TILE,                                         &
-           & tlev_source=TLEV_NNOW_RCF, in_group=groups("land_tile_vars") ) ! for output take field from nnow_rcf slice
+           & tlev_source=TLEV_NNOW_RCF,                                    &
+           & in_group=groups("land_tile_vars", "TLEV_UPDATE_SURFACE") ) ! for output take field from nnow_rcf slice
     ENDDO
 
 
@@ -481,7 +486,7 @@ MODULE mo_nwp_lnd_state
          & ldims=shape3d_subsw, lcontainer=.TRUE., lrestart=.FALSE.,       &
          & loutput=.FALSE.,                                                &
          & tlev_source=TLEV_NNOW_RCF,                                      &
-         & in_group=groups("iau_restore_vars"),                            &
+         & in_group=groups("iau_restore_vars", "TLEV_UPDATE_SURFACE"),     &
          & lopenacc=.TRUE.)
     __acc_attach(p_prog_lnd%t_sk_t)
 
@@ -499,7 +504,8 @@ MODULE mo_nwp_lnd_state
            & ref_idx=jsfc,                                                 &
            & ldims=shape2d,                                                &
            & var_class=CLASS_TILE, tlev_source=TLEV_NNOW_RCF,              & ! for output take field from nnow_rcf slice
-           & in_group=groups("land_tile_vars","dwd_fg_sfc_vars_t")         )
+           & in_group=groups("land_tile_vars","dwd_fg_sfc_vars_t",         &
+           &                 "TLEV_UPDATE_SURFACE")         )
     ENDDO
 
 
@@ -515,7 +521,7 @@ MODULE mo_nwp_lnd_state
          & ldims=shape3d_subs, lcontainer=.TRUE., lrestart=.FALSE.,               &
          & loutput=.FALSE.,                                                       &
          & tlev_source=TLEV_NNOW_RCF,                                             &
-         & in_group=groups("iau_restore_vars"),                                   &
+         & in_group=groups("iau_restore_vars","TLEV_UPDATE_SURFACE"),             &
          & lopenacc=.TRUE.)
     __acc_attach(p_prog_lnd%w_i_t)
 
@@ -534,7 +540,8 @@ MODULE mo_nwp_lnd_state
            & ldims=shape2d,                                                  &
            & var_class=CLASS_TILE_LAND,                                      &
            & tlev_source=TLEV_NNOW_RCF,                                      & ! for output take field from nnow_rcf slice
-           & in_group=groups("land_tile_vars","dwd_fg_sfc_vars_t"),          &
+           & in_group=groups("land_tile_vars","dwd_fg_sfc_vars_t",           &
+           &                 "TLEV_UPDATE_SURFACE" ),                        &
            & post_op=post_op(POST_OP_SCALE, arg1=1000._wp, new_cf=new_cf_desc) )
     ENDDO
 
@@ -546,7 +553,7 @@ MODULE mo_nwp_lnd_state
          & ldims=(/nproma,nlev_soil+1,kblks,ntiles_total/),                      &
          & lcontainer=.TRUE., lrestart=.FALSE., loutput=.FALSE.,                 &
          & tlev_source=TLEV_NNOW_RCF,                                            &
-         & in_group=groups("iau_restore_vars"),                                  &
+         & in_group=groups("iau_restore_vars","TLEV_UPDATE_SURFACE"),            &
          & lopenacc=.TRUE.)
     __acc_attach(p_prog_lnd%t_so_t)
 
@@ -566,7 +573,8 @@ MODULE mo_nwp_lnd_state
            & ldims=(/nproma,nlev_soil+1,kblks/),                             &
            & var_class=CLASS_TILE_LAND,                                      &
            & tlev_source=TLEV_NNOW_RCF,                                      & ! for output take field from nnow_rcf slice
-           & in_group=groups("land_tile_vars","dwd_fg_sfc_vars_t") )
+           & in_group=groups("land_tile_vars","dwd_fg_sfc_vars_t",           &
+           &                 "TLEV_UPDATE_SURFACE") )
     ENDDO
 
 
@@ -582,7 +590,7 @@ MODULE mo_nwp_lnd_state
          & ldims=(/nproma,nlev_soil,kblks,ntiles_total/),                        &
          & lcontainer=.TRUE., lrestart=.FALSE., loutput=.FALSE.,                 &
          & tlev_source=TLEV_NNOW_RCF,                                            &
-         & in_group=groups("iau_restore_vars"),                                  &
+         & in_group=groups("iau_restore_vars","TLEV_UPDATE_SURFACE"),            &
          & lopenacc=.TRUE.)
     __acc_attach(p_prog_lnd%w_so_t)
 
@@ -595,14 +603,15 @@ MODULE mo_nwp_lnd_state
            & vname_prefix//'w_so_t_'//TRIM(ADJUSTL(csfc))//suffix,           &
            & p_prog_lnd%w_so_ptr(jsfc)%p_3d,                                 &
            & GRID_UNSTRUCTURED_CELL, ZA_DEPTH_BELOW_LAND,                    &
-           & t_cf_var('w_so_t_'//csfc, '', '', datatype_flt),              &
+           & t_cf_var('w_so_t_'//csfc, '', '', datatype_flt),                &
            & grib2_var(2, 3, 20, ibits, GRID_UNSTRUCTURED, GRID_CELL),       &
            & ref_idx=jsfc,                                                   &
            & ldims=(/nproma,nlev_soil,kblks/),                               &
            & var_class=CLASS_TILE_LAND,                                      &
            & tlev_source=TLEV_NNOW_RCF,                                      & ! for output take field from nnow_rcf slice
            & hor_interp=create_hor_interp_metadata(hor_intp_type=HINTP_TYPE_LONLAT_NNB ), &
-           & in_group=groups("land_tile_vars","dwd_fg_sfc_vars_t"),          &
+           & in_group=groups("land_tile_vars","dwd_fg_sfc_vars_t",           &
+           &                 "TLEV_UPDATE_SURFACE"),                         &
            & post_op=post_op(POST_OP_SCALE, arg1=1000._wp, new_cf=new_cf_desc) )
     ENDDO
 
@@ -617,7 +626,7 @@ MODULE mo_nwp_lnd_state
          & cf_desc, grib2_desc, ldims=(/nproma,nlev_soil,kblks,ntiles_total/),   &
          & lcontainer=.TRUE., lrestart=.FALSE., loutput=.FALSE.,                 &
          & tlev_source=TLEV_NNOW_RCF,                                            &
-         & in_group=groups("iau_restore_vars"),                                  &
+         & in_group=groups("iau_restore_vars", "TLEV_UPDATE_SURFACE"),           &
          & lopenacc=.TRUE.)
     __acc_attach(p_prog_lnd%w_so_ice_t)
 
@@ -637,7 +646,8 @@ MODULE mo_nwp_lnd_state
            & var_class=CLASS_TILE_LAND,                                      &
            & hor_interp=create_hor_interp_metadata(hor_intp_type=HINTP_TYPE_LONLAT_NNB ), &
            & tlev_source=TLEV_NNOW_RCF,                                      & ! for output take field from nnow_rcf slice
-           & in_group=groups("land_tile_vars","dwd_fg_sfc_vars_t"),          &
+           & in_group=groups("land_tile_vars","dwd_fg_sfc_vars_t",           &
+           &                 "TLEV_UPDATE_SURFACE"),                         &
            & post_op=post_op(POST_OP_SCALE, arg1=1000._wp, new_cf=new_cf_desc) )
     ENDDO
 
@@ -653,7 +663,7 @@ MODULE mo_nwp_lnd_state
          & ldims=shape3d_subs, lcontainer=.TRUE., lrestart=.FALSE.,                &
          & loutput=.FALSE.,                                                        &
          & tlev_source=TLEV_NNOW_RCF,                                              &
-         & in_group=groups("iau_restore_vars"),                                    &
+         & in_group=groups("iau_restore_vars", "TLEV_UPDATE_SURFACE"),             &
          & lopenacc=.TRUE. )
     __acc_attach(p_prog_lnd%t_snow_t)
 
@@ -666,13 +676,14 @@ MODULE mo_nwp_lnd_state
              & vname_prefix//'t_snow_t_'//TRIM(ADJUSTL(csfc))//suffix,       &
              & p_prog_lnd%t_snow_ptr(jsfc)%p_2d,                             &
              & GRID_UNSTRUCTURED_CELL, ZA_SURFACE,                           &
-             & t_cf_var('t_snow_t_'//csfc, '', '', datatype_flt),          &
+             & t_cf_var('t_snow_t_'//csfc, '', '', datatype_flt),            &
              & grib2_var(0, 0, 18, ibits, GRID_UNSTRUCTURED, GRID_CELL),     &
              & ref_idx=jsfc,                                                 &
              & ldims=shape2d,                                                &
              & var_class=CLASS_TILE_LAND,                                    &
              & tlev_source=TLEV_NNOW_RCF,                                    & ! for output take field from nnow_rcf slice
-             & in_group=groups("land_tile_vars","dwd_fg_sfc_vars_t") )
+             & in_group=groups("land_tile_vars","dwd_fg_sfc_vars_t",         &
+             & "TLEV_UPDATE_SURFACE") )
     ENDDO
 
 
@@ -685,7 +696,7 @@ MODULE mo_nwp_lnd_state
          & ldims=shape3d_subs, lcontainer=.TRUE., lrestart=.FALSE.,                &
          & loutput=.FALSE.,                                                        &
          & tlev_source=TLEV_NNOW_RCF,                                              &
-         & in_group=groups("iau_restore_vars"),                                    &
+         & in_group=groups("iau_restore_vars", "TLEV_UPDATE_SURFACE"),             &
          & lopenacc=.TRUE.)
     __acc_attach(p_prog_lnd%w_snow_t)
 
@@ -698,13 +709,14 @@ MODULE mo_nwp_lnd_state
            & vname_prefix//'w_snow_t_'//TRIM(ADJUSTL(csfc))//suffix,       &
            & p_prog_lnd%w_snow_ptr(jsfc)%p_2d,                             &
            & GRID_UNSTRUCTURED_CELL, ZA_SURFACE,                           &
-           & t_cf_var('w_snow_t_'//csfc, '', '', datatype_flt),          &
+           & t_cf_var('w_snow_t_'//csfc, '', '', datatype_flt),            &
            & grib2_var(0, 1, 60, ibits, GRID_UNSTRUCTURED, GRID_CELL),     &
            & ref_idx=jsfc,                                                 &
            & ldims=shape2d,                                                &
            & var_class=CLASS_TILE_LAND,                                    &
            & tlev_source=TLEV_NNOW_RCF,                                    & ! for output take field from nnow_rcf slice
-           & in_group=groups("land_tile_vars","dwd_fg_sfc_vars_t"),        &
+           & in_group=groups("land_tile_vars","dwd_fg_sfc_vars_t",         &
+           &                 "TLEV_UPDATE_SURFACE"),                       &
            & post_op=post_op(POST_OP_SCALE, arg1=1000._wp, new_cf=new_cf_desc) )
     ENDDO
 
@@ -717,7 +729,7 @@ MODULE mo_nwp_lnd_state
          & ldims=shape3d_subs, lcontainer=.TRUE., lrestart=.FALSE.,                     &
          & loutput=.FALSE.,                                                             &
          & tlev_source=TLEV_NNOW_RCF,                                                   &
-         & in_group=groups("iau_restore_vars"),                                         &
+         & in_group=groups("iau_restore_vars", "TLEV_UPDATE_SURFACE"),                  &
          & lopenacc=.TRUE.)
         __acc_attach(p_prog_lnd%rho_snow_t)
 
@@ -736,7 +748,8 @@ MODULE mo_nwp_lnd_state
            & ldims=shape2d,                                                  &
            & var_class=CLASS_TILE_LAND,                                      &
            & tlev_source=TLEV_NNOW_RCF,                                      & ! for output take field from nnow_rcf slice
-           & in_group=groups("land_tile_vars","dwd_fg_sfc_vars_t") )
+           & in_group=groups("land_tile_vars","dwd_fg_sfc_vars_t",           &
+           &                 "TLEV_UPDATE_SURFACE") )
     END DO
 
 
@@ -750,7 +763,7 @@ MODULE mo_nwp_lnd_state
            & cf_desc, grib2_desc, ldims=shape4d_snow_subs,                           &
            & lcontainer=.TRUE., lrestart=.FALSE., loutput=.FALSE.,                   &
            & tlev_source=TLEV_NNOW_RCF,                                              &
-           & in_group=groups("iau_restore_vars"),                                    &
+           & in_group=groups("iau_restore_vars", "TLEV_UPDATE_SURFACE"),             &
            & lopenacc=.TRUE.)
       __acc_attach(p_prog_lnd%rho_snow_mult_t)
 
@@ -770,7 +783,8 @@ MODULE mo_nwp_lnd_state
              & ldims=(/nproma,nlev_snow,kblks/), lrestart=.TRUE.,               &
              & var_class=CLASS_TILE_LAND,                                       &
              & tlev_source=TLEV_NNOW_RCF,                                       &
-             & in_group=groups("land_tile_vars","dwd_fg_sfc_vars_t") ) ! for output take field from nnow_rcf slice
+             & in_group=groups("land_tile_vars","dwd_fg_sfc_vars_t",            &
+             & "TLEV_UPDATE_SURFACE") ) ! for output take field from nnow_rcf slice
       ENDDO
 
     ENDIF
@@ -786,7 +800,7 @@ MODULE mo_nwp_lnd_state
        & ldims=(/nproma,nlev_snow+1,kblks,ntiles_total/),                         &
        & lcontainer=.TRUE., lrestart=.FALSE., loutput=.FALSE.,                    &
        & tlev_source=TLEV_NNOW_RCF,                                               &
-       & in_group=groups("iau_restore_vars"),                                     &
+       & in_group=groups("iau_restore_vars","TLEV_UPDATE_SURFACE"),               &
        & lopenacc=.TRUE.)
       __acc_attach(p_prog_lnd%t_snow_mult_t)
 
@@ -807,7 +821,8 @@ MODULE mo_nwp_lnd_state
              & var_class=CLASS_TILE_LAND,                                    &
              & lrestart=.TRUE.,                                              &
              & tlev_source=TLEV_NNOW_RCF,                                    &
-             & in_group=groups("land_tile_vars","dwd_fg_sfc_vars_t") ) ! for output take field from nnow_rcf slice
+             & in_group=groups("land_tile_vars","dwd_fg_sfc_vars_t",         &
+             & "TLEV_UPDATE_SURFACE") )
       ENDDO
 
 
@@ -820,7 +835,7 @@ MODULE mo_nwp_lnd_state
            & cf_desc, grib2_desc, ldims=shape4d_snow_subs,                         &
            & lcontainer=.TRUE., lrestart=.FALSE., loutput=.FALSE.,                 &
            & tlev_source=TLEV_NNOW_RCF,                                            &
-           & in_group=groups("iau_restore_vars"),                                  &
+           & in_group=groups("iau_restore_vars","TLEV_UPDATE_SURFACE"),            &
            & lopenacc=.TRUE.)
       __acc_attach(p_prog_lnd%wtot_snow_t)
 
@@ -839,7 +854,8 @@ MODULE mo_nwp_lnd_state
              & ref_idx=jsfc,                                                   &
              & ldims=(/nproma,nlev_snow,kblks/), lrestart=.TRUE.,              &
              & var_class=CLASS_TILE_LAND, tlev_source=TLEV_NNOW_RCF,           &
-             & in_group=groups("land_tile_vars","dwd_fg_sfc_vars_t") ) ! for output take field from nnow_rcf slice
+             & in_group=groups("land_tile_vars","dwd_fg_sfc_vars_t",           &
+             & "TLEV_UPDATE_SURFACE") ) ! for output take field from nnow_rcf slice
       ENDDO
 
 
@@ -852,7 +868,7 @@ MODULE mo_nwp_lnd_state
            & cf_desc, grib2_desc, ldims=shape4d_snow_subs,                         &
            & lcontainer=.TRUE., lrestart=.FALSE., loutput=.FALSE.,                 &
            & tlev_source=TLEV_NNOW_RCF,                                            &
-           & in_group=groups("iau_restore_vars"),                                  &
+           & in_group=groups("iau_restore_vars","TLEV_UPDATE_SURFACE"),            &
            & lopenacc=.TRUE.)
       __acc_attach(p_prog_lnd%wliq_snow_t)
 
@@ -871,7 +887,8 @@ MODULE mo_nwp_lnd_state
              & ref_idx=jsfc,                                                   &
              & ldims=(/nproma,nlev_snow,kblks/), lrestart=.TRUE.,              &
              & var_class=CLASS_TILE_LAND, tlev_source=TLEV_NNOW_RCF,           &
-             & in_group=groups("land_tile_vars","dwd_fg_sfc_vars_t") ) ! for output take field from nnow_rcf slice
+             & in_group=groups("land_tile_vars","dwd_fg_sfc_vars_t",           &
+             & "TLEV_UPDATE_SURFACE") ) ! for output take field from nnow_rcf slice
       ENDDO
 
 
@@ -884,7 +901,7 @@ MODULE mo_nwp_lnd_state
            & cf_desc, grib2_desc, ldims=shape4d_snow_subs,                         &
            & lcontainer=.TRUE., lrestart=.FALSE., loutput=.FALSE.,                 &
            & tlev_source=TLEV_NNOW_RCF,                                            &
-           & in_group=groups("iau_restore_vars"),                                  &
+           & in_group=groups("iau_restore_vars","TLEV_UPDATE_SURFACE"),            &
            & lopenacc=.TRUE.)
       __acc_attach(p_prog_lnd%dzh_snow_t)
 
@@ -903,7 +920,8 @@ MODULE mo_nwp_lnd_state
                & ref_idx=jsfc,                                                   &
                & ldims=(/nproma,nlev_snow,kblks/), lrestart=.TRUE.,              &
                & var_class=CLASS_TILE_LAND, tlev_source=TLEV_NNOW_RCF,           &
-               & in_group=groups("land_tile_vars","dwd_fg_sfc_vars_t") ) ! for output take field from nnow_rcf slice
+               & in_group=groups("land_tile_vars","dwd_fg_sfc_vars_t",           &
+               & "TLEV_UPDATE_SURFACE") ) ! for output take field from nnow_rcf slice
       ENDDO
 
     ENDIF  ! lmulti_snow
@@ -1010,7 +1028,8 @@ MODULE mo_nwp_lnd_state
          & initval = tmelt,                                                    &
          & in_group=groups("dwd_fg_sfc_vars","mode_dwd_ana_in","mode_iau_fg_in", &
          &                 "mode_iau_old_fg_in","mode_combined_in","mode_cosmo_in", &
-         &                 "mode_iniana","iau_restore_vars"), lopenacc=.TRUE. )
+         &                 "mode_iniana","iau_restore_vars","TLEV_UPDATE_SURFACE"&
+         & ), lopenacc=.TRUE. )
     __acc_attach(p_prog_wtr%t_ice)
 
 
@@ -1025,7 +1044,8 @@ MODULE mo_nwp_lnd_state
          & ldims=shape2d, tlev_source=TLEV_NNOW_RCF,                           &
          & in_group=groups("dwd_fg_sfc_vars","mode_dwd_ana_in","mode_iau_fg_in", &
          &                 "mode_iau_old_fg_in","mode_combined_in",            &
-         &                 "mode_cosmo_in","mode_iniana","iau_restore_vars"),  &
+         &                 "mode_cosmo_in","mode_iniana","iau_restore_vars",   &
+         &                 "TLEV_UPDATE_SURFACE"),                             &
          & lopenacc=.TRUE. )
     __acc_attach(p_prog_wtr%h_ice)
 
@@ -1039,7 +1059,8 @@ MODULE mo_nwp_lnd_state
     grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
     CALL add_var( prog_list, vname_prefix//'t_snow_si'//suffix, p_prog_wtr%t_snow_si,  &
          & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, ldims=shape2d,     &
-         & tlev_source=TLEV_NNOW_RCF, lopenacc=.TRUE.)
+         & tlev_source=TLEV_NNOW_RCF, in_group=groups("TLEV_UPDATE_SURFACE"),          &
+         & lopenacc=.TRUE.)
     __acc_attach(p_prog_wtr%t_snow_si)
 
 
@@ -1048,7 +1069,8 @@ MODULE mo_nwp_lnd_state
     grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
     CALL add_var( prog_list, vname_prefix//'h_snow_si'//suffix, p_prog_wtr%h_snow_si,  &
          & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, ldims=shape2d,     &
-         & tlev_source=TLEV_NNOW_RCF, lopenacc=.TRUE.)
+         & tlev_source=TLEV_NNOW_RCF, in_group=groups("TLEV_UPDATE_SURFACE"),          &
+         & lopenacc=.TRUE.)
     __acc_attach(p_prog_wtr%h_snow_si)
 
     ! & p_prog_wtr%alb_si(nproma,nblks_c)
@@ -1062,7 +1084,7 @@ MODULE mo_nwp_lnd_state
          & hor_interp=create_hor_interp_metadata(hor_intp_type=HINTP_TYPE_LONLAT_NNB ), &
          & in_group=groups("dwd_fg_sfc_vars","mode_dwd_fg_in", "mode_iau_fg_in", &
          &  "mode_iau_old_fg_in","mode_cosmo_in","mode_iniana",                  &
-         &  "mode_combined_in","iau_restore_vars"),                              &
+         &  "mode_combined_in","iau_restore_vars","TLEV_UPDATE_SURFACE"),        &
          & post_op=post_op(POST_OP_SCALE, arg1=100._wp, new_cf=new_cf_desc),     &
          & lopenacc=.TRUE. )
     __acc_attach(p_prog_wtr%alb_si)
@@ -1079,7 +1101,8 @@ MODULE mo_nwp_lnd_state
       grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
       CALL add_var( prog_list, vname_prefix//'t_snow_lk'//suffix, p_prog_wtr%t_snow_lk,  &
            & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, ldims=shape2d,     &
-           & tlev_source=TLEV_NNOW_RCF, lopenacc=.TRUE. )
+           & tlev_source=TLEV_NNOW_RCF, in_group=groups("TLEV_UPDATE_SURFACE"),          &
+           & lopenacc=.TRUE. )
       __acc_attach(p_prog_wtr%t_snow_lk)
 
 
@@ -1088,7 +1111,8 @@ MODULE mo_nwp_lnd_state
       grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
       CALL add_var( prog_list, vname_prefix//'h_snow_lk'//suffix, p_prog_wtr%h_snow_lk,  &
            & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, ldims=shape2d,     &
-           & tlev_source=TLEV_NNOW_RCF, lopenacc=.TRUE. )
+           & tlev_source=TLEV_NNOW_RCF, in_group=groups("TLEV_UPDATE_SURFACE"),          &
+           & lopenacc=.TRUE. )
       __acc_attach(p_prog_wtr%h_snow_lk)
 
 
@@ -1099,7 +1123,7 @@ MODULE mo_nwp_lnd_state
       CALL add_var( prog_list, vname_prefix//'t_mnw_lk'//suffix, p_prog_wtr%t_mnw_lk,                                 &
            & GRID_UNSTRUCTURED_CELL, ZA_LAKE_BOTTOM, cf_desc, grib2_desc, ldims=shape2d, tlev_source=TLEV_NNOW_RCF,   &
            & in_group=groups("dwd_fg_sfc_vars","mode_dwd_fg_in","mode_iau_fg_in","mode_iau_old_fg_in","mode_iniana",  &
-           &                 "mode_combined_in","iau_restore_vars"),                                                  &
+           &                 "mode_combined_in","iau_restore_vars","TLEV_UPDATE_SURFACE"),                            &
            & lopenacc=.TRUE. )
       __acc_attach(p_prog_wtr%t_mnw_lk)
 
@@ -1111,7 +1135,7 @@ MODULE mo_nwp_lnd_state
       CALL add_var( prog_list, vname_prefix//'t_wml_lk'//suffix, p_prog_wtr%t_wml_lk,                                 &
            & GRID_UNSTRUCTURED_CELL, ZA_MIX_LAYER, cf_desc, grib2_desc, ldims=shape2d, tlev_source=TLEV_NNOW_RCF,     &
            & in_group=groups("dwd_fg_sfc_vars","mode_dwd_fg_in","mode_iau_fg_in","mode_iau_old_fg_in","mode_iniana",  &
-           &                 "mode_combined_in","iau_restore_vars"),                                                  &
+           &                 "mode_combined_in","iau_restore_vars","TLEV_UPDATE_SURFACE"),                            &
            & lopenacc=.TRUE. )
       __acc_attach(p_prog_wtr%t_wml_lk)
 
@@ -1123,7 +1147,7 @@ MODULE mo_nwp_lnd_state
       CALL add_var( prog_list, vname_prefix//'h_ml_lk'//suffix, p_prog_wtr%h_ml_lk,                                   &
            & GRID_UNSTRUCTURED_CELL, ZA_MIX_LAYER, cf_desc, grib2_desc, ldims=shape2d, tlev_source=TLEV_NNOW_RCF,     &
            & in_group=groups("dwd_fg_sfc_vars","mode_dwd_fg_in","mode_iau_fg_in","mode_iau_old_fg_in","mode_iniana",  &
-           &                 "mode_combined_in","iau_restore_vars"),                                                  &
+           &                 "mode_combined_in","iau_restore_vars","TLEV_UPDATE_SURFACE"),                            &
            & lopenacc=.TRUE. )
       __acc_attach(p_prog_wtr%h_ml_lk)
 
@@ -1135,7 +1159,7 @@ MODULE mo_nwp_lnd_state
       CALL add_var( prog_list, vname_prefix//'t_bot_lk'//suffix, p_prog_wtr%t_bot_lk,                                    &
            & GRID_UNSTRUCTURED_CELL, ZA_LAKE_BOTTOM_HALF, cf_desc, grib2_desc, ldims=shape2d, tlev_source=TLEV_NNOW_RCF, &
            & in_group=groups("dwd_fg_sfc_vars","mode_dwd_fg_in","mode_iau_fg_in","mode_iau_old_fg_in","mode_iniana",     &
-           &                 "mode_combined_in","iau_restore_vars"),                                                     &
+           &                 "mode_combined_in","iau_restore_vars","TLEV_UPDATE_SURFACE"),                               &
            & lopenacc=.TRUE. )
       __acc_attach(p_prog_wtr%t_bot_lk)
 
@@ -1148,7 +1172,7 @@ MODULE mo_nwp_lnd_state
       CALL add_var( prog_list, vname_prefix//'c_t_lk'//suffix, p_prog_wtr%c_t_lk,                                     &
            & GRID_UNSTRUCTURED_CELL, ZA_MIX_LAYER, cf_desc, grib2_desc, ldims=shape2d, tlev_source=TLEV_NNOW_RCF,     &
            & in_group=groups("dwd_fg_sfc_vars","mode_dwd_fg_in","mode_iau_fg_in","mode_iau_old_fg_in","mode_iniana",  &
-           &                 "mode_combined_in","iau_restore_vars"),                                                  &
+           &                 "mode_combined_in","iau_restore_vars","TLEV_UPDATE_SURFACE"),                            &
            & lopenacc=.TRUE. )
       __acc_attach(p_prog_wtr%c_t_lk)
 
@@ -1161,7 +1185,7 @@ MODULE mo_nwp_lnd_state
       CALL add_var( prog_list, vname_prefix//'t_b1_lk'//suffix, p_prog_wtr%t_b1_lk, &
            & GRID_UNSTRUCTURED_CELL, ZA_SEDIMENT_BOTTOM_TW_HALF, cf_desc,           &
            & grib2_desc, ldims=shape2d, tlev_source=TLEV_NNOW_RCF,                  &
-           & in_group=groups("iau_restore_vars"),                                   &
+           & in_group=groups("iau_restore_vars","TLEV_UPDATE_SURFACE"),             &
            & lopenacc=.TRUE. )
       __acc_attach(p_prog_wtr%t_b1_lk)
 
@@ -1174,7 +1198,7 @@ MODULE mo_nwp_lnd_state
       CALL add_var( prog_list, vname_prefix//'h_b1_lk'//suffix, p_prog_wtr%h_b1_lk,      &
            & GRID_UNSTRUCTURED_CELL, ZA_LAKE_BOTTOM, cf_desc, grib2_desc, ldims=shape2d, &
            & tlev_source=TLEV_NNOW_RCF,                                                  &
-           & in_group=groups("iau_restore_vars"),                                        &
+           & in_group=groups("iau_restore_vars","TLEV_UPDATE_SURFACE"),                  &
            & lopenacc=.TRUE. )
       __acc_attach(p_prog_wtr%h_b1_lk)
 

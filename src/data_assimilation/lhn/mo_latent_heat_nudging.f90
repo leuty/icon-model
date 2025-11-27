@@ -534,6 +534,11 @@ SUBROUTINE organize_lhn ( dt_loc, p_sim_time,             & !>in
           pr_mod(jc,jb) = prm_diag%rain_gsp_rate(jc,jb)
         END DO
 
+      CASE DEFAULT
+        write(yerrmsg, '(A,I0)') 'ERROR *** Microphysics option not implemented for LHN, inwp_gscp=', &
+                          atm_phy_nwp_config(jg)%inwp_gscp
+        CALL finish(yroutine, yerrmsg)
+
       END SELECT
 
       !$ACC PARALLEL LOOP GANG VECTOR COLLAPSE(2) DEFAULT(PRESENT) ASYNC(1)

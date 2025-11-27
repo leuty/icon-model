@@ -362,7 +362,7 @@ CONTAINS
     CASE (POSITIONED)
 
       ! Set array parameters to dummy values to determine which ones are actively set in the namelist
-      inwp_gscp(:)       = -1
+      inwp_gscp(:)       = -999 ! -1 is used for external specification
       inwp_satad(:)      = -1
       inwp_convection(:) = -1
       inwp_radiation(:)  = -1
@@ -387,7 +387,7 @@ CONTAINS
       ! Restore default values for global domain where nothing at all has been specified
 
       ! Physics packages
-      IF (inwp_gscp(1)       < 0) inwp_gscp(1)       = param_def  !> 1 = hydci (COSMO-EU microphysics)
+      IF (inwp_gscp(1)       <-1) inwp_gscp(1)       = param_def  !> 1 = hydci (COSMO-EU microphysics)
       IF (inwp_satad(1)      < 0) inwp_satad(1)      = param_def  !> 1 = saturation adjustment on
       IF (inwp_convection(1) < 0) inwp_convection(1) = param_def  !> 1 = Tiedtke/Bechthold convection
       IF (inwp_radiation(1)  < 0) inwp_radiation(1)  = param_def  !> 1 = RRTM radiation
@@ -414,7 +414,7 @@ CONTAINS
       DO jg = 2, max_dom
 
         ! Physics packages
-        IF (inwp_gscp(jg)       < 0) inwp_gscp(jg)       = inwp_gscp(jg-1)
+        IF (inwp_gscp(jg)       <-1) inwp_gscp(jg)       = inwp_gscp(jg-1)
         IF (inwp_satad(jg)      < 0) inwp_satad(jg)      = inwp_satad(jg-1)
         IF (inwp_convection(jg) < 0) inwp_convection(jg) = inwp_convection(jg-1)
         IF (inwp_radiation(jg)  < 0) inwp_radiation(jg)  = inwp_radiation(jg-1)
@@ -457,8 +457,8 @@ CONTAINS
 
     DO jg = 1, max_dom
 
-      IF ( ALL((/0,1,2,3,4,5,6,7,8,9/) /= inwp_gscp(jg)) ) THEN
-        CALL finish( TRIM(routine), 'Incorrect setting for inwp_gscp. Must be 0,1,2,3,4,5,6,7,8 or 9.')
+      IF ( ALL((/-1,0,1,2,3,4,5,6,7,8,9/) /= inwp_gscp(jg)) ) THEN
+        CALL finish( TRIM(routine), 'Incorrect setting for inwp_gscp. Must be -1,0,1,2,3,4,5,6,7,8 or 9.')
       END IF
 
       IF ( ALL((/0,1,2,4,5,6,7,8,100,101/) /= icalc_reff(jg)) ) THEN
