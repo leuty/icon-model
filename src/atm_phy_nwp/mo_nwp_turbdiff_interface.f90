@@ -465,6 +465,14 @@ CONTAINS
             nturb = nturb + 1
             ptr(nturb)%av     => p_prog_rcf%tracer(:,:,jb,this_info%idx_tracer)
             ptr(nturb)%at     => prm_nwp_tend%ddt_tracer_turb(:,:,jb,this_info%idx_turb)
+            !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+            !$ACC LOOP GANG VECTOR COLLAPSE(2)
+            DO jk = 1, nlev
+               DO jc = 1, nproma
+                  ptr(nturb)%at(jc,jk) = 0._wp
+               END DO
+            END DO
+            !$ACC END PARALLEL
             ptr(nturb)%sv     => NULL()
             ptr(nturb)%kstart =  1
           ENDIF

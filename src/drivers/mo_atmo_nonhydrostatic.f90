@@ -202,7 +202,8 @@ USE mo_icon2dace,           ONLY: init_dace, finish_dace
     &                             icon_append_comin_tracer_variables, &
     &                             icon_append_comin_tracer_phys_tend, &
     &                             icon_expose_variables,              &
-    &                             icon_call_callback
+    &                             icon_call_callback,                 &
+    &                             icon_prune_unused_variables
   USE mo_comin_config,      ONLY: comin_secondary_constructor_called
 
 #endif
@@ -944,6 +945,8 @@ CONTAINS
     !   ICON ComIn about the context where these will be accessed.
     CALL icon_call_callback(EP_SECONDARY_CONSTRUCTOR, COMIN_DOMAIN_OUTSIDE_LOOP, lacc=.FALSE.)
     comin_secondary_constructor_called = .TRUE.
+
+    CALL icon_prune_unused_variables
 
     ! ----------------------------------------------------------
     CALL icon_call_callback(EP_ATM_INIT_FINALIZE, COMIN_DOMAIN_OUTSIDE_LOOP, lacc=.FALSE.)

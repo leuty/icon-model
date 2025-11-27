@@ -212,7 +212,7 @@ PROGRAM icon
 
 #ifndef __NO_ICON_COMIN__
   !-------------------------------------------------------------------
-  ! Initialize ICON community interfaces - UNDER DEVELOPMENT
+  ! Initialize ICON community interfaces
   CALL comin_setup_init(my_process_is_stdio())
   comin_version = comin_setup_get_version()
   WRITE(message_text,'(2(a,i0))') &

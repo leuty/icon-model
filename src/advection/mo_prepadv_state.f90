@@ -147,7 +147,7 @@ CONTAINS
 
     CHARACTER(*), PARAMETER :: routine = 'mo_prepadv_state:new_prep_adv_list'
 
-    CHARACTER(LEN=2) :: ctrnam
+    CHARACTER(LEN=4) :: ctrnam
     CHARACTER(LEN=vname_len+LEN(ctrnam)) :: tracer_name
     INTEGER :: tlen
     INTEGER :: jt
@@ -248,8 +248,8 @@ CONTAINS
 
     ALLOCATE(prep_adv%q_int_ptr(ntracer))
     DO jt =1,ntracer
-      WRITE(ctrnam,'(I2)') jt
-      tracer_name = 'q_int'//ctrnam(1+MERGE(1,0,jt<=9):)
+      WRITE(ctrnam,'(I4.4)') jt
+      tracer_name = 'q_int'//ctrnam
       tlen = LEN_TRIM(tracer_name)
       CALL add_ref( prep_adv_list, 'q_int',                                       &
                   & tracer_name(1:tlen), prep_adv%q_int_ptr(jt)%p_2d,             &
@@ -275,8 +275,8 @@ CONTAINS
 
     ALLOCATE(prep_adv%q_ubc_ptr(ntracer))
     DO jt =1,ntracer
-      WRITE(ctrnam,'(I2)') jt
-      tracer_name = 'q_ubc'//ctrnam(1+MERGE(1,0,jt<=9):)
+       WRITE(ctrnam,'(I4.4)') jt
+      tracer_name = 'q_ubc'//ctrnam
       tlen = LEN_TRIM(tracer_name)
       CALL add_ref( prep_adv_list, 'q_ubc',                                       &
                   & tracer_name(1:tlen), prep_adv%q_ubc_ptr(jt)%p_2d,             &

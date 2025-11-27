@@ -501,6 +501,15 @@ CONTAINS
               nconv = nconv + 1
               ptr_conv_tracer_comin     (nconv)%ptr => p_prog_rcf%tracer(:,:,jb,this_info%idx_tracer)
               ptr_conv_tracer_tend_comin(nconv)%ptr => prm_nwp_tend%ddt_tracer_pconv(:,:,jb,this_info%idx_conv)
+              !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+              !$ACC LOOP GANG VECTOR COLLAPSE(2)
+              DO jk = 1, nlev
+                 DO jc = 1, nproma
+                    ptr_conv_tracer_tend_comin(nconv)%ptr(jc,jk) = 0._wp
+                 END DO
+              END DO
+              !$ACC END PARALLEL
+
             ENDIF !this_info%idx_conv > 0
             this_info => this_info%next
           ENDDO
