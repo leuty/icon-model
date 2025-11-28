@@ -6,10 +6,37 @@
 # Nest Configuration
 
 Input dependencies:
-: All files required to run this case (initial/boundary conditions and grids) are stored in "/pool/data/ICON/grids/public/mpim/0049/lamnest/r0100/". These are: bc_aeropt_kinne_lw_b16_coa_DOM*, bc_aeropt_kinne_sw_b14_coa_DOM*, bc_aeropt_kinne_sw_b14_fin_DOM*, bc_land_frac_DOM*,  bc_land_phys_DOM*, bc_land_soil_DOM*, bc_land_sso_DOM*, bc_ozone_DOM*, bc_sic_DOM*, bc_sst_DOM*, ic_atmo_DOM*, ic_land_soil_DOM* with * going from domain 01 to 04. Finally, the meshes are global_160km_DOM01.nc (parent domain), Tropical_Atlantic_80km_DOM02.nc (first-level nested domain), Tropical_Atlantic_40km_DOM03.nc and Tropical_Atlantic_40km_DOM04.nc (second-level nested domains).
+: (for Levante)
+```
+root = /pool/data/ICON/grids/public/mpim/0049/lamnest/r0100/
+
+# Grids
+$root/global_160km_DOM01.nc # parent domain
+$root/Tropical_Atlantic_80km_DOM02.nc #first-level nested domain
+$root/Tropical_Atlantic_40km_DOM03.nc # second-level nested domain
+$root/Tropical_Atlantic_40km_DOM04.nc # second-level nested domain
+
+# (On files below, DOM* = {DOM01, DOM02, DOM03, DOM04})
+
+# Boundary conditions
+$root/bc_aeropt_kinne_lw_b16_coa_DOM*
+$root/bc_aeropt_kinne_sw_b14_coa_DOM*
+$root/bc_aeropt_kinne_sw_b14_fin_DOM*
+$root/bc_land_frac_DOM*
+$root/bc_land_phys_DOM*
+$root/bc_land_soil_DOM*
+$root/bc_land_sso_DOM*
+$root/bc_ozone_DOM*
+$root/bc_sic_DOM*
+$root/bc_sst_DOM*
+
+# Initial conditions
+$root/ic_atmo_DOM*
+$root/ic_land_soil_DOM*
+```
 
 Compatible machines and compilers:
-: Levante, CPU (Intel,GNU,NAG) and GPU (NVHPC)
+: Levante CPU (intel,gnu,nag) and GPU (nvhpc)
 
 Recommended resources:
 : Single Node.
@@ -17,8 +44,8 @@ Recommended resources:
 Estimated runtime (for resources indicated above):
 : It takes 25 minutes on one Levante compute node (2xAMD 7763, 256 Gb main memory) to simulate 7 days, for a setup combining MPI for inter-node parallelisation and OpenMP for multi-threading. The same case was tested on one Levante GPU node (4xA100, 160Gb + 2x AMD 7763 CPU; 128 cores in total, 512 GB/1024 GB main memory) and completed 7 days in 16 minutes.
 
-Sources:
-: {{ '[Config]({}/run/checksuite.atm/test_aes_nest.config)'.format(base_url) }} for `mkexp`. It was build from the older script {{ '[Config]({}/run/exp.atm_cph_nest_R2B4)'.format(base_url) }} which used `make_runscripts`.
+Scripting:
+: {{ '[Nest mkexp config]({}/run/checksuite.atm/test_aes_nest.config)'.format(base_url) }} (remove the `buildbot` option from `EXP_OPTIONS` and add your slurm account `ACCOUNT` in the mkexp script to run in Levante).
 
 Analysis/postprocessing:
 : (under development).

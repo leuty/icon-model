@@ -68,7 +68,7 @@ For **detailed information** on **[](ref_buildrun_configuration)**, **[](ref_bui
 
 ## Running ICON
 
-To run ICON, you need to create a runscript that sets the required environment variables, sets the experiment configuration, and calls the executable. The preferred way to do that is to use the [`mkexp`](https://gitlab.dkrz.de/esmenv/mkexp) utility (please install `six` and `jinja2` in your python environment). For in-source builds, copy the desired example configuration from the `<src-dir>/run/examples` to the `run` folder:
+To run ICON, you need to create a runscript that sets the required environment variables, sets the experiment configuration, and calls the executable. The preferred way to do that is to use the [`mkexp`](ref_tools_mkexp) utility (please install `six` and `jinja2` in your python environment). For in-source builds, copy the desired example configuration from the `<src-dir>/run/examples` to the `run` folder:
 
 ```sh
 cd <src-dir>/run

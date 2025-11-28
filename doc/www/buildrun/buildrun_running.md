@@ -7,12 +7,12 @@
 
 The ICON model is typically run through a *runscript*, which sets up the working directory, populates it with all required input files (grid files, namelists, etc.), sets environment variables, runs the model, and postprocesses its output.
 
-You can generate a runscript with one of the two tools described in this document. The first tool [`mkexp`](ref_buildrun_mkexp) is well documented and continuously maintained. The only downside is that it does not have support for many environments and experiments that you can run with ICON yet. The second one [`make_runscript`](ref_buildrun_make_runscript) is a legacy, poorly documented set of shell scripts, which, however, supports a lot of (mainly HPC) environments and experiments.
+You can generate a runscript with one of the two tools described in this document. The first tool [`mkexp`](ref_tools_mkexp) is well documented and continuously maintained. The only downside is that it does not have support for many environments and experiments that you can run with ICON yet. The second one [`make_runscript`](ref_buildrun_make_runscript) is a legacy, poorly documented set of shell scripts, which, however, supports a lot of (mainly HPC) environments and experiments.
 
 (ref_buildrun_mkexp)=
 ## Using `mkexp` to prepare ICON experiments
 
-[MakeExperiments! (`mkexp`)](https://gitlab.dkrz.de/esmenv/mkexp) is a Python tool for preparing experiments with ICON. It helps users set up an experimental workflow, and generate the runscript needed to execute supported configurations. The tool presently supports setting up ICON configurations in the DKRZ environment (CPU and GPU) and is and can be adapted to other environments.
+[MakeExperiments! (`mkexp`)](ref_tools_mkexp) is a Python tool for preparing experiments with ICON. It helps users set up an experimental workflow, and generate the runscript needed to execute supported configurations. The tool presently supports setting up ICON configurations in the DKRZ environment (CPU and GPU) and is and can be adapted to other environments.
 
 You can find the `mkexp` tool in the `utils/mkexp` directory of the ICON source code repository, which is managed as a git submodule.
 
@@ -35,7 +35,7 @@ Before you start using `mkexp`, make sure that your software environment meets t
 
 ### Steps to run an experiment
 
-Running an experiment using `mkexp` generally consists of three steps briefly described below in this section. For more details, see the [documentation](https://gitlab.dkrz.de/esmenv/mkexp/-/blob/master/doc/mkexp.pdf).
+Running an experiment using `mkexp` generally consists of three steps briefly described below in this section. For more details, see the [mkexp docs](ref_tools_mkexp).
 
 **Step 1: Create the configuration file**
 
@@ -61,7 +61,7 @@ Running the experiment in an HPC environment may require adjustments. For exampl
 
 **Step 2: Generate the scripts and workflow environment**
 
-Execute [`mkexp`](https://gitlab.dkrz.de/esmenv/mkexp/-/blob/master/mkexp):
+Execute [`mkexp`](ref_tools_mkexp):
 
 ```sh
 ../utils/mkexp/mkexp exp_id.config
