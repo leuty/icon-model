@@ -386,7 +386,7 @@ MODULE mo_nwp_tuning_nml
     &                      tune_urbahf, tune_urbisa, tune_box_ice, tune_supsat_limfac,  &
     &                      tune_grzdc_offset, itune_vis_diag, tune_entrainment_profile, &
     &                      tune_tau_shallow, tune_tau_mid, tune_tau_deep,               &
-    &                      tune_ssolim_sfcfric, itune_ceiling_diag, tune_reff_qi
+    &                      tune_ssolim_sfcfric, itune_ceiling_diag, tune_reff_qi, tune_cdnc
 
 CONTAINS
 
