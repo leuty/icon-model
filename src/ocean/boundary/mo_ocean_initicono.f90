@@ -23,7 +23,7 @@ MODULE mo_ocean_initicono
   USE mo_impl_constants,          ONLY: max_ntracer
   USE mo_ocean_types,             ONLY: t_hydro_ocean_state
   USE mo_sea_ice_types,           ONLY: t_sea_ice
-  USE mo_ocean_nml,               ONLY: init_mode_oce
+  USE mo_ocean_nml,               ONLY: init_mode_oce, vert_cor_type
   USE mo_initicon_types,          ONLY: t_pi_tracer
   USE mtime,                      ONLY: datetime
   USE mo_run_config,              ONLY: ntracer
@@ -34,6 +34,7 @@ MODULE mo_ocean_initicono
   USE mo_dynamics_config,         ONLY: nold
   USE mo_fortran_tools,           ONLY: DO_DEALLOCATE, DO_PTR_DEALLOCATE
   USE mo_initicon_io,             ONLY: fetch3d, fetch3d_with_status, fetchSurface, t_fetchParams
+  USE mo_ocean_physics_types,     ONLY: t_ho_params
   IMPLICIT NONE
   PRIVATE
 
@@ -72,10 +73,9 @@ MODULE mo_ocean_initicono
     &                                    so      => NULL(), &
     &                                    u       => NULL(), &
     &                                    v       => NULL(), &
-    &                                    vn       => NULL(), &
-    &                                    zos     => NULL(), &
-    &                                    depth   => NULL()
-    REAL(wp), POINTER, DIMENSION(:,:) :: stretch_c => NULL()
+    &                                    vn       => NULL()
+    REAL(wp), POINTER, DIMENSION(:,:) :: stretch_c => NULL(), &
+    &                                    zos     => NULL()
 
     TYPE (t_pi_tracer), DIMENSION(max_ntracer) :: tracer
 
@@ -107,8 +107,8 @@ MODULE mo_ocean_initicono
     ! vertical dimension of 3D input fields
     INTEGER :: nlev
 
-    REAL(wp), ALLOCATABLE, DIMENSION(:,:,:) :: u, v, vn, to, so, zos, depth
-    REAL(wp), ALLOCATABLE, DIMENSION(:,:) :: stretch_c
+    REAL(wp), ALLOCATABLE, DIMENSION(:,:,:) :: u, v, vn, to, so
+    REAL(wp), ALLOCATABLE, DIMENSION(:,:) :: stretch_c, zos
 
     TYPE (t_pi_tracer), DIMENSION(max_ntracer) :: tracer
 
@@ -203,7 +203,6 @@ MODULE mo_ocean_initicono
     CALL DO_PTR_DEALLOCATE(oce_in%v)
     CALL DO_PTR_DEALLOCATE(oce_in%vn)
     CALL DO_PTR_DEALLOCATE(oce_in%zos)
-    CALL DO_PTR_DEALLOCATE(oce_in%depth)
     CALL DO_PTR_DEALLOCATE(oce_in%stretch_c)
 
     DO idx=1, ntracer
@@ -233,7 +232,6 @@ MODULE mo_ocean_initicono
     CALL DO_DEALLOCATE(oce%v)
     CALL DO_DEALLOCATE(oce%vn)
     CALL DO_DEALLOCATE(oce%zos)
-    CALL DO_DEALLOCATE(oce%depth)
     CALL DO_DEALLOCATE(oce%stretch_c)
 
     DO idx=1, ntracer
@@ -286,18 +284,19 @@ MODULE mo_ocean_initicono
 
   !>
   !! Fetch the DWD first guess from the request list (ocean only)
-  !! First guess (FG) is read for to, so, u, v, zos, depth
-  !! whereas DA output is read for to, so, u, v, depth
-  SUBROUTINE fetch_dwdfg_oce(requestList, ocean_state, inputInstructions, read_initicono)
+  !! First guess (FG) is read for to, so, u, v (or vn), zos
+  !! whereas DA output is read for to, so, u, v (or vn), zos
+  SUBROUTINE fetch_dwdfg_oce(requestList, ocean_state, params_oce, inputInstructions, read_initicono)
     CLASS(t_InputRequestList), POINTER, INTENT(INOUT) :: requestList
     TYPE(t_hydro_ocean_state), INTENT(INOUT), TARGET :: ocean_state(:)
+    TYPE(t_ho_params), INTENT(INOUT)              :: params_oce
     TYPE(t_readInstructionListPtr), INTENT(INOUT) :: inputInstructions(:)
     TYPE(t_initicono_read) :: read_initicono
 
     CHARACTER(*), PARAMETER :: routine = modname//':fetch_dwdfg_oce'
     TYPE(t_fetchParams)      :: params
     REAL(wp), POINTER :: my_ptr3d(:,:,:)
-    LOGICAL :: lfound_u, lfound_v, lfound_vn, lfound_to, lfound_so
+    LOGICAL :: lfound_u, lfound_v, lfound_vn, lfound_to, lfound_so, lfound_tke
 
     ALLOCATE(params%inputInstructions(SIZE(inputInstructions, 1)))
     params%inputInstructions = inputInstructions
@@ -306,39 +305,39 @@ MODULE mo_ocean_initicono
     params%isFg = .TRUE.
 
       !request the first guess fields (ocean only)
-      IF(read_initicono%zos) CALL fetchSurface(params, 'zos', 1, ocean_state(1)%p_prog(nold(1))%h)
-      IF(read_initicono%stretch_c) CALL fetchSurface(params, 'stretch_c', 1, ocean_state(1)%p_prog(nold(1))%stretch_c)
+      IF(vert_cor_type .eq. 0) THEN
+        CALL fetchSurface(params, 'zos', 1, ocean_state(1)%p_prog(nold(1))%h)
+      ELSEIF(vert_cor_type .eq. 1) THEN
+        CALL fetchSurface(params, 'zos', 1, ocean_state(1)%p_prog(nold(1))%eta_c)
+      ENDIF
+      CALL fetchSurface(params, 'stretch_c', 1, ocean_state(1)%p_prog(nold(1))%stretch_c)
 
       !The following variables are read in even though they are in
       !the diagnostic group.
 
-      IF(read_initicono%u) CALL fetch3d_with_status(routine, 'dwdfg file', params, 'u', 1, ocean_state(1)%p_diag%u, lfound_u)
-      IF(read_initicono%v) CALL fetch3d_with_status(routine, 'dwdfg file', params, 'v', 1, ocean_state(1)%p_diag%v, lfound_v)
-      IF(read_initicono%vn) CALL fetch3d_with_status(routine, 'dwdfg file', params, 'vn', 1, ocean_state(1)%p_prog(nold(1))%vn, &
-                                                     & lfound_vn)
+      CALL fetch3d_with_status(routine, 'dwdfg file', params, 'u', 1, ocean_state(1)%p_diag%u, lfound_u)
+      CALL fetch3d_with_status(routine, 'dwdfg file', params, 'v', 1, ocean_state(1)%p_diag%v, lfound_v)
+      CALL fetch3d_with_status(routine, 'dwdfg file', params, 'normal_velocity', 1, ocean_state(1)%p_prog(nold(1))%vn, &
+                              & lfound_vn)
+      CALL fetch3d_with_status(routine, 'dwdfg file', params, 'tke', 1, params_oce%vmix_params%tke, lfound_tke)
+      my_ptr3d => ocean_state(1)%p_diag%SWPT
+      CALL fetch3d_with_status(routine, 'dwdfg file', params, 'to', 1, my_ptr3d, lfound_to)
 
-      IF(read_initicono%to) THEN
-        my_ptr3d => ocean_state(1)%p_diag%SWPT
-        CALL fetch3d_with_status(routine, 'dwdfg file', params, 'to', 1, my_ptr3d, lfound_to)
-
-        IF(lfound_to) THEN
-          to_var = 'to'
-        ELSE
-          CALL fetch3d(params, 'SWPT', 1, my_ptr3d)
-          to_var = 'SWPT'
-        ENDIF
-        !GRIB files contain temperature in Kelvin but ICON-O wants degrees Celsius, conversion is done with a post-op
-        IF(MAXVAL(ocean_state(1)%p_diag%SWPT) >= 100._wp) THEN
-          write(0,*) MAXVAL(ocean_state(1)%p_diag%SWPT)
-          call finish(routine, "Wrong temperature unit. Please check the naming of your temperature field in your input file.")
-        ENDIF
-        ocean_state(1)%p_prog(nold(1))%tracer(:,:,:,1) = ocean_state(1)%p_diag%SWPT
+      IF(lfound_to) THEN
+        to_var = 'to'
+      ELSE
+        CALL fetch3d(params, 'SWPT', 1, my_ptr3d)
+        to_var = 'SWPT'
       ENDIF
-
-      IF(read_initicono%so) THEN
-        my_ptr3d => ocean_state(1)%p_prog(nold(1))%tracer(:,:,:,2)
-        CALL fetch3d_with_status(routine, 'dwdfg file', params, 'so', 1, my_ptr3d, lfound_so)
+      !GRIB files contain temperature in Kelvin but ICON-O wants degrees Celsius, conversion is done with a post-op
+      IF(MAXVAL(ocean_state(1)%p_diag%SWPT) >= 100._wp) THEN
+        write(0,*) MAXVAL(ocean_state(1)%p_diag%SWPT)
+        call finish(routine, "Wrong temperature unit. Please check the naming of your temperature field in your input file.")
       ENDIF
+      ocean_state(1)%p_prog(nold(1))%tracer(:,:,:,1) = ocean_state(1)%p_diag%SWPT
+
+      my_ptr3d => ocean_state(1)%p_prog(nold(1))%tracer(:,:,:,2)
+      CALL fetch3d_with_status(routine, 'dwdfg file', params, 'so', 1, my_ptr3d, lfound_so)
 
   END SUBROUTINE fetch_dwdfg_oce
 
@@ -347,7 +346,7 @@ MODULE mo_ocean_initicono
   !!
   !! Depending on the initialization mode, either full fields or increments
   !! are read (atmosphere only). The following full fields are read, if available:
-  !!     u, v, to, so, zos, stretch_c
+  !! u, v, vn, to, so, zos, stretch_c
   !!
   SUBROUTINE fetch_dwdana_oce(requestList, ocean_state, initicono, inputInstructions, read_initicono)
     CLASS(t_InputRequestList), POINTER, INTENT(INOUT) :: requestList
@@ -359,8 +358,9 @@ MODULE mo_ocean_initicono
     CHARACTER(LEN = *), PARAMETER :: routine = modname//':fetch_dwdana_oce'
     TYPE(t_pi_oce), POINTER :: my_ptr
     REAL(wp), POINTER :: my_ptr3d(:,:,:)
+    REAL(wp), POINTER :: my_ptr2d(:,:)
     TYPE(t_fetchParams) :: params
-    LOGICAL :: lHaveFg, lfound_to, lfound_so, lfound_u, lfound_v
+    LOGICAL :: lHaveFg, lfound_to, lfound_so, lfound_u, lfound_v, lfound_vn
 
     ALLOCATE(params%inputInstructions(SIZE(inputInstructions, 1)))
     params%inputInstructions = inputInstructions
@@ -379,53 +379,92 @@ MODULE mo_ocean_initicono
     ! start reading DA output (ocean only)
     ! The dynamical variables temp, salinity, u and v can be directly taken from the analysis and are thus written
     ! to the prognostic state
-    IF ( ( init_mode_oce == MODE_IAU_OCE ) .AND. read_initicono%to) THEN
+    IF ( init_mode_oce == MODE_IAU_OCE ) THEN
       lHaveFg = inputInstructions(1)%ptr%sourceOfVar(to_var) == kInputSourceFg
       CALL fetch3d_with_status(routine, 'dwdana file', params, to_var, 1, my_ptr%to, lfound_to)
       ! check whether we are using DATA from both FG and ANA input, so that it's correctly listed in the input source table
       IF(lHaveFg .AND. inputInstructions(1)%ptr%sourceOfVar(to_var) == kInputSourceAna) THEN
         CALL inputInstructions(1)%ptr%setSource(to_var, kInputSourceBoth)
       END IF
-    ELSEIF(read_initicono%to) THEN
+    ELSE
       my_ptr3d => ocean_state(1)%p_prog(nold(1))%tracer(:,:,:,1)
       CALL fetch3d_with_status(routine, 'dwdana file', params, to_var, 1, my_ptr3d, lfound_to)
     ENDIF
 
-    IF ( ( init_mode_oce == MODE_IAU_OCE ) .AND. read_initicono%so) THEN
+    IF ( init_mode_oce == MODE_IAU_OCE ) THEN
       lHaveFg = inputInstructions(1)%ptr%sourceOfVar('so') == kInputSourceFg
       CALL fetch3d_with_status(routine, 'dwdana file', params, 'so', 1, my_ptr%so, lfound_so)
       ! check whether we are using DATA from both FG and ANA input, so that it's correctly listed in the input source table
       IF(lHaveFg .AND. inputInstructions(1)%ptr%sourceOfVar('so') == kInputSourceAna) THEN
         CALL inputInstructions(1)%ptr%setSource('so', kInputSourceBoth)
       END IF
-    ELSEIF(read_initicono%so) THEN
+    ELSE
       my_ptr3d => ocean_state(1)%p_prog(nold(1))%tracer(:,:,:,2)
       CALL fetch3d_with_status(routine, 'dwdana file', params, 'so', 1, my_ptr3d, lfound_so)
     ENDIF
 
-
-    IF ( init_mode_oce == MODE_IAU_OCE .AND. read_initicono%u) THEN
+    IF ( init_mode_oce == MODE_IAU_OCE ) THEN
       lHaveFg = inputInstructions(1)%ptr%sourceOfVar('u') == kInputSourceFg
       CALL fetch3d_with_status(routine, 'dwdana file', params, 'u', 1, my_ptr%u, lfound_u)
       !check whether we are using DATA from both FG and ANA input, so that it's correctly listed in the input source table
       IF(lHaveFg .AND. inputInstructions(1)%ptr%sourceOfVar('u') == kInputSourceAna) THEN
         CALL inputInstructions(1)%ptr%setSource('u', kInputSourceBoth)
       END IF
-    ELSEIF(read_initicono%u) THEN
+    ELSE
       my_ptr3d => ocean_state(1)%p_diag%u
       CALL fetch3d_with_status(routine, 'dwdana file', params, 'u', 1, my_ptr3d, lfound_u)
     ENDIF
 
-    IF ( init_mode_oce == MODE_IAU_OCE .AND. read_initicono%v) THEN
+    IF ( init_mode_oce == MODE_IAU_OCE ) THEN
       lHaveFg = inputInstructions(1)%ptr%sourceOfVar('v') == kInputSourceFg
       CALL fetch3d_with_status(routine, 'dwdana file', params, 'v', 1, my_ptr%v, lfound_v)
       !check whether we are using DATA from both FG and ANA input, so that it's correctly listed in the input source table
       IF(lHaveFg .AND. inputInstructions(1)%ptr%sourceOfVar('v') == kInputSourceAna) THEN
         CALL inputInstructions(1)%ptr%setSource('v', kInputSourceBoth)
       END IF
-    ELSEIF (read_initicono%v) THEN
+    ELSE
       my_ptr3d => ocean_state(1)%p_diag%v
       CALL fetch3d_with_status(routine, 'dwdana file', params, 'v', 1, my_ptr3d, lfound_v)
+    ENDIF
+
+    IF ( init_mode_oce == MODE_IAU_OCE ) THEN
+      lHaveFg = inputInstructions(1)%ptr%sourceOfVar('normal_velocity') == kInputSourceFg
+      CALL fetch3d_with_status(routine, 'dwdana file', params, 'normal_velocity', 1, my_ptr%vn, lfound_vn)
+      !check whether we are using DATA from both FG and ANA input, so that it's correctly listed in the input source table
+      IF(lHaveFg .AND. inputInstructions(1)%ptr%sourceOfVar('normal_velocity') == kInputSourceAna) THEN
+        CALL inputInstructions(1)%ptr%setSource('normal_velocity', kInputSourceBoth)
+      END IF
+    ELSE
+      my_ptr3d => ocean_state(1)%p_prog(nold(1))%vn
+      CALL fetch3d_with_status(routine, 'dwdana file', params, 'normal_velocity', 1, my_ptr3d, lfound_vn)
+    ENDIF
+
+    IF ( init_mode_oce == MODE_IAU_OCE ) THEN
+      lHaveFg = inputInstructions(1)%ptr%sourceOfVar('zos') == kInputSourceFg
+      CALL fetchSurface(params, 'zos', 1, my_ptr%zos)
+      ! check whether we are using DATA from both FG AND ANA input, so that it's correctly listed IN the input source table
+      IF(lHaveFg.AND.inputInstructions(1)%ptr%sourceOfVar('zos') == kInputSourceAna) THEN
+        CALL inputInstructions(1)%ptr%setSource('zos', kInputSourceBoth)
+      END IF
+    ELSE
+      IF(vert_cor_type .eq. 0) THEN
+        my_ptr2d => ocean_state(1)%p_prog(nold(1))%h
+      ELSEIF(vert_cor_type .eq. 1) THEN
+        my_ptr2d => ocean_state(1)%p_prog(nold(1))%eta_c
+      ENDIF
+      CALL fetchSurface(params, 'zos', 1, my_ptr2d)
+    ENDIF
+
+    IF ( init_mode_oce == MODE_IAU_OCE ) THEN
+      lHaveFg = inputInstructions(1)%ptr%sourceOfVar('stretch_c') == kInputSourceFg
+      CALL fetchSurface(params, 'stretch_c', 1, my_ptr%stretch_c)
+      ! check whether we are using DATA from both FG AND ANA input, so that it's correctly listed IN the input source table
+      IF(lHaveFg.AND.inputInstructions(1)%ptr%sourceOfVar('stretch_c') == kInputSourceAna) THEN
+        CALL inputInstructions(1)%ptr%setSource('stretch_c', kInputSourceBoth)
+      END IF
+    ELSE
+      my_ptr2d => ocean_state(1)%p_prog(nold(1))%stretch_c
+      CALL fetchSurface(params, 'stretch_c', 1, my_ptr2d)
     ENDIF
 
   END SUBROUTINE fetch_dwdana_oce
@@ -453,9 +492,9 @@ MODULE mo_ocean_initicono
     params%isFg = .TRUE.
 
     ! sea-ice related fields
-    IF(read_initicono%hi) CALL fetch3d_with_status(routine, 'dwdfg file', params, 'hi', 1, p_sea_ice%hi(:,:,:), lfound_hi)
-    IF(read_initicono%hs) CALL fetch3d_with_status(routine, 'dwdfg file', params, 'hs', 1, p_sea_ice%hs(:,:,:), lfound_hs)
-    IF(read_initicono%conc) CALL fetch3d_with_status(routine, 'dwdfg file', params, 'conc', 1, p_sea_ice%conc(:,:,:), lfound_conc)
+    CALL fetch3d_with_status(routine, 'dwdfg file', params, 'hi', 1, p_sea_ice%hi(:,:,:), lfound_hi)
+    CALL fetch3d_with_status(routine, 'dwdfg file', params, 'hs', 1, p_sea_ice%hs(:,:,:), lfound_hs)
+    CALL fetch3d_with_status(routine, 'dwdfg file', params, 'conc', 1, p_sea_ice%conc(:,:,:), lfound_conc)
 
   END SUBROUTINE fetch_dwdfg_seaice
 
@@ -489,38 +528,38 @@ MODULE mo_ocean_initicono
     ENDIF
 
     ! hi
-    IF ( init_mode_oce == MODE_IAU_OCE .AND. read_initicono%hi) THEN
+    IF ( init_mode_oce == MODE_IAU_OCE ) THEN
       lHaveFg = inputInstructions(1)%ptr%sourceOfVar('hi') == kInputSourceFg
       CALL fetch3d_with_status(routine, 'dwdana file', params, 'hi', 1, my_ptr%hi, lfound_hi)
       ! check whether we are using DATA from both FG AND ANA input, so that it's correctly listed IN the input source table
-      IF(lHaveFg.AND.inputInstructions(1)%ptr%sourceOfVar('hi') == kInputSourceAna) THEN
+      IF(lHaveFg .AND. inputInstructions(1)%ptr%sourceOfVar('hi') == kInputSourceAna) THEN
         CALL inputInstructions(1)%ptr%setSource('hi', kInputSourceBoth)
       END IF
-    ELSEIF(read_initicono%hi) THEN
+    ELSE
       CALL fetch3d_with_status(routine, 'dwdana file', params, 'hi', 1, p_sea_ice%hi(:,:,:), lfound_hi)
     ENDIF
 
     ! hs
-    IF ( init_mode_oce == MODE_IAU_OCE .AND. read_initicono%hs) THEN
+    IF ( init_mode_oce == MODE_IAU_OCE ) THEN
       lHaveFg = inputInstructions(1)%ptr%sourceOfVar('hs') == kInputSourceFg
       CALL fetch3d_with_status(routine, 'dwdana file', params, 'hs', 1, my_ptr%hs, lfound_hs)
       ! check whether we are using DATA from both FG AND ANA input, so that it's correctly listed IN the input source table
-      IF(lHaveFg.AND.inputInstructions(1)%ptr%sourceOfVar('hs') == kInputSourceAna) THEN
+      IF(lHaveFg .AND. inputInstructions(1)%ptr%sourceOfVar('hs') == kInputSourceAna) THEN
         CALL inputInstructions(1)%ptr%setSource('hs', kInputSourceBoth)
       END IF
-    ELSEIF(read_initicono%hs) THEN
+    ELSE
       CALL fetch3d_with_status(routine, 'dwdana file', params, 'hs', 1, p_sea_ice%hs(:,:,:), lfound_hs)
     ENDIF
 
     ! conc
-    IF ( init_mode_oce == MODE_IAU_OCE .AND. read_initicono%conc) THEN
+    IF ( init_mode_oce == MODE_IAU_OCE ) THEN
       lHaveFg = inputInstructions(1)%ptr%sourceOfVar('conc') == kInputSourceFg
       CALL fetch3d_with_status(routine, 'dwdana file', params, 'conc', 1, my_ptr%conc, lfound_conc)
       ! check whether we are using DATA from both FG AND ANA input, so that it's correctly listed IN the input source table
-      IF(lHaveFg.AND.inputInstructions(1)%ptr%sourceOfVar('conc') == kInputSourceAna) THEN
+      IF(lHaveFg .AND. inputInstructions(1)%ptr%sourceOfVar('conc') == kInputSourceAna) THEN
         CALL inputInstructions(1)%ptr%setSource('conc', kInputSourceBoth)
       END IF
-    ELSEIF(read_initicono%conc) THEN
+    ELSE
       CALL fetch3d_with_status(routine, 'dwdana file', params, 'conc', 1, p_sea_ice%conc(:,:,:), lfound_conc)
     ENDIF
 

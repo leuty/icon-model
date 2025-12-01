@@ -337,9 +337,10 @@ CONTAINS
     CALL add_var(ocean_restart_list, 'tke', params_oce%vmix_params%tke, &
         & grid_unstructured_cell, za_depth_below_sea_half, &
         & t_cf_var('specific_turbulent_kinetic_energy_of_sea_water', 'm2 s-2', 'turbulent kinetic energy', datatype_flt),&
-        & grib2_var(255, 255, 255, datatype_pack16, GRID_UNSTRUCTURED, grid_cell),&
+        & grib2_var(10, 4, 192, datatype_pack16, GRID_UNSTRUCTURED, grid_cell),&
         & ldims=(/nproma,n_zlev+1,alloc_cell_blocks/), &
-        & lrestart_cont=.TRUE., in_group=groups("oce_vmix_tke"), lopenacc=.TRUE.)
+        & lrestart_cont=.TRUE., in_group=groups("oce_vmix_tke", "dwd_fg_oce_vars", &
+        & "mode_dwd_fg_oce_in", "mode_iau_fg_oce_in"), lopenacc=.TRUE.)
     __acc_attach(params_oce%vmix_params%tke)
 
     CALL add_var(ocean_params_list, 'tke_Tbpr', params_oce%vmix_params%tke_Tbpr, &
