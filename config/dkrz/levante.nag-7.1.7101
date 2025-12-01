@@ -70,6 +70,7 @@ CC=$("${MPI_ROOT}/bin/mpicc" -show | sed 's: .*$::')
 CFLAGS='-g -gdwarf-4 -march=native'
 ICON_CFLAGS='-O3'
 ICON_BUNDLED_CFLAGS='-O2'
+ICON_YAC_CFLAGS='-O2 -pthread'
 
 # Ensure the Python interface of MTIME is not overlinked:
 ICON_MTIME_CFLAGS="${ICON_BUNDLED_CFLAGS} -Wl,--as-needed"
@@ -173,6 +174,7 @@ ICON_EMVORADO_PATH="${ICON_EMVORADO_PATH}" \
 ICON_FCFLAGS="${ICON_FCFLAGS}" \
 ICON_LDFLAGS="${ICON_LDFLAGS}" \
 ICON_MTIME_CFLAGS="${ICON_MTIME_CFLAGS}" \
+ICON_YAC_CFLAGS="$ICON_YAC_CFLAGS" \
 ICON_SCT_FCFLAGS="${ICON_SCT_FCFLAGS}" \
 LDFLAGS="${LDFLAGS}" \
 LIBS="${LIBS}" \

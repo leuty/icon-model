@@ -69,7 +69,7 @@ ICON_SCT_FCFLAGS='-O2 -fmodule-private'
 ICON_HD_FCFLAGS='-O2'
 
 LDFLAGS="${RTTOV_LDFLAGS-} -L${sw_root}/lib -Wl,--disable-new-dtags"
-LIBS="-Wl,--as-needed -lxml2 -lfyaml -lSerialboxFortran -leccodes_f90 -leccodes ${RTTOV_LIBS-} -llapack -lblas -lnetcdff -lnetcdf -lhdf5_hl_fortran -lhdf5_fortran -lhdf5 -lz -lstdc++"
+LIBS="-Wl,--as-needed -lxml2 -lfyaml -lSerialboxFortran -leccodes_f90 -leccodes ${RTTOV_LIBS-} -llapack -lblas -lnetcdff -lnetcdf -lhdf5_hl_fortran -lhdf5_fortran -lhdf5 -lz -lstdc++ -pthread"
 
 MPI_LAUNCH='mpiexec'
 

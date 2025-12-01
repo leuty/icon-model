@@ -90,6 +90,9 @@ ICON_EMVORADO_PATH='externals/emvorado'
 # Compile the bundled libraries with no tolerance to argument mismatches:
 ICON_BUNDLED_FCFLAGS="${non_libtool_FCFLAGS} -C=all"
 
+# yaxt uses pthreads for safety, needs explicit linking for yac tests
+ICON_YAC_CFLAGS="$ICON_BUNDLED_CFLAGS -pthread"
+
 # Do not pass Fortran compiler flags that cannot be handled by the libtool
 # script of the bundled SCT:
 ICON_SCT_FCFLAGS='-C=all'
@@ -139,6 +142,7 @@ ICON_EMVORADO_FCFLAGS="${ICON_EMVORADO_FCFLAGS}" \
 ICON_EMVORADO_PATH="${ICON_EMVORADO_PATH}" \
 ICON_FCFLAGS="${ICON_FCFLAGS}" \
 ICON_LDFLAGS="${ICON_LDFLAGS}" \
+ICON_YAC_CFLAGS="${ICON_YAC_CFLAGS}" \
 ICON_MPICHVICTIMS_FCFLAGS="${ICON_MPICHVICTIMS_FCFLAGS}" \
 ICON_MPICHVICTIMS_PATH="${ICON_MPICHVICTIMS_PATH}" \
 ICON_SCT_FCFLAGS="${ICON_SCT_FCFLAGS}" \
