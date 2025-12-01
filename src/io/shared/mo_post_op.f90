@@ -21,14 +21,20 @@
 
 MODULE mo_post_op
 
-  USE mo_kind,                ONLY: dp, sp
-  USE mo_var_metadata_types,  ONLY: t_post_op_meta, POST_OP_NONE,    &
+  USE mo_kind,                ONLY: dp, sp, wp
+  USE mo_run_config,          ONLY: msg_level
+  USE mo_var,                 ONLY: level_type_ml
+  USE mo_var_metadata_types,  ONLY: t_var_metadata, t_post_op_meta, POST_OP_NONE,    &
     &                               POST_OP_SCALE, POST_OP_LUC, POST_OP_LIN2DBZ, POST_OP_OFFSET
+  USE mo_var_metadata,        ONLY: get_var_name
+  USE mo_var_list_register,   ONLY: t_vl_register_iter
+  USE mo_util_string,         ONLY: tolower
 #ifndef __NO_ICON_ATMO__
   USE mo_lnd_nwp_config,      ONLY: convert_luc_ICON2GRIB
 #endif
-  USE mo_exception,           ONLY: finish
+  USE mo_exception,           ONLY: finish, message, message_text
   USE mo_fortran_tools,       ONLY: set_acc_host_or_device
+  USE mo_mpi,                 ONLY: my_process_is_stdio
 #ifdef _OPENACC
   USE openacc,                  ONLY: acc_is_present
 #endif
@@ -37,6 +43,7 @@ MODULE mo_post_op
   PRIVATE
 
   PUBLIC :: perform_post_op
+  PUBLIC :: inverse_post_op
 
   CHARACTER(LEN=*), PARAMETER :: modname = TRIM('mo_post_op')
 
@@ -48,6 +55,11 @@ MODULE mo_post_op
     MODULE PROCEDURE perform_post_op_s3D
     MODULE PROCEDURE perform_post_op_i3D
   END INTERFACE perform_post_op
+
+  INTERFACE inverse_post_op
+    MODULE PROCEDURE inverse_post_op_r2d
+    MODULE PROCEDURE inverse_post_op_r3d
+  END INTERFACE inverse_post_op
 
 CONTAINS
 
@@ -564,5 +576,84 @@ CONTAINS
 
   END SUBROUTINE perform_post_op_i3D
 
+
+  !! Perform inverse post_op on an 2D input field, if necessary
+  !!
+  SUBROUTINE inverse_post_op_r2d (varname, field_2D)
+    CHARACTER(len=*), INTENT(IN)     :: varname             !< var name of the input field
+    REAL(wp), INTENT(INOUT)          :: field_2D(:,:)       !< 2D input field
+
+    ! local
+    INTEGER                          :: i                   ! loop count
+    TYPE(t_var_metadata), POINTER    :: info                ! variable metadata
+    CHARACTER(*), PARAMETER          :: routine = 'inverse_post_op_r2d'
+    CHARACTER(LEN=LEN_TRIM(varname)) :: lc_varname
+    TYPE(t_vl_register_iter)         :: vl_iter
+
+    !-------------------------------------------------------------------------
+
+    lc_varname = tolower(varname)
+    ! get metadata information for field to be read
+    NULLIFY(info)
+    DO WHILE(vl_iter%next() .AND. .NOT.ASSOCIATED(info))
+      ! loop only over model level variables
+      IF (vl_iter%cur%p%vlevel_type /= level_type_ml) CYCLE
+      DO i = 1, vl_iter%cur%p%nvars
+        info => vl_iter%cur%p%vl(i)%p%info
+        IF (lc_varname == tolower(get_var_name(info))) EXIT
+        NULLIFY(info)
+      END DO
+    ENDDO
+    IF (.NOT.ASSOCIATED(info)) THEN
+      CALL message(TRIM(varname)//' not found',message_text)
+      CALL finish(routine, 'Varname does not match any of the ICON variable names')
+    ENDIF
+    ! perform post_op
+    IF (info%post_op%ipost_op_type /= POST_OP_NONE) THEN
+      IF(my_process_is_stdio() .AND. msg_level>10) &
+        & CALL message(routine, 'Inverse Post_op for: ' // varname)
+      CALL perform_post_op(info%post_op, field_2D, opt_inverse=.TRUE.)
+    ENDIF
+  END SUBROUTINE inverse_post_op_r2d
+
+
+  !! Perform inverse post_op on an 3D input field, if necessary
+  !!
+  SUBROUTINE inverse_post_op_r3d (varname, field_3D)
+    CHARACTER(len=*), INTENT(IN)     :: varname             !< var name of the input field
+    REAL(wp), INTENT(INOUT)          :: field_3D(:,:,:)     !< 3D input field
+
+    ! local
+    INTEGER                          :: i                   ! loop count
+    TYPE(t_var_metadata), POINTER    :: info                ! variable metadata
+    CHARACTER(*), PARAMETER          :: routine = 'inverse_post_op_r3d'
+    CHARACTER(LEN=LEN_TRIM(varname)) :: lc_varname
+    TYPE(t_vl_register_iter)         :: vl_iter
+
+    !-------------------------------------------------------------------------
+
+    lc_varname = tolower(varname)
+    ! get metadata information for field to be read
+    NULLIFY(info)
+    DO WHILE(vl_iter%next() .AND. .NOT.ASSOCIATED(info))
+      ! loop only over model level variables
+      IF (vl_iter%cur%p%vlevel_type /= level_type_ml) CYCLE
+      DO i = 1, vl_iter%cur%p%nvars
+        info => vl_iter%cur%p%vl(i)%p%info
+        IF (lc_varname == tolower(get_var_name(info))) EXIT
+        NULLIFY(info)
+      END DO
+    ENDDO
+    IF (.NOT.ASSOCIATED(info)) THEN
+      CALL message(TRIM(varname)//' not found',message_text)
+      CALL finish(routine, 'Varname does not match any of the ICON variable names')
+    ENDIF
+    ! perform post_op
+    IF (info%post_op%ipost_op_type /= POST_OP_NONE) THEN
+      IF(my_process_is_stdio() .AND. msg_level>10) &
+        & CALL message(routine, 'Inverse Post_op for: ' // varname)
+      CALL perform_post_op(info%post_op, field_3D, opt_inverse=.TRUE.)
+    ENDIF
+  END SUBROUTINE inverse_post_op_r3d
 
 END MODULE mo_post_op

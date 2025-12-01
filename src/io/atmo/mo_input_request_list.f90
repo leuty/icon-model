@@ -37,7 +37,7 @@ MODULE mo_input_request_list
     USE mo_impl_constants, ONLY: SUCCESS, vname_len
     USE mo_initicon_config, ONLY: lconsistency_checks
     USE mo_parallel_config, ONLY: use_omp_input
-    USE mo_initicon_utils, ONLY: initicon_inverse_post_op
+    USE mo_post_op, ONLY: inverse_post_op
     USE mo_input_container, ONLY: t_InputContainer, inputContainer_make
     USE mo_kind, ONLY: wp, dp, sp, i8, i4
     USE mo_lnd_nwp_config, ONLY: tile_list
@@ -2840,7 +2840,7 @@ CONTAINS
         IF(resultVar) resultVar = domainData%container%fetch2d(level, tile, outData, opt_lDebug)
         IF(resultVar) THEN
           this_att => tile_list%getTileAtt(t_tileinfo_icon(tile))
-          CALL initicon_inverse_post_op( &
+          CALL inverse_post_op( &
             &   TRIM(varName//TRIM(this_att%getTileSuffix())), &
             &   outData)
         ELSE IF(debugInfo) THEN
@@ -2874,7 +2874,7 @@ CONTAINS
         IF(resultVar) resultVar = domainData%container%fetch3d(tile, outData, optLevelDimension, opt_lDebug)
         IF(resultVar .AND. varName /= 'smi' .AND. varName /= 'SMI') THEN   !SMI IS NOT IN the ICON variable lists, so we need to skip inverse postprocessing for it manually.
           this_att => tile_list%getTileAtt(t_tileinfo_icon(tile))
-          CALL initicon_inverse_post_op( &
+          CALL inverse_post_op( &
             &   TRIM(varName//TRIM(this_att%getTileSuffix())), &
             &   outData)
         ELSE IF(debugInfo) THEN
@@ -2921,7 +2921,7 @@ CONTAINS
         END IF
         IF(resultVar) THEN
             this_att => tile_list%getTileAtt(t_tileinfo_icon(tile))
-            CALL initicon_inverse_post_op( &
+            CALL inverse_post_op( &
             &   TRIM(varName//TRIM(this_att%getTileSuffix())), &
             &   outData)
         END IF
@@ -2955,8 +2955,8 @@ CONTAINS
         IF(resultVar) THEN
             DO i = 1, SIZE(outData, 3)
                 this_att => tile_list%getTileAtt(t_tileinfo_icon(i))
-                CALL initicon_inverse_post_op(TRIM(varName//TRIM(this_att%getTileSuffix())), &
-                  &                           outData(:,:,i))
+                CALL inverse_post_op(TRIM(varName//TRIM(this_att%getTileSuffix())), &
+                  &                  outData(:,:,i))
             END DO
         ELSE IF(debugInfo) THEN
             CALL message(routine, "InputContainer_fetchTiled2d() returned an error")
@@ -2991,8 +2991,8 @@ CONTAINS
         IF(resultVar .AND. varName /= 'smi' .AND. varName /= 'SMI') THEN   !SMI IS NOT IN the ICON variable lists, so we need to skip inverse postprocessing for it manually.
             DO i = 1, SIZE(outData, 4)
                 this_att => tile_list%getTileAtt(t_tileinfo_icon(i))
-                CALL initicon_inverse_post_op(TRIM(varName//TRIM(this_att%getTileSuffix())), &
-                  &                           outData(:,:,:,i))
+                CALL inverse_post_op(TRIM(varName//TRIM(this_att%getTileSuffix())), &
+                  &                  outData(:,:,:,i))
             END DO
         ELSE IF(debugInfo) THEN
             CALL message(routine, "InputContainer_fetchTiled3d() returned an error")
@@ -3040,8 +3040,8 @@ CONTAINS
         IF(resultVar) THEN
             DO i = 1, SIZE(outData, 3)
                 this_att => tile_list%getTileAtt(t_tileinfo_icon(i))
-                CALL initicon_inverse_post_op(TRIM(varName//TRIM(this_att%getTileSuffix())), &
-                  &                           outData(:,:,i))
+                CALL inverse_post_op(TRIM(varName//TRIM(this_att%getTileSuffix())), &
+                  &                  outData(:,:,i))
             END DO
         END IF
     END FUNCTION InputRequestList_fetchTiledSurface

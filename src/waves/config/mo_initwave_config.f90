@@ -33,6 +33,8 @@ MODULE mo_initwave_config
     INTEGER :: init_mode     !< MODE_ANA : read wave energy spectrum from analysis file
                              !< MODE_COLD: initialize by analytic wind-speed based parameterization
                              !             (such as JONSWAP)
+    LOGICAL :: lskip_inv_post_op !< skip inverse post op (i.e. scaling of the input variable)
+                                 !  when reading the state file
     CHARACTER(LEN=filename_max)::initial_wave_spectrum_filename
 
   END TYPE t_initwave_config

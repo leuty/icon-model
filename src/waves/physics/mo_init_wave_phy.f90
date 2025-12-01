@@ -28,7 +28,7 @@ MODULE mo_init_wave_physics
   USE mo_math_constants,       ONLY: pi2, rpi_2, rad2deg
   USE mo_loopindices,          ONLY: get_indices_c
   USE mo_parallel_config,      ONLY: nproma
-  USE fortran_support,         ONLY: t_ptr_3d_wp
+  USE fortran_support,         ONLY: t_ptr_3d_wp, t_ptr_2d3d
 
   USE mo_wave_types,           ONLY: t_wave_diag, t_wave_state, t_wesd
   USE mo_wave_config,          ONLY: t_wave_config, generate_filename
@@ -45,6 +45,7 @@ MODULE mo_init_wave_physics
   USE mo_initwave_config,      ONLY: initwave_config
   USE mo_time_config,          ONLY: time_config
   USE mo_master_config,        ONLY: getModelBaseDir
+  USE mo_post_op,              ONLY: inverse_post_op
 
   IMPLICIT NONE
 
@@ -154,14 +155,12 @@ CONTAINS
   ! SUBROUTINE: init_spectrum_from_file
   ! PURPOSE:
   !   This subroutine initializes the wave spectrum by reading data from
-  !   an external file specified in the wave configuration. It allocates
-  !   necessary 3D and 2D arrays to store initial conditions for various
-  !   wave parameters, including wave energy spectrum and swell mask.
+  !   an external state file specified in the wave configuration.
   !   The data is read for each component of the energy spectrum and
   !   assigned to the wave state structure (p_wave_state) for use in the
   !   simulation.
   ! -----------------------------------------------------------------------
-  SUBROUTINE init_spectrum_from_file(p_patch,  wave_config, p_wave_state)
+  SUBROUTINE init_spectrum_from_file(p_patch, wave_config, p_wave_state)
     TYPE(t_patch),       INTENT(IN   ) :: p_patch
     TYPE(t_wave_config), INTENT(IN   ) :: wave_config
     TYPE(t_wave_state),  INTENT(INOUT) :: p_wave_state
@@ -171,30 +170,20 @@ CONTAINS
     CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER ::  &
          &  routine = modname//':init_spectrum_from_file'
 
-    REAL(wp), ALLOCATABLE :: data_3D_swmask(:,:,:)     ! Array for reading initial 3D fields
-    REAL(wp), ALLOCATABLE :: data_3D_llws(:,:,:)       ! Array for reading initial 3D fields
-
     CHARACTER(LEN=filename_max) :: filename
     CHARACTER(LEN=VNAME_LEN) :: freq_ind_str, dir_ind_str
-    CHARACTER(LEN=VNAME_LEN) :: wesd_name, llws_name , swmask_name
-    INTEGER :: jg, ist, jf, jd, n
+    CHARACTER(LEN=VNAME_LEN) :: wesd_name
+    INTEGER :: jg, ist, jf, jd
     INTEGER :: ndirs
     TYPE(t_ptr_3d_wp):: wesd_ptr(wave_config%nfreqs)
+    TYPE(t_ptr_2d3d) :: input_data
 
     ! 1. Setup parameters
     ndirs = wave_config%ndirs
     jg = p_patch%id
 
-    ! 2. Allocate arrays for reading data
-    !llws
-    ALLOCATE(data_3D_llws(nproma, ndirs, p_patch%nblks_c), stat=ist)
-    IF (ist/=SUCCESS) CALL finish(routine, 'allocation of data_3D_llws failed')
-    !swmask
-    ALLOCATE(data_3D_swmask(nproma, ndirs, p_patch%nblks_c), stat=ist)
-    IF (ist/=SUCCESS) CALL finish(routine, 'allocation of data_3D_swmask failed')
 
-
-    ! 3. Build filename dynamically using generator
+    ! 2. Build filename dynamically using generator
     filename = TRIM(generate_filename( &
       & initwave_config(jg)%initial_wave_spectrum_filename, &
       & getModelBaseDir(), nroot, 1, jg, time_config%tc_exp_startdate))
@@ -202,7 +191,7 @@ CONTAINS
     ! Log which file we are reading
     CALL message(routine, 'Reading initial wave spectrum from file: '//TRIM(filename))
 
-    ! Open file and read data
+    ! 3. Open file and read data
     CALL openInputFile(stream_id, TRIM(filename), p_patch, default_read_method)
 
 
@@ -210,33 +199,24 @@ CONTAINS
       write(freq_ind_str,'(I0.3)') jf
 
       DO jd = 1,wave_config%ndirs
-        !wesd
+        ! wesd
         write(dir_ind_str,'(I0.3)') jd
         wesd_name = 'wesd_f'//TRIM(freq_ind_str)//'_d'//TRIM(dir_ind_str)
-        !PRINT *, wesd_name
-        CALL read_2D_1time(stream_id, on_cells, wesd_name, p_wave_state%prog(nnow(jg))%wesd(jf)%ptr(:,jd,:))
+
+        input_data%p_2d => p_wave_state%prog(nnow(jg))%wesd(jf)%ptr(:,jd,:)
+        CALL read_2D_1time(stream_id, on_cells, wesd_name, input_data%p_2d)
+        !
+        ! field conversion to internally used SI units
+        IF (.NOT. initwave_config(jg)%lskip_inv_post_op) THEN
+          CALL inverse_post_op(TRIM(wesd_name), input_data%p_2d)
+        ENDIF
       ENDDO
-
-      !llws
-      llws_name = 'llws_f'//TRIM(freq_ind_str)
-      !PRINT *, llws_name
-      CALL read_3D_1time(stream_id, on_cells, llws_name, data_3D_llws)
-      p_wave_state%source%llws(:,:,jf,:) = NINT(data_3D_llws(:,:,:))
-
-      !swmask
-      swmask_name = 'swmask_f'//TRIM(freq_ind_str)
-      !PRINT *, swmask_name
-      CALL read_3D_1time(stream_id, on_cells, swmask_name, data_3D_swmask)
-      p_wave_state%diag%swell_mask(:,:,jf,:) = NINT(data_3D_swmask(:,:,:))
-
+      !
+      ! structure of type t_ptr_3d_wp required for halo synchronization below
+      wesd_ptr(jf)%p => p_wave_state%prog(nnow(jg))%wesd(jf)%ptr(:,:,:)
     END DO !frequencies
 
     CALL closeFile(stream_id)
-    !
-    ! sync_patch_array_mult requires input of type t_ptr_3d_wp
-    DO n = 1,SIZE(wesd_ptr)
-      wesd_ptr(n)%p => p_wave_state%prog(nnow(jg))%wesd(n)%ptr(:,:,:)
-    ENDDO
 
     CALL sync_patch_array_mult(typ         = SYNC_C,          &
       &                        p_patch     = p_patch,         &
@@ -244,13 +224,6 @@ CONTAINS
       &                        f3din_arr   = wesd_ptr,        &
       &                        opt_varname = 'wesd_now',      &
       &                        lacc        = .FALSE.)
-
-    !cleanup
-    DEALLOCATE(data_3D_llws, stat=ist)
-    IF (ist /= SUCCESS) CALL finish(routine, 'Deallocation of data_3D_llws failed')
-
-    DEALLOCATE(data_3D_swmask, stat=ist)
-    IF (ist /= SUCCESS) CALL finish(routine, 'Deallocation of data_3D_swmask failed')
 
     CALL message(routine, 'finished')
     !

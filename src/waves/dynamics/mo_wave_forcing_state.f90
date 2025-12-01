@@ -136,7 +136,7 @@ CONTAINS
     CALL add_var( p_forcing_list, 'dir10m', p_forcing%dir10m,                     &
          &        GRID_UNSTRUCTURED_CELL, ZA_HEIGHT_10M, cf_desc, grib2_desc,     &
          &        lrestart=.FALSE., loutput=.TRUE.,                               &
-         &        ldims=shape2d_c, in_group=groups("wave_forcing") )
+         &        ldims=shape2d_c, in_group=groups("wave_forcing", "DWD_FG_WAVE_VARS") )
 
     !sea ice
     cf_desc    = t_cf_var('sea_ice_c', 'frac','sea ice fraction at cells', datatype_flt)

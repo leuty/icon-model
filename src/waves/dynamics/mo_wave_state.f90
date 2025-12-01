@@ -13,6 +13,7 @@
 
 MODULE mo_wave_state
 
+  USE mo_kind,                      ONLY: wp
   USE mo_master_control,            ONLY: get_my_process_name
   USE mo_exception,                 ONLY: message, finish
   USE mo_parallel_config,           ONLY: nproma
@@ -21,6 +22,7 @@ MODULE mo_wave_state
   USE mo_impl_constants,            ONLY: success, max_char_length, VNAME_LEN, TLEV_NNOW, &
     &                                     HINTP_TYPE_LONLAT_NNB, HINTP_TYPE_LONLAT_BCTR
   USE mo_var_list,                  ONLY: add_var, add_ref, t_var_list_ptr
+  USE mo_math_constants,            ONLY: pi2
   USE mo_var_list_register,         ONLY: vlr_add, vlr_del
   USE mo_var_groups,                ONLY: groups
   USE mo_cdi_constants,             ONLY: GRID_UNSTRUCTURED_CELL, GRID_CELL, &
@@ -33,8 +35,8 @@ MODULE mo_wave_state
   USE mo_grib2,                     ONLY: t_grib2_var, grib2_var, t_grib2_int_key, OPERATOR(+)
   USE mo_io_config,                 ONLY: lnetcdf_flt64_output
   USE mo_wave_io_config,            ONLY: t_wave_var_in_output
-  USE mo_var_metadata,              ONLY: get_timelevel_string, create_hor_interp_metadata
-  USE mo_var_metadata_types,        ONLY: CLASS_WAVE_SPECTRUM
+  USE mo_var_metadata,              ONLY: get_timelevel_string, create_hor_interp_metadata, post_op
+  USE mo_var_metadata_types,        ONLY: CLASS_WAVE_SPECTRUM, POST_OP_SCALE
   USE mo_tracer_metadata,           ONLY: create_tracer_metadata
 
   USE mo_wave_types,                ONLY: t_wave_prog, t_wave_source, t_wave_diag, &
@@ -151,7 +153,7 @@ CONTAINS
     INTEGER,               INTENT(IN)    :: timelev
 
     CHARACTER(len=*), PARAMETER :: routine = modname//'::new_wave_state_prog_list'
-    TYPE(t_cf_var)    :: cf_desc
+    TYPE(t_cf_var)    :: cf_desc, new_cf_desc
     TYPE(t_grib2_var) :: grib2_desc
 
     INTEGER :: nblks_c       !< number of cell blocks to allocate
@@ -223,6 +225,8 @@ CONTAINS
         wesd_name = 'wesd_f'//TRIM(freq_ind_str)//'_d'//TRIM(dir_ind_str)//suffix
 
         cf_desc    = t_cf_var(TRIM(wesd_name), 'm^2 s', 'wave energy spectral density', datatype_flt)
+        new_cf_desc = t_cf_var(TRIM(wesd_name), 'm^2 s rad^-1', 'wave energy spectral density', &
+          &                    datatype_flt)
         grib2_desc = grib2_var(10, 0, 42, ibits, GRID_UNSTRUCTURED, GRID_CELL)     &
           &        + t_grib2_int_key("numberOfWaveDirections", wc%ndirs)           &
           &        + t_grib2_int_key("typeOfWaveDirectionSequence", 2)             &
@@ -246,6 +250,7 @@ CONTAINS
           &                        ihadv_tracer= 2,                              &
           &                        ivadv_tracer= 0 ),                            &
           &  var_class=CLASS_WAVE_SPECTRUM,                                      &
+          &  post_op=post_op(POST_OP_SCALE, arg1=1._wp/pi2, new_cf=new_cf_desc), &
           &  in_group=groups("wave_spectrum","DWD_FG_WAVE_VARS"))
       ENDDO
     ENDDO
@@ -363,7 +368,7 @@ CONTAINS
            & t_cf_var(llws_name, '-',llws_name, datatype_int),              &
            & grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL), &
            & ldims=shape3d_c, opt_var_ref_pos=3, ref_idx=jf,                &
-           & lrestart=.TRUE., loutput=.TRUE.,                               &
+           & lrestart=.FALSE., loutput=.TRUE.,                              &
            & in_group=groups("wave_debug","DWD_FG_WAVE_VARS"))
     END DO
 
@@ -662,7 +667,7 @@ CONTAINS
     CALL add_var(p_diag_list, 'ustar', p_diag%ustar,                &
          & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
          & lrestart=.FALSE., loutput=.TRUE.,                        &
-         & ldims=shape2d_c , in_group=groups("wave_phy"))
+         & ldims=shape2d_c , in_group=groups("wave_phy", "DWD_FG_WAVE_VARS"))
 
     cf_desc    = t_cf_var('roughness length', 'm', 'Surface roughness length', datatype_flt)
     grib2_desc = grib2_var(2, 0, 1, ibits, GRID_UNSTRUCTURED, GRID_CELL)

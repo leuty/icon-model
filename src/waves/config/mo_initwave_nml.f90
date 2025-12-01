@@ -63,13 +63,15 @@ CONTAINS
     INTEGER :: init_mode     !< MODE_ANA : read wave energy spectrum from analysis file
                              !< MODE_COLD: initialize by analytic wind-speed based parameterization
                              !             (such as JONSWAP)
+    LOGICAL :: lskip_inv_post_op !< skip inverse post op (i.e. scaling of the input variable)
+                                 !  when reading the state file
     CHARACTER(LEN=filename_max) :: initial_wave_spectrum_filename
 
     CHARACTER(len=*), PARAMETER ::  &
       &  routine = 'mo_initwave_nml: read_initwave_nml'
 
     NAMELIST /initwave_nml/ dt_shift, init_mode, &
-      &      initial_wave_spectrum_filename
+      &      lskip_inv_post_op, initial_wave_spectrum_filename
 
     !-----------------------
     ! 1. default settings
@@ -78,8 +80,10 @@ CONTAINS
     dt_shift  = 0._wp     ! no shift backwards in time.
                           ! => tc_current_date = tc_start_date at model start
     init_mode = MODE_COLD ! coldstart from JONSWAP
-    initial_wave_spectrum_filename = ""   ! <path>/wave_DOM<dom>_<y><m><d>T<h><min><sec>Z.nc or <path>/wave_DOM<dom>_ML_<num>.nc
 
+    lskip_inv_post_op = .FALSE. ! do not skip inverse post op when reading the state file
+
+    initial_wave_spectrum_filename = ""   ! <path>/wave_DOM<dom>_<y><m><d>T<h><min><sec>Z.nc or <path>/wave_DOM<dom>_ML_<num>.nc
 
     IF (my_process_is_stdio()) THEN
       iunit = temp_defaults()
@@ -123,6 +127,7 @@ CONTAINS
     DO jg = 1,max_dom
       initwave_config(jg)%init_mode = init_mode
       initwave_config(jg)%initial_wave_spectrum_filename = initial_wave_spectrum_filename
+      initwave_config(jg)%lskip_inv_post_op = lskip_inv_post_op
     ENDDO
 
     ! transfer dt_shift to time_config state

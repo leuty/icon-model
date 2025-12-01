@@ -42,10 +42,8 @@ MODULE mo_initicon_utils
   USE mo_radiation_config,    ONLY: albedo_type
   USE mo_exception,           ONLY: message, finish, message_text
   USE mo_grid_config,         ONLY: n_dom, nroot
-  USE mo_mpi,                 ONLY: my_process_is_stdio, p_io, &
-    &                               p_comm_work, my_process_is_mpi_workroot, &
+  USE mo_mpi,                 ONLY: p_io, p_comm_work, my_process_is_mpi_workroot, &
     &                               p_min, p_max, p_sum, num_work_procs, my_process_is_work
-  USE mo_util_string,         ONLY: tolower
   USE mo_lnd_nwp_config,      ONLY: nlev_soil, ntiles_total, lseaice, llake, lmulti_snow,         &
     &                               isub_lake, frlnd_thrhld,             &
     &                               frlake_thrhld, frsea_thrhld, nlev_snow, ntiles_lnd,           &
@@ -59,11 +57,6 @@ MODULE mo_initicon_utils
   USE mo_physical_constants,  ONLY: tf_salt, tmelt, cpd, rd, cvd_o_rd, p0ref, vtmpc1, ci, clw, cpv, cvd
   USE mo_hydro_adjust,        ONLY: hydro_adjust
   USE sfc_seaice,             ONLY: seaice_coldinit_nwp
-  USE mo_post_op,             ONLY: perform_post_op
-  USE mo_var_metadata_types,  ONLY: t_var_metadata, POST_OP_NONE
-  USE mo_var_metadata,        ONLY: get_var_name
-  USE mo_var_list_register,   ONLY: t_vl_register_iter
-  USE mo_var,                 ONLY: level_type_ml
   USE sfc_flake,              ONLY: flake_coldinit
   USE mtime,                  ONLY: datetime, newDatetime, deallocateDatetime, &
     &                               OPERATOR(==), OPERATOR(+)
@@ -95,7 +88,6 @@ MODULE mo_initicon_utils
   PUBLIC :: allocate_extana_atm
   PUBLIC :: allocate_extana_sfc
 
-  PUBLIC :: initicon_inverse_post_op
   PUBLIC :: copy_initicon2prog_atm
   PUBLIC :: copy_initicon2prog_sfc
   PUBLIC :: copy_fg2initicon
@@ -110,93 +102,8 @@ MODULE mo_initicon_utils
   PUBLIC :: get_diag_stat_comm_work
   PUBLIC :: new_land_from_ocean
 
-  ! The routine initicon_inverse_post_op is called for either a 2D or a 3D array.
-  INTERFACE initicon_inverse_post_op
-    MODULE PROCEDURE inverse_post_op_r2d
-    MODULE PROCEDURE inverse_post_op_r3d
-  END INTERFACE initicon_inverse_post_op
 
   CONTAINS
-
-
-  !-------------
-  !>
-  !! module procedures for  initicon_inverse_post_op
-  !! SUBROUTINE inverse_post_op_r2d
-  !! Perform inverse post_op on an 2D input field, if necessary
-  !!
-  SUBROUTINE inverse_post_op_r2d (varname, field_2D)
-    CHARACTER(len=*), INTENT(IN)     :: varname             !< var name of field to be read
-    REAL(wp), INTENT(INOUT)          :: field_2D(:,:)       !< 2D output field
-    INTEGER                          :: i                   ! loop count
-    TYPE(t_var_metadata), POINTER    :: info                ! variable metadata
-    CHARACTER(*), PARAMETER          :: routine = 'inverse_post_op_r2d'
-    CHARACTER(LEN=LEN_TRIM(varname)) :: lc_varname
-    TYPE(t_vl_register_iter)         :: vl_iter
-
-    !-------------------------------------------------------------------------
-
-    lc_varname = tolower(varname)
-    ! get metadata information for field to be read
-    NULLIFY(info)
-    DO WHILE(vl_iter%next() .AND. .NOT.ASSOCIATED(info))
-      ! loop only over model level variables
-      IF (vl_iter%cur%p%vlevel_type /= level_type_ml) CYCLE
-      DO i = 1, vl_iter%cur%p%nvars
-        info => vl_iter%cur%p%vl(i)%p%info
-        IF (lc_varname == tolower(get_var_name(info))) EXIT
-        NULLIFY(info)
-      END DO
-    ENDDO
-    IF (.NOT.ASSOCIATED(info)) THEN
-      CALL message(TRIM(varname)//' not found',message_text)
-      CALL finish(routine, 'Varname does not match any of the ICON variable names')
-    ENDIF
-    ! perform post_op
-    IF (info%post_op%ipost_op_type /= POST_OP_NONE) THEN
-      IF(my_process_is_stdio() .AND. msg_level>10) &
-        & CALL message(routine, 'Inverse Post_op for: ' // varname)
-      CALL perform_post_op(info%post_op, field_2D, opt_inverse=.TRUE.)
-    ENDIF
-  END SUBROUTINE inverse_post_op_r2d
-
-  !! SUBROUTINE inverse_post_op_r3d
-  !! Perform inverse post_op on an 3D input field, if necessary
-  !!
-  SUBROUTINE inverse_post_op_r3d (varname, field_3D)
-    CHARACTER(len=*), INTENT(IN)     :: varname             !< var name of field to be read
-    REAL(wp), INTENT(INOUT)          :: field_3D(:,:,:)     !< 3D output field
-    INTEGER                          :: i                   ! loop count
-    TYPE(t_var_metadata), POINTER    :: info                ! variable metadata
-    CHARACTER(*), PARAMETER          :: routine = 'inverse_post_op_r3d'
-    CHARACTER(LEN=LEN_TRIM(varname)) :: lc_varname
-    TYPE(t_vl_register_iter)         :: vl_iter
-
-    !-------------------------------------------------------------------------
-
-    lc_varname = tolower(varname)
-    ! get metadata information for field to be read
-    NULLIFY(info)
-    DO WHILE(vl_iter%next() .AND. .NOT.ASSOCIATED(info))
-      ! loop only over model level variables
-      IF (vl_iter%cur%p%vlevel_type /= level_type_ml) CYCLE
-      DO i = 1, vl_iter%cur%p%nvars
-        info => vl_iter%cur%p%vl(i)%p%info
-        IF (lc_varname == tolower(get_var_name(info))) EXIT
-        NULLIFY(info)
-      END DO
-    ENDDO
-    IF (.NOT.ASSOCIATED(info)) THEN
-      CALL message(TRIM(varname)//' not found',message_text)
-      CALL finish(routine, 'Varname does not match any of the ICON variable names')
-    ENDIF
-    ! perform post_op
-    IF (info%post_op%ipost_op_type /= POST_OP_NONE) THEN
-      IF(my_process_is_stdio() .AND. msg_level>10) &
-        & CALL message(routine, 'Inverse Post_op for: ' // varname)
-      CALL perform_post_op(info%post_op, field_3D, opt_inverse=.TRUE.)
-    ENDIF
-  END SUBROUTINE inverse_post_op_r3d
 
   !>
   !! SUBROUTINE init_aersosol

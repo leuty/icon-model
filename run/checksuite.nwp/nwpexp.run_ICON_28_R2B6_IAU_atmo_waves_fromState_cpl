@@ -788,6 +788,7 @@ cat > ${wave_namelist} <<EOF
  dt_shift             = -5400.  ! timedelta for backwards time shift of model start date
  init_mode            = 1       ! MODE_ANA: read wave energy spectrum from analysis file
  initial_wave_spectrum_filename = "./waves_fg_0024_R2B6_20221102T223000Z.nc"
+ lskip_inv_post_op    = .TRUE.  ! allows usage of input file that contains S(f)
 /
 &wave_nml
  ndirs                = ${nd}   ! number of directions
