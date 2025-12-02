@@ -590,7 +590,7 @@ CONTAINS
     CALL cpl_get_field( &
       routine, in_field_ids(jg)%sst, 'sst', p_patch%n_patch_cells, &
       rx%t_seasfc, first_get=.TRUE., received_data=received_data)
-
+    !$ACC UPDATE DEVICE(rx%t_seasfc) ASYNC(1) IF(lzacc .AND. received_data)
 
     ! Check for errors with the coupling (enough if only done for sst as the time of all
     ! fields was synchronized in construct_atmo_ocean_coupling_common_finalize)
@@ -607,10 +607,12 @@ CONTAINS
     !    RR: not used in NWP so far, not activated for exchange in coupling.xml
     !------------------------------------------------
 
-    IF (ASSOCIATED(rx%ocean_u)) &
+    IF (ASSOCIATED(rx%ocean_u)) THEN
       CALL cpl_get_field( &
         routine, in_field_ids(jg)%oce_u, 'u velocity', p_patch%n_patch_cells, &
-        rx%ocean_u)
+        rx%ocean_u, received_data=received_data)
+      !$ACC UPDATE DEVICE(rx%ocean_u) ASYNC(1) IF(lzacc .AND. received_data)
+    END IF
 
     !------------------------------------------------
     !  Receive meridional velocity
@@ -620,10 +622,12 @@ CONTAINS
     !        YAC configuration file
     !------------------------------------------------
 
-    IF (ASSOCIATED(rx%ocean_v)) &
+    IF (ASSOCIATED(rx%ocean_v)) THEN
       CALL cpl_get_field( &
         routine, in_field_ids(jg)%oce_v, 'v velocity', p_patch%n_patch_cells, &
-        rx%ocean_v)
+        rx%ocean_v, received_data=received_data)
+      !$ACC UPDATE DEVICE(rx%ocean_v) ASYNC(1) IF(lzacc .AND. received_data)
+    END IF
 
     !------------------------------------------------
     !  Receive sea ice bundle
@@ -651,6 +655,7 @@ CONTAINS
         END DO
 
       ENDDO
+      !$ACC UPDATE DEVICE(rx%h_ice, rx%fr_seaice) ASYNC(1) IF(lzacc)
 
     END IF
 
@@ -661,14 +666,13 @@ CONTAINS
     !    - ocean co2 flux
     !------------------------------------------------
 
-    IF (ccycle_config(jg)%iccycle /= CCYCLE_MODE_NONE .AND. &
-        ASSOCIATED(rx%flx_co2)) &
+    IF (ccycle_config(jg)%iccycle /= CCYCLE_MODE_NONE .AND. ASSOCIATED(rx%flx_co2)) THEN
       CALL cpl_get_field( &
         routine, in_field_ids(jg)%co2_flx, 'CO2 flux', p_patch%n_patch_cells, &
-        rx%flx_co2)
+        rx%flx_co2, received_data=received_data)
+      !$ACC UPDATE DEVICE(rx%flx_co2) ASYNC(1) IF(lzacc .AND. received_data)
+    END IF
 
-    !$ACC UPDATE ASYNC(1) IF(lzacc) &
-    !$ACC   DEVICE(rx%t_seasfc, rx%fr_seaice, rx%h_ice, rx%ocean_u, rx%ocean_v, rx%flx_co2)
 
     !------------------------------------------------
     ! Debug outputs
