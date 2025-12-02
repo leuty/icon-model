@@ -33,7 +33,7 @@ MODULE mo_wave_stepping
   USE mo_intp_data_strc,           ONLY: p_int_state
   USE mo_pp_scheduler,             ONLY: new_simulation_status, pp_scheduler_process
   USE mo_pp_tasks,                 ONLY: t_simulation_status
-  USE mo_init_wave_physics,        ONLY: init_wave_nonlinear, min_energy
+  USE mo_wave_phy_util,            ONLY: init_wave_nonlinear, min_energy
   USE mo_wave_state,               ONLY: p_wave_state
   USE mo_wave_ext_data_state,      ONLY: wave_ext_data
   USE mo_wave_forcing_state,       ONLY: wave_forcing_state

@@ -17,7 +17,7 @@
 !   (such as JONSWAP)
 !
 !
-MODULE mo_wave_init
+MODULE mo_wave_init_interface
 
   USE mo_exception,            ONLY: message, message_text, finish
   USE mo_timer,                ONLY: timers_level, timer_start, timer_stop, timer_read_restart
@@ -38,20 +38,20 @@ MODULE mo_wave_init
   USE mo_intp_data_strc,       ONLY: t_int_state
   USE mo_wave_adv_exp,         ONLY: init_analytic_forcing
   USE mo_wave_td_update,       ONLY: update_water_depth_and_grad
-  USE mo_init_wave_physics,    ONLY: init_wave_spectrum_analytic, init_spectrum_from_file
+  USE mo_wave_init_spectrum,   ONLY: init_wave_spectrum_analytic, init_wave_spectrum_from_file
   USE mo_load_restart,         ONLY: read_restart_files
 
   IMPLICIT NONE
 
   PRIVATE
 
-  CHARACTER(LEN=*), PARAMETER :: modname = 'mo_wave_init'
+  CHARACTER(LEN=*), PARAMETER :: modname = 'mo_wave_init_interface'
 
   PUBLIC :: init_wave
 
 CONTAINS
 
-  ! Wrapper for wave model initialization, in particular the
+  ! Interface for wave model initialization, in particular the
   ! wave energy spectrum.
   !
   ! The following options are available:
@@ -106,7 +106,7 @@ CONTAINS
         ELSE
           ! Initialize from First Guess or analysis file
           !
-          CALL init_spectrum_from_file(p_patch(jg), wave_config(jg), wave_state(jg))
+          CALL init_wave_spectrum_from_file(p_patch(jg), wave_config(jg), wave_state(jg))
           !
           !
           !
@@ -181,4 +181,4 @@ CONTAINS
 
   END SUBROUTINE init_wave
 
-END MODULE mo_wave_init
+END MODULE mo_wave_init_interface
