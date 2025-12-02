@@ -1,12 +1,48 @@
 # ICON RAGNAROK
 
-C++ implementation of the AES Physics based on [Kokkos](https://github.com/kokkos/kokkos) Core programming model.
+Ragnarok is the C++ implementation of the AES physics based on the [Kokkos](https://github.com/kokkos/kokkos) programming model.
+
+
+## Project Structure
+
+```
+└── 📁ragnarok
+    └── 📁cmake
+        └── 📁caches
+            ├── levante_cpu.cmake
+            ├── levante_gpu.cmake
+    └── 📁common
+        ├── CMakeLists.txt
+        ├── types_test.cpp
+        ├── types.hpp
+    └── 📁support
+        └── 📁icon_bridge
+        └── 📁testing
+        └── 📁timer
+        ├── CMakeLists.txt
+    └── 📁aes_component
+        ├── CMakeLists.txt
+    ├── CMakeLists.txt
+    ├── CONTRIBUTING.md
+    └── README.md
+```
+
+Shared functionality that is used across physics components belongs in the `common/` directory.
+
+The `support/` directory provides infrastructure used throughout Ragnarok:
+
+* `icon_bridge` provides access to the data and functionality available in the main ICON code. Additionally, it also provides initialize and finalize routines for Ragnarok. Its support will be extended as needed.
+* `timer` mirrors the ICON timer infrastructure. When Ragnarok is built as part of ICON, calls to `start` and `stop` are forwarded to `mo_timer.f90` so that Ragnarok timers appear in the experiment logfile. When built standalone, Ragnarok provides an ICON-compatible timer implementation based on `Kokkos::Timer`.
+* `testing` provides the entry point for standalone unit testing and is also used in the GitLab CI pipelines.
 
 ## Usage
 
-The project is part of ICON and built by the ICON build system if the option `--enable-ragnarok` is turned on; it also handles the proper compilation flags needed to configure Kokkos backend (from `externals/kokkos` submodule).
+Ragnarok is integrated into ICON and is built automatically when ICON is configured with `--enable-ragnarok`. The ICON build system also ensures that the correct compilation flags and the appropriate Kokkos backend (from the `externals/kokkos` submodule) are used.
 
-## Available compile options (default options are marked in __bold__)
+## Available Compile Options
+
+> **Note:** default options are marked in __bold__
+
 * _Unit-test_ - compile unit-tests
   * BUILD_TESTING=__ON__/OFF
 * Standalone - compile standalone components
@@ -14,11 +50,11 @@ The project is part of ICON and built by the ICON build system if the option `--
 
 ### Build as part of ICON
 
-ICON configuration script will also configure ragnarok & kokkos.
+The ICON configuration scripts automatically configure both Ragnarok and Kokkos.
 
-### Build standalone
+### Build Standalone
 
-To build ragnarok standalone, one can use the cache files provided for levante under `ragnarok/cmake/caches/`, e.g.:
+Ragnarok can also be built independently of ICON. Cache files for Levante are available under `ragnarok/cmake/caches/`. For example:
 
   ```
   cmake -B build -S ragnarok -C ragnarok/cmake/caches/levante_cpu.cmake`
@@ -26,7 +62,7 @@ To build ragnarok standalone, one can use the cache files provided for levante u
 
 ## Testing
 
-The unit tests support via gtest. To run the unit-tests, e.g.:
+Ragnarok uses GoogleTest for unit testing. To run the tests:
 
   ```
   cd build && ctest
