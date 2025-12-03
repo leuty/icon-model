@@ -8248,6 +8248,16 @@ processes, i.e. a large stride, often gives best performance.)
 \tabularnewline
 
 %\hline
+process\_stride\_pgrib
+I & -1 & &
+\emph{(Advanced namelist parameter:)}
+Stride of processes taking part in parallel GRIB decoding (recommendation: select
+stride such as to have between 100 and 1000 decoder PEs)
+& initicon\_nml:parallel\_grib\_decoding
+\tabularnewline
+
+
+%\hline
 io\_process\_rotate &
 I & 0 & &
 \emph{(Advanced namelist parameter:)}

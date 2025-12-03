@@ -17,7 +17,7 @@ MODULE mo_scatter_pattern_scatter
     USE mo_scatter_pattern_base
     USE mo_mpi, ONLY: my_process_is_stdio, &
     &                 p_max, p_gather, p_allgather, p_scatter
-    USE mo_parallel_config, ONLY: blk_no, idx_no
+    USE mo_parallel_config, ONLY: blk_no, idx_no, process_stride_pgrib
     USE mo_exception, ONLY: finish
 
     IMPLICIT NONE
@@ -40,6 +40,7 @@ PUBLIC :: t_scatterPatternScatter
         PROCEDURE :: distribute_sp   => distributeDataScatter_sp       !< override
         PROCEDURE :: distribute_int  => distributeDataScatter_int      !< override
         PROCEDURE :: destruct        => destructScatterPatternScatter  !< override
+        PROCEDURE :: destruct_child  => destructScatterPatternScatter_child ! child-only destructor
     END TYPE
 
 PRIVATE
@@ -62,7 +63,7 @@ CONTAINS
 
         CHARACTER(*), PARAMETER :: routine &
              = modname//":costructScatterPatternScatter"
-        INTEGER :: ierr, pt_shape(2)
+        INTEGER :: ierr, pt_shape(2), irank
         INTEGER, ALLOCATABLE :: myIndices(:)
         LOGICAL :: l_write_debug_info
 
@@ -71,7 +72,7 @@ CONTAINS
         IF (l_write_debug_info) WRITE(0,*) "entering ", routine
         CALL constructScatterPattern(me, jg, loc_arr_len, glb_index, communicator, all_workers, root_rank)
         me%slapSize = p_max(me%myPointCount, comm = communicator)
-        IF (all_workers) THEN
+        IF (all_workers .AND. MOD(me%rank,process_stride_pgrib) == 0) THEN
           pt_shape(1) = me%slapSize
           pt_shape(2) = me%comm_size
         ELSE
@@ -84,13 +85,17 @@ CONTAINS
         IF(ierr /= SUCCESS) CALL finish(routine, "error allocating memory")
         myIndices(1:me%myPointCount) = glb_index
         myIndices(me%myPointCount+1:me%slapSize) = -1
-        IF (all_workers) THEN
+        IF (all_workers .AND. process_stride_pgrib == 1) THEN
           ! Every worker in communicator needs information from all the others
           CALL p_allgather(me%myPointCount, me%point_counts, 1, 1, communicator)
           CALL p_allgather(myIndices, me%pointIndices, me%slapSize, me%slapSize, communicator)
         ELSE
-          CALL p_gather(me%myPointCount, me%point_counts, me%root_rank, communicator)
-          CALL p_gather(myIndices, me%pointIndices, me%root_rank, communicator)
+          DO irank = me%root_rank, me%comm_size + me%root_rank -1
+            IF (irank == me%root_rank .OR. all_workers .AND. MOD(irank,process_stride_pgrib) == 0) THEN
+              CALL p_gather(me%myPointCount, me%point_counts, irank, communicator)
+              CALL p_gather(myIndices, me%pointIndices, irank, communicator)
+            ENDIF
+          ENDDO
         ENDIF
         DEALLOCATE (myIndices, stat = ierr)
         IF(ierr /= SUCCESS) CALL finish(routine, "error deallocating memory")
@@ -396,9 +401,33 @@ CONTAINS
         l_write_debug_info = debugmodule .AND. me%rank == me%root_rank
 
         IF (l_write_debug_info) WRITE(0,*) "entering ", routine
-        DEALLOCATE(me%pointIndices)
+        DEALLOCATE(me%pointIndices, me%point_counts)
         CALL destructScatterPattern(me)
         IF (l_write_debug_info) WRITE(0,*) "leaving ", routine
     END SUBROUTINE destructScatterPatternScatter
+
+    SUBROUTINE destructScatterPatternScatter_child(me)
+        CLASS(t_scatterPatternScatter), TARGET, INTENT(INOUT) :: me
+
+        CHARACTER(*), PARAMETER :: routine &
+             = modname//":destructScatterPatternScatter_child"
+        LOGICAL :: l_write_debug_info
+        INTEGER :: ist
+
+        l_write_debug_info = debugmodule .AND. me%rank == me%root_rank
+
+        IF (l_write_debug_info) WRITE(0,*) "entering ", routine
+
+        IF (allocated(me%pointIndices)) THEN
+          DEALLOCATE(me%pointIndices, stat=ist)
+          IF(ist /= success) CALL finish(routine,'deallocation of pointIndices failed')
+        END IF
+        IF (allocated(me%point_counts)) THEN
+          DEALLOCATE(me%point_counts, stat=ist)
+          IF(ist /= success) CALL finish(routine,'deallocation of point_counts failed')
+        END IF
+
+        IF (l_write_debug_info) WRITE(0,*) "leaving ", routine
+    END SUBROUTINE destructScatterPatternScatter_child
 
 END MODULE

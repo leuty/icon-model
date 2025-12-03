@@ -36,7 +36,7 @@ MODULE mo_input_request_list
     USE mo_grid_config, ONLY: n_dom
     USE mo_impl_constants, ONLY: SUCCESS, vname_len
     USE mo_initicon_config, ONLY: lconsistency_checks
-    USE mo_parallel_config, ONLY: use_omp_input
+    USE mo_parallel_config, ONLY: use_omp_input, process_stride_pgrib
     USE mo_post_op, ONLY: inverse_post_op
     USE mo_input_container, ONLY: t_InputContainer, inputContainer_make
     USE mo_kind, ONLY: wp, dp, sp, i8, i4
@@ -1292,7 +1292,7 @@ CONTAINS
 
         IF (timing) CALL timer_stop(timer_file_reading)
 
-      ELSE
+      ELSE IF (MOD(my_mpi_work_id,process_stride_pgrib) == 0) THEN
 
         IF (timing) CALL timer_start(timer_raw_data_distribution)
 
@@ -1378,7 +1378,7 @@ CONTAINS
 
           ! ID of the Work PE, which shall receive
           ! the GRIB message for decoding
-          send_to_work_proc = send_to_work_proc + 1
+          send_to_work_proc = send_to_work_proc + process_stride_pgrib
 
           ! For the tag, we use the Work PE ID, too
           send_tag = send_to_work_proc
@@ -1400,7 +1400,7 @@ CONTAINS
 
           ! If all Work PEs got a GRIB record for decoding,
           ! we have to reset the destination of sending
-          IF (.NOT. (send_to_work_proc < num_work_procs - 1)) THEN
+          IF (.NOT. (send_to_work_proc < num_work_procs - process_stride_pgrib)) THEN
 
             send_to_work_proc = 0
             send_tag          = send_to_work_proc
@@ -1424,9 +1424,9 @@ CONTAINS
           ! the Workroot PE will not enter the following loop-cycle-condition,
           ! but will advance to the "all-to-all" distribution
           ! of the decoded GRIB messages further below.
-          IF (MOD(ecc_count, num_work_procs - 1) /= 0) CYCLE FILE_PROCESSING_LOOP
+          IF (MOD(ecc_count, (num_work_procs - 1)/process_stride_pgrib) /= 0) CYCLE FILE_PROCESSING_LOOP
 
-        ELSE
+        ELSE IF (MOD(my_mpi_work_id,process_stride_pgrib) == 0) THEN
 
           !-------------------------
           ! All the other Work PEs:
@@ -1639,7 +1639,7 @@ CONTAINS
         DISTRIBUTION_LOOP: DO jproc = 1, num_work_procs - 1
 
           ! Work PE that is next in line for distributing its data
-          is_my_turn = (jproc == my_mpi_work_id)
+          is_my_turn = (jproc == my_mpi_work_id .AND. MOD(my_mpi_work_id,process_stride_pgrib) == 0)
 
           ! First, we have to distribute a number of metadata.
           ! (It seems that the type-bound procedures 'InputRequestList_sendFieldMetadata' and
