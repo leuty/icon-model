@@ -224,7 +224,9 @@ CONTAINS
            &                     target_datetime,                  &! in
            &                     ext_data%atm_td%cdnc,             &! in
            &                     ext_data%atm%cdnc                 )! out
-      CALL set_cdnc_from_extdata(p_patch, ext_data, prm_diag)
+      IF (atm_phy_nwp_config(jg)%scale_cdnc_mode == 0) THEN
+        CALL set_cdnc_from_extdata(p_patch, ext_data, prm_diag)
+      ENDIF
     ENDIF
 
   END SUBROUTINE update_nwp_phy_bcs
