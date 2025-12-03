@@ -87,6 +87,8 @@ MODULE mo_initicon
   USE mo_coupling_config,     ONLY: is_coupled_to_ocean
   USE mo_util_vgrid_types,    ONLY: vgrid_buffer
   USE mo_eccodes,             ONLY: ecc_is_filetype_grib2
+  USE mo_scatter_pattern_base,    ONLY: t_scatterPattern
+  USE mo_scatter_pattern_scatter, ONLY: t_scatterPatternScatter
 
 
   IMPLICIT NONE
@@ -122,8 +124,9 @@ MODULE mo_initicon
     TYPE(t_external_data),    INTENT(INOUT), OPTIONAL :: ext_data(:)
 
     CHARACTER(LEN = *), PARAMETER :: routine = modname//':init_icon'
-    INTEGER :: jg, ist
+    INTEGER :: jg, ist, ip
     TYPE(t_readInstructionListPtr) :: inputInstructions(n_dom)
+    CLASS(t_ScatterPattern), POINTER :: scpat
 
     ! Allocate initicon data type
     ALLOCATE (initicon(n_dom), initicon_const(n_dom),  &
@@ -194,6 +197,30 @@ MODULE mo_initicon
     ! runs. Could not be included into mo_ext_data_state/init_index_lists due to its
     ! dependence on p_diag_lnd.
 !DR    CALL init_sea_lists(p_patch, ext_data, p_diag_lnd, lseaice)
+
+    IF (parallel_grib_decoding .AND. .NOT. my_process_is_stdio()) THEN
+      ! deallocate scatter pattern information on worker PEs to free memory;
+      ! stdio is excluded because there might be applications in which data are read during runtime,
+      ! whose distribution requires the scatter patterns on the IO PE.
+      DO jg = 1, n_dom
+        DO ip = 1, 2
+          IF (ip == 1) THEN
+            scpat => p_patch(jg)%comm_pat_scatter_c
+          ELSE
+            scpat => p_patch(jg)%comm_pat_scatter_e
+          ENDIF
+          SELECT TYPE (scpat)
+          CLASS IS (t_scatterPatternScatter)
+            ! deallocates allocatable components of (child) type t_scatterPatternScatter
+            ! by invoking the child-only destructor.
+            ! i.e. deallocates the arrays pointIndices and point_counts
+            CALL scpat%destruct_child()
+          CLASS default
+            ! no child components to clean
+          END SELECT
+        ENDDO
+      ENDDO
+    ENDIF
 
   END SUBROUTINE init_icon
 
