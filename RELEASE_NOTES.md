@@ -7,9 +7,11 @@
 - Bugfix in vdiff interface concerning restart reproducibility
 - Introducing CO2 prognostic tracer to ecRad to enable emission-driven simulations with interactive land-ocean-atmosphere carbon cycle
 - Allow more than one time interval for lateral boundary conditions
-- EMVORADO: Bugfix in the determination of the nearest ICON cell
 - Set taudecay in cover_koe separately for shallow, mid-level and deep convection
 - Modified call to SR set_cdnc_from_extdata to get correct update for cloud_num in radiation after restarts
+- Fixes in Emvorado:
+  - determination of nearest ICON cell
+  - fix interface to eccodes routine codes_open_file
 
 ### ICON-Ocean
 
