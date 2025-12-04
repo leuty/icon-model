@@ -21,6 +21,7 @@ MODULE mo_wave_state
   USE mo_grid_config,               ONLY: n_dom, l_limited_area, ifeedback_type
   USE mo_impl_constants,            ONLY: success, max_char_length, VNAME_LEN, TLEV_NNOW, &
     &                                     HINTP_TYPE_LONLAT_NNB, HINTP_TYPE_LONLAT_BCTR
+  USE mo_math_constants,            ONLY: rad2deg
   USE mo_var_list,                  ONLY: add_var, add_ref, t_var_list_ptr
   USE mo_math_constants,            ONLY: pi2
   USE mo_var_list_register,         ONLY: vlr_add, vlr_del
@@ -32,7 +33,8 @@ MODULE mo_wave_state
   USE mo_zaxis_type,                ONLY: ZA_SURFACE, ZA_FREQ_GENERIC, ZA_DIR_GENERIC, &
     &                                     ZA_DEPTH_BELOW_SEA
   USE mo_cf_convention,             ONLY: t_cf_var
-  USE mo_grib2,                     ONLY: t_grib2_var, grib2_var, t_grib2_int_key, OPERATOR(+)
+  USE mo_grib2,                     ONLY: t_grib2_var, grib2_var, t_grib2_int_key, OPERATOR(+), &
+    &                                     t_grib2_intarr_key
   USE mo_io_config,                 ONLY: lnetcdf_flt64_output
   USE mo_wave_io_config,            ONLY: t_wave_var_in_output
   USE mo_var_metadata,              ONLY: get_timelevel_string, create_hor_interp_metadata, post_op
@@ -171,6 +173,11 @@ CONTAINS
     INTEGER :: shape3d_c(3), shape2d_c(2)
     INTEGER :: jf, jd
 
+    INTEGER :: scaleFactor
+    INTEGER :: scaled_wdsp1, scaled_wdsp2  ! scaled Grib2 waveDirectionSequenceParameters
+    INTEGER :: scaled_wfsp1, scaled_wfsp2  ! scaled Grib2 waveFrequencySequenceParameters
+    INTEGER :: scaleFactorArr(2), wdspArr(2), wfspArr(2)
+
     !determine size of arrays
     nblks_c = p_patch%nblks_c
 
@@ -195,6 +202,27 @@ CONTAINS
     ALLOCATE(p_prog%wesd(wc%nfreqs), STAT=ist)
     IF (ist/=SUCCESS) CALL finish(routine, 'allocation of prognostic wesd state failed')
 
+    ! scaling for waveDirectionSequenceParameters and waveFrequencySequenceParameters
+    ! according to
+    ! value = scaledValue * 10^{-scaleFactor}
+    ! strictly speaking the scaleFactor refers to a power-of-10 exponent!
+    !
+    scaleFactor    = 6
+    scaleFactorArr = (/scaleFactor, scaleFactor/)
+    !
+    ! scaled waveDirectionSequenceParameters
+    ! hint arithmetic sequence for direction calculation (see mo_wave_config)
+    ! dirs(jd) =  0.5_wp*wc%delth + REAL(jd-1,wp) * wc%delth
+    scaled_wdsp1 = NINT(rad2deg * 0.5_wp*wc%delth * 10**(scaleFactor))
+    scaled_wdsp2 = NINT(rad2deg * wc%delth * 10**(scaleFactor))
+    wdspArr      = (/scaled_wdsp1, scaled_wdsp2/)
+    !
+    ! scaled waveFrequencySequenceParameter
+    ! hint: geometric sequence for frequency calculation (see mo_wave_config)
+    ! freqs(jf) = wc%fr1 * wc%co**(jf-1)
+    scaled_wfsp1 = NINT(wc%fr1 * 10**(scaleFactor))
+    scaled_wfsp2 = NINT(wc%co * 10**(scaleFactor))
+    wfspArr      = (/scaled_wfsp1, scaled_wfsp2/)
 
     !
     ! Register a field list and apply default settings
@@ -232,10 +260,14 @@ CONTAINS
           &        + t_grib2_int_key("typeOfWaveDirectionSequence", 2)             &
           &        + t_grib2_int_key("waveDirectionNumber", jd)                    &
           &        + t_grib2_int_key("numberOfWaveDirectionSequenceParameters", 2) &
+          &        + t_grib2_intarr_key("scaleFactorOfWaveDirectionSequenceParameter", scaleFactorArr) &
+          &        + t_grib2_intarr_key("scaledValueOfWaveDirectionSequenceParameter", wdspArr) &
           &        + t_grib2_int_key("numberOfWaveFrequencies", wc%nfreqs)         &
           &        + t_grib2_int_key("typeOfWaveFrequencySequence", 1)             &
           &        + t_grib2_int_key("waveFrequencyNumber", jf)                    &
-          &        + t_grib2_int_key("numberOfWaveFrequencySequenceParameters", 2)
+          &        + t_grib2_int_key("numberOfWaveFrequencySequenceParameters", 2) &
+          &        + t_grib2_intarr_key("scaleFactorOfWaveFrequencySequenceParameter", scaleFactorArr) &
+          &        + t_grib2_intarr_key("scaledValueOfWaveFrequencySequenceParameter", wfspArr)
 
         CALL add_ref( p_prog_list, wesd_container_name,                          &
           &  TRIM(wesd_name), p_prog%wesd(jf)%dir(jd)%p_2d,                      &
@@ -1137,7 +1169,6 @@ CONTAINS
            & GRID_UNSTRUCTURED_CELL, ZA_DEPTH_BELOW_SEA, cf_desc, grib2_desc, &
            & lrestart=.FALSE., loutput=.TRUE.,                        &
            & ldims=shape3d_depth_c)
-
     END IF
 
   END SUBROUTINE new_wave_state_diag_list

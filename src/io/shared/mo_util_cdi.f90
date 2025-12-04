@@ -40,7 +40,6 @@ MODULE mo_util_cdi
                                  & vlistInqVarIntKey, vlistInqVarZaxis, &
                                  & vlistInqVarGrid, gridInqSize, zaxisInqSize, CDI_DATATYPE_FLT64, CDI_DATATYPE_INT32, &
                                  & streamInqTimestep, &
-                                 & vlistDefVarIntKey, &
                                  & streamReadVarSliceF, streamReadVarSlice, vlistInqVarName, &
                                  & vlistInqVarSubtype, subtypeInqSize, &
                                  & cdi_max_name, &
@@ -50,6 +49,9 @@ MODULE mo_util_cdi
                                  & vlistDefVarStdname, vlistDefVarUnits, vlistDefVarParam, vlistDefVarMissval, &
                                  & vlistDefVarDatatype, vlistDefVarIntKey, vlistDefVarDblKey, &
                                  & TIME_CONSTANT, TIME_VARYING, TSTEP_CONSTANT
+#ifndef __NO_ICON_WAVES__
+  USE mo_wave_grib2,         ONLY: set_grib2_pdt_wave_spectra
+#endif
 
   IMPLICIT NONE
   PRIVATE
@@ -866,8 +868,8 @@ CONTAINS
 
 
     CHARACTER(len=*), PARAMETER :: routine = modname//':read_cdi_2d_lbc'
-    INTEGER :: jk, ierrstat, nmiss, i
-    INTEGER :: vlistId, varId, zaxisId, gridId, tile_index, grid_size
+    INTEGER :: ierrstat, nmiss, i
+    INTEGER :: vlistId, varId, gridId, tile_index, grid_size
     REAL(sp), ALLOCATABLE :: tmp_buf(:), map_buf(:) ! temporary local array
     LOGICAL :: lmap_buf, is_workroot
     CHARACTER(len=DICT_MAX_STRLEN) :: mapped_name
@@ -1204,6 +1206,7 @@ CONTAINS
     CHARACTER(LEN=DICT_MAX_STRLEN) :: mapped_name
     TYPE(t_cf_var), POINTER        :: this_cf
     INTEGER                        :: i
+    INTEGER :: nval
 
     ! Search name mapping for name in NetCDF file
     IF (info%cf%short_name /= '') THEN
@@ -1282,17 +1285,23 @@ CONTAINS
       CALL set_GRIB2_tile_keys(vlistID, varID, info, i_lctype, gribout_config%grib2_template_tile)
 #endif
 
-      ! Set further additional integer keys
+#ifndef __NO_ICON_WAVES__
+      ! Set grib2 PDT for wave 2D spectra
+      CALL set_grib2_pdt_wave_spectra(vlistID, varID, info)
+#endif
+
+      ! Set additional integer keys
       DO i=1,info%grib2%additional_keys%nint_keys
         CALL vlistDefVarIntKey(vlistID, varID, TRIM(info%grib2%additional_keys%int_key(i)%key), &
           &                    info%grib2%additional_keys%int_key(i)%val)
       END DO
 
-      ! Set further additional double keys
+      ! Set additional double keys
       DO i=1,info%grib2%additional_keys%ndbl_keys
         CALL vlistDefVarDblKey(vlistID, varID, TRIM(info%grib2%additional_keys%dbl_key(i)%key), &
           &                    info%grib2%additional_keys%dbl_key(i)%val)
       END DO
+
 
       ! Adjustments for compensating non-backward-compatible
       ! metadata changes after version updates of the GRIB library.
