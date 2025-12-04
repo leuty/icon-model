@@ -843,6 +843,9 @@ CONTAINS
     rx%h_ice => h_ice(:,:)
     rx%ocean_u => sea_state%ocean_u(:,:)
     rx%ocean_v => sea_state%ocean_v(:,:)
+    rx%ice_u => sea_state%ice_u(:,:)
+    rx%ice_v => sea_state%ice_v(:,:)
+
     rx%t_seasfc => t_seasfc(:,:)
 
     ! May not be associated.

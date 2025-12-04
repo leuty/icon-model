@@ -586,10 +586,12 @@ CONTAINS
   !!
   SUBROUTINE sfc_exchange_coeff( jb, jcs, kproma, kbdim, ksfc_type,      &! in
                                & patch,                                  &! in
-                               & idx_wtr, idx_ice, idx_lnd,              &! in
+                               & idx_wtr,idx_ice, idx_lnd,               &! in
                                & pz0m, ptsfc,                            &! in
                                & pfrc, phdtcbl,                          &! in
-                               & pocu, pocv, ppsfc,                      &! in
+                               & pocu, pocv,                             &! in
+                               & piceu, picev,                           &! in
+                               & ppsfc,                                  &! in
                                & pghf_b,                                 &! in
                                & pum1_b, pvm1_b,                         &! in
                                & ptm1_b,                                 &! in
@@ -630,6 +632,8 @@ CONTAINS
     REAL(wp),INTENT(IN) :: phdtcbl  (:)  !< (kbdim) height of the top of the atmospheric dry convective boundary layer
     REAL(wp),INTENT(IN) :: pocu     (:)  !< (kbdim) ocean surface velocity
     REAL(wp),INTENT(IN) :: pocv     (:)  !< (kbdim) ocean surface velocity
+    REAL(wp),INTENT(IN) :: piceu    (:)  !< (kbdim) sea ice velocity (u component)
+    REAL(wp),INTENT(IN) :: picev    (:)  !< (kbdim) sea ice velocity (v component)
     REAL(wp),INTENT(IN) :: ppsfc    (:)  !< (kbdim) surface pressure
 
     ! "_b" denotes value at the bottom level (the klev-th full level)
@@ -889,13 +893,19 @@ CONTAINS
 
         zdqt     = zqtl - zqts(js,jsfc)                           ! d qt
         zdthetal(js,jsfc) = pthetal_b(js) - ztheta                ! d theta_l
-        IF (jsfc == idx_lnd) THEN                                 ! over land
-          zdu2(js,jsfc) = MAX(zepdu2,(pum1_b(js)**2+pvm1_b(js)**2 &
-                                    +(wmc*pwstar_tile(js,jsfc))**2))
-        ELSE                                                      ! over water or ice
-          zdu2(js,jsfc) = MAX(zepdu2,(pum1_b(js)-pocu(js))**2 &   ! (d u)^2
-                                    +(pvm1_b(js)-pocv(js))**2 &   ! (d v)^2
-                                    +(wmc*pwstar_tile(js,jsfc))**2 )
+
+ !  Calculate relative wind velocity squared (d u)^2
+        IF (jsfc == idx_lnd) THEN                                ! over land
+          zdu2(js,jsfc) = MAX(zepdu2, (pum1_b(js)**2 + pvm1_b(js)**2) &
+                             + (wmc*pwstar_tile(js,jsfc))**2)
+        ELSEIF (jsfc == idx_wtr) THEN                            ! over open ocean
+          zdu2(js,jsfc) = MAX(zepdu2, (pum1_b(js) - pocu(js))**2 &
+                             + (pvm1_b(js) - pocv(js))**2 &
+                             + (wmc*pwstar_tile(js,jsfc))**2)
+        ELSEIF (jsfc == idx_ice) THEN                            ! over sea ice
+          zdu2(js,jsfc) = MAX(zepdu2, (pum1_b(js) - piceu(js))**2 &
+                             + (pvm1_b(js) - picev(js))**2 &
+                             + (wmc*pwstar_tile(js,jsfc))**2)
         END IF
 
         zbuoy        = zdus1*zdthetal(js,jsfc) + zdus2*zthetamid*zdqt

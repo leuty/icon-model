@@ -38,8 +38,9 @@
 ! Possible fields to receive from the ocean include
 !
 ! 1. prm_field(jg)% ts_tile(:,:,iwtr)   SST
-! 2. prm_field(jg)% ocu(:,:) and ocv(:,:) ocean surface current
-! 3. ... tbc
+! 2. prm_field(jg)% ocean_u(:,:) and ocean_v(:,:) surface ocean velocity
+! 3. prm_field(jg)% ice_u(:,:) ice_v(:,:) sea ice velocity
+! 4. ... tbc
 
 !  Send fields to ocean:
 !   "surface_downward_eastward_stress" bundle  - zonal wind stress component over ice and water
@@ -53,9 +54,8 @@
 !
 !  Receive fields from ocean:
 !   "sea_surface_temperature"                  - SST
-!   "eastward_sea_water_velocity"              - zonal velocity, u component of ocean surface current
-!   "northward_sea_water_velocity"             - meridional velocity, v component of ocean surface current
 !   "ocean_sea_ice_bundle"                     - ice thickness, snow thickness, ice concentration
+!   "surface_velocity_bundle"                  - u and v component of surface ocean and sea ice velocity
 !   "co2_flux"                                 - ocean co2 flux
 
 !----------------------------
@@ -188,9 +188,8 @@ CONTAINS
     max_get_collection_size = &
       MAX( &
         cpl_get_field_collection_size(routine, in_field_ids(1)%sst), &
-        cpl_get_field_collection_size(routine, in_field_ids(1)%oce_u), &
-        cpl_get_field_collection_size(routine, in_field_ids(1)%oce_v), &
         cpl_get_field_collection_size(routine, in_field_ids(1)%seaice_oce), &
+        cpl_get_field_collection_size(routine, in_field_ids(1)%surface_velocity), &
         cpl_get_field_collection_size(routine, in_field_ids(1)%co2_flx))
 
   END SUBROUTINE construct_aes_ocean_coupling
@@ -660,67 +659,6 @@ CONTAINS
         CALL sync_patch_array(sync_c, p_patch(jg), prm_field(jg)%ts_tile(:,:,iwtr), lacc=lacc)
       END IF
 
-      !
-      ! ------------------------------
-      !  Receive zonal velocity
-      !   "eastward_sea_water_velocity" - zonal velocity, u component of ocean surface current
-      !
-      no_arr = cpl_get_field_collection_size(routine, in_field_ids(jg)%oce_u)
-!ICON_OMP_PARALLEL
-      CALL init(get_buffer(:,1:no_arr), lacc=.FALSE.)
-!ICON_OMP_END_PARALLEL
-      CALL cpl_get_field( &
-        routine, in_field_ids(jg)%oce_u, 'u velocity', &
-        get_buffer(1:nbr_hor_cells,1:no_arr), received_data=received_data)
-
-      IF (received_data) THEN
-
-!ICON_OMP_PARALLEL_DO PRIVATE(i_blk, n, nn, nlen) ICON_OMP_RUNTIME_SCHEDULE
-        !$ACC UPDATE DEVICE(get_buffer(:,1)) ASYNC(1)
-        DO i_blk = 1, nblks_c
-          nn = (i_blk - 1) * nproma
-          nlen = MERGE(nproma, npromz_c, i_blk /= nblks_c)
-          !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1)
-          DO n = 1, nlen
-            prm_field(jg)%ocu(n,i_blk) = get_buffer(nn+n,1)
-          ENDDO
-        ENDDO
-        !$ACC WAIT(1)
-!ICON_OMP_END_PARALLEL_DO
-
-        CALL sync_patch_array(sync_c, p_patch(jg), prm_field(jg)%ocu(:,:), lacc=lacc)
-      END IF
-
-      ! ------------------------------
-      !  Receive meridional velocity
-      !   "northward_sea_water_velocity" - meridional velocity, v component of ocean surface current
-      !
-      no_arr = cpl_get_field_collection_size(routine, in_field_ids(jg)%oce_v)
-!ICON_OMP_PARALLEL
-      CALL init(get_buffer(:,1:no_arr), lacc=.FALSE.)
-!ICON_OMP_END_PARALLEL
-      CALL cpl_get_field( &
-        routine, in_field_ids(jg)%oce_v, 'v velocity', &
-        get_buffer(1:nbr_hor_cells,1:no_arr), received_data=received_data)
-
-      IF (received_data) THEN
-
-!ICON_OMP_PARALLEL_DO PRIVATE(i_blk, n, nn, nlen) ICON_OMP_RUNTIME_SCHEDULE
-        !$ACC UPDATE DEVICE(get_buffer(:,1)) ASYNC(1)
-        DO i_blk = 1, nblks_c
-          nn = (i_blk - 1) * nproma
-          nlen = MERGE(nproma, npromz_c, i_blk /= nblks_c)
-          !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1)
-          DO n = 1, nlen
-            prm_field(jg)%ocv(n,i_blk) = get_buffer(nn+n,1)
-          ENDDO
-        ENDDO
-        !$ACC WAIT(1)
-!ICON_OMP_END_PARALLEL_DO
-
-        CALL sync_patch_array(sync_c, p_patch(jg), prm_field(jg)%ocv(:,:), lacc=lacc)
-      END IF
-
       ! ------------------------------
       !  Receive sea ice bundle
       !   "ocean_sea_ice_bundle" - ice thickness, snow thickness, ice concentration
@@ -766,6 +704,43 @@ CONTAINS
         ENDDO
         !$ACC WAIT(1)
 !ICON_OMP_END_PARALLEL_DO
+
+      END IF
+
+      ! ------------------------------
+      !  Receive ocean and sea ice velocity bundle
+      !   "surface_velocity_bundle" - u and v component of surface ocean and sea ice velocity
+      !
+      no_arr = cpl_get_field_collection_size(routine, in_field_ids(jg)%surface_velocity)
+!ICON_OMP_PARALLEL
+      CALL init(get_buffer(:,1:no_arr), lacc=.FALSE.)
+!ICON_OMP_END_PARALLEL
+      CALL cpl_get_field( &
+        routine, in_field_ids(jg)%surface_velocity, 'ocean and sea ice velociy', &
+        get_buffer(1:nbr_hor_cells,1:no_arr), received_data=received_data)
+
+      IF (received_data) THEN
+
+!ICON_OMP_PARALLEL_DO PRIVATE(i_blk, n, nn, nlen) ICON_OMP_RUNTIME_SCHEDULE
+        !$ACC UPDATE DEVICE(get_buffer(:,1:4)) ASYNC(1)
+        DO i_blk = 1, nblks_c
+          nn = (i_blk - 1) * nproma
+          nlen = MERGE(nproma, npromz_c, i_blk /= nblks_c)
+          !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1)
+          DO n = 1, nlen
+            prm_field(jg)%ocean_u  (n,i_blk) = get_buffer(nn+n,1)
+            prm_field(jg)%ocean_v  (n,i_blk) = get_buffer(nn+n,2)
+            prm_field(jg)%ice_u    (n,i_blk) = get_buffer(nn+n,3)
+            prm_field(jg)%ice_v    (n,i_blk) = get_buffer(nn+n,4)
+          ENDDO
+        ENDDO
+        !$ACC WAIT(1)
+!ICON_OMP_END_PARALLEL_DO
+
+        CALL sync_patch_array(sync_c, p_patch(jg), prm_field(jg)%ocean_u  (:,:), lacc=lacc)
+        CALL sync_patch_array(sync_c, p_patch(jg), prm_field(jg)%ocean_v  (:,:), lacc=lacc)
+        CALL sync_patch_array(sync_c, p_patch(jg), prm_field(jg)%ice_u    (:,:), lacc=lacc)
+        CALL sync_patch_array(sync_c, p_patch(jg), prm_field(jg)%ice_v    (:,:), lacc=lacc)
 
       END IF
 
@@ -1244,74 +1219,6 @@ CONTAINS
 
       CALL sync_patch_array(sync_c, p_patch, prm_field(jg)%ts_tile(:,:,iwtr), lacc=lacc)
     END IF
-    !
-    ! ------------------------------
-    !  Receive zonal velocity
-    !   "eastward_sea_water_velocity" - zonal velocity, u component of ocean surface current
-    !
-    no_arr = cpl_get_field_collection_size(routine, in_field_ids(jg)%oce_u)
-!ICON_OMP_PARALLEL
-    CALL init(get_buffer(:,1:no_arr), lacc=.FALSE.)
-!ICON_OMP_END_PARALLEL
-    CALL cpl_get_field( &
-      routine, in_field_ids(jg)%oce_u, 'u velocity', &
-      get_buffer(1:nbr_hor_cells,1:no_arr), received_data=received_data)
-
-    IF (received_data) THEN
-
-!ICON_OMP_PARALLEL_DO PRIVATE(i_blk, n, nn, nlen) ICON_OMP_RUNTIME_SCHEDULE
-      !$ACC UPDATE DEVICE(get_buffer(:,1)) ASYNC(1)
-      DO i_blk = 1, p_patch%nblks_c
-        nn = (i_blk-1)*nproma
-        IF (i_blk /= p_patch%nblks_c) THEN
-          nlen = nproma
-        ELSE
-          nlen = p_patch%npromz_c
-        END IF
-        !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1)
-        DO n = 1, nlen
-          prm_field(jg)%ocu(n,i_blk) = get_buffer(nn+n,1)
-        ENDDO
-      ENDDO
-      !$ACC WAIT(1)
-!ICON_OMP_END_PARALLEL_DO
-
-      CALL sync_patch_array(sync_c, p_patch, prm_field(jg)%ocu(:,:), lacc=lacc)
-    END IF
-
-    ! ------------------------------
-    !  Receive meridional velocity
-    !   "northward_sea_water_velocity" - meridional velocity, v component of ocean surface current
-    !
-    no_arr = cpl_get_field_collection_size(routine, in_field_ids(jg)%oce_v)
-!ICON_OMP_PARALLEL
-    CALL init(get_buffer(:,1:no_arr), lacc=.FALSE.)
-!ICON_OMP_END_PARALLEL
-    CALL cpl_get_field( &
-      routine, in_field_ids(jg)%oce_v, 'v velocity', &
-      get_buffer(1:nbr_hor_cells,1:no_arr), received_data=received_data)
-
-    IF (received_data) THEN
-
-!ICON_OMP_PARALLEL_DO PRIVATE(i_blk, n, nn, nlen) ICON_OMP_RUNTIME_SCHEDULE
-      !$ACC UPDATE DEVICE(get_buffer(:,1)) ASYNC(1)
-      DO i_blk = 1, p_patch%nblks_c
-        nn = (i_blk-1)*nproma
-        IF (i_blk /= p_patch%nblks_c) THEN
-          nlen = nproma
-        ELSE
-          nlen = p_patch%npromz_c
-        END IF
-        !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1)
-        DO n = 1, nlen
-          prm_field(jg)%ocv(n,i_blk) = get_buffer(nn+n,1)
-        ENDDO
-      ENDDO
-      !$ACC WAIT(1)
-!ICON_OMP_END_PARALLEL_DO
-
-      CALL sync_patch_array(sync_c, p_patch, prm_field(jg)%ocv(:,:), lacc=lacc)
-    END IF
 
     ! ------------------------------
     !  Receive sea ice bundle
@@ -1365,6 +1272,47 @@ CONTAINS
       ENDDO
       !$ACC WAIT(1)
 !ICON_OMP_END_PARALLEL_DO
+
+    END IF
+
+    ! ------------------------------
+    !  Receive ocean and sea ice velocity bundle
+    !   "surfce_velocity_bundle" - u and v component of surface ocean and sea ice velocity
+    !
+    no_arr = cpl_get_field_collection_size(routine, in_field_ids(jg)%surface_velocity)
+!ICON_OMP_PARALLEL
+    CALL init(get_buffer(:,1:no_arr), lacc=.FALSE.)
+!ICON_OMP_END_PARALLEL
+    CALL cpl_get_field( &
+      routine, in_field_ids(jg)%surface_velocity, 'ocean and sea ice velocity', &
+      get_buffer(1:nbr_hor_cells,1:no_arr), received_data=received_data)
+
+    IF (received_data) THEN
+
+!ICON_OMP_PARALLEL_DO PRIVATE(i_blk, n, nn, nlen) ICON_OMP_RUNTIME_SCHEDULE
+      !$ACC UPDATE DEVICE(get_buffer(:,1:3)) ASYNC(1)
+      DO i_blk = 1, p_patch%nblks_c
+        nn = (i_blk-1)*nproma
+        IF (i_blk /= p_patch%nblks_c) THEN
+          nlen = nproma
+        ELSE
+          nlen = p_patch%npromz_c
+        END IF
+        !$ACC PARALLEL LOOP DEFAULT(PRESENT) ASYNC(1)
+        DO n = 1, nlen
+          prm_field(jg)%ocean_u  (n,i_blk) = get_buffer(nn+n,1)
+          prm_field(jg)%ocean_v  (n,i_blk) = get_buffer(nn+n,2)
+          prm_field(jg)%ice_u    (n,i_blk) = get_buffer(nn+n,3)
+          prm_field(jg)%ice_v    (n,i_blk) = get_buffer(nn+n,4)
+        ENDDO
+      ENDDO
+      !$ACC WAIT(1)
+!ICON_OMP_END_PARALLEL_DO
+
+      CALL sync_patch_array(sync_c, p_patch, prm_field(jg)%ocean_u  (:,:), lacc=lacc)
+      CALL sync_patch_array(sync_c, p_patch, prm_field(jg)%ocean_v  (:,:), lacc=lacc)
+      CALL sync_patch_array(sync_c, p_patch, prm_field(jg)%ice_u    (:,:), lacc=lacc)
+      CALL sync_patch_array(sync_c, p_patch, prm_field(jg)%ice_v    (:,:), lacc=lacc)
 
     END IF
 
@@ -1457,8 +1405,11 @@ CONTAINS
       CALL dbg_print('AESOce: conc(1)     ',prm_field(jg)%conc(:,1,:) ,str_module,4,in_subset=p_patch%cells%owned)
       CALL dbg_print('AESOce: siced       ',prm_field(jg)%siced       ,str_module,3,in_subset=p_patch%cells%owned)
       CALL dbg_print('AESOce: seaice      ',prm_field(jg)%seaice      ,str_module,4,in_subset=p_patch%cells%owned)
-      CALL dbg_print('AESOce: ocu         ',prm_field(jg)%ocu         ,str_module,4,in_subset=p_patch%cells%owned)
-      CALL dbg_print('AESOce: ocv         ',prm_field(jg)%ocv         ,str_module,4,in_subset=p_patch%cells%owned)
+      CALL dbg_print('AESOce: ocean_u     ',prm_field(jg)%ocean_u     ,str_module,4,in_subset=p_patch%cells%owned)
+      CALL dbg_print('AESOce: ocean_v     ',prm_field(jg)%ocean_v     ,str_module,4,in_subset=p_patch%cells%owned)
+      CALL dbg_print('AESOce: ice_u       ',prm_field(jg)%ice_u       ,str_module,4,in_subset=p_patch%cells%owned)
+      CALL dbg_print('AESOce: ice_v       ',prm_field(jg)%ice_v       ,str_module,4,in_subset=p_patch%cells%owned)
+
 
       ! Fraction of tiles:
       !$ACC UPDATE HOST(frac_oce) ASYNC(1)

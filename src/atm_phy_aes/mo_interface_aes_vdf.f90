@@ -477,8 +477,10 @@ CONTAINS
               &          field% geom(:,:,:),                &! in, geopotential above ground, full level
               &          field%frac_tile(:,:,:),            &! in, area fraction of each sfc type
               &                 ts_tile(:,:,:),             &! in, surface temperature
-              &          field% ocu (:,:),                  &! in, ocean sfc velocity, u-component
-              &          field% ocv (:,:),                  &! in, ocean sfc velocity, v-component
+              &          field% ocean_u (:,:),              &! in, ocean sfc velocity, u-component
+              &          field% ocean_v (:,:),              &! in, ocean sfc velocity, v-component
+              &          field% ice_u (:,:),                &! in, sea ice velocity, u-component
+              &          field% ice_v (:,:),                &! in, sea ice velocity, v-component
               &          field% phalf(:,nlevp1,:),          &! in, sfc pressure
               &          field%   ua(:,:,:),                &! in, um1
               &          field%   va(:,:,:),                &! in, vm1
@@ -713,8 +715,10 @@ CONTAINS
                &                     cfh_tile(:,jb,:),                        &! in, from "vdiff_down"
                &                     cfm_tile(:,jb,:),                        &! in, from "vdiff_down"
                &              zfactor_sfc(:,jb),                              &! in, from "vdiff_down"
-               &              field% ocu (:,jb),                              &! in, ocean sfc velocity, u-component
-               &              field% ocv (:,jb),                              &! in, ocean sfc velocity, v-component
+               &              field% ocean_u (:,jb),                          &! in, ocean sfc velocity, u-component
+               &              field% ocean_v (:,jb),                          &! in, ocean sfc velocity, v-component
+               &              field% ice_u (:,jb),                            &! in, sea ice velocity, u-component
+               &              field% ice_v (:,jb),                            &! in, sea ice velocity, v-component
                &              zaa(:,:,:,:,jb), zaa_btm(:,:,:,:,jb),           &! inout
                &              zbb(:,:,:,jb),   zbb_btm(:,:,:,jb),             &! inout
                &               zcpt_sfc_tile(:,jb,:),                         &! inout, from "vdiff_down", for "vdiff_up"
@@ -824,7 +828,7 @@ CONTAINS
           !
           CALL vdiff_up(jcs, jce, nproma, nlev, nlevm1,  &! in
                &        ntrac, nsfc_type,                &! in
-               &        iwtr,                            &! in, indices of different sfc types
+               &        iwtr, iice,                      &! in, indices of different sfc types
                &        pdtime,                          &! in, time steps
                &        field%frac_tile(:,jb,:),         &! in, area fraction of each sfc type
                &               cfm_tile(:,jb,:),         &! in
@@ -842,6 +846,11 @@ CONTAINS
                &             ztottevn(:,:,jb),           &! in, TTE at intermediate time step
                &        aes_vdf_config(jg),              &! in
                &        zbb(:,:,:,jb),                   &! inout
+               &        field% ocean_u (:,jb),           &! in, ocean sfc velocity, u-component
+               &        field% ocean_v (:,jb),           &! in, ocean sfc velocity, v-component
+               &        field% ice_u (:,jb),             &! in, sea ice velocity, u-component
+               &        field% ice_v (:,jb),             &! in, sea ice velocity, v-component
+               &        wstar_tile(:,jb,:),              &! in, wstar
                &        zthvvar(:,:,jb),                 &! in
                &        dummyx(:,:,jb),                  &! inout
                &        z0m_tile(:,jb,:),                &! inout
@@ -1443,7 +1452,7 @@ CONTAINS
         !----------------------------------------------------------------------------------------
         ! TODO: async
         CALL nsurf_diag(jcs, jce, nproma, nsfc_type,     &! in
-            &          ilnd,                            &! in
+            &          ilnd, iwtr, iice,                &! in
             &          field%frac_tile(:,jb,:),         &! in
             &          field% qtrc_phy(:,nlev,jb,iqv),  &! in humidity qm1
             &          field%    ta(:,nlev,jb),         &! in tm1
@@ -1452,8 +1461,10 @@ CONTAINS
             &                  zqx(:,nlev,jb),          &! in, xlm1 + xim1
             &          field%   ua(:,nlev,jb),          &! in, um1
             &          field%   va(:,nlev,jb),          &! in, vm1
-            &          field% ocu (:,jb),               &! in, ocean sfc velocity, u-component
-            &          field% ocv (:,jb),               &! in, ocean sfc velocity, v-component
+            &          field% ocean_u (:,jb),           &! in, ocean sfc velocity, u-component
+            &          field% ocean_v (:,jb),           &! in, ocean sfc velocity, v-component
+            &          field% ice_u (:,jb),             &! in, sea ice velocity, u-component
+            &          field% ice_v (:,jb),             &! in, sea ice velocity, v-component
             &          field% zf  (:,nlev  ,jb),        &! in, height of lowermost full level (m)
             &          field% zh  (:,nlev+1,jb),        &! in, surface height    (m)
             &          field%cptgz(:,nlev,jb),          &! in dry static energy

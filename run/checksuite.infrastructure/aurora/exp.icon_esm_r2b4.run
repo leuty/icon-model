@@ -175,9 +175,8 @@ author_list="Monika Esch, Rene Redler, Daniel Klocke"
 #
 # ocean -> atmosphere:
 # . sea_surface_temperature
-# . eastward_sea_water_velocity
-# . northward_sea_water_velocity
 # . ocean_sea_ice_bundle
+# . surface_velocity_bundle
 #
 # currently not activated for coupling:
 # . co2_mixing_ratio
@@ -442,8 +441,7 @@ coupling:
   - <<: [ *ocn2atm, *nn1_fixed ]
     field:
       - sea_surface_temperature
-      - eastward_sea_water_velocity
-      - northward_sea_water_velocity
+      - surface_velocity_bundle
       - ocean_sea_ice_bundle
 EOF
 #

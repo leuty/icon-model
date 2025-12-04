@@ -303,10 +303,6 @@ coupling:
     coupling_period: ${couplingTimeStep}
     field: [sea_surface_temperature,
             ocean_sea_ice_bundle]
-#  - <<: [ *oce2atm, *conserv_interp_stack ]
-#    coupling_period: ${couplingTimeStep}
-#    field: [eastward_sea_water_velocity,
-#            northward_sea_water_velocity]
 #  - <<: [ *atm2oce, *spmap_interp_stack ]
 #    coupling_period: ${couplingTimeStep}
 #    field: river_runoff
