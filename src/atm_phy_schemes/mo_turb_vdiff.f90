@@ -24,12 +24,12 @@ MODULE mo_turb_vdiff
   USE mo_loopindices,        ONLY: get_indices_c
   USE mo_model_domain,       ONLY: t_patch
   USE mo_nh_testcases_nml,   ONLY: isrfc_type, shflx, lhflx
-  USE mo_physical_constants, ONLY: rgrav, cpd
+  USE mo_physical_constants, ONLY: rgrav, cpd, nu
   USE mo_turb_vdiff_sma,     ONLY: atm_exchange_coeff3d, diffuse_hori_velocity, &
                                  & diffuse_vert_velocity,diffuse_scalar
   USE mo_turb_vdiff_config,  ONLY: t_vdiff_config
   USE mo_turb_vdiff_params,  ONLY: VDIFF_TURB_3DSMAGORINSKY, VDIFF_TURB_TTE, cchar, totte_min, &
-                                 & tpfac1, tpfac2, tpfac3
+                                 & tpfac1, tpfac2, tpfac3, viscous_coeff
   USE mo_turb_vdiff_diag,    ONLY: atm_exchange_coeff, sfc_exchange_coeff
   USE mo_fortran_tools,      ONLY: assert_acc_device_only
 
@@ -165,7 +165,8 @@ CONTAINS
                        & l2moment,                                      &! in
                        & pzf, pzh, pgeom1,                              &! in
                        & pfrc,                                          &! in
-                       & ptsfc_tile, pocu,      pocv,       ppsfc,      &! in
+                       & ptsfc_tile, pocu,      pocv, piceu, picev,     &! in
+                       & ppsfc,                                         &! in
                        & pum1,       pvm1,      pwm1,                   &! in
                        & ptm1,       pqm1,                              &! in
                        & pxlm1,      pxim1,     pxm1,       pxtm1,      &! in
@@ -215,6 +216,8 @@ CONTAINS
       & ptsfc_tile(:,:,:) ,&!< (kbdim,ksfc_type) surface temperature
       & pocu      (:,:)   ,&!< (kbdim) eastward  velocity of ocean sfc current
       & pocv      (:,:)   ,&!< (kbdim) northward velocity of ocean sfc current
+      & piceu     (:,:)   ,&!< (kbdim) eastward  velocity of sea ice
+      & picev     (:,:)   ,&!< (kbdim) northward velocity of sea ice
       & ppsfc     (:,:)     !< (kbdim) surface pressure
 
     REAL(wp),INTENT(IN) ::        &
@@ -501,7 +504,9 @@ CONTAINS
                               & idx_wtr, idx_ice, idx_lnd,                     &! in
                               & pz0m_tile(:,jb,:),  ptsfc_tile(:,jb,:),        &! in
                               & pfrc(:,jb,:),       phdtcbl(:,jb),             &! in
-                              & pocu(:,jb),         pocv(:,jb),   ppsfc(:,jb), &! in
+                              & pocu(:,jb),         pocv(:,jb),                &! in
+                              & piceu(:,jb),        picev(:,jb),               &! in
+                              & ppsfc(:,jb),                                   &! in
                               & zghf(:,klev,jb),                               &! in
                               & pum1(:,klev,jb),    pvm1  (:,klev,jb),         &! in
                               & ptm1(:,klev,jb),                               &! in
@@ -1076,7 +1081,7 @@ CONTAINS
 
 
   SUBROUTINE vdiff_up( jcs, kproma, kbdim, klev, klevm1, &! in
-    ktrac,      ksfc_type,   idx_wtr,                    &! in
+    ktrac,      ksfc_type,   idx_wtr, idx_ice,           &! in
     pdtime, pfrc,                                        &! in
     pcfm_tile,                                           &! in
     aa,         pcptgz,                                  &! in
@@ -1086,6 +1091,9 @@ CONTAINS
     pgeom1,      pztottevn,                              &! in
     vdiff_config,                                        &! in
     bb,                                                  &! inout
+    ocean_u, ocean_v,                                    &! in
+    ice_u, ice_v,                                        &! in
+    pwstar_tile,                                         &! in
     pzthvvar,   pxvar,       pz0m_tile,                  &! in, inout, inout
     pkedisp,                                             &! out
     pute_vdf,   pvte_vdf,    pq_vdf,                     &! out
@@ -1096,7 +1104,7 @@ CONTAINS
     lacc                                                 )! in
 
     INTEGER, INTENT(IN) :: jcs, kproma, kbdim, klev, klevm1, ktrac
-    INTEGER, INTENT(IN) :: ksfc_type, idx_wtr
+    INTEGER, INTENT(IN) :: ksfc_type, idx_wtr, idx_ice
     REAL(wp),INTENT(IN) :: pdtime
 
     REAL(wp),INTENT(IN) ::    &
@@ -1125,6 +1133,12 @@ CONTAINS
     TYPE(t_vdiff_config), INTENT(IN) :: vdiff_config !< VDIFF configuration for current domain.
 
     REAL(wp),INTENT(INOUT) :: bb    (:,:,:)  !< (kbdim,klev,nvar_vdiff)
+
+    REAL(wp),INTENT(IN) :: ocean_u (:)  !< (kbdim,nvar_vdiff)
+    REAL(wp),INTENT(IN) :: ocean_v (:)  !< (kbdim,nvar_vdiff)
+    REAL(wp),INTENT(IN) :: ice_u (:)  !< (kbdim,nvar_vdiff)
+    REAL(wp),INTENT(IN) :: ice_v (:)  !< (kbdim,nvar_vdiff)
+    REAL(wp),INTENT(IN) :: pwstar_tile(:,:) !< (kbdim,nvar_vdiff)
 
     REAL(wp),INTENT(IN)    :: pzthvvar (:,:) !< (kbdim,klev) intermediate value of thvvar
     REAL(wp),INTENT(INOUT) :: pxvar    (:,:) !< (kbdim,klev) distribution width (b-a)
@@ -1178,6 +1192,8 @@ CONTAINS
       & pgeom1, pcptgz,                              &! in
       & pztottevn, pzthvvar,                         &! in
       & pcfm_tile, pfrc, bb,                         &! in
+      & ocean_u, ocean_v,                            &! in
+      & pwstar_tile,                                 &! in
       & vdiff_config,                                &! in
       & pkedisp,                                     &! out
       & pxvar,                                       &! inout
@@ -2266,6 +2282,8 @@ CONTAINS
                               & pgeom1, pcptgz,                             &! in
                               & pztottevn, pzthvvar,                        &! in
                               & pcfm_tile, pfrc, bb,                        &! in
+                              & ocean_u, ocean_v,                           &! in
+                              & pwstar_tile,                                &! in
                               & vdiff_config,                               &! in
                               & pkedisp,                                    &! out
                               & pxvar, pz0m_tile,                           &! inout
@@ -2292,6 +2310,9 @@ CONTAINS
     REAL(wp),INTENT(IN)  :: pcfm_tile     (:,:) !< (kbdim,ksfc_type)
     REAL(wp),INTENT(IN)  :: pfrc          (:,:) !< (kbdim,ksfc_type)
     REAL(wp),INTENT(IN)  :: bb            (:,:,:) !<(kbdim,klev,nvar_vdiff)
+    REAL(wp),INTENT(IN)  :: ocean_u       (:) !<(kbdim)
+    REAL(wp),INTENT(IN)  :: ocean_v       (:) !<(kbdim)
+    REAL(wp),INTENT(IN)  :: pwstar_tile   (:,:) !<(kbdim,nvar_vdiff)
 
     TYPE(t_vdiff_config), INTENT(IN) :: vdiff_config
 
@@ -2320,6 +2341,9 @@ CONTAINS
     REAL(wp) :: zcp
     REAL(wp) :: zdis  (kbdim,klev)
     REAL(wp) :: z0m_min
+    REAL(wp) :: uz      ! relative wind over ocean
+    REAL(wp) :: wmc
+    REAL(wp) :: zepdu2
 
     INTEGER  :: jk, jl, jt, irhs, jsfc
 
@@ -2331,6 +2355,8 @@ CONTAINS
     zrdt   = 1._wp/pdtime
 
     z0m_min = vdiff_config%z0m_min
+    wmc     = vdiff_config%wmc
+    zepdu2  = 1.0_wp
 
     !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
     !$ACC LOOP GANG VECTOR COLLAPSE(2)
@@ -2522,13 +2548,24 @@ CONTAINS
       !$ACC END PARALLEL
       !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
       !$ACC LOOP GANG VECTOR
-      DO jl = jcs,kproma
-        IF(pfrc(jl,idx_wtr).GT.0._wp) THEN
-          pz0m_tile(jl,idx_wtr) = tpfac1*SQRT( bb(jl,klev,iu)**2+bb(jl,klev,iv)**2 ) &
-                                & *pcfm_tile(jl,idx_wtr)*cchar*rgrav
-          pz0m_tile(jl,idx_wtr) = MAX(z0m_min,pz0m_tile(jl,idx_wtr))
-        ENDIF
-      ENDDO
+      DO jl = jcs, kproma
+        IF (pfrc(jl, idx_wtr) > 0._wp) THEN
+
+          ! Relative wind over ocean [m/s]
+          uz = MAX(zepdu2, &
+                   SQRT( (tpfac1*bb(jl,klev,iu)-ocean_u(jl))**2 &
+                   + (tpfac1*bb(jl,klev,iv)-ocean_v(jl))**2 &
+                   + (wmc * pwstar_tile(jl,idx_wtr))**2 ) )
+
+          ! Surface roughness length: z0m = Charnock + viscous term
+          pz0m_tile(jl,idx_wtr) = pcfm_tile(jl,idx_wtr) * uz * cchar * rgrav &
+                                + viscous_coeff * MIN(0.01_wp, nu / SQRT(pcfm_tile(jl,idx_wtr) * uz))
+
+          ! Apply minimum
+          pz0m_tile(jl,idx_wtr) = MAX(z0m_min, pz0m_tile(jl,idx_wtr))
+        END IF
+      END DO
+
       !$ACC END PARALLEL
     ENDIF
 

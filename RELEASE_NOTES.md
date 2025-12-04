@@ -2,6 +2,9 @@
 
 ### ICON-Atmo
 
+- Improved consistency of surface roughness, drag and momentum flux over ocean/sea ice in VDIFF
+- Added viscous term in computation of surface roughness over ocean in VDIFF
+
 #### NWP Physics
 
 - Correction of the roughness length computation over ocean in TMX

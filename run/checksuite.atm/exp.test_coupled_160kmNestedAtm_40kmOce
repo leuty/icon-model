@@ -199,8 +199,7 @@ coupling:
 # OCN -> ATM
   - <<: [ *ocn2atm, *conserv_interp]
     field: [sea_surface_temperature,
-            eastward_sea_water_velocity,
-            northward_sea_water_velocity,
+            surface_velocity_bundle,
             ocean_sea_ice_bundle]
 
 EOF

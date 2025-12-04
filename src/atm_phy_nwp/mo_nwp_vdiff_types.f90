@@ -126,6 +126,11 @@ MODULE mo_nwp_vdiff_types
     !> Meridional ocean surface velocity [m/s] (nproma,nblks_c).
     REAL(wp), CONTIGUOUS, POINTER :: ocean_v(:,:) => NULL()
 
+    !> Zonal sea ice velocity [m/s] (nproma,nblks_c).
+    REAL(wp), CONTIGUOUS, POINTER :: ice_u(:,:) => NULL()
+    !> Meridional sea ice velocity [m/s] (nproma,nblks_c).
+    REAL(wp), CONTIGUOUS, POINTER :: ice_v(:,:) => NULL()
+
     !> Natural CO2 flux over sea [kg/m**2(ocean)/s] (nproma,nblks_c).
     REAL(wp), CONTIGUOUS, POINTER :: flx_co2_natural_sea(:,:) => NULL()
 
@@ -947,7 +952,7 @@ CONTAINS
         )
       !$ACC ENTER DATA ASYNC(1) ATTACH(self%flx_co2_natural_sea)
 
-      cf_desc = t_cf_var('ocean_u', 'm s-1', 'Zonal ocean surface velocity', &
+      cf_desc = t_cf_var('eastward_sea_water_velocity', 'm s-1', 'Eastward ocean surface velocity', &
           & datatype_flt)
       grib2_desc = grib2_var(255, 255, 255, grib2_bits, GRID_UNSTRUCTURED, GRID_CELL)
       CALL add_var(varlist, 'ocean_u', self%ocean_u, &
@@ -957,7 +962,7 @@ CONTAINS
         )
       !$ACC ENTER DATA ASYNC(1) ATTACH(self%ocean_u)
 
-      cf_desc = t_cf_var('ocean_v', 'm s-1', 'Meridional ocean surface velocity', &
+      cf_desc = t_cf_var('northward_sea_water_velocit', 'm s-1', 'Northward ocean surface velocity', &
           & datatype_flt)
       grib2_desc = grib2_var(255, 255, 255, grib2_bits, GRID_UNSTRUCTURED, GRID_CELL)
       CALL add_var(varlist, 'ocean_v', self%ocean_v, &
@@ -966,6 +971,28 @@ CONTAINS
           & lrestart=.TRUE., in_group=groups('vdiff') &
         )
       !$ACC ENTER DATA ASYNC(1) ATTACH(self%ocean_v)
+
+      cf_desc = t_cf_var('eastward_sea_ice_velocity', 'm s-1', 'Eastward sea ice velocity', &
+          & datatype_flt)
+      grib2_desc = grib2_var(255, 255, 255, grib2_bits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var(varlist, 'ice_u', self%ice_u, &
+          & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
+          & ldims=shape2d, isteptype=TSTEP_INSTANT, lopenacc=.TRUE., &
+          & lrestart=.TRUE., in_group=groups('vdiff') &
+        )
+      !$ACC ENTER DATA ASYNC(1) ATTACH(self%ice_u)
+
+      cf_desc = t_cf_var('northward_sea_ice_velocity', 'm s-1', 'Northward sea ice velocity', &
+          & datatype_flt)
+      grib2_desc = grib2_var(255, 255, 255, grib2_bits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var(varlist, 'ice_v', self%ice_v, &
+          & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
+          & ldims=shape2d, isteptype=TSTEP_INSTANT, lopenacc=.TRUE., &
+          & lrestart=.TRUE., in_group=groups('vdiff') &
+        )
+      !$ACC ENTER DATA ASYNC(1) ATTACH(self%ice_v)
+
+
     END IF
 
   END SUBROUTINE nwp_vdiff_sea_state_init

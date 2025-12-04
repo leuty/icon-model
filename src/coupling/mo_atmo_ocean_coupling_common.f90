@@ -49,9 +49,8 @@ MODULE mo_atmo_ocean_coupling_common
 
   TYPE t_in_field_id
     INTEGER :: sst
-    INTEGER :: oce_u
-    INTEGER :: oce_v
     INTEGER :: seaice_oce
+    INTEGER :: surface_velocity
     INTEGER :: co2_flx
   END TYPE t_in_field_id
 
@@ -124,16 +123,13 @@ CONTAINS
         "sea_surface_temperature", 1, in_field_ids(jg)%sst)
 
       IF (use_ocean_velocity) THEN
+        ! ocean and sea ice velocity bundle
         CALL cpl_def_field( &
           comp_id, cell_point_id(jg), cell_mask_id(jg), timestepstring, &
-          "eastward_sea_water_velocity", 1, in_field_ids(jg)%oce_u)
+          "surface_velocity_bundle", 4, in_field_ids(jg)%surface_velocity)
 
-        CALL cpl_def_field( &
-          comp_id, cell_point_id(jg), cell_mask_id(jg), timestepstring, &
-          "northward_sea_water_velocity", 1, in_field_ids(jg)%oce_v)
       ELSE
-        in_field_ids(jg)%oce_u = -1
-        in_field_ids(jg)%oce_v = -1
+        in_field_ids(jg)%surface_velocity = -1
       END IF
 
       CALL cpl_def_field( &

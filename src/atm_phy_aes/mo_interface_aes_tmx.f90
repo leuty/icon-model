@@ -803,8 +803,8 @@ CONTAINS
     !
     ! TODO: lw surface emissivity should be tile-specific and, for land, should be returned from land model
     CALL bind_variable(vdf%sfc%inputs%list%Search('longwave surface emissivity'), field%emissivity)
-    CALL bind_variable(vdf%sfc%inputs%list%Search('u-component of ocean current'), field%ocu)
-    CALL bind_variable(vdf%sfc%inputs%list%Search('v-component of ocean current'), field%ocv)
+    CALL bind_variable(vdf%sfc%inputs%list%Search('u-component of ocean current'), field%ocean_u)
+    CALL bind_variable(vdf%sfc%inputs%list%Search('v-component of ocean current'), field%ocean_v)
     !
     ptr_r2d => field%hi(:,1,:)
     CALL bind_variable(vdf%sfc%inputs%list%Search('thickness of sea ice'), ptr_r2d)

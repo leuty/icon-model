@@ -384,8 +384,10 @@ MODULE mo_aes_phy_memory
       & wstar (:,:)=>NULL(),        &!< convective velocity scale
       & wstar_tile(:,:,:)=>NULL(),  &!< convective velocity scale (over each surface type)
       & kedisp(:,:)=>NULL(),        &!< vertically integrated dissipation of kinetic energy
-      & ocu   (:,:)=>NULL(),        &!< eastward  velocity of ocean surface current
-      & ocv   (:,:)=>NULL()          !< northward velocity of ocean surface current
+      & ocean_u (:,:)=>NULL(),      &!< eastward velocity of ocean surface current
+      & ocean_v (:,:)=>NULL(),      &!< northward velocity of ocean surface current
+      & ice_u (:,:)=>NULL(),        &!< eastward velocity of sea ice
+      & ice_v (:,:)=>NULL()          !< northward velocity of sea ice
 
       !
     REAL(wp),POINTER ::     &
@@ -3263,28 +3265,49 @@ CONTAINS
          __acc_attach(field%kedisp)
       END IF
 
-      ! &       field% ocu    (nproma,nblks),                &
-      cf_desc    = t_cf_var('ocean_sfc_u', 'm/s', 'u-component of ocean current/ice', datatype_flt)
+      ! &       field% ocean_u    (nproma,nblks),                &
+      cf_desc    = t_cf_var('ocean_u', 'm/s', 'eastward ocean surface velocity', datatype_flt)
       grib2_desc = grib2_var(10,1,2, iextbits, GRID_UNSTRUCTURED, GRID_CELL)
-      CALL add_var( field_list, prefix//'ocu', field%ocu, &
+      CALL add_var( field_list, prefix//'ocean_u', field%ocean_u, &
         &           GRID_UNSTRUCTURED_CELL, ZA_SURFACE,   &
         &           cf_desc, grib2_desc, ldims=shape2d,   &
         &           lrestart=.TRUE., initval=0._wp,       &
         &           lopenacc=.TRUE.)
-      __acc_attach(field%ocu)
+      __acc_attach(field%ocean_u)
 
-      ! &       field% ocv    (nproma,nblks),                &
-      cf_desc    = t_cf_var('ocean_sfc_v', 'm/s', 'v-component of ocean current/ice', datatype_flt)
+      ! &       field% ocean_v    (nproma,nblks),                &
+      cf_desc    = t_cf_var('ocean_v', 'm/s', 'northward ocean surface velocity', datatype_flt)
       grib2_desc = grib2_var(10,1,3, iextbits, GRID_UNSTRUCTURED, GRID_CELL)
-      CALL add_var( field_list, prefix//'ocv', field%ocv, &
+      CALL add_var( field_list, prefix//'ocean_v', field%ocean_v, &
         &           GRID_UNSTRUCTURED_CELL, ZA_SURFACE,   &
         &           cf_desc, grib2_desc, ldims=shape2d,   &
         &           lrestart=.TRUE., initval=0._wp,       &
         &           lopenacc=.TRUE.)
-      __acc_attach(field%ocv)
+      __acc_attach(field%ocean_v)
+
+      ! &       field% ice_u    (nproma,nblks),                &
+      cf_desc    = t_cf_var('ice_u', 'm/s', 'eastward sea ice velocity', datatype_flt)
+      grib2_desc = grib2_var(10,1,2, iextbits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( field_list, prefix//'ice_u', field%ice_u, &
+        &           GRID_UNSTRUCTURED_CELL, ZA_SURFACE,   &
+        &           cf_desc, grib2_desc, ldims=shape2d,   &
+        &           lrestart=.TRUE., initval=0._wp,       &
+        &           lopenacc=.TRUE.)
+      __acc_attach(field%ice_u)
+
+      ! &       field% ice_v    (nproma,nblks),                &
+      cf_desc    = t_cf_var('ice_v', 'm/s', 'northward sea ice velocity', datatype_flt)
+      grib2_desc = grib2_var(10,1,2, iextbits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( field_list, prefix//'ice_v', field%ice_v, &
+        &           GRID_UNSTRUCTURED_CELL, ZA_SURFACE,   &
+        &           cf_desc, grib2_desc, ldims=shape2d,   &
+        &           lrestart=.TRUE., initval=0._wp,       &
+        &           lopenacc=.TRUE.)
+      __acc_attach(field%ice_v)
+
 
     !-----------------------
-    ! Surface
+    ! Surface mo_nwp_ocean_coupling.f90
     !-----------------------
 
     cf_desc    = t_cf_var('surface_altitude', 'm',   &
