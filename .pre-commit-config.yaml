@@ -75,7 +75,7 @@ repos:
         types: [text]
         files: '.*\.ipp$'
   - repo: https://gitlab.dkrz.de/icon/ci-tooling/codee-precommit
-    rev: v2025.3.6
+    rev: v2025.3.9
     hooks:
       - id: codee-format-safe
         args: [--on-error, skip, --extensions, "f90,F90,inc,incf"]
