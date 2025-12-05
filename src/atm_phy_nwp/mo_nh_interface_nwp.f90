@@ -63,7 +63,7 @@ MODULE mo_nh_interface_nwp
 
   USE mo_nh_diagnose_pres_temp,   ONLY: diagnose_pres_temp, diag_pres, diag_temp, calc_qsum
   USE mo_atm_phy_nwp_config,      ONLY: atm_phy_nwp_config, i2daero_dust, i2daero_seas, &
-    &                                   i2daero_anthro, i2daero_fire, itype_dissip_heat
+    &                                   i2daero_anthro, i2daero_fire, itype_dissip_heat, icpl_aero_conv
   USE mo_iau,                     ONLY: iau_update_tracer
   USE mo_util_phys,               ONLY: tracer_add_phytend, inversion_height_index
   USE mo_lnd_nwp_config,          ONLY: ntiles_total, ntiles_water
@@ -75,6 +75,7 @@ MODULE mo_nh_interface_nwp
   USE mo_radiation_config,        ONLY: irad_aero, irad_o3, iRadAeroTegen, iRadAeroCAMSclim, iRadAeroCAMStd, iRadAeroART
   USE mo_nwp_gw_interface,        ONLY: nwp_gwdrag
   USE mo_nwp_gscp_interface,      ONLY: nwp_microphysics
+  USE mo_cpl_aerosol_microphys,   ONLY: calc_cloud_num_cdnc, calc_cdnc_from_cloud_num
   USE mo_nwp_turbtrans_interface, ONLY: nwp_turbtrans
   USE mo_nwp_turbdiff_interface,  ONLY: nwp_turbdiff
   USE mo_nwp_sfc_interface,       ONLY: nwp_surface
@@ -919,6 +920,29 @@ CONTAINS
 #ifndef __NO_ICON_COMIN__
     CALL icon_call_callback(EP_ATM_TURBULENCE_AFTER, jg, lacc=lacc)
 #endif
+    !-------------------------------------------------------------------------
+    !  CDNC and cloud_num calculations
+    !-------------------------------------------------------------------------
+    IF (lcall_phy_jg(itgscp) .AND. atm_phy_nwp_config(jg)%icpl_aero_gscp == 2 ) THEN
+
+      rl_start   = grf_bdywidth_c+1
+      rl_end     = min_rlcell_int
+      i_startblk = pt_patch%cells%start_block(rl_start)
+      i_endblk   = pt_patch%cells%end_block(rl_end)
+
+!$OMP PARALLEL
+!$OMP DO PRIVATE(jb,i_startidx,i_endidx) ICON_OMP_DEFAULT_SCHEDULE
+      DO jb = i_startblk,i_endblk
+        CALL get_indices_c(pt_patch,jb,i_startblk,i_endblk,i_startidx,i_endidx,rl_start,rl_end)
+        CALL calc_cloud_num_cdnc (atm_phy_nwp_config(jg)%icpl_aero_gscp, nproma, pt_patch%nlev, i_startidx, i_endidx,       &
+          & pt_patch%nlev, pt_diag%pres_sfc(:,jb), pt_diag%pres(:,:,jb), pt_prog%w(:,:,jb), pt_prog%tracer(:,:,jb,iqc),     &
+          & pt_prog%rho(:,:,jb), p_metrics%z_ifc(:,:,jb), prm_diag%k_inversion(:,jb), prm_diag%conv_eis(:,jb), tune_sc_eis, &
+          & prm_diag%acdnc(:,:,jb), prm_diag%cloud_num(:,jb), lacc=lacc, ncn=pt_diag%camsaermr(:,:,jb,:))
+      END DO
+!$OMP END DO NOWAIT
+!$OMP END PARALLEL
+    ENDIF
+
 #ifndef __NO_ICON_COMIN__
     CALL icon_call_callback(EP_ATM_MICROPHYSICS_BEFORE, jg, lacc=lacc)
 #endif
@@ -1666,6 +1690,30 @@ CONTAINS
       !$ser verbatim IF (.not. linit) CALL serialize_all(nproma, jg, "set_reff", .FALSE., opt_dt=mtime_datetime)
     END IF
 
+    !-------------------------------------------------------------------------
+    !  CDNC calculations
+    !-------------------------------------------------------------------------
+    IF ( lcall_phy_jg(itrad) .AND.                                                                 &
+       & (ANY(atm_phy_nwp_config(jg)%icpl_aero_gscp == (/1, 3/)) .OR. icpl_aero_conv == 1) .AND.   &
+       &  atm_phy_nwp_config(jg)%icpl_aero_gscp /= 2 .AND.                                         &
+       &  ALL((/i2daero_dust, i2daero_seas, i2daero_anthro/) == 0) ) THEN
+
+      rl_start   = grf_bdywidth_c-1
+      rl_end     = min_rlcell_int
+      i_startblk = pt_patch%cells%start_block(rl_start)
+      i_endblk   = pt_patch%cells%end_block(rl_end)
+
+!$OMP PARALLEL
+!$OMP DO PRIVATE(jb,i_startidx,i_endidx) ICON_OMP_DEFAULT_SCHEDULE
+      DO jb = i_startblk,i_endblk
+        CALL get_indices_c(pt_patch,jb,i_startblk,i_endblk,i_startidx,i_endidx,rl_start,rl_end)
+        CALL calc_cdnc_from_cloud_num(i_startidx, i_endidx, pt_patch%nlev, pt_diag%pres_sfc(:,jb), pt_diag%pres(:,:,jb), &
+            &        prm_diag%acdnc(:,:,jb), prm_diag%cloud_num(:,jb), prm_diag%k_inversion(:,jb),                       &
+            &        prm_diag%conv_eis(:,jb), tune_sc_eis, lacc=lacc)
+      END DO
+!$OMP END DO NOWAIT
+!$OMP END PARALLEL
+    ENDIF
 
 #ifndef __NO_ICON_COMIN__
     CALL icon_call_callback(EP_ATM_RADIATION_BEFORE, jg, lacc=lacc)

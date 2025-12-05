@@ -81,9 +81,8 @@ MODULE mo_nwp_phy_init
   USE mo_art_data,            ONLY: p_art_data
   USE mo_art_clouds_interface,ONLY: art_clouds_interface_2mom_init
 #endif
-  USE mo_cpl_aerosol_microphys, ONLY: lookupcreate_segalkhain, specccn_segalkhain_simple, &
-                                      ncn_from_tau_aerosol_speccnconst
-
+  USE mo_cpl_aerosol_microphys, ONLY: lookupcreate_segalkhain
+  USE mo_cpl_aerosol_microphys, ONLY: init_cloud_num_cdnc
   ! convection
   USE mo_cuparameters,        ONLY: sucst,  sucumf,    &
     &                               su_yoethf,         &
@@ -985,7 +984,6 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
     CALL init_reff ( prm_diag, p_patch, p_prog_now)
     IF (timers_level > 10) CALL timer_stop(timer_phys_reff)
   END IF
-
 
 
   ! Compute lookup tables for aerosol-microphysics coupling
@@ -1950,14 +1948,14 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
 
 END SUBROUTINE init_nwp_phy
 
-
-  SUBROUTINE init_cloud_aero_cpl ( mtime_date, p_patch, p_metrics, ext_data, prm_diag)
+  SUBROUTINE init_cloud_aero_cpl ( mtime_date, p_patch, p_metrics, ext_data, prm_diag, p_prog_now, p_diag)
 
     TYPE(datetime),   POINTER               :: mtime_date
     TYPE(t_patch),               INTENT(in) :: p_patch
     TYPE(t_nh_metrics),          INTENT(in) :: p_metrics
     TYPE(t_external_data),       INTENT(in) :: ext_data
-
+    TYPE(t_nh_prog),      TARGET,INTENT(inout) :: p_prog_now !!the prognostic variables
+    TYPE(t_nh_diag),      TARGET,INTENT(inout) :: p_diag  !!the diagostic variables
     TYPE(t_nwp_phy_diag),        INTENT(inout) :: prm_diag
 
     INTEGER          :: imo1, imo2
@@ -1965,6 +1963,8 @@ END SUBROUTINE init_nwp_phy
     INTEGER          :: jb, jc, jg, nlev
 
     REAL(wp) :: wgt, zncn(nproma, p_patch%nlev)
+
+    LOGICAL :: lacc
 
     TYPE(t_time_interpolation_weights) :: current_time_interpolation_weights
 
@@ -1974,8 +1974,7 @@ END SUBROUTINE init_nwp_phy
     nlev = p_patch%nlev
 
     IF (ALL (irad_aero /= (/iRadAeroTegen, iRadAeroART, iRadAeroCAMSclim, iRadAeroCAMStd/))) RETURN
-    IF (atm_phy_nwp_config(jg)%icpl_aero_gscp /= 1 .AND. icpl_aero_conv /= 1) RETURN
-
+    IF (atm_phy_nwp_config(jg)%icpl_aero_gscp /= 1 .AND. atm_phy_nwp_config(jg)%icpl_aero_gscp /= 2 .AND. icpl_aero_conv /= 1) RETURN
 
     mtime_hour => newDatetime(mtime_date)
     mtime_hour%time%minute = 0
@@ -2016,17 +2015,27 @@ END SUBROUTINE init_nwp_phy
         ENDDO
       ENDIF
 
-      CALL ncn_from_tau_aerosol_speccnconst (nproma, nlev, i_startidx, i_endidx, nlev, nlev, &
-        p_metrics%z_ifc(:,:,jb), prm_diag%aerosol(:,iss,jb), prm_diag%aerosol(:,iso4,jb),    &
-        prm_diag%aerosol(:,iorg,jb), prm_diag%aerosol(:,idu,jb), zncn)
+      ! Initiate both the 2D cloud_num and the 3D cdnc cloud droplets number concentration
+      ! Compute lookup tables for aerosol-microphysics coupling
+      IF (atm_phy_nwp_config(jg)%icpl_aero_gscp == 2) THEN
 
-      CALL specccn_segalkhain_simple (nproma, i_startidx, i_endidx, zncn(:,nlev), prm_diag%cloud_num(:,jb))
+        CALL init_cloud_num_cdnc (atm_phy_nwp_config(jg)%icpl_aero_gscp, icpl_aero_conv, nproma, nlev,                 &
+          & i_startidx, i_endidx, nlev, p_prog_now%w(:,:,jb), p_prog_now%tracer(:,:,jb,iqc), p_prog_now%rho(:,:,jb),  &
+          & p_metrics%z_ifc(:,:,jb), prm_diag%acdnc(:,:,jb),prm_diag%cloud_num(:,jb), ncn=p_diag%camsaermr(:,:,jb,:))
 
-      ! Impose lower limit on cloud_num over land
-      DO jc = i_startidx, i_endidx
-        IF (ext_data%atm%llsm_atm_c(jc,jb) .OR. ext_data%atm%llake_c(jc,jb)) &
-          prm_diag%cloud_num(jc,jb) = MAX(175.e6_wp,prm_diag%cloud_num(jc,jb))
-      ENDDO
+      ELSE
+        CALL init_cloud_num_cdnc (atm_phy_nwp_config(jg)%icpl_aero_gscp, icpl_aero_conv, nproma, nlev,                    &
+          & i_startidx, i_endidx, nlev, p_prog_now%w(:,:,jb), p_prog_now%tracer(:,:,jb,iqc), p_prog_now%rho(:,:,jb),      &
+          & p_metrics%z_ifc(:,:,jb), prm_diag%acdnc(:,:,jb),prm_diag%cloud_num(:,jb), aer_ss=prm_diag%aerosol(:,iss,jb),  &
+          & aer_so4=prm_diag%aerosol(:,iso4,jb), aer_org=prm_diag%aerosol(:,iorg,jb), aer_dust=prm_diag%aerosol(:,idu,jb))
+
+          ! Impose lower limit on cloud_num over land
+          DO jc = i_startidx, i_endidx
+            IF (ext_data%atm%llsm_atm_c(jc,jb) .OR. ext_data%atm%llake_c(jc,jb)) &
+              prm_diag%cloud_num(jc,jb) = MAX(175.e6_wp,prm_diag%cloud_num(jc,jb))
+          ENDDO
+
+      END IF
 
     ENDDO
 !$OMP END DO

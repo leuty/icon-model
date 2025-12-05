@@ -481,7 +481,8 @@ MODULE mo_nh_stepping
            & lreset=(iau_iter==2)                   )
 
       IF (atm_phy_nwp_config(jg)%icpl_aero_gscp /= 3 .AND. .NOT.isRestart()) THEN
-        CALL init_cloud_aero_cpl (mtime_current, p_patch(jg), p_nh_state(jg)%metrics, ext_data(jg), prm_diag(jg))
+        CALL init_cloud_aero_cpl (mtime_current, p_patch(jg), p_nh_state(jg)%metrics, ext_data(jg), prm_diag(jg), &
+              & p_nh_state(jg)%prog(nnow(jg)), p_nh_state(jg)%diag)
       ENDIF
 
       IF ( ANY( (/i2daero_dust, i2daero_seas, i2daero_anthro/) > 0 ) ) &
@@ -2900,8 +2901,8 @@ MODULE mo_nh_stepping
               END IF
 #endif
 
-              CALL init_cloud_aero_cpl (datetime_local(jgc)%ptr, p_patch(jgc), p_nh_state(jgc)%metrics, & ! not ported to OpenACC
-                &                       ext_data(jgc), prm_diag(jgc))
+              CALL init_cloud_aero_cpl (datetime_local(jgc)%ptr, p_patch(jgc), p_nh_state(jgc)%metrics, &
+                &                       ext_data(jgc), prm_diag(jgc), p_nh_state(jgc)%prog(nnow(jgc)), p_nh_state(jgc)%diag )
 
               IF ( ANY( (/i2daero_dust, i2daero_seas, i2daero_anthro/) > 0 ) ) &
                 &  CALL setup_aerosol_advection(p_patch(jgc), lacc=.TRUE.)

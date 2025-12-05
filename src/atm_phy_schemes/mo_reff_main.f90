@@ -304,7 +304,7 @@ MODULE mo_reff_main
               !$ACC LOOP GANG VECTOR PRIVATE(jc, aerncn, dummy)
               DO ic  = 1,n_ind(k)
                 jc        = indices(ic,k)
-                aerncn = 1.0E-6_wp*rho(jc,k)*( cams5(jc,k)/4.72911E-16_wp + cams6(jc,k)/1.55698E-15_wp )
+                aerncn = rho(jc,k)*( cams5(jc,k)/4.72911E-16_wp + cams6(jc,k)/1.55698E-15_wp )
                 CALL ice_nucleation ( t(jc,k), aerncn=aerncn , znin=dummy )
                 ncn(jc,k) = dummy
               ENDDO
@@ -1246,7 +1246,6 @@ MODULE mo_reff_main
     REAL(wp), POINTER                , DIMENSION(:,:) :: q               ! Mixing ratio of hydrometeor
     INTEGER                                           :: k, ic, jc       ! Counters
     LOGICAL                                           :: well_posed      ! Logical check
-!    REAL(wp)                                          :: aerncn          ! CAMS dust aerosols number concentration
     REAL(wp)                                          :: cloud_num
 
     ! Check input return_fct

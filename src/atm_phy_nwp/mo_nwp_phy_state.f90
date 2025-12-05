@@ -2920,8 +2920,8 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
 
     ENDIF
 
-    IF (.NOT. ANY( irad_aero == (/iRadAeroNone, iRadAeroConst, iRadAeroCAMSclim/) ) .AND.          &
-      &  (ANY ( atm_phy_nwp_config(k_jg)%icpl_aero_gscp == (/1, 3/) ) .OR. icpl_aero_conv == 1) ) THEN
+    IF (.NOT. ANY( irad_aero == (/iRadAeroNone, iRadAeroConst/) ) .AND.          &
+      &  (ANY ( atm_phy_nwp_config(k_jg)%icpl_aero_gscp == (/1, 2, 3/) ) .OR. icpl_aero_conv == 1) ) THEN
       lrestart = .TRUE.
     ELSE
       lrestart = .FALSE.

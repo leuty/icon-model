@@ -41,9 +41,10 @@ This options has the following characteristics:
 
 See [here](ref_miscnwp_2daero) for further information.
 
+(ref_atmosphere_ecrad_aerosol_cams)=
 ### CAMS climatology or CAMS forecast aerosol
 
-ICON currently supports the use of either the CAMS 49R2 aerosol climatology, or CAMS forecast aerosol for direction aerosol-radiation interactions. Aerosol-cloud interactions using CAMS are not yet supported.
+ICON currently supports the use of either the CAMS 49R2 aerosol climatology, or CAMS forecast aerosol for direction aerosol-radiation interactions. Aerosol-cloud interactions using CAMS is explained [here](ref_miscnwp_aero_cpl).
 
 #### Using the 49R2 CAMS climatology
 
@@ -56,6 +57,7 @@ The original climatology file can be downloaded from [this ECMWF webpage](https:
 At this point in time, ICON does **not** support the new `epoch` dimension of the climatology (i.e. anthropogenic change of aerosol over 5+ year periods).
 The ICON repository contains the script {{ '[`make_camsclim_onICONgrid.sh`]({}/scripts/preprocessing/make_camsclim_onICONgrid.sh)'.format(base_url) }} to extract the latest (2015) epoch from the original data file and interpolate the climatology onto an ICON grid of the user’s choice.
 Installation of CDO, NCO and python3 (numpy, xarray) tools is required to run this script.
+The CAMS climatology is based on reanalysis data from 2003-2014 ({term}`Bozzo et al. 2020`), providing 3D monthly aerosol profile climatologies.
 
 #### Using CAMS forecasts
 

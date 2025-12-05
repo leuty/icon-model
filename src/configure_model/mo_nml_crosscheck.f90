@@ -438,6 +438,14 @@ CONTAINS
           IF (icpl_aero_ice == 1 .AND. .NOT. ANY(irad_aero == (/iRadAeroTegen, iRadAeroCAMSclim, iRadAeroCAMStd/) ) ) &
             & CALL finish(routine,'icpl_aero_ice = 1 requires irad_aero= 6,7 or 8')
 
+          ! check if CAMS aerosols are available for CAMS + Segal & Khain CDNC parametrization
+          IF (atm_phy_nwp_config(jg)%icpl_aero_gscp == 2 .AND. .NOT. ANY(irad_aero == (/iRadAeroCAMSclim, iRadAeroCAMStd/) ) ) &
+            & CALL finish(routine,'icpl_aero_gscp = 2 requires irad_aero= 7 or 8')
+
+          ! check if CAMS aerosols are available for CAMS + Segal & Khain CDNC parametrization
+          IF (atm_phy_nwp_config(jg)%icpl_aero_gscp == 2 .AND. atm_phy_nwp_config(jg)%inwp_gscp /= 2 ) &
+            & CALL finish(routine,'icpl_aero_gscp = 2 requires inwp_gscp = 2')
+
           ! check ice nucleation settings for two-moment cloud ice scheme (gscp=3)
           IF ( (icpl_aero_ice == 2 .OR. icpl_aero_ice == 3 .OR. icpl_aero_ice == 4) .AND. atm_phy_nwp_config(jg)%inwp_gscp /= 3 ) &
              & CALL finish(routine,'icpl_aero_ice = 2, 3 or 4 requires inwp_gscp = 3')
@@ -687,6 +695,9 @@ CONTAINS
     END IF
     IF ( irad_aero == iRadAeroCAMStd) THEN
         CALL finish(routine,'CAMS forecast irad_aero=8 is currently not supported on GPU.')
+    END IF
+    IF ( atm_phy_nwp_config(jg)%lmicrophysicsFirst .AND. atm_phy_nwp_config(jg)%icpl_aero_gscp == 2 ) THEN
+        CALL finish(routine,'Using lmicrophysicsFirst and icpl_aero_gscp = 2 is currently not supported')
     END IF
 #endif
 

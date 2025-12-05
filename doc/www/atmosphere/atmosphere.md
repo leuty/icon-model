@@ -8,6 +8,7 @@ radiation/ecrad_overview.md
 radiation/rad_topo_correction.md
 miscellaneous/miscellaneous_nwp.md
 miscellaneous/miscnwp_2daerosol.md
+miscellaneous/miscnwp_aero_cpl
 sbm/sbm_overview.md
 miscellaneous/tuning_nwp.md
 ```
@@ -143,7 +144,8 @@ More detailed descriptions of some of above options are available here:
 **[Miscellaneous](ref_atm_nwpmisc)**
 ^^^
 [External SST/SIC](ref_sstsic_ext)\
-[2D Aerosol](ref_miscnwp_2daero)
+[2D Aerosol](ref_miscnwp_2daero)\
+[Aerosol-Cloud coupling](ref_miscnwp_aero_cpl)
 :::
 ::::
 

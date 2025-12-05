@@ -299,10 +299,10 @@ CONTAINS
                    ! 3=    Apply CAPE modification of (2) over land only, with additional restriction to the tropics
 
     ! coupling between aersols and cloud microphysics
-    icpl_aero_gscp = 0  ! 0 = none
+    icpl_aero_gscp = 0  ! 0 = constant cloud number concentration (CDNC, cloud_num)
                         ! 1 = simple coupling with aerosol climatology disregarding the dependency of aerosol activation on vertical wind speed
-                        ! 2 = more accurate coupling with aerosol climatology as a function of vertical wind speed
-                        ! 3 = like 1 but using the cdnc from external parameter
+                        ! 2 = Using CAMS aerosols as an input to Segal & Khain 2006 parametrization
+                        ! 3 = like 1 but using the CDNC from external parameter - climatology
 
     ! scaling of external CDNCs (only for icpl_aero_gscp = 3), mainly for climate projections
     scale_cdnc_mode = 0  ! 0 - off, no scaling

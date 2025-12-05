@@ -55,6 +55,9 @@ Barker et al. 2003
 Bechtold et al. 2008
   Bechtold, P., M. Köhler, T. Jung, F. Doblas-Reyes, M. Leutbecher, M. J. Rodwell, F. Vitart, and G. Balsamo (2008): Advances in simulating atmospheric variability with the ECMWF model: From synoptic to decadal time-scales. Q. J. R. Meteorol. Soc., 134 (634), 1337-1351, <https://doi.org/10.1002/qj.289>.
 
+Bozzo et al. 2020
+  Bozzo, A., Benedetti, A., Flemming, J., Kipling, Z., and Rémy, S.: An aerosol climatology for global models based on the tropospheric aerosol scheme in the Integrated Forecasting System of ECMWF, Geosci. Model Dev., 13, 1007–1034, https://doi.org/10.5194/gmd-13-1007-2020, 2020
+
 COSMO Technical Report No. 28
   U. Blahak (2016). RADAR_MIE_LM and RADAR_MIELIB - Calculation of Radar Reflectivity from Model Output, COSMO Technical Report No. 28, <https://www.cosmo-model.org/content/model/cosmo/techReports/docs/techReport28.pdf>
 
@@ -114,6 +117,9 @@ Reinert 2020
 
 Reinert & Zaengl 2021
   Reinert, D., and Zaengl, G. (2021). The tracer transport module part II: Description and validation of the vertical transport operator. Reports on ICON, 7. <https://doi.org/10.5676/DWD_pub/nwv/icon_007>
+
+Segal and Khain 2006
+  Segal, Y. and Khain, A. (2006): Dependence of droplet concentration on aerosol conditions in different cloud types: Application to droplet concentration parameterization of aerosol conditions. Journal of Geophysical Research Atmospheres 111(D15).
 
 Seifert et. al. 2005
   Seifert, A., Khain, A., Blahak, U., & Beheng, K. D. (2005): Possible effects of collisional breakup on mixed-phase deep convection simulated by a spectral (bin) cloud model. J. Atmos. Sci., 62(6), 1917-1931.

@@ -4118,10 +4118,7 @@ CONTAINS
       CASE ( 1,3 )
 
         CALL get_cloud_number(cloud_num)
-        IF (atm_phy_nwp_config(jg)%icpl_aero_gscp == 2) THEN
-          ! Not yet implemented in microphysics! We give a dummy value here.
-          qnc_s(:,:) = cloud_num               ! 1/kg
-        ELSE IF ( ANY ( atm_phy_nwp_config(jg)%icpl_aero_gscp == (/1, 3/) ) ) THEN
+        IF ( ANY ( atm_phy_nwp_config(jg)%icpl_aero_gscp == (/1, 2, 3/) ) ) THEN
           qnc_s(:,:) = prm_diag%cloud_num(:,:) ! neglect difference of 1/m^3 and 1/kg for this near-surface value
         ELSE
           qnc_s(:,:) = cloud_num               ! 1/kg
@@ -4144,6 +4141,7 @@ CONTAINS
              K_ice     = K_i_0,                            &
              T_melt    = Tmelt,                            &
              igscp     = atm_phy_nwp_config(jg)%inwp_gscp, &
+             igscpaer  = atm_phy_nwp_config(jg)%icpl_aero_gscp, &
              q_crit_radar = 1e-8_wp,                       &
              T         = p_diag%temp(:,:,:),               &
              rho       = p_prog%rho(:,:,:),                &
@@ -4152,16 +4150,14 @@ CONTAINS
              q_rain    = p_prog_rcf%tracer(:,:,:,iqr),     &
              q_snow    = p_prog_rcf%tracer(:,:,:,iqs),     &
              n_cloud_s = qnc_s(:,:),                       &  ! 1/kg
+             n_cloud   = prm_diag%acdnc(:,:,:),            &  ! 1/kg
              z_radar   = dbz3d_lin(:,:,:),                 &
              lacc      = lzacc                             )
 
       CASE ( 2 )
 
         CALL get_cloud_number(cloud_num)
-        IF (atm_phy_nwp_config(jg)%icpl_aero_gscp == 2) THEN
-          ! Not yet implemented in microphysics! We give a dummy value here.
-          qnc_s(:,:) = cloud_num               ! 1/kg
-        ELSE IF (atm_phy_nwp_config(jg)%icpl_aero_gscp == 1) THEN
+        IF ( ANY ( atm_phy_nwp_config(jg)%icpl_aero_gscp == (/1, 2/) ) ) THEN
           qnc_s(:,:) = prm_diag%cloud_num(:,:) ! neglect difference of 1/m^3 and 1/kg for this near-surface value
         ELSE
           qnc_s(:,:) = cloud_num               ! 1/kg
@@ -4184,6 +4180,7 @@ CONTAINS
              K_ice     = K_i_0,                            &
              T_melt    = Tmelt,                            &
              igscp     = atm_phy_nwp_config(jg)%inwp_gscp, &
+             igscpaer  = atm_phy_nwp_config(jg)%icpl_aero_gscp, &
              q_crit_radar = 1e-8_wp,                       &
              T         = p_diag%temp(:,:,:),               &
              rho       = p_prog%rho(:,:,:),                &
@@ -4193,6 +4190,7 @@ CONTAINS
              q_snow    = p_prog_rcf%tracer(:,:,:,iqs),     &
              q_graupel = p_prog_rcf%tracer(:,:,:,iqg),     &
              n_cloud_s = qnc_s(:,:),                       &  ! 1/kg
+             n_cloud   = prm_diag%acdnc(:,:,:),            &  ! 1/kg
              z_radar   = dbz3d_lin(:,:,:),                 &
              lacc      = lzacc                             )
 

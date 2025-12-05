@@ -187,8 +187,8 @@ CONTAINS
     ivstart,ivend, kstart,             & !! optional start/end indicies
     idbg,                              & !! optional debug level
     zdt, dz,                           & !! numerics parameters
-    t,p,rho,qv,qc,qi,qr,qs,qg,qnc,     & !! prognostic variables
-    qi0,qc0, zninc,                    & !! cloud ice/water threshold for autoconversion
+    t,p,rho,qv,qc,qi,qr,qs,qg,qnc,qnc3d, & !! prognostic variables
+    qi0,qc0,use3Dcdnc, zninc,           & !! cloud ice/water threshold for autoconversion
     prr_gsp,prs_gsp,pri_gsp,prg_gsp,   & !! surface precipitation rates
     qrsflux,                           & !  total precipitation flux
     l_cv,                              &
@@ -219,6 +219,8 @@ CONTAINS
 
     INTEGER, INTENT(IN):: ithermo_water          !! water thermodynamics
 
+    LOGICAL, INTENT(IN):: use3Dcdnc              ! if true, use 3D CDNC
+
     LOGICAL, INTENT(IN):: ldiag_ttend,         & ! if true, temperature tendency shall be diagnosed
       ldiag_qtend            ! if true, moisture tendencies shall be diagnosed
 
@@ -238,6 +240,9 @@ CONTAINS
       prg_gsp,             & !! precipitation rate of graupel, grid-scale     (kg/(m2*s))
       qnc                    !! cloud number concentration
 
+    REAL(KIND=wp), OPTIONAL, DIMENSION(:,:), INTENT(IN)::   &     ! dim (ie,ke)
+      qnc3d                    !! 3D cloud number concentration
+
     REAL(KIND=wp), DIMENSION(:), INTENT(INOUT)::   pri_gsp                !! precipitation rate of ice, grid-scale        (kg/(m2*s))
 
     REAL(KIND=wp), DIMENSION(:,:), INTENT(OUT)::   ddt_tend_t      , & !> tendency T                                       ( 1/s )
@@ -256,6 +261,7 @@ CONTAINS
       & zdt    =zdt                     ,    & !< in:  timestep
       & qi0    =qi0        ,    &
       & qc0    =qc0        ,    &
+      & use3Dcdnc =use3Dcdnc,   &  !< in: if true, use 3D CDNC
       & dz     =dz     ,    & !< in:  vertical layer thickness
       & t      =t           ,    & !< in:  temp,tracer,...
       & p      =p           ,    & !< in:  full level pres
@@ -267,6 +273,7 @@ CONTAINS
       & qs     =qs    ,    & !< in:  snow
       & qg     =qg    ,    & !< in:  graupel
       & qnc    = qnc                            ,    & !< cloud number concentration
+      & qnc3d  = qnc3d                          ,    & !< cloud number concentration
       & zninc  = zninc                          ,    & !< number of cloud ice crystals at nucleation
       & prr_gsp=prr_gsp     ,    & !< out: precipitation rate of rain
       & prs_gsp=prs_gsp     ,    & !< out: precipitation rate of snow

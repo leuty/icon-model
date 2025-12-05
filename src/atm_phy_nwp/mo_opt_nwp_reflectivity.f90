@@ -29,6 +29,7 @@ MODULE mo_opt_nwp_reflectivity
   USE mo_exception,             ONLY: finish, message
   USE mo_fortran_tools,         ONLY: set_acc_host_or_device
   USE microphysics_1mom_schemes,ONLY: get_params_for_dbz_calculation
+  USE mo_atm_phy_nwp_config,    ONLY: atm_phy_nwp_config
 
   IMPLICIT NONE
 
@@ -49,10 +50,9 @@ CONTAINS
                                      startidx1, endidx2,                                 &
                                      lmessage_light, lmessage_full, my_id_for_message,   &
                                      rho_w, rho_ice,                                     &
-                                     K_w, K_ice, T_melt, igscp, q_crit_radar,            &
+                                     K_w, K_ice, T_melt, igscp, igscpaer, q_crit_radar,  &
                                      T, rho, q_cloud, q_rain, q_ice, q_snow, z_radar,    &
-                                     q_graupel, n_cloud_s, lacc )
-
+                                     q_graupel, n_cloud_s, n_cloud, lacc )
    !------------------------------------------------------------------------------
     !
     ! Description:  Calculation of grid point values for effective radar
@@ -105,9 +105,10 @@ CONTAINS
                                   q_rain(:,:,:),     &
                                   q_ice(:,:,:),      &
                                   q_snow(:,:,:)
-    REAL(wp), INTENT(IN), OPTIONAL :: q_graupel(:,:,:), n_cloud_s(:,:)
+    REAL(wp), INTENT(IN), OPTIONAL :: q_graupel(:,:,:), n_cloud_s(:,:), n_cloud(:,:,:)
     REAL(wp), INTENT(OUT)      :: z_radar(:,:,:)
     LOGICAL, OPTIONAL, INTENT(IN)  :: lacc              !< initialization flag
+    INTEGER, OPTIONAL,INTENT(IN)   :: igscpaer
 
     ! Local Variables
     !----------------
@@ -118,7 +119,7 @@ CONTAINS
 
     INTEGER        :: jc, jk, jb, i_startidx, i_endidx
     LOGICAL, SAVE  :: firstcall = .TRUE.
-    logical        :: lqnc_input
+    logical        :: lqnc_input, lqnc3d_input, igscpaer_input
 
     REAL(wp)       :: z_fac_ice_dry, z_fac_ice_wet
     REAL(wp)       :: ztc, m2s, m3s, alf, bet, hlp, zn0s, x_c, x_i_mono, n_i
@@ -173,6 +174,8 @@ CONTAINS
     ENDIF
 
     lqnc_input = PRESENT(n_cloud_s)
+    lqnc3d_input = PRESENT(n_cloud)
+    igscpaer_input = PRESENT(igscpaer)
 
     z_fac_ice_dry = (rho_w/rho_ice)**2 * K_ice/K_w
     z_fac_ice_wet = 1.0_wp
@@ -310,10 +313,20 @@ CONTAINS
 
           ! .. cloud droplets (gamma distribution w.r.t. mass x and mu_x=zcnue
           IF (rho_c >= q_crit_radar) THEN
-            IF (lqnc_input) THEN
-              x_c = q_cloud(jc,jk,jb) / MAX(n_cloud_s(jc,jb), n_cloud_min)
+            IF (igscpaer_input) THEN
+              IF (lqnc_input .AND. igscpaer /= 2) THEN
+                x_c = q_cloud(jc,jk,jb) / MAX(n_cloud_s(jc,jb), n_cloud_min)
+              ELSE IF (lqnc3d_input .AND. igscpaer == 2) THEN
+                x_c = q_cloud(jc,jk,jb) / MAX(n_cloud(jc,jk,jb), n_cloud_min)
+              ELSE
+                x_c = x_c_fix
+              END IF
             ELSE
-              x_c = x_c_fix
+              IF (lqnc_input) THEN
+                x_c = q_cloud(jc,jk,jb) / MAX(n_cloud_s(jc,jb), n_cloud_min)
+	      ELSE
+                x_c = x_c_fix
+              END IF
             END IF
             z_cloud = z_fac_c * rho_c * x_c
             z_radar(jc,jk,jb) = z_cloud * convfac
