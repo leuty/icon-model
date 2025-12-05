@@ -101,7 +101,7 @@ MODULE mo_2mom_mcrph_main
        &  hail_melting_simple, graupel_hail_conv_wet_gamlook, ice_riming,    &
        &  snow_riming, ccn_activation_sk, ccn_activation_hdcp2,              &
        &  ccn_activation_sk_4d, set_default_n,                               &
-       &  ice_typ, nuc_i_typ, nuc_c_typ, auto_typ, isdebug, isprint
+       &  ice_typ, nuc_i_typ, nuc_c_typ, auto_typ, isdebug
   USE mo_2mom_mcrph_setup, ONLY: cfg_params,                                 &
        &  setup_particle_coeffs, setup_cloud_autoconversion_sb,              &
        &  setup_ice_selfcollection, setup_snow_selfcollection,               &
@@ -477,11 +477,12 @@ CONTAINS
   !*******************************************************************************
 
   SUBROUTINE clouds_twomoment(ik_slice, dt, use_prog_in, atmo, &
-       cloud, rain, ice, snow, graupel, hail, n_inact, n_cn, n_inpot)
+       cloud, rain, ice, snow, graupel, hail, n_inact, n_cn, n_inpot, msg_level)
 
     ! start and end indices for 2D slices
     ! istart = slice(1), iend = slice(2), kstart = slice(3), kend = slice(4)
     INTEGER, INTENT(in) :: ik_slice(4)
+    INTEGER, INTENT(in) :: msg_level
 
     ! time step within two-moment scheme
     REAL(wp), INTENT(in) :: dt
@@ -617,7 +618,7 @@ CONTAINS
       IF (ischeck) CALL check(ik_slice, 'graupel_hail_conv_wet_gamlook',cloud,rain,ice,snow,graupel,hail)
 
       ! hail collisions
-      CALL particle_particle_collection(ik_slice, dt, atmo, ice, hail, hic_coeffs, ltab_estick_parti)    ! Important?
+      CALL particle_particle_collection(ik_slice, dt, atmo, ice, hail, hic_coeffs, ltab_estick_parti)
       CALL particle_particle_collection(ik_slice, dt, atmo, snow, hail, hsc_coeffs, ltab_estick_parti)
       IF (ischeck) CALL check(ik_slice, 'hail collection',cloud,rain,ice,snow,graupel,hail)
 
@@ -826,13 +827,22 @@ CONTAINS
   ! classes according to predefined parameter sets (see above).
   !*******************************************************************************
 
-  SUBROUTINE init_2mom_scheme_once(cloud,rain,ice,snow,graupel,hail,cloud_type)
-    INTEGER, INTENT(in)  :: cloud_type
+  SUBROUTINE init_2mom_scheme_once(cloud,rain,ice,snow,graupel,hail,cloud_type,msg_level)
+    INTEGER, INTENT(in)           :: cloud_type
+    INTEGER, INTENT(in), OPTIONAL :: msg_level
     TYPE(particle), INTENT(inout) :: cloud, rain, ice, snow, graupel, hail
 
     CHARACTER(len=*), PARAMETER :: routine = 'init_2mom_scheme_once'
     REAL(wp), DIMENSION(1:1) :: q_r,x_r,q_c,vn_rain_min, vq_rain_min, vn_rain_max, vq_rain_max, rhocorr
     REAL(wp) :: nu, mu, x_s_i
+
+    LOGICAL :: isprint      ! print-out initialization values
+
+    IF (.not.PRESENT(msg_level)) THEN
+      isprint = .true.
+    ELSE
+      isprint = (msg_level > 7)
+    END IF
 
     rhocorr = 1.0_wp
 
@@ -858,14 +868,16 @@ CONTAINS
     rain_coeffs%cmu3 = cfg_params%rain_cmu3
     rain_coeffs%cmu4 = cfg_params%rain_cmu4
 
-    CALL message(TRIM(routine), "calculate run-time coefficients")
-    WRITE (txt,'(A,I10)') "  cloud_type = ",cloud_type ; CALL message(routine,TRIM(txt))
-    WRITE (txt,'(2A)') "     cloud   = ",cloud%name    ; CALL message(routine,TRIM(txt))
-    WRITE (txt,'(2A)') "     rain    = ",rain%name     ; CALL message(routine,TRIM(txt))
-    WRITE (txt,'(2A)') "     ice     = ",ice%name      ; CALL message(routine,TRIM(txt))
-    WRITE (txt,'(2A)') "     snow    = ",snow%name     ; CALL message(routine,TRIM(txt))
-    WRITE (txt,'(2A)') "     graupel = ",graupel%name  ; CALL message(routine,TRIM(txt))
-    WRITE (txt,'(2A)') "     hail    = ",hail%name     ; CALL message(routine,TRIM(txt))
+    IF (isprint) THEN
+      CALL message(TRIM(routine), "calculate run-time coefficients")
+      WRITE (txt,'(A,I10)') "  cloud_type = ",cloud_type ; CALL message(routine,TRIM(txt))
+      WRITE (txt,'(2A)') "     cloud   = ",cloud%name    ; CALL message(routine,TRIM(txt))
+      WRITE (txt,'(2A)') "     rain    = ",rain%name     ; CALL message(routine,TRIM(txt))
+      WRITE (txt,'(2A)') "     ice     = ",ice%name      ; CALL message(routine,TRIM(txt))
+      WRITE (txt,'(2A)') "     snow    = ",snow%name     ; CALL message(routine,TRIM(txt))
+      WRITE (txt,'(2A)') "     graupel = ",graupel%name  ; CALL message(routine,TRIM(txt))
+      WRITE (txt,'(2A)') "     hail    = ",hail%name     ; CALL message(routine,TRIM(txt))
+    END IF
 
     ! initialize bulk sedimentation velocities
     ! calculates coeff_alfa_n, coeff_alfa_q, and coeff_lambda
@@ -873,6 +885,25 @@ CONTAINS
     call init_2mom_sedi_vel(snow,snow_coeffs)
     call init_2mom_sedi_vel(graupel,graupel_coeffs)
     call init_2mom_sedi_vel(hail,hail_coeffs)
+    IF (isprint) THEN
+      CALL message(TRIM(routine), "sedimentation coefficients")
+      WRITE (txt,'(2A)') "    name  = ",ice%name ; CALL message(routine,TRIM(txt))
+      WRITE (txt,'(A,D14.7)') "     c_lam = ",ice_coeffs%coeff_lambda ; CALL message(routine,TRIM(txt))
+      WRITE (txt,'(A,D14.7)') "     alf_n = ",ice_coeffs%coeff_alfa_n ; CALL message(routine,TRIM(txt))
+      WRITE (txt,'(A,D14.7)') "     alf_q = ",ice_coeffs%coeff_alfa_q ; CALL message(routine,TRIM(txt))
+      WRITE (txt,'(2A)') "    name  = ",snow%name ; CALL message(routine,TRIM(txt))
+      WRITE (txt,'(A,D14.7)') "     c_lam = ",snow_coeffs%coeff_lambda ; CALL message(routine,TRIM(txt))
+      WRITE (txt,'(A,D14.7)') "     alf_n = ",snow_coeffs%coeff_alfa_n ; CALL message(routine,TRIM(txt))
+      WRITE (txt,'(A,D14.7)') "     alf_q = ",snow_coeffs%coeff_alfa_q ; CALL message(routine,TRIM(txt))
+      WRITE (txt,'(2A)') "    name  = ",graupel%name ; CALL message(routine,TRIM(txt))
+      WRITE (txt,'(A,D14.7)') "     c_lam = ",graupel_coeffs%coeff_lambda ; CALL message(routine,TRIM(txt))
+      WRITE (txt,'(A,D14.7)') "     alf_n = ",graupel_coeffs%coeff_alfa_n ; CALL message(routine,TRIM(txt))
+      WRITE (txt,'(A,D14.7)') "     alf_q = ",graupel_coeffs%coeff_alfa_q ; CALL message(routine,TRIM(txt))
+      WRITE (txt,'(2A)') "    name  = ",hail%name ; CALL message(routine,TRIM(txt))
+      WRITE (txt,'(A,D14.7)') "     c_lam = ",hail_coeffs%coeff_lambda ; CALL message(routine,TRIM(txt))
+      WRITE (txt,'(A,D14.7)') "     alf_n = ",hail_coeffs%coeff_alfa_n ; CALL message(routine,TRIM(txt))
+      WRITE (txt,'(A,D14.7)') "     alf_q = ",hail_coeffs%coeff_alfa_q ; CALL message(routine,TRIM(txt))
+    END IF
 
     ! look-up table and parameters for rain_freeze_gamlook
     rain_nm1 = (rain%nu+1.0)/rain%mu
@@ -892,68 +923,46 @@ CONTAINS
     graupel_g1 = graupel_ltable1%igf(graupel_ltable1%n) ! ordinary gamma function of nm1 is the last value in table 1
     graupel_g2 = graupel_ltable2%igf(graupel_ltable2%n) ! ordinary gamma function of nm2 is the last value in table 2
 
-
     ! .. tables and parameters for graupel shedding during cloud riming:
     !    graupel: partial moment; cloud: full moment
     CALL setup_particle_coll_pm_type1_bfull(graupel,cloud,gshedc_coeffs)
-    !    for delta_gg-part:
     CALL incgfct_lower_lookupcreate(gshedc_coeffs%moma(0,3), gshedc_ltab_dgg_03, nlookup, nlookuphr_dummy)
-    !    for delta_gr-part:
     CALL incgfct_lower_lookupcreate(gshedc_coeffs%moma(0,2), gshedc_ltab_dgr_02, nlookup, nlookuphr_dummy)
-    !    for delta_rr-part:
     CALL incgfct_lower_lookupcreate(gshedc_coeffs%moma(0,1), gshedc_ltab_drr_01, nlookup, nlookuphr_dummy)
-    !    for theta_gg-part:
     CALL incgfct_lower_lookupcreate(gshedc_coeffs%moma(0,5), gshedc_ltab_tgg_05, nlookup, nlookuphr_dummy)
     CALL incgfct_lower_lookupcreate(gshedc_coeffs%moma(0,3), gshedc_ltab_tgg_03, nlookup, nlookuphr_dummy)
-    !    for theta_gr-part:
     CALL incgfct_lower_lookupcreate(gshedc_coeffs%moma(0,4), gshedc_ltab_tgr_04, nlookup, nlookuphr_dummy)
 
     ! .. tables and parameters for hail shedding during cloud riming:
     !    hail: partial moment; cloud: full moment
     CALL setup_particle_coll_pm_type1_bfull(hail,cloud,hshedc_coeffs)
-    !    for delta_hh-part:
     CALL incgfct_lower_lookupcreate(hshedc_coeffs%moma(0,3), hshedc_ltab_dhh_03, nlookup, nlookuphr_dummy)
-    !    for delta_hr-part:
     CALL incgfct_lower_lookupcreate(hshedc_coeffs%moma(0,2), hshedc_ltab_dhr_02, nlookup, nlookuphr_dummy)
-    !    for delta_rr-part:
     CALL incgfct_lower_lookupcreate(hshedc_coeffs%moma(0,1), hshedc_ltab_drr_01, nlookup, nlookuphr_dummy)
-    !    for theta_hh-part:
     CALL incgfct_lower_lookupcreate(hshedc_coeffs%moma(0,5), hshedc_ltab_thh_05, nlookup, nlookuphr_dummy)
     CALL incgfct_lower_lookupcreate(hshedc_coeffs%moma(0,3), hshedc_ltab_thh_03, nlookup, nlookuphr_dummy)
-    !    for theta_hr-part:
     CALL incgfct_lower_lookupcreate(hshedc_coeffs%moma(0,4), hshedc_ltab_thr_04, nlookup, nlookuphr_dummy)
 
 
     ! .. tables and parameters for graupel shedding during rain riming:
     !    graupel: partial moment; rain: full moment
     CALL setup_particle_coll_pm_type1_bfull(graupel,rain,gshedr_coeffs)
-    !    for delta_gg-part:
     CALL incgfct_lower_lookupcreate(gshedr_coeffs%moma(0,3), gshedr_ltab_dgg_03, nlookup, nlookuphr_dummy)
-    !    for delta_gr-part:
     CALL incgfct_lower_lookupcreate(gshedr_coeffs%moma(0,2), gshedr_ltab_dgr_02, nlookup, nlookuphr_dummy)
-    !    for delta_rr-part:
     CALL incgfct_lower_lookupcreate(gshedr_coeffs%moma(0,1), gshedr_ltab_drr_01, nlookup, nlookuphr_dummy)
-    !    for theta_gg-part:
     CALL incgfct_lower_lookupcreate(gshedr_coeffs%moma(0,5), gshedr_ltab_tgg_05, nlookup, nlookuphr_dummy)
     CALL incgfct_lower_lookupcreate(gshedr_coeffs%moma(0,3), gshedr_ltab_tgg_03, nlookup, nlookuphr_dummy)
-    !    for theta_gr-part:
     CALL incgfct_lower_lookupcreate(gshedr_coeffs%moma(0,4), gshedr_ltab_tgr_04, nlookup, nlookuphr_dummy)
 
     ! .. tables and parameters for hail shedding during rain riming:
     !    hail: partial moment; rain: full moment
     CALL setup_particle_coll_pm_type1_bfull(hail,rain,hshedr_coeffs)
-    !    for delta_hh-part:
     CALL incgfct_lower_lookupcreate(hshedr_coeffs%moma(0,3), hshedr_ltab_dhh_03, nlookup, nlookuphr_dummy)
-    !    for delta_hr-part:
     CALL incgfct_lower_lookupcreate(hshedr_coeffs%moma(0,2), hshedr_ltab_dhr_02, nlookup, nlookuphr_dummy)
-    !    for delta_rr-part:
     CALL incgfct_lower_lookupcreate(hshedr_coeffs%moma(0,1), hshedr_ltab_drr_01, nlookup, nlookuphr_dummy)
-    !    for theta_hh-part:
     CALL incgfct_lower_lookupcreate(hshedr_coeffs%moma(0,5), hshedr_ltab_thh_05, nlookup, nlookuphr_dummy)
     CALL incgfct_lower_lookupcreate(hshedr_coeffs%moma(0,3), hshedr_ltab_thh_03, nlookup, nlookuphr_dummy)
-    !    for theta_hr-part:
     CALL incgfct_lower_lookupcreate(hshedr_coeffs%moma(0,4), hshedr_ltab_thr_04, nlookup, nlookuphr_dummy)
-
 
     ! .. Lookup tables for sticking efficiencies:
     CALL init_estick_ltab_equi (ltab_estick_ice,   cfg_params%iice_stick,   'estick_cloudice')

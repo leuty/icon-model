@@ -75,7 +75,7 @@ MODULE mo_2mom_mcrph_setup
 
   ! debug switches
   LOGICAL, PARAMETER     :: isdebug = .false.   ! use only when really desperate
-  LOGICAL, PARAMETER     :: isprint = .true.    ! print-out initialization values
+  LOGICAL, PARAMETER     :: isprint = .false.   ! print-out initialization values
 
   REAL(wp), PARAMETER    :: pi6 = pi/6.0_wp, pi8 = pi/8.0_wp ! more pieces of pi
 
