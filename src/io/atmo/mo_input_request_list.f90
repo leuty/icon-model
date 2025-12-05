@@ -59,8 +59,7 @@ MODULE mo_input_request_list
       &                   ecc_open_file, ecc_close_file, ecc_read_record, ecc_new_from_record, ecc_release,                  &
       &                   ecc_get_info_on_product, ecc_get_info_on_datetime, ecc_get_info_on_horizontal_grid,                &
       &                   ecc_get_info_on_vertical_grid, ecc_get_info_on_generating_centre,                                  &
-      &                   ecc_get_info_on_generating_process, ecc_get_info_on_data_representation, ecc_get_info_on_tiles,    &
-      &                   ecc_get_local_info, ecc_get_values
+      &                   ecc_get_info_on_generating_process, ecc_get_info_on_tiles, ecc_get_local_info, ecc_get_values
     USE mo_timer, ONLY: timer_start, timer_stop, timer_file_reading, timer_raw_data_distribution, timer_metadata_decoding, &
       &                 timer_raw_data_decompression, timer_data_distribution, timer_file_inventory
 
@@ -912,8 +911,8 @@ CONTAINS
     !! @brief Reading a GRIB file via direct use of ecCodes
     !!
     SUBROUTINE InputRequestList_readFile_grib(me, grib_file_path, lIsFg, dict, jg, ncells_global, nedges_global, &
-      &                                       hgrid_uuid, vgrid_uuid, verify_hgrid_uuid, verify_vgrid_uuid,      &
-      &                                       verbose, timing, inventory)
+      &                                       hgrid_uuid, vgrid_uuid, ana_incr_list, verify_hgrid_uuid,          &
+      &                                       verify_vgrid_uuid, verify_ana_incr_list, verbose, timing, inventory)
 
       !-----------
       ! Arguments
@@ -949,11 +948,19 @@ CONTAINS
       !> UUID of vertical grid of ICON
       TYPE(t_uuid),              INTENT(IN)    :: vgrid_uuid
 
+      !> List of input fields (with internal variable names)
+      !> which may be provided as analysis increments
+      CHARACTER(LEN=*),          INTENT(IN)    :: ana_incr_list(:)
+
       !> Flag to indicate if UUID of horizontal grid has to be verified
       LOGICAL,                   INTENT(IN)    :: verify_hgrid_uuid
 
       !> Flag to indicate if UUID of vertical grid has to be verified
       LOGICAL,                   INTENT(IN)    :: verify_vgrid_uuid
+
+      !> Flag to indicate whether to verify if metadata of ana_incr_list-fields
+      !> conform to analysis increments
+      LOGICAL,                   INTENT(IN)    :: verify_ana_incr_list
 
       !> Flag to indicate verbose messaging
       LOGICAL,                   INTENT(IN)    :: verbose
@@ -1019,7 +1026,7 @@ CONTAINS
       !> Loop index for data scattering
       INTEGER :: jproc
 
-      !> Level
+      !> Value of level for parametric level types
       REAL(dp) :: level
 
       !> ICON-specific tile identifier
@@ -1046,14 +1053,11 @@ CONTAINS
       !> Uniform field value
       REAL(dp) :: uniformValue
 
-      !> Are there missing values within level/layer?
-      LOGICAL :: missingValuesPresent
+      !> Data values defined on grid cells or edges (single precision)
+      REAL(sp), ALLOCATABLE :: field(:)
 
-      !> Data values defined on grid cells (single precision)
-      REAL(sp), ALLOCATABLE ::  field_cell(:)
-
-      !> Data values defined on grid edges (single precision)
-      REAL(sp), ALLOCATABLE :: field_edge(:)
+      !> Number of grid elements (either value of ncells_global or nedges_global)
+      INTEGER(KIND=i8) :: nelems_global
 
       !> Flag to indicate a valid GRIB message (GRIB record)
       LOGICAL :: found_match
@@ -1067,8 +1071,14 @@ CONTAINS
       !> Size of array of data values
       INTEGER(KIND=i8) :: ecc_sizeOfValues
 
+      !> Number of missing values within level/layer
+      INTEGER(KIND=i8) :: ecc_numberOfMissing
+
       !> Min., max. and average of field values
       REAL(wp) :: ecc_min, ecc_max, ecc_avg
+
+      !> Precision of data values
+      INTEGER :: ecc_bitsPerValue
 
       !> Flag to indicate successful ecCodes inquiries
       LOGICAL :: ecc_successful
@@ -1149,7 +1159,7 @@ CONTAINS
       !   as it does access 'metadata' and 'statistics' explicitly.
       !   In order to nevertheless allow for a file inventory,
       !   new derived types 't_FileInventoryElement' and 't_FileInventory' were implemented.
-      !   (Any attempt to adapt 'metadata' and 'statistics' to our needs - if possible at all-
+      !   (Any attempt to adapt 'metadata' and 'statistics' to our needs - if possible at all -
       !   would have resulted in something considerably worse than the current solution.)
       !
       ! - In case of GRIB records, the metadata contain the information
@@ -1168,6 +1178,9 @@ CONTAINS
       !   as a "message" triggered by other PEs than Workroot are not printed.
       !
 
+      ! The task of this subroutine is meant for Work PEs only
+      IF (.NOT. my_process_is_work()) RETURN
+
       !-----------------
       ! Check arguments
       !-----------------
@@ -1183,9 +1196,6 @@ CONTAINS
       !--------------
       ! Preparations
       !--------------
-
-      ! The task of this subroutine is meant for Work PEs only
-      IF (.NOT. my_process_is_work()) RETURN
 
       ! Initialize length of message prefix
       message_prefix_length = 0
@@ -1210,28 +1220,27 @@ CONTAINS
       ecc_msgid = ECC_NULL_HANDLE
 
       ! Initialize metadata to be distributed among Work PEs
-      record_flag_status   = -999_i4
-      level                = REAL(MISSING_VALUE, KIND=dp)
-      subGridId            = -999
-      gridSize             = 0_i8
-      variableNameLength   = 0
-      tileId               = -999
-      isUniform            = .FALSE.
-      uniformValue         = REAL(MISSING_VALUE, KIND=dp)
-      missingValuesPresent = .FALSE.
-      found_match          = .FALSE.
-      variableName         = " "
+      record_flag_status = -999_i4
+      level              = REAL(MISSING_VALUE, KIND=dp)
+      subGridId          = -999
+      gridSize           = 0_i8
+      variableNameLength = 0
+      tileId             = -999
+      isUniform          = .FALSE.
+      uniformValue       = REAL(MISSING_VALUE, KIND=dp)
+      found_match        = .FALSE.
+      variableName       = " "
 
-      record_flag_status_curr   = record_flag_status
-      level_curr                = level
-      subGridId_curr            = subGridId
-      gridSize_curr             = gridSize
-      variableNameLength_curr   = variableNameLength
-      tileId_curr               = tileId
-      isUniform_curr            = isUniform
-      uniformValue_curr         = uniformValue
-      found_match_curr          = found_match
-      variableName_curr         = variableName
+      record_flag_status_curr = record_flag_status
+      level_curr              = level
+      subGridId_curr          = subGridId
+      gridSize_curr           = gridSize
+      variableNameLength_curr = variableNameLength
+      tileId_curr             = tileId
+      isUniform_curr          = isUniform
+      uniformValue_curr       = uniformValue
+      found_match_curr        = found_match
+      variableName_curr       = variableName
 
       ! Check consistency of requested input variables between the involved PEs(???)
       CALL me%checkRequests()
@@ -1246,7 +1255,7 @@ CONTAINS
       !  - Safety margin for the metadata header: 1000 bytes
       !  => MAX(ncells_global, nedges_global) * 3 + 1000
       ! (Note: Although GRIB records may become larger and larger in the future, we cannot use type 'INTEGER(KIND=i8)'.
-      ! This is because there is no corresponding MPI INTERFACE.)
+      ! This is because there is no corresponding MPI interface.)
       ecc_max_record_length_in_byte = INT(MAX(ncells_global, nedges_global)) * 3 + 1000
       ecc_max_record_length         = ecc_max_record_length_in_byte / 4
 
@@ -1257,18 +1266,16 @@ CONTAINS
 
       ! Allocate fields
       ALLOCATE(ecc_record(lbound_for_record_flags:ecc_max_record_length,max_status_requests), &
-        &      status_request(max_status_requests), field_cell(ncells_global),                &
-        &      field_edge(nedges_global), STAT=status)
+        &      status_request(max_status_requests), field(MAX(ncells_global, nedges_global)), STAT=status)
       IF (status /= SUCCESS) &
-        & CALL finish(routine, "Allocation of ecc_record, status_request, field_cell and field_edge failed")
+        & CALL finish(routine, "Allocation of ecc_record, status_request and field failed")
 
       ! Initialize content of file-inventory element with default values, just to make sure
       IF (inventory) CALL inventory_element%reset()
 
       ecc_record(:,:)   = 0_i4
       status_request(:) = MPI_REQUEST_NULL !???
-      field_cell(:)     = 0.0_sp
-      field_edge(:)     = 0.0_sp
+      field(:)          = 0.0_sp
 
       ! Initialize flag that indicates whether the end of a GRIB file is reached
       ecc_eof = .FALSE.
@@ -1317,7 +1324,9 @@ CONTAINS
       ! Precessing of GRIB file
       !-------------------------
 
-      ! Loop over the messages (records) contained in the GRIB file
+      ! Loop over the messages (records) contained in the GRIB file:
+      ! (It might be helpful for its understanding to keep in mind that its effective appearance
+      ! is quite different for the Workroot PE, on the one hand, and the Worker PEs, on the other hand.)
       FILE_PROCESSING_LOOP: DO
 
         IF (i_am_mpi_workroot) THEN
@@ -1418,9 +1427,11 @@ CONTAINS
           IF (timing) CALL timer_stop(timer_raw_data_distribution)
 
           ! Condition for cycling the processing loop:
-          ! The Workroot PE will cycle the processing loop about 'num_work_procs - 1' times more often
-          ! than all the other Work PEs do, in order to send one GRIB message to each of the latter for decoding.
-          ! Only if all the other Work PEs got a GRIB message,
+          ! The Workroot PE will cycle the processing loop up to this point
+          ! about '(num_work_procs - 1)/process_stride_pgrib' times more often
+          ! than all the other Work PEs do, in order to send one GRIB message
+          ! to the latter for decoding.
+          ! Only if the other Work PEs got a GRIB message,
           ! the Workroot PE will not enter the following loop-cycle-condition,
           ! but will advance to the "all-to-all" distribution
           ! of the decoded GRIB messages further below.
@@ -1428,9 +1439,9 @@ CONTAINS
 
         ELSE IF (MOD(my_mpi_work_id,process_stride_pgrib) == 0) THEN
 
-          !-------------------------
-          ! All the other Work PEs:
-          !-------------------------
+          !---------------------------------------------------------------------------
+          ! All the other Work PEs (or a subset of them if process_stride_pgrib > 1):
+          !---------------------------------------------------------------------------
 
           IF (timing) CALL timer_start(timer_raw_data_distribution)
 
@@ -1443,7 +1454,8 @@ CONTAINS
           ecc_count          = INT(ecc_record(idx_record_flag_count,idx_status_requests_curr))
           ecc_record_length  = INT(ecc_record(idx_record_flag_length,idx_status_requests_curr))
 
-          found_match = .FALSE.
+          nelems_global = 0_i8
+          found_match   = .FALSE.
 
           IF (timing) CALL timer_stop(timer_raw_data_distribution)
 
@@ -1477,23 +1489,21 @@ CONTAINS
               &                        ecc_msgid             = ecc_msgid,             & ! in
               &                        lIsFg                 = lIsFg,                 & ! in
               &                        verbose               = verbose,               & ! in
-              &                        message_prefix        = message_prefix,        & ! inout
-              &                        message_prefix_length = message_prefix_length, & ! inout
               &                        inventory             = inventory,             & ! in
-              &                        dict                  = dict,                  & ! in
               &                        hgrid_uuid            = hgrid_uuid,            & ! in
               &                        vgrid_uuid            = vgrid_uuid,            & ! in
+              &                        ana_incr_list         = ana_incr_list,         & ! in
               &                        verify_hgrid_uuid     = verify_hgrid_uuid,     & ! in
               &                        verify_vgrid_uuid     = verify_vgrid_uuid,     & ! in
+              &                        verify_ana_incr_list  = verify_ana_incr_list,  & ! in
+              &                        message_prefix        = message_prefix,        & ! inout
+              &                        message_prefix_length = message_prefix_length, & ! inout
               &                        level                 = level,                 & ! out
               &                        tileId                = tileId,                & ! out
               &                        variableName          = variableName,          & ! out
               &                        variableNameLength    = variableNameLength,    & ! out
               &                        subGridId             = subGridId,             & ! out
               &                        gridSize              = gridSize,              & ! out
-              &                        isUniform             = isUniform,             & ! out
-              &                        uniformValue          = uniformValue,          & ! out
-              &                        missingValuesPresent  = missingValuesPresent,  & ! out
               &                        inventory_element     = inventory_element,     & ! out
               &                        found_match           = found_match            ) ! out
 
@@ -1507,6 +1517,7 @@ CONTAINS
               IF (gridSize == ncells_global) THEN
 
                 ! Data are defined on grid cells:
+                nelems_global = ncells_global
 
                 IF (subGridId /= ECC_GRID_ELEMENT_CELL) THEN
 
@@ -1523,37 +1534,10 @@ CONTAINS
 
                 ENDIF ! IF (subGridId /= ECC_GRID_ELEMENT_CELL)
 
-                ! Get data values
-                IF (.NOT. isUniform) THEN
-
-                  ! (Whether missing values may apply to a field is probably (or should at least be) indicated
-                  ! via 'lmiss'- and 'missval'-arguments of their 'add_var'-registrations.
-                  ! However, it is unclear how to access this information here, if possible at all.
-                  ! Therefore, we take the CDI_Default_Missval = -9.E33)
-                  CALL ecc_get_values(ecc_msgid        = ecc_msgid,        & ! in
-                    &                 ecc_missingValue = MISSING_VALUE_SP, & ! in
-                    &                 ecc_values       = field_cell,       & ! inout
-                    &                 ecc_sizeOfValues = ecc_sizeOfValues, & ! out
-                    &                 ecc_min          = ecc_min,          & ! out
-                    &                 ecc_max          = ecc_max,          & ! out
-                    &                 ecc_avg          = ecc_avg,          & ! out
-                    &                 ecc_successful   = ecc_successful    ) ! out
-
-                  IF (.NOT. ecc_successful) CALL finish(routine, message_prefix(1:message_prefix_length) &
-                    & //": Unable to get data values (field_cell)")
-
-                ELSE
-
-                  ! We need the field statistics for the inventory below
-                  ecc_min = REAL(uniformValue, KIND=wp)
-                  ecc_max = ecc_min
-                  ecc_avg = ecc_min
-
-                ENDIF ! IF (.NOT. isUniform)
-
               ELSEIF (gridSize == nedges_global) THEN
 
                 ! Data are defined on grid edges:
+                nelems_global = nedges_global
 
                 IF (subGridId /= ECC_GRID_ELEMENT_EDGE) THEN
 
@@ -1570,30 +1554,6 @@ CONTAINS
 
                 ENDIF ! IF (subGridId /= ECC_GRID_ELEMENT_EDGE)
 
-                ! Get data values
-                IF (.NOT. isUniform) THEN
-
-                  CALL ecc_get_values(ecc_msgid        = ecc_msgid,        & ! in
-                    &                 ecc_missingValue = MISSING_VALUE_SP, & ! in
-                    &                 ecc_values       = field_edge,       & ! inout
-                    &                 ecc_sizeOfValues = ecc_sizeOfValues, & ! out
-                    &                 ecc_min          = ecc_min,          & ! out
-                    &                 ecc_max          = ecc_max,          & ! out
-                    &                 ecc_avg          = ecc_avg,          & ! out
-                    &                 ecc_successful   = ecc_successful    ) ! out
-
-                  IF (.NOT. ecc_successful) CALL finish(routine, message_prefix(1:message_prefix_length) &
-                    & //": Unable to get data values (field_edge)")
-
-                ELSE
-
-                  ! We need the field statistics for the inventory below
-                  ecc_min = REAL(uniformValue, KIND=wp)
-                  ecc_max = ecc_min
-                  ecc_avg = ecc_min
-
-                ENDIF ! IF (.NOT. isUniform)
-
               ELSE
 
                 ! Invalid grid size
@@ -1602,6 +1562,35 @@ CONTAINS
                 CALL finish(routine, message_prefix(1:message_prefix_length)//message_text)
 
               ENDIF ! If valid grid size
+
+              ! Get data values:
+              ! (Important note: If the field values turn out to be uniform within the level or layer
+              ! (ecc_isUniform = .TRUE.), the argument field will be returned unchanged by the following subroutine!
+              ! This means that field will not contain the uniform values (ecc_uniformValue)!
+              ! This is for reasons of efficiency.)
+              CALL ecc_get_values(ecc_msgid           = ecc_msgid,           & ! in
+                &                 ecc_missingValue    = MISSING_VALUE_SP,    & ! in
+                &                 ecc_values          = field,               & ! inout
+                &                 ecc_sizeOfValues    = ecc_sizeOfValues,    & ! out
+                &                 ecc_bitsPerValue    = ecc_bitsPerValue,    & ! out
+                &                 ecc_numberOfMissing = ecc_numberOfMissing, & ! out
+                &                 ecc_isUniform       = isUniform,           & ! out
+                &                 ecc_uniformValue    = uniformValue,        & ! out
+                &                 ecc_min             = ecc_min,             & ! out
+                &                 ecc_max             = ecc_max,             & ! out
+                &                 ecc_avg             = ecc_avg,             & ! out
+                &                 ecc_successful      = ecc_successful       ) ! out
+
+              IF (.NOT. ecc_successful) THEN
+                CALL finish(routine, message_prefix(1:message_prefix_length) &
+                  & //": Unable to get data values")
+              ELSEIF (ecc_sizeOfValues /= nelems_global) THEN
+                CALL finish(routine, message_prefix(1:message_prefix_length) &
+                  & //": Mismatch between grid size and size of data vector")
+              ELSEIF (ecc_bitsPerValue > 24) THEN
+                CALL finish(routine, message_prefix(1:message_prefix_length) &
+                  & //": bitsPerValue > 24 are not supported")
+              ENDIF
 
             ENDIF ! IF (found_match)
 
@@ -1627,7 +1616,7 @@ CONTAINS
         ENDIF ! IF (i_am_mpi_workroot)
 
         ! At this stage every decoding Work PE has to have a record or an EOF,
-        ! and should have decoded and checked the metadata.
+        ! and should have decoded and checked the metadata and payload.
         ! Now, we go into the loop over all Work PEs to distribute the decoded data:
 
         IF (timing) CALL timer_start(timer_data_distribution)
@@ -1647,15 +1636,15 @@ CONTAINS
           ! However, we cannot use them, as they assume the Workroot PE as the sole sender.)
           IF (is_my_turn) THEN
 
-            buffer_real_dp(1)  = REAL(record_flag_status, KIND=dp)
-            buffer_real_dp(2)  = MERGE(10.0_dp, -10.0_dp, found_match)
-            buffer_real_dp(3)  = REAL(subGridId, KIND=dp)
-            buffer_real_dp(4)  = REAL(gridSize, KIND=dp)
-            buffer_real_dp(5)  = REAL(tileId, KIND=dp)
-            buffer_real_dp(6)  = level
-            buffer_real_dp(7)  = REAL(variableNameLength, KIND=dp)
-            buffer_real_dp(8)  = MERGE(10.0_dp, -10.0_dp, isUniform)
-            buffer_real_dp(9)  = uniformValue
+            buffer_real_dp(1) = REAL(record_flag_status, KIND=dp)
+            buffer_real_dp(2) = MERGE(10.0_dp, -10.0_dp, found_match)
+            buffer_real_dp(3) = REAL(subGridId, KIND=dp)
+            buffer_real_dp(4) = REAL(gridSize, KIND=dp)
+            buffer_real_dp(5) = REAL(tileId, KIND=dp)
+            buffer_real_dp(6) = level
+            buffer_real_dp(7) = REAL(variableNameLength, KIND=dp)
+            buffer_real_dp(8) = MERGE(10.0_dp, -10.0_dp, isUniform)
+            buffer_real_dp(9) = uniformValue
 
           ELSE
 
@@ -1668,28 +1657,28 @@ CONTAINS
           IF (is_my_turn) THEN
 
             ! The current distributer can just take its own values
-            record_flag_status_curr   = record_flag_status
-            found_match_curr          = found_match
-            subGridId_curr            = subGridId
-            gridSize_curr             = gridSize
-            tileId_curr               = tileId
-            level_curr                = level
-            variableNameLength_curr   = variableNameLength
-            isUniform_curr            = isUniform
-            uniformValue_curr         = uniformValue
+            record_flag_status_curr = record_flag_status
+            found_match_curr        = found_match
+            subGridId_curr          = subGridId
+            gridSize_curr           = gridSize
+            tileId_curr             = tileId
+            level_curr              = level
+            variableNameLength_curr = variableNameLength
+            isUniform_curr          = isUniform
+            uniformValue_curr       = uniformValue
 
           ELSE
 
             ! All the others take what was broadcast by the current distributor
-            record_flag_status_curr   = NINT(buffer_real_dp(1), KIND=i4)
-            found_match_curr          = (buffer_real_dp(2) > 0.0_dp)
-            subGridId_curr            = NINT(buffer_real_dp(3))
-            gridSize_curr             = NINT(buffer_real_dp(4), KIND=i8)
-            tileId_curr               = NINT(buffer_real_dp(5))
-            level_curr                = buffer_real_dp(6)
-            variableNameLength_curr   = NINT(buffer_real_dp(7))
-            isUniform_curr            = (buffer_real_dp(8) > 0.0_dp)
-            uniformValue_curr         = buffer_real_dp(9)
+            record_flag_status_curr = NINT(buffer_real_dp(1), KIND=i4)
+            found_match_curr        = (buffer_real_dp(2) > 0.0_dp)
+            subGridId_curr          = NINT(buffer_real_dp(3))
+            gridSize_curr           = NINT(buffer_real_dp(4), KIND=i8)
+            tileId_curr             = NINT(buffer_real_dp(5))
+            level_curr              = buffer_real_dp(6)
+            variableNameLength_curr = NINT(buffer_real_dp(7))
+            isUniform_curr          = (buffer_real_dp(8) > 0.0_dp)
+            uniformValue_curr       = buffer_real_dp(9)
 
           ENDIF ! IF (is_my_turn)
 
@@ -1750,50 +1739,32 @@ CONTAINS
           IF(.NOT. ASSOCIATED(listEntry)) &
             & CALL finish(routine, "Assertion failed: Processes have different input request lists!")
 
-          domainData => findDomainData(listEntry, jg, opt_lcreate = .TRUE.)
+          domainData => findDomainData(listEntry, jg, opt_lcreate=.TRUE.)
 
-          ! Finally, the current Work PE 'jproc' tries to distribute its data to all other Work PEs.
-          ! (Note: In the following step, we might save some paperwork by using a field-pointer
-          ! to either 'field_cell' or 'field_edge'. However, the whole stuff here is complicated enough
-          ! as it is, so we should probably not add further (error-proneness-increasing) abstraction levels.)
+          ! Finally, the current Work PE 'jproc' tries to distribute its data to all other Work PEs
           IF (subGridId_curr == ECC_GRID_ELEMENT_CELL) THEN
-
             ! Grid cells:
-
-            CALL domainData%container%distributeField_grib( &
-              & jg                 = jg,                                           & ! in
-              & gridSize           = gridSize_curr,                                & ! in
-              & mpi_work_id_sender = jproc,                                        & ! in
-              & variableName       = variableName_curr(1:variableNameLength_curr), & ! in
-              & level              = level_curr,                                   & ! in
-              & tileId             = tileId_curr,                                  & ! in
-              & isUniform          = isUniform_curr,                               & ! in
-              & uniformValue       = uniformValue_curr,                            & ! in
-              & field              = field_cell(:)                                 ) ! in
-
+            nelems_global = ncells_global
           ELSEIF (subGridId_curr == ECC_GRID_ELEMENT_EDGE) THEN
-
             ! Grid edges:
-
-            CALL domainData%container%distributeField_grib( &
-              & jg                 = jg,                                           & ! in
-              & gridSize           = gridSize_curr,                                & ! in
-              & mpi_work_id_sender = jproc,                                        & ! in
-              & variableName       = variableName_curr(1:variableNameLength_curr), & ! in
-              & level              = level_curr,                                   & ! in
-              & tileId             = tileId_curr,                                  & ! in
-              & isUniform          = isUniform_curr,                               & ! in
-              & uniformValue       = uniformValue_curr,                            & ! in
-              & field              = field_edge(:)                                 ) ! in
-
+            nelems_global = nedges_global
           ELSE
-
             ! (Note: Within the distribution loop, we do not use 'message_prefix'
             ! for the message text, as the GRIB record counter, it refers to,
             ! does not match the count of the GRIB record that is currently distributed, in general.)
             CALL finish(routine, "Invalid numberOfGridInReference within distribution!")
-
           ENDIF ! IF (subGridId_curr == ...)
+
+          CALL domainData%container%distributeField_grib( &
+            & jg                 = jg,                                           & ! in
+            & gridSize           = gridSize_curr,                                & ! in
+            & mpi_work_id_sender = jproc,                                        & ! in
+            & variableName       = variableName_curr(1:variableNameLength_curr), & ! in
+            & level              = level_curr,                                   & ! in
+            & tileId             = tileId_curr,                                  & ! in
+            & isUniform          = isUniform_curr,                               & ! in
+            & uniformValue       = uniformValue_curr,                            & ! in
+            & field              = field(1:nelems_global)                        ) ! in
 
           !-------------------------------
           ! File inventory and statistics
@@ -1806,13 +1777,15 @@ CONTAINS
 
             IF (timing) CALL timer_start(timer_file_inventory)
 
-            CALL inventory_element%init(min                  = ecc_min,              & ! in
-              &                         max                  = ecc_max,              & ! in
-              &                         mean                 = ecc_avg,              & ! in
-              &                         tileId               = tileId,               & ! in
-              &                         isUniform            = isUniform,            & ! in
-              &                         missingValuesPresent = missingValuesPresent, & ! in
-              &                         successful           = successful_local      ) ! out
+            ! The following initialization of the inventory element with field statistics
+            ! is the second and last part of its initialization got started in InputRequestList_isRecordValid_grib below.
+            CALL inventory_element%init(min                  = ecc_min,                      & ! in
+              &                         max                  = ecc_max,                      & ! in
+              &                         mean                 = ecc_avg,                      & ! in
+              &                         tileId               = tileId,                       & ! in
+              &                         isUniform            = isUniform,                    & ! in
+              &                         missingValuesPresent = (ecc_numberOfMissing > 0_i8), & ! in
+              &                         successful           = successful_local              ) ! out
             IF (.NOT. successful_local) CALL finish(routine, "Initialization of statistics of inventory element failed!")
 
             IF (timing) CALL timer_stop(timer_file_inventory)
@@ -1911,14 +1884,9 @@ CONTAINS
         IF (status /= SUCCESS) CALL finish(routine, "Deallocation of status_request failed")
       ENDIF
 
-      IF (ALLOCATED(field_cell)) THEN
-        DEALLOCATE(field_cell, STAT=status)
-        IF (status /= SUCCESS) CALL finish(routine, "Deallocation of field_cell failed")
-      ENDIF
-
-      IF (ALLOCATED(field_edge)) THEN
-        DEALLOCATE(field_edge, STAT=status)
-        IF (status /= SUCCESS) CALL finish(routine, "Deallocation of field_edge failed")
+      IF (ALLOCATED(field)) THEN
+        DEALLOCATE(field, STAT=status)
+        IF (status /= SUCCESS) CALL finish(routine, "Deallocation of field failed")
       ENDIF
 
     END SUBROUTINE InputRequestList_readFile_grib
@@ -1926,10 +1894,10 @@ CONTAINS
     !>
     !! @brief Check if metadate of GRIB message are consistent with requests
     !!
-    SUBROUTINE InputRequestList_isRecordValid_grib(me, jg, ecc_msgid, lIsFg, verbose, message_prefix, message_prefix_length,      &
-      &                                            inventory, dict, hgrid_uuid, vgrid_uuid, verify_hgrid_uuid, verify_vgrid_uuid, &
-      &                                            level, tileId, variableName, variableNameLength, subGridId, gridSize,          &
-      &                                            isUniform, uniformValue, missingValuesPresent, inventory_element, found_match)
+    SUBROUTINE InputRequestList_isRecordValid_grib(me, jg, ecc_msgid, lIsFg, verbose, inventory, hgrid_uuid, vgrid_uuid,      &
+      &                                            ana_incr_list, verify_hgrid_uuid, verify_vgrid_uuid, verify_ana_incr_list, &
+      &                                            message_prefix, message_prefix_length, level, tileId, variableName,        &
+      &                                            variableNameLength, subGridId, gridSize, inventory_element, found_match)
 
       !-----------
       ! Arguments
@@ -1949,17 +1917,8 @@ CONTAINS
       !> Flag to indicate verbose messaging
       LOGICAL,                   INTENT(IN)    :: verbose
 
-      !> Prefix for messages
-      CHARACTER(LEN=*),          INTENT(INOUT) :: message_prefix
-
-      !> Length of message prefix
-      INTEGER,                   INTENT(INOUT) :: message_prefix_length
-
       !> Take a file inventory?
       LOGICAL,                   INTENT(IN)    :: inventory
-
-      !> Dictionary: ICON variable names <=> ecCodes shortNames
-      TYPE(t_dictionary),        INTENT(IN)    :: dict
 
       !> UUID of horizontal grid of ICON
       TYPE(t_uuid),              INTENT(IN)    :: hgrid_uuid
@@ -1967,11 +1926,25 @@ CONTAINS
       !> UUID of vertical grid of ICON
       TYPE(t_uuid),              INTENT(IN)    :: vgrid_uuid
 
+      !> List of input fields (with internal variable names)
+      !> which may be provided as analysis increments
+      CHARACTER(LEN=*),          INTENT(IN)    :: ana_incr_list(:)
+
       !> Flag to indicate if UUID of horizontal grid has to be verified
       LOGICAL,                   INTENT(IN)    :: verify_hgrid_uuid
 
       !> Flag to indicate if UUID of vertical grid has to be verified
       LOGICAL,                   INTENT(IN)    :: verify_vgrid_uuid
+
+      !> Flag to indicate whether to verify if metadata of ana_incr_list-fields
+      !> conform to analysis increments
+      LOGICAL,                   INTENT(IN)    :: verify_ana_incr_list
+
+      !> Prefix for messages
+      CHARACTER(LEN=*),          INTENT(INOUT) :: message_prefix
+
+      !> Length of message prefix
+      INTEGER,                   INTENT(INOUT) :: message_prefix_length
 
       !> Level value
       REAL(dp),                  INTENT(OUT)   :: level
@@ -1990,15 +1963,6 @@ CONTAINS
 
       !> Number of (global) grid points
       INTEGER(KIND=i8),          INTENT(OUT)   :: gridSize
-
-      !> Flag to indicate whether field is uniform within level/layer
-      LOGICAL,                   INTENT(OUT)   :: isUniform
-
-      !> Uniform field value
-      REAL(dp),                  INTENT(OUT)   :: uniformValue
-
-      !> Are there missing values within level/layer?
-      LOGICAL,                   INTENT(OUT)   :: missingValuesPresent
 
       !> File inventory element
       TYPE(t_FileInventoryElement), INTENT(OUT) :: inventory_element
@@ -2048,9 +2012,6 @@ CONTAINS
 
       !> GRIB key holding the number of horizontal grid points
       INTEGER(KIND=i8) :: ecc_numberOfDataPoints
-
-      !> GRIB key holding the number of coded field values in level/layer
-      INTEGER(KIND=i8) :: ecc_numberOfValues
 
       !> Definition number/identifier of type of horizontal grid
       INTEGER :: ecc_gridDefinitionTemplateNumber
@@ -2114,18 +2075,6 @@ CONTAINS
       !> Value of local GRIB key: localNumberOfExperiment
       INTEGER :: ecc_localNumberOfExperiment
 
-      !> Definition number/identifier of data representation (packing)
-      INTEGER :: ecc_dataRepresentationTemplateNumber
-
-      !> Precision of data values
-      INTEGER :: ecc_bitsPerValue
-
-      !> Flag which indicates presence of bitmap (missing values)
-      INTEGER :: ecc_bitmapPresent
-
-      !> Reference value of packed data
-      REAL(dp) :: ecc_referenceValue
-
       !> Reference and validity date and time in format:'YYYY-MM-DDThh:mm:ss'
       CHARACTER(LEN=max_datetime_str_len) :: ecc_dataDateTime, ecc_validityDateTime
 
@@ -2134,12 +2083,6 @@ CONTAINS
 
       !> Loop index
       INTEGER :: j
-
-      !> ICON-internal variable name
-      CHARACTER(LEN=vname_len) :: iconVarName
-
-      !> Length of variable name
-      INTEGER :: iconVarNameLength
 
       !> Instances of mtime types
       TYPE(datetime), POINTER :: tempTime, iniTime, startTime
@@ -2174,15 +2117,13 @@ CONTAINS
       !
 
       ! Initialize intent-out arguments
-      level                = REAL(MISSING_VALUE, KIND=dp)
-      tileId               = -999
-      variableName         = ' '
-      variableNameLength   = 0
-      gridSize             = 0_i8
-      isUniform            = .FALSE.
-      uniformValue         = REAL(MISSING_VALUE, KIND=dp)
-      missingValuesPresent = .FALSE.
-      found_match          = .TRUE.
+      level              = REAL(MISSING_VALUE, KIND=dp)
+      tileId             = -999
+      variableName       = ' '
+      variableNameLength = 0
+      subGridId          = -999
+      gridSize           = 0_i8
+      found_match        = .TRUE.
 
       ! Create/get pointer of/to metadata cache(???)
       metadata => MetadataCache_create()
@@ -2214,26 +2155,6 @@ CONTAINS
       metadata%param%discipline = INT(ecc_discipline, KIND=C_INT)
       metadata%param%category   = INT(ecc_parameterCategory, KIND=C_INT)
       metadata%param%number     = INT(ecc_parameterNumber, KIND=C_INT)
-
-      ! Get internal variable name from dictionary:
-      ! (Note that the function dict%get seems to return an allocatable string,
-      ! while iconVarName is not allocatable. However, the assignment seems to work,
-      ! so we can avoid the trouble with making iconVarName allocatable, too.)
-      iconVarName       = TRIM( dict%get(key=variableName(1:variableNameLength), default="unknown", linverse=.TRUE.) )
-      iconVarNameLength = LEN_TRIM(iconVarName)
-
-      IF (iconVarNameLength < 1) THEN
-        IF (verbose) CALL warning(routine, message_prefix(1:message_prefix_length) &
-          & //": Empty variable name from dictionary for shortName '"//variableName(1:variableNameLength)//"'")
-        ! iconVarName is required for the column "variable" of the file-inventory table (see end of this module).
-        ! In case the internal variable name cannot be inferred from the dictionary,
-        ! the lowercase shortName value is used instead.
-        iconVarName       = tolower(variableName(1:variableNameLength))
-        iconVarNameLength = variableNameLength
-      ELSEIF (iconVarName(1:iconVarNameLength) == "unknown") THEN
-        iconVarName       = tolower(variableName(1:variableNameLength))
-        iconVarNameLength = variableNameLength
-      ENDIF
 
       ! Expand message prefix by variableName
       IF (verbose) THEN
@@ -2599,34 +2520,6 @@ CONTAINS
       metadata%runClass              = ecc_backgroundProcess
       metadata%generatingProcessType = ecc_typeOfGeneratingProcess
 
-      ! At this point, we gathered enough information to check
-      ! whether the metadata really fit to a first-guess or analysis product
-      IF (lIsFg) THEN
-
-        ! First-guess:
-        ! - significanceOfReferenceTime = 1 "Start of forecast"
-        ! - typeOfProcessedData         = 1 "Forecast products" or
-        !                                 5 "Control and perturbed forecast products"
-        IF (.NOT. ((ecc_significanceOfReferenceTime == 1) .AND. ANY([1, 5] == ecc_typeOfProcessedData))) THEN
-          IF (verbose) CALL warning(routine, message_prefix(1:message_prefix_length) &
-            & //": Metadata do not support that this is a first-guess product")
-          found_match = .FALSE.
-        ENDIF
-
-      ELSE
-
-        ! Analysis:
-        ! - significanceOfReferenceTime = 0 "Analysis"
-        ! - typeOfProcessedData         = 0 "Analysis products" or
-        !                                 5 "Control and perturbed forecast products"
-        IF (.NOT. ((ecc_significanceOfReferenceTime == 0) .AND. ANY([0, 5] == ecc_typeOfProcessedData))) THEN
-          IF (verbose) CALL warning(routine, message_prefix(1:message_prefix_length) &
-            & //": Metadata do not support that this is an analysis product")
-          found_match = .FALSE.
-        ENDIF
-
-      ENDIF ! IF (lIsFg)
-
       ! Use of local GRIB key 'localNumberOfExperiment' is restricted
       ! to input data generated by DWD (centre = 78 / edzw)
       IF (ecc_centre == 78) THEN
@@ -2644,39 +2537,6 @@ CONTAINS
         metadata%experimentId = ecc_localNumberOfExperiment
 
       ENDIF ! IF (ecc_centre == 78)
-
-      ! Evaluate data representation (packing, bitmap etc.):
-
-      CALL ecc_get_info_on_data_representation( &
-        & ecc_msgid                            = ecc_msgid,                            & ! in
-        & ecc_dataRepresentationTemplateNumber = ecc_dataRepresentationTemplateNumber, & ! out
-        & ecc_bitsPerValue                     = ecc_bitsPerValue,                     & ! out
-        & ecc_referenceValue                   = ecc_referenceValue,                   & ! out
-        & ecc_bitmapPresent                    = ecc_bitmapPresent,                    & ! out
-        & ecc_numberOfValues                   = ecc_numberOfValues,                   & ! out
-        & ecc_successful                       = ecc_successful                        ) ! out
-
-      IF (.NOT. ecc_successful) THEN
-        IF (verbose) CALL warning(routine, message_prefix(1:message_prefix_length) &
-          & //": Unable to get info on data representation")
-        found_match = .FALSE.
-      ELSEIF (ecc_bitsPerValue > 24) THEN
-        IF (verbose) CALL warning(routine, message_prefix(1:message_prefix_length) &
-          & //": bitsPerValue > 24 are not supported")
-        found_match = .FALSE.
-      ENDIF
-
-      ! Are there missing values within a level/layer?
-      ! (Sometimes a bitmap is set, but there are actually no missing values.
-      ! To cover this case, we check also whether the number of coded field values
-      ! within the level/layer differs from the number of horizontal grid points.)
-      missingValuesPresent = (ecc_bitmapPresent == 1) .AND. (ecc_numberOfValues /= ecc_numberOfDataPoints)
-
-      ! A field should have uniform values whithin a level/layer if:
-      ! - there is only a reference value, but no data vector (bitsPerValue = 0)
-      ! - there are no missing values
-      isUniform = (ecc_bitsPerValue == 0) .AND. .NOT. missingValuesPresent
-      IF (isUniform) uniformValue = ecc_referenceValue
 
       !------------------------------------
       ! Internal matching of metadata(???)
@@ -2705,6 +2565,54 @@ CONTAINS
         IF (status /= SUCCESS) CALL finish(routine, message_prefix(1:message_prefix_length) &
           & //": Deallocation of metadata failed")
 
+      ELSEIF (found_match .AND. verify_ana_incr_list .AND. .NOT. lIsFg) THEN
+
+        ! Check if metadata conform with analysis increments if they should (applies to init_mode = 5 (MODE_IAU) only):
+
+        ! Important note:
+        ! In case of sequential input-file processing, a list of analysis-increment fields
+        ! is explicitly specified in atm_dyn_iconam/mo_initicon: read_dwdana (=> incrementsList).
+        ! Here, in the parallel input-file processing, however, we try to do without such explicit lists,
+        ! as they are a nightmare for maintenance.
+        ! Instead, the variable group "ana_increment" is introduced, in order to mark analysis-increment fields
+        ! as such at their add_var registration (following the guiding principle that all field-specific information
+        ! is centralized in this one place).
+        ! Unfortunately, this comes along with new problems for which ICON peculiarities bear the blame,
+        ! as outlined by the following example:
+        ! The number concentration of cloud droplets "qnc" is potentially among those fields,
+        ! which may be provided as analysis increments in the ANA input file.
+        ! qnc is required for the two-moment microphysics scheme (nwp_phy_nml: inwp_gscp = 4).
+        ! The add_var registration of qnc is encapsulated by an IF-block in such a way,
+        ! that it takes place only if the two-moment scheme is switched on.
+        ! If another scheme is used, the info about qnc made in add_var is inaccessible,
+        ! which includes its "ana_increment"-group membership.
+        ! This in turn means, that qnc will not appear in "ana_incr_list".
+        ! However, analysis increments of qnc may be contained in the ANA input file for whatever reason.
+        ! For the following check this would mean that qnc could not be found inside ana_incr_list,
+        ! so that its metadata would be checked for "typeOfGeneratingProcess = 0",
+        ! which inevitably leads to a program abort.
+        ! Now, to make a long story short:
+        ! For the following check to work, we rely on the assumption that the above assignment:
+        !
+        !   listEntry => me%findTranslatedName(variableName(1:variableNameLength))
+        !
+        ! would leave "listEntry" unassociated in case of qnc, whereby the following check would be skipped.
+
+        ! WMO GRIB2 code table 4.3 - Type of generating process:
+        !--------------------------------------------------------
+        ! 0   "Analysis"
+        ! 20  "Analysis increment"
+        ! 201 "Diff. analysis - first guess" (local DWD definition, which is equivalent to 20)
+        !--------------------------------------------------------
+
+        IF (one_of(TRIM(listEntry%iconVarName), ana_incr_list) > 0) THEN
+          IF (ALL([20, 201] /= ecc_typeOfGeneratingProcess)) CALL finish(routine, message_prefix(1:message_prefix_length) &
+            & //": Metadata do not conform with analysis increments")
+        ELSE
+          IF (ecc_typeOfGeneratingProcess /= 0) CALL finish(routine, message_prefix(1:message_prefix_length) &
+            & //": Metadata do not conform with a full analysis field")
+        ENDIF
+
       ENDIF ! IF (.NOT. ASSOCIATED(listEntry))
 
       !-----------------------------------
@@ -2717,20 +2625,20 @@ CONTAINS
 
         CALL char2uuid(string=ecc_uuidOfHGrid(:), uuid=uuidOfHGrid)
 
-        CALL inventory_element%init(iconVarName           = iconVarName(1:iconVarNameLength), & ! in
-          &                         dataDateTime          = ecc_dataDateTime,                 & ! in
-          &                         validityDateTime      = ecc_validityDateTime,             & ! in
-          &                         discipline            = ecc_discipline,                   & ! in
-          &                         parameterCategory     = ecc_parameterCategory,            & ! in
-          &                         parameterNumber       = ecc_parameterNumber,              & ! in
-          &                         levelType             = ecc_typeOfFirstFixedSurface,      & ! in
-          &                         gridNumber            = ecc_numberOfGridUsed,             & ! in
-          &                         gridPosition          = ecc_numberOfGridInReference,      & ! in
-          &                         runClass              = ecc_backgroundProcess,            & ! in
-          &                         experimentId          = ecc_localNumberOfExperiment,      & ! in
-          &                         generatingProcessType = ecc_typeOfGeneratingProcess,      & ! in
-          &                         gridUuid              = uuidOfHGrid,                      & ! in
-          &                         successful            = successful_local                  ) ! out
+        CALL inventory_element%init(iconVarName           = TRIM(listEntry%iconVarName), & ! in
+          &                         dataDateTime          = ecc_dataDateTime,            & ! in
+          &                         validityDateTime      = ecc_validityDateTime,        & ! in
+          &                         discipline            = ecc_discipline,              & ! in
+          &                         parameterCategory     = ecc_parameterCategory,       & ! in
+          &                         parameterNumber       = ecc_parameterNumber,         & ! in
+          &                         levelType             = ecc_typeOfFirstFixedSurface, & ! in
+          &                         gridNumber            = ecc_numberOfGridUsed,        & ! in
+          &                         gridPosition          = ecc_numberOfGridInReference, & ! in
+          &                         runClass              = ecc_backgroundProcess,       & ! in
+          &                         experimentId          = ecc_localNumberOfExperiment, & ! in
+          &                         generatingProcessType = ecc_typeOfGeneratingProcess, & ! in
+          &                         gridUuid              = uuidOfHGrid,                 & ! in
+          &                         successful            = successful_local             ) ! out
 
         IF (.NOT. successful_local) CALL finish(routine, message_prefix(1:message_prefix_length) &
           & //": Initialization of inventory element failed")
@@ -2771,7 +2679,7 @@ CONTAINS
 
         ELSE
 
-          domainData => findDomainData(listEntry, jg, opt_lcreate = .TRUE.)
+          domainData => findDomainData(listEntry, jg, opt_lcreate=.TRUE.)
 
           ! There is no metadata cache, so this one is remembered(???)
           domainData%metadata => metadata

@@ -287,6 +287,9 @@ CONTAINS
 
 #endif
 
+    IF (process_stride_pgrib < 1) &
+      & CALL finish(method_name, "A positive definite integer value is required for process_stride_pgrib")
+
   END SUBROUTINE check_parallel_configuration
   !-------------------------------------------------------------------------
 

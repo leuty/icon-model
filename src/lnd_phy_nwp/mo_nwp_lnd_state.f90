@@ -1534,7 +1534,7 @@ MODULE mo_nwp_lnd_state
          & in_group=groups("land_vars","dwd_fg_sfc_vars","mode_dwd_ana_in",      &
          &                 "mode_iau_fg_in","mode_iau_old_fg_in","mode_iau_ana_in", &
          &                 "mode_iau_old_ana_in","mode_combined_in",             &
-         &                 "mode_cosmo_in"),                                     &
+         &                 "mode_cosmo_in","ana_increment"),                     &
          & hor_interp=create_hor_interp_metadata(hor_intp_type=HINTP_TYPE_LONLAT_NNB ),&
          & post_op=post_op(POST_OP_SCALE, arg1=1000._wp, new_cf=new_cf_desc),    &
          & lopenacc=.TRUE. )
@@ -1926,7 +1926,8 @@ MODULE mo_nwp_lnd_state
            & ldims=shape2d, lrestart=.FALSE., loutput=.TRUE.,                  &
            & in_group=groups("dwd_fg_sfc_vars","mode_dwd_ana_in","mode_iau_fg_in", &
            &                 "mode_iau_ana_in","mode_iau_old_ana_in",              &
-           &                 "mode_combined_in","mode_iniana","iau_restore_vars"), &
+           &                 "mode_combined_in","mode_iniana","iau_restore_vars",  &
+           &                 "ana_increment"),                                     &
            &                 lopenacc=.TRUE.)
     __acc_attach(p_diag_lnd%h_snow)
 
@@ -1968,7 +1969,8 @@ MODULE mo_nwp_lnd_state
            & ldims=shape2d, lrestart=.FALSE., loutput=.TRUE.,                     &
            & in_group=groups("dwd_fg_sfc_vars","mode_dwd_ana_in","mode_iau_fg_in",&
            &                 "mode_iau_ana_in","mode_iau_old_ana_in",             &
-           &                 "mode_combined_in","mode_cosmo_in","mode_iniana"),   &
+           &                 "mode_combined_in","mode_cosmo_in","mode_iniana",    &
+           &                 "ana_increment"),                                    &
            & lopenacc=.TRUE. )
     __acc_attach(p_diag_lnd%freshsnow)
 

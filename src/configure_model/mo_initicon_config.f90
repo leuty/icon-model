@@ -82,6 +82,7 @@ MODULE mo_initicon_config
   PUBLIC :: fgFiletype
   PUBLIC :: anaFilename
   PUBLIC :: anaFiletype
+  PUBLIC :: is_filetype_grib2
 
 
   ! ----------------------------------------------------------------------------
@@ -348,5 +349,76 @@ CONTAINS
         resultVar = filetype
     END IF
   END FUNCTION anaFiletype
+
+  !>
+  !! @brief Returns whether a file is of type GRIB2 (based on its extension).
+  !!
+  FUNCTION is_filetype_grib2(filename) RESULT(resultVar)
+
+    !-----------
+    ! Arguments
+    !-----------
+
+    !> Name of potential GRIB file
+    CHARACTER(LEN=*), INTENT(IN) :: filename
+
+    LOGICAL :: resultVar
+
+    !-----------------
+    ! Local variables
+    !-----------------
+
+    !> Length of filename
+    INTEGER :: length
+
+    !> Result of INDEX
+    INTEGER :: idx
+
+    !----------------------------
+
+    resultVar = .FALSE.
+
+    length = LEN_TRIM(filename)
+
+    IF (length < 1) RETURN
+
+    ! For the following to work,
+    ! it is essential to check the possible extensions
+    ! in the following order:
+    ! 1) ".grb2"
+    ! 2) ".grb"
+    ! 3) ".grib2"
+    ! 4) ".grib"
+
+    ! Check for extension: ".grb2"
+    idx = INDEX(filename(1:length), ".grb2", BACK=.TRUE.)
+    IF (idx > 0) THEN
+      ! To rule out cases such as "some_filename.grb.bz2"
+      resultVar = (length - idx + 1 == 5)
+      RETURN
+    ENDIF
+
+    ! Check for extension: ".grb"
+    idx = INDEX(filename(1:length), ".grb", BACK=.TRUE.)
+    IF (idx > 0) THEN
+      resultVar = (length - idx + 1 == 4)
+      RETURN
+    ENDIF
+
+    ! Check for extension: ".grib2"
+    idx = INDEX(filename(1:length), ".grib2", BACK=.TRUE.)
+    IF (idx > 0) THEN
+      resultVar = (length - idx + 1 == 6)
+      RETURN
+    ENDIF
+
+    ! Check for extension: ".grib"
+    idx = INDEX(filename(1:length), ".grib", BACK=.TRUE.)
+    IF (idx > 0) THEN
+      resultVar = (length - idx + 1 == 5)
+      RETURN
+    ENDIF
+
+  END FUNCTION is_filetype_grib2
 
 END MODULE mo_initicon_config

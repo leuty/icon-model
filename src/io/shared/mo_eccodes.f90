@@ -64,7 +64,6 @@ MODULE mo_eccodes
   PUBLIC :: ECC_GRID_ELEMENT_VERTEX
   PUBLIC :: ECC_GRID_ELEMENT_EDGE
   PUBLIC :: ECC_NULL
-  PUBLIC :: ecc_is_filetype_grib2
   PUBLIC :: ecc_open_file
   PUBLIC :: ecc_close_file
   PUBLIC :: ecc_read_record
@@ -76,7 +75,6 @@ MODULE mo_eccodes
   PUBLIC :: ecc_get_info_on_vertical_grid
   PUBLIC :: ecc_get_info_on_generating_centre
   PUBLIC :: ecc_get_info_on_generating_process
-  PUBLIC :: ecc_get_info_on_data_representation
   PUBLIC :: ecc_get_info_on_tiles
   PUBLIC :: ecc_get_local_info
   PUBLIC :: ecc_get_values
@@ -137,71 +135,6 @@ MODULE mo_eccodes
 CONTAINS
 
   !>
-  !! @brief Returns whether a file is of type GRIB2 (based on its extension).
-  !!
-  FUNCTION ecc_is_filetype_grib2(filename) RESULT(res)
-
-    !-----------
-    ! Arguments
-    !-----------
-
-    !> Name of potential GRIB file
-    CHARACTER(LEN=*), INTENT(IN) :: filename
-
-    LOGICAL :: res
-
-    !-----------------
-    ! Local variables
-    !-----------------
-
-    !> Length of filename
-    INTEGER :: length
-
-    !> Result of INDEX
-    INTEGER :: idx
-
-    !----------------------------
-
-    res = .FALSE.
-
-    length = LEN_TRIM(filename)
-
-    IF (length < 1) RETURN
-
-    ! Check for extension: ".grb"
-    idx = INDEX(filename(1:length), ".grb", BACK=.TRUE.)
-    IF (idx > 0) THEN
-      ! To rule out cases such as "some_filename.grb.bz2"
-      res = (length - idx + 1 == 4)
-      RETURN
-    ENDIF
-
-    ! Check for extension: ".grb2"
-    idx = INDEX(filename(1:length), ".grb2", BACK=.TRUE.)
-    IF (idx > 0) THEN
-      res = (length - idx + 1 == 5)
-      RETURN
-    ENDIF
-
-    ! Check for extension: ".grib"
-    idx = INDEX(filename(1:length), ".grib", BACK=.TRUE.)
-    IF (idx > 0) THEN
-      res = (length - idx + 1 == 5)
-      RETURN
-    ENDIF
-
-    ! Check for extension: ".grib2"
-    idx = INDEX(filename(1:length), ".grib2", BACK=.TRUE.)
-    IF (idx > 0) THEN
-      res = (length - idx + 1 == 6)
-      RETURN
-    ENDIF
-
-  END FUNCTION ecc_is_filetype_grib2
-
-  !--------------------------------------------------------------
-
-  !>
   !! @brief Error handling
   !!
   SUBROUTINE ecc_error_handling(routine_of_occurrence, error)
@@ -234,7 +167,7 @@ CONTAINS
     CALL codes_get_error_string(error=error, error_message=message_text, status=ecc_status)
     IF (ecc_status /= ECC_SUCCESS) message_text = "Request of error string from ecCodes failed"
 
-    CALL finish(routine_of_occurrence, message_text)
+    CALL finish(modname//routine_of_occurrence, message_text)
 
 #else
 
@@ -311,7 +244,7 @@ CONTAINS
     CALL codes_open_file(ifile=ecc_ifile_local, filename=grib_filename(1:grib_filename_length), &
       &                  mode=ecc_mode(1:1), status=ecc_status)
 
-    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
     ecc_ifile = INT(ecc_ifile_local)
 
@@ -353,7 +286,7 @@ CONTAINS
 
     CALL codes_close_file(ifile=INT(ecc_ifile, KIND=ECC_kindOfInt), status=ecc_status)
 
-    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
 #else
 
@@ -420,7 +353,7 @@ CONTAINS
       &                            nbytes=ecc_nbytes_local, status=ecc_status)
 
     IF ((ecc_status /= ECC_SUCCESS) .AND. (ecc_status /= ECC_END_OF_FILE)) THEN
-      CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+      CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
     ELSEIF ((ecc_status /= ECC_SUCCESS) .AND. (ecc_status == ECC_END_OF_FILE)) THEN
       ecc_eof = .TRUE.
       RETURN
@@ -484,7 +417,7 @@ CONTAINS
 
     CALL codes_new_from_message_int4(msgid=ecc_msgid_local, message=ecc_record, status=ecc_status)
 
-    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
     ! Return the handle
     ecc_msgid = INT(ecc_msgid_local)
@@ -527,7 +460,7 @@ CONTAINS
 
     CALL codes_release(msgid=INT(ecc_msgid, KIND=ECC_kindOfInt), status=ecc_status)
 
-    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
 #else
 
@@ -614,7 +547,7 @@ CONTAINS
     CALL codes_get_int(msgid=ecc_msgid_local, key='productDefinitionTemplateNumber', &
       &                value=ecc_integer_value, status=ecc_status)
 
-    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
     ecc_productDefinitionTemplateNumber = INT(ecc_integer_value)
 
@@ -623,7 +556,7 @@ CONTAINS
     ! Therefore, we do not check for its existence.)
     CALL codes_get_int(msgid=ecc_msgid_local, key='discipline', value=ecc_integer_value, status=ecc_status)
 
-    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
     ecc_discipline = INT(ecc_integer_value)
 
@@ -632,7 +565,7 @@ CONTAINS
     ! Therefore, we first check for their existence.)
     CALL codes_is_defined(msgid=ecc_msgid_local, key='parameterCategory', is_defined=ecc_is_defined, status=ecc_status)
 
-    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
     ! If this GRIB key is not part of the metadata of the GRIB message (GRIB record),
     ! there is no need to continue and we can return
@@ -643,14 +576,14 @@ CONTAINS
 
     CALL codes_get_int(msgid=ecc_msgid_local, key='parameterCategory', value=ecc_integer_value, status=ecc_status)
 
-    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
     ecc_parameterCategory = INT(ecc_integer_value)
 
     ! Parameter number:
     CALL codes_is_defined(msgid=ecc_msgid_local, key='parameterNumber', is_defined=ecc_is_defined, status=ecc_status)
 
-    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
     IF (ecc_is_defined == 0_ECC_kindOfInt) THEN
       CALL warning(modname//routine, "The key 'parameterNumber' is not defined")
@@ -659,7 +592,7 @@ CONTAINS
 
     CALL codes_get_int(msgid=ecc_msgid_local, key='parameterNumber', value=ecc_integer_value, status=ecc_status)
 
-    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
     ecc_parameterNumber = INT(ecc_integer_value)
 
@@ -667,7 +600,7 @@ CONTAINS
     ! (This ecCodes concept key as such should always be defined.)
     CALL codes_get_string(msgid=ecc_msgid_local, key='shortName', value=ecc_shortName, status=ecc_status)
 
-    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
     ecc_shortName_length = LEN_TRIM(ecc_shortName)
 
@@ -781,7 +714,7 @@ CONTAINS
     CALL codes_get_int(msgid=ecc_msgid_local, key='significanceOfReferenceTime', &
       &                value=ecc_integer_value, status=ecc_status)
 
-    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
     ecc_significanceOfReferenceTime = INT(ecc_integer_value)
 
@@ -789,11 +722,11 @@ CONTAINS
     ! (These ecCodes concept keys as such should always be defined.)
     CALL codes_get_string(msgid=ecc_msgid_local, key='dataDate', value=ecc_dataDate, status=ecc_status)
 
-    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
     CALL codes_get_string(msgid=ecc_msgid_local, key='dataTime', value=ecc_dataTime, status=ecc_status)
 
-    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
     ! 'dataTime' has format 'hhmm'. However, if its values is '0000', for instance,
     ! ecCodes may return just '0'. In such a case, we pad with '0's.
@@ -807,11 +740,11 @@ CONTAINS
     ! (These ecCodes concept keys as such should always be defined.)
     CALL codes_get_string(msgid=ecc_msgid_local, key='validityDate', value=ecc_validityDate, status=ecc_status)
 
-    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
     CALL codes_get_string(msgid=ecc_msgid_local, key='validityTime', value=ecc_validityTime, status=ecc_status)
 
-    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
     ! 'validityTime' has format 'hhmm'. However, if its values is '0000', for instance,
     ! ecCodes may return just '0'. In such a case, we pad with '0's.
@@ -926,14 +859,14 @@ CONTAINS
     CALL codes_get_int(msgid=ecc_msgid_local, key='gridDefinitionTemplateNumber', &
       &                value=ecc_integer_value, status=ecc_status)
 
-    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
     ecc_gridDefinitionTemplateNumber = INT(ecc_integer_value)
 
     ! The number of data points (i.e. grid points) is an integral part of grid definition section 3:
     CALL codes_get_long(msgid=ecc_msgid_local, key='numberOfDataPoints', value=ecc_long_value, status=ecc_status)
 
-    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
     ecc_numberOfDataPoints = INT(ecc_long_value, KIND=i8)
 
@@ -944,14 +877,14 @@ CONTAINS
        ! Get the consecutive number of the specific grid (if it is an official grid):
        CALL codes_get_int(msgid=ecc_msgid_local, key='numberOfGridUsed', value=ecc_integer_value, status=ecc_status)
 
-       IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+       IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
        ecc_numberOfGridUsed = INT(ecc_integer_value)
 
        ! Get the relevant grid element (cells, edges or vertices):
        CALL codes_get_int(msgid=ecc_msgid_local, key='numberOfGridInReference', value=ecc_integer_value, status=ecc_status)
 
-       IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+       IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
        ecc_numberOfGridInReference = INT(ecc_integer_value)
 
@@ -964,7 +897,7 @@ CONTAINS
        ! Get the 128-bit fingerprint of the horizontal grid:
        CALL codes_get_byte_array(msgid=ecc_msgid_local, key='uuidOfHGrid', value=ecc_uuidOfHGrid, status=ecc_status)
 
-       IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+       IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
        ! Finally, indicate that inquiry was (probably) successful
        ecc_successful = .TRUE.
@@ -1095,7 +1028,7 @@ CONTAINS
     ! The key 'NV' is an integral part of product definition section 4.
     ! Therefore, we do not check if it exists.
     CALL codes_get_int(msgid=ecc_msgid_local, key='NV', value=ecc_integer_value, status=ecc_status)
-    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
     ecc_NV = INT(ecc_integer_value)
 
@@ -1103,13 +1036,13 @@ CONTAINS
     ! ecCodes assigns a float value to this key.
     CALL codes_is_defined(msgid=ecc_msgid_local, key='nlev', is_defined=ecc_is_nlev_defined, status=ecc_status)
 
-    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
     IF (ecc_is_nlev_defined == 1_ECC_kindOfInt) THEN
 
       CALL codes_get_real4(msgid=ecc_msgid_local, key='nlev', value=ecc_float_value, status=ecc_status)
 
-      IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+      IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
       ecc_nlev = INT(ecc_float_value)
 
@@ -1118,13 +1051,13 @@ CONTAINS
     ! The key 'uuidOfVGrid' is defined for general vertical height coordinates only.
     CALL codes_is_defined(msgid=ecc_msgid_local, key='uuidOfVGrid', is_defined=ecc_is_uuidOfVGrid_defined, status=ecc_status)
 
-    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
     IF (ecc_is_uuidOfVGrid_defined == 1_ECC_kindOfInt) THEN
 
       CALL codes_get_byte_array(msgid=ecc_msgid_local, key='uuidOfVGrid', value=ecc_uuidOfVGrid, status=ecc_status)
 
-      IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+      IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
     ENDIF
 
@@ -1136,7 +1069,7 @@ CONTAINS
 
     CALL codes_is_defined(msgid=ecc_msgid_local, key='typeOfFirstFixedSurface', is_defined=ecc_is_defined, status=ecc_status)
 
-    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
     IF (ecc_is_defined == 0_ECC_kindOfInt) THEN
       CALL warning(modname//routine, "The key 'typeOfFirstFixedSurface' is not defined")
@@ -1145,7 +1078,7 @@ CONTAINS
 
     CALL codes_is_defined(msgid=ecc_msgid_local, key='typeOfSecondFixedSurface', is_defined=ecc_is_defined, status=ecc_status)
 
-    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
     IF (ecc_is_defined == 0_ECC_kindOfInt) THEN
       CALL warning(modname//routine, "The key 'typeOfSecondFixedSurface' is not defined")
@@ -1156,13 +1089,13 @@ CONTAINS
 
     CALL codes_is_missing(msgid=ecc_msgid_local, key='typeOfFirstFixedSurface', is_missing=ecc_is_missing, status=ecc_status)
 
-    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
     ecc_firstFixedSurface_is_missing = (ecc_is_missing == 1_ECC_kindOfInt)
 
     CALL codes_is_missing(msgid=ecc_msgid_local, key='typeOfSecondFixedSurface', is_missing=ecc_is_missing, status=ecc_status)
 
-    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
     ecc_secondFixedSurface_is_missing = (ecc_is_missing == 1_ECC_kindOfInt)
 
@@ -1172,21 +1105,21 @@ CONTAINS
 
       CALL codes_get_int(msgid=ecc_msgid_local, key='typeOfFirstFixedSurface', value=ecc_integer_value, status=ecc_status)
 
-      IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+      IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
       ecc_typeOfFirstFixedSurface = INT(ecc_integer_value)
 
       CALL codes_is_missing(msgid=ecc_msgid_local, key='scaleFactorOfFirstFixedSurface', &
         &                   is_missing=ecc_is_missing, status=ecc_status)
 
-      IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+      IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
       IF (ecc_is_missing == 0_ECC_kindOfInt) THEN
 
         CALL codes_get_int(msgid=ecc_msgid_local, key='scaleFactorOfFirstFixedSurface', &
           &                value=ecc_scaleFactor, status=ecc_status)
 
-        IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+        IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
         ! Note that the scaled value is an unsigned integer of 4 bytes.
         ! In principle, its range of (absolute) values exceeds the range of absolute values
@@ -1195,7 +1128,7 @@ CONTAINS
         CALL codes_get_int(msgid=ecc_msgid_local, key='scaledValueOfFirstFixedSurface', &
           &                value=ecc_scaledValue, status=ecc_status)
 
-        IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+        IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
         ! Original value = (scaled value) * 10**[-(scale factor)]
         !
@@ -1219,21 +1152,21 @@ CONTAINS
 
       CALL codes_get_int(msgid=ecc_msgid_local, key='typeOfSecondFixedSurface', value=ecc_integer_value, status=ecc_status)
 
-      IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+      IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
       ecc_typeOfSecondFixedSurface = INT(ecc_integer_value)
 
       CALL codes_is_missing(msgid=ecc_msgid_local, key='scaleFactorOfSecondFixedSurface', &
         &                   is_missing=ecc_is_missing, status=ecc_status)
 
-      IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+      IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
       IF (ecc_is_missing == 0_ECC_kindOfInt) THEN
 
         CALL codes_get_int(msgid=ecc_msgid_local, key='scaleFactorOfSecondFixedSurface', &
           &                value=ecc_scaleFactor, status=ecc_status)
 
-        IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+        IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
         ! Note that the scaled value is an unsigned integer of 4 bytes.
         ! In principle, its range of (absolute) values exceeds the range of absolute values
@@ -1242,7 +1175,7 @@ CONTAINS
         CALL codes_get_int(msgid=ecc_msgid_local, key='scaledValueOfSecondFixedSurface', &
           &                value=ecc_scaledValue, status=ecc_status)
 
-        IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+        IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
         ! Original value = (scaled value) * 10**[-(scale factor)]
         !
@@ -1328,13 +1261,13 @@ CONTAINS
 
     CALL codes_get_int(msgid=ecc_msgid_local, key='centre', value=ecc_integer_value, status=ecc_status)
 
-    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
     ecc_centre = INT(ecc_integer_value)
 
     CALL codes_get_int(msgid=ecc_msgid_local, key='subCentre', value=ecc_integer_value, status=ecc_status)
 
-    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
     ecc_subCentre = INT(ecc_integer_value)
 
@@ -1415,14 +1348,14 @@ CONTAINS
     ! Therefore, we do not ensure that it is defined.
     CALL codes_get_int(msgid=ecc_msgid_local, key='typeOfProcessedData', value=ecc_integer_value, status=ecc_status)
 
-    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
     ecc_typeOfProcessedData = INT(ecc_integer_value)
 
 
     CALL codes_is_defined(msgid=ecc_msgid_local, key='typeOfGeneratingProcess', is_defined=ecc_is_defined, status=ecc_status)
 
-    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
     IF (ecc_is_defined == 0_ECC_kindOfInt) THEN
       CALL warning(modname//routine, "The key 'typeOfGeneratingProcess' is not defined")
@@ -1431,14 +1364,14 @@ CONTAINS
 
     CALL codes_get_int(msgid=ecc_msgid_local, key='typeOfGeneratingProcess', value=ecc_integer_value, status=ecc_status)
 
-    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
     ecc_typeOfGeneratingProcess = INT(ecc_integer_value)
 
 
     CALL codes_is_defined(msgid=ecc_msgid_local, key='backgroundProcess', is_defined=ecc_is_defined, status=ecc_status)
 
-    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
     IF (ecc_is_defined == 0_ECC_kindOfInt) THEN
       CALL warning(modname//routine, "The key 'backgroundProcess' is not defined")
@@ -1447,14 +1380,14 @@ CONTAINS
 
     CALL codes_get_int(msgid=ecc_msgid_local, key='backgroundProcess', value=ecc_integer_value, status=ecc_status)
 
-    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
     ecc_backgroundProcess = INT(ecc_integer_value)
 
 
     CALL codes_is_defined(msgid=ecc_msgid_local, key='generatingProcessIdentifier', is_defined=ecc_is_defined, status=ecc_status)
 
-    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
     IF (ecc_is_defined == 0_ECC_kindOfInt) THEN
       CALL warning(modname//routine, "The key 'generatingProcessIdentifier' is not defined")
@@ -1463,7 +1396,7 @@ CONTAINS
 
     CALL codes_get_int(msgid=ecc_msgid_local, key='generatingProcessIdentifier', value=ecc_integer_value, status=ecc_status)
 
-    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
     ecc_generatingProcessIdentifier = INT(ecc_integer_value)
 
@@ -1561,7 +1494,7 @@ CONTAINS
     CALL codes_get_int(msgid=ecc_msgid_local, key='dataRepresentationTemplateNumber', &
       &                value=ecc_integer_value, status=ecc_status)
 
-    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
     ecc_dataRepresentationTemplateNumber = INT(ecc_integer_value)
 
@@ -1571,7 +1504,7 @@ CONTAINS
 
     CALL codes_is_defined(msgid=ecc_msgid_local, key='bitsPerValue', is_defined=ecc_is_defined, status=ecc_status)
 
-    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
     IF (ecc_is_defined == 0_ECC_kindOfInt) THEN
       CALL warning(modname//routine, "The key 'bitsPerValue' is not defined")
@@ -1580,7 +1513,7 @@ CONTAINS
 
     CALL codes_get_int(msgid=ecc_msgid_local, key='bitsPerValue', value=ecc_integer_value, status=ecc_status)
 
-    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
     ecc_bitsPerValue = INT(ecc_integer_value)
 
@@ -1588,7 +1521,7 @@ CONTAINS
 
     CALL codes_is_defined(msgid=ecc_msgid_local, key='bitmapPresent', is_defined=ecc_is_defined, status=ecc_status)
 
-    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
     IF (ecc_is_defined == 0_ECC_kindOfInt) THEN
       CALL warning(modname//routine, "The key 'bitmapPresent' is not defined")
@@ -1597,7 +1530,7 @@ CONTAINS
 
     CALL codes_get_int(msgid=ecc_msgid_local, key='bitmapPresent', value=ecc_integer_value, status=ecc_status)
 
-    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
     ecc_bitmapPresent = INT(ecc_integer_value)
 
@@ -1605,7 +1538,7 @@ CONTAINS
 
     CALL codes_is_defined(msgid=ecc_msgid_local, key='referenceValue', is_defined=ecc_is_defined, status=ecc_status)
 
-    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
     IF (ecc_is_defined == 0_ECC_kindOfInt) THEN
       CALL warning(modname//routine, "The key 'referenceValue' is not defined")
@@ -1614,7 +1547,7 @@ CONTAINS
 
     CALL codes_get_real4(msgid=ecc_msgid_local, key='referenceValue', value=ecc_scaledValue, status=ecc_status)
 
-    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
     ! If the reference value is defined, the decimal scale factor is defined, too
     CALL codes_get_int(msgid=ecc_msgid_local, key='decimalScaleFactor', value=ecc_scaleFactor, status=ecc_status)
@@ -1636,7 +1569,7 @@ CONTAINS
     ! The number of coded values is an integral part of data representation section 5:
     CALL codes_get_long(msgid=ecc_msgid_local, key='numberOfValues', value=ecc_long_value, status=ecc_status)
 
-    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
     ecc_numberOfValues = INT(ecc_long_value, KIND=i8)
 
@@ -1737,7 +1670,7 @@ CONTAINS
     ! which is (so far) unique to tile-base products, exists in the metadate.
     CALL codes_is_defined(msgid=ecc_msgid_local, key='tileClassification', is_defined=ecc_is_defined, status=ecc_status)
 
-    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
     IF (ecc_is_defined == 0_ECC_kindOfInt) THEN
       CALL warning(modname//routine, "The key 'tileClassification' is not defined")
@@ -1750,19 +1683,19 @@ CONTAINS
 
     CALL codes_get_int(msgid=ecc_msgid_local, key='tileClassification', value=ecc_integer_value, status=ecc_status)
 
-    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
     ecc_tileClassification = INT(ecc_integer_value)
 
     CALL codes_get_int(msgid=ecc_msgid_local, key='totalNumberOfTileAttributePairs', value=ecc_integer_value, status=ecc_status)
 
-    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
     ecc_totalNumberOfTileAttributePairs = INT(ecc_integer_value)
 
     CALL codes_get_int(msgid=ecc_msgid_local, key='tileIndex', value=ecc_integer_value, status=ecc_status)
 
-    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
     ecc_tileIndex = INT(ecc_integer_value)
 
@@ -1776,7 +1709,7 @@ CONTAINS
       ! For safety reasons, we inquire if one of the three following keys really exists in the metadatas
       CALL codes_is_defined(msgid=ecc_msgid_local, key='numberOfUsedSpatialTiles', is_defined=ecc_is_defined, status=ecc_status)
 
-      IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+      IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
       IF (ecc_is_defined == 0_ECC_kindOfInt) THEN
         CALL warning(modname//routine, "The key 'numberOfUsedSpatialTiles' is not defined")
@@ -1785,19 +1718,19 @@ CONTAINS
 
       CALL codes_get_int(msgid=ecc_msgid_local, key='numberOfUsedSpatialTiles', value=ecc_integer_value, status=ecc_status)
 
-      IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+      IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
       ecc_numberOfUsedSpatialTiles = INT(ecc_integer_value)
 
       CALL codes_get_int(msgid=ecc_msgid_local, key='numberOfUsedTileAttributes', value=ecc_integer_value, status=ecc_status)
 
-      IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+      IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
       ecc_numberOfUsedTileAttributes = INT(ecc_integer_value)
 
       CALL codes_get_int(msgid=ecc_msgid_local, key='attributeOfTile', value=ecc_integer_value, status=ecc_status)
 
-      IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+      IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
       ecc_attributeOfTile = INT(ecc_integer_value)
 
@@ -1808,7 +1741,7 @@ CONTAINS
       ! For safety reasons, we inquire if one of the three following keys really exists in the metadatas
       CALL codes_is_defined(msgid=ecc_msgid_local, key='numberOfTiles', is_defined=ecc_is_defined, status=ecc_status)
 
-      IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+      IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
       IF (ecc_is_defined == 0_ECC_kindOfInt) THEN
         CALL warning(modname//routine, "The key 'numberOfTiles' is not defined")
@@ -1817,19 +1750,19 @@ CONTAINS
 
       CALL codes_get_int(msgid=ecc_msgid_local, key='numberOfTiles', value=ecc_integer_value, status=ecc_status)
 
-      IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+      IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
       ecc_numberOfUsedSpatialTiles = INT(ecc_integer_value)
 
       CALL codes_get_int(msgid=ecc_msgid_local, key='numberOfTileAttributes', value=ecc_integer_value, status=ecc_status)
 
-      IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+      IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
       ecc_numberOfUsedTileAttributes = INT(ecc_integer_value)
 
       CALL codes_get_int(msgid=ecc_msgid_local, key='tileAttribute', value=ecc_integer_value, status=ecc_status)
 
-      IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+      IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
       ecc_attributeOfTile = INT(ecc_integer_value)
 
@@ -1901,16 +1834,16 @@ CONTAINS
 
     CALL codes_is_defined(msgid=ecc_msgid_local, key='localNumberOfExperiment', is_defined=ecc_is_defined, status=ecc_status)
 
-    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
     IF (ecc_is_defined == 0_ECC_kindOfInt) THEN
-        CALL warning(modname//routine, "The key 'localNumberOfExperiment' is not defined")
-        RETURN
-      ENDIF
+      CALL warning(modname//routine, "The key 'localNumberOfExperiment' is not defined")
+      RETURN
+    ENDIF
 
     CALL codes_get_int(msgid=ecc_msgid_local, key='localNumberOfExperiment', value=ecc_integer_value, status=ecc_status)
 
-    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
     ecc_localNumberOfExperiment = INT(ecc_integer_value)
 
@@ -1928,10 +1861,11 @@ CONTAINS
   !--------------------------------------------------------------
 
   !>
-  !! @brief Get data values
+  !! @brief Get data values, associated metadata and statistics
   !!
   SUBROUTINE ecc_get_values(ecc_msgid, ecc_missingValue, ecc_values, ecc_sizeOfValues, &
-    &                       ecc_min, ecc_max, ecc_avg, ecc_successful)
+    &                       ecc_bitsPerValue, ecc_numberOfMissing, ecc_isUniform,      &
+    &                       ecc_uniformValue, ecc_min, ecc_max, ecc_avg, ecc_successful)
 
     !-----------
     ! Arguments
@@ -1948,6 +1882,18 @@ CONTAINS
 
     !> Size of array of data values
     INTEGER(KIND=i8), INTENT(OUT) :: ecc_sizeOfValues
+
+    !> Precision of data values
+    INTEGER, INTENT(OUT) :: ecc_bitsPerValue
+
+    !> Number of missing values within level/layer
+    INTEGER(KIND=i8), INTENT(OUT) :: ecc_numberOfMissing
+
+    !> Flag to indicate whether field is uniform within level/layer
+    LOGICAL, INTENT(OUT) :: ecc_isUniform
+
+    !> Uniform field value
+    REAL(dp), INTENT(OUT) :: ecc_uniformValue
 
     !> Field statistics: min, max and average
     REAL(wp), INTENT(OUT) :: ecc_min, ecc_max, ecc_avg
@@ -1974,8 +1920,23 @@ CONTAINS
     !> Status identifier for ecCodes interface
     INTEGER(KIND=ECC_kindOfInt) :: ecc_status
 
-    !> Local size of array of data values
-    INTEGER(KIND=i8) :: ecc_sizeOfValues_local
+    !> Definition number/identifier of data representation (packing)
+    INTEGER :: ecc_dataRepresentationTemplateNumber
+
+    !> Reference value of packed data
+    REAL(dp) :: ecc_referenceValue
+
+    !> Flag which indicates presence of bitmap (missing values)
+    INTEGER :: ecc_bitmapPresent
+
+    !> GRIB key holding the number of coded field values in level/layer
+    INTEGER(KIND=i8) :: ecc_numberOfValues
+
+    !> GRIB key holding the number of horizontal grid points
+    INTEGER(KIND=i8) :: ecc_numberOfDataPoints
+
+    !> Local flag to indicate that inquiry was successful
+    LOGICAL :: ecc_successful_local
 
     !> Procedure name
     CHARACTER(LEN=*), PARAMETER :: routine = 'ecc_get_values'
@@ -1983,31 +1944,73 @@ CONTAINS
     !----------------------------
 
     ! Initialize intent-out arguments
-    ecc_sizeOfValues = INT(ECC_NULL, KIND=i8)
-    ecc_min          = -9.0E+33_wp
-    ecc_max          = -9.0E+33_wp
-    ecc_avg          = -9.0E+33_wp
-    ecc_successful   = .FALSE.
+    ecc_sizeOfValues    = INT(ECC_NULL, KIND=i8)
+    ecc_bitsPerValue    = ECC_NULL
+    ecc_numberOfMissing = INT(ECC_NULL, KIND=i8)
+    ecc_isUniform       = .FALSE.
+    ecc_uniformValue    = -9.0E+33_wp
+    ecc_min             = -9.0E+33_wp
+    ecc_max             = -9.0E+33_wp
+    ecc_avg             = -9.0E+33_wp
+    ecc_successful      = .FALSE.
+
+    ! Important note: If the field values turn out to be uniform within the level or layer
+    ! (ecc_isUniform = .TRUE.), ecc_values will be returned unchanged!
+    ! This means that ecc_values will not contain the uniform value (ecc_uniformValue)!
+    ! This is for reasons of efficiency.
 
 #if (defined(GRIBAPI))
 
     ecc_msgid_local = INT(ecc_msgid, KIND=ECC_kindOfInt)
 
-    ! Set missing value in case that a bitmap applies
-    CALL codes_set(msgid=ecc_msgid_local, key='missingValue', value=ecc_missingValue, status=ecc_status)
+    ! First of all, we have to find out if there are missing values within the level or layer:
 
-    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+    CALL ecc_get_info_on_data_representation( &
+      & ecc_msgid                            = ecc_msgid,                            & ! in
+      & ecc_dataRepresentationTemplateNumber = ecc_dataRepresentationTemplateNumber, & ! out
+      & ecc_bitsPerValue                     = ecc_bitsPerValue,                     & ! out
+      & ecc_referenceValue                   = ecc_referenceValue,                   & ! out
+      & ecc_bitmapPresent                    = ecc_bitmapPresent,                    & ! out
+      & ecc_numberOfValues                   = ecc_numberOfValues,                   & ! out
+      & ecc_successful                       = ecc_successful_local                  ) ! out
 
-    ! Get size of data values.
-    ! (This should be equal to the value of the GRIB key:
-    !
-    !    numberOfDataPoints = numberOfCodedValues + numberOfMissing
-    !
-    ! where numberOfMissing > 0 if a bitmap applies.)
-    !
+    IF (.NOT. ecc_successful_local) THEN
+      CALL warning(modname//routine, "Unable to get info on data representation")
+      RETURN
+    ENDIF
+
+    ! In order to know how many values are missing, ecCodes provides the derived concept key:
+    ! numberOfMissing = numberOfDataPoints - numberOfValues
+    ! Unfortunately, this key is only defined for a small subset of data-representation templates.
+    ! Therefore, we try to compute it ourselves.
+    ! For this, we need the value of the GRIB key numberOfDataPoints (which is an integral part of grid-definition section 3):
+    CALL codes_get_long(msgid=ecc_msgid_local, key='numberOfDataPoints', value=ecc_long_value, status=ecc_status)
+
+    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
+
+    ecc_numberOfDataPoints = INT(ecc_long_value, KIND=i8)
+
+    IF (ecc_numberOfDataPoints < ecc_numberOfValues) THEN
+      CALL warning(modname//routine, "The number of horizontal grid points is less than the number of data values")
+      RETURN
+    ELSEIF((ecc_bitmapPresent == 1) .AND. (ecc_numberOfValues /= ecc_numberOfDataPoints)) THEN
+      ecc_numberOfMissing = MAX(0_i8, ecc_numberOfDataPoints - ecc_numberOfValues)
+    ELSE
+      ecc_numberOfMissing = 0_i8
+    ENDIF
+
+    ! Next, we have to find out if the field values are uniform within the level or layer:
+
+    ! A field should have uniform values whithin a level/layer if:
+    ! - there is only a reference value, but no data vector (bitsPerValue = 0)
+    ! - there are no missing values
+    ecc_isUniform = (ecc_bitsPerValue == 0) .AND. (ecc_numberOfMissing < 1_i8)
+    IF (ecc_isUniform) ecc_uniformValue = ecc_referenceValue
+
+    ! Get the size, which is necessary to hold the data vector
     CALL codes_get_size_long(msgid=ecc_msgid_local, key='values', size=ecc_long_value, status=ecc_status)
 
-    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
+    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
 
     ecc_sizeOfValues = INT(ecc_long_value, KIND=i8)
 
@@ -2017,54 +2020,69 @@ CONTAINS
       RETURN
     ELSEIF (sp /= ECC_kindOfFloat) THEN
       ! The following two kinds have to be equal:
-      ! - Kind of 'values' here, in ICON: sp
-      ! - Kind of 'values' in ecCodes:    kindOfFloat
+      ! - Kind of 'values' here in ICON: sp
+      ! - Kind of 'values' in ecCodes:   kindOfFloat
       CALL finish(modname//routine, "sp /= ECC_kindOfFloat")
     ENDIF
 
-    IF (ALLOCATED(ecc_values)) THEN
+    IF (.NOT. ecc_isUniform) THEN
 
-      ! If the argument 'ecc_values' is already allocated,
-      ! we check if its size fits
-      ecc_sizeOfValues_local = SIZE(ecc_values)
+      ! Getting the field values is necessary only if
+      ! they are not uniform within the level or layer:
 
-      ! Return in case of size mismatch
-      IF (ecc_sizeOfValues_local /= ecc_sizeOfValues) THEN
-        CALL warning(modname//routine, "Mismatch between size of argument ecc_values and size of data vector")
-        RETURN
-      ENDIF
+      ! Set the missing value (in case that a bitmap applies)
+      CALL codes_set(msgid=ecc_msgid_local, key='missingValue', value=ecc_missingValue, status=ecc_status)
+
+      IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
+
+      IF (ALLOCATED(ecc_values)) THEN
+
+        ! Return in case of size mismatch
+        IF (SIZE(ecc_values) < ecc_sizeOfValues) THEN
+          CALL warning(modname//routine, "Size of argument ecc_values is too small to hold the data vector")
+          RETURN
+        ENDIF
+
+      ELSE
+
+        ! Allocate argument 'ecc_values' for inquired size
+        ALLOCATE(ecc_values(ecc_sizeOfValues), STAT=status)
+        IF (status /= SUCCESS) CALL finish(modname//routine, "Allocation of ecc_values failed")
+
+      ENDIF ! IF (ALLOCATED(ecc_values))
+
+      ! Get data values
+      CALL codes_get_real4_array(msgid=ecc_msgid_local, key='values', value=ecc_values, status=ecc_status)
+
+      IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
+
+      ! Finally, get some field statistics: min, max, average
+      CALL codes_get_real4(msgid=ecc_msgid_local, key='min', value=ecc_float_value, status=ecc_status)
+
+      IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
+
+      ecc_min = REAL(ecc_float_value, KIND=wp)
+
+      CALL codes_get_real4(msgid=ecc_msgid_local, key='max', value=ecc_float_value, status=ecc_status)
+
+      IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
+
+      ecc_max = REAL(ecc_float_value, KIND=wp)
+
+      CALL codes_get_real4(msgid=ecc_msgid_local, key='average', value=ecc_float_value, status=ecc_status)
+
+      IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=routine, error=ecc_status)
+
+      ecc_avg = REAL(ecc_float_value, KIND=wp)
 
     ELSE
 
-      ! Allocate argument 'ecc_values' for inquired size
-      ALLOCATE(ecc_values(ecc_sizeOfValues), STAT=status)
-      IF (status /= SUCCESS) CALL finish(modname//routine, "Allocation of ecc_values failed")
+      ! If the field is uniform, we just have to set the statistics:
+      ecc_min = REAL(ecc_uniformValue, KIND=wp)
+      ecc_max = ecc_min
+      ecc_avg = ecc_min
 
-    ENDIF ! IF (ALLOCATED(ecc_values))
-
-    ! Get data values
-    CALL codes_get_real4_array(msgid=ecc_msgid_local, key='values', value=ecc_values, status=ecc_status)
-
-    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
-
-    ! Finally, get some field statistics: min, max, average
-    CALL codes_get_real4(msgid=ecc_msgid_local, key='min', value=ecc_float_value, status=ecc_status)
-
-    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
-
-    ecc_min = REAL(ecc_float_value, KIND=wp)
-
-    CALL codes_get_real4(msgid=ecc_msgid_local, key='max', value=ecc_float_value, status=ecc_status)
-
-    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
-
-    ecc_max = REAL(ecc_float_value, KIND=wp)
-
-    CALL codes_get_real4(msgid=ecc_msgid_local, key='average', value=ecc_float_value, status=ecc_status)
-
-    IF (ecc_status /= ECC_SUCCESS) CALL ecc_error_handling(routine_of_occurrence=modname//routine, error=ecc_status)
-
-    ecc_avg = REAL(ecc_float_value, KIND=wp)
+    ENDIF ! IF (.NOT. ecc_isUniform)
 
     ! Indicate that inquiry was (probably) successful
     ecc_successful = .TRUE.

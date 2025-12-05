@@ -2967,11 +2967,12 @@ L & .FALSE.& &
 Parallel decoding of GRIB2 input data by Work PEs:\\
 {\textasteriskcentered} .FALSE.: Workroot PE reads and decodes the records of a GRIB input file sequentially.\\
 {\textasteriskcentered} .TRUE.: Workroot PE reads the records and distributes them to all Work PEs for decoding in parallel.\\
-The second case requires input files of format GRIB2.
+The second case requires input files of format GRIB2 with file extension '.grb', '.grb2', '.grib' or '.grib2'.
 In addition, a dictionary is mandatory (ana\_varnames\_map\_file).\\
 (A few corresponding timers are implemented and subordinated to the init\_icon timer.
 Activating them requires run\_nml: timers\_level > 8.)
-& init\_mode=1, 5, 7
+& ICON compiled with Fortran90 interfaces of package \verb+ecCodes+;\\
+init\_mode=1, 5, 7
 \tabularnewline
 
 \end{longtab}
@@ -8171,7 +8172,7 @@ processes, i.e. a large stride, often gives best performance.)
 
 %\hline
 process\_stride\_pgrib
-I & -1 & &
+I & 1 & &
 \emph{(Advanced namelist parameter:)}
 Stride of processes taking part in parallel GRIB decoding (recommendation: select
 stride such as to have between 100 and 1000 decoder PEs)
