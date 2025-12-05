@@ -34,6 +34,7 @@
 - Hydrology: Added ford inline documentation
 - Land initial files: Major update: 12 and 13 tile setups for jsbach and quincy
 - Land initial files: Fix for the skin layer conductivity
+- Land initialization: Initial soil moisture is turned to ice at temperatures below zero degrees.
 - Revised 'basic' output list
 - Anthropogenic emission files: Created anthropogenic emission data including aviation sources from the CMIP7 dataset
 
