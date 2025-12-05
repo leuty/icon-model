@@ -9,6 +9,7 @@
 - Allow more than one time interval for lateral boundary conditions
 - Set taudecay in cover_koe separately for shallow, mid-level and deep convection
 - Modified call to SR set_cdnc_from_extdata to get correct update for cloud_num in radiation after restarts
+- Clean-up of mo_nwp_gscp_interface and 2mom microphysics scheme
 - Fixes in Emvorado:
   - determination of nearest ICON cell
   - fix interface to eccodes routine codes_open_file

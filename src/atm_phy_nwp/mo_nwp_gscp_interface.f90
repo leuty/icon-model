@@ -146,8 +146,9 @@ CONTAINS
 
     INTEGER :: jc,jb,jg,jk               !<block indices
 
-    REAL(wp) :: zncn(nproma,p_patch%nlev),qnc(nproma,p_patch%nlev),qnc_s(nproma),rholoc,rhoinv, cloud_num
+    REAL(wp) :: zncn(nproma,p_patch%nlev), qnc(nproma,p_patch%nlev), qnc_s(nproma)
     REAL(wp) :: zninc(nproma,p_patch%nlev), aerncn, ndust(nproma,p_patch%nlev), sdust(nproma,p_patch%nlev)
+    REAL(wp) :: rholoc, rhoinv, cloudnum_const
 
     LOGICAL  :: l_nest_other_micro
     LOGICAL  :: ldiag_ttend, ldiag_qtend
@@ -271,6 +272,8 @@ CONTAINS
        ! Nothing to do for other schemes
     END SELECT
 
+    ! for icpl_aero_gscp=0 the constant cloud_num for the one-moment scheme is used
+    CALL get_cloud_number(cloudnum_const)
 
     ! exclude boundary interpolation zone of nested domains
     i_rlstart = grf_bdywidth_c+1
@@ -286,7 +289,7 @@ CONTAINS
 
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jb,jc,jk,i_startidx,i_endidx,zncn,qnc,qnc_s,ddt_tend_t,ddt_tend_qv,aerncn,zninc,   &
-!$OMP            icenuc,ddt_tend_qc,ddt_tend_qi,ddt_tend_qr,ddt_tend_qs) ICON_OMP_GUIDED_SCHEDULE
+!$OMP            icenuc,ddt_tend_qc,ddt_tend_qi,ddt_tend_qr,ddt_tend_qs, ptr_tke_loc, ndust, sdust) ICON_OMP_GUIDED_SCHEDULE
 
       DO jb = i_startblk, i_endblk
 
@@ -350,12 +353,11 @@ CONTAINS
 
         ELSE
 
-          CALL get_cloud_number(cloud_num)
-          !$ACC DATA COPYIN(cloud_num)
+          !$ACC DATA COPYIN(cloudnum_const)
           !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
           !$ACC LOOP GANG VECTOR
           DO jc=i_startidx,i_endidx
-            qnc_s(jc) = cloud_num
+            qnc_s(jc) = cloudnum_const
           END DO
           !$ACC END PARALLEL
           !$ACC END DATA

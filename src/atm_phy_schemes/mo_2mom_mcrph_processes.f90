@@ -111,13 +111,6 @@ MODULE mo_2mom_mcrph_processes
   ! .. some physical parameters not found in ICON
   REAL(wp), PARAMETER :: T_f     = 233.0_wp     !..below this temperature there is no liquid water
 
-  ! .. for old saturation pressure relations (keep this for some time for testing)
-  REAL(wp), PARAMETER :: A_e  = 2.18745584e1_wp !..Konst. Saettigungsdamppfdruck - Eis
-  REAL(wp), PARAMETER :: A_w  = 1.72693882e1_wp !..Konst. Saettigungsdamppfdruck - Wasser
-  REAL(wp), PARAMETER :: B_e  = 7.66000000e0_wp !..Konst. Saettigungsdamppfdruck - Eis
-  REAL(wp), PARAMETER :: B_w  = 3.58600000e1_wp !..Konst. Saettigungsdamppfdruck - Wasser
-  REAL(wp), PARAMETER :: e_3  = 6.10780000e2_wp !..Saettigungsdamppfdruck bei T = T_3
-
   ! .. Hallet-Mossop ice multiplication
   REAL(wp), PARAMETER ::           &
        &    C_mult     = 3.5e8_wp, &    !..Koeff. fuer Splintering
@@ -178,12 +171,13 @@ MODULE mo_2mom_mcrph_processes
        &    T_nuc     = 268.15_wp, & ! lower temperature threshold for ice nucleation, -5 C
        &    T_freeze  = 273.15_wp    ! lower temperature threshold for raindrop freezing
 
+  REAL(wp), PARAMETER :: e_3  = 6.10780000e2_wp  ! saturation pressure at triple point
+
   ! Parameter for evaporation of rain, determines change of n_rain during evaporation
   REAL(wp) :: rain_gfak   ! this is set in init_twomoment
 
   ! debug switches
   LOGICAL, PARAMETER     :: isdebug = .false.   ! use only when really desperate
-  LOGICAL, PARAMETER     :: isprint = .true.    ! print-out initialization values
 
   ! some cloud microphysical switches
   LOGICAL, PARAMETER     :: ice_multiplication = .TRUE.  ! default is .true.
@@ -196,7 +190,7 @@ MODULE mo_2mom_mcrph_processes
   PUBLIC :: q_crit
   ! Switches
   PUBLIC :: ice_typ, nuc_i_typ, nuc_c_typ, auto_typ
-  PUBLIC :: isdebug, isprint
+  PUBLIC :: isdebug
   ! Process Routines
   PUBLIC :: sedi_vel_rain, sedi_vel_sphere, sedi_vel_lwf, init_2mom_sedi_vel
   PUBLIC :: autoconversionSB, accretionSB, rain_selfcollectionSB
@@ -379,12 +373,6 @@ CONTAINS
     thisCoeffs%coeff_alfa_q = this%a_vel * GAMMA((this%nu+this%b_vel+2.0)/this%mu) / GAMMA((this%nu+2.0)/this%mu)
     thisCoeffs%coeff_lambda = GAMMA((this%nu+1.0)/this%mu)/GAMMA((this%nu+2.0)/this%mu)
 
-    IF (isprint) THEN
-      WRITE (txt,'(2A)') "    name  = ",this%name ; CALL message(sroutine,TRIM(txt))
-      WRITE (txt,'(A,D14.7)') "    c_lam = ",thisCoeffs%coeff_lambda ; CALL message(sroutine,TRIM(txt))
-      WRITE (txt,'(A,D14.7)') "    alf_n = ",thisCoeffs%coeff_alfa_n ; CALL message(sroutine,TRIM(txt))
-      WRITE (txt,'(A,D14.7)') "    alf_q = ",thisCoeffs%coeff_alfa_q ; CALL message(sroutine,TRIM(txt))
-    END IF
   END SUBROUTINE init_2mom_sedi_vel
 
   ! currently not used
@@ -418,33 +406,6 @@ CONTAINS
   END FUNCTION diffusivity
 
   !*******************************************************************************
-  ! saturation pressure over ice and liquid water                                *
-  !*******************************************************************************
-
-  ! ELEMENTAL REAL(wp) FUNCTION e_es (ta)
-  !   !$ACC ROUTINE SEQ
-  !   REAL(wp), INTENT(IN) :: ta
-  !   e_es  = sat_pres_ice(ta)
-  ! END FUNCTION e_es
-
-  !  ELEMENTAL REAL(wp) FUNCTION e_ws (ta)
-  !    REAL(wp), INTENT (IN) :: ta
-  !    e_ws  = e_3 * EXP (A_w * (ta - T_3) / (ta - B_w))
-  !  END FUNCTION e_ws_old
-
-  ! FUNCTION e_ws_vec (ta,idim,jdim)
-  !   INTEGER :: idim, jdim
-  !   REAL(wp)               :: e_ws_vec(idim,jdim)
-  !   REAL(wp), INTENT (IN)  :: ta(idim,jdim)
-  !   e_ws_vec  = e_3 * EXP (A_w * (ta - T_3) / (ta - B_w))
-  ! END FUNCTION e_ws_vec
-
-  ! FUNCTION e_es_vec (ta,idim,jdim)
-  !   INTEGER :: idim, jdim
-  !   REAL(wp)               :: e_es_vec(idim,jdim)
-  !   REAL(wp), INTENT (IN)  :: ta(idim,jdim)
-  !   e_es_vec  = e_3 * EXP (A_e * (ta - T_3) / (ta - B_e))
-  ! END FUNCTION e_es_vec
 
   SUBROUTINE autoconversionSB(ik_slice,dt,atmo,cloud_coeffs,cloud,rain)
     !*******************************************************************************
@@ -580,7 +541,7 @@ CONTAINS
           q_c = cloud%q(i,k)
           q_r = rain%q(i,k)
           n_r = rain%n(i,k)
-          ! Calculate dissipation rate assuming tur_len =300 (namelist) and B1=16.6 (same as in Mello-Yamada and in code)
+          ! Calculate dissipation rate assuming tur_len =300 (namelist) and B1=16.6 (same as in Mellor-Yamada and in code)
           ! Approximation only valid when z >> tur_len and no stability corrections (which are small for large tke)
           IF (q_c > 0.0_wp.AND.q_r > 0.0_wp) THEN
 
@@ -1116,13 +1077,10 @@ CONTAINS
               x_c = particle_meanmass(cloud, q_c, n_c)
 
               !..Hom. freezing based on Jeffrey und Austin (1997), see also Cotton und Field (2001)
-              !  (note that log in Cotton and Field is log10, not ln)
+              !  (note that log in Cotton and Field is log10)
               IF (T_c > -30.0_wp) THEN
-!                 j_hom = 1.0e6_wp/rho_w * 10**(-7.63-2.996*(T_c+30.0))           !..J in 1/(kg s)
                  j_hom = 1.0e6_wp/rho_w * EXP((-7.63_wp-2.996_wp*(T_c+30.0_wp))*log_10)
               ELSE
-!                 j_hom = 1.0e6_wp/rho_w &
-!                      &  * 10**(-243.4-14.75*T_c-0.307*T_c**2-0.00287*T_c**3-0.0000102*T_c**4)
                  j_hom = 1.0e6_wp/rho_w &
                       &  * EXP((-243.4_wp-14.75_wp*T_c-0.307_wp*T_c**2-0.00287_wp*T_c**3-0.0000102_wp*T_c**4)*log_10)
               ENDIF
