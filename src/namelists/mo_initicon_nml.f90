@@ -29,6 +29,7 @@ MODULE mo_initicon_nml
   USE mo_mpi,                ONLY: my_process_is_stdio
   USE mo_time_config,        ONLY: set_tc_timeshift
   USE mo_initicon_config,    ONLY: initicon_config,      &
+    &                              is_filetype_grib2,    &
     & config_init_mode           => init_mode,           &
     & config_nlevsoil_in         => nlevsoil_in,         &
     & config_zpbl1               => zpbl1,               &
@@ -101,6 +102,7 @@ CONTAINS
   INTEGER :: z_go_init(7)   ! for consistency check
   INTEGER :: iunit
   INTEGER :: jg
+  LOGICAL :: is_fg_filetype_grib2, is_ana_filetype_grib2
 
   CHARACTER(len=*), PARAMETER ::  &
     &  routine = 'mo_initicon_nml: read_initicon_namelist'
@@ -476,11 +478,19 @@ CONTAINS
     CALL finish( TRIM(routine),'Invalid value for itype_vert_expol.' )
   END SELECT
 
-  ! Checking distributed input-data decoding
+  ! Checking parallel GRIB decoding:
+  ! The function "is_filetype_grib2" just checks the file extension,
+  ! so it can be applied to non-expanded filename patterns as well.
+  is_fg_filetype_grib2 = is_filetype_grib2(dwdfg_filename)
+  is_ana_filetype_grib2 = is_filetype_grib2(dwdana_filename)
   IF (parallel_grib_decoding .AND. (LEN_TRIM(ana_varnames_map_file) < 1)) THEN
     CALL finish(routine,'Specifying ana_varnames_map_file is mandatory for parallel_grib_decoding = .TRUE.')
-  ELSEIF (parallel_grib_decoding .AND. ALL([1, 5, 6, 7] /= init_mode)) THEN
-    CALL finish(routine,'parallel_grib_decoding = .TRUE. requires init_mode = 1, 5, 6 or 7')
+  ELSEIF (parallel_grib_decoding .AND. ALL([MODE_DWDANA, MODE_IAU, MODE_ICONVREMAP] /= init_mode)) THEN
+    CALL finish(routine,'parallel_grib_decoding = .TRUE. requires init_mode = 1, 5 or 7')
+  ELSEIF (parallel_grib_decoding .AND. .NOT. is_fg_filetype_grib2) THEN
+    CALL finish(routine,'parallel_grib_decoding = .TRUE. requires FG file(s) in GRIB format')
+  ELSEIF (parallel_grib_decoding .AND. lread_ana .AND. .NOT. is_ana_filetype_grib2) THEN
+    CALL finish(routine,'parallel_grib_decoding = .TRUE. requires ANA file(s) in GRIB format')
   ENDIF
 
   !------------------------------------------------------------

@@ -654,7 +654,7 @@ MODULE mo_nonhydro_state
             &                           "mode_iau_old_fg_in","mode_iau_ana_in",        &
             &                           "mode_iau_anaatm_in",                          &
             &                           "mode_iau_old_ana_in",                         &
-            &                           "mode_iniana","icon_lbc_vars") )
+            &                           "mode_iniana","icon_lbc_vars","ana_increment") )
           __acc_attach(p_prog%tracer_ptr(iqv)%p_3d)
         END IF
 
@@ -664,13 +664,13 @@ MODULE mo_nonhydro_state
             &                           "mode_iau_ana_in", "mode_iau_anaatm_in",     &
             &                           "mode_iau_fg_in","mode_iau_old_fg_in",       &
             &                           "LATBC_PREFETCH_VARS",                       &
-            &                           "mode_iniana","icon_lbc_vars")
+            &                           "mode_iniana","icon_lbc_vars","ana_increment")
         ELSE
           ingroup=groups("atmo_ml_vars","atmo_pl_vars","atmo_zl_vars",               &
             &                           "dwd_fg_atm_vars","mode_dwd_fg_in",          &
             &                           "mode_iau_ana_in", "mode_iau_anaatm_in",     &
             &                           "mode_iau_fg_in","mode_iau_old_fg_in",       &
-            &                           "mode_iniana","icon_lbc_vars")
+            &                           "mode_iniana","icon_lbc_vars","ana_increment")
         ENDIF
 
         !QC
@@ -757,7 +757,7 @@ MODULE mo_nonhydro_state
             &                           "mode_iau_ana_in", "mode_iau_anaatm_in",       &
             &                           "mode_iau_fg_in","mode_iau_old_fg_in",         &
             &                           "LATBC_PREFETCH_VARS",                         &
-            &                           "mode_iniana","icon_lbc_vars") )
+            &                           "mode_iniana","icon_lbc_vars","ana_increment") )
           __acc_attach(p_prog%tracer_ptr(iqr)%p_3d)
         END IF
 
@@ -789,7 +789,7 @@ MODULE mo_nonhydro_state
             &                           "mode_iau_ana_in", "mode_iau_anaatm_in",       &
             &                           "mode_iau_fg_in","mode_iau_old_fg_in",         &
             &                           "LATBC_PREFETCH_VARS",                         &
-            &                           "mode_iniana","icon_lbc_vars") )
+            &                           "mode_iniana","icon_lbc_vars","ana_increment") )
           __acc_attach(p_prog%tracer_ptr(iqs)%p_3d)
         END IF
 
@@ -821,7 +821,7 @@ MODULE mo_nonhydro_state
             &                           "mode_iau_ana_in", "mode_iau_anaatm_in",       &
             &                           "mode_iau_fg_in","mode_iau_old_fg_in",         &
             &                           "LATBC_PREFETCH_VARS","opt_fg_vars",           &
-            &                           "mode_iniana","icon_lbc_vars") )
+            &                           "mode_iniana","icon_lbc_vars","ana_increment") )
           __acc_attach(p_prog%tracer_ptr(iqg)%p_3d)
         END IF
 
@@ -853,7 +853,7 @@ MODULE mo_nonhydro_state
             &                         "dwd_fg_atm_vars","mode_dwd_fg_in",            &
             &                         "mode_iau_ana_in","mode_iau_anaatm_in",        &
             &                         "mode_iau_fg_in","opt_fg_vars",                &
-            &                         "LATBC_PREFETCH_VARS")  )
+            &                         "LATBC_PREFETCH_VARS","ana_increment")  )
           __acc_attach(p_prog%tracer_ptr(iqh)%p_3d)
         END IF
 
@@ -1170,7 +1170,7 @@ MODULE mo_nonhydro_state
             &                           "dwd_fg_atm_vars","mode_dwd_fg_in",            &
             &                           "mode_iau_ana_in", "mode_iau_anaatm_in",       &
             &                           "mode_iau_fg_in","opt_fg_vars",                &
-            &                           "LATBC_PREFETCH_VARS")  )
+            &                           "LATBC_PREFETCH_VARS","ana_increment")  )
           __acc_attach(p_prog%tracer_ptr(iqni)%p_3d)
         END IF
 
@@ -1201,7 +1201,7 @@ MODULE mo_nonhydro_state
                     &                 "dwd_fg_atm_vars","mode_dwd_fg_in",            &
                     &                 "mode_iau_ana_in","mode_iau_anaatm_in",        &
                     &                 "mode_iau_fg_in","opt_fg_vars",                &
-                    &                 "LATBC_PREFETCH_VARS")  )
+                    &                 "LATBC_PREFETCH_VARS","ana_increment")  )
           __acc_attach(p_prog%tracer_ptr(iqnr)%p_3d)
         END IF
 
@@ -1233,7 +1233,7 @@ MODULE mo_nonhydro_state
                     &                 "dwd_fg_atm_vars","mode_dwd_fg_in",            &
                     &                 "mode_iau_ana_in","mode_iau_anaatm_in",        &
                     &                 "mode_iau_fg_in","opt_fg_vars",                &
-                    &                 "LATBC_PREFETCH_VARS")  )
+                    &                 "LATBC_PREFETCH_VARS","ana_increment")  )
           __acc_attach(p_prog%tracer_ptr(iqns)%p_3d)
         END IF
 
@@ -1264,7 +1264,7 @@ MODULE mo_nonhydro_state
                     &                 "dwd_fg_atm_vars","mode_dwd_fg_in",            &
                     &                 "mode_iau_ana_in","mode_iau_anaatm_in",        &
                     &                 "mode_iau_fg_in","opt_fg_vars",                &
-                    &                 "LATBC_PREFETCH_VARS")  )
+                    &                 "LATBC_PREFETCH_VARS","ana_increment")  )
           __acc_attach(p_prog%tracer_ptr(iqng)%p_3d)
         END IF
 
@@ -1295,7 +1295,7 @@ MODULE mo_nonhydro_state
                     &                 "dwd_fg_atm_vars","mode_dwd_fg_in",            &
                     &                 "mode_iau_ana_in","mode_iau_anaatm_in",        &
                     &                 "mode_iau_fg_in","opt_fg_vars",                &
-                    &                 "LATBC_PREFETCH_VARS")  )
+                    &                 "LATBC_PREFETCH_VARS","ana_increment")  )
           __acc_attach(p_prog%tracer_ptr(iqnh)%p_3d)
         END IF
 
@@ -1327,7 +1327,7 @@ MODULE mo_nonhydro_state
                     &                 "dwd_fg_atm_vars","mode_dwd_fg_in",            &
                     &                 "mode_iau_ana_in","mode_iau_anaatm_in",        &
                     &                 "mode_iau_fg_in","opt_fg_vars",                &
-                    &                 "LATBC_PREFETCH_VARS")  )
+                    &                 "LATBC_PREFETCH_VARS","ana_increment")  )
           __acc_attach(p_prog%tracer_ptr(iqnc)%p_3d)
         END IF
 
@@ -1784,7 +1784,8 @@ MODULE mo_nonhydro_state
                 &                 "dwd_fg_atm_vars","mode_dwd_ana_in",          &
                 &                 "mode_iau_ana_in","mode_iau_old_ana_in",      &
                 &                 "mode_iau_anaatm_in","LATBC_PREFETCH_VARS",   &
-                &                 "mode_iniana","icon_lbc_vars"),               &
+                &                 "mode_iniana","icon_lbc_vars",                &
+                &                 "ana_increment"),                             &
                 & lopenacc = .TRUE. )
     __acc_attach(p_diag%u)
 
@@ -1803,7 +1804,8 @@ MODULE mo_nonhydro_state
                 &                 "dwd_fg_atm_vars","mode_dwd_ana_in",          &
                 &                 "mode_iau_ana_in","mode_iau_old_ana_in",      &
                 &                 "mode_iau_anaatm_in","LATBC_PREFETCH_VARS",   &
-                &                 "mode_iniana","icon_lbc_vars"),               &
+                &                 "mode_iniana","icon_lbc_vars",                &
+                &                 "ana_increment"),                             &
                 & lopenacc = .TRUE. )
     __acc_attach(p_diag%v)
 
@@ -2445,7 +2447,8 @@ MODULE mo_nonhydro_state
                 &                 "dwd_fg_atm_vars","mode_dwd_ana_in",          &
                 &                 "mode_iau_ana_in","mode_iau_old_ana_in",      &
                 &                 "mode_iau_anaatm_in","LATBC_PREFETCH_VARS",   &
-                &                 "mode_iniana","icon_lbc_vars"),               &
+                &                 "mode_iniana","icon_lbc_vars",                &
+                &                 "ana_increment"),                             &
                 & lopenacc = .TRUE. )
     __acc_attach(p_diag%temp)
 
@@ -2490,7 +2493,7 @@ MODULE mo_nonhydro_state
                 & "dwd_fg_atm_vars","mode_dwd_ana_in",                          &
                 & "mode_iau_ana_in","mode_iau_old_ana_in",                      &
                 & "mode_iau_anaatm_in","LATBC_PREFETCH_VARS",                   &
-                & "mode_iniana","icon_lbc_vars"),                               &
+                & "mode_iniana","icon_lbc_vars","ana_increment"),               &
                 &  lopenacc = .TRUE. )
     __acc_attach(p_diag%pres)
 

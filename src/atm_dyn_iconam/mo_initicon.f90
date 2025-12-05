@@ -47,9 +47,9 @@ MODULE mo_initicon
     &                               MODE_IAU, MODE_IAU_OLD, MODE_IFSANA,              &
     &                               MODE_ICONVREMAP, MODE_COMBINED, MODE_COSMO,       &
     &                               min_rlcell, INWP, iaes, min_rledge_int, grf_bdywidth_c, &
-    &                               min_rlcell_int
+    &                               min_rlcell_int, vname_len
   USE mo_physical_constants,  ONLY: rd, cpd, cvd, p0ref, vtmpc1, rd_o_cpd, tmelt, tf_salt
-  USE mo_exception,           ONLY: message, finish, warning, message_text
+  USE mo_exception,           ONLY: message, finish
   USE mo_grid_config,         ONLY: n_dom, l_limited_area
   USE mo_nh_init_utils,       ONLY: convert_thdvars, init_w
   USE mo_nh_init_nest_utils,  ONLY: interpolate_vn_increments
@@ -80,13 +80,13 @@ MODULE mo_initicon
   USE mo_input_request_list,  ONLY: t_InputRequestList, InputRequestList_create
   USE mo_mpi,                 ONLY: my_process_is_stdio
   USE mo_input_instructions,  ONLY: t_readInstructionListPtr, readInstructionList_make, kInputSourceAna, &
-                                    kInputSourceBoth, kInputSourceCold, kInputSourceAnaI, kInputSourceFgAnaI, kInputSourceFg
+                                  & kInputSourceBoth, kInputSourceCold, kInputSourceAnaI, kInputSourceFgAnaI, kInputSourceFg, &
+                                  & collectGroupAnaIncrement
   USE mo_util_uuid_types,     ONLY: t_uuid
   USE mo_nwp_sfc_utils,       ONLY: seaice_albedo_coldstart
   USE mo_fortran_tools,       ONLY: init
   USE mo_coupling_config,     ONLY: is_coupled_to_ocean
   USE mo_util_vgrid_types,    ONLY: vgrid_buffer
-  USE mo_eccodes,             ONLY: ecc_is_filetype_grib2
   USE mo_scatter_pattern_base,    ONLY: t_scatterPattern
   USE mo_scatter_pattern_scatter, ONLY: t_scatterPatternScatter
 
@@ -267,8 +267,8 @@ MODULE mo_initicon
     INTEGER :: jg, jg1
     CLASS(t_InputRequestList), POINTER :: requestList
     CHARACTER(LEN=filename_max) :: fgFilename_str(max_dom)
-    LOGICAL :: parallel_grib_decoding_local
-    INTEGER :: fname_len
+    CHARACTER(LEN=vname_len), ALLOCATABLE :: ana_incr_list(:)
+    INTEGER :: fname_len, ist
 
     !The input file paths & types are NOT initialized IN all modes, so we need to avoid creating InputRequestLists IN these cases.
     SELECT CASE(init_mode)
@@ -286,6 +286,13 @@ MODULE mo_initicon
         CALL inputInstructions(jg)%ptr%fileRequests(requestList, lIsFg = .TRUE.)
       ENDIF
     END DO
+
+    ! Dummy allocation
+    IF (parallel_grib_decoding) THEN
+      ALLOCATE (ana_incr_list(1), STAT=ist)
+      IF (ist /= SUCCESS) CALL finish(routine, 'Allocation of ana_incr_list failed')
+      ana_incr_list(1) = " "
+    ENDIF
 
     DO jg = 1, n_dom
       fgFilename_str(jg) = " "
@@ -329,17 +336,7 @@ MODULE mo_initicon
         !   - Other Work PEs decode data
         !   - Used library: ecCodes
         !   - Allowed filetypes: GRIB2
-        parallel_grib_decoding_local = parallel_grib_decoding
-        IF (parallel_grib_decoding_local .AND. (.NOT. ecc_is_filetype_grib2(fgFilename_str(jg)(1:fname_len)))) THEN
-          ! The current FG file is not of type GRIB2,
-          ! so we have to fall back on the standard strategy
-          parallel_grib_decoding_local = .FALSE.
-          message_text = "FG file '"//fgFilename_str(jg)(1:fname_len)//"' is not of type GRIB2!" &
-            &          //"Fall back on parallel_grib_decoding = .FALSE.!"
-          CALL warning(routine, message_text)
-        END IF
-
-        IF (.NOT. parallel_grib_decoding_local) THEN
+        IF (.NOT. parallel_grib_decoding) THEN
           ! Standard case
           IF (ana_varnames_map_file /= ' ') THEN
             CALL requestList%readFile(p_patch(jg), fgFilename_str(jg)(1:fname_len), .TRUE., opt_dict = ana_varnames_dict)
@@ -350,28 +347,28 @@ MODULE mo_initicon
           ! Distributed input-data decoding
           ! (to keep the following interface structurally simple, neither the full p_patch is handed over,
           ! nor optional arguments (e.g., for h/vgrid_uuid) are used.)
-          CALL requestList%readFile_grib(grib_file_path    = fgFilename_str(jg)(1:fname_len),           & ! in
-            &                            lIsFg             = .TRUE.,                                    & ! in
-            &                            dict              = ana_varnames_dict,                         & ! in
-            &                            jg                = p_patch(jg)%id,                            & ! in
-            &                            ncells_global     = INT(p_patch(jg)%n_patch_cells_g, KIND=i8), & ! in
-            &                            nedges_global     = INT(p_patch(jg)%n_patch_edges_g, KIND=i8), & ! in
-            &                            hgrid_uuid        = p_patch(jg)%grid_uuid,                     & ! in
-            &                            vgrid_uuid        = vgrid_buffer(jg)%uuid,                     & ! in
-            &                            verify_hgrid_uuid = .NOT. check_uuid_gracefully,               & ! in
-            &                            verify_vgrid_uuid = .FALSE.,                                   & ! in
-            &                            verbose           = (msg_level > 4),                           & ! in
-            &                            timing            = ltimer .AND. (timers_level > 8),           & ! in
-            &                            inventory         = .TRUE.                                     ) ! in
-        END IF ! IF (.NOT. parallel_grib_decoding_local)
+          CALL requestList%readFile_grib(grib_file_path       = fgFilename_str(jg)(1:fname_len),           & ! in
+            &                            lIsFg                = .TRUE.,                                    & ! in
+            &                            dict                 = ana_varnames_dict,                         & ! in
+            &                            jg                   = p_patch(jg)%id,                            & ! in
+            &                            ncells_global        = INT(p_patch(jg)%n_patch_cells_g, KIND=i8), & ! in
+            &                            nedges_global        = INT(p_patch(jg)%n_patch_edges_g, KIND=i8), & ! in
+            &                            hgrid_uuid           = p_patch(jg)%grid_uuid,                     & ! in
+            &                            vgrid_uuid           = vgrid_buffer(jg)%uuid,                     & ! in
+            &                            ana_incr_list        = ana_incr_list,                             & ! in
+            &                            verify_hgrid_uuid    = lconsistency_checks .AND.                  &
+            &                                                   (.NOT. check_uuid_gracefully),             & ! in
+            &                            verify_vgrid_uuid    = .FALSE.,                                   & ! in
+            &                            verify_ana_incr_list = .FALSE.,                                   & ! in
+            &                            verbose              = (msg_level > 4),                           & ! in
+            &                            timing               = ltimer .AND. (timers_level > 8),           & ! in
+            &                            inventory            = .TRUE.                                     ) ! in
+        END IF ! IF (.NOT. parallel_grib_decoding)
 
       END IF ! IF(p_patch(jg)%ldom_active)
     END DO ! jg
 
-    ! Printing a file inventory is included in requestList%readFile_grib.
-    ! (As the domain loop is implicit to requestList%printInventory,
-    ! we cannot check for parallel_grib_decoding_local, unfortunately.
-    ! Therefore, we check for parallel_grib_decoding)
+    ! Printing a file inventory is included in "requestList%readFile_grib"
     IF(my_process_is_stdio() .AND. (.NOT. parallel_grib_decoding)) THEN
         CALL requestList%printInventory()
         IF(lconsistency_checks) THEN
@@ -395,6 +392,10 @@ MODULE mo_initicon
     ! Cleanup.
     CALL requestList%destruct()
     DEALLOCATE(requestList)
+    IF (ALLOCATED(ana_incr_list)) THEN
+      DEALLOCATE(ana_incr_list, STAT=ist)
+      IF (ist /= SUCCESS) CALL finish(routine, 'Deallocation of ana_incr_list failed')
+    ENDIF
   END SUBROUTINE read_dwdfg
 
   ! Do postprocessing of data from first-guess file.
@@ -447,11 +448,11 @@ MODULE mo_initicon
 
     CHARACTER(LEN = *), PARAMETER :: routine = modname//":read_dwdana"
     CHARACTER(LEN = :), ALLOCATABLE :: incrementsList(:)
+    CHARACTER(LEN = vname_len), ALLOCATABLE :: ana_incr_list(:)
     CLASS(t_InputRequestList), POINTER :: requestList
     CHARACTER(LEN=filename_max) :: anaFilename_str(max_dom)
     INTEGER :: jg, jg1
-    LOGICAL :: parallel_grib_decoding_local
-    INTEGER :: fname_len
+    INTEGER :: fname_len, ana_incr_list_size, ist
 
     !The input file paths & types are NOT initialized IN all modes, so we need to avoid creating InputRequestLists IN these cases.
     SELECT CASE(init_mode)
@@ -478,6 +479,11 @@ MODULE mo_initicon
         CALL inputInstructions(jg)%ptr%fileRequests(requestList, lIsFg = .FALSE.)
       ENDIF
     END DO
+
+    ! Get list of all input variables that may be provided as analysis increments
+    ana_incr_list_size = 0
+    IF (parallel_grib_decoding) &
+      & CALL collectGroupAnaIncrement(outGroup=ana_incr_list, outGroupSize=ana_incr_list_size, init_mode=init_mode)
 
     ! Scan the input files AND distribute the relevant variables across the processes.
     DO jg = 1, n_dom
@@ -511,17 +517,7 @@ MODULE mo_initicon
         ENDIF  ! p_io
 
         ! See read_dwdfg above for the two modes of input-data decoding
-        parallel_grib_decoding_local = parallel_grib_decoding
-        IF (parallel_grib_decoding_local .AND. (.NOT. ecc_is_filetype_grib2(anaFilename_str(jg)(1:fname_len)))) THEN
-          ! The current ANA file is not of type GRIB2,
-          ! so we have to fall back on the standard strategy for input-data decoding
-          parallel_grib_decoding_local = .FALSE.
-          message_text = "ANA file '"//anaFilename_str(jg)(1:fname_len)//"' is not of type GRIB2!" &
-            &          //"Fall back on parallel_grib_decoding = .FALSE.!"
-          CALL warning(routine, message_text)
-        END IF
-
-        IF (.NOT. parallel_grib_decoding_local) THEN
+        IF (.NOT. parallel_grib_decoding) THEN
           ! Standard case
           IF (ana_varnames_map_file /= ' ') THEN
             CALL requestList%readFile(p_patch(jg), anaFilename_str(jg)(1:fname_len), .FALSE., opt_dict = ana_varnames_dict)
@@ -532,28 +528,32 @@ MODULE mo_initicon
           ! Distributed input-data decoding
           ! (to keep the following interface structurally simple, neither the full p_patch is handed over,
           ! nor optional arguments (e.g., for h/vgrid_uuid) are used.)
-          CALL requestList%readFile_grib(grib_file_path    = anaFilename_str(jg)(1:fname_len),          & ! in
-            &                            lIsFg             = .FALSE.,                                   & ! in
-            &                            dict              = ana_varnames_dict,                         & ! in
-            &                            jg                = p_patch(jg)%id,                            & ! in
-            &                            ncells_global     = INT(p_patch(jg)%n_patch_cells_g, KIND=i8), & ! in
-            &                            nedges_global     = INT(p_patch(jg)%n_patch_edges_g, KIND=i8), & ! in
-            &                            hgrid_uuid        = p_patch(jg)%grid_uuid,                     & ! in
-            &                            vgrid_uuid        = vgrid_buffer(jg)%uuid,                     & ! in
-            &                            verify_hgrid_uuid = .NOT. check_uuid_gracefully,               & ! in
-            &                            verify_vgrid_uuid = .FALSE.,                                   & ! in
-            &                            verbose           = (msg_level > 4),                           & ! in
-            &                            timing            = ltimer .AND. (timers_level > 8),           & ! in
-            &                            inventory         = .TRUE.                                     ) ! in
-        END IF ! IF (.NOT. parallel_grib_decoding_local)
+          CALL requestList%readFile_grib(grib_file_path       = anaFilename_str(jg)(1:fname_len),          & ! in
+            &                            lIsFg                = .FALSE.,                                   & ! in
+            &                            dict                 = ana_varnames_dict,                         & ! in
+            &                            jg                   = p_patch(jg)%id,                            & ! in
+            &                            ncells_global        = INT(p_patch(jg)%n_patch_cells_g, KIND=i8), & ! in
+            &                            nedges_global        = INT(p_patch(jg)%n_patch_edges_g, KIND=i8), & ! in
+            &                            hgrid_uuid           = p_patch(jg)%grid_uuid,                     & ! in
+            &                            vgrid_uuid           = vgrid_buffer(jg)%uuid,                     & ! in
+            &                            ana_incr_list        = ana_incr_list,                             & ! in
+            &                            verify_hgrid_uuid    = lconsistency_checks .AND.                  &
+            &                                                   (.NOT. check_uuid_gracefully),             & ! in
+            &                            verify_vgrid_uuid    = .FALSE.,                                   & ! in
+            &                            verify_ana_incr_list = lconsistency_checks     .AND.              &
+            &                                                   (init_mode == MODE_IAU) .AND.              &
+            &                                                   (ana_incr_list_size > 0),                  & ! in
+            &                            verbose              = (msg_level > 4),                           & ! in
+            &                            timing               = ltimer .AND. (timers_level > 8),           & ! in
+            &                            inventory            = .TRUE.                                     ) ! in
+        END IF ! IF (.NOT. parallel_grib_decoding)
 
       END IF ! IF(p_patch(jg)%ldom_active .AND. lread_ana)
     END DO ! jg
 
-    ! Printing a file inventory is included in requestList%readFile_grib.
-    ! (As the domain loop is implicit to requestList%printInventory,
-    ! we cannot check for parallel_grib_decoding_local, unfortunately.
-    ! Therefore, we check for parallel_grib_decoding)
+    ! Printing a file inventory is included in "requestList%readFile_grib".
+    ! (Note that "requestList%checkRuntypeAndUuids" does not work for parallel GRIB decoding.
+    ! The potential check of the "gridUuid" and "incrementsList" is taken over by "requestList%readFile_grib".)
     IF(my_process_is_stdio() .AND. (.NOT. parallel_grib_decoding)) THEN
         CALL requestList%printInventory()
         IF(lconsistency_checks) THEN
@@ -586,6 +586,10 @@ MODULE mo_initicon
     ! Cleanup.
     CALL requestList%destruct()
     DEALLOCATE(requestList)
+    IF (ALLOCATED(ana_incr_list)) THEN
+      DEALLOCATE(ana_incr_list, STAT=ist)
+      IF (ist /= SUCCESS) CALL finish(routine, 'Deallocation of ana_incr_list failed')
+    ENDIF
   END SUBROUTINE read_dwdana
 
   ! Do postprocessing of data from analysis files.

@@ -52,7 +52,7 @@ MODULE mo_var_groups
   ! Note that the statically defined group list "var_groups" is
   ! non-public. Its contents are copied to a dynamically growing list
   ! "var_groups_dyn".
-  INTEGER, PARAMETER :: N_VAR_GROUPS_STATIC = 82
+  INTEGER, PARAMETER :: N_VAR_GROUPS_STATIC = 83
 
   CHARACTER(LEN=vname_len), PARAMETER :: VAR_GROUPS_STATIC(N_VAR_GROUPS_STATIC) = &
      [ "ALL                   ",  &
@@ -94,6 +94,7 @@ MODULE mo_var_groups
     &  "MODE_IAU_ANA_OCE_IN   ",  &  ! Analysis input for IAU in ocean
     &  "MODE_COMBINED_IN      ",  &  ! Input fields for MODE_COMBINED
     &  "MODE_COSMO_IN         ",  &  ! Input fields for MODE_COSMO
+    &  "ANA_INCREMENT         ",  &  ! Input fields that may be provided as analysis increments
     &  "OCE_PROG              ",  &
     &  "OCE_DIAG              ",  &
     &  "OCE_EDDY              ",  &
@@ -222,10 +223,10 @@ CONTAINS
   !  g2, g3, g4, ...; mapping those onto a
   !  LOGICAL(DIMENSION=MAX_GROUPS) according to the "group_id"
   !  function.
-  FUNCTION groups_arg(g01, g02, g03, g04, g05, g06, g07, g08, g09, g10, g11, g12, g13, groups_in)
+  FUNCTION groups_arg(g01, g02, g03, g04, g05, g06, g07, g08, g09, g10, g11, g12, g13, g14, g15, groups_in)
     LOGICAL :: groups_arg(MAX_GROUPS)
     CHARACTER(*), INTENT(IN), OPTIONAL :: &
-      &   g01, g02, g03, g04, g05, g06, g07, g08, g09, g10, g11, g12, g13
+      &   g01, g02, g03, g04, g05, g06, g07, g08, g09, g10, g11, g12, g13, g14, g15
     LOGICAL, INTENT(IN), OPTIONAL :: groups_in(MAX_GROUPS)
 
     groups_arg(1) = .TRUE. ! this is "ALL" - obviously true
@@ -244,6 +245,8 @@ CONTAINS
     IF (PRESENT(g11)) groups_arg(var_groups_dyn%group_id(g11)) = .TRUE.
     IF (PRESENT(g12)) groups_arg(var_groups_dyn%group_id(g12)) = .TRUE.
     IF (PRESENT(g13)) groups_arg(var_groups_dyn%group_id(g13)) = .TRUE.
+    IF (PRESENT(g14)) groups_arg(var_groups_dyn%group_id(g14)) = .TRUE.
+    IF (PRESENT(g15)) groups_arg(var_groups_dyn%group_id(g15)) = .TRUE.
   END FUNCTION groups_arg
 
   !----------------------------------------------------------------------------------------

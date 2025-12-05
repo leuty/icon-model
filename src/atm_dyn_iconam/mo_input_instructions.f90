@@ -37,6 +37,7 @@ MODULE mo_input_instructions
     PUBLIC :: readInstructionListOce_make !Needed for Initicon-o
     PUBLIC :: kInputSourceNone, kInputSourceFg, kInputSourceAna, kInputSourceBoth, kInputSourceCold
     PUBLIC :: kStateNoFetch, kStateFailedFetch, kStateRead,  kInputSourceAnaI, kInputSourceFgAnaI
+    PUBLIC :: collectGroupAnaIncrement
 
     ! The possible RETURN values of readInstructionList_sourceOfVar().
     ! kInputSourceBoth  : First guess and analysis increment read from file
@@ -249,6 +250,35 @@ CONTAINS
                 CALL new_list(outGroup, outGroupSize)
         END SELECT
     END SUBROUTINE collectGroupAnaAtm
+
+    !>
+    !! @brief Collect all input variables that may be provided as analysis increments (group: "ana_increment")
+    !!
+    SUBROUTINE collectGroupAnaIncrement(outGroup, outGroupSize, init_mode)
+
+      CHARACTER(LEN=vname_len), ALLOCATABLE, INTENT(OUT) :: outGroup(:)
+      INTEGER, INTENT(OUT) :: outGroupSize
+      INTEGER, INTENT(IN)  :: init_mode
+
+      !----------------------------
+
+      ! Just to make sure
+      outGroupSize = 0
+
+      SELECT CASE(init_mode)
+      CASE(MODE_IAU)
+        ! Analysis increments apply to this init mode only
+        CALL vlr_group(grp_name         = "ana_increment", & ! in
+          &            var_name         = outGroup,        & ! out
+          &            nvars            = outGroupSize,    & ! out
+          &            loutputvars_only = .FALSE.,         & ! in
+          &            lremap_lonlat    = .FALSE.          ) ! in
+      CASE DEFAULT
+        ! The following routine will return "outGroup" allocated with space for 8 strings, and "outGroupSize = 0"
+        CALL new_list(outGroup, outGroupSize)
+      END SELECT
+
+    END SUBROUTINE collectGroupAnaIncrement
 
     SUBROUTINE mergeAnaIntoFg(anaGroup, anaGroupSize, fgGroup, fgGroupSize, init_mode)
         CHARACTER(LEN = vname_len), ALLOCATABLE, INTENT(INOUT) :: anaGroup(:), fgGroup(:)
