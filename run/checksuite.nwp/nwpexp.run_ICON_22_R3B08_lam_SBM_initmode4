@@ -120,7 +120,7 @@ cat > icon_master.namelist << EOF
 ! time_nml: specification of date and time------------------------------------
 &time_nml
  ini_datetime_string         =      "2017-01-12T00:00:00Z"        ! initial date and time of the simulation
- end_datetime_string         =      "2017-01-12T01:00:00Z"        ! end date and time of the simulation
+ end_datetime_string         =      "2017-01-12T00:15:00Z"        ! end date and time of the simulation
                                                                   ! example date: 2001-01-01T01:00:00Z
 /
 EOF
@@ -335,7 +335,7 @@ cat > NAMELIST_NWP << EOF
 &output_nml
  filetype                    =                          4         ! output format: 2=GRIB2, 4=NETCDFv2
  dom                         =                          1         ! write domain 1 only
- output_bounds               =        0., 10000000., 3600.        ! start, end, increment
+ output_bounds               =         0., 10000000., 900.        ! start, end, increment
  steps_per_file              =                          10         ! number of steps per file
  mode                        =                          1         ! 1: forecast mode (relative t-axis), 2: climate mode (absolute t-axis)
  include_last                =                     .FALSE.
