@@ -19,7 +19,7 @@ SPACK_VERSION=$1
 VARIANT=$2
 BUILD_DIR=$3
 ENV_TAG=$4
-BUILD_TRHEADS=$5
+BUILD_THREADS=$5
 
 # Unset positional parameters
 # so they are not forwarded to spack-c2sm/setup-env.sh
@@ -58,6 +58,6 @@ else
   spack develop --path $ICON_DIR icon@develop
 fi
 
-spack install -v  -j $BUILD_TRHEADS
+spack install -v  -j $BUILD_THREADS
 
 $SCRIPT_DIR/create_sh_env $VARIANT $BUILD_DIR
