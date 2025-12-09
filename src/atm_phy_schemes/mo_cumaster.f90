@@ -26,7 +26,7 @@ MODULE mo_cumaster
     & ruvper    ,rmfsoltq,rmfsolct,rmfcmin  ,lmfsmooth,lmfwstar ,&
     & lmftrac   ,   LMFUVDIS                                    ,&
     & rg       ,rd, rv      ,rcpd  ,retv , rlvtt, rlstt, rvtmp2 ,&
-    & lhook,   dr_hook, icapdcycl
+    & lhook,   dr_hook, icapdcycl, rlmlt
 
   USE mo_adjust,      ONLY: satur
   USE mo_cufunctions, ONLY: foelhmcu, foealfcu
@@ -34,6 +34,9 @@ MODULE mo_cumaster
   USE mo_cuascn,      ONLY: cuascn
   USE mo_cudescn,     ONLY: cudlfsn, cuddrafn
   USE mo_cuflxtends,  ONLY: cuflxn, cudtdqn,cududv,cuctracer
+#ifdef __MSGWAM
+  USE mo_cuflxtends,  ONLY: compute_msgwam_heating
+#endif
   USE mo_cucalclpi,   ONLY: cucalclpi, cucalcmlpi
   USE mo_cucalclfd,   ONLY: cucalclfd
   USE mo_nwp_parameters,  ONLY: t_phy_params
@@ -45,6 +48,7 @@ MODULE mo_cumaster
   USE mo_stoch_explicit,       ONLY: shallow_stoch_explicit
   USE mo_stoch_deep,           ONLY: deep_stoch_sde
   USE mo_nwp_phy_types,        ONLY: t_ptr_cloud_ensemble
+  USE mo_run_config,           ONLY: lmsgwam
 
   IMPLICIT NONE
 
@@ -77,7 +81,11 @@ SUBROUTINE cumastrn &
  & pcape,    pvddraf,                            &
  & pcen, ptenrhoc,                               &
  & l_lpi, l_lfd, lpi, mlpi, koi, lfd, peis,      &
-! stochastic, extra diagnostics and logical switches
+#ifdef __MSGWAM
+ & nsrc_cgw, ktype_cgw, kcbot_cgw, kctop_cgw,    &
+ & heat_cgw, tupd_cgw, test_cgw,                 &
+#endif
+ & pertb,                                        &
  & lspinup, k650,k700, temp_s,                   &
  & cell_area,iseed,                              &
  & mf_bulk,mf_perturb,mf_num,p_cloud_ensemble,   &
@@ -141,6 +149,8 @@ SUBROUTINE cumastrn &
 
 !    *temp_s*       TEMPERATURE IN LOWEST MODEL LEVEL                K
 !    *cell_area*    GRID CELL AREA                                  M2?
+!!!  FOR SPP
+!    *pertb*        STOCHASTIC PATTERN FOR PERTURBATION
 !!!  ALLOCATED ONLY IF lstoch_sde=.TRUE. !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !    *pclnum_a*     ACTIVE CLOUD NUMBER (T)               M-2
 !    *pclmf_a*      ACTIVE MASS FLUX (T)                KG/(M2*S)
@@ -338,6 +348,7 @@ REAL(KIND=jprb)   ,INTENT(in)    :: pgeo(klon,klev)
 REAL(KIND=jprb)   ,INTENT(in)    :: pgeoh(klon,klev+1)
 REAL(KIND=jprb)   ,INTENT(in)    :: zdgeoh(klon,klev)
 REAL(KIND=jprb)   ,INTENT(in)    :: pcloudnum(klon)
+REAL(KIND=jprb)   ,INTENT(in), POINTER :: pertb(:)
 TYPE(t_ptr_tracer),INTENT(in), POINTER :: pcen(:)
 TYPE(t_ptr_tracer),INTENT(inout), POINTER :: ptenrhoc(:)
 REAL(KIND=jprb)   ,INTENT(inout) :: ptent(klon,klev)
@@ -406,6 +417,15 @@ REAL(KIND=jprb)   ,OPTIONAL, INTENT(inout)   :: koi(:)
 REAL(KIND=jprb)   ,OPTIONAL, INTENT(inout)   :: lfd(:)
 REAL(KIND=jprb)            , INTENT(inout)   :: peis(:)
 LOGICAL                    , INTENT(in)      :: lacc
+#ifdef __MSGWAM
+INTEGER(KIND=jpim),INTENT(in)  :: nsrc_cgw
+INTEGER(KIND=jpim),INTENT(out) :: ktype_cgw(:)
+INTEGER(KIND=jpim),INTENT(out) :: kcbot_cgw(:)
+INTEGER(KIND=jpim),INTENT(out) :: kctop_cgw(:)
+REAL(KIND=jprb)   ,INTENT(out) :: heat_cgw (:,:)
+REAL(KIND=jprb)   ,INTENT(out) :: tupd_cgw (:,:)
+REAL(KIND=jprb)   ,INTENT(out) :: test_cgw (:,:)
+#endif
 
 !*UPG change to operations
 REAL(KIND=jprb) :: pwmean(klon)
@@ -489,6 +509,11 @@ LOGICAL, PARAMETER :: lpassive = .FALSE. !run stoch schemes in piggy-backing mod
 INTEGER(KIND=jpim) :: ktrac  ! number of chemical tracers
 
 REAL(KIND=jprb) :: msee(klon,klev)
+#ifdef __MSGWAM
+REAL(KIND=jprb) :: plude_expl(klon,klev)
+#endif
+
+LOGICAL :: lspp
 
 !#include "cuascn.intfb.h"
 !#include "cubasen.intfb.h"
@@ -557,6 +582,11 @@ ELSE
   ktrac = 0
 ENDIF
 
+IF (ASSOCIATED(pertb)) THEN
+  lspp = .true.
+ELSE
+  lspp = .false.
+ENDIF
 
 !---------------------------------------------------------------------
 !*UPG Change to operations call SATUR routine here
@@ -1128,6 +1158,7 @@ DO jl=kidia,kfdia
     ztau(jl)=MAX(720._jprb,ztau(jl))
     zmfub1(jl)=(zcape(jl)*zmfub(jl))/(zheat(jl)*ztau(jl))
     zmfub1(jl)=MAX(zmfub1(jl),0.001_jprb)
+    IF (lspp) zmfub1(jl)=zmfub1(jl)*(1.0_jprb+SIGN(1.0_jprb,pertb(jl))*MIN(0.5_jprb,ABS(pertb(jl))))
     zmfmax=(paph(jl,ikb)-paph(jl,ikb-1))*zcons2*rmflic+rmflia
     zmfub1(jl)=MIN(zmfub1(jl),zmfmax)
   ENDIF
@@ -1810,6 +1841,17 @@ DO jl=kidia,kfdia
   ENDIF
 ENDDO
 
+#ifdef __MSGWAM
+! To calculate our heating explicitly even if this cumulus scheme solves
+! it implicitly (rmfsoltq /= 0), 'plude' has to be saved here before it is
+! modified due to rmfsoltq /= 0.
+IF ( ANY(lmsgwam) ) THEN
+  IF (nsrc_cgw > 0 .AND. rmfsoltq /= 0.0_JPRB) THEN
+    plude_expl(:,:) = plude(:,:)
+  END IF
+END IF
+#endif
+
 ! avoid negative humidities near cloud top because gradient of precip flux
 ! and detrainment / liquid water flux too large
 !$ACC LOOP SEQ
@@ -1891,6 +1933,19 @@ DO jk=ktdia+1,klev
     ENDIF
   ENDDO
 ENDDO
+
+#ifdef __MSGWAM
+IF (ANY(lmsgwam)) &
+CALL compute_msgwam_heating( &
+  & nsrc_cgw, rmfsoltq, kidia, kfdia, ktdia, klev, itopm2,  &
+  & heat_cgw, tupd_cgw, test_cgw,                          &
+  & ktype_cgw, kctop_cgw, kcbot_cgw,                       &
+  & plude_expl, plude, zmfdq, llddraf, idtop,              &
+  & ldcum, kctop, kcbot, paph, pten,                       &
+  & ptu, zmful, zdmfup, psnde, zlglac, zdpmel,             &
+  & zmfus, zmfds, zmfuq,                           &
+  & rlmlt, rg, ptsphy,ktype,pqen)
+#endif
 
 !----------------------------------------------------------------------
 

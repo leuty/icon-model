@@ -44,7 +44,8 @@ MODULE mo_nml_crosscheck
     &                                    rayleigh_type, ivctype, iadv_rhotheta
   USE mo_atm_phy_nwp_config,       ONLY: atm_phy_nwp_config, icpl_aero_conv, i2daero_dust, &
     &                                    i2daero_seas, i2daero_anthro, i2daero_fire,       &
-    &                                    icpl_aero_ice, itype_dissip_heat
+    &                                    icpl_aero_ice, itype_dissip_heat,                 &
+    &                                    itype_stoch_phys, spg_num, itype_icecloud_diag
   USE mo_lnd_nwp_config,           ONLY: ntiles_lnd, lsnowtile, sstice_mode, llake
 #ifndef __NO_AES__
   USE mo_aes_phy_config,           ONLY: aes_phy_config
@@ -57,6 +58,7 @@ MODULE mo_nml_crosscheck
     &                                    iRadAeroKinne, iRadAeroVolc, iRadAeroKinneVolc,   &
     &                                    iRadAeroKinneVolcSP, iRadAeroKinneSP,             &
     &                                    iRadAeroExternal,                                 &
+    &                                    islope_rad,                                       &
     &                                    irad_o3, irad_h2o, irad_co2, irad_ch4,            &
     &                                    irad_n2o, irad_o2, irad_cfc11, irad_cfc12,        &
     &                                    icld_overlap, ecrad_llw_cloud_scat, isolrad,      &
@@ -446,6 +448,14 @@ CONTAINS
           IF (icpl_aero_ice == 1 .AND. .NOT. ANY(irad_aero == (/iRadAeroTegen, iRadAeroCAMSclim, iRadAeroCAMStd/) ) ) &
             & CALL finish(routine,'icpl_aero_ice = 1 requires irad_aero= 6,7 or 8')
 
+          ! check if CAMS aerosols are available for CAMS + Segal & Khain CDNC parametrization
+          IF (atm_phy_nwp_config(jg)%icpl_aero_gscp == 2 .AND. .NOT. ANY(irad_aero == (/iRadAeroCAMSclim, iRadAeroCAMStd/) ) ) &
+            & CALL finish(routine,'icpl_aero_gscp = 2 requires irad_aero= 7 or 8')
+
+          ! check if CAMS aerosols are available for CAMS + Segal & Khain CDNC parametrization
+          IF (atm_phy_nwp_config(jg)%icpl_aero_gscp == 2 .AND. atm_phy_nwp_config(jg)%inwp_gscp /= 2 ) &
+            & CALL finish(routine,'icpl_aero_gscp = 2 requires inwp_gscp = 2')
+
           ! check ice nucleation settings for two-moment cloud ice scheme (gscp=3)
           IF ( (icpl_aero_ice == 2 .OR. icpl_aero_ice == 3 .OR. icpl_aero_ice == 4) .AND. atm_phy_nwp_config(jg)%inwp_gscp /= 3 ) &
              & CALL finish(routine,'icpl_aero_ice = 2, 3 or 4 requires inwp_gscp = 3')
@@ -456,6 +466,10 @@ CONTAINS
 
           IF ( icpl_aero_ice == 1 .AND. atm_phy_nwp_config(jg)%inwp_gscp == 3 ) &
                & CALL finish(routine,'icpl_aero_ice = 1 not supported for inwp_gscp = 3')
+
+          ! check if revised ice cloud cover is only used for two-moment microphysics
+          IF (itype_icecloud_diag == 2 .AND. .NOT. ANY(atm_phy_nwp_config(jg)%inwp_gscp == (/3,4,5,6,7,8/) ) ) &
+            & CALL finish(routine,'itype_icecloud_diag = 2 requires inwp_gscp= 3,4,5,6,7 or 8')
 
 #ifdef _OPENACC
           IF ( icpl_aero_ice == 1 ) THEN
@@ -472,6 +486,10 @@ CONTAINS
 
           IF ( irad_aero == 5 ) THEN
             CALL finish(routine,'irad_aero=5 (Tanre climatology) has been removed')
+          ENDIF
+
+          IF ( (islope_rad(jg) == 2) ) THEN
+            CALL finish (routine,'islope_rad = 2 was removed, use islope_rad = 3 instead')
           ENDIF
 
           ! Transient solar radiation only works with ecRad
@@ -611,6 +629,16 @@ CONTAINS
           CALL finish(routine,'combining inwp_gscp=1 and inwp_gscp=2 in nested runs is not allowed')
         END IF
 
+        IF (   ANY(atm_phy_nwp_config(1:n_dom)%inwp_gscp == 2) .AND. &
+             & ANY(atm_phy_nwp_config(1:n_dom)%inwp_gscp == 3) ) THEN
+          CALL finish(routine,'combining inwp_gscp=2 and inwp_gscp=3 in nested runs is not allowed')
+        END IF
+
+        IF (   ANY(atm_phy_nwp_config(1:n_dom)%inwp_gscp == 1) .AND. &
+             & ANY(atm_phy_nwp_config(1:n_dom)%inwp_gscp == 3) ) THEN
+          CALL finish(routine,'combining inwp_gscp=1 and inwp_gscp=3 in nested runs is not allowed')
+        END IF
+
         !! SB two-moment not supported with deep convection parameterization
         IF ( ANY( atm_phy_nwp_config(jg)%inwp_gscp == (/4,5,6,7/) )  .AND.  &
              &  ( atm_phy_nwp_config(jg)%inwp_convection == 1        .AND.  &
@@ -640,26 +668,6 @@ CONTAINS
           CALL finish(routine,' Turbulence enhancement of collisions '//  &
                       'in two-moment scheme (lturb_enhc) not applicable for aes physics.')
         ENDIF
-
-#ifdef __NEC__
-#ifndef __ASL__
-        IF ( atm_phy_nwp_config(jg)%lstochastic_pattern_generator .AND. atm_phy_nwp_config(jg)%spg_use_asl) THEN
-          CALL finish( routine,'Stochastic pattern generator using Advanced Scientific Library (ASL) has to be linked with ASL')
-        ENDIF
-#endif
-#else
-#ifndef __NEC_VH__
-        IF ( atm_phy_nwp_config(jg)%lstochastic_pattern_generator .AND. atm_phy_nwp_config(jg)%spg_use_asl) THEN
-          CALL finish( routine,'Stochastic pattern generator using Advanced Scientific Library (ASL) is only available on NEC')
-        ENDIF
-#endif
-#endif
-#ifdef __NEC__
-        IF ( atm_phy_nwp_config(jg)%lstochastic_pattern_generator .AND. .not.atm_phy_nwp_config(jg)%spg_use_asl) THEN
-          CALL finish(modname, 'Stochastic pattern generator on NEC without ASL. This is inefficient, please use ASL.')
-        END IF
-#endif
-
 
         ! ltmpcor activates the calculation of dissipative heating in turbdiff;
         ! to prevent double-counting, the respective calculations in the NWP interface need to be skipped
@@ -697,6 +705,9 @@ CONTAINS
     END IF
     IF ( irad_aero == iRadAeroCAMStd) THEN
         CALL finish(routine,'CAMS forecast irad_aero=8 is currently not supported on GPU.')
+    END IF
+    IF ( atm_phy_nwp_config(jg)%lmicrophysicsFirst .AND. atm_phy_nwp_config(jg)%icpl_aero_gscp == 2 ) THEN
+        CALL finish(routine,'Using lmicrophysicsFirst and icpl_aero_gscp = 2 is currently not supported')
     END IF
 #endif
 
@@ -1081,9 +1092,6 @@ CONTAINS
       CALL finish(routine, "Coupled atm/wave runs are not available on GPU")
     END IF
 
-    IF ( is_coupled_to_ocean() ) THEN
-      CALL finish(routine, "Coupled atm/ocean runs are not available on GPU")
-    END IF
 #endif
 
   END SUBROUTINE coupled_crosscheck

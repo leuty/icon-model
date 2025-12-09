@@ -26,7 +26,7 @@ MODULE mo_ocean_atmo_coupling
   USE mo_util_dbg_prnt,       ONLY: dbg_print
   USE mo_model_domain,        ONLY: t_patch, t_patch_3d
 
-  USE mo_ocean_types
+  USE mo_ocean_types,         ONLY: t_hydro_ocean_state
   USE mo_sea_ice_types,       ONLY: t_sea_ice, t_atmos_fluxes
   USE mo_ocean_surface_types, ONLY: t_ocean_surface, t_atmos_for_ocean
   USE mtime,                  ONLY: datetime, OPERATOR(<), OPERATOR(==), &

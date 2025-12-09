@@ -82,6 +82,7 @@ MODULE mo_ocean_physics_types
   USE mo_grid_subset,         ONLY: t_subset_range, get_index_range
   USE mo_sync,                ONLY: sync_c, sync_e, sync_v, sync_patch_array, global_max, sync_patch_array_mult
   USE mo_io_config,           ONLY: lnetcdf_flt64_output
+  USE mo_coupling_config,     ONLY: is_coupled_to_waves
 
 #include "add_var_acc_macro.inc"
 
@@ -149,10 +150,17 @@ MODULE mo_ocean_physics_types
       & LeithBiharmonicViscosity_BasisCoeff(:,:), & ! coefficient of Leith scaled basis coefficients, use in calculating the HarmonicViscosity_coeff
       & HarmonicViscosity_coeff(:,:,:),       & ! coefficient of total diffusion
       & BiharmonicViscosity_coeff(:,:,:),     & ! coefficient of total diffusion
-      & TracerDiffusion_BasisCoeff(:,:,:),    &  ! coefficient of horizontal tracer diffusion
-      & TracerDiffusion_coeff(:,:,:,:),       &  ! coefficient of horizontal tracer diffusion
+      & TracerDiffusion_BasisCoeff(:,:,:),    & ! coefficient of horizontal tracer diffusion
+      & TracerDiffusion_coeff(:,:,:,:),       & ! coefficient of horizontal tracer diffusion
       & u3d_stokes(:,:,:),                    & ! zonal Stokes velocity component from surface waves (m/s)
-      & v3d_stokes(:,:,:)                       ! meridional Stokes velocity component from surface waves (m/s)
+      & v3d_stokes(:,:,:),                    & ! meridional Stokes velocity component from surface waves (m/s)
+      & u2d_stokes(:,:),                      & ! zonal surface Stokes velocity component from surface waves (m/s)
+      & v2d_stokes(:,:),                      & ! meridional surface Stokes velocity component from surface waves (m/s)
+      & tau_w(:,:),                           & ! wave stress from surface waves (m^2/s^2)
+      & swh(:,:),                             & ! significant wave height from surface waves (m)
+      & Tm2(:,:),                             & ! m2 wave period from surface waves (s)
+      & kp(:,:)                                 ! total peak wavenumber (1/m)
+
 !       & TracerDiffusion_coeff(:,:,:,:)  ! coefficient of horizontal tracer diffusion
     TYPE(t_onEdges_Pointer_3d_wp),ALLOCATABLE :: tracer_h_ptr(:)
 
@@ -448,6 +456,7 @@ CONTAINS
          & in_group=groups("oce_vmix_tke"), lopenacc=.TRUE.)
       __acc_attach(params_oce%vmix_params%hlc)
 
+      ! This will need to be amended at a later date to allow for wave coupling to TKE scheme
       CALL add_var(ocean_params_list, 'u_stokes',params_oce%vmix_params%u_stokes, &
          & grid_unstructured_cell, za_surface, &
          & t_cf_var('u_stokes', 'm s-1', 'Stokes drift', datatype_flt),&
@@ -460,7 +469,7 @@ CONTAINS
 
     ENDIF
 
-    IF (l_couple_icon_waves) THEN
+    IF ( is_coupled_to_waves() ) THEN
       CALL add_var(ocean_params_list, 'u3d_stokes',params_oce%u3d_stokes, &
          & grid_unstructured_cell, za_depth_below_sea, &
          & t_cf_var('u3d_stokes', 'm s-1', '3d zonal Stokes drift component', datatype_flt),&
@@ -476,7 +485,56 @@ CONTAINS
          & ldims=(/nproma,n_zlev,alloc_cell_blocks/), &
          & in_group=groups("oce_waves"), lopenacc=.TRUE.)
       __acc_attach(params_oce%v3d_stokes)
-    ENDIF
+
+       CALL add_var(ocean_params_list, 'u2d_stokes',params_oce%u2d_stokes, &
+         & grid_unstructured_cell, za_surface, &
+         & t_cf_var('u2d_stokes', 'm s-1', 'surface zonal Stokes drift component', datatype_flt),&
+         & grib2_var(10, 0, 21, datatype_pack16,GRID_UNSTRUCTURED,grid_cell),&
+         & ldims=(/nproma,alloc_cell_blocks/), &
+         & in_group=groups("oce_waves"), lopenacc=.TRUE.)
+      __acc_attach(params_oce%u2d_stokes)
+
+      CALL add_var(ocean_params_list, 'v2d_stokes',params_oce%v2d_stokes, &
+         & grid_unstructured_cell, za_surface, &
+         & t_cf_var('v2d_stokes', 'm s-1', 'surface meridonal Stokes drift component', datatype_flt),&
+         & grib2_var(10, 0, 22, datatype_pack16,GRID_UNSTRUCTURED,grid_cell),&
+         & ldims=(/nproma,alloc_cell_blocks/), &
+         & in_group=groups("oce_waves"), lopenacc=.TRUE.)
+      __acc_attach(params_oce%v2d_stokes)
+
+      CALL add_var(ocean_params_list, 'tau_w',params_oce%tau_w, &
+         & grid_unstructured_cell, za_surface, &
+         & t_cf_var('tau_w', 'm 2 s-2', 'surface wave stress', datatype_flt),&
+         & grib2_var(255, 255, 255, datatype_pack16,GRID_UNSTRUCTURED,grid_cell),&
+         & ldims=(/nproma,alloc_cell_blocks/), &
+         & in_group=groups("oce_waves"), lopenacc=.TRUE.)
+      __acc_attach(params_oce%tau_w)
+
+      CALL add_var(ocean_params_list, 'swh',params_oce%swh, &
+         & grid_unstructured_cell, za_surface, &
+         & t_cf_var('swh', 'm', 'significant wave height', datatype_flt),&
+         & grib2_var(10, 0, 3, datatype_pack16,GRID_UNSTRUCTURED,grid_cell),&
+         & ldims=(/nproma,alloc_cell_blocks/), &
+         & in_group=groups("oce_waves"), lopenacc=.TRUE.)
+      __acc_attach(params_oce%swh)
+
+      CALL add_var(ocean_params_list, 'Tm2',params_oce%Tm2, &
+         & grid_unstructured_cell, za_surface, &
+         & t_cf_var('Tm2', 's', 'm2 wave period', datatype_flt),&
+         & grib2_var(10, 0, 28, datatype_pack16,GRID_UNSTRUCTURED,grid_cell),&
+         & ldims=(/nproma,alloc_cell_blocks/), &
+         & in_group=groups("oce_waves"), lopenacc=.TRUE.)
+      __acc_attach(params_oce%Tm2)
+
+      CALL add_var(ocean_params_list, 'kp',params_oce%kp, &
+         & grid_unstructured_cell, za_surface, &
+         & t_cf_var('kp', 'm-1', 'peak wavenumber', datatype_flt),&
+         & grib2_var(255, 255, 255, datatype_pack16,GRID_UNSTRUCTURED,grid_cell),&
+         & ldims=(/nproma,alloc_cell_blocks/), &
+         & in_group=groups("oce_waves"), lopenacc=.TRUE.)
+      __acc_attach(params_oce%kp)
+   END IF
+
 
     ! --- IWE variables
     IF (vert_mix_type .EQ. vmix_idemix_tke) THEN

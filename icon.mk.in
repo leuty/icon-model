@@ -150,6 +150,11 @@ PVCS_subdirs= @icon_pvcs_subdirs@
 @ART_ENABLED@all_files+= $(call find_files,$(ART_subdir),'*.f90' '*.inc' '*.incf')
 @ART_ENABLED@PVCS_subdirs+= $(ART_subdir)
 
+# MSGWAM sources:
+@MSGWAM_ENABLED@MSGWAM_subdir:= externals/msgwam
+@MSGWAM_ENABLED@all_files+= $(call find_files,$(MSGWAM_subdir),'*.f90')
+@MSGWAM_ENABLED@PVCS_subdirs+= $(MSGWAM_subdir)
+
 # Fortran '.f90' source files:
 f90_files:= $(filter %.f90,$(all_files))
 # C '.c' source files:

@@ -1099,9 +1099,6 @@ set_run_target_rcl()
 #-----------------------------------------------------------------------------
 #PBS -q ${use_queue:-sx_norm}
 #PBS -v NE=${use_nodes},CPE=${use_mpi_procs_pernode}
-#PBS -v NMPI_MALLOC_HEAP_EXPANSION_SIZE=512
-#PBS -v NMPI_MALLOC_MMAP_THRESHOLD=512
-#PBS -v MPI_IB_VBUF_TOTAL_SIZE=131072
 #PBS -v BB_NAME
 #PBS -l elapstim_req=00:40:00
 #PBS --venode=\${NE}
@@ -2397,7 +2394,7 @@ create_target_header()
                     ;;
             esac
             ;;
-        *run_ICON_23_R2B4_atmo_waves_coupled*|*run_ICON_28_R2B6_IAU_atmo_waves_coupled*)
+        *run_ICON_23_R2B4_atmo_waves_coupled*|*run_ICON_28_R2B6_IAU_atmo_waves_*_cpl*)
             case $use_target in
                 rcl)
                     use_nodes=4
@@ -2472,6 +2469,9 @@ create_target_header()
                 use_mpi_procs_pernode=4
                 ;;
             esac
+            ;;
+        *atm_msgwam_gc*)
+            use_nodes=2
             ;;
         esac
 

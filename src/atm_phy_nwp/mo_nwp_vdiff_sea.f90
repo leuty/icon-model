@@ -712,7 +712,7 @@ CONTAINS
   SUBROUTINE sea_model_couple_ocean ( &
         & patch, list_sea, fr_sft, alb, flx_rad, pres_sfc, t_eff_sft, evapo_sft, flx_heat_latent_sft, &
         & flx_heat_sensible_sft, condhf_ice, meltpot_ice, co2_concentration_srf, rain_srf, snow_srf, &
-        & umfl_sft, vmfl_sft, sp_10m, t_seasfc, fr_seaice, h_ice, sea_state &
+        & umfl_sft, vmfl_sft, sp_10m, t_seasfc, fr_seaice, h_ice, sea_state, lacc &
       )
 
     TYPE(t_patch), INTENT(IN) :: patch !< Current patch.
@@ -761,6 +761,8 @@ CONTAINS
     REAL(wp), CONTIGUOUS, TARGET, INTENT(INOUT) :: h_ice(:,:)
     !> Sea state.
     TYPE(t_nwp_vdiff_sea_state), INTENT(INOUT) :: sea_state
+    !> OpenACC flag.
+    LOGICAL :: lacc
 
     ! Locals
 
@@ -783,13 +785,19 @@ CONTAINS
 
     IF (ltimer) CALL timer_start(timer_coupling)
 
+    !$ACC DATA CREATE(lwflx, swflx, lhfl_s_i) ASYNC(1) IF(lacc)
+
     !$OMP PARALLEL
       !$OMP DO PRIVATE(i_blk, ics, ice, ic, isft) &
       !$OMP   PRIVATE(alb_nir_dir, alb_nir_dif, alb_vis_dir, alb_vis_dif, lw_emissivity)
       DO i_blk = i_startblk, i_endblk
         CALL get_indices_c(patch, i_blk, i_startblk, i_endblk, ics, ice, start_prog_cells, &
             & end_prog_cells)
+
+        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
+        !$ACC LOOP GANG VECTOR PRIVATE(alb_nir_dir, alb_nir_dif, alb_vis_dir, alb_vis_dif, lw_emissivity)
         DO ic = ics, ice
+          !$ACC LOOP SEQ
           DO isft = SFT_SWTR, SFT_SICE
             alb_nir_dir = alb%alb_nir_dir(ic,i_blk,isft)
             alb_nir_dif = alb%alb_nir_dif(ic,i_blk,isft)
@@ -812,6 +820,7 @@ CONTAINS
           ! the atmosphere because ice has negative latent heat.
           lhfl_s_i(ic,i_blk) = als / alv * flx_heat_latent_sft(ic,i_blk,SFT_SICE)
         END DO
+        !$ACC END PARALLEL
       END DO
     !$OMP END PARALLEL
 
@@ -851,12 +860,14 @@ CONTAINS
     ! May not be associated.
     rx%flx_co2 => sea_state%flx_co2_natural_sea(:,:)
 
-    CALL couple_ocean(patch, list_sea, tx, rx)
+    CALL couple_ocean(patch, list_sea, tx, rx, lacc)
 
     ! Limit sea-ice height to allowed range.
     !$OMP PARALLEL
       !$OMP DO PRIVATE(i_blk, ic, jc)
       DO i_blk = i_startblk, i_endblk
+        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
+        !$ACC LOOP GANG VECTOR PRIVATE(jc)
         DO ic = 1, list_sea%ncount(i_blk)
           jc = list_sea%idx(ic,i_blk)
 
@@ -864,8 +875,11 @@ CONTAINS
             h_ice(jc,i_blk) = MIN(MAX(hice_min, h_ice(jc,i_blk)), hice_max)
           END IF
         END DO
+        !$ACC END PARALLEL
       END DO
     !$OMP END PARALLEL
+
+    !$ACC END DATA
 
     IF (ltimer) CALL timer_stop(timer_coupling)
 

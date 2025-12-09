@@ -50,6 +50,7 @@ MODULE mo_model_domimp_patches
     & lplane, grid_length_rescale_factor, is_plane_torus, grid_sphere_radius, &
     & use_duplicated_connectivity, set_patches_grid_filename
   USE mo_dynamics_config,    ONLY: lcoriolis, ldeepatmo
+  USE mo_initicon_config,    ONLY: parallel_grib_decoding
   USE mo_run_config,         ONLY: grid_generatingCenter, grid_generatingSubcenter, &
     &                              number_of_grid_used, ICON_grid_file_uri,         &
     &                              msg_level, check_uuid_gracefully
@@ -469,9 +470,9 @@ CONTAINS
 
     ! initialise scatter patterns (required for io used in read_remaining_patch)
     DO jg = n_dom_start, n_dom
-      CALL set_comm_pat_scatter(patch(jg), jg)
+      CALL set_comm_pat_scatter(patch(jg), jg, jg>=1 .AND. parallel_grib_decoding)
       IF (jg > n_dom_start) &
-        CALL set_comm_pat_scatter(p_patch_local_parent(jg), jg)
+        CALL set_comm_pat_scatter(p_patch_local_parent(jg), jg, .FALSE.)
     ENDDO
 
     ! Fill the subsets information
@@ -619,19 +620,21 @@ CONTAINS
     !-------------------------------------------------------------------------------------------------
     !> Sets the gather communication patterns of a patch
 
-    SUBROUTINE set_comm_pat_scatter(p, jg)
+    SUBROUTINE set_comm_pat_scatter(p, jg, all_workers)
       TYPE(t_patch), INTENT(INOUT):: p
       INTEGER, VALUE :: jg
+      ! For parallel grib decoding, scatter patterns for cells and edges are needed on all worker PEs
+      LOGICAL, INTENT(IN) :: all_workers
 
       p%comm_pat_scatter_c => &
         makeScatterPattern(jg, p%n_patch_cells, p%cells%decomp_info%glb_index, &
-        &                  p_comm_work)
+        &                  p_comm_work, all_workers)
       p%comm_pat_scatter_e => &
         makeScatterPattern(jg, p%n_patch_edges, p%edges%decomp_info%glb_index, &
-        &                  p_comm_work)
+        &                  p_comm_work, all_workers)
       p%comm_pat_scatter_v => &
         makeScatterPattern(jg, p%n_patch_verts, p%verts%decomp_info%glb_index, &
-        &                  p_comm_work)
+        &                  p_comm_work, .FALSE.)
 
     END SUBROUTINE set_comm_pat_scatter
 

@@ -196,6 +196,8 @@ cat > ${atmo_namelist} << EOF
  use_lakeiceana               = .true.
  lp2cintp_incr                = .TRUE.
  lp2cintp_sfcana              = .TRUE.
+ parallel_grib_decoding       = .TRUE.  ! .FALSE.: Workroot PE reads and decodes GRIB file records
+                                        ! .TRUE.:  Workroot PE reads GRIB file records, Work PEs decode them
 /
 &io_nml
  itype_pres_msl               = 5        ! (1) 3: IFS-type extrapolation

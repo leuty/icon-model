@@ -112,6 +112,7 @@ include:
   extends: .build_common_santis
   variables:
     CONFIG: santis.cpu.nvhpc
+    CSCS_OVERRIDE_BASE_DIR: '/dev/shm'
   before_script:
     - !reference [.setup_uenv, script]
   script:
@@ -121,6 +122,7 @@ include:
   extends: .build_common_santis
   variables:
     CONFIG: santis.gpu.nvhpc
+    CSCS_OVERRIDE_BASE_DIR: '/dev/shm'
   before_script:
     - !reference [.setup_uenv, script]
   script:

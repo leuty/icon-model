@@ -17,7 +17,7 @@
 !   (such as JONSWAP)
 !
 !
-MODULE mo_wave_init
+MODULE mo_wave_init_interface
 
   USE mo_exception,            ONLY: message, message_text, finish
   USE mo_timer,                ONLY: timers_level, timer_start, timer_stop, timer_read_restart
@@ -38,20 +38,20 @@ MODULE mo_wave_init
   USE mo_intp_data_strc,       ONLY: t_int_state
   USE mo_wave_adv_exp,         ONLY: init_analytic_forcing
   USE mo_wave_td_update,       ONLY: update_water_depth_and_grad
-  USE mo_init_wave_physics,    ONLY: init_wave_spectrum, fetch_law
+  USE mo_wave_init_spectrum,   ONLY: init_wave_spectrum_analytic, init_wave_spectrum_from_file
   USE mo_load_restart,         ONLY: read_restart_files
 
   IMPLICIT NONE
 
   PRIVATE
 
-  CHARACTER(LEN=*), PARAMETER :: modname = 'mo_wave_init'
+  CHARACTER(LEN=*), PARAMETER :: modname = 'mo_wave_init_interface'
 
   PUBLIC :: init_wave
 
 CONTAINS
 
-  ! Wrapper for wave model initialization, in particular the
+  ! Interface for wave model initialization, in particular the
   ! wave energy spectrum.
   !
   ! The following options are available:
@@ -106,9 +106,10 @@ CONTAINS
         ELSE
           ! Initialize from First Guess or analysis file
           !
-          ! TO BE IMPLEMENTED
+          CALL init_wave_spectrum_from_file(p_patch(jg), wave_config(jg), wave_state(jg))
           !
-          CALL finish(routine,'Model initialization from analysis file not yet available.')
+          !
+          !
         ENDIF
 
       CASE (MODE_COLD)
@@ -165,24 +166,13 @@ CONTAINS
           ENDIF ! lread_forcing
         ENDIF
 
-        ! Initialisation of the wave spectrum
-        CALL fetch_law(                                          &
-          &     p_patch     = p_patch(jg),                       & !in
-          &     fetch       = wave_config(jg)%fetch,             & !in
-          &     fpmax       = wave_config(jg)%fm,                & !in
-          &     sp10m       = wave_forcing_state(jg)%sp10m(:,:), & !in
-          &     fp          = wave_state(jg)%diag%fp(:,:),       & !out
-          &     alphaj      = wave_state(jg)%diag%alphaj(:,:))     !out
-
-        ! Initialisation of the wave spectrum
-        CALL init_wave_spectrum(                                             &
+        ! Initialisation of the wave spectrum by the analytic 1D JONSWAP spectrum
+        CALL init_wave_spectrum_analytic(                                    &
           &     p_patch     = p_patch(jg),                                   & !in
           &     wave_config = wave_config(jg),                               & !in
+          &     sp10m       = wave_forcing_state(jg)%sp10m(:,:),             & !in
           &     dir10m      = wave_forcing_state(jg)%dir10m(:,:),            & !in
-          &     fp          = wave_state(jg)%diag%fp(:,:),                   & !in
-          &     alphaj      = wave_state(jg)%diag%alphaj(:,:),               & !in
-          &     et          = wave_state(jg)%diag%et(:,:,:),                 & !out  ! purely diagnostic
-          &     tracer      = wave_state(jg)%prog(nnow(jg))%tracer(:,:,:,:))   !out
+          &     wesd        = wave_state(jg)%prog(nnow(jg))%wesd(:))           !out
 
       CASE DEFAULT
         CALL finish(routine, "Invalid operation mode!")
@@ -191,4 +181,4 @@ CONTAINS
 
   END SUBROUTINE init_wave
 
-END MODULE mo_wave_init
+END MODULE mo_wave_init_interface

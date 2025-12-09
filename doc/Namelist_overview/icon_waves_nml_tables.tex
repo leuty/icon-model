@@ -69,12 +69,16 @@ Defined and used in: \verb+src/waves/config/mo_energy_propagation_nml.f90+
 \subsection{initwave\_nml}
 
 \begin{longtab}
-%Parameter    &Type & Default  & Unit & Description&                                                      Scope
- dt\_shift    & R   & 0.       &  s   & time interval by which the actual model start date (tc\_start\_date)
-                                        is shifted backwards in time. &
+%Parameter                &Type & Default  & Unit & Description&                                                      Scope
+ dt\_shift                & R   & 0.       &  s   & time interval by which the actual model start date (tc\_start\_date)
+                                                    is shifted backwards in time. &
 \tabularnewline
- init\_mode   & I   & 2        &      & 1 (MODE\_ANA): read wave energy spectrum from analysis file\\
-                                        2 (MODE\_COLD): initialize wave energy spectrum by analytic parameterization (currently JONSWAP)&
+ init\_mode               & I   & 2        &      & 1 (MODE\_ANA): read wave energy spectrum from analysis file\\
+                                                    2 (MODE\_COLD): initialize wave energy spectrum by analytic parameterization (currently JONSWAP)&
+\tabularnewline
+ init\_spectrum\_from\_file & C & ''       &      & path and name of initial condition file &   init\_mode=1
+\tabularnewline
+ lskip\_inv\_post\_op    & L    & .FALSE.  &      & The initial condition file contains $S(\omega)$ (.FALSE.) or $S(f)$ (.TRUE.) &   init\_mode=1
 \tabularnewline
 \end{longtab}
 

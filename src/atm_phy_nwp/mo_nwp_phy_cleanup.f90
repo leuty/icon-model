@@ -67,7 +67,7 @@ CONTAINS
 
     CALL tegen_scal_factors%finalize()
 
-    IF (atm_phy_nwp_config(1)%lstochastic_pattern_generator) CALL stochastic_pattern_destruct
+    IF (atm_phy_nwp_config(1)%lstoch_pattern_generator) CALL stochastic_pattern_destruct
 
   END SUBROUTINE cleanup_nwp_phy
 

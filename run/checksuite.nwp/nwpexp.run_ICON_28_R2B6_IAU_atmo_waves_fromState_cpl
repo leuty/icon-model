@@ -12,17 +12,16 @@
 #
 # R2B6 NWP atmosphere coupled to R2B6 wave
 #
-# nwpexp.run_ICON_28_R2B6_IAU_atmo_waves_coupled
+# nwpexp.run_ICON_28_R2B6_IAU_atmo_waves_fromState_cpl
 #
 # Basic test case for ICON-NWP coupled to ICON-WAVE.
 # ICON-NWP starts from ununitialized analysis with IAU, while ICON-WAVE starts
-# from a restart file.
+# from a state file (aka first guess).
 #
 # The purpose is the technical testing of
 # - the coupling of components with distinct start times
 #     (due to IAU, the atm component starts prior to the wave component)
-# - the component-wise initialization from restart
-#     (only the wave-component starts from restart file while the atmo-component uses IAU)
+# - the read-in of NetCDF state files for ICON-WAVES
 #
 author_list="Daniel Reinert and Mikhail Dobrynin"
 #
@@ -196,8 +195,9 @@ ln -sf ${ICONDIR}/externals/ecrad/data ecrad_data
 ln -sf $INDIR/atm/2022110300/igfff00013000.m013.R2B06.grb .
 ln -sf $INDIR/atm/2022110300/igaf2022110300.m013.R2B06.grb .
 
-# wave restart file
-ln -sf $INDIR/wave/2022110300/icon_waves_grid_0024_R02B06_G_DOM01_restart_wave_20221102T223000Z.nc restart_wave_DOM01.nc
+# wave first guess file
+ln -sf $INDIR/wave/2022110300/waves_fg_0024_R2B6_20221102T223000Z.nc waves_fg_0024_R2B6_20221102T223000Z.nc
+
 
 # ----------------------------------------------------------------------
 # global namelist settings
@@ -244,7 +244,6 @@ modeltype_list[1]=98
 minrank_list[1]=$wave_min_rank
 maxrank_list[1]=$wave_max_rank
 incrank_list[1]=$wave_inc_rank
-model_do_restart_list[1]="for_init"   # initialize model from restart file
 
 # YAC coupling library configuration
 #-----------------------------------------------------------------------------
@@ -788,6 +787,8 @@ cat > ${wave_namelist} <<EOF
 &initwave_nml
  dt_shift             = -5400.  ! timedelta for backwards time shift of model start date
  init_mode            = 1       ! MODE_ANA: read wave energy spectrum from analysis file
+ initial_wave_spectrum_filename = "./waves_fg_0024_R2B6_20221102T223000Z.nc"
+ lskip_inv_post_op    = .TRUE.  ! allows usage of input file that contains S(f)
 /
 &wave_nml
  ndirs                = ${nd}   ! number of directions

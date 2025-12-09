@@ -388,111 +388,94 @@ CONTAINS
 
     CALL assert_acc_device_only ('nwp_vdiff', lacc)
 
-    ! Asynchronous data regions are a too recent feature. We have to resort to unstructured ones.
-    ! This crutch ensures that we don't forget to delete any variable. The compiler complains when
-    ! the line gets too long, so we have to split it into chunks, too. Yay...
-#   define LIST_CREATE1 \
-        zero2d, \
-        fr_sfc, \
-        fr_sft, \
-        temp_sfc, \
-        ocean_u, \
-        ocean_v, \
-        ice_u, \
-        ice_v, \
-        wind_lowest, \
-        tracer_srf_emission, \
-        cloud_water_total, \
-        rain_srf, \
-        snow_srf, \
-        wstar, \
-        qsat_sfc, \
-        height_top_dry_cbl, \
-        ri_number, \
-        ri_number_sfc
-#   define LIST_CREATE2 \
-        mixing_length, \
-        prefactor_exchange, \
-        exchange_coeff_water_var, \
-        exchange_coeff_tte, \
-        exchange_coeff_temp_var, \
-        a_matrices, \
-        a_matrices_btm, \
-        b_rhs, \
-        b_rhs_btm, \
-        ddt_u_smag, \
-        ddt_v_smag, \
-        ddt_w_smag, \
-        ddt_horiz_temp, \
-        ddt_horiz_qv, \
-        ddt_horiz_qc, \
-        ddt_horiz_qi, \
-        s_sfc, \
-        s_atm, \
-        theta_v_var_intermediate, \
-        total_turbulence_energy_intermediate
-#   define LIST_CREATE3 \
-        ch_sfc, \
-        bn_sfc, \
-        bhn_sfc, \
-        bm_sfc, \
-        bh_sfc, \
-        co2_concentration_srf, \
-        rho_ratio_delta_z, \
-        t_acoef, \
-        t_bcoef, \
-        q_acoef, \
-        q_bcoef, \
-        uv_acoef, \
-        u_bcoef, \
-        v_bcoef, \
-        flx_rad, \
-        drag_coef, \
-        t_eff_sft, \
-        qsat_sft, \
-        s_sft, \
-        t2m_sft
-#   define LIST_CREATE4 \
-        td2m_sft, \
-        rh2m_sft, \
-        qv2m_sft, \
-        u10m_sft, \
-        v10m_sft, \
-        wind_10m_sft, \
-        qv_sft, \
-        evapo_sft, \
-        evapo_potential, \
-        flx_heat_ground, \
-        cap_heat_ground, \
-        flx_heat_latent_sft, \
-        flx_heat_sensible_sft, \
-        flx_mom_u_sft, \
-        flx_mom_v_sft, \
-        Q_snowcanopymelt, \
-        alb, \
-        ekin_dissipation, \
-        ddt_u, \
-        ddt_v, \
-        ddt_Q
-#   define LIST_CREATE5 \
-        ddt_tracer, \
-        z0m_gbm, \
-        flx_humidity, \
-        flx_sensible, \
-        flx_mom_u, \
-        flx_mom_v, \
-        temp_srf_old
-    !$ACC ENTER DATA ASYNC(1) &
-    !$ACC   CREATE(LIST_CREATE1) &
-    !$ACC   CREATE(LIST_CREATE2) &
-    !$ACC   CREATE(LIST_CREATE3) &
-    !$ACC   CREATE(LIST_CREATE4) &
-    !$ACC   CREATE(LIST_CREATE5)
+    !$ACC DATA ASYNC(1) &
+    !$ACC   CREATE(a_matrices) &
+    !$ACC   CREATE(a_matrices_btm) &
+    !$ACC   CREATE(alb) &
+    !$ACC   CREATE(b_rhs) &
+    !$ACC   CREATE(b_rhs_btm) &
+    !$ACC   CREATE(bh_sfc) &
+    !$ACC   CREATE(bhn_sfc) &
+    !$ACC   CREATE(bn_sfc) &
+    !$ACC   CREATE(bm_sfc) &
+    !$ACC   CREATE(cap_heat_ground) &
+    !$ACC   CREATE(ch_sfc) &
+    !$ACC   CREATE(cloud_water_total) &
+    !$ACC   CREATE(co2_concentration_srf) &
+    !$ACC   CREATE(ddt_u_smag) &
+    !$ACC   CREATE(ddt_v_smag) &
+    !$ACC   CREATE(ddt_w_smag) &
+    !$ACC   CREATE(ddt_horiz_temp) &
+    !$ACC   CREATE(ddt_horiz_qv) &
+    !$ACC   CREATE(ddt_horiz_qc) &
+    !$ACC   CREATE(ddt_horiz_qi) &
+    !$ACC   CREATE(ddt_Q) &
+    !$ACC   CREATE(ddt_tracer) &
+    !$ACC   CREATE(ddt_u) &
+    !$ACC   CREATE(ddt_v) &
+    !$ACC   CREATE(drag_coef) &
+    !$ACC   CREATE(ekin_dissipation) &
+    !$ACC   CREATE(evapo_potential) &
+    !$ACC   CREATE(evapo_sft) &
+    !$ACC   CREATE(exchange_coeff_temp_var) &
+    !$ACC   CREATE(exchange_coeff_tte) &
+    !$ACC   CREATE(exchange_coeff_water_var) &
+    !$ACC   CREATE(flx_heat_ground) &
+    !$ACC   CREATE(flx_heat_latent_sft) &
+    !$ACC   CREATE(flx_heat_sensible_sft) &
+    !$ACC   CREATE(flx_humidity) &
+    !$ACC   CREATE(flx_mom_u) &
+    !$ACC   CREATE(flx_mom_u_sft) &
+    !$ACC   CREATE(flx_mom_v) &
+    !$ACC   CREATE(flx_mom_v_sft) &
+    !$ACC   CREATE(flx_sensible) &
+    !$ACC   CREATE(flx_rad) &
+    !$ACC   CREATE(fr_sfc) &
+    !$ACC   CREATE(fr_sft) &
+    !$ACC   CREATE(height_top_dry_cbl) &
+    !$ACC   CREATE(mixing_length) &
+    !$ACC   CREATE(prefactor_exchange) &
+    !$ACC   CREATE(q_acoef) &
+    !$ACC   CREATE(q_bcoef) &
+    !$ACC   CREATE(Q_snowcanopymelt) &
+    !$ACC   CREATE(qsat_sfc) &
+    !$ACC   CREATE(qsat_sft) &
+    !$ACC   CREATE(qv_sft) &
+    !$ACC   CREATE(qv2m_sft) &
+    !$ACC   CREATE(rain_srf) &
+    !$ACC   CREATE(rh2m_sft) &
+    !$ACC   CREATE(rho_ratio_delta_z) &
+    !$ACC   CREATE(ri_number) &
+    !$ACC   CREATE(ri_number_sfc) &
+    !$ACC   CREATE(s_sfc) &
+    !$ACC   CREATE(s_sft) &
+    !$ACC   CREATE(s_atm) &
+    !$ACC   CREATE(snow_srf) &
+    !$ACC   CREATE(t_acoef) &
+    !$ACC   CREATE(t_bcoef) &
+    !$ACC   CREATE(t_eff_sft) &
+    !$ACC   CREATE(t2m_sft) &
+    !$ACC   CREATE(td2m_sft) &
+    !$ACC   CREATE(temp_sfc) &
+    !$ACC   CREATE(temp_srf_old) &
+    !$ACC   CREATE(theta_v_var_intermediate) &
+    !$ACC   CREATE(total_turbulence_energy_intermediate) &
+    !$ACC   CREATE(tracer_srf_emission) &
+    !$ACC   CREATE(u_bcoef) &
+    !$ACC   CREATE(u10m_sft) &
+    !$ACC   CREATE(uv_acoef) &
+    !$ACC   CREATE(v_bcoef) &
+    !$ACC   CREATE(v10m_sft) &
+    !$ACC   CREATE(wind_10m_sft) &
+    !$ACC   CREATE(wind_lowest) &
+    !$ACC   CREATE(wstar) &
+    !$ACC   CREATE(z0m_gbm) &
+    !$ACC   CREATE(zero2d)
 
     ! Since prog_wtr_now is a VALUE, we have to copy and attach all member pointers.
     ! The VALUE and this can go away once NAG Fortran is updated to build 7150.
 
-    !$ACC ENTER DATA ASYNC(1) &
+    !$ACC DATA ASYNC(1) &
     !$ACC   COPYIN(prog_wtr_now) &
     !$ACC   ATTACH(prog_wtr_now%t_ice, prog_wtr_now%h_ice, prog_wtr_now%t_snow_si) &
     !$ACC   ATTACH(prog_wtr_now%h_snow_si, prog_wtr_now%alb_si)
@@ -586,9 +569,6 @@ CONTAINS
     p_graupel_gsp_rate => if_associated(phy_diag%graupel_gsp_rate, zero2d)
     p_ice_gsp_rate => if_associated(phy_diag%ice_gsp_rate, zero2d)
     p_hail_gsp_rate => if_associated(phy_diag%hail_gsp_rate, zero2d)
-
-    !$ACC ENTER DATA ASYNC(1) &
-    !$ACC   ATTACH(ocean_u, ocean_v, p_graupel_gsp_rate, p_ice_gsp_rate, p_hail_gsp_rate)
 
     !$OMP PARALLEL
       !$OMP DO PRIVATE(i_blk, ics, ice, ic)
@@ -840,8 +820,6 @@ CONTAINS
         !$ACC END PARALLEL
 
 #ifndef __NO_JSBACH__
-        !$ACC WAIT
-
         CALL jsbach_interface( &
             & model_id=patch%id, &
             & iblk=i_blk, &
@@ -1355,10 +1333,6 @@ CONTAINS
         )
     END IF
 
-    !$ACC WAIT(1)
-    !$ACC EXIT DATA &
-    !$ACC   DETACH(ocean_u, ocean_v, p_graupel_gsp_rate, p_ice_gsp_rate, p_hail_gsp_rate)
-
     IF (is_coupled_to_ocean() .AND. .NOT. linit) THEN
       CALL sea_model_couple_ocean (&
           & patch=patch, &
@@ -1382,28 +1356,14 @@ CONTAINS
           & t_seasfc=diag_lnd%t_seasfc(:,:), &
           & fr_seaice=diag_lnd%fr_seaice(:,:), &
           & h_ice=prog_wtr_new%h_ice(:,:), &
-          & sea_state=mem%sea_state &
+          & sea_state=mem%sea_state, &
+          & lacc=.TRUE. &
         )
     END IF
 
-    !$ACC WAIT(1)
-
-    !$ACC EXIT DATA &
-    !$ACC   DELETE(prog_wtr_now) &
-    !$ACC   DETACH(prog_wtr_now%t_ice, prog_wtr_now%h_ice, prog_wtr_now%t_snow_si) &
-    !$ACC   DETACH(prog_wtr_now%h_snow_si, prog_wtr_now%alb_si)
-
-    !$ACC EXIT DATA &
-    !$ACC   DELETE(LIST_CREATE1) &
-    !$ACC   DELETE(LIST_CREATE2) &
-    !$ACC   DELETE(LIST_CREATE3) &
-    !$ACC   DELETE(LIST_CREATE4) &
-    !$ACC   DELETE(LIST_CREATE5)
-#   undef LIST_CREATE5
-#   undef LIST_CREATE4
-#   undef LIST_CREATE3
-#   undef LIST_CREATE2
-#   undef LIST_CREATE1
+    ! Data region for prog_wtr_now
+    !$ACC END DATA
+    !$ACC END DATA
 
   END SUBROUTINE nwp_vdiff
 

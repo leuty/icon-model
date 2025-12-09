@@ -37,8 +37,9 @@ function set_cluster {
      fi
      WORK=/hkfs/work/workspace/scratch/$(whoami)-$ws_id
      output_folder="${WORK}/TESTSUITE_OUTPUT"
-     icon_data_poolFolder=/lsdf/kit/imk/projects/icon/INPUT/AMIP/amip_input
-     aer_opt="${icon_data_poolFolder}"
+     ECCODES_VERSION=2.32.0-2
+     ECCODES_BASE=/hkfs/home/dataset/datasets/icon/bacy_data/definitions/${ECCODES_VERSION}
+     ECCODES_DEFINITION_PATH=${ECCODES_BASE}/definitions.edzw:${ECCODES_BASE}/definitions
      ;;
    xxce*) :
      echo "...XCE at DWD"; CENTER="DWD"
@@ -76,6 +77,9 @@ function set_cluster {
      FILETYPE="4"
      output_folder="${HOME/home/scratch}/TESTSUITE_OUTPUT"
      aer_opt="/pool/data/ICON/grids/public/mpim/independent"
+     LIBECCODES_PATH=$(/usr/bin/ldd ./../../bin/icon | grep libeccodes.so | awk '{print $3}')
+     ECCODES_BASE=$(strings $LIBECCODES_PATH | grep '/share/eccodes/definitions' | head -n1)
+     ECCODES_DEFINITION_PATH=${ECCODES_BASE}.mpim:${ECCODES_BASE}.edzw:${ECCODES_BASE}.ecmf_wmo
    ;;
    *) :
      echo "...unknown HPC" ; exit 202 ;; #(
@@ -165,9 +169,6 @@ cat > $output_script << EOF
 #!/bin/bash
 CENTER=$CENTER
 basedir=$ICON_FOLDER
-icon_data_poolFolder=$icon_data_poolFolder
-aer_opt=$aer_opt
-EXPNAME=atm_amip_test_kit
 OUTDIR=$complete_output_folder
 ICONFOLDER=$ICON_FOLDER
 ARTFOLDER=$ART_FOLDER
@@ -181,7 +182,6 @@ restart=.False.
 read_restart_namelists=.False.
 
 
-
 # Remove folder ${EXP} from OUTDIR for postprocessing output
 OUTDIR_PREFIX=`dirname \${OUTDIR}`
 
@@ -193,8 +193,13 @@ fi
 
 cd \$OUTDIR
 
-
 EOF
+
+# Conditionally add ECCODES export for selected experiments
+case "$EXPERIMENT" in ALLAERO*|DUST*|VOLAERO*)
+   echo "export ECCODES_DEFINITION_PATH=$ECCODES_DEFINITION_PATH" >> "$output_script"
+        ;;
+esac
 
 }
 function create_footer
@@ -244,7 +249,6 @@ cat > job_ICON << ENDFILE
 #SBATCH --ntasks-per-node=76
 #SBATCH --partition=$4
 #SBATCH -C LSDF
-
 
 $5
 

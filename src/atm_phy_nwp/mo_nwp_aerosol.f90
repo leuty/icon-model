@@ -44,6 +44,7 @@ MODULE mo_nwp_aerosol
                                     &   iRadAeroCAMStd, iRadAeroVolc, iRadAeroKinneVolc, iRadAeroART,       &
                                     &   iRadAeroKinneVolcSP, iRadAeroKinneSP, iRadAeroTegen,                &
                                     &   iRadAeroExternal, cams_aero_filename
+  USE mo_cpl_aerosol_microphys,   ONLY: calc_cdnc_from_cloud_num
   USE mo_nwp_tuning_config,       ONLY: tune_sc_eis
 ! External infrastruture
   USE mtime,                      ONLY: datetime, timedelta, newDatetime, newTimedelta,       &
@@ -57,7 +58,6 @@ MODULE mo_nwp_aerosol
   USE mo_bcs_time_interpolation,  ONLY: t_time_interpolation_weights,         &
     &                                   calculate_time_interpolation_weights
   USE mo_io_config,               ONLY: var_in_output
-
 #ifdef __ICON_ART
   USE mo_aerosol_util,            ONLY: tegen_scal_factors
   USE mo_art_radiation_interface, ONLY: art_rad_aero_interface
@@ -229,6 +229,7 @@ CONTAINS
       &  pt_diag                 !< the diagnostic variables
     TYPE(t_nwp_phy_diag), INTENT(inout) :: &
       &  prm_diag                !< Physics diagnostics
+
     REAL(wp), INTENT(in) ::    &
       &  zf(:,:,:), zh(:,:,:), & !< model full/half layer height
       &  dz(:,:,:),            & !< Layer thickness
@@ -356,16 +357,6 @@ CONTAINS
             &                    prm_diag%aerosol(:,:,jb), prm_diag%aercl_ss(:,jb), prm_diag%aercl_or(:,jb), &
             &                    prm_diag%aercl_bc(:,jb), prm_diag%aercl_su(:,jb), prm_diag%aercl_du(:,jb), &
             &                    zaeq1(:,:,jb),zaeq2(:,:,jb),zaeq3(:,:,jb),zaeq4(:,:,jb),zaeq5(:,:,jb),lacc )
-
-          ! This is where ART should be placed
-
-          ! Compute cloud number concentration depending on aerosol climatology if
-          ! aerosol-microphysics or aerosol-convection coupling is turned on
-          IF (atm_phy_nwp_config(pt_patch%id)%icpl_aero_gscp == 1 .OR. icpl_aero_conv == 1) THEN
-            CALL nwp_cpl_aero_gscp_conv(i_startidx, i_endidx, pt_patch%nlev, pt_diag%pres_sfc(:,jb), pt_diag%pres(:,:,jb), &
-              &                         prm_diag%acdnc(:,:,jb), prm_diag%cloud_num(:,jb), prm_diag%k_inversion(:,jb),      &
-              &                         prm_diag%conv_eis(:,jb), lacc)
-          ENDIF
 
         ENDDO !jb
 !$OMP END DO NOWAIT
@@ -523,12 +514,10 @@ CONTAINS
               &                    prm_diag%aod_550nm(:,jb), lacc=lzacc)
           END IF
 
-          ! Compute cloud number concentration depending on aerosol climatology
-          ! if aerosol-microphysics or aerosol-convection coupling is turned on
           IF (atm_phy_nwp_config(pt_patch%id)%icpl_aero_gscp == 3 .OR. icpl_aero_conv == 1) THEN
-            CALL nwp_cpl_aero_gscp_conv(i_startidx, i_endidx, pt_patch%nlev, pt_diag%pres_sfc(:,jb), &
-                                        pt_diag%pres(:,:,jb), prm_diag%acdnc(:,:,jb), prm_diag%cloud_num(:,jb), &
-                                        prm_diag%k_inversion(:,jb), prm_diag%conv_eis(:,jb), lacc=lzacc)
+            CALL calc_cdnc_from_cloud_num(i_startidx, i_endidx, pt_patch%nlev, pt_diag%pres_sfc(:,jb),  &
+                           &   pt_diag%pres(:,:,jb), prm_diag%acdnc(:,:,jb), prm_diag%cloud_num(:,jb),  &
+                               prm_diag%k_inversion(:,jb), prm_diag%conv_eis(:,jb), tune_sc_eis, lacc=lzacc)
           ENDIF
 
         END DO
@@ -580,30 +569,6 @@ CONTAINS
 !$OMP END DO NOWAIT
 !$OMP END PARALLEL
         END DO ! jt aerosol loop
-
-        ! This part prepares the coupling between grid scale microphysics / convection and Tegen aerosols
-        ! Start at third row instead of fifth as two rows are needed by the reduced grid aggregation
-        rl_start   = grf_bdywidth_c-1
-        rl_end     = min_rlcell_int
-        i_startblk = pt_patch%cells%start_block(rl_start)
-        i_endblk   = pt_patch%cells%end_block(rl_end)
-
-!$OMP PARALLEL
-!$OMP DO PRIVATE(jb,i_startidx,i_endidx)  ICON_OMP_DEFAULT_SCHEDULE
-        DO jb = i_startblk,i_endblk
-          CALL get_indices_c(pt_patch,jb,i_startblk,i_endblk,i_startidx,i_endidx,rl_start,rl_end)
-
-          ! Compute cloud number concentration depending on aerosol climatology if
-          ! aerosol-microphysics or aerosol-convection coupling is turned on
-          IF (atm_phy_nwp_config(pt_patch%id)%icpl_aero_gscp == 1 .OR. icpl_aero_conv == 1) THEN
-            CALL nwp_cpl_aero_gscp_conv(i_startidx, i_endidx, pt_patch%nlev, pt_diag%pres_sfc(:,jb), pt_diag%pres(:,:,jb), &
-              &                         prm_diag%acdnc(:,:,jb), prm_diag%cloud_num(:,jb), prm_diag%k_inversion(:,jb),      &
-              &                         prm_diag%conv_eis(:,jb), lacc)
-          ENDIF
-
-        ENDDO !jb
-!$OMP END DO NOWAIT
-!$OMP END PARALLEL
 
       CASE(iRadAeroExternal)
 
@@ -1140,60 +1105,9 @@ CONTAINS
     !$ACC END DATA
 
   END SUBROUTINE nwp_aerosol_tegen
-  !---------------------------------------------------------------------------------------
 
   !---------------------------------------------------------------------------------------
-  SUBROUTINE nwp_cpl_aero_gscp_conv(istart, iend, nlev, pres_sfc, pres, acdnc, cloud_num, kc_inv, eis, lacc)
-  INTEGER, INTENT(in)                 :: &
-    &  istart, iend, nlev                  !< loop start and end indices (nproma, vertical)
-  REAL(wp), INTENT(in)                :: &
-    &  pres_sfc(:), pres(:,:)              !< Surface and atmospheric pressure
-  REAL(wp), INTENT(inout)                :: &
-    &  acdnc(:,:),                       & !< cloud droplet number concentration
-    &  cloud_num(:), eis(:)                       !< cloud droplet number concentration
-  INTEGER, INTENT(in) :: kc_inv(:)
-  LOGICAL, INTENT(in), OPTIONAL       :: &
-    &  lacc                                !< If true, use openacc
-  ! Local variables
-  REAL(wp)                            :: &
-    &  wfac, ncn_bg, wfac_stratus, pinv(nproma)
-  INTEGER                             :: &
-    &  jc, jk                              !< Loop indices
-  LOGICAL                             :: &
-    &  lzacc                               !< non-optional version of lacc
 
-  CALL set_acc_host_or_device(lzacc, lacc)
-
-    !$ACC DATA CREATE(pinv) IF(lacc)
-
-    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-    !$ACC LOOP GANG VECTOR
-    DO jc = istart, iend
-      IF (kc_inv(jc) < nlev .AND. pres(jc,kc_inv(jc))/pres_sfc(jc) > 0.925_wp .AND. eis(jc) > tune_sc_eis) THEN
-        pinv(jc) = pres(jc,kc_inv(jc))
-      ELSE
-        pinv(jc) = pres_sfc(jc)
-      ENDIF
-    ENDDO
-    !$ACC END PARALLEL
-
-    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-    !$ACC LOOP GANG VECTOR COLLAPSE(2) PRIVATE(wfac, ncn_bg, wfac_stratus)
-    DO jk = 1,nlev
-      DO jc = istart, iend
-        wfac         = MAX(1._wp,MIN(8._wp,0.8_wp*pres_sfc(jc)/pres(jc,jk)))**2
-        ncn_bg       = MIN(cloud_num(jc),50.e6_wp)
-        wfac_stratus = MERGE(2._wp*eis(jc)/tune_sc_eis, 1._wp, pres(jc,jk) >= pinv(jc) )
-        acdnc(jc,jk) = (ncn_bg+(cloud_num(jc)-ncn_bg)*wfac_stratus*(EXP(1._wp-wfac)))
-      END DO
-    END DO
-    !$ACC END PARALLEL
-    !$ACC END DATA
-
-  END SUBROUTINE nwp_cpl_aero_gscp_conv
-  !---------------------------------------------------------------------------------------
-
-  !---------------------------------------------------------------------------------------
   SUBROUTINE get_time_intp_weights(mtime_datetime, imo1 , imo2, time_weight)
     TYPE(datetime), POINTER, INTENT(in) :: &
       &  mtime_datetime                      !< Current datetime

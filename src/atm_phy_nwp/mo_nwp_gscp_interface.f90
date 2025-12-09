@@ -74,11 +74,8 @@ MODULE mo_nwp_gscp_interface
   USE mo_art_data,             ONLY: p_art_data
 #endif
   USE mo_nwp_diagnosis,        ONLY: nwp_diag_output_minmax_micro
-  USE mo_cpl_aerosol_microphys,ONLY: specccn_segalkhain, specccn_segalkhain_simple, &
-                                     ncn_from_tau_aerosol_speccnconst,         &
-                                     ncn_from_tau_aerosol_speccnconst_dust,    &
-                                     aerosol_prepare_inas_dust,                &
-                                     ice_nucleation
+  USE mo_cpl_aerosol_microphys,ONLY: ncn_from_tau_aerosol_speccnconst_dust,    &
+                                     aerosol_prepare_inas_dust, ice_nucleation
   USE mo_grid_config,          ONLY: l_limited_area
   USE mo_satad,                ONLY: satad_v_3D, satad_v_3D_gpu
 
@@ -146,12 +143,14 @@ CONTAINS
 
     INTEGER :: jc,jb,jg,jk               !<block indices
 
-    REAL(wp) :: zncn(nproma,p_patch%nlev),qnc(nproma,p_patch%nlev),qnc_s(nproma),rholoc,rhoinv, cloud_num
+    REAL(wp) :: zncn(nproma,p_patch%nlev), qnc(nproma,p_patch%nlev), qnc_s(nproma)
     REAL(wp) :: zninc(nproma,p_patch%nlev), aerncn, ndust(nproma,p_patch%nlev), sdust(nproma,p_patch%nlev)
+    REAL(wp) :: rholoc, rhoinv, cloudnum_const
 
     LOGICAL  :: l_nest_other_micro
     LOGICAL  :: ldiag_ttend, ldiag_qtend
     LOGICAL  :: lavail_tke
+    LOGICAL  :: use3Dcdnc
 
     REAL(wp), CONTIGUOUS, POINTER :: ptr_tke_loc(:,:)
 
@@ -180,6 +179,12 @@ CONTAINS
     ! domain ID
     jg = p_patch%id
 
+
+    IF ( atm_phy_nwp_config(jg)%icpl_aero_gscp == 2  ) THEN
+      use3Dcdnc = .TRUE.
+    ELSE
+      use3Dcdnc = .FALSE.
+    ENDIF
 
     IF ( ASSOCIATED(prm_nwp_tend%ddt_temp_gscp)   ) THEN
       ldiag_ttend = .TRUE.
@@ -271,6 +276,8 @@ CONTAINS
        ! Nothing to do for other schemes
     END SELECT
 
+    ! for icpl_aero_gscp=0 the constant cloud_num for the one-moment scheme is used
+    CALL get_cloud_number(cloudnum_const)
 
     ! exclude boundary interpolation zone of nested domains
     i_rlstart = grf_bdywidth_c+1
@@ -286,7 +293,7 @@ CONTAINS
 
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jb,jc,jk,i_startidx,i_endidx,zncn,qnc,qnc_s,ddt_tend_t,ddt_tend_qv,aerncn,zninc,   &
-!$OMP            icenuc,ddt_tend_qc,ddt_tend_qi,ddt_tend_qr,ddt_tend_qs) ICON_OMP_GUIDED_SCHEDULE
+!$OMP            icenuc,ddt_tend_qc,ddt_tend_qi,ddt_tend_qr,ddt_tend_qs, ptr_tke_loc, ndust, sdust) ICON_OMP_GUIDED_SCHEDULE
 
       DO jb = i_startblk, i_endblk
 
@@ -300,47 +307,8 @@ CONTAINS
           ptr_tke_loc => NULL()
         ENDIF
 
-        IF (atm_phy_nwp_config(jg)%icpl_aero_gscp == 2) THEN
+        IF (atm_phy_nwp_config(jg)%icpl_aero_gscp > 0) THEN
 
-          ! Preparation for coupling of more advanced microphysics schemes (inwp_gscp>=2) with aerosol climatology
-          ! Not yet implemented
-          CALL ncn_from_tau_aerosol_speccnconst (nproma, nlev, i_startidx, i_endidx, kstart_moist(jg), nlev, &
-            p_metrics%z_ifc(:,:,jb), prm_diag%aerosol(:,iss,jb), prm_diag%aerosol(:,iso4,jb),                &
-            prm_diag%aerosol(:,iorg,jb), prm_diag%aerosol(:,idu,jb), zncn)
-
-          CALL specccn_segalkhain (nproma, nlev, i_startidx, i_endidx, kstart_moist(jg), nlev, zncn,         &
-            p_prog%w(:,:,jb), ptr_tracer(:,:,jb,iqc), p_prog%rho(:,:,jb), p_metrics%z_ifc(:,:,jb), qnc)
-
-        ELSE IF (atm_phy_nwp_config(jg)%icpl_aero_gscp == 1) THEN
-
-          IF ( ALL( (/i2daero_dust, i2daero_seas, i2daero_anthro/) == 0 ) ) THEN
-            !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
-            !$ACC LOOP GANG VECTOR
-            DO jc=i_startidx,i_endidx
-              qnc_s(jc) = prm_diag%cloud_num(jc,jb)
-            END DO
-            !$ACC END PARALLEL
-          ELSE
-
-            CALL ncn_from_tau_aerosol_speccnconst (nproma, nlev, i_startidx, i_endidx, nlev, nlev, &
-              p_metrics%z_ifc(:,:,jb), prm_diag%aerosol(:,iss,jb), prm_diag%aerosol(:,iso4,jb),    &
-              prm_diag%aerosol(:,iorg,jb), prm_diag%aerosol(:,idu,jb), zncn)
-
-            CALL specccn_segalkhain_simple (nproma, i_startidx, i_endidx, zncn(:,nlev), prm_diag%cloud_num(:,jb))
-
-            ! Impose lower limit on cloud_num over land
-            DO jc = i_startidx, i_endidx
-              IF (ext_data%atm%llsm_atm_c(jc,jb) .OR. ext_data%atm%llake_c(jc,jb)) &
-                prm_diag%cloud_num(jc,jb) = MAX(175.e6_wp,prm_diag%cloud_num(jc,jb))
-            ENDDO
-!!$ UB: formally qnc_s is in the wrong unit (1/m^3) for the 1-moment schemes. Should be 1/kg.
-!!$   However: since only the near-surface value of level nlev is used and the vertical profile is disregarded
-!!$            anyways, we neglect this small near-surface difference and assume rho approx. 1.0.
-            qnc_s(i_startidx:i_endidx) = prm_diag%cloud_num(i_startidx:i_endidx,jb)
-
-          ENDIF
-
-        ELSE IF (atm_phy_nwp_config(jg)%icpl_aero_gscp == 3) THEN
           !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
           !$ACC LOOP GANG VECTOR
           DO jc=i_startidx,i_endidx
@@ -350,12 +318,11 @@ CONTAINS
 
         ELSE
 
-          CALL get_cloud_number(cloud_num)
-          !$ACC DATA COPYIN(cloud_num)
+          !$ACC DATA COPYIN(cloudnum_const)
           !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
           !$ACC LOOP GANG VECTOR
           DO jc=i_startidx,i_endidx
-            qnc_s(jc) = cloud_num
+            qnc_s(jc) = cloudnum_const
           END DO
           !$ACC END PARALLEL
           !$ACC END DATA
@@ -378,12 +345,11 @@ CONTAINS
         IF ( icpl_aero_ice == 1) THEN ! use DeMott ice nucleation
           SELECT CASE(irad_aero)
             CASE (iRadAeroCAMStd, iRadAeroCAMSclim)
-              ! units are [1/m^3] BUT we want to convert to cm^-3 to use in DeMott formula so we multiply by 10^-6
               !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
               !$ACC LOOP GANG VECTOR COLLAPSE(2) PRIVATE(aerncn)
               DO jk=1,nlev
                 DO jc=i_startidx,i_endidx
-                  aerncn = 1.0E-6_wp*p_prog%rho(jc,jk,jb)*( p_diag%camsaermr(jc,jk,jb,5)/4.72911E-16_wp + p_diag%camsaermr(jc,jk,jb,6)/1.55698E-15_wp )
+                  aerncn = p_prog%rho(jc,jk,jb)*( p_diag%camsaermr(jc,jk,jb,5)/4.72911E-16_wp + p_diag%camsaermr(jc,jk,jb,6)/1.55698E-15_wp )
                   CALL ice_nucleation ( t=p_diag%temp(jc,jk,jb), aerncn=aerncn , znin=zninc(jc,jk) )
                 ENDDO
               ENDDO
@@ -510,6 +476,7 @@ CONTAINS
             & zdt    =tcall_gscp_jg                     ,    & !< in:  timestep
             & qi0    =atm_phy_nwp_config(jg)%qi0        ,    &
             & qc0    =atm_phy_nwp_config(jg)%qc0        ,    &
+            & use3Dcdnc=use3Dcdnc                       , & !< in:  icpl_aero_gscp
             & dz     =p_metrics%ddqz_z_full(:,:,jb)     ,    & !< in:  vertical layer thickness
             & t      =p_diag%temp   (:,:,jb)            ,    & !< in:  temp,tracer,...
             & p      =p_diag%pres   (:,:,jb)            ,    & !< in:  full level pres
@@ -520,8 +487,9 @@ CONTAINS
             & qr     =ptr_tracer (:,:,jb,iqr)    ,    & !< in:  rain water
             & qs     =ptr_tracer (:,:,jb,iqs)    ,    & !< in:  snow
             & qg     =ptr_tracer (:,:,jb,iqg)    ,    & !< in:  graupel
-            & qnc    = qnc_s                            ,    & !< cloud number concentration
-            & zninc   = zninc                           ,    & !< number of cloud ice crystals at nucleation
+            & qnc    = qnc_s                     ,    & !< cloud number concentration
+            & qnc3d  = prm_diag%acdnc(:,:,jb)    ,    & !< 3D cloud number concentration
+            & zninc  = zninc                           ,    & !< number of cloud ice crystals at nucleation
             & prr_gsp=prm_diag%rain_gsp_rate (:,jb)     ,    & !< out: precipitation rate of rain
             & prs_gsp=prm_diag%snow_gsp_rate (:,jb)     ,    & !< out: precipitation rate of snow
             & pri_gsp=prm_diag%ice_gsp_rate (:,jb)      ,    & !< out: precipitation rate of cloud ice

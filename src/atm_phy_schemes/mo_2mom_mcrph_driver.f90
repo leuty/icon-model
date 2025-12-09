@@ -63,7 +63,6 @@ USE mo_2mom_mcrph_config,    ONLY: t_cfg_2mom, t_cfg_2mom_pert, copy_cfg_2mom_pe
 
 USE mo_2mom_mcrph_main,      ONLY:                                &
      &                        clouds_twomoment,                   &
-     &                        atmosphere, particle, particle_frozen, particle_lwf, &
      &                        rain_coeffs, ice_coeffs, snow_coeffs, graupel_coeffs, hail_coeffs, &
      &                        ccn_coeffs, in_coeffs,                     &
      &                        init_2mom_scheme, init_2mom_scheme_once,   &
@@ -71,12 +70,13 @@ USE mo_2mom_mcrph_main,      ONLY:                                &
 
 USE mo_2mom_mcrph_setup,     ONLY: particle_meanmass, set_ccn_cloud_type, &
      &                        cloud_type_default_gscp4, ccn_type_gscp4,   &
-     &                        cloud_type_default_gscp5, ccn_type_gscp5
+     &                        cloud_type_default_gscp5, ccn_type_gscp5,   &
+     &                        cfg_params
 
 USE mo_2mom_mcrph_processes,  ONLY:                                                    &
      &                         sedi_vel_rain, sedi_vel_sphere, sedi_vel_lwf,           &
      &                         sedi_icon_rain, sedi_icon_sphere, sedi_icon_sphere_lwf, &
-     &                         q_crit, cfg_params
+     &                         q_crit
 
 USE mo_2mom_mcrph_config_default, ONLY: cfg_2mom_default
 USE mo_ensemble_pert_config, ONLY: use_ensemble_pert
@@ -85,7 +85,8 @@ USE mo_2mom_mcrph_util, ONLY:                            &
      &                       init_dmin_wg_gr_ltab_equi,  &
      &                       dmin_wetgrowth_fit_check, luse_dmin_wetgrowth_table, lprintout_comp_table_fit
 
-USE mo_2mom_mcrph_types, ONLY: ltabdminwgg, ltabdminwgh
+USE mo_2mom_mcrph_types, ONLY: ltabdminwgg, ltabdminwgh, &
+     &                         atmosphere, particle
 
 USE mo_2mom_prepare, ONLY: prepare_twomoment, post_twomoment
 
@@ -239,13 +240,11 @@ CONTAINS
 
     ! These are the fundamental hydrometeor particle variables for the two-moment scheme
     ! as they are used in the various options of the scheme
-    TYPE(particle), target          :: cloud_hyd, rain_hyd
-    TYPE(particle_frozen), target   :: ice_frz, snow_frz, graupel_frz, hail_frz
-    TYPE(particle_lwf), target      :: graupel_lwf, hail_lwf
+    TYPE(particle), target   :: cloud_hyd, rain_hyd
+    TYPE(particle), target   :: ice_frz, snow_frz, graupel_frz, hail_frz
 
     ! Pointers to the derived types that are actually needed
-    CLASS(particle), pointer        :: cloud, rain
-    CLASS(particle_frozen), pointer :: ice, snow, graupel, hail
+    TYPE(particle), pointer  :: cloud, rain, ice, snow, graupel, hail
 
     INTEGER :: ik_slice(4)
 
@@ -262,7 +261,7 @@ CONTAINS
     ENDIF
 #endif
 
-    IF (msg_level>5) CALL message (TRIM(routine), "called two_moment_mcrph")
+    IF (msg_level>10) CALL message (TRIM(routine), "called two_moment_mcrph")
 
     IF (PRESENT(ithermo_water)) THEN
        lconstant_lh = (ithermo_water == 0)
@@ -280,14 +279,8 @@ CONTAINS
     rain  => rain_hyd
     ice   => ice_frz
     snow  => snow_frz
-
-    IF (lprogmelt) THEN
-       graupel => graupel_lwf   ! with prognostic melting
-       hail => hail_lwf         ! of graupel and hail
-    ELSE
-       graupel => graupel_frz   ! simple melting
-       hail => hail_frz
-    END IF
+    graupel => graupel_frz
+    hail => hail_frz
 
     ! start/end indices
     IF (PRESENT(is)) THEN
@@ -435,7 +428,7 @@ CONTAINS
        IF (timers_level > 10) CALL timer_start(timer_phys_2mom_proc)
        ! .. this subroutine calculates all the microphysical sources and sinks
        CALL clouds_twomoment(ik_slice, dt, lprogin, &
-            atmo, cloud, rain, ice, snow, graupel, hail, ninact, nccn, ninpot)
+            atmo, cloud, rain, ice, snow, graupel, hail, ninact, nccn, ninpot, msg_level)
 
        IF (timers_level > 10) CALL timer_stop(timer_phys_2mom_proc)
 
@@ -670,7 +663,7 @@ CONTAINS
 
         ! .. this subroutine calculates all the microphysical sources and sinks
         CALL clouds_twomoment(ik_slice, dt, lprogin, atmo, cloud, rain, &
-             ice, snow, graupel, hail, ninact, nccn, ninpot)
+             ice, snow, graupel, hail, ninact, nccn, ninpot, msg_level)
 
         DO kk=kts,kte
           DO ii = its, ite
@@ -815,10 +808,8 @@ CONTAINS
         CALL sedi_vel_sphere(ice,ice_coeffs,qi(:,k),xi_now,rhocorr(:,k),vi_sedn_now,vi_sedq_now,its,ite)
         CALL sedi_vel_sphere(snow,snow_coeffs,qs(:,k),xs_now,rhocorr(:,k),vs_sedn_now,vs_sedq_now,its,ite)
         IF (lprogmelt) THEN
-          CALL sedi_vel_lwf(graupel_lwf,graupel_coeffs,  &
-               & qg(:,k),qgl(:,k),xg_now,rhocorr(:,k),vg_sedn_now,vg_sedq_now,vg_sedl_now,its,ite)
-          CALL sedi_vel_lwf(hail_lwf,hail_coeffs,        &
-               & qh(:,k),qhl(:,k),xh_now,rhocorr(:,k),vh_sedn_now,vh_sedq_now,vh_sedl_now,its,ite)
+          CALL sedi_vel_lwf(graupel,qg(:,k),qgl(:,k),xg_now,rhocorr(:,k),vg_sedn_now,vg_sedq_now,vg_sedl_now,its,ite)
+          CALL sedi_vel_lwf(hail,qh(:,k),qhl(:,k),xh_now,rhocorr(:,k),vh_sedn_now,vh_sedq_now,vh_sedl_now,its,ite)
         ELSE
           CALL sedi_vel_sphere(graupel,graupel_coeffs,qg(:,k),xg_now,rhocorr(:,k),vg_sedn_now,vg_sedq_now,its,ite)
           CALL sedi_vel_sphere(hail,hail_coeffs,qh(:,k),xh_now,rhocorr(:,k),vh_sedn_now,vh_sedq_now,its,ite)
@@ -863,7 +854,7 @@ CONTAINS
           ik_slice(4) = k
           CALL clouds_twomoment(ik_slice, dt, lprogin, &
                atmo, cloud, rain, ice, snow, graupel, hail, &
-               ninact, nccn, ninpot)
+               ninact, nccn, ninpot, msg_level)
 
           ! .. latent heat term for temperature equation
           !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT)
@@ -1098,7 +1089,7 @@ CONTAINS
       ENDIF
        IF (lprogmelt) THEN
          DO ii=1,ntsedi_graupel
-           call sedi_icon_sphere_lwf(graupel_lwf,graupel_coeffs,qg,qng,qgl,&
+           call sedi_icon_sphere_lwf(graupel,graupel_coeffs,qg,qng,qgl,&
                 &                    prec_g,prec3D_tmp,rhocorr,rdz,dt/ntsedi_graupel,its,ite,kts,kte,cmax)
          END DO
        ELSE
@@ -1134,7 +1125,7 @@ CONTAINS
       ENDIF
       IF (lprogmelt) THEN
         DO ii=1,ntsedi_hail
-          call sedi_icon_sphere_lwf(hail_lwf,hail_coeffs,qh,qnh,qhl,&
+          call sedi_icon_sphere_lwf(hail,hail_coeffs,qh,qnh,qhl,&
                &                    prec_h,prec3D_tmp,rhocorr,rdz,dt/ntsedi_hail,its,ite,kts,kte,cmax)
         END DO
       ELSE
@@ -1305,9 +1296,7 @@ CONTAINS
          & N_cn0,z0_nccn,z1e_nccn,    &
          & N_in0,z0_nin,z1e_nin
 
-    TYPE(particle)        :: cloud, rain
-    TYPE(particle_frozen) :: ice, snow, graupel, hail
-    TYPE(particle_lwf)    :: graupel_lwf, hail_lwf
+    TYPE(particle) :: cloud, rain, ice, snow, graupel, hail
 
     TYPE(t_cfg_2mom), OPTIONAL, INTENT(in) :: cfg_2mom
 
@@ -1339,9 +1328,9 @@ CONTAINS
 
     ! .. set the particle types, and calculate some coefficients
     IF (igscp == 7) THEN
-       CALL init_2mom_scheme_once(cloud,rain,ice,snow,graupel_lwf,hail_lwf,cloud_type)
+       CALL init_2mom_scheme_once(cloud,rain,ice,snow,graupel,hail,cloud_type,msg_level)
     ELSE
-       CALL init_2mom_scheme_once(cloud,rain,ice,snow,graupel,hail,cloud_type)
+       CALL init_2mom_scheme_once(cloud,rain,ice,snow,graupel,hail,cloud_type,msg_level)
     END IF
 
     IF (timers_level > 10) CALL timer_start(timer_phys_2mom_dmin_init)
@@ -1378,10 +1367,12 @@ CONTAINS
       N_cn0    = ccn_coeffs%Ncn0
     END IF
 
-    WRITE(message_text,'(A)') "  CN properties:" ; CALL message(TRIM(routine),TRIM(message_text))
-    WRITE(message_text,'(A,D10.3)') "    Ncn0 = ",ccn_coeffs%Ncn0 ; CALL message(TRIM(routine),TRIM(message_text))
-    WRITE(message_text,'(A,D10.3)') "    z0   = ",ccn_coeffs%z0  ; CALL message(TRIM(routine),TRIM(message_text))
-    WRITE(message_text,'(A,D10.3)') "    z1e  = ",ccn_coeffs%z1e ; CALL message(TRIM(routine),TRIM(message_text))
+    IF (msg_level > 7) THEN
+      WRITE(message_text,'(A)') "  CN properties:" ; CALL message(TRIM(routine),TRIM(message_text))
+      WRITE(message_text,'(A,D10.3)') "    Ncn0 = ",ccn_coeffs%Ncn0 ; CALL message(TRIM(routine),TRIM(message_text))
+      WRITE(message_text,'(A,D10.3)') "    z0   = ",ccn_coeffs%z0  ; CALL message(TRIM(routine),TRIM(message_text))
+      WRITE(message_text,'(A,D10.3)') "    z1e  = ",ccn_coeffs%z1e ; CALL message(TRIM(routine),TRIM(message_text))
+    END IF
 
     IF (PRESENT(N_in0)) THEN
 
@@ -1414,16 +1405,14 @@ CONTAINS
     LOGICAL          , INTENT(INOUT) ::  return_fct                  ! Return code of the subroutine
 
     ! These are the fundamental hydrometeor particle variables for the two-moment scheme
-    TYPE(particle)        , TARGET   :: cloud_hyd, rain_hyd
-    TYPE(particle_frozen) , TARGET   :: ice_frz, snow_frz, graupel_frz, hail_frz
-    TYPE(particle_lwf)    , TARGET   :: graupel_lwf, hail_lwf
+    TYPE(particle) , TARGET   :: cloud_hyd, rain_hyd
+    TYPE(particle) , TARGET   :: ice_frz, snow_frz, graupel_frz, hail_frz
 
     ! Pointers to the derived types that are actually needed
-    CLASS(particle)       , POINTER  :: cloud, rain
-    CLASS(particle_frozen), POINTER  :: ice, snow, graupel, hail
+    TYPE(particle), POINTER  :: cloud, rain, ice, snow, graupel, hail
 
     ! Parameters used in the paramaterization of reff (the same for all)
-    CLASS(particle)       , POINTER  :: current_hyd
+    TYPE(particle), POINTER          :: current_hyd
     REAL(wp)                         :: a_geo, b_geo, mu, nu
     REAL(wp)                         :: bf, bf2
     LOGICAL                          :: monodisperse
@@ -1442,13 +1431,9 @@ CONTAINS
     rain  => rain_hyd
     ice   => ice_frz
     snow  => snow_frz
-    IF (reff_calc%microph_param == 7 ) THEN  ! Vivek Param. Frozen+Liquid
-       graupel => graupel_lwf                ! gscp=7
-       hail    => hail_lwf
-    ELSE
-       graupel => graupel_frz                ! gscp=4,5,6
-       hail    => hail_frz
-    END IF
+    graupel => graupel_frz
+    hail  => hail_frz
+
     ! .. set the particle types, but no calculations
     CALL init_2mom_scheme(cloud,rain,ice,snow,graupel,hail)
 

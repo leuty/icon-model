@@ -69,7 +69,7 @@ MODULE mo_opt_nwp_diagnostics
   USE mo_timer,                 ONLY: timer_start, timer_stop, timers_level
   USE mo_diag_hailcast,         ONLY: hailstone_driver
   USE mo_util_phys,             ONLY: inversion_height_index
-  USE mo_nwp_tuning_config,     ONLY: tune_dursun_scaling, itune_vis_diag
+  USE mo_nwp_tuning_config,     ONLY: tune_dursun_scaling, itune_vis_diag, itune_ceiling_diag
   USE microphysics_1mom_schemes,ONLY: get_cloud_number, get_snow_temperature
 #ifdef HAVE_RADARFWO
   USE radar_data_mie,             ONLY: ldebug_dbz, T0C_emvorado => T0C_fwo
@@ -1604,15 +1604,21 @@ CONTAINS
     INTEGER :: i_rlstart,  i_rlend
     INTEGER :: i_startblk, i_endblk
     INTEGER :: i_startidx, i_endidx
-    INTEGER :: jb, jk, jc
+    INTEGER :: jb, jk, jc, nlevp1
     LOGICAL :: lzacc
+    REAL(wp) :: decorr, clc_aux(nproma), ccmax, ccran, alpha
+    REAL(wp), PARAMETER :: eps_clc = 1.e-7_wp
 
     CALL set_acc_host_or_device(lzacc, lacc)
     !$ACC DATA &
     !$ACC   PRESENT(ceiling_height, ptr_patch) &
     !$ACC   PRESENT(p_metrics, prm_diag, kstart_moist(jg)) &
-    !$ACC   CREATE(cld_base_found) &
+    !$ACC   CREATE(cld_base_found, clc_aux) &
     !$ACC   IF(lzacc)
+
+    decorr = 2000._wp ! decorrelation length for CLC overlap
+    nlevp1 = ptr_patch%nlev + 1
+
     ! without halo or boundary  points:
     i_rlstart = grf_bdywidth_c + 1
     i_rlend   = min_rlcell_int
@@ -1621,28 +1627,57 @@ CONTAINS
     i_endblk   = ptr_patch%cells%end_block  ( i_rlend   )
 
 !$OMP PARALLEL
-!$OMP DO PRIVATE(jb,jc,i_startidx,i_endidx,cld_base_found), ICON_OMP_RUNTIME_SCHEDULE
+!$OMP DO PRIVATE(jb,jc,i_startidx,i_endidx,cld_base_found,clc_aux,ccmax,ccran,alpha), ICON_OMP_RUNTIME_SCHEDULE
     DO jb = i_startblk, i_endblk
 
       CALL get_indices_c( ptr_patch, jb, i_startblk, i_endblk,     &
                           i_startidx, i_endidx, i_rlstart, i_rlend)
 
-      !$ACC PARALLEL DEFAULT(NONE) ASYNC(1) FIRSTPRIVATE(i_startidx, i_endidx, jb, jg) IF(lzacc)
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) FIRSTPRIVATE(i_startidx, i_endidx, jb, jg) IF(lzacc)
       !$ACC LOOP GANG(STATIC: 1) VECTOR
       DO jc = i_startidx, i_endidx
         cld_base_found(jc) = .FALSE.
-        ceiling_height(jc,jb) = p_metrics%z_mc(jc,1,jb)  ! arbitrary default value
+        clc_aux(jc) = 0._wp
+        IF (itune_ceiling_diag == 2) THEN
+          ! fill value used in observations if no sufficient cloud cover exists (16 km AGL as in observations)
+          ceiling_height(jc,jb) = p_metrics%z_ifc(jc,nlevp1,jb) + 16000._wp
+        ELSE
+          ceiling_height(jc,jb) =  p_metrics%z_mc(jc,1,jb)  ! arbitrary default value
+        ENDIF
       END DO
-      !$ACC LOOP SEQ
-      DO jk = ptr_patch%nlev, kstart_moist(jg), -1
-        !$ACC LOOP GANG(STATIC: 1) VECTOR
-        DO jc = i_startidx, i_endidx
-          IF ( .NOT.(cld_base_found(jc)) .AND. (prm_diag%clc(jc,jk,jb) > 0.5_wp) ) THEN
-            ceiling_height(jc,jb) = p_metrics%z_mc(jc,jk,jb)
-            cld_base_found(jc) = .TRUE.
-          ENDIF
+      IF (itune_ceiling_diag == 2) THEN ! vertical integration with overlap assumption
+        !$ACC LOOP SEQ
+        DO jk = ptr_patch%nlev, kstart_moist(jg), -1
+          !$ACC LOOP GANG(STATIC: 1) VECTOR PRIVATE(ccmax, ccran, alpha)
+          DO jc = i_startidx, i_endidx
+            ccmax = MAX( prm_diag%clc(jc,jk,jb),  clc_aux(jc) )
+            ccran =      prm_diag%clc(jc,jk,jb) + clc_aux(jc) - prm_diag%clc(jc,jk,jb) * clc_aux(jc)
+            IF (jk < ptr_patch%nlev) THEN
+              alpha = MIN( EXP( - (p_metrics%z_mc(jc,jk,jb)-p_metrics%z_mc(jc,jk+1,jb)) / decorr ), &
+                      prm_diag%clc(jc,jk+1,jb)/MAX(eps_clc,prm_diag%clc(jc,jk,jb)) )
+            ELSE
+              alpha = 1._wp
+            ENDIF
+            clc_aux(jc) = alpha*ccmax + (1._wp-alpha)*ccran
+
+            IF ( .NOT.(cld_base_found(jc)) .AND. (clc_aux(jc) > 0.5_wp) ) THEN
+              ceiling_height(jc,jb) = p_metrics%z_mc(jc,jk,jb)
+              cld_base_found(jc) = .TRUE.
+            ENDIF
+          ENDDO
         ENDDO
-      ENDDO
+      ELSE
+        !$ACC LOOP SEQ
+        DO jk = ptr_patch%nlev, kstart_moist(jg), -1
+          !$ACC LOOP GANG(STATIC: 1) VECTOR
+          DO jc = i_startidx, i_endidx
+            IF ( .NOT.(cld_base_found(jc)) .AND. (prm_diag%clc(jc,jk,jb) > 0.5_wp) ) THEN
+              ceiling_height(jc,jb) = p_metrics%z_mc(jc,jk,jb)
+              cld_base_found(jc) = .TRUE.
+            ENDIF
+          ENDDO
+        ENDDO
+      ENDIF
       !$ACC END PARALLEL
     ENDDO
     !$ACC WAIT(1)
@@ -4083,10 +4118,7 @@ CONTAINS
       CASE ( 1,3 )
 
         CALL get_cloud_number(cloud_num)
-        IF (atm_phy_nwp_config(jg)%icpl_aero_gscp == 2) THEN
-          ! Not yet implemented in microphysics! We give a dummy value here.
-          qnc_s(:,:) = cloud_num               ! 1/kg
-        ELSE IF ( ANY ( atm_phy_nwp_config(jg)%icpl_aero_gscp == (/1, 3/) ) ) THEN
+        IF ( ANY ( atm_phy_nwp_config(jg)%icpl_aero_gscp == (/1, 2, 3/) ) ) THEN
           qnc_s(:,:) = prm_diag%cloud_num(:,:) ! neglect difference of 1/m^3 and 1/kg for this near-surface value
         ELSE
           qnc_s(:,:) = cloud_num               ! 1/kg
@@ -4109,6 +4141,7 @@ CONTAINS
              K_ice     = K_i_0,                            &
              T_melt    = Tmelt,                            &
              igscp     = atm_phy_nwp_config(jg)%inwp_gscp, &
+             igscpaer  = atm_phy_nwp_config(jg)%icpl_aero_gscp, &
              q_crit_radar = 1e-8_wp,                       &
              T         = p_diag%temp(:,:,:),               &
              rho       = p_prog%rho(:,:,:),                &
@@ -4117,16 +4150,14 @@ CONTAINS
              q_rain    = p_prog_rcf%tracer(:,:,:,iqr),     &
              q_snow    = p_prog_rcf%tracer(:,:,:,iqs),     &
              n_cloud_s = qnc_s(:,:),                       &  ! 1/kg
+             n_cloud   = prm_diag%acdnc(:,:,:),            &  ! 1/kg
              z_radar   = dbz3d_lin(:,:,:),                 &
              lacc      = lzacc                             )
 
       CASE ( 2 )
 
         CALL get_cloud_number(cloud_num)
-        IF (atm_phy_nwp_config(jg)%icpl_aero_gscp == 2) THEN
-          ! Not yet implemented in microphysics! We give a dummy value here.
-          qnc_s(:,:) = cloud_num               ! 1/kg
-        ELSE IF (atm_phy_nwp_config(jg)%icpl_aero_gscp == 1) THEN
+        IF ( ANY ( atm_phy_nwp_config(jg)%icpl_aero_gscp == (/1, 2/) ) ) THEN
           qnc_s(:,:) = prm_diag%cloud_num(:,:) ! neglect difference of 1/m^3 and 1/kg for this near-surface value
         ELSE
           qnc_s(:,:) = cloud_num               ! 1/kg
@@ -4149,6 +4180,7 @@ CONTAINS
              K_ice     = K_i_0,                            &
              T_melt    = Tmelt,                            &
              igscp     = atm_phy_nwp_config(jg)%inwp_gscp, &
+             igscpaer  = atm_phy_nwp_config(jg)%icpl_aero_gscp, &
              q_crit_radar = 1e-8_wp,                       &
              T         = p_diag%temp(:,:,:),               &
              rho       = p_prog%rho(:,:,:),                &
@@ -4158,6 +4190,7 @@ CONTAINS
              q_snow    = p_prog_rcf%tracer(:,:,:,iqs),     &
              q_graupel = p_prog_rcf%tracer(:,:,:,iqg),     &
              n_cloud_s = qnc_s(:,:),                       &  ! 1/kg
+             n_cloud   = prm_diag%acdnc(:,:,:),            &  ! 1/kg
              z_radar   = dbz3d_lin(:,:,:),                 &
              lacc      = lzacc                             )
 
@@ -5990,7 +6023,7 @@ CONTAINS
     CHARACTER(len=*), PARAMETER :: routine = modname//': compute_field_visibility'
 
     REAL(wp) :: vis, vis_night, visrh, qrh
-    REAL(wp) :: pvsat, pv, rhmax, visrh_clip, &
+    REAL(wp) :: pvsat, pv, rhmax, visrh_clip, invfac,&
 	     &  shear, shear_fac, czen, zen_fac
     REAL(wp) :: rh(nproma,size(p_prog%rho,2))
     ! local variables to undo phase combined particles
@@ -6033,7 +6066,7 @@ CONTAINS
     !$ACC   CREATE(rh, qc_pure, qi_pure) IF(lzacc)
 
 !$OMP PARALLEL
-!$OMP DO PRIVATE(jb,jc,jk,pvsat,pv,rh,rhmax,visrh,qrh,vis,vis_night,shear,shear_fac,&
+!$OMP DO PRIVATE(jb,jc,jk,pvsat,pv,rh,rhmax,visrh,qrh,vis,vis_night,shear,shear_fac,invfac,&
 !$OMP     Ccmax,Cimax,Crmax,Csmax,Cgmax,temp_fac,a_s,beta,czen,zen_fac,qc_pure,qi_pure), ICON_OMP_RUNTIME_SCHEDULE
     DO jb = i_startblk, i_endblk
 
@@ -6067,24 +6100,32 @@ CONTAINS
       !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
       !$ACC LOOP GANG VECTOR PRIVATE(a_s, beta) &
       !$ACC   PRIVATE(Ccmax, Cgmax, Cimax, Crmax, Csmax) &
-      !$ACC   PRIVATE(czen, rhmax, shear, shear_fac, temp_fac) &
+      !$ACC   PRIVATE(czen, rhmax, shear, shear_fac, temp_fac, invfac) &
       !$ACC   PRIVATE(vis, visrh, vis_night, zen_fac)
       DO jc = i_startidx, i_endidx
-        ! maximum lower two levels
-        rhmax = MAX(rh(jc,nlev), rh(jc,nlev-1))
-
-        ! vis due to haze parametrized as function of rh only, form found via fit to
-        ! SYNOP station data over Germany from 11/2021
-        IF (rhmax <= 40.0_wp) THEN
-          visrh = 88950.37269485_wp - 327.73380915_wp*rhmax
-        ELSE IF (rhmax <= 98.2_wp) THEN
-          visrh = 2.74158753e-04_wp*rhmax**5 - 8.04508715e-02_wp*rhmax**4 &
-            &   + 9.4148139_wp*rhmax**3 - 5.78127237e+02_wp*rhmax**2      &
-            &   + 1.82682914e+04_wp*rhmax - 1.54588988e+05_wp
+        IF (itune_vis_diag == 3) THEN ! tuned version by G. Zaengl
+          rhmax = 0.01_wp*MAX(rh(jc,nlev), rh(jc,nlev-1))
+          ! factor to account for haze formation in boundary layer inversions
+          invfac = 5._wp/MAX(5._wp,p_prog%theta_v(jc,prm_diag%k950(jc,jb),jb)-p_prog%theta_v(jc,nlev-2,jb))
+          ! cubic polynomial determined by VIS(RH=0) = 90 km; VIS(RH=0.6) = 40 km; VIS(RH=0.9) = 20 km; VIS(RH=1) = 2 km
+          visrh = (90._wp - 257.44_wp*rhmax + 471.29_wp*rhmax**2 - 301.85_wp*rhmax**3)*invfac
         ELSE
-          visrh = -1171.04931497_wp*rhmax + 117111.72541055_wp
-        END IF
-        visrh = visrh/1000.0_wp ! convert to units of km
+          ! maximum lower two levels
+          rhmax = MAX(rh(jc,nlev), rh(jc,nlev-1))
+
+          ! vis due to haze parametrized as function of rh only, form found via fit to
+          ! SYNOP station data over Germany from 11/2021
+          IF (rhmax <= 40.0_wp) THEN
+            visrh = 88950.37269485_wp - 327.73380915_wp*rhmax
+          ELSE IF (rhmax <= 98.2_wp) THEN
+            visrh = 2.74158753e-04_wp*rhmax**5 - 8.04508715e-02_wp*rhmax**4 &
+              &   + 9.4148139_wp*rhmax**3 - 5.78127237e+02_wp*rhmax**2      &
+              &   + 1.82682914e+04_wp*rhmax - 1.54588988e+05_wp
+          ELSE
+            visrh = -1171.04931497_wp*rhmax + 117111.72541055_wp
+          END IF
+          visrh = visrh/1000.0_wp ! convert to units of km
+        ENDIF
 
         ! clip below X km
         visrh = MAX(visrh, visrh_clip)

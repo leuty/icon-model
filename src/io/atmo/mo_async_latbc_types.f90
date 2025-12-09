@@ -19,11 +19,11 @@ MODULE mo_async_latbc_types
   USE mo_dictionary,               ONLY: DICT_MAX_STRLEN
   USE mtime,                       ONLY: MAX_DATETIME_STR_LEN, MAX_TIMEDELTA_STR_LEN, &
     &                                    event, datetime, timedelta, OPERATOR(-), &
-    &                                    getTotalSecondsTimedelta, deallocateTimedelta, &
+    &                                    getTotalSecondsTimedelta, deallocateTimedelta, deallocateDatetime,&
     &                                    deallocateEvent, datetimeToString, timedeltaToString
   USE mo_util_mtime,               ONLY: mtime_timedelta_to_seconds
   USE mo_initicon_types,           ONLY: t_init_state, t_init_state_const, t_pi_atm, t_init_state_finalize
-  USE mo_impl_constants,           ONLY: SUCCESS, max_ntracer, vname_len
+  USE mo_impl_constants,           ONLY: SUCCESS, max_ntracer, vname_len, nintv_latbc
   USE mo_exception,                ONLY: finish, message, message_text
   USE mo_run_config,               ONLY: msg_level
   USE mo_reorder_info,             ONLY: t_reorder_info, release_reorder_info
@@ -188,6 +188,11 @@ MODULE mo_async_latbc_types
     PROCEDURE :: finalize => t_glb_indices_finalize
   END TYPE t_glb_indices
 
+  TYPE t_interval_array
+    TYPE(event),     POINTER :: prefetchEvent   => NULL()
+    TYPE(timedelta), POINTER :: delta_dtime     => NULL()
+    TYPE(datetime),  POINTER :: bcintv_enddate      => NULL()
+  END TYPE t_interval_array
 
   !> Data type containing the time control, the variable buffer, and
   !> the necessary index arrays for reordering, to read in lateral
@@ -200,8 +205,7 @@ MODULE mo_async_latbc_types
     !> CDI handle of currently open stream, CDI_UNDEFID if not open
     INTEGER :: open_cdi_stream_handle = cdi_undefid
     TYPE(datetime) :: mtime_last_read
-    TYPE(event),     POINTER :: prefetchEvent   => NULL()
-    TYPE(timedelta), POINTER :: delta_dtime     => NULL()
+    TYPE(t_interval_array) :: intv(nintv_latbc)
 
     ! time level indices for  latbc_data. can be 1 or 2.
     INTEGER :: new_latbc_tlev
@@ -330,7 +334,7 @@ CONTAINS
 
     ! local variables
     CHARACTER(LEN=*), PARAMETER :: routine = modname//"::t_latbc_data_finalize"
-    INTEGER :: tlev, ierror
+    INTEGER :: tlev, ierror, ji
 
     CALL message(routine, 'deallocating latbc data')
 
@@ -343,13 +347,15 @@ CONTAINS
     CALL latbc%buffer%finalize()              ! deallocate intermediate storage latbc%buffer
     CALL latbc%global_index%finalize()        ! clean up global indices data structure.
 
-    IF (ASSOCIATED(latbc%prefetchEvent)) THEN
-      CALL deallocateEvent(latbc%prefetchEvent) ! deallocate prefetch input event
-    END IF
+    DO ji = 1, nintv_latbc
+      IF (ASSOCIATED(latbc%intv(ji)%prefetchEvent)) THEN
+        CALL deallocateEvent(latbc%intv(ji)%prefetchEvent) ! deallocate prefetch input event
+      END IF
+      ! deallocating date and time data structures
+      IF (ASSOCIATED(latbc%intv(ji)%delta_dtime))  CALL deallocateTimedelta(latbc%intv(ji)%delta_dtime)
+      IF (ASSOCIATED(latbc%intv(ji)%bcintv_enddate))   CALL deallocateDatetime(latbc%intv(ji)%bcintv_enddate)
+    END DO
 
-    ! deallocating date and time data structures
-    IF (ASSOCIATED(latbc%delta_dtime)) &
-      CALL deallocateTimedelta(latbc%delta_dtime)
     IF (ASSOCIATED(latbc%latbc_data_const)) THEN
       DEALLOCATE(latbc%latbc_data_const, stat=ierror)
       IF (ierror /= SUCCESS) CALL finish(routine, "deallocate failed!")

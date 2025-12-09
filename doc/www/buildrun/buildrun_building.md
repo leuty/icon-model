@@ -431,7 +431,7 @@ The list of source files that need to be compiled to produce the ICON executable
 - `.cu` &mdash; CUDA source files;
 - `.hip.cc` &mdash; HIP source files.
 
-The list of source files is a result of the recursive search for files that have the aforementioned extensions and reside in the `src` and `support` subdirectories of the source root directory of ICON. Additionally, depending on whether the corresponding components of the model were enabled at the configuration stage, the list is extended with Fortran source files from the `./externals/jsbach/src`, `./externals/dace_icon/src_for_icon`, `./externals/emvorado` and `./externals/art` subdirectories.
+The list of source files is a result of the recursive search for files that have the aforementioned extensions and reside in the `src` and `support` subdirectories of the source root directory of ICON. Additionally, depending on whether the corresponding components of the model were enabled at the configuration stage, the list is extended with Fortran source files from the `./externals/jsbach/src`, `./externals/dace_icon/src_for_icon`, `./externals/emvorado`, `./externals/art` and `./externals/msgwam` subdirectories.
 
 :::{admonition} Notes on source file collection
 :class: admonition-icontheme

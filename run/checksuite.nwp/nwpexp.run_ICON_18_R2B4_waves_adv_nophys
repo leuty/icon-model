@@ -178,7 +178,7 @@ cat > ${wave_namelist} << EOF
  ml_varlist              = 'bathymetry_c',
                            'group:wave_forcing',
                            'group:wave_phy','group:wave_short',
-                           'tracer_001','fl_001'
+                           'wesd_f006_d001','wesd_f006_d002','wesd_f007_d001','wesd_f007_d002','fl_f001'
 /
 &output_nml
  filetype                =                          4         ! output format: 2=GRIB2, 4=NETCDFv2
@@ -193,7 +193,7 @@ cat > ${wave_namelist} << EOF
  reg_lon_def             =                 0., 1, 360.
  reg_lat_def             =                 -90.,1.,90.
  ml_varlist              = 'bathymetry_c','hs','emean',
-                           'tracer_001'
+                           'wesd_f006_d001','wesd_f006_d002','wesd_f007_d001','wesd_f007_d002'
 /
 EOF
 

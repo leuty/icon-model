@@ -26,12 +26,22 @@ MODULE mo_wave_types
   PUBLIC :: t_wave_diag
   PUBLIC :: t_wave_state
   PUBLIC :: t_wave_state_lists
+  PUBLIC :: t_wesd
+
+  ! derived type for wave energy spectral density
+  !
+  TYPE t_wesd
+    REAL(wp), POINTER, CONTIGUOUS :: & ! wave energy spectral density for fixed frequency [m^2 s]
+    ptr(:,:,:) => NULL()               ! over all directions and cells (nproma,ndirs,nblks_c)
+
+    TYPE(t_ptr_2d3d), ALLOCATABLE :: dir(:) !< pointer array for direction bins
+  END TYPE t_wesd
+
 
   TYPE t_wave_prog
-    REAL(wp), POINTER, CONTIGUOUS :: &
-    tracer(:,:,:,:) => NULL()
-    !! wave energy (spectral bins) over frequencies and directions (nproma,ndirs,nblks_c,nfreqs) [m^2 ?]
-    TYPE(t_ptr_2d3d), ALLOCATABLE :: tracer_ptr(:) !< pointer array: one pointer for each tracer
+    !
+    TYPE(t_wesd), ALLOCATABLE :: wesd(:)  ! wave energy spectral density array [m^2 s]
+                                          ! wesd(nfreqs)%ptr(nproma,ndirs,nblks_c)
   END TYPE t_wave_prog
 
 
@@ -39,11 +49,11 @@ MODULE mo_wave_types
   !
   TYPE t_wave_source
     REAL(vp), POINTER, CONTIGUOUS :: &
-      &  sl(:,:,:,:),         & ! total source function                    (nproma,ndirs,nblks_c,nfreqs) (-)
-      &  fl(:,:,:,:)            ! diagonal matrix of functional derivative (nproma,ndirs,nblks_c,nfreqs) (-)
+      &  sl(:,:,:,:),         & ! total source function                    (nproma,ndirs,nfreqs,nblks_c) (-)
+      &  fl(:,:,:,:)            ! diagonal matrix of functional derivative (nproma,ndirs,nfreqs,nblks_c) (-)
 
     INTEGER, POINTER, CONTIGUOUS ::  &
-      &  llws(:,:,:,:)          ! 1 - where sinput is positive (nproma,ndirs,nblks_c,nfreqs) (-)
+      &  llws(:,:,:,:)          ! 1 - where sinput is positive (nproma,ndirs,nfreqs,nblks_c) (-)
 
     TYPE(t_ptr_2d3d_vp), ALLOCATABLE :: sl_ptr(:)   !< pointer array: one pointer for each frequency
     TYPE(t_ptr_2d3d_vp), ALLOCATABLE :: fl_ptr(:)   !< pointer array: one pointer for each frequency
@@ -57,9 +67,6 @@ MODULE mo_wave_types
     REAL(wp), POINTER, CONTIGUOUS :: &
       &  gv_c(:,:,:),         & ! group velocity                    (nproma,nfreqs,nblks_c)  (m/s)
       &  gv_e(:,:,:),         & ! group velocity                    (nproma,nfreqs,nblks_e)  (m/s)
-      &  alphaj(:,:),         & ! jonswap alpha                     (nproma,nblks_c)         (-)
-      &  fp(:,:),             & ! jonswap peak frequency            (nproma,nblks_c)         (hz)
-      &  et(:,:,:),           & ! jonswap spectra                   (nproma,nfreqs,nblks_c)  (-)
       &  flminfr_tab(:,:),    & ! minimum value of energy for a given frequency and wind speed bin (jmax,nfreqs)
       &  f1mean(:,:),         & ! mean frequency based on f-moment  (nproma,nblks_c)
       &  wave_num_c(:,:,:),   & ! wave number at cell centers as a function of
@@ -137,7 +144,7 @@ MODULE mo_wave_types
 
     INTEGER, POINTER, CONTIGUOUS ::  &
       &  last_prog_freq_ind(:,:), & ! last frequency index of the prognostic range (nproma,nblks_c) (-)
-      &  swell_mask(:,:,:,:),     & ! swell separation mask (nproma,ndirs,nblks_c,nfreqs) (-)
+      &  swell_mask(:,:,:,:),     & ! swell separation mask (nproma,ndirs,nfreqs,nblks_c) (-)
       &  ikp(:), ikp1(:),         & ! for discrete approximation of nonlinear transfer (nfreqs+4) (-)
       &  ikm(:), ikm1(:),         & ! --//-- (nfreqs+4) (-)
       &  k1w(:,:), k2w(:,:),      & ! --//-- (ndirs, 2) (-)

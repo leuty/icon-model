@@ -13,7 +13,7 @@
 
 set -e -x
 
-module load python
+module load stack gcc python
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r scripts/cscs_ci/requirements.txt
+pip install pyyaml pandas click

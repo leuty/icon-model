@@ -37,6 +37,7 @@ MODULE mo_input_instructions
     PUBLIC :: readInstructionListOce_make !Needed for Initicon-o
     PUBLIC :: kInputSourceNone, kInputSourceFg, kInputSourceAna, kInputSourceBoth, kInputSourceCold
     PUBLIC :: kStateNoFetch, kStateFailedFetch, kStateRead,  kInputSourceAnaI, kInputSourceFgAnaI
+    PUBLIC :: collectGroupAnaIncrement
 
     ! The possible RETURN values of readInstructionList_sourceOfVar().
     ! kInputSourceBoth  : First guess and analysis increment read from file
@@ -197,11 +198,7 @@ CONTAINS
 
     ! Sub-list of optional first guess fields
     ! Fields in this list are read from the first guess field if they are present,
-    ! but they are not needed to start the model.
-    !
-    ! ToDo:
-    ! So far, this list has to be created manually. In the future this
-    ! should be done automatically via (add_var) metadata flags.
+    ! but they are not needed to start the model. They are collected in group 'opt_fg_vars'
     !
     ! The JSBACH fields are marked optional to allow for initialization from files
     ! without JSBACH fields. In that case JSBACH uses its own initialization files
@@ -213,19 +210,11 @@ CONTAINS
         CHARACTER(LEN = vname_len), ALLOCATABLE, INTENT(OUT) :: outGroup(:)
         INTEGER, INTENT(OUT) :: outGroupSize
 
-        CHARACTER(len=vname_len), ALLOCATABLE :: jsbGroup(:)
-        INTEGER :: jsbGroupSize
+        CHARACTER(len=vname_len), ALLOCATABLE :: jsbGroup(:), optfgGroup(:)
+        INTEGER :: jsbGroupSize, optfgGroupSize
 
-        CALL add_to_list(outGroup, outGroupSize,                                                        &
-          &    str_list2=(/'alb_si          ','rho_snow_mult   ','aer_ss          ','aer_or          ', &
-          &                'aer_bc          ','aer_su          ','aer_du          ','plantevap       ', &
-          &                't_sk            ','t2m_bias        ','hsnow_max       ','snow_age        ', &
-          &                'qg              ','qh              ','qnc             ','qni             ', &
-          &                'qnr             ','qns             ','qng             ','qnh             ', &
-          &                'rh_avginc       ','t_avginc        ','t_wgt_avginc    ','p_avginc        ', &
-          &                'clmf_a          ','clmf_p          ','clmf_d          ','clnum_a         ', &
-          &                'clnum_p         ','clnum_d         ','vabs_avginc     ','t_daywgt_avginc ', &
-          &                'rh_daywgt_avginc','t_2m_filt       ','sst_warm_layer  ','t_seasfc        '/))
+        CALL vlr_group('opt_fg_vars', optfgGroup, optfgGroupSize, loutputvars_only=.FALSE., lremap_lonlat=.FALSE.)
+        CALL add_to_list(outGroup, outGroupSize, optfgGroup, optfgGroupSize)
 
         CALL vlr_group('jsb_init_vars', jsbGroup, jsbGroupSize, loutputvars_only=.FALSE., lremap_lonlat=.FALSE.)
         CALL add_to_list(outGroup, outGroupSize, jsbGroup, jsbGroupSize)
@@ -261,6 +250,35 @@ CONTAINS
                 CALL new_list(outGroup, outGroupSize)
         END SELECT
     END SUBROUTINE collectGroupAnaAtm
+
+    !>
+    !! @brief Collect all input variables that may be provided as analysis increments (group: "ana_increment")
+    !!
+    SUBROUTINE collectGroupAnaIncrement(outGroup, outGroupSize, init_mode)
+
+      CHARACTER(LEN=vname_len), ALLOCATABLE, INTENT(OUT) :: outGroup(:)
+      INTEGER, INTENT(OUT) :: outGroupSize
+      INTEGER, INTENT(IN)  :: init_mode
+
+      !----------------------------
+
+      ! Just to make sure
+      outGroupSize = 0
+
+      SELECT CASE(init_mode)
+      CASE(MODE_IAU)
+        ! Analysis increments apply to this init mode only
+        CALL vlr_group(grp_name         = "ana_increment", & ! in
+          &            var_name         = outGroup,        & ! out
+          &            nvars            = outGroupSize,    & ! out
+          &            loutputvars_only = .FALSE.,         & ! in
+          &            lremap_lonlat    = .FALSE.          ) ! in
+      CASE DEFAULT
+        ! The following routine will return "outGroup" allocated with space for 8 strings, and "outGroupSize = 0"
+        CALL new_list(outGroup, outGroupSize)
+      END SELECT
+
+    END SUBROUTINE collectGroupAnaIncrement
 
     SUBROUTINE mergeAnaIntoFg(anaGroup, anaGroupSize, fgGroup, fgGroupSize, init_mode)
         CHARACTER(LEN = vname_len), ALLOCATABLE, INTENT(INOUT) :: anaGroup(:), fgGroup(:)

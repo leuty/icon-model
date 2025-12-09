@@ -31,7 +31,7 @@ MODULE mo_wave_source
   USE mo_run_config,          ONLY: dtime
   USE mo_physical_constants,  ONLY: grav
   USE mo_math_constants,      ONLY: pi2
-  USE mo_wave_types,          ONLY: t_wave_source, t_wave_diag
+  USE mo_wave_types,          ONLY: t_wave_source, t_wave_diag, t_wesd
   USE mo_wave_config,         ONLY: t_wave_config
   USE mo_wave_constants,      ONLY: DELTA, CONSS
 
@@ -97,7 +97,7 @@ CONTAINS
   !!
   !! Adaptation of WAM 4.5 code.
   !!
-  SUBROUTINE integrate_in_time_src(p_patch, wave_config, p_diag, p_source, sp10m, dir10m, tracer)
+  SUBROUTINE integrate_in_time_src(p_patch, wave_config, p_diag, p_source, sp10m, dir10m, wesd)
     CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER ::  &
          &  routine = 'integrate_in_time_src'
 
@@ -107,7 +107,7 @@ CONTAINS
     TYPE(t_wave_source),         INTENT(IN)    :: p_source
     REAL(wp),                    INTENT(IN)    :: sp10m(:,:)
     REAL(wp),                    INTENT(IN)    :: dir10m(:,:)
-    REAL(wp),                    INTENT(INOUT) :: tracer(:,:,:,:)
+    TYPE(t_wesd),                INTENT(INOUT) :: wesd(:)
 
     TYPE(t_wave_config), POINTER :: wc => NULL()
 
@@ -157,13 +157,13 @@ CONTAINS
             temp_2 = p_diag%ustar(jc,jb) * delfl &
                  &  * MAX(p_diag%femeanws(jc,jb),p_diag%femean(jc,jb))
 
-            temp_1 = dtime * p_source%sl(jc,jd,jb,jf) &
-                 / MAX(1._wp, 1._wp -  dtime * wc%impl_fac * p_source%fl(jc,jd,jb,jf))
+            temp_1 = dtime * p_source%sl(jc,jd,jf,jb) &
+              &   / MAX(1._wp, 1._wp -  dtime * wc%impl_fac * p_source%fl(jc,jd,jf,jb))
 
             temp_3 = MIN(ABS(temp_1),temp_2)
 
-            tracer(jc,jd,jb,jf) = tracer(jc,jd,jb,jf) + SIGN(temp_3,temp_1)
-            tracer(jc,jd,jb,jf) = MAX(tracer(jc,jd,jb,jf), flminfr(jc)*sprd(jc,jd))
+            wesd(jf)%ptr(jc,jd,jb) = wesd(jf)%ptr(jc,jd,jb) + SIGN(temp_3,temp_1)
+            wesd(jf)%ptr(jc,jd,jb) = MAX(wesd(jf)%ptr(jc,jd,jb), flminfr(jc)*sprd(jc,jd))
           END DO
         END DO
       END DO
@@ -187,14 +187,14 @@ CONTAINS
   !! P. Janssen, JPO, 1989.
   !! P. Janssen, JPO., 1991.
   !!
-  SUBROUTINE src_wind_input(p_patch, wave_config, dir10m, tracer, p_diag, p_source)
+  SUBROUTINE src_wind_input(p_patch, wave_config, dir10m, wesd, p_diag, p_source)
     CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER :: &
          & routine =  modname//'src_wind_input'
 
     TYPE(t_patch),               INTENT(IN)    :: p_patch
     TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
     REAL(wp),                    INTENT(IN)    :: dir10m(:,:)
-    REAL(wp),                    INTENT(IN)    :: tracer(:,:,:,:)
+    TYPE(t_wesd),                INTENT(IN)    :: wesd(:)
     TYPE(t_wave_diag),           INTENT(IN)    :: p_diag
     TYPE(t_wave_source),         INTENT(INOUT) :: p_source
 
@@ -253,18 +253,18 @@ CONTAINS
               IF (zlog < 0._wp) THEN
                 zlog2x = zlog*zlog * x
                 ufac = EXP(zlog) * zlog2x*zlog2x + zbeta1
-                p_source%llws(jc,jd,jb,jf) = 1
+                p_source%llws(jc,jd,jf,jb) = 1
               ELSE
                 ufac = zbeta1
-                p_source%llws(jc,jd,jb,jf) = 0
+                p_source%llws(jc,jd,jf,jb) = 0
               END IF
             ELSE
               ufac = zbeta1
-              p_source%llws(jc,jd,jb,jf) = 0
+              p_source%llws(jc,jd,jf,jb) = 0
             END IF
 
-            p_source%fl(jc,jd,jb,jf) = cnsn * ufac
-            p_source%sl(jc,jd,jb,jf) = tracer(jc,jd,jb,jf) * p_source%fl(jc,jd,jb,jf) !SL
+            p_source%fl(jc,jd,jf,jb) = cnsn * ufac
+            p_source%sl(jc,jd,jf,jb) = wesd(jf)%ptr(jc,jd,jb) * p_source%fl(jc,jd,jf,jb) !SL
           END DO
         END DO DIR
       END DO FRE
@@ -293,14 +293,14 @@ CONTAINS
   !! G.Komen, S. Hasselmann And K. Hasselmann, On The Existence
   !!          Of A Fully Developed Windsea Spectrum, JGR, 1984.
   !!
-  SUBROUTINE src_dissipation(p_patch, wave_config, wave_num_c, tracer, p_diag, p_source)
+  SUBROUTINE src_dissipation(p_patch, wave_config, wave_num_c, wesd, p_diag, p_source)
     CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER :: &
          & routine =  modname//'src_dissipation'
 
     TYPE(t_patch),               INTENT(IN)    :: p_patch
     TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
     REAL(wp),                    INTENT(IN)    :: wave_num_c(:,:,:) !< wave number (1/m)
-    REAL(wp),                    INTENT(IN)    :: tracer(:,:,:,:)
+    TYPE(t_wesd),                INTENT(IN)    :: wesd(:)
     TYPE(t_wave_diag),           INTENT(IN)    :: p_diag
     TYPE(t_wave_source),         INTENT(INOUT) :: p_source
 
@@ -335,10 +335,10 @@ CONTAINS
           DO jc = i_startidx, i_endidx
             temp = wave_num_c(jc,jf,jb) / p_diag%xkmean(jc,jb)
             temp = sds(jc) * ((1.0_wp - DELTA) * temp +  DELTA * temp**2)
-            sdiss = temp * tracer(jc,jd,jb,jf)
+            sdiss = temp * wesd(jf)%ptr(jc,jd,jb)
 
-            p_source%sl(jc,jd,jb,jf) = p_source%sl(jc,jd,jb,jf) + sdiss
-            p_source%fl(jc,jd,jb,jf) = p_source%fl(jc,jd,jb,jf) + temp
+            p_source%sl(jc,jd,jf,jb) = p_source%sl(jc,jd,jf,jb) + sdiss
+            p_source%fl(jc,jd,jf,jb) = p_source%fl(jc,jd,jf,jb) + temp
           END DO
         END DO
       END DO
@@ -361,14 +361,14 @@ CONTAINS
   !! Reference
   !! Battjes & Janssen (Coastal Engineering, 1978)
   !!
-  SUBROUTINE src_wave_breaking(p_patch, wave_config, depth_c, tracer, p_diag, p_source)
+  SUBROUTINE src_wave_breaking(p_patch, wave_config, depth_c, wesd, p_diag, p_source)
     CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER :: &
          & routine =  modname//'src_wave_breaking'
 
     TYPE(t_patch),       INTENT(IN)         :: p_patch
     TYPE(t_wave_config), TARGET, INTENT(IN) :: wave_config
     REAL(wp),            INTENT(IN)         :: depth_c(:,:)
-    REAL(wp),            INTENT(IN)         :: tracer(:,:,:,:)
+    TYPE(t_wesd),        INTENT(IN)         :: wesd(:)
     TYPE(t_wave_diag),   INTENT(INOUT)      :: p_diag
     TYPE(t_wave_source), INTENT(INOUT)      :: p_source
 
@@ -420,8 +420,8 @@ CONTAINS
       DO jf = 1,wc%nfreqs
         DO jd = 1,wc%ndirs
           DO jc = i_startidx, i_endidx
-            p_source%sl(jc,jd,jb,jf) = p_source%sl(jc,jd,jb,jf) + sbr(jc) * tracer(jc,jd,jb,jf)
-            p_source%fl(jc,jd,jb,jf) = p_source%fl(jc,jd,jb,jf) + dsbr(jc)
+            p_source%sl(jc,jd,jf,jb) = p_source%sl(jc,jd,jf,jb) + sbr(jc) * wesd(jf)%ptr(jc,jd,jb)
+            p_source%fl(jc,jd,jf,jb) = p_source%fl(jc,jd,jf,jb) + dsbr(jc)
           END DO
         END DO
       END DO
@@ -431,6 +431,7 @@ CONTAINS
 !$OMP END PARALLEL
 
   END SUBROUTINE src_wave_breaking
+
 
   !>
   !! Calculation of fraction of breaking waves
@@ -465,7 +466,7 @@ CONTAINS
     INTEGER :: jc,jb
 
     REAL(wp), PARAMETER :: gamd  = 0.8  !! Parameter of depth limited wave height
-    REAL(wp) :: frac_0(nproma) !Q0
+    REAL(wp) :: frac_0  !Q0
 
     i_rlstart  = 1
     i_rlend    = min_rlcell
@@ -480,27 +481,22 @@ CONTAINS
 
       ! calculation of BB (Hrms / Hmax)**2 BB = 8.*EMEAN/(GAMD*DEPTH)**2
       DO jc = i_startidx, i_endidx
+
         hrms_frac(jc,jb) = 8.0_wp * emean(jc,jb)/(gamd*depth_c(jc,jb))**2
-      END DO
 
-      ! initialisation of frac_0
-      DO jc = i_startidx, i_endidx
-        IF (hrms_frac(jc,jb)>=0.25_wp) THEN
-          frac_0(jc) = (2.0_wp * SQRT(hrms_frac(jc,jb))-1.0_wp )**2
-        ELSE
-          frac_0(jc) = 0.0_wp
-        END IF
-      END DO
-
-      DO jc = i_startidx, i_endidx
         IF (hrms_frac(jc,jb) < 1.0_wp) THEN
-          wbr_frac(jc,jb) = frac_0(jc) - &
-            & hrms_frac(jc,jb) * (frac_0(jc)-EXP((frac_0(jc)-1.0_wp)/hrms_frac(jc,jb))) / &
-            & (hrms_frac(jc,jb) - EXP((frac_0(jc)-1.0_wp)/hrms_frac(jc,jb)))
+          ! initialisation of frac_0
+          frac_0 = MERGE((2.0_wp * SQRT(hrms_frac(jc,jb))-1.0_wp )**2, &
+            &            0.0_wp,                                       &
+            &            hrms_frac(jc,jb)>=0.25_wp)
+
+          wbr_frac(jc,jb) = frac_0 - &
+            & hrms_frac(jc,jb) * (frac_0-EXP((frac_0-1.0_wp)/hrms_frac(jc,jb))) / &
+            & (hrms_frac(jc,jb) - EXP((frac_0-1.0_wp)/hrms_frac(jc,jb)))
         ELSE
           wbr_frac(jc,jb) = 1.0_wp
         END IF
-      END DO
+      ENDDO
     END DO
 !$OMP ENDDO NOWAIT
 !$OMP END PARALLEL
@@ -523,7 +519,7 @@ CONTAINS
   !!  HASSELMANN ET AL, D. HYDR. Z SUPPL A12(1973) (JONSWAP)
   !!  BOUWS AND KOMEN, JPO 13(1983)1653-1658
   !!
-  SUBROUTINE src_bottom_friction(p_patch, wave_config, wave_num_c, depth, tracer, p_source)
+  SUBROUTINE src_bottom_friction(p_patch, wave_config, wave_num_c, depth, wesd, p_source)
     CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER :: &
          & routine =  modname//'src_bottom_friction'
 
@@ -531,7 +527,7 @@ CONTAINS
     TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
     REAL(wp),                    INTENT(IN)    :: wave_num_c(:,:,:) !< wave number (1/m)
     REAL(wp),                    INTENT(IN)    :: depth(:,:)
-    REAL(wp),                    INTENT(IN)    :: tracer(:,:,:,:)
+    TYPE(t_wesd),                INTENT(IN)    :: wesd(:)
     TYPE(t_wave_source),         INTENT(INOUT) :: p_source
 
     TYPE(t_wave_config), POINTER :: wc => NULL()
@@ -565,8 +561,8 @@ CONTAINS
 
         DO jd = 1, wc%ndirs
           DO jc = i_startidx, i_endidx
-            p_source%sl(jc,jd,jb,jf) = p_source%sl(jc,jd,jb,jf) + sbo(jc)*tracer(jc,jd,jb,jf)
-            p_source%fl(jc,jd,jb,jf) = p_source%fl(jc,jd,jb,jf) + sbo(jc)
+            p_source%sl(jc,jd,jf,jb) = p_source%sl(jc,jd,jf,jb) + sbo(jc)*wesd(jf)%ptr(jc,jd,jb)
+            p_source%fl(jc,jd,jf,jb) = p_source%fl(jc,jd,jf,jb) + sbo(jc)
           END DO
         END DO
       END DO
@@ -591,14 +587,14 @@ CONTAINS
   !! H. Guenther  GKSS  February 2002   FT 90
   !! E. Myklebust       February 2005   optimization
   !!
-  SUBROUTINE src_nonlinear_transfer(p_patch, wave_config, depth, tracer, p_diag, p_source)
+  SUBROUTINE src_nonlinear_transfer(p_patch, wave_config, depth, wesd, p_diag, p_source)
     CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER :: &
          & routine =  modname//'src_nonlinear_transfer'
 
     TYPE(t_patch),               INTENT(IN)    :: p_patch
     TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
     REAL(wp),                    INTENT(IN)    :: depth(:,:)
-    REAL(wp),                    INTENT(IN)    :: tracer(:,:,:,:)
+    TYPE(t_wesd),                INTENT(IN)    :: wesd(:)
     TYPE(t_wave_diag),           INTENT(IN)    :: p_diag
     TYPE(t_wave_source),         INTENT(INOUT) :: p_source
 
@@ -739,18 +735,18 @@ CONTAINS
                          K21 = p_diag%K21W(K,KH)
 
                          SAP = &
-                              GW1*tracer(jc,K1 ,jb,IP ) + &
-                              GW2*tracer(jc,K11,jb,IP ) + &
-                              GW3*tracer(jc,K1 ,jb,IP1) + &
-                              GW4*tracer(jc,K11,jb,IP1)
+                              GW1*wesd(IP )%ptr(jc,K1 ,jb) + &
+                              GW2*wesd(IP )%ptr(jc,K11,jb) + &
+                              GW3*wesd(IP1)%ptr(jc,K1 ,jb) + &
+                              GW4*wesd(IP1)%ptr(jc,K11,jb)
                          SAM = &
-                              GW5*tracer(jc,K2 ,jb,IM ) + &
-                              GW6*tracer(jc,K21,jb,IM ) + &
-                              GW7*tracer(jc,K2 ,jb,IM1) + &
-                              GW8*tracer(jc,K21,jb,IM1)
+                              GW5*wesd(IM )%ptr(jc,K2 ,jb) + &
+                              GW6*wesd(IM )%ptr(jc,K21,jb) + &
+                              GW7*wesd(IM1)%ptr(jc,K2 ,jb) + &
+                              GW8*wesd(IM1)%ptr(jc,K21,jb)
 
                          FTEMP = p_diag%AF11(jf) * enh(jc)
-                         FIJ = tracer(jc,K,jb,IC)*FTAIL
+                         FIJ = wesd(IC)%ptr(jc,K,jb)*FTAIL
                          FAD1 = FIJ*(SAP+SAM)
                          FAD2 = FAD1-2._wp*SAP*SAM
                          FAD1 = FAD1+FAD2
@@ -760,28 +756,28 @@ CONTAINS
                          DELAP = (FIJ-2._wp*SAM)*wc%DAL1*FCEN
                          DELAM = (FIJ-2._wp*SAP)*wc%DAL2*FCEN
 
-                         p_source%sl(jc,K2 ,jb,MM ) = p_source%sl(jc,K2 ,jb,MM ) + AD*FKLAMM1 !SL
-                         p_source%sl(jc,K21,jb,MM ) = p_source%sl(jc,K21,jb,MM ) + AD*FKLAMM2 !SL
-                         p_source%fl(jc,K2 ,jb,MM ) = p_source%fl(jc,K2 ,jb,MM ) + DELAM*FKLAM12 !FL
-                         p_source%fl(jc,K21,jb,MM ) = p_source%fl(jc,K21,jb,MM ) + DELAM*FKLAM22 !FL
+                         p_source%sl(jc,K2 ,MM ,jb) = p_source%sl(jc,K2 ,MM ,jb) + AD*FKLAMM1 !SL
+                         p_source%sl(jc,K21,MM ,jb) = p_source%sl(jc,K21,MM ,jb) + AD*FKLAMM2 !SL
+                         p_source%fl(jc,K2 ,MM ,jb) = p_source%fl(jc,K2 ,MM ,jb) + DELAM*FKLAM12 !FL
+                         p_source%fl(jc,K21,MM ,jb) = p_source%fl(jc,K21,MM ,jb) + DELAM*FKLAM22 !FL
 
-                         p_source%sl(jc,K2 ,jb,MM1) = p_source%sl(jc,K2 ,jb,MM1) + AD*FKLAMMA
-                         p_source%sl(jc,K21,jb,MM1) = p_source%sl(jc,K21,jb,MM1) + AD*FKLAMMB
-                         p_source%fl(jc,K2 ,jb,MM1) = p_source%fl(jc,K2 ,jb,MM1) + DELAM*FKLAMA2
-                         p_source%fl(jc,K21,jb,MM1) = p_source%fl(jc,K21,jb,MM1) + DELAM*FKLAMB2
+                         p_source%sl(jc,K2 ,MM1,jb) = p_source%sl(jc,K2 ,MM1,jb) + AD*FKLAMMA
+                         p_source%sl(jc,K21,MM1,jb) = p_source%sl(jc,K21,MM1,jb) + AD*FKLAMMB
+                         p_source%fl(jc,K2 ,MM1,jb) = p_source%fl(jc,K2 ,MM1,jb) + DELAM*FKLAMA2
+                         p_source%fl(jc,K21,MM1,jb) = p_source%fl(jc,K21,MM1,jb) + DELAM*FKLAMB2
 
-                         p_source%sl(jc,K  ,jb,jf ) = p_source%sl(jc,K  ,jb,jf ) - 2._wp*AD
-                         p_source%fl(jc,K  ,jb,jf ) = p_source%fl(jc,K  ,jb,jf ) - 2._wp*DELAD
+                         p_source%sl(jc,K  ,jf ,jb) = p_source%sl(jc,K  ,jf ,jb) - 2._wp*AD
+                         p_source%fl(jc,K  ,jf ,jb) = p_source%fl(jc,K  ,jf ,jb) - 2._wp*DELAD
 
-                         p_source%sl(jc,K1 ,jb,MP ) = p_source%sl(jc,K1 ,jb,MP ) + AD*FKLAMP1
-                         p_source%sl(jc,K11,jb,MP ) = p_source%sl(jc,K11,jb,MP ) + AD*FKLAMP2
-                         p_source%fl(jc,K1 ,jb,MP ) = p_source%fl(jc,K1 ,jb,MP ) + DELAP*FKLAP12
-                         p_source%fl(jc,K11,jb,MP ) = p_source%fl(jc,K11,jb,MP ) + DELAP*FKLAP22
+                         p_source%sl(jc,K1 ,MP ,jb) = p_source%sl(jc,K1 ,MP ,jb) + AD*FKLAMP1
+                         p_source%sl(jc,K11,MP ,jb) = p_source%sl(jc,K11,MP ,jb) + AD*FKLAMP2
+                         p_source%fl(jc,K1 ,MP ,jb) = p_source%fl(jc,K1 ,MP ,jb) + DELAP*FKLAP12
+                         p_source%fl(jc,K11,MP ,jb) = p_source%fl(jc,K11,MP ,jb) + DELAP*FKLAP22
 
-                         p_source%sl(jc,K1 ,jb,MP1) = p_source%sl(jc,K1 ,jb,MP1) + AD*FKLAMPA
-                         p_source%sl(jc,K11,jb,MP1) = p_source%sl(jc,K11,jb,MP1) + AD*FKLAMPB
-                         p_source%fl(jc,K1 ,jb,MP1) = p_source%fl(jc,K1 ,jb,MP1) + DELAP*FKLAPA2
-                         p_source%fl(jc,K11,jb,MP1) = p_source%fl(jc,K11,jb,MP1) + DELAP*FKLAPB2
+                         p_source%sl(jc,K1 ,MP1,jb) = p_source%sl(jc,K1 ,MP1,jb) + AD*FKLAMPA
+                         p_source%sl(jc,K11,MP1,jb) = p_source%sl(jc,K11,MP1,jb) + AD*FKLAMPB
+                         p_source%fl(jc,K1 ,MP1,jb) = p_source%fl(jc,K1 ,MP1,jb) + DELAP*FKLAPA2
+                         p_source%fl(jc,K11,MP1,jb) = p_source%fl(jc,K11,MP1,jb) + DELAP*FKLAPB2
 
                       END DO MIR2
                     END DO  ! jc
@@ -804,18 +800,18 @@ CONTAINS
                         K21 = p_diag%K21W(K,KH)
 
                         SAP = &
-                             GW1*tracer(jc,K1 ,jb,IP ) + &
-                             GW2*tracer(jc,K11,jb,IP ) + &
-                             GW3*tracer(jc,K1 ,jb,IP1) + &
-                             GW4*tracer(jc,K11,jb,IP1)
+                             GW1*wesd(IP )%ptr(jc,K1 ,jb) + &
+                             GW2*wesd(IP )%ptr(jc,K11,jb) + &
+                             GW3*wesd(IP1)%ptr(jc,K1 ,jb) + &
+                             GW4*wesd(IP1)%ptr(jc,K11,jb)
                         SAM = &
-                             GW5*tracer(jc,K2 ,jb,IM ) + &
-                             GW6*tracer(jc,K21,jb,IM ) + &
-                             GW7*tracer(jc,K2 ,jb,IM1) + &
-                             GW8*tracer(jc,K21,jb,IM1)
+                             GW5*wesd(IM )%ptr(jc,K2 ,jb) + &
+                             GW6*wesd(IM )%ptr(jc,K21,jb) + &
+                             GW7*wesd(IM1)%ptr(jc,K2 ,jb) + &
+                             GW8*wesd(IM1)%ptr(jc,K21,jb)
 
                         FTEMP = p_diag%AF11(jf) * enh(jc)
-                        FIJ = tracer(jc,K,jb,IC)*FTAIL
+                        FIJ = wesd(IC)%ptr(jc,K,jb)*FTAIL
                         FAD1 = FIJ*(SAP+SAM)
                         FAD2 = FAD1-2._wp*SAP*SAM
                         FAD1 = FAD1+FAD2
@@ -825,23 +821,23 @@ CONTAINS
                         DELAP = (FIJ-2._wp*SAM)*wc%DAL1*FCEN
                         DELAM = (FIJ-2._wp*SAP)*wc%DAL2*FCEN
 
-                        p_source%sl(jc,K2 ,jb,MM ) = p_source%sl(jc,K2 ,jb,MM ) + AD*FKLAMM1
-                        p_source%sl(jc,K21,jb,MM ) = p_source%sl(jc,K21,jb,MM ) + AD*FKLAMM2
-                        p_source%fl(jc,K2 ,jb,MM ) = p_source%fl(jc,K2 ,jb,MM ) + DELAM*FKLAM12
-                        p_source%fl(jc,K21,jb,MM ) = p_source%fl(jc,K21,jb,MM ) + DELAM*FKLAM22
+                        p_source%sl(jc,K2 ,MM ,jb) = p_source%sl(jc,K2 ,MM ,jb) + AD*FKLAMM1
+                        p_source%sl(jc,K21,MM ,jb) = p_source%sl(jc,K21,MM ,jb) + AD*FKLAMM2
+                        p_source%fl(jc,K2 ,MM ,jb) = p_source%fl(jc,K2 ,MM ,jb) + DELAM*FKLAM12
+                        p_source%fl(jc,K21,MM ,jb) = p_source%fl(jc,K21,MM ,jb) + DELAM*FKLAM22
 
-                        p_source%sl(jc,K2 ,jb,MM1) = p_source%sl(jc,K2 ,jb,MM1) + AD*FKLAMMA
-                        p_source%sl(jc,K21,jb,MM1) = p_source%sl(jc,K21,jb,MM1) + AD*FKLAMMB
-                        p_source%fl(jc,K2 ,jb,MM1) = p_source%fl(jc,K2 ,jb,MM1) + DELAM*FKLAMA2
-                        p_source%fl(jc,K21,jb,MM1) = p_source%fl(jc,K21,jb,MM1) + DELAM*FKLAMB2
+                        p_source%sl(jc,K2 ,MM1,jb) = p_source%sl(jc,K2 ,MM1,jb) + AD*FKLAMMA
+                        p_source%sl(jc,K21,MM1,jb) = p_source%sl(jc,K21,MM1,jb) + AD*FKLAMMB
+                        p_source%fl(jc,K2 ,MM1,jb) = p_source%fl(jc,K2 ,MM1,jb) + DELAM*FKLAMA2
+                        p_source%fl(jc,K21,MM1,jb) = p_source%fl(jc,K21,MM1,jb) + DELAM*FKLAMB2
 
-                        p_source%sl(jc,K  ,jb,jf ) = p_source%sl(jc,K  ,jb,jf ) - 2._wp*AD
-                        p_source%fl(jc,K  ,jb,jf ) = p_source%fl(jc,K  ,jb,jf ) - 2._wp*DELAD
+                        p_source%sl(jc,K  ,jf ,jb) = p_source%sl(jc,K  ,jf ,jb) - 2._wp*AD
+                        p_source%fl(jc,K  ,jf ,jb) = p_source%fl(jc,K  ,jf ,jb) - 2._wp*DELAD
 
-                        p_source%sl(jc,K1 ,jb,MP ) = p_source%sl(jc,K1 ,jb,MP ) + AD*FKLAMP1
-                        p_source%sl(jc,K11,jb,MP ) = p_source%sl(jc,K11,jb,MP ) + AD*FKLAMP2
-                        p_source%fl(jc,K1 ,jb,MP ) = p_source%fl(jc,K1 ,jb,MP ) + DELAP*FKLAP12
-                        p_source%fl(jc,K11,jb,MP ) = p_source%fl(jc,K11,jb,MP ) + DELAP*FKLAP22
+                        p_source%sl(jc,K1 ,MP ,jb) = p_source%sl(jc,K1 ,MP ,jb) + AD*FKLAMP1
+                        p_source%sl(jc,K11,MP ,jb) = p_source%sl(jc,K11,MP ,jb) + AD*FKLAMP2
+                        p_source%fl(jc,K1 ,MP ,jb) = p_source%fl(jc,K1 ,MP ,jb) + DELAP*FKLAP12
+                        p_source%fl(jc,K11,MP ,jb) = p_source%fl(jc,K11,MP ,jb) + DELAP*FKLAP22
 
                       END DO MIR3
                     END DO !jc
@@ -865,18 +861,18 @@ CONTAINS
                       K21 = p_diag%K21W(K,KH)
 
                       SAP = &
-                           GW1*tracer(jc,K1 ,jb,IP ) + &
-                           GW2*tracer(jc,K11,jb,IP ) + &
-                           GW3*tracer(jc,K1 ,jb,IP1) + &
-                           GW4*tracer(jc,K11,jb,IP1)
+                           GW1*wesd(IP )%ptr(jc,K1 ,jb) + &
+                           GW2*wesd(IP )%ptr(jc,K11,jb) + &
+                           GW3*wesd(IP1)%ptr(jc,K1 ,jb) + &
+                           GW4*wesd(IP1)%ptr(jc,K11,jb)
                       SAM = &
-                           GW5*tracer(jc,K2 ,jb,IM ) + &
-                           GW6*tracer(jc,K21,jb,IM ) + &
-                           GW7*tracer(jc,K2 ,jb,IM1) + &
-                           GW8*tracer(jc,K21,jb,IM1)
+                           GW5*wesd(IM )%ptr(jc,K2 ,jb) + &
+                           GW6*wesd(IM )%ptr(jc,K21,jb) + &
+                           GW7*wesd(IM1)%ptr(jc,K2 ,jb) + &
+                           GW8*wesd(IM1)%ptr(jc,K21,jb)
 
                       FTEMP = p_diag%AF11(jf) * enh(jc)
-                      FIJ = tracer(jc,K,jb,IC)*FTAIL
+                      FIJ = wesd(IC)%ptr(jc,K,jb)*FTAIL
                       FAD1 = FIJ*(SAP+SAM)
                       FAD2 = FAD1-2._wp*SAP*SAM
                       FAD1 = FAD1+FAD2
@@ -886,18 +882,18 @@ CONTAINS
                       DELAP = (FIJ-2._wp*SAM)*wc%DAL1*FCEN
                       DELAM = (FIJ-2._wp*SAP)*wc%DAL2*FCEN
 
-                      p_source%sl(jc,K2 ,jb,MM ) = p_source%sl(jc,K2 ,jb,MM ) + AD*FKLAMM1
-                      p_source%sl(jc,K21,jb,MM ) = p_source%sl(jc,K21,jb,MM ) + AD*FKLAMM2
-                      p_source%fl(jc,K2 ,jb,MM ) = p_source%fl(jc,K2 ,jb,MM ) + DELAM*FKLAM12
-                      p_source%fl(jc,K21,jb,MM ) = p_source%fl(jc,K21,jb,MM ) + DELAM*FKLAM22
+                      p_source%sl(jc,K2 ,MM ,jb) = p_source%sl(jc,K2 ,MM ,jb) + AD*FKLAMM1
+                      p_source%sl(jc,K21,MM ,jb) = p_source%sl(jc,K21,MM ,jb) + AD*FKLAMM2
+                      p_source%fl(jc,K2 ,MM ,jb) = p_source%fl(jc,K2 ,MM ,jb) + DELAM*FKLAM12
+                      p_source%fl(jc,K21,MM ,jb) = p_source%fl(jc,K21,MM ,jb) + DELAM*FKLAM22
 
-                      p_source%sl(jc,K2 ,jb,MM1) = p_source%sl(jc,K2 ,jb,MM1) + AD*FKLAMMA
-                      p_source%sl(jc,K21,jb,MM1) = p_source%sl(jc,K21,jb,MM1) + AD*FKLAMMB
-                      p_source%fl(jc,K2 ,jb,MM1) = p_source%fl(jc,K2 ,jb,MM1) + DELAM*FKLAMA2
-                      p_source%fl(jc,K21,jb,MM1) = p_source%fl(jc,K21,jb,MM1) + DELAM*FKLAMB2
+                      p_source%sl(jc,K2 ,MM1,jb) = p_source%sl(jc,K2 ,MM1,jb) + AD*FKLAMMA
+                      p_source%sl(jc,K21,MM1,jb) = p_source%sl(jc,K21,MM1,jb) + AD*FKLAMMB
+                      p_source%fl(jc,K2 ,MM1,jb) = p_source%fl(jc,K2 ,MM1,jb) + DELAM*FKLAMA2
+                      p_source%fl(jc,K21,MM1,jb) = p_source%fl(jc,K21,MM1,jb) + DELAM*FKLAMB2
 
-                      p_source%sl(jc,K  ,jb,jf ) = p_source%sl(jc,K  ,jb,jf ) - 2._wp*AD
-                      p_source%fl(jc,K  ,jb,jf ) = p_source%fl(jc,K  ,jb,jf ) - 2._wp*DELAD
+                      p_source%sl(jc,K  ,jf ,jb) = p_source%sl(jc,K  ,jf ,jb) - 2._wp*AD
+                      p_source%fl(jc,K  ,jf ,jb) = p_source%fl(jc,K  ,jf ,jb) - 2._wp*DELAD
 
                     END DO MIR4
                   END DO !jc
@@ -921,18 +917,18 @@ CONTAINS
                     K21 = p_diag%K21W(K,KH)
 
                     SAP = &
-                         GW1*tracer(jc,K1 ,jb,IP ) + &
-                         GW2*tracer(jc,K11,jb,IP ) + &
-                         GW3*tracer(jc,K1 ,jb,IP1) + &
-                         GW4*tracer(jc,K11,jb,IP1)
+                         GW1*wesd(IP )%ptr(jc,K1 ,jb) + &
+                         GW2*wesd(IP )%ptr(jc,K11,jb) + &
+                         GW3*wesd(IP1)%ptr(jc,K1 ,jb) + &
+                         GW4*wesd(IP1)%ptr(jc,K11,jb)
                     SAM = &
-                         GW5*tracer(jc,K2 ,jb,IM ) + &
-                         GW6*tracer(jc,K21,jb,IM ) + &
-                         GW7*tracer(jc,K2 ,jb,IM1) + &
-                         GW8*tracer(jc,K21,jb,IM1)
+                         GW5*wesd(IM )%ptr(jc,K2 ,jb) + &
+                         GW6*wesd(IM )%ptr(jc,K21,jb) + &
+                         GW7*wesd(IM1)%ptr(jc,K2 ,jb) + &
+                         GW8*wesd(IM1)%ptr(jc,K21,jb)
 
                     FTEMP = p_diag%AF11(jf) * enh(jc)
-                    FIJ = tracer(jc,K,jb,IC)*FTAIL
+                    FIJ = wesd(IC)%ptr(jc,K,jb)*FTAIL
                     FAD1 = FIJ*(SAP+SAM)
                     FAD2 = FAD1-2._wp*SAP*SAM
                     FAD1 = FAD1+FAD2
@@ -942,15 +938,15 @@ CONTAINS
                     DELAP = (FIJ-2._wp*SAM)*wc%DAL1*FCEN
                     DELAM = (FIJ-2._wp*SAP)*wc%DAL2*FCEN
 
-                    p_source%sl(jc,K2 ,jb,MM ) = p_source%sl(jc,K2 ,jb,MM ) + AD*FKLAMM1
-                    p_source%sl(jc,K21,jb,MM ) = p_source%sl(jc,K21,jb,MM ) + AD*FKLAMM2
-                    p_source%fl(jc,K2 ,jb,MM ) = p_source%fl(jc,K2 ,jb,MM ) + DELAM*FKLAM12
-                    p_source%fl(jc,K21,jb,MM ) = p_source%fl(jc,K21,jb,MM ) + DELAM*FKLAM22
+                    p_source%sl(jc,K2 ,MM ,jb) = p_source%sl(jc,K2 ,MM ,jb) + AD*FKLAMM1
+                    p_source%sl(jc,K21,MM ,jb) = p_source%sl(jc,K21,MM ,jb) + AD*FKLAMM2
+                    p_source%fl(jc,K2 ,MM ,jb) = p_source%fl(jc,K2 ,MM ,jb) + DELAM*FKLAM12
+                    p_source%fl(jc,K21,MM ,jb) = p_source%fl(jc,K21,MM ,jb) + DELAM*FKLAM22
 
-                    p_source%sl(jc,K2 ,jb,MM1) = p_source%sl(jc,K2 ,jb,MM1) + AD*FKLAMMA
-                    p_source%sl(jc,K21,jb,MM1) = p_source%sl(jc,K21,jb,MM1) + AD*FKLAMMB
-                    p_source%fl(jc,K2 ,jb,MM1) = p_source%fl(jc,K2 ,jb,MM1) + DELAM*FKLAMA2
-                    p_source%fl(jc,K21,jb,MM1) = p_source%fl(jc,K21,jb,MM1) + DELAM*FKLAMB2
+                    p_source%sl(jc,K2 ,MM1,jb) = p_source%sl(jc,K2 ,MM1,jb) + AD*FKLAMMA
+                    p_source%sl(jc,K21,MM1,jb) = p_source%sl(jc,K21,MM1,jb) + AD*FKLAMMB
+                    p_source%fl(jc,K2 ,MM1,jb) = p_source%fl(jc,K2 ,MM1,jb) + DELAM*FKLAMA2
+                    p_source%fl(jc,K21,MM1,jb) = p_source%fl(jc,K21,MM1,jb) + DELAM*FKLAMB2
 
                   END DO MIR5
                 END DO !jc
@@ -974,18 +970,18 @@ CONTAINS
                   K21 = p_diag%K21W(K,KH)
 
                   SAP = &
-                       GW1*tracer(jc,K1 ,jb,IP ) + &
-                       GW2*tracer(jc,K11,jb,IP ) + &
-                       GW3*tracer(jc,K1 ,jb,IP1) + &
-                       GW4*tracer(jc,K11,jb,IP1)
+                       GW1*wesd(IP )%ptr(jc,K1 ,jb) + &
+                       GW2*wesd(IP )%ptr(jc,K11,jb) + &
+                       GW3*wesd(IP1)%ptr(jc,K1 ,jb) + &
+                       GW4*wesd(IP1)%ptr(jc,K11,jb)
                   SAM = &
-                       GW5*tracer(jc,K2 ,jb,IM ) + &
-                       GW6*tracer(jc,K21,jb,IM ) + &
-                       GW7*tracer(jc,K2 ,jb,IM1) + &
-                       GW8*tracer(jc,K21,jb,IM1)
+                       GW5*wesd(IM )%ptr(jc,K2 ,jb) + &
+                       GW6*wesd(IM )%ptr(jc,K21,jb) + &
+                       GW7*wesd(IM1)%ptr(jc,K2 ,jb) + &
+                       GW8*wesd(IM1)%ptr(jc,K21,jb)
 
                   FTEMP = p_diag%AF11(jf) * enh(jc)
-                  FIJ = tracer(jc,K,jb,IC)*FTAIL
+                  FIJ = wesd(IC)%ptr(jc,K,jb)*FTAIL
                   FAD1 = FIJ*(SAP+SAM)
                   FAD2 = FAD1-2._wp*SAP*SAM
                   FAD1 = FAD1+FAD2
@@ -995,10 +991,10 @@ CONTAINS
                   DELAP = (FIJ-2._wp*SAM)*wc%DAL1*FCEN
                   DELAM = (FIJ-2._wp*SAP)*wc%DAL2*FCEN
 
-                  p_source%sl(jc,K2 ,jb,MM ) = p_source%sl(jc,K2 ,jb,MM ) + AD*FKLAMM1
-                  p_source%sl(jc,K21,jb,MM ) = p_source%sl(jc,K21,jb,MM ) + AD*FKLAMM2
-                  p_source%fl(jc,K2 ,jb,MM ) = p_source%fl(jc,K2 ,jb,MM ) + DELAM*FKLAM12
-                  p_source%fl(jc,K21,jb,MM ) = p_source%fl(jc,K21,jb,MM ) + DELAM*FKLAM22
+                  p_source%sl(jc,K2 ,MM ,jb) = p_source%sl(jc,K2 ,MM ,jb) + AD*FKLAMM1
+                  p_source%sl(jc,K21,MM ,jb) = p_source%sl(jc,K21,MM ,jb) + AD*FKLAMM2
+                  p_source%fl(jc,K2 ,MM ,jb) = p_source%fl(jc,K2 ,MM ,jb) + DELAM*FKLAM12
+                  p_source%fl(jc,K21,MM ,jb) = p_source%fl(jc,K21,MM ,jb) + DELAM*FKLAM22
 
                 END DO MIR6
               END DO !jc
@@ -1022,13 +1018,13 @@ CONTAINS
                 K21 = p_diag%K21W(K,KH)
 
                 SAP = &
-                     GW1*tracer(jc,K1 ,jb,IP ) + &
-                     GW2*tracer(jc,K11,jb,IP ) + &
-                     GW3*tracer(jc,K1 ,jb,IP1) + &
-                     GW4*tracer(jc,K11,jb,IP1)
+                     GW1*wesd(IP )%ptr(jc,K1 ,jb) + &
+                     GW2*wesd(IP )%ptr(jc,K11,jb) + &
+                     GW3*wesd(IP1)%ptr(jc,K1 ,jb) + &
+                     GW4*wesd(IP1)%ptr(jc,K11,jb)
 
                 FTEMP = p_diag%AF11(jf) * enh(jc)
-                FIJ = tracer(jc,K,jb,IC)
+                FIJ = wesd(IC)%ptr(jc,K,jb)
                 FAD2 = FIJ*SAP
                 FAD1 = 2._wp*FAD2
                 FCEN = FTEMP*FIJ
@@ -1036,17 +1032,17 @@ CONTAINS
                 DELAD = FAD1*FTEMP
                 DELAP = FIJ*wc%DAL1*FCEN
 
-                p_source%sl(jc,K  ,jb,jf ) = p_source%sl(jc,K  ,jb,jf ) - 2._wp*AD
-                p_source%sl(jc,K1 ,jb,MP ) = p_source%sl(jc,K1 ,jb,MP ) + AD*FKLAMP1
-                p_source%sl(jc,K11,jb,MP ) = p_source%sl(jc,K11,jb,MP ) + AD*FKLAMP2
-                p_source%sl(jc,K1 ,jb,MP1) = p_source%sl(jc,K1 ,jb,MP1) + AD*FKLAMPA
-                p_source%sl(jc,K11,jb,MP1) = p_source%sl(jc,K11,jb,MP1) + AD*FKLAMPB
+                p_source%sl(jc,K  ,jf ,jb) = p_source%sl(jc,K  ,jf ,jb) - 2._wp*AD
+                p_source%sl(jc,K1 ,MP ,jb) = p_source%sl(jc,K1 ,MP ,jb) + AD*FKLAMP1
+                p_source%sl(jc,K11,MP ,jb) = p_source%sl(jc,K11,MP ,jb) + AD*FKLAMP2
+                p_source%sl(jc,K1 ,MP1,jb) = p_source%sl(jc,K1 ,MP1,jb) + AD*FKLAMPA
+                p_source%sl(jc,K11,MP1,jb) = p_source%sl(jc,K11,MP1,jb) + AD*FKLAMPB
 
-                p_source%fl(jc,K  ,jb,jf ) = p_source%fl(jc,K  ,jb,jf ) - 2._wp*DELAD
-                p_source%fl(jc,K1 ,jb,MP ) = p_source%fl(jc,K1 ,jb,MP ) + DELAP*FKLAP12
-                p_source%fl(jc,K11,jb,MP ) = p_source%fl(jc,K11,jb,MP ) + DELAP*FKLAP22
-                p_source%fl(jc,K1 ,jb,MP1) = p_source%fl(jc,K1 ,jb,MP1) + DELAP*FKLAPA2
-                p_source%fl(jc,K11,jb,MP1) = p_source%fl(jc,K11,jb,MP1) + DELAP*FKLAPB2
+                p_source%fl(jc,K  ,jf ,jb) = p_source%fl(jc,K  ,jf ,jb) - 2._wp*DELAD
+                p_source%fl(jc,K1 ,MP ,jb) = p_source%fl(jc,K1 ,MP ,jb) + DELAP*FKLAP12
+                p_source%fl(jc,K11,MP ,jb) = p_source%fl(jc,K11,MP ,jb) + DELAP*FKLAP22
+                p_source%fl(jc,K1 ,MP1,jb) = p_source%fl(jc,K1 ,MP1,jb) + DELAP*FKLAPA2
+                p_source%fl(jc,K11,MP1,jb) = p_source%fl(jc,K11,MP1,jb) + DELAP*FKLAPB2
 
               END DO MIR7
             END DO !jc

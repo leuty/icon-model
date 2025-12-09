@@ -33,6 +33,9 @@ MODULE mo_nonhydro_gpu_types
   USE mo_interpol_config,     ONLY: support_baryctr_intp
   USE mo_grid_config,         ONLY: n_dom
   USE mo_cuda_graphs,         ONLY: reset_all_graphs
+  USE mo_timer,               ONLY: ltimer, timers_level, timer_start, &
+                                    timer_stop, timer_acc_data_copies, &
+                                    timer_dace_acc_data_copies
   IMPLICIT NONE
   PRIVATE
 
@@ -57,6 +60,7 @@ CONTAINS
 !
 ! Copy all data need on GPU from host to device
 !
+    IF (timers_level > 9) CALL timer_start(timer_acc_data_copies)
 
     CALL assert_acc_device_only("h2d_icon", lacc)
 
@@ -83,6 +87,8 @@ CONTAINS
       CALL transfer_aes( p_patch, .TRUE. )
     END IF
 
+    IF (timers_level > 9) CALL timer_stop(timer_acc_data_copies)
+
   END SUBROUTINE h2d_icon
 
   SUBROUTINE d2h_icon( p_int_state, p_int_state_local_parent, p_patch, p_patch_local_parent, &
@@ -99,6 +105,7 @@ CONTAINS
     INTEGER, INTENT(IN)                       :: iforcing
     LOGICAL, INTENT(IN), OPTIONAL :: lacc ! If true, use openacc
 
+    IF (timers_level > 9) CALL timer_start(timer_acc_data_copies)
     !
     ! Delete all data on GPU
     !
@@ -132,6 +139,8 @@ CONTAINS
     !$ACC EXIT DATA DELETE(p_int_state, p_int_state_local_parent, p_patch, p_patch_local_parent) &
     !$ACC   DELETE(p_nh_state, prep_adv, advection_config, les_config, num_lev)
 #endif
+
+    IF (timers_level > 9) CALL timer_stop(timer_acc_data_copies)
 
   END SUBROUTINE d2h_icon
 
@@ -401,6 +410,8 @@ CONTAINS
 
       INTEGER  :: j,k
 
+      IF (timers_level > 9) CALL timer_start(timer_acc_data_copies)
+
       CALL assert_acc_device_only("devcpy_grf_state", lacc)
 
       IF (l_h2d) THEN
@@ -434,6 +445,7 @@ CONTAINS
         !$ACC EXIT DATA DELETE(p_grf)
       ENDIF
 
+      IF (timers_level > 9) CALL timer_stop(timer_acc_data_copies)
 
     END SUBROUTINE devcpy_grf_state
 

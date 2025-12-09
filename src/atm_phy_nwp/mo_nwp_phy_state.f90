@@ -69,11 +69,11 @@ USE mo_cdi_constants,       ONLY: GRID_UNSTRUCTURED_CELL,             &
 USE mo_master_control,      ONLY: get_my_process_name
 USE mo_parallel_config,     ONLY: nproma
 USE mo_run_config,          ONLY: nqtendphy, iqv, iqc, iqi, iqr, iqs, iqg, iqh, lart, ldass_lhn, &
-  &                               iqb_water_start, iqb_water_end, iqb_snow_start, iqb_snow_end, iqbin
+  &                               iqb_water_start, iqb_water_end, iqb_snow_start, iqb_snow_end, iqbin, lmsgwam
 USE mo_exception,           ONLY: message, finish !,message_text
 USE mo_model_domain,        ONLY: t_patch, p_patch, p_patch_local_parent
 USE mo_grid_config,         ONLY: n_dom, n_dom_start, nexlevs_rrg_vnest
-USE mo_atm_phy_nwp_config,  ONLY: atm_phy_nwp_config, icpl_aero_conv, &
+USE mo_atm_phy_nwp_config,  ONLY: atm_phy_nwp_config, icpl_aero_conv, spg_num, &
   &                               i2daero_dust, i2daero_seas, i2daero_anthro
 USE mo_turbdiff_config,     ONLY: turbdiff_config, t_turbdiff_config
 USE mo_initicon_config,     ONLY: icpl_da_sfcevap, icpl_da_snowalb, icpl_da_landalb, icpl_da_skinc, icpl_da_seaice
@@ -104,7 +104,7 @@ USE mo_zaxis_type,          ONLY: ZA_REFERENCE, ZA_REFERENCE_HALF,          &
   &                               ZA_SURFACE, ZA_HEIGHT_2M, ZA_HEIGHT_10M,       &
   &                               ZA_HEIGHT_2M_LAYER, ZA_TOA, ZA_DEPTH_BELOW_LAND,   &
   &                               ZA_PRESSURE_0, ZA_PRESSURE_400, ZA_SRH, &
-  &                               ZA_PRESSURE_800, ZA_CLOUD_BASE, ZA_CLOUD_TOP,  &
+  &                               ZA_PRESSURE_800, ZA_CLOUD_BASE, ZA_CLOUD_TOP,  ZA_SPG_GENERIC, &
   &                               ZA_ISOTHERM_ZERO, ZA_ECHOTOP, ZA_WSHEAR, ZA_PRESSURE_LAPSERATE
 USE mo_physical_constants,  ONLY: grav
 #ifndef __NO_ICON_LES__
@@ -333,7 +333,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
     TYPE(t_grib2_var) :: grib2_desc
 
     INTEGER :: shape2d(2), shape3d(3), shape3dsubs(3), &
-      &        shape3dsubsw(3), shape3d_synsat(3),     &
+      &        shape3dsubsw(3), shape3d_synsat(3), shape3d_spg(3),     &
       &        shape2d_synsat(2), shape3d_aero(3), shape3dechotop(3), shape3dwshear(3),shape3d_hail(3)
     INTEGER :: shape3dkp1(3), shape3dflux(3), shape3d_uh_max(3), shape3dturb(3), shape3dsrh(3)
     INTEGER :: shape3duse(3) ! used shape for conditionally allocated 3D arrays
@@ -390,6 +390,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
     shape3dwshear  = (/nproma, n_wshear,     kblks/)
     shape3dsrh     = (/nproma, n_srh,        kblks/)
     shape3d_hail   = (/nproma, 5,            kblks/)
+    shape3d_spg    = (/nproma, spg_num,      kblks/)
     shape4d_lwbands= (/nproma, klev,         kblks, ecrad_nbands_lw/)
     shape4d_swbands= (/nproma, klev,         kblks, ecrad_nbands_sw/)
 
@@ -2899,7 +2900,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
                 & ldims=shape2d, lrestart=lrestart, opt_var_ref_pos = 2,         &
                 & var_class=CLASS_CHEM,                                          &
                 & in_group=groups("dwd_fg_sfc_vars","mode_iau_fg_in",            &
-                & "mode_iau_old_fg_in","mode_dwd_fg_in"),                        &
+                & "mode_iau_old_fg_in","mode_dwd_fg_in","opt_fg_vars"),          &
                 & hor_interp=create_hor_interp_metadata(                         &
                 &    hor_intp_type=HINTP_TYPE_LONLAT_BCTR,                       &
                 &    fallback_type=HINTP_TYPE_LONLAT_RBF )                       )
@@ -2919,8 +2920,8 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
 
     ENDIF
 
-    IF (.NOT. ANY( irad_aero == (/iRadAeroNone, iRadAeroConst, iRadAeroCAMSclim/) ) .AND.          &
-      &  (ANY ( atm_phy_nwp_config(k_jg)%icpl_aero_gscp == (/1, 3/) ) .OR. icpl_aero_conv == 1) ) THEN
+    IF (.NOT. ANY( irad_aero == (/iRadAeroNone, iRadAeroConst/) ) .AND.          &
+      &  (ANY ( atm_phy_nwp_config(k_jg)%icpl_aero_gscp == (/1, 2, 3/) ) .OR. icpl_aero_conv == 1) ) THEN
       lrestart = .TRUE.
     ELSE
       lrestart = .FALSE.
@@ -3040,13 +3041,13 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       __acc_attach(diag%ch4rad_ext)
     ENDIF
 
-    IF ( atm_phy_nwp_config(k_jg)%lstochastic_pattern_generator ) THEN
-      ! &      diag%spg(nproma,nblks_c)
+    IF ( atm_phy_nwp_config(k_jg)%lstoch_pattern_generator ) THEN
+      ! &      diag%spg(nproma,spg_num,nblks_c)
       cf_desc    = t_cf_var('spg', '-', 'stochastic pattern generator perturbation field', datatype_flt)
       grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
       CALL add_var( diag_list, 'spg', diag%spg,                 &
-           & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,          &
-           & ldims=shape2d, lrestart=.false., lopenacc=.FALSE. )
+           & GRID_UNSTRUCTURED_CELL, ZA_SPG_GENERIC, cf_desc, grib2_desc,          &
+           & ldims=shape3d_spg, lrestart=.false., loutput=.TRUE.,lopenacc=.FALSE. )
     END IF
 
     ! &      diag%cloud_num(nproma,nblks_c)
@@ -3612,7 +3613,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
 
     ! &      diag%t_2m(nproma,nblks_c)
     IF (icpl_da_sfcevap == 1 .OR. icpl_da_sfcevap == 2) THEN
-      in_group = groups("pbl_vars","dwd_fg_atm_vars","mode_iau_ana_in")
+      in_group = groups("pbl_vars","dwd_fg_atm_vars","mode_iau_ana_in","ana_increment")
     ELSE
       in_group = groups("pbl_vars","dwd_fg_atm_vars")
     ENDIF
@@ -3677,7 +3678,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       CALL add_var( diag_list, 't_2m_filt', diag%t_2m_filt,                      &
         & GRID_UNSTRUCTURED_CELL, ZA_HEIGHT_2M_LAYER, cf_desc, grib2_desc,       &
         & ldims=shape2d, lrestart=.TRUE., lopenacc=.TRUE., initval=99.9_wp,      &
-        & in_group=groups("mode_iau_fg_in","mode_dwd_fg_in","mode_combined_in")  )
+        & in_group=groups("mode_iau_fg_in","mode_dwd_fg_in","mode_combined_in","opt_fg_vars")  )
       __acc_attach(diag%t_2m_filt)
     ENDIF
 
@@ -4242,7 +4243,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
 
 
     ! &      diag%u_10m_t(nproma,nblks_c,ntiles_total+ntiles_water)
-    cf_desc    = t_cf_var('u_10m_t', 'm s-1 ', 'tile-based zonal wind in 2m', datatype_flt)
+    cf_desc    = t_cf_var('u_10m_t', 'm s-1 ', 'tile-based zonal wind in 10m', datatype_flt)
     grib2_desc = grib2_var(0, 2, 2, ibits, GRID_UNSTRUCTURED, GRID_CELL)
     CALL add_var( diag_list, 'u_10m_t', diag%u_10m_t,                                  &
       & GRID_UNSTRUCTURED_CELL, ZA_HEIGHT_10M, cf_desc, grib2_desc, ldims=shape3dsubsw,&
@@ -4266,7 +4267,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
 
 
     ! &      diag%v_10m_t(nproma,nblks_c,ntiles_total+ntiles_water)
-    cf_desc    = t_cf_var('v_10m_t', 'm s-1 ', 'tile-based meridional wind in 2m', &
+    cf_desc    = t_cf_var('v_10m_t', 'm s-1 ', 'tile-based meridional wind in 10m', &
          &                datatype_flt)
     grib2_desc = grib2_var(0, 2, 3, ibits, GRID_UNSTRUCTURED, GRID_CELL)
     CALL add_var( diag_list, 'v_10m_t', diag%v_10m_t,                                  &
@@ -6095,7 +6096,7 @@ SUBROUTINE new_nwp_phy_stochconv_list( k_jg, kblks,    &
             & GRID_UNSTRUCTURED_CELL, ZA_CLOUD_BASE, cf_desc, grib2_desc, &
             & ldims=shape2d,                                              &
             & loutput=.TRUE.,lrestart=.TRUE.,                             &
-            & in_group=groups("mode_iau_fg_in","mode_dwd_fg_in","iau_restore_vars"))
+            & in_group=groups("mode_iau_fg_in","mode_dwd_fg_in","iau_restore_vars","opt_fg_vars"))
 
        ! perturbed cloud-base mass flux for active clouds
        cf_desc    = t_cf_var('clmf_a', 'kg s-1 m-2', 'cloud base mass flux associated with active clouds', datatype_flt32)
@@ -6105,7 +6106,7 @@ SUBROUTINE new_nwp_phy_stochconv_list( k_jg, kblks,    &
             & GRID_UNSTRUCTURED_CELL, ZA_CLOUD_BASE, cf_desc, grib2_desc, &
             & ldims=shape2d,                                              &
             & loutput=.TRUE.,lrestart=.TRUE.,                             &
-            & in_group=groups("mode_iau_fg_in","mode_dwd_fg_in","iau_restore_vars"))
+            & in_group=groups("mode_iau_fg_in","mode_dwd_fg_in","iau_restore_vars","opt_fg_vars"))
 
        ! number of passive clouds, normalised by grid point area
        cf_desc    = t_cf_var('clnum_p', 'm-2', 'number of passive clouds per unit area', datatype_flt32)
@@ -6115,7 +6116,7 @@ SUBROUTINE new_nwp_phy_stochconv_list( k_jg, kblks,    &
             & GRID_UNSTRUCTURED_CELL, ZA_CLOUD_BASE, cf_desc, grib2_desc, &
             & ldims=shape2d,                                              &
             & loutput=.TRUE.,lrestart=.TRUE. ,                            &
-            & in_group=groups("mode_iau_fg_in","mode_dwd_fg_in","iau_restore_vars"))
+            & in_group=groups("mode_iau_fg_in","mode_dwd_fg_in","iau_restore_vars","opt_fg_vars"))
 
        ! perturbed cloud-base mass flux for passive clouds
        cf_desc    = t_cf_var('clmf_p', 'kg s-1 m-2','cloud base mass flux associated with passive clouds', datatype_flt32)
@@ -6125,7 +6126,7 @@ SUBROUTINE new_nwp_phy_stochconv_list( k_jg, kblks,    &
             & GRID_UNSTRUCTURED_CELL, ZA_CLOUD_BASE,cf_desc, grib2_desc, &
             & ldims=shape2d,                                             &
             & loutput=.TRUE.,lrestart=.TRUE.,                            &
-            & in_group=groups("mode_iau_fg_in","mode_dwd_fg_in","iau_restore_vars"))
+            & in_group=groups("mode_iau_fg_in","mode_dwd_fg_in","iau_restore_vars","opt_fg_vars"))
 
     ELSE IF (atm_phy_nwp_config(k_jg)%lstoch_expl) THEN
        ! stochastic shallow convection (explicit)
@@ -6261,7 +6262,7 @@ SUBROUTINE new_nwp_phy_stochconv_list( k_jg, kblks,    &
             & GRID_UNSTRUCTURED_CELL, ZA_CLOUD_BASE, cf_desc, grib2_desc, &
             & ldims=shape2d,                                              &
             & loutput=.TRUE.,lrestart=.TRUE.,                             &
-            & in_group=groups("mode_iau_fg_in","mode_dwd_fg_in","iau_restore_vars"))
+            & in_group=groups("mode_iau_fg_in","mode_dwd_fg_in","iau_restore_vars","opt_fg_vars"))
 
        ! perturbed cloud-base mass flux for deep clouds
        cf_desc    = t_cf_var('clmf_d', 'kg s-1 m-2', 'cloud base mass flux associated with deep clouds', datatype_flt32)
@@ -6273,7 +6274,7 @@ SUBROUTINE new_nwp_phy_stochconv_list( k_jg, kblks,    &
             & GRID_UNSTRUCTURED_CELL, ZA_CLOUD_BASE, cf_desc, grib2_desc, &
             & ldims=shape2d,                                              &
             & loutput=.TRUE.,lrestart=.TRUE.,                             &
-            & in_group=groups("mode_iau_fg_in","mode_dwd_fg_in","iau_restore_vars"))
+            & in_group=groups("mode_iau_fg_in","mode_dwd_fg_in","iau_restore_vars","opt_fg_vars"))
     ELSE
        ALLOCATE(phy_stochconv%clmf_d(0,kblks),phy_stochconv%clnum_d(0,kblks))
     ENDIF
@@ -6409,7 +6410,7 @@ SUBROUTINE new_nwp_phy_tend_list( k_jg, klev,  kblks,   &
                 & in_group=groups("phys_tendencies"), lopenacc=.TRUE. )
     __acc_attach(phy_tend%ddt_temp_clcov)
 
-    IF (is_variable_in_output(var_name="ddt_temp_drag")) THEN
+    IF (is_variable_in_output(var_name="ddt_temp_drag") .OR. ANY(lmsgwam(:))) THEN
       cf_desc    = t_cf_var('ddt_temp_drag', 'K s-1', &
              &                'sso + gwdrag temperature tendency', datatype_flt)
       grib2_desc = grib2_var(192, 162, 125, ibits, GRID_UNSTRUCTURED, GRID_CELL)
@@ -6421,7 +6422,7 @@ SUBROUTINE new_nwp_phy_tend_list( k_jg, klev,  kblks,   &
                     & ldims=shape3d, lrestart=.FALSE.,                              &
                     & in_group=groups("phys_tendencies"), lopenacc=.TRUE. )
                     __acc_attach(phy_tend%ddt_temp_drag)
-      END IF
+    END IF
 
     ! &      phy_tend%ddt_temp_pconv(nproma,nlev,nblks)
     cf_desc    = t_cf_var('ddt_temp_pconv', 'K s-1', &

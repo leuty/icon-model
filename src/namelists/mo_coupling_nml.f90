@@ -161,12 +161,14 @@ CONTAINS
         can_couple_to_cleo = .TRUE.
       CASE (ocean_process)
         can_couple_to_atmo = .TRUE.
+        can_couple_to_waves = .TRUE.
         can_couple_to_hydrodisc = .TRUE.
         can_couple_to_output = .TRUE.
       CASE (hamocc_process)
         can_couple_to_atmo = .TRUE.
       CASE (wave_process)
         can_couple_to_atmo = .TRUE.
+        can_couple_to_ocean = .TRUE.
       CASE (jsbach_process)
         can_couple_to_ocean = .TRUE.
       CASE (testbed_process)

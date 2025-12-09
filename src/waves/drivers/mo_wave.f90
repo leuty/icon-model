@@ -21,7 +21,7 @@ MODULE mo_wave
   USE mo_wave_state,            ONLY: construct_wave_state, destruct_wave_state, p_wave_state
   USE mo_wave_ext_data_state,   ONLY: wave_ext_data
   USE mo_intp_data_strc,        ONLY: p_int_state
-  USE mo_wave_init,             ONLY: init_wave
+  USE mo_wave_init_interface,   ONLY: init_wave
   USE mo_time_config,           ONLY: time_config
   USE mo_util_mtime,            ONLY: getElapsedSimTimeInSeconds
   USE mo_output_event_types,    ONLY: t_sim_step_info

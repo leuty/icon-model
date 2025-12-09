@@ -49,9 +49,10 @@ MODULE mo_solve_nonhydro
   USE mo_sync,              ONLY: SYNC_E, SYNC_C, sync_patch_array,                             &
                                   sync_patch_array_mult, sync_patch_array_mult_mixprec
   USE mo_mpi,               ONLY: my_process_is_mpi_all_seq, work_mpi_barrier
-  USE mo_timer,             ONLY: timer_solve_nh, timer_barrier, timer_start, timer_stop,       &
-                                  timer_solve_nh_cellcomp, timer_solve_nh_edgecomp,             &
-                                  timer_solve_nh_vnupd, timer_solve_nh_vimpl, timer_solve_nh_exch
+  USE mo_timer,             ONLY: timer_solve_nh, timer_barrier, timer_start, timer_stop,          &
+                                  timer_solve_nh_cellcomp, timer_solve_nh_edgecomp,                &
+                                  timer_solve_nh_vnupd, timer_solve_nh_vimpl, timer_solve_nh_exch, &
+                                  timer_acc_data_copies
   USE mo_vertical_coord_table,ONLY: vct_a
   USE mo_prepadv_types,     ONLY: t_prepare_adv
   USE mo_initicon_config,   ONLY: is_iau_active, iau_wgt_dyn
@@ -3091,6 +3092,8 @@ MODULE mo_solve_nonhydro
        REAL(wp), DIMENSION(:,:,:),   POINTER  :: ddt_vn_pgr_tmp, ddt_vn_phd_tmp, ddt_vn_iau_tmp, ddt_vn_ray_tmp ! p_diag  WP
        REAL(wp), DIMENSION(:,:,:),   POINTER  :: ddt_vn_grf_tmp                                                 ! p_diag  WP
 
+       IF (timers_level > 9) CALL timer_start(timer_acc_data_copies)
+
 ! The following code is necessary if the Dycore is to be run in isolation on the GPU
 ! Update all device output on host: the prognostic variables have shifted from nnow to nnew; diagnostics pointers set above
 
@@ -3162,6 +3165,8 @@ MODULE mo_solve_nonhydro
       !$ACC UPDATE HOST(vn_traj_tmp, mass_flx_me_tmp, mass_flx_ic_tmp) ASYNC(1) IF(lprep_adv)
 
       !$ACC WAIT(1)
+
+       IF (timers_level > 9) CALL timer_stop(timer_acc_data_copies)
 
      END SUBROUTINE d2h_solve_nonhydro
 

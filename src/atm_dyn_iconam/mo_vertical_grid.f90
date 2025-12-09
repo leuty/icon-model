@@ -47,7 +47,7 @@ MODULE mo_vertical_grid
   USE mo_intp_data_strc,        ONLY: t_int_state
   USE mo_intp,                  ONLY: cells2edges_scalar, cells2verts_scalar, cell_avg
   USE mo_intp_rbf,              ONLY: rbf_vec_interpol_cell
-  USE mo_math_constants,        ONLY: pi_2
+  USE mo_math_constants,        ONLY: pi_2, pi
   USE mo_loopindices,           ONLY: get_indices_e, get_indices_c
   USE mo_nonhydro_types,        ONLY: t_nh_state, t_nh_state_lists, t_nh_metrics
   USE mo_init_vgrid,            ONLY: nflatlev
@@ -372,7 +372,8 @@ MODULE mo_vertical_grid
         DO jc = i_startidx, i_endidx
           p_nh(jg)%metrics%slope_angle(jc,jb)   = ATAN(SQRT(z_aux_c(jc,1,jb)**2+z_aux_c2(jc,1,jb)**2))
           IF (z_aux_c(jc,1,jb) /= 0._wp .OR. z_aux_c2(jc,1,jb) /= 0._wp) THEN
-            p_nh(jg)%metrics%slope_azimuth(jc,jb) = ATAN2(z_aux_c(jc,1,jb),z_aux_c2(jc,1,jb))
+            p_nh(jg)%metrics%slope_azimuth(jc,jb) = ATAN2(z_aux_c(jc,1,jb),z_aux_c2(jc,1,jb)) + pi
+            ! measured clockwise from North
           ELSE
             p_nh(jg)%metrics%slope_azimuth(jc,jb) = 0._wp
           ENDIF

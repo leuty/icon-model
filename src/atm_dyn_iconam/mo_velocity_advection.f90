@@ -33,7 +33,8 @@ MODULE mo_velocity_advection
   USE mo_loopindices,       ONLY: get_indices_c, get_indices_e
   USE mo_impl_constants,    ONLY: min_rlcell_int, min_rledge_int, min_rlvert_int
   USE mo_impl_constants_grf,ONLY: grf_bdywidth_c, grf_bdywidth_e
-  USE mo_timer,             ONLY: timer_solve_nh_veltend, timer_start, timer_stop
+  USE mo_timer,             ONLY: timer_solve_nh_veltend, timer_acc_data_copies, &
+                                  timer_start, timer_stop
 
   IMPLICIT NONE
 
@@ -916,6 +917,8 @@ MODULE mo_velocity_advection
        REAL(vp), DIMENSION(:,:,:,:), POINTER  :: ddt_vn_cor_pc_tmp
        REAL(vp), DIMENSION(:,:,:,:), POINTER  :: ddt_w_adv_pc_tmp
 
+      IF (timers_level > 9) CALL timer_start(timer_acc_data_copies)
+
        vt_tmp              => p_diag%vt
        vn_ie_tmp           => p_diag%vn_ie
        w_concorr_c_tmp     => p_diag%w_concorr_c
@@ -932,6 +935,7 @@ MODULE mo_velocity_advection
        END IF
 
        !$ACC WAIT(1)
+       IF (timers_level > 9) CALL timer_stop(timer_acc_data_copies)
 
      END SUBROUTINE d2h_velocity_tendencies
 #endif

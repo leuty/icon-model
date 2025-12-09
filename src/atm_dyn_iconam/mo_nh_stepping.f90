@@ -42,7 +42,7 @@ MODULE mo_nh_stepping
   USE mo_run_config,               ONLY: ltestcase, dtime, nsteps, ldynamics, ltransport,   &
     &                                    ntracer, iforcing, msg_level, test_mode,           &
     &                                    output_mode, lart, luse_radarfwo, ldass_lhn,       &
-    &                                    l_disable_print_gpu_mem
+    &                                    l_disable_print_gpu_mem, lmsgwam
   USE mo_advection_config,         ONLY: advection_config
 #ifdef _OPENACC
   USE mo_timer,                    ONLY: ltimer, timers_level, timer_start, timer_stop,        &
@@ -91,7 +91,7 @@ MODULE mo_nh_stepping
     &                                    MODE_IFSANA,MODE_COMBINED,MODE_COSMO,MODE_ICONVREMAP, &
     &                                    SSTICE_AVG_MONTHLY, SSTICE_AVG_DAILY, SSTICE_INST,    &
     &                                    max_dom, min_rlcell, min_rlvert, ismag, iprog,        &
-    &                                    ivdiff, TLEV_NNOW_RCF, TLEV_NNOW,                     &
+    &                                    ivdiff, TLEV_NNOW_RCF, TLEV_NNOW, nintv_latbc,        &
     &                                    UPDATE_LOCATION_ADVECTION
   USE mo_math_divrot,              ONLY: rot_vertex, div_avg !, div
   USE mo_solve_nonhydro,           ONLY: solve_nh
@@ -250,6 +250,10 @@ MODULE mo_nh_stepping
   USE mo_icon2dace,                ONLY: mec_Event, init_dace_op, run_dace_op, dace_op_init
   USE mo_extpar_config,            ONLY: generate_filename
   USE mo_nudging_config,           ONLY: nudging_config, l_global_nudging, indg_type
+#ifdef __MSGWAM
+  USE mo_setup_msgwam_interface,   ONLY: msgwam_read_restartfiles,  &
+    &                                    msgwam_write_restartfiles
+#endif
   USE mo_nwp_tuning_config,        ONLY: itune_gust_diag
   USE mo_nudging,                  ONLY: nudging_interface
   USE mo_nh_moist_thdyn,           ONLY: thermo_src_term
@@ -478,7 +482,8 @@ MODULE mo_nh_stepping
            & lreset=(iau_iter==2)                   )
 
       IF (atm_phy_nwp_config(jg)%icpl_aero_gscp /= 3 .AND. .NOT.isRestart()) THEN
-        CALL init_cloud_aero_cpl (mtime_current, p_patch(jg), p_nh_state(jg)%metrics, ext_data(jg), prm_diag(jg))
+        CALL init_cloud_aero_cpl (mtime_current, p_patch(jg), p_nh_state(jg)%metrics, ext_data(jg), prm_diag(jg), &
+              & p_nh_state(jg)%prog(nnow(jg)), p_nh_state(jg)%diag)
       ENDIF
 
       IF ( ANY( (/i2daero_dust, i2daero_seas, i2daero_anthro/) > 0 ) ) &
@@ -617,6 +622,14 @@ MODULE mo_nh_stepping
     END IF
 #endif
   END SELECT ! iforcing
+
+#ifdef __MSGWAM
+  IF (isRestart()) THEN
+    DO jg = 1, n_dom
+      IF (lmsgwam(jg))  CALL msgwam_read_restartfiles( mtime_current, p_patch(jg) )
+    ENDDO
+  END IF
+#endif
 
 #ifdef __ICON_ART
   IF (lart) THEN
@@ -803,7 +816,7 @@ MODULE mo_nh_stepping
   TYPE(t_simulation_status)            :: simulation_status
   TYPE(datetime),   POINTER            :: mtime_old         ! copy of current datetime (mtime)
 
-  INTEGER                              :: i
+  INTEGER                              :: i, ji
   REAL(wp)                             :: elapsed_time_global
   INTEGER                              :: jstep   ! step number
   INTEGER                              :: jstep0  ! step for which the restart file
@@ -1704,6 +1717,12 @@ MODULE mo_nh_stepping
         ! region. However this has no effect on the prognostic result.
         CALL restartDescriptor%writeRestart(mtime_current, jstep, opt_output_jfile = output_jfile)
 
+#ifdef __MSGWAM
+        DO jg = 1, n_dom
+          IF (lmsgwam(jg))  CALL msgwam_write_restartfiles( mtime_current, p_patch(jg) )
+        ENDDO
+#endif
+
 #ifdef MESSY
         CALL messy_channel_write_output(IOMODE_RST)
 !       CALL messy_ncregrid_write_restart
@@ -1732,7 +1751,11 @@ MODULE mo_nh_stepping
     IF(num_prefetch_proc >= 1 .AND. latbc_config%itype_latbc > 0 .AND. &
     &  .NOT.(jstep == 0 .AND. iau_iter == 1) ) THEN
       !$ser verbatim CALL serialize_all(nproma, 1, "latbc_data", .TRUE., opt_id=iau_iter)
-      latbc_read_datetime = latbc%mtime_last_read + latbc%delta_dtime
+      ji = 1
+      DO i = 1, nintv_latbc-1
+        IF (latbc%mtime_last_read >= latbc%intv(i)%bcintv_enddate) ji = i+1
+      ENDDO
+      latbc_read_datetime = latbc%mtime_last_read + latbc%intv(ji)%delta_dtime
       CALL recv_latbc_data(latbc               = latbc,              &
          &                  p_patch             = p_patch(1:),        &
          &                  p_nh_state          = p_nh_state(1),      &
@@ -2879,8 +2902,8 @@ MODULE mo_nh_stepping
               END IF
 #endif
 
-              CALL init_cloud_aero_cpl (datetime_local(jgc)%ptr, p_patch(jgc), p_nh_state(jgc)%metrics, & ! not ported to OpenACC
-                &                       ext_data(jgc), prm_diag(jgc))
+              CALL init_cloud_aero_cpl (datetime_local(jgc)%ptr, p_patch(jgc), p_nh_state(jgc)%metrics, &
+                &                       ext_data(jgc), prm_diag(jgc), p_nh_state(jgc)%prog(nnow(jgc)), p_nh_state(jgc)%diag )
 
               IF ( ANY( (/i2daero_dust, i2daero_seas, i2daero_anthro/) > 0 ) ) &
                 &  CALL setup_aerosol_advection(p_patch(jgc), lacc=.TRUE.)

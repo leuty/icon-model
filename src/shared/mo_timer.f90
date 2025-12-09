@@ -45,7 +45,8 @@ MODULE mo_timer
   PUBLIC :: init_timer                                        !< procedure of this module
 
   PUBLIC :: timer_total                                       !< IDs of timers
-  PUBLIC :: timer_exch_data, timer_exch_data_rv, timer_exch_data_async, timer_exch_data_wait
+  PUBLIC :: timer_exch_data, timer_exch_data_rv, timer_exch_data_async, &
+            timer_exch_data_wait, timer_acc_data_copies
   PUBLIC :: timer_global_sum, timer_omp_global_sum, timer_ordglb_sum, timer_omp_ordglb_sum
   PUBLIC :: timer_icon_comm_sync
   PUBLIC :: timer_icon_comm_fillrecv, timer_icon_comm_wait, timer_icon_comm_isend,       &
@@ -196,6 +197,19 @@ MODULE mo_timer
 !   PUBLIC :: timer_sync_psend_1, timer_sync_isend_2, timer_sync_recv_2,timer_sync_isend_3
 
   PUBLIC :: timer_sso
+  PUBLIC :: timer_msgwam
+  PUBLIC :: timer_msgwam_fieldsgrads
+  PUBLIC :: timer_msgwam_init_gw_orretal
+  PUBLIC :: timer_msgwam_sync_wave
+  PUBLIC :: timer_msgwam_split_merge
+  PUBLIC :: timer_msgwam_remove_rays
+  PUBLIC :: timer_msgwam_saturation
+  PUBLIC :: timer_msgwam_wave2grid
+  PUBLIC :: timer_msgwam_smooth_hori
+  PUBLIC :: timer_msgwam_tendency
+  PUBLIC :: timer_msgwam_diagprof
+  PUBLIC :: timer_msgwam_propagate_wave
+  PUBLIC :: timer_gw_source, timer_gws_conv
   PUBLIC :: timer_cover_koe
   PUBLIC :: timer_radiation
   PUBLIC :: timer_radheat
@@ -229,6 +243,14 @@ MODULE mo_timer
   PUBLIC :: timer_feedback
 
   PUBLIC :: timer_global_nudging
+
+  ! Sub-timer to timer_init_icon
+  PUBLIC :: timer_file_reading
+  PUBLIC :: timer_raw_data_distribution
+  PUBLIC :: timer_metadata_decoding
+  PUBLIC :: timer_raw_data_decompression
+  PUBLIC :: timer_data_distribution
+  PUBLIC :: timer_file_inventory
 
   ! upper atmosphere
   PUBLIC :: timer_expol
@@ -266,7 +288,8 @@ MODULE mo_timer
   PUBLIC :: timer_restart_indices_setup
 
   ! Timer for data assimilation
-  PUBLIC :: timer_datass, timer_lhn, timer_init_dace, timer_dace_coupling
+  PUBLIC :: timer_datass, timer_lhn, timer_init_dace, timer_dace_coupling, &
+            timer_dace_acc_data_copies
 
   PUBLIC :: timer_extra1,  timer_extra2,  timer_extra3,  timer_extra4,  timer_extra5,  &
             timer_extra6,  timer_extra7,  timer_extra8,  timer_extra9,  timer_extra10, &
@@ -320,7 +343,7 @@ MODULE mo_timer
 
   ! ID of timer for total model integration time
   INTEGER :: timer_total
-  INTEGER :: timer_exch_data, timer_exch_data_rv, timer_exch_data_async, timer_exch_data_wait
+  INTEGER :: timer_exch_data, timer_exch_data_rv, timer_exch_data_async, timer_exch_data_wait, timer_acc_data_copies
   INTEGER :: timer_global_sum, timer_omp_global_sum, timer_ordglb_sum, timer_omp_ordglb_sum
   INTEGER :: timer_icon_comm_sync
   INTEGER :: timer_icon_comm_fillrecv, timer_icon_comm_wait, timer_icon_comm_isend, &
@@ -382,6 +405,19 @@ MODULE mo_timer
 !   INTEGER :: timer_sync_psend_1, timer_sync_isend_2, timer_sync_recv_2,timer_sync_isend_3
 
   INTEGER :: timer_sso
+  INTEGER :: timer_msgwam
+  INTEGER :: timer_msgwam_fieldsgrads
+  INTEGER :: timer_msgwam_init_gw_orretal
+  INTEGER :: timer_msgwam_sync_wave
+  INTEGER :: timer_msgwam_split_merge
+  INTEGER :: timer_msgwam_remove_rays
+  INTEGER :: timer_msgwam_saturation
+  INTEGER :: timer_msgwam_wave2grid
+  INTEGER :: timer_msgwam_smooth_hori
+  INTEGER :: timer_msgwam_tendency
+  INTEGER :: timer_msgwam_diagprof
+  INTEGER :: timer_msgwam_propagate_wave
+  INTEGER :: timer_gw_source, timer_gws_conv
   INTEGER :: timer_cover_koe
   INTEGER :: timer_radiation
   INTEGER :: timer_radheat
@@ -495,6 +531,14 @@ MODULE mo_timer
 
   INTEGER :: timer_global_nudging
 
+  ! Sub-timer to timer_init_icon
+  INTEGER :: timer_file_reading
+  INTEGER :: timer_raw_data_distribution
+  INTEGER :: timer_metadata_decoding
+  INTEGER :: timer_raw_data_decompression
+  INTEGER :: timer_data_distribution
+  INTEGER :: timer_file_inventory
+
   ! upper atmosphere
   INTEGER :: timer_expol
   INTEGER :: timer_upatmo, timer_upatmo_constr, timer_upatmo_destr, timer_upatmo_phy, &
@@ -530,7 +574,8 @@ MODULE mo_timer
   INTEGER :: timer_restart_indices_setup
 
   ! Data assimilation
-  INTEGER :: timer_datass, timer_lhn, timer_init_dace, timer_dace_coupling
+  INTEGER :: timer_datass, timer_lhn, timer_init_dace, timer_dace_coupling, &
+             timer_dace_acc_data_copies
 
   ! The purpose of these "extra" timers is to have otherwise unused timers available for
   ! special-purpose measurements. Please do not remove them and do not use them permanently.
@@ -687,6 +732,7 @@ CONTAINS
     timer_exch_data_rv = new_timer("exch_data_rv")
     timer_exch_data_async = new_timer("exch_data_async")
     timer_exch_data_wait = new_timer("exch_data.wait")
+    timer_acc_data_copies = new_timer("acc_data_copies")
     timer_global_sum = new_timer("global_sum")
     timer_omp_global_sum = new_timer("omp_global_sum")
     timer_ordglb_sum = new_timer("ordglb_sum")
@@ -869,6 +915,20 @@ CONTAINS
     timer_fast_phys = new_timer("rediag_prog_vars")
     timer_nwp_convection = new_timer("nwp_convection")
     timer_pre_radiation_nwp = new_timer("pre_radiation_nwp")
+    timer_msgwam = new_timer("msgwam")
+    timer_msgwam_fieldsgrads = new_timer("msgwam_fieldsgrads")
+    timer_msgwam_init_gw_orretal = new_timer("msgwam_init_gw_orretal")
+    timer_msgwam_sync_wave = new_timer("msgwam_sync_wave")
+    timer_msgwam_split_merge = new_timer("msgwam_split_merge")
+    timer_msgwam_remove_rays = new_timer("msgwam_remove_rays")
+    timer_msgwam_saturation = new_timer("msgwam_saturation")
+    timer_msgwam_wave2grid = new_timer("msgwam_wave2grid")
+    timer_msgwam_smooth_hori = new_timer("msgwam_smooth_hori")
+    timer_msgwam_tendency = new_timer("msgwam_tendency")
+    timer_msgwam_diagprof = new_timer("msgwam_diagprof")
+    timer_msgwam_propagate_wave = new_timer("msgwam_propagate_wave")
+    timer_gw_source = new_timer("gw_source")
+    timer_gws_conv  = new_timer("gws_conv")
     IF (iforcing/=iaes) timer_sso = new_timer("sso")
     timer_cover_koe = new_timer("cloud_cover")
     timer_radiation = new_timer("radiation")
@@ -915,6 +975,14 @@ CONTAINS
     timer_feedback   = new_timer("nesting.feedback")
 
     timer_global_nudging = new_timer("global_nudging")
+
+    ! Sub-timer to timer_init_icon
+    timer_file_reading           = new_timer("file_reading")
+    timer_raw_data_distribution  = new_timer("raw_data_distribution")
+    timer_metadata_decoding      = new_timer("metadata_decoding")
+    timer_raw_data_decompression = new_timer("raw_data_decompression")
+    timer_data_distribution      = new_timer("data_distribution")
+    timer_file_inventory         = new_timer("file_inventory")
 
     ! upper atmosphere
     timer_expol           = new_timer("upatmo_expol")
@@ -982,6 +1050,7 @@ CONTAINS
     timer_lhn     = new_timer("lhn")
     timer_init_dace     = new_timer("init_dace")
     timer_dace_coupling = new_timer("dace_coupling")
+    timer_dace_acc_data_copies = new_timer("dace_acc_data_copies")
 
   ! extra timers for on-demand (non-permanent) timings
     timer_extra1  = new_timer("extra1")

@@ -334,7 +334,7 @@ MODULE mo_nonhydro_types
      mask_mtnpoints_g(:,:) , & !
      ! slope angle and azimuth (used for slope-dependent radiation)
      slope_angle(:,:)  , & ! [rad]
-     slope_azimuth(:,:) & ! [rad]; zero means south-facing slope
+     slope_azimuth(:,:) & ! [rad]; measured clockwise from North
      => NULL()
 
     ! Variables that are in single precision when "__MIXED_PRECISION" is defined

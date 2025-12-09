@@ -5,6 +5,7 @@
 - Improved consistency of surface roughness, drag and momentum flux over ocean/sea ice in VDIFF
 - Added viscous term in computation of surface roughness over ocean in VDIFF
 
+
 #### AES Physics
 
 - Correction of the roughness length computation over ocean in TMX
@@ -13,6 +14,15 @@
 #### NWP Physics
 
 - Bugfix in vdiff interface concerning restart reproducibility
+- Gravity waves parametrisation MS-GWaM (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1647)
+- Allow more than one time interval for lateral boundary conditions (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1880)
+- Revision of diagnostics for ceiling and visibility (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1881)
+- Tuning options to improve 10m-winds in mountainous regions (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1890)
+- Multiscale stochastic pattern generator and iSPPT (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1863)
+- Set taudecay in cover_koe separately for shallow, mid-level and deep convection (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1903)
+- Modified cloud fraction for two-moment cloud ice microphysics (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1769, https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1922)
+- ecRad updates (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1869)
+- Coupling CAMS aerosols with Segal and Khain cloud droplets activation scheme (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1555)
 
 ### ICON-Ocean
 
@@ -25,6 +35,13 @@
 - Implementation of symmetric IAU in ICON-O (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1020)
 
 ### Soil and Surface
+
+### ICON-Waves
+
+- netcdf reader for initial conditions (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1867)
+- Restructure analytic wave spectrum initialization (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1875)
+- Improve memory layout of 4D wave fields (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1904, https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1901)
+- Enable grib2 encoding of wave energy spectra (part1) (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1931)
 
 #### Climate: ICON-Land
 
@@ -43,6 +60,7 @@
 
 - Added Memory Manager library 1.0.0 as external in externals/memman
 - Switch to YAC v3.12
+- Added Gravity waves parametrisation MS-GWaM as external in externals/msgwam
 
 ### Infrastructure
 
@@ -51,6 +69,10 @@
 - Fix for timeshift crosscheck affecting dwd_nec_sp (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1144)
 - Add single precision buildbot tests and download of grids (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1058)
 - Refactor Output Coupling: Masking and Half-Level Support (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1097)
+- Enable coupling between atmo on GPU and oce on CPU (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1868)
+- Coupling of icon-waves and ocean (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1833)
+- Distributed GRIB decoding (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1899, https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1920)
+- Merge 2-Moment Microphysics Type Extensions into Parent Types (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1640)
 
 #### Scripting and testing
 

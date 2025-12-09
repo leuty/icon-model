@@ -4,9 +4,11 @@
 ```{toctree}
 :hidden:
 art/art.md
-ecrad/ecrad_overview.md
+radiation/ecrad_overview.md
+radiation/rad_topo_correction.md
 miscellaneous/miscellaneous_nwp.md
 miscellaneous/miscnwp_2daerosol.md
+miscellaneous/miscnwp_aero_cpl
 sbm/sbm_overview.md
 miscellaneous/tuning_nwp.md
 ```
@@ -109,7 +111,7 @@ _to be added_
 | :-----------                         | :------------ | :------------      |
 | **Radiation**                        | RRTM ({term}`Mlawer et al. 1997`, {term}`Barker et al. 2003`), ecRad ({term}`Hogan & Bozzo 2018`) | {term}`inwp_radiation` |
 | **Non-Orographic Gravity Wave Drag** | {term}`Orr et al. 2010` | {term}`inwp_gwd` |
-| **Sub-grid scale Orographic Drag**   | {term}`Lott & Miller 1997` | {term}`inwp_sso` |
+| **Sub-Grid Scale Orographic Drag**   | {term}`Lott & Miller 1997` | {term}`inwp_sso` |
 | **Cloud Cover**                      | - | {term}`inwp_cldcover` |
 | **Microphysics**                     | Single Moment ({term}`Doms et al. 2011`), Double Moment ({term}`Seifert & Beheng 2006`), SBM ({term}`Khain & Sednev 1996`, {term}`Khain et al. 2004`) | {term}`inwp_gscp` |
 | **Convection**                       | {term}`Tiedtke 1989`, {term}`Bechtold et al. 2008` | {term}`inwp_convection` |
@@ -125,10 +127,10 @@ More detailed descriptions of some of above options are available here:
 :::{grid-item-card}
 **[Radiation (ecRad)](ref_atmosphere_ecrad)**
 ^^^
-[](ref_atmosphere_ecrad_redgrid)  
-[](ref_atmosphere_ecrad_aerosol)  
-[](ref_atmosphere_ecrad_cdnc)  
-[FSD Parameter](ref_atmosphere_ecrad_fsd)
+[Input Options](ref_atmosphere_ecrad_input)  
+[Output](ref_atmosphere_ecrad_outputVars)  
+[](ref_ecrad_implementation)  
+[Topographic Corrections](ref_rad_topo_correction)
 :::
 
 :::{grid-item-card}
@@ -142,7 +144,8 @@ More detailed descriptions of some of above options are available here:
 **[Miscellaneous](ref_atm_nwpmisc)**
 ^^^
 [External SST/SIC](ref_sstsic_ext)\
-[2D Aerosol](ref_miscnwp_2daero)
+[2D Aerosol](ref_miscnwp_2daero)\
+[Aerosol-Cloud coupling](ref_miscnwp_aero_cpl)
 :::
 ::::
 
@@ -172,6 +175,9 @@ inwp_gwd
 
 inwp_sso
   (`&nwp_phy_nml`) 1:{material-regular}`settings;1em;pst-color-secondary` Lott-Miller scheme
+
+islope_rad
+  (`&nwp_phy_nml`) 0:{material-regular}`settings;1em;pst-color-secondary` None 1:{material-regular}`settings;1em;pst-color-secondary` Slope correction for direct solar radiation without shading effects 3: Slope correction for direct solar radiation including shading
 
 inwp_cldcover
   (`&nwp_phy_nml`) 1:{material-regular}`settings;1em;pst-color-secondary` Diagnostic PDF 5: All or nothing scheme (grid-scale clouds)

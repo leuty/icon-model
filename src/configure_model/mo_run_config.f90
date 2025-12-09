@@ -53,6 +53,7 @@ MODULE mo_run_config
   PUBLIC :: check_uuid_gracefully
   PUBLIC :: modelTimeStep
   PUBLIC :: l_disable_print_gpu_mem
+  PUBLIC :: lmsgwam
 
     ! Namelist variables
     !
@@ -93,7 +94,7 @@ MODULE mo_run_config
     LOGICAL :: logmaxrss_all
 
     LOGICAL :: lmemman = .FALSE. !< switch for using memory manager; will later be enabled if needed
-
+    LOGICAL :: lmsgwam(MAX_DOM)  !< logical switch for MS-GWaM (instead of default GWD scheme)
 
     !> output mode (string)
     !  one or multiple of "none", "nml", "totint", "maxwinds"

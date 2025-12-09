@@ -95,7 +95,7 @@ MODULE mo_nwp_phy_types
     TYPE(t_ptr_2d3d),ALLOCATABLE :: uh_max_ptr(:)   !< pointer array: max. updraft helicity in time interval
 
     REAL(wp), POINTER, CONTIGUOUS :: &
-      &   spg(:,:),            & !! 2D stochastic physics pattern
+      &   spg(:,:,:),          & !! array of nspg 2D stochastic physics patterns
       &   acdnc(:,:,:),        & !! cloud droplet number concentration                   [1/m**3]
       &   cape    (:,:),       & !! convective available energy
       &   cloud_num(:,:),      & !! 2D cloud droplet number concentration for simple aerosol-cloud coupling [1/m**3]

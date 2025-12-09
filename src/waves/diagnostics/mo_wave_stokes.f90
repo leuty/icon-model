@@ -20,7 +20,7 @@ MODULE mo_wave_stokes
   USE mo_kind,                ONLY: wp
   USE mo_model_domain,        ONLY: t_patch
   USE mo_wave_config,         ONLY: t_wave_config
-  USE mo_wave_types,          ONLY: t_wave_diag
+  USE mo_wave_types,          ONLY: t_wave_diag, t_wesd
   USE mo_impl_constants,      ONLY: min_rlcell
   USE mo_loopindices,         ONLY: get_indices_c
   USE mo_physical_constants,  ONLY: grav
@@ -48,7 +48,7 @@ CONTAINS
   !! Kern E. Kenyon, JGR, Vol 74 NO 28, 1969
   !! O. Breivik, J.-R. Bidlot & P. Janssen (2016) (high-frequency tail)
   !!
-  SUBROUTINE stokes_profile_spectrum(p_patch, wave_config, wave_num_c, depth, last_idx_depth, tracer, u3d_stokes, v3d_stokes)
+  SUBROUTINE stokes_profile_spectrum(p_patch, wave_config, wave_num_c, depth, last_idx_depth, wesd, u3d_stokes, v3d_stokes)
 
     CHARACTER(*), PARAMETER :: routine = modname//'::stokes_profile'
 
@@ -57,7 +57,7 @@ CONTAINS
     REAL(wp),                    INTENT(IN)    :: wave_num_c(:,:,:)  !< wave number (1/m)
     REAL(wp),                    INTENT(IN)    :: depth(:,:)
     INTEGER,                     INTENT(IN)    :: last_idx_depth(:,:)
-    REAL(wp),                    INTENT(IN)    :: tracer(:,:,:,:) !energy spectral bins
+    TYPE(t_wesd),                INTENT(IN)    :: wesd(:)            !< energy spectral bins
     REAL(wp),                    INTENT(INOUT) :: u3d_stokes(:,:,:)
     REAL(wp),                    INTENT(INOUT) :: v3d_stokes(:,:,:)
 
@@ -96,8 +96,8 @@ CONTAINS
         freqs:DO jf = 1,wc%nfreqs
           DO jd = 1, wc%ndirs
             DO jc = i_startidx, i_endidx
-              si(jc) = si(jc) + tracer(jc,jd,jb,jf) * wc%sin_dir(jd)
-              ci(jc) = ci(jc) + tracer(jc,jd,jb,jf) * wc%cos_dir(jd)
+              si(jc) = si(jc) + wesd(jf)%ptr(jc,jd,jb) * wc%sin_dir(jd)
+              ci(jc) = ci(jc) + wesd(jf)%ptr(jc,jd,jb) * wc%cos_dir(jd)
             END DO
           END DO
 
@@ -135,8 +135,8 @@ CONTAINS
 
       DO jd = 1, wc%ndirs
        DO jc = i_startidx, i_endidx
-          si(jc) = si(jc) + tracer(jc,jd,jb,wc%nfreqs) * wc%sin_dir(jd) * pi2*wc%freqs(wc%nfreqs) * kc(jc)
-          ci(jc) = ci(jc) + tracer(jc,jd,jb,wc%nfreqs) * wc%cos_dir(jd) * pi2*wc%freqs(wc%nfreqs) * kc(jc)
+          si(jc) = si(jc) + wesd(wc%nfreqs)%ptr(jc,jd,jb) * wc%sin_dir(jd) * pi2*wc%freqs(wc%nfreqs) * kc(jc)
+          ci(jc) = ci(jc) + wesd(wc%nfreqs)%ptr(jc,jd,jb) * wc%cos_dir(jd) * pi2*wc%freqs(wc%nfreqs) * kc(jc)
        END DO
       END DO
 
@@ -163,7 +163,7 @@ CONTAINS
   !! Reference:
   !! O. Breivik, J.-R. Bidlot & P. Janssen (2016)
   !!
-  SUBROUTINE stokes_profile_breivik(p_patch, wave_config, wave_num_c, depth, last_idx_depth, tracer, &
+  SUBROUTINE stokes_profile_breivik(p_patch, wave_config, wave_num_c, depth, last_idx_depth, wesd, &
                                   & u_stokes, v_stokes, kbar, T_stokes, u3d_stokes, v3d_stokes)
 
     CHARACTER(*), PARAMETER :: routine = modname//'::stokes_profile'
@@ -173,7 +173,7 @@ CONTAINS
     REAL(wp),                    INTENT(IN)    :: wave_num_c(:,:,:)  !< wave number (1/m)
     REAL(wp),                    INTENT(IN)    :: depth(:,:)
     INTEGER,                     INTENT(IN)    :: last_idx_depth(:,:)
-    REAL(wp),                    INTENT(IN)    :: tracer(:,:,:,:)    !energy spectral bins
+    TYPE(t_wesd),                INTENT(IN)    :: wesd(:)            !< energy spectral bins
     REAL(wp),                    INTENT(IN)    :: u_stokes(:,:)
     REAL(wp),                    INTENT(IN)    :: v_stokes(:,:)
     REAL(wp),                    INTENT(INOUT) :: kbar(:,:)
@@ -219,8 +219,8 @@ CONTAINS
 
       DO jd = 1, wc%ndirs
         DO jc = i_startidx, i_endidx
-           si(jc) = si(jc) + 2._wp*tracer(jc,jd,jb,wc%nfreqs) * wc%sin_dir(jd)*kc(jc)*pi2*wc%freqs(wc%nfreqs)**2
-           ci(jc) = ci(jc) + 2._wp*tracer(jc,jd,jb,wc%nfreqs) * wc%cos_dir(jd)*kc(jc)*pi2*wc%freqs(wc%nfreqs)**2
+           si(jc) = si(jc) + 2._wp*wesd(wc%nfreqs)%ptr(jc,jd,jb) * wc%sin_dir(jd)*kc(jc)*pi2*wc%freqs(wc%nfreqs)**2
+           ci(jc) = ci(jc) + 2._wp*wesd(wc%nfreqs)%ptr(jc,jd,jb) * wc%cos_dir(jd)*kc(jc)*pi2*wc%freqs(wc%nfreqs)**2
           END DO
         END DO
 
@@ -239,7 +239,7 @@ CONTAINS
 
         DO jd = 1, wc%ndirs
           DO jc = i_startidx, i_endidx
-            temp(jc,jf) = temp(jc,jf) + tracer(jc,jd,jb,jf)
+            temp(jc,jf) = temp(jc,jf) + wesd(jf)%ptr(jc,jd,jb)
           END DO
         END DO
 

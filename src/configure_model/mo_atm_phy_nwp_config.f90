@@ -68,11 +68,14 @@ MODULE mo_atm_phy_nwp_config
   PUBLIC :: icpl_aero_conv
   PUBLIC :: icpl_o3_tp
   PUBLIC :: itype_dissip_heat
+  PUBLIC :: itype_icecloud_diag
   PUBLIC :: i2daero_dust, i2daero_seas, i2daero_anthro, i2daero_fire
   PUBLIC :: setup_nwp_diag_events
   PUBLIC :: icpl_aero_ice
   PUBLIC :: lcuda_graph_turb_tran
   PUBLIC :: icpl_gwd_prec
+  PUBLIC :: itype_stoch_phys
+  PUBLIC :: spg_num
 
   !!--------------------------------------------------------------------------
   !! Basic configuration setup for nwp physics
@@ -141,13 +144,13 @@ MODULE mo_atm_phy_nwp_config
     INTEGER  :: ithermo_water      !! thermodynamic of water
 
     ! stochastic pattern generator
-    REAL(wp) :: spg_length_scale   !! length scale
-    REAL(wp) :: spg_time_scale     !! time scale of AR1 process
-    INTEGER  :: spg_spec_modes     !! number of spectral modes
-    REAL(wp) :: spg_variance       !! variance in grid point space
     LOGICAL  :: spg_fourier_modes  !! use Fourier modes for limited area
     LOGICAL  :: spg_use_asl        !! use ASL library on NEC
-    LOGICAL  :: lstochastic_pattern_generator   !! use stochastic pattern generator
+    LOGICAL  :: lstoch_pattern_generator        !! use stochastic pattern generator
+    REAL(wp), DIMENSION(5) :: spg_length_scale  !! length scale
+    REAL(wp), DIMENSION(5) :: spg_time_scale    !! time scale of AR1 process
+    INTEGER,  DIMENSION(5) :: spg_spec_modes    !! number of spectral modes
+    REAL(wp), DIMENSION(5) :: spg_variance      !! variance in grid point space
 
     ! upper atmosphere
     LOGICAL ::  lupatmo_phy        !! use upper atmosphere physics
@@ -236,9 +239,11 @@ MODULE mo_atm_phy_nwp_config
   INTEGER  :: icpl_aero_ice      !! type of coupling between aersols and ice nucleation
   INTEGER  :: itype_dissip_heat  !! Options for the calculation of dissipative heating
   INTEGER  :: icpl_gwd_prec      !! coupling between gwd momentum flux and total precipitation
+  INTEGER  :: itype_stoch_phys   !! type of stochastic physics scheme
+  INTEGER  :: spg_num            !! number of stochastic patterns in grid point space
+  INTEGER ::  itype_icecloud_diag!! options for parameterization of ice clouds in cover_koe
 
-
-  !$ACC DECLARE CREATE(itype_dissip_heat, icpl_o3_tp)
+  !$ACC DECLARE CREATE(itype_dissip_heat, icpl_o3_tp, itype_icecloud_diag)
 
   REAL(wp) ::  &                       !> Field of calling-time interval (seconds) for
     &  dt_phy(max_dom,iphysproc_short) !! each domain and phys. process

@@ -14,6 +14,6 @@ set -eu
 SCRIPT_DIR=$(cd "$(dirname "$0")"; pwd)
 SPACK_VERSION=$(cat $SCRIPT_DIR/SPACK_TAG_SANTIS)
 BUILD_DIR=$(pwd)
-BUILD_TRHEADS=72
+BUILD_THREADS=72
 
-$SCRIPT_DIR/spack_install $SPACK_VERSION santis_cpu_double $BUILD_DIR "/user-environment" $BUILD_TRHEADS
+$SCRIPT_DIR/spack_install $SPACK_VERSION santis_cpu_double $BUILD_DIR "/user-environment" $BUILD_THREADS

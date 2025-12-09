@@ -865,9 +865,8 @@ CONTAINS
         CALL read_extdata('FR_LAKE',   ext_data(jg)%atm%fr_lake)
         CALL read_extdata('DEPTH_LK',  ext_data(jg)%atm%depth_lk)
 
-        IF (islope_rad(jg) >= 2) THEN
+        IF (islope_rad(jg) >= 3) THEN
           CALL read_extdata('HORIZON', arr3d=ext_data(jg)%atm%horizon,ltime=.FALSE.)
-          CALL read_extdata('SKYVIEW', ext_data(jg)%atm%skyview)
 
           rl_start = 1
           rl_end   = min_rlcell
@@ -905,7 +904,7 @@ CONTAINS
           IF (error_status /= SUCCESS) THEN
             CALL finish(routine, 'deallocation for ierr failed')
           ENDIF
-        ENDIF ! islope_rad >= 2
+        ENDIF ! islope_rad >= 3
 
         CALL read_extdata('LU_CLASS_FRACTION', arr3d=ext_data(jg)%atm%lu_class_fraction,ltime=.FALSE.)
 

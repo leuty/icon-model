@@ -127,24 +127,25 @@ END FUNCTION
 !! scale precipitation including cloud water, cloud ice, graupel, rain and snow
 !------------------------------------------------------------------------------
 
-SUBROUTINE graupel     (             &
-  nvec,ke,                           & !> array dimensions
-  ivstart,ivend, kstart,             & !! optional start/end indicies
-  idbg,                              & !! optional debug level
-  zdt, dz,                           & !! numerics parameters
-  t,p,rho,qv,qc,qi,qr,qs,qg,qnc,     & !! prognostic variables
-  zninc,                             & !! prognostic variables
+SUBROUTINE graupel     (               &
+  nvec,ke,                             & !> array dimensions
+  ivstart,ivend, kstart,               & !! optional start/end indicies
+  idbg,                                & !! optional debug level
+  zdt, dz,                             & !! numerics parameters
+  t,p,rho,qv,qc,qi,qr,qs,qg,qnc,qnc3d, & !! prognostic variables
+  zninc,                               & !! prognostic variables
   !xxx: this should become a module variable, e.g. in a new module mo_gscp_data.f90
-  qi0,qc0,                           & !! cloud ice/water threshold for autoconversion
-  prr_gsp,prs_gsp,pri_gsp,prg_gsp,   & !! surface precipitation rates
-  qrsflux,                           & !  total precipitation flux
-  l_cv,                              &
-  ithermo_water,                     & !  water thermodynamics
-  ldass_lhn,                         &
-  ldiag_ttend,     ldiag_qtend     , &
-  ddt_tend_t     , ddt_tend_qv     , &
-  ddt_tend_qc    , ddt_tend_qi     , & !> ddt_tend_xx are tendencies
-  ddt_tend_qr    , ddt_tend_qs) !   necessary for dynamics
+  qi0,qc0,                             & !! cloud ice/water threshold for autoconversion
+  use3Dcdnc,                           & !! use 3D CDNC
+  prr_gsp,prs_gsp,pri_gsp,prg_gsp,     & !! surface precipitation rates
+  qrsflux,                             & !  total precipitation flux
+  l_cv,                                &
+  ithermo_water,                       & !  water thermodynamics
+  ldass_lhn,                           &
+  ldiag_ttend,     ldiag_qtend       , &
+  ddt_tend_t     , ddt_tend_qv       , &
+  ddt_tend_qc    , ddt_tend_qi       , & !> ddt_tend_xx are tendencies
+  ddt_tend_qr    , ddt_tend_qs)          !   necessary for dynamics
 
 !------------------------------------------------------------------------------
 ! Description:
@@ -200,15 +201,17 @@ SUBROUTINE graupel     (             &
     p                      !! pressure                                      ( Pa  )
 
   LOGICAL, INTENT(IN):: &
-    l_cv, &                   !! if true, cv is used instead of cp
+    l_cv, &                !! if true, cv is used instead of cp
     ldass_lhn
 
   INTEGER, INTENT(IN):: &
     ithermo_water          !! water thermodynamics
 
+
   LOGICAL, INTENT(IN):: &
     ldiag_ttend,         & ! if true, temperature tendency shall be diagnosed
-    ldiag_qtend            ! if true, moisture tendencies shall be diagnosed
+    ldiag_qtend,         & ! if true, moisture tendencies shall be diagnosed
+    use3Dcdnc              ! if true, use 3D CDNC
 
   REAL(KIND=wp), DIMENSION(:,:), INTENT(INOUT) ::   &   ! dim (ie,ke)
     t               ,    & !> temperature                                   (  K  )
@@ -228,6 +231,9 @@ SUBROUTINE graupel     (             &
     prs_gsp,             & !! precipitation rate of snow, grid-scale        (kg/(m2*s))
     prg_gsp,             & !! precipitation rate of graupel, grid-scale     (kg/(m2*s))
     qnc                    !! cloud number concentration
+
+  REAL(KIND=wp), OPTIONAL, DIMENSION(:,:), INTENT(IN)::   &     ! dim (ie,ke)
+    qnc3d                    !! 3D cloud number concentration
 
   REAL(KIND=wp), DIMENSION(:), INTENT(INOUT)::   &   ! dim (ie)
     pri_gsp                !! precipitation rate of ice, grid-scale        (kg/(m2*s))
@@ -307,7 +313,7 @@ SUBROUTINE graupel     (             &
   REAL    (KIND=wp   ) ::  &
     zlnqrk,zlnqsk,zlnqik,     & !
     zlnlogmi,zlnqgk,ccswxp_ln1o2,zvzxp_ln1o2,zbvi_ln1o2,zexpsedg_ln1o2, &
-    qcg,tg,qvg,qrg,qsg,qgg,qig,rhog,ppg,alf,bet,m2s,m3s,hlp,            &
+    qcg,tg,qvg,qrg,qsg,qgg,qig,rhog,qnc3dg, ppg,alf,bet,m2s,m3s,hlp,    &
     qcgk_1,maxevap,temp_c
 
   LOGICAL :: &
@@ -456,7 +462,7 @@ SUBROUTINE graupel     (             &
 !------------------------------------------------------------------------------
   ! Input data
   !$ACC DATA &
-  !$ACC   PRESENT(dz, t, p, rho, qv, qc, qi, qr, qs, qg, qnc, zninc) &
+  !$ACC   PRESENT(dz, t, p, rho, qv, qc, qi, qr, qs, qg, qnc, qnc3d, zninc) &
   !$ACC   PRESENT(prr_gsp, prs_gsp, prg_gsp, qrsflux) &
   ! automatic arrays
   !$ACC   CREATE(zvzr, zvzs, zvzg, zvzi) &
@@ -652,7 +658,7 @@ SUBROUTINE graupel     (             &
     !$ACC LOOP GANG(STATIC: 1) VECTOR PRIVATE(alf, bet, fnuc, hlp, llqc, llqg, llqi, llqr) &
     !$ACC   PRIVATE(llqs, m2s, m3s, maxevap, nnr, ppg, qcg) &
     !$ACC   PRIVATE(qcgk_1, qgg, qig, qrg, qsg, qvg, reduce_dep) &
-    !$ACC   PRIVATE(rhog, sagg, sagg2, scac, scau, scfrz, sconr) &
+    !$ACC   PRIVATE(rhog, qnc3dg, sagg, sagg2, scac, scau, scfrz, sconr) &
     !$ACC   PRIVATE(sconsg, sdau, sev, sgdep, sgmelt, siau) &
     !$ACC   PRIVATE(sicri, sidep, simelt, snuc, srcri, srfrz) &
     !$ACC   PRIVATE(srim, srim2, ssdep, sshed, ssmelt, temp_c) &
@@ -1026,8 +1032,16 @@ SUBROUTINE graupel     (             &
               ztau = MAX(ztau,1.E-30_wp)
               hlp  = EXP(zkphi2*LOG(ztau))
               zphi = zkphi1 * hlp * (1.0_wp - hlp)**3
-              scau = zconst * qcg*qcg*qcg*qcg/(qnc(iv)*qnc(iv)) &
+
+              IF (use3Dcdnc) THEN
+                qnc3dg = qnc3d(iv,k)
+              ELSE
+                qnc3dg = qnc(iv)
+              END IF
+
+              scau = zconst * qcg*qcg*qcg*qcg/(qnc3dg*qnc3dg) &
                    * (1.0_wp + zphi/(1.0_wp - ztau)**2)
+
               zphi = (ztau/(ztau+zkphi3))**4
               scac = zkcac * qcg * qrg * zphi
             ELSE

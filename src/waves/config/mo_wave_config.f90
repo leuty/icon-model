@@ -27,7 +27,8 @@ MODULE mo_wave_config
   USE mo_mpi,                  ONLY: p_io, p_comm_work, my_process_is_stdio, &
     &                                p_bcast, p_comm_work_test
   USE mo_parallel_config,      ONLY: p_test_run
-
+  USE mo_run_config,           ONLY: msg_level
+  USE mtime,                   ONLY: datetime
 
   IMPLICIT NONE
 
@@ -180,6 +181,12 @@ MODULE mo_wave_config
     INTEGER :: oce_stokes_nlev ! number of Stokes vertical layers
 
   CONTAINS
+    !
+    ! calculate directions for wave spectrum
+    PROCEDURE :: set_directions      => wave_config__set_directions
+    !
+    ! calculate frequencies and intervals for wave spectrum
+    PROCEDURE :: set_frequencies     => wave_config__set_frequencies
     !
     ! destruct wave_config object
     PROCEDURE :: destruct            => wave_config_destruct
@@ -393,13 +400,13 @@ CONTAINS
 
     INTEGER, INTENT(IN) :: n_dom    !< number of domains
 
-    INTEGER :: j, jd, jf, jk ! loop index
-    INTEGER :: jg            ! patch ID
-    INTEGER :: ist           ! error status
+    INTEGER :: j, jd     ! loop index
+    INTEGER :: jg        ! patch ID
+    INTEGER :: ist       ! error status
 
     TYPE(t_wave_config), POINTER :: wc =>NULL()     ! convenience pointer
 
-    REAL(wp) :: CO1, X0, FF, F, DF, CONST1
+    REAL(wp) :: X0, FF, F, DF, CONST1
 
     CHARACTER(*), PARAMETER :: routine = modname//'::configure_waves'
 
@@ -436,14 +443,7 @@ CONTAINS
         wc%lread_forcing = .FALSE.
       ENDIF
 
-
-      ALLOCATE(wc%dirs         (wc%ndirs),  &
-        &      wc%sin_dir      (wc%ndirs),  &
-        &      wc%cos_dir      (wc%ndirs),  &
-        &      wc%freqs        (wc%nfreqs), &
-        &      wc%dfreqs       (wc%nfreqs), &
-        &      wc%dfreqs_freqs (wc%nfreqs), &
-        &      wc%dfreqs_freqs2(wc%nfreqs), &
+      ALLOCATE(                             &
         &      wc%dfim         (wc%nfreqs), &
         &      wc%dfimofr      (wc%nfreqs), &
         &      wc%dfim_fr      (wc%nfreqs), &
@@ -468,7 +468,7 @@ CONTAINS
       !
       CALL message ('  ','')
       CALL message (':----------------------------------------------------------','')
-      WRITE(message_text,'(a,i4)') 'grid ', jg
+      WRITE(message_text,'(a,i4)') ' domain ', jg
       CALL message ('Frequencies and directions of wave spectrum',message_text)
       WRITE(message_text,'(a,i4)') 'Number of directions  = ', wc%ndirs
       CALL message ('  ',message_text)
@@ -476,45 +476,14 @@ CONTAINS
       CALL message ('  ',message_text)
       CALL message (':----------------------------------------------------------','')
 
-      wc%DELTH    = pi2 / REAL(wc%ndirs,wp) !! ANGULAR INCREMENT OF SPECTRUM [RAD].
-
       ! calculate directions for wave spectrum
       !
-      CALL message ('  ','Directions [Degree]: ')
-      DO jd = 1,wc%ndirs
-        wc%dirs(jd) = REAL(jd-1,wp) *  wc%DELTH + 0.5_wp * wc%DELTH !RAD
-        wc%sin_dir(jd) = SIN(wc%dirs(jd))
-        wc%cos_dir(jd) = COS(wc%dirs(jd))
-        WRITE(message_text,'(i3,f10.5)') jd, wc%dirs(jd)*rad2deg
-        CALL message ('  ',message_text)
-      END DO
-      CALL message ('  ','')
+      CALL wc%set_directions()
 
-      ! calculate frequencies for wave spectrum
+      ! calculate frequencies and intervals for wave spectrum
       !
-      CALL message ('  ','Frequencies, [Hz]: ')
-      WRITE(message_text,'(i3,f10.5)') 1, wc%FR1
-      CALL message ('  ',message_text)
-      wc%freqs(1) = wc%CO**(-wc%iref + 1) * wc%FR1
-      DO jf = 2,wc%nfreqs
-        wc%freqs(jf) = wc%CO * wc%freqs(jf-1)
-        WRITE(message_text,'(i3,f10.5)') jf, wc%freqs(jf)
-        CALL message ('  ',message_text)
-      END DO
-      CALL message (':----------------------------------------------------------','')
+      CALL wc%set_frequencies()
 
-
-      ! calculate frequency intervals
-      !
-      CO1 = 0.5_wp * (wc%CO - 1.0_wp)
-      wc%dfreqs(1) = CO1 * wc%freqs(1)
-      wc%dfreqs(2:wc%nfreqs-1) = CO1 &
-        &                      * (wc%freqs(2:wc%nfreqs-1) &
-        &                      + (wc%freqs(1:wc%nfreqs-2)))
-      wc%dfreqs(wc%nfreqs) = CO1 * wc%freqs(wc%nfreqs-1)
-      !
-      wc%dfreqs_freqs  = wc%dfreqs * wc%freqs
-      wc%dfreqs_freqs2 = wc%dfreqs_freqs * wc%freqs
 
       ! calculate direction neighbor index
       DO jd = 1,wc%ndirs
@@ -595,23 +564,156 @@ CONTAINS
   END SUBROUTINE configure_wave
 
 
-  FUNCTION generate_filename(input_filename, model_base_dir, &
-    &                        nroot, jlev, idom)  RESULT(result_str)
-    CHARACTER(len=*), INTENT(IN)   :: input_filename, &
-      &                               model_base_dir
-    INTEGER,          INTENT(IN)   :: nroot, jlev, idom
-    CHARACTER(len=MAX_CHAR_LENGTH) :: result_str
-    TYPE (t_keyword_list), POINTER :: keywords => NULL()
+  FUNCTION generate_filename(input_filename, model_base_dir, nroot, jlev, idom, &
+    &                        file_datetime, filenumber)  RESULT(result_str)
+    CHARACTER(len=*),         INTENT(IN)   :: input_filename, model_base_dir
+    INTEGER,                  INTENT(IN)  :: nroot, jlev, idom
+    TYPE(datetime), OPTIONAL, INTENT(IN)  :: file_datetime       !< optional argument for <y><m><d><h><min><sec> for backward compatibility
+    INTEGER,        OPTIONAL, INTENT(IN)  :: filenumber          !< optional, for <num> wave current_setup
 
+    CHARACTER(LEN=MAX_CHAR_LENGTH) :: str
+    CHARACTER(len=MAX_CHAR_LENGTH) :: result_str
+    TYPE(t_keyword_list), POINTER  :: keywords => NULL()
+
+    ! Existing ICON placeholders
     CALL associate_keyword("<path>",   TRIM(model_base_dir),             keywords)
     CALL associate_keyword("<nroot>",  TRIM(int2string(nroot,"(i0)")),   keywords)
     CALL associate_keyword("<nroot0>", TRIM(int2string(nroot,"(i2.2)")), keywords)
     CALL associate_keyword("<jlev>",   TRIM(int2string(jlev, "(i2.2)")), keywords)
     CALL associate_keyword("<idom>",   TRIM(int2string(idom, "(i2.2)")), keywords)
-    ! replace keywords in "input_filename", which is by default
-    ! ifs2icon_filename = "<path>ifs2icon_R<nroot>B<jlev>_DOM<idom>.nc"
+    CALL associate_keyword("<dom>",    TRIM(int2string(idom, "(i2.2)")), keywords)
+
+    ! Date/time placeholders from file_datetime
+    IF (PRESENT(file_datetime)) THEN
+      WRITE(str,'(i4)')   file_datetime%date%year
+      CALL associate_keyword("<y>",   TRIM(str), keywords)
+      WRITE(str,'(i2.2)') file_datetime%date%month
+      CALL associate_keyword("<m>",   TRIM(str), keywords)
+      WRITE(str,'(i2.2)') file_datetime%date%day
+      CALL associate_keyword("<d>",   TRIM(str), keywords)
+      WRITE(str,'(i2.2)') file_datetime%time%hour
+      CALL associate_keyword("<h>",   TRIM(str), keywords)
+      WRITE(str,'(i2.2)') file_datetime%time%minute
+      CALL associate_keyword("<min>", TRIM(str), keywords)
+      WRITE(str,'(i2.2)') file_datetime%time%second
+      CALL associate_keyword("<sec>", TRIM(str), keywords)
+    ENDIF
+
+    ! Optional file number placeholder <num>
+    IF (PRESENT(filenumber)) THEN
+     CALL associate_keyword("<num>", TRIM(int2string(filenumber, "(i4.4)")), keywords)
+    ELSE
+     CALL associate_keyword("<num>", "0001", keywords)
+    END IF
+    ! replace keywords in "input_filename"
     result_str = TRIM(with_keywords(keywords, TRIM(input_filename)))
 
   END FUNCTION generate_filename
+
+
+  !< Computes equally spaced directions for wave spectrum discretization.
+  !
+  SUBROUTINE wave_config__set_directions(me)
+    CLASS(t_wave_config) :: me
+    ! local
+    INTEGER :: jd, ist
+    REAL(wp):: startdir
+    CHARACTER(*), PARAMETER :: routine = modname//'::set_directions'
+
+    IF (.NOT.ALLOCATED(me%dirs)) THEN
+      ALLOCATE(me%dirs(me%ndirs), stat=ist)
+      IF (ist/=SUCCESS) CALL finish(routine, "allocation for 'dirs' of type REAL failed")
+    ENDIF
+    !
+    IF (.NOT.ALLOCATED(me%sin_dir)) THEN
+      ALLOCATE(me%sin_dir(me%ndirs), stat=ist)
+      IF (ist/=SUCCESS) CALL finish(routine, "allocation for 'sin_dir' of type REAL failed")
+    END IF
+    !
+    IF (.NOT.ALLOCATED(me%cos_dir)) THEN
+      ALLOCATE(me%cos_dir(me%ndirs), stat=ist)
+      IF (ist/=SUCCESS) CALL finish(routine, "allocation for 'cos_dir' of type REAL failed")
+    ENDIF
+
+    me%delth = pi2 / REAL(me%ndirs,wp)
+    !
+    startdir = 0.5_wp * me%delth
+    DO jd = 1, me%ndirs
+      me%dirs(jd)    = startdir + REAL(jd-1,wp) * me%delth
+      me%sin_dir(jd) = SIN(me%dirs(jd))
+      me%cos_dir(jd) = COS(me%dirs(jd))
+    ENDDO
+
+    IF (msg_level >= 10) THEN
+      CALL message ('  ','')
+      CALL message ('  ','Directions [Degree]: ')
+      DO jd = 1, me%ndirs
+        WRITE(message_text,'(i3,f10.5)') jd, me%dirs(jd)*rad2deg
+        CALL message ('  ',message_text)
+      ENDDO
+    ENDIF
+
+  END SUBROUTINE wave_config__set_directions
+
+
+  !< Computes frequency bins for wave spectrum discretization
+  !
+  SUBROUTINE wave_config__set_frequencies(me)
+    CLASS(t_wave_config) :: me
+    ! local
+    INTEGER :: jf, ist
+    REAL(wp):: co1
+    CHARACTER(*), PARAMETER :: routine = modname//'::set_frequencies'
+
+    IF (.NOT.ALLOCATED(me%freqs)) THEN
+      ALLOCATE(me%freqs(me%nfreqs), stat=ist)
+      IF (ist/=SUCCESS) CALL finish(routine, "allocation for 'freqs' of type REAL failed")
+    ENDIF
+    !
+    IF (.NOT.ALLOCATED(me%dfreqs)) THEN
+      ALLOCATE(me%dfreqs(me%nfreqs), stat=ist)
+      IF (ist/=SUCCESS) CALL finish(routine, "allocation for 'dfreqs' of type REAL failed")
+    ENDIF
+    !
+    IF (.NOT.ALLOCATED(me%dfreqs_freqs)) THEN
+      ALLOCATE(me%dfreqs_freqs(me%nfreqs), stat=ist)
+      IF (ist/=SUCCESS) CALL finish(routine, "allocation for 'dfreqs_freqs' of type REAL failed")
+    ENDIF
+    !
+    IF (.NOT.ALLOCATED(me%dfreqs_freqs2)) THEN
+      ALLOCATE(me%dfreqs_freqs2(me%nfreqs), stat=ist)
+      IF (ist/=SUCCESS) CALL finish(routine, "allocation for 'dfreqs_freqs2' of type REAL failed")
+    ENDIF
+
+
+    ! frequencies
+    DO jf = 1,me%nfreqs
+      me%freqs(jf) = me%co**(-me%iref + jf)* me%fr1
+    ENDDO
+
+    ! intervals
+    co1 = 0.5_wp * (me%co - 1.0_wp)
+    me%dfreqs(1)         = co1 * me%freqs(1)
+    DO jf = 2,me%nfreqs-1
+      me%dfreqs(jf) = co1 * (me%freqs(jf) +  me%freqs(jf-1))
+    ENDDO
+    me%dfreqs(me%nfreqs) = co1 * me%freqs(me%nfreqs-1)
+    !
+    ! f**2, f**3
+    DO jf = 1,me%nfreqs
+      me%dfreqs_freqs(jf)  = me%dfreqs(jf) * me%freqs(jf)
+      me%dfreqs_freqs2(jf) = me%dfreqs_freqs(jf) * me%freqs(jf)
+    ENDDO
+
+    IF (msg_level >= 10) THEN
+      CALL message ('  ','')
+      CALL message ('  ','Frequencies [Hz], intervals [Hz]: ')
+      DO jf = 1, me%nfreqs
+        WRITE(message_text,'(i3,2f12.7)') jf, me%freqs(jf), me%dfreqs(jf)
+        CALL message ('  ',message_text)
+      ENDDO
+    ENDIF
+
+  END SUBROUTINE wave_config__set_frequencies
 
 END MODULE mo_wave_config

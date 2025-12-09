@@ -56,6 +56,9 @@ MODULE mo_read_namelists
   USE mo_radiation_nml       ,ONLY: read_radiation_namelist
   USE mo_synsat_nml          ,ONLY: read_synsat_namelist
   USE mo_synradar_nml        ,ONLY: read_synradar_namelist
+#ifdef __MSGWAM
+  USE mo_msgwam_nml          ,ONLY: read_msgwam_main_nml
+#endif
   USE mo_turbdiff_nml        ,ONLY: read_turbdiff_namelist
   USE mo_lnd_nwp_nml         ,ONLY: read_nwp_lnd_namelist
   USE mo_art_nml             ,ONLY: read_art_namelist
@@ -215,6 +218,9 @@ CONTAINS
        CALL read_sppt_namelist           (atm_namelist_filename(1:tlen))
        !
     END SELECT
+#ifdef __MSGWAM
+    CALL read_msgwam_main_nml            (atm_namelist_filename(1:tlen))
+#endif
 
     ! Upper atmosphere
     !

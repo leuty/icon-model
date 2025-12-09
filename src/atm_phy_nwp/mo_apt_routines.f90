@@ -48,7 +48,7 @@ MODULE mo_apt_routines
   USE mo_initicon_config,     ONLY: icpl_da_sfcevap, dt_ana, icpl_da_snowalb, icpl_da_landalb, icpl_da_skinc, &
                                     icpl_da_sfcfric, icpl_da_tkhmin, icpl_da_seaice, scalfac_da_sfcfric,      &
                                     dt_filt
-  USE mo_nwp_tuning_config,   ONLY: itune_slopecorr
+  USE mo_nwp_tuning_config,   ONLY: itune_slopecorr, tune_ssolim_sfcfric
 
 
 
@@ -235,7 +235,7 @@ MODULE mo_apt_routines
     TYPE(t_wtr_prog),        INTENT(in)    :: p_prog_wtr_now
 
 
-    INTEGER :: jb, ic, jc, jt
+    INTEGER :: jb, ic, jc, jt, jg
     INTEGER :: rl_start, rl_end
     INTEGER :: i_startblk, i_endblk    !> blocks
     INTEGER :: i_startidx, i_endidx    !! slices
@@ -257,6 +257,7 @@ MODULE mo_apt_routines
     rl_end     = min_rlcell_int
     i_startblk = p_patch%cells%start_block(rl_start)
     i_endblk   = p_patch%cells%end_block(rl_end)
+    jg         = p_patch%id
 
 
 !$OMP PARALLEL
@@ -407,6 +408,12 @@ MODULE mo_apt_routines
               zlon >= 50._wp .AND. zlon <= 90._wp .AND. zlat >= 55._wp .AND. zlat <= 70._wp .OR.  &
               zlon >= 90._wp .AND. zlon <= 140._wp .AND. zlat >= 50._wp .AND. zlat <= 70._wp)) THEN
             prm_diag%sfcfric_fac(jc,jb) = MAX(1._wp, prm_diag%sfcfric_fac(jc,jb))
+          ENDIF
+
+          ! optionally reduce adaptation of surface friction above a specified threshold of SSO standard deviation
+          IF (ext_data%atm%sso_stdh(jc,jb) > tune_ssolim_sfcfric(jg)) THEN
+            scal = MAX(0._wp,(2._wp*tune_ssolim_sfcfric(jg)-ext_data%atm%sso_stdh(jc,jb))/tune_ssolim_sfcfric(jg))
+            prm_diag%sfcfric_fac(jc,jb) = 1._wp + scal*(prm_diag%sfcfric_fac(jc,jb)-1._wp)
           ENDIF
 
         ENDDO

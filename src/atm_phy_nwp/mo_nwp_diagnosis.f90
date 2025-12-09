@@ -894,7 +894,7 @@ CONTAINS
     INTEGER :: i_startidx, i_endidx    !< slices
 
     REAL(wp):: t_wgt                   !< weight for running time average
-    REAL(wp):: ff10m
+    REAL(wp):: ff10m, u10_sso, v10_sso, wgt_mtnmask(nproma), gustlim_fac
 
     INTEGER :: jc,jb,jg      ! indices
     LOGICAL :: lzacc         ! OpenACC flag
@@ -924,12 +924,12 @@ CONTAINS
     ! calculate gusts when averaging interval is completed
     lcalc_gusts = p_sim_time - prm_diag%prev_v10mavg_reset + 0.5_wp*dt_phy_jg(itfastphy) >= ff10m_interval(jg)
 
-    !$ACC DATA CREATE(jk_gust) ASYNC(1) IF(lzacc)
+    !$ACC DATA CREATE(jk_gust, wgt_mtnmask) ASYNC(1) IF(lzacc)
 
 !$OMP PARALLEL
     IF ( p_sim_time <= 1.e-6_wp) THEN ! first part of IAU phase
 
-!$OMP DO PRIVATE(jc,jb,i_startidx,i_endidx,jk_gust,ff10m) ICON_OMP_DEFAULT_SCHEDULE
+!$OMP DO PRIVATE(jc,jb,i_startidx,i_endidx) ICON_OMP_DEFAULT_SCHEDULE
       DO jb = i_startblk, i_endblk
 
         CALL get_indices_c(pt_patch, jb, i_startblk, i_endblk, &
@@ -949,50 +949,54 @@ CONTAINS
 
     ELSE  ! regular time steps
 
-!$OMP DO PRIVATE(jc,jb,i_startidx,i_endidx) ICON_OMP_DEFAULT_SCHEDULE
+!$OMP DO PRIVATE(jc,jb,i_startidx,i_endidx,jk_gust,ff10m,u10_sso,v10_sso,wgt_mtnmask,gustlim_fac) ICON_OMP_DEFAULT_SCHEDULE
       DO jb = i_startblk, i_endblk
         !
         CALL get_indices_c(pt_patch, jb, i_startblk, i_endblk, &
           & i_startidx, i_endidx, rl_start, rl_end)
 
+        IF (atm_phy_nwp_config(jg)%inwp_sso > 0) THEN
+          !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
+          !$ACC LOOP GANG VECTOR
+          DO jc = i_startidx, i_endidx
+            jk_gust(jc) = MERGE(prm_diag%ktop_envel(jc,jb)-1, nlev, prm_diag%ktop_envel(jc,jb) < nlev)
+          ENDDO
+          !$ACC END PARALLEL
+        ELSE
+          !$ACC KERNELS ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
+          jk_gust(:) = nlev
+          !$ACC END KERNELS
+        ENDIF
+
         !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-        !$ACC LOOP GANG VECTOR
+        !$ACC LOOP GANG VECTOR PRIVATE(u10_sso, v10_sso)
         DO jc = i_startidx, i_endidx
-          prm_diag%u_10m_a(jc,jb) = time_avg(prm_diag%u_10m_a(jc,jb), prm_diag%u_10m(jc,jb), t_wgt)
-          prm_diag%v_10m_a(jc,jb) = time_avg(prm_diag%v_10m_a(jc,jb), prm_diag%v_10m(jc,jb), t_wgt)
+          wgt_mtnmask(jc) = MIN(1._wp,MAX(0._wp,p_metrics%mask_mtnpoints_g(jc,jb)-0.25_wp)/0.75_wp)
+          u10_sso = prm_diag%u_10m(jc,jb) + wgt_mtnmask(jc)*(pt_diag%u(jc,jk_gust(jc),jb)-prm_diag%u_10m(jc,jb))
+          v10_sso = prm_diag%v_10m(jc,jb) + wgt_mtnmask(jc)*(pt_diag%v(jc,jk_gust(jc),jb)-prm_diag%v_10m(jc,jb))
+          prm_diag%u_10m_a(jc,jb) = time_avg(prm_diag%u_10m_a(jc,jb), u10_sso, t_wgt)
+          prm_diag%v_10m_a(jc,jb) = time_avg(prm_diag%v_10m_a(jc,jb), v10_sso, t_wgt)
           prm_diag%tcm_a(jc,jb)   = time_avg(prm_diag%tcm_a(jc,jb), prm_diag%tcm(jc,jb), t_wgt)
         ENDDO
         !$ACC END PARALLEL
 
         IF (lcalc_gusts) THEN
 
-          IF (atm_phy_nwp_config(jg)%inwp_sso > 0) THEN
-            !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
-            !$ACC LOOP GANG VECTOR
-            DO jc = i_startidx, i_endidx
-              jk_gust(jc) = MERGE(prm_diag%ktop_envel(jc,jb)-1, nlev, prm_diag%ktop_envel(jc,jb) < nlev)
-            ENDDO
-            !$ACC END PARALLEL
-          ELSE
-            !$ACC KERNELS ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
-            jk_gust(:) = nlev
-            !$ACC END KERNELS
-          ENDIF
-
           !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
-          !$ACC LOOP GANG(STATIC: 1) VECTOR PRIVATE(ff10m)
+          !$ACC LOOP GANG(STATIC: 1) VECTOR PRIVATE(ff10m, gustlim_fac)
           DO jc = i_startidx, i_endidx
 
-            prm_diag%dyn_gust(jc,jb) = nwp_dyn_gust (prm_diag%u_10m_a(jc,jb), prm_diag%v_10m_a(jc,jb), prm_diag%tcm_a(jc,jb),   &
-                                                     pt_diag%u(jc,nlev,jb), pt_diag%v(jc,nlev,jb),                              &
-                                                     pt_diag%u(jc,jk_gust(jc),jb), pt_diag%v(jc,jk_gust(jc),jb),                &
-                                                     ext_data%atm%lc_frac_t(jc,jb,isub_water), p_metrics%mask_mtnpoints_g(jc,jb))
+            ! note: the SSO correction is included in u/v_10m_a and therefore no longer applied in the gust diagnosis
+            prm_diag%dyn_gust(jc,jb) = nwp_dyn_gust (prm_diag%u_10m_a(jc,jb), prm_diag%v_10m_a(jc,jb), prm_diag%tcm_a(jc,jb), &
+                                                     pt_diag%u(jc,nlev,jb), pt_diag%v(jc,nlev,jb),                            &
+                                                     pt_diag%u(jc,nlev,jb), pt_diag%v(jc,nlev,jb),                            &
+                                                     ext_data%atm%lc_frac_t(jc,jb,isub_water), wgt_mtnmask(jc))
 
             IF (tune_gustlim_fac(jg) > 0._wp) THEN
 
               ff10m = SQRT(prm_diag%u_10m_a(jc,jb)**2 + prm_diag%v_10m_a(jc,jb)**2)
-              prm_diag%dyn_gust(jc,jb) = MIN(prm_diag%dyn_gust(jc,jb),                                      &
-                                             ff10m + tune_gustlim_fac(jg)*(prm_diag%gust_lim(jc,jb) - ff10m))
+              gustlim_fac = tune_gustlim_fac(jg) + 0.5_wp*MIN(1._wp,MAX(0._wp,(30._wp-ff10m)/15._wp))*wgt_mtnmask(jc)
+              prm_diag%dyn_gust(jc,jb) = MIN(prm_diag%dyn_gust(jc,jb), ff10m + gustlim_fac*(prm_diag%gust_lim(jc,jb)-ff10m))
 
             ENDIF
           ENDDO

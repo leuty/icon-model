@@ -2677,11 +2677,11 @@ init\_mode=5
 % \hline
 qnxana\_2mom\_mode&
 I & 0 & &
-Only effective in case of 2-moment microphysics (inwp\_gscp=4,5,6).
+Only effective in case of 2-moment microphysics (inwp\_gscp=3,4,5,6).
 Affects the analysis increments of the the number concentrations of those hydrometeors in IAU which have been selected by the settings of qcana\_mode, qiana\_mode and qrsgana\_mode: \\
 0: analysis increments are not taken from analysis files but diagnosed based on the mass concentrations (from fg) and mass increments.  \\
 1: analysis increments are taken from the analysis files. If missing for a specific hydrometeor type, they are diagnosed similar to option 0 as a fallback. &
-init\_mode=5, inwp\_gscp=4,5,6
+init\_mode=5, inwp\_gscp=3,4,5,6
 \tabularnewline
 
 
@@ -2959,6 +2959,20 @@ Wildfire emission data sets for the <species> bc, oc and so2. Possible keywords:
 &
 Requires:
 i2daero\_fire = 1
+\tabularnewline
+
+%\hline
+parallel\_grib\_decoding&
+L & .FALSE.& &
+Parallel decoding of GRIB2 input data by Work PEs:\\
+{\textasteriskcentered} .FALSE.: Workroot PE reads and decodes the records of a GRIB input file sequentially.\\
+{\textasteriskcentered} .TRUE.: Workroot PE reads the records and distributes them to all Work PEs for decoding in parallel.\\
+The second case requires input files of format GRIB2 with file extension '.grb', '.grb2', '.grib' or '.grib2'.
+In addition, a dictionary is mandatory (ana\_varnames\_map\_file).\\
+(A few corresponding timers are implemented and subordinated to the init\_icon timer.
+Activating them requires run\_nml: timers\_level > 8.)
+& ICON compiled with Fortran90 interfaces of package \verb+ecCodes+;\\
+init\_mode=1, 5, 7
 \tabularnewline
 
 \end{longtab}
@@ -3945,11 +3959,23 @@ source (IFS, COSMO or a coarser-resolution ICON run)
 
 %\hline
 \textbf{dtime\_latbc}&
-R &
+R(3) &
 -1.0& s
 &
 Time difference between two consecutive boundary data.
-(Upper bound for asynchronous read-in: 1 day = 86400 s.)
+(Upper bound for asynchronous read-in: 1 day = 86400 s.) \\
+Up to 3 values for bc intervals are allowed; specifying more than one value requires setting interval bounds via bcintv\_endtime.
+&
+itype\_latbc $\ge$ 1
+\tabularnewline
+
+%\hline
+\textbf{bcintv\_endtime}&
+R(3) &
+-1.0& s
+&
+Upper interval bounds for dtime\_latbc, relative time w.r.t. model start (required if more than one value is specified for dtime\_latbc;
+in any case, one entry less is needed for bcintv\_endtime than for dtime\_latbc).
 &
 itype\_latbc $\ge$ 1
 \tabularnewline
@@ -5509,9 +5535,10 @@ icpl\_aero\_gscp&
 I&
 0&
  &
-0: off \\
-1: simple coupling between autoconversion and Tegen aerosol climatology; requires irad\_aero=6, 7 or 9 \\
-3: use cloud-droplet number climatology from external parameter file. External parameter files containing cloud-droplet number climatology can be generated with extpar code from version rc\_5.14 \\
+0: Constant CDNC - no aerosol-cloud interactions (default) \\
+1: Simple coupling between Segal and Khain (2006) activation scheme and Tegen aerosol climatology; requires irad\_aero=6, 7 or 9 \\
+2: Full coupling between CAMS climatology or forecasted aerosols with the Segal and Khain (2006) activation scheme; requires irad\_aero= 7 or 8 \\
+3: Use CDNC climatology from external parameter file. External parameter files containing cloud-droplet number climatology can be generated with Zonda \\
 More advanced options are in preparation&
 currently only for inwp\_gscp = 1
 \tabularnewline
@@ -5521,7 +5548,7 @@ I&
 0&
 &
 Controls scaling of external climatological cloud droplet number concentration (CDNC) data. Only effective if external CDNC is used. \\
-0: No scaling applied; external CDNC is used as provided. \\
+0: No additional scaling applied, only scaling from tuning namelist is used. \\
 1: Apply time-varying, spatially resolved scaling factors derived from the simple plume scheme during the model run. The scaling field varies daily in time and 2D in space, and is applied according to the experiment’s actual (simulation) year. \\
 Note: For years 2000–2020, it is usually preferable to disable scaling (mode 0), since MODIS data are available for those years directly. \\
 2: Apply constant scaling of external CDNC to represent pre-industrial conditions. All years are scaled to 1850 values, using spatially varying scaling factors. \\
@@ -5780,6 +5807,11 @@ lsgs\_cond&
 L (max\_ dom) & .TRUE. &  & Apply subgrid-scale condensational heating related to the non-convective
 part of diagnosed cloud water&
 inwp\_cldcover = 1
+\tabularnewline
+
+itype\_icecloud\_diag&
+I & 1 &  & 1: standard \\ 2: option for two-moment microphysics &
+inwp\_cldcover = 1, \\ option 2 requires inwp\_gscp=3,4,5,6,7,8
 \tabularnewline
 
 %\hline
@@ -6046,7 +6078,7 @@ ICON\_USE\_CUDA\_GRAPH activated
 \tabularnewline
 
 %\hline
-lstochastic\_pattern\_generator &
+lstoch\_pattern\_generator &
 L &
 .FALSE. &
 -&
@@ -6059,7 +6091,7 @@ L &
 .TRUE. &
 -&
 Use Fourier modes for stochastic pattern generator in LAM configurations. For LAM simulations spherical harmonics can be used by setting this switch to .false. but this is computationally inefficient and only useful for tests or consistency with a global configuration. & \scriptsize
-lstochastic\_pattern\_generator=.true. \\ and l\_limited\_area=.true.
+lstoch\_pattern\_generator=.true. \\ and l\_limited\_area=.true.
 \tabularnewline
 
 %\hline
@@ -6068,44 +6100,72 @@ L &
 .FALSE. &
 -&
 Use Advanced Scientific Library (ASL) provided by NEC. & \scriptsize
-lstochastic\_pattern\_generator=.true.
+lstoch\_pattern\_generator=.true.
 \tabularnewline
 
+%\hline
+spg\_num &
+I  &
+0  &
+-  &
+Number of independent 2D stochastic patterns & \scriptsize
+lstoch\_pattern\_generator=.true. \\
+Note that all patterns have the same length and time scales.
+\tabularnewline
 
 %\hline
 spg\_length\_scale &
-R &
+R(:) &
 1000e3 &
 m &
-Length scale of stochastic pattern & \scriptsize
-lstochastic\_pattern\_generator=.true.
+Length scales of stochastic pattern & \scriptsize
+lstoch\_pattern\_generator=.true. \\
+The maximum array size is 5. The number of length scales is independent from the number of patterns.
 \tabularnewline
 
 %\hline
 spg\_time\_scale &
-R &
+R(:) &
 3600.0 &
 s &
-Time scale of stochastic pattern & \scriptsize
-lstochastic\_pattern\_generator=.true.
+Time scales of stochastic pattern & \scriptsize
+lstoch\_pattern\_generator=.true. \\
+The maximum array size is 5. The number of time scales is independent from the number of patterns.
 \tabularnewline
 
 %\hline
 spg\_spec\_modes &
-I &
+I(:) &
 50 &
 - &
 Number of spectral modes used for stochastic pattern generator & \scriptsize
-lstochastic\_pattern\_generator=.true.
+lstoch\_pattern\_generator=.true. \\
+The maximum array size is 5. The number of modes should adjusted to the length scales used.
 \tabularnewline
 
 %\hline
 spg\_variance &
-R &
+R(:) &
 1.0 &
 - &
 Variance of stochastic pattern in grid point space & \scriptsize
-lstochastic\_pattern\_generator=.true.
+lstoch\_pattern\_generator=.true. \\
+The maximum array size is 5.
+\tabularnewline
+
+%\hline
+itype\_stoch\_phys &
+I &
+0 &
+- &
+Type of stochastically perturbed physics based on spectral pattern generator: \\
+0: none \\
+1: CONV only \\
+2: GW only (SSO and non-oro.~GWD) \\
+3: CONV + GW using single pattern \\
+4: CONV + GW using independent patterns \\  & \scriptsize
+lstoch\_pattern\_generator=.true. \\
+Note that itype\_stoch\_phys=4 requires spg\_num=2
 \tabularnewline
 
 \end{longtab}
@@ -6494,6 +6554,34 @@ run\_nml:iforcing = inwp; lgrayzone\_deepconv = .TRUE.
 
 \multicolumn{6}{|l|}{\textbf{Cloud scheme}}
 \tabularnewline
+
+\hline
+tune\_tau\_shallow&
+R&
+1500.0&
+s&
+Decay time scale for shallow convective anvils in cloud cover scheme&
+run\_nml:iforcing = inwp; inwp\_cldcover = 1
+\tabularnewline
+
+\hline
+tune\_tau\_mid&
+R&
+1500.0&
+s&
+Decay time scale for mid-level convective anvils in cloud cover scheme&
+run\_nml:iforcing = inwp; inwp\_cldcover = 1
+\tabularnewline
+
+\hline
+tune\_tau\_deep&
+R&
+1500.0&
+s&
+Decay time scale for deep convective anvils in cloud cover scheme&
+run\_nml:iforcing = inwp; inwp\_cldcover = 1
+\tabularnewline
+
 \hline
 tune\_box\_liq&
 R&
@@ -6643,6 +6731,22 @@ run\_nml:iforcing = inwp; inwp\_clcover = 1
 \tabularnewline
 
 \hline
+\hline
+\multicolumn{6}{|l|}{\textbf{Effective radius}}
+\tabularnewline
+
+\hline
+tune\_reff\_qi&
+R&
+1.0&
+&
+Linear tuning factor for effective radius of clouds (affects both, grid-scale and sub-grid) &
+run\_nml:iforcing = inwp; icpl\_rad\_reff = 1; inwp\_gscp=3
+\tabularnewline
+
+
+\hline
+\hline
 \multicolumn{6}{|l|}{\textbf{Saturation adjustment}}
 \tabularnewline
 
@@ -6715,13 +6819,36 @@ itune\_gust\_diag = 4
 \tabularnewline
 
 \hline
+tune\_ssolim\_sfcfric&
+R(max\_dom)&
+10000.0&
+m &
+Threshold value of SSO standard deviation above which the adaptive parameter tuning for surface friction is reduced (with a
+linear transition from 1 to 0 between the specified value and twice this value). Recommendation: use a value slightly above
+the threshold used in the data assimilation scheme for 10-m winds (70 m at DWD). &
+icpl\_da\_sfcfric $\ge$ 1; inwp\_sso = 1
+\tabularnewline
+
+\hline
 itune\_vis\_diag&
 I&
 1&
 &
 Tuning variant of visibility diagnostics\\
 1: First operational implementation \\
-2: Optimized day-night conversion factor &
+2: Optimized day-night conversion factor \\
+3: (2) plus optimized RH-dependency &
+run\_nml:iforcing = inwp
+\tabularnewline
+
+\hline
+itune\_ceiling\_diag&
+I&
+1&
+&
+Method used for ceiling diagnostics\\
+1: Purely layer-wise diagnostic \\
+2: Vertical integral with overlap assumption like in cloud-cover diagnsotic &
 run\_nml:iforcing = inwp
 \tabularnewline
 
@@ -6828,6 +6955,13 @@ Lower and upper bound for variable ISA parameterization (fraction of impervious 
 depending on smoothed urban fraction & lterra\_urb=.TRUE.
 \tabularnewline
 
+\hline
+tune\_cdnc&
+R(3)&
+10e6, 300e6, 1.0&
+m$^{-3}$, m$^{-3}$, -&
+Lower and upper bound and scaling factor for external cloud droplet number concentration climatology & icpl\_aero\_gscp=3.
+\tabularnewline
 
 \hline
 \hline
@@ -8125,6 +8259,16 @@ processes, i.e. a large stride, often gives best performance.)
 \tabularnewline
 
 %\hline
+process\_stride\_pgrib
+I & 1 & &
+\emph{(Advanced namelist parameter:)}
+Stride of processes taking part in parallel GRIB decoding (recommendation: select
+stride such as to have between 100 and 1000 decoder PEs)
+& initicon\_nml:parallel\_grib\_decoding
+\tabularnewline
+
+
+%\hline
 io\_process\_rotate &
 I & 0 & &
 \emph{(Advanced namelist parameter:)}
@@ -8190,11 +8334,10 @@ I&
 Slope correction for surface radiation:\\
 0: None \\
 1: Slope correction for direct solar radiation without shading effects \\
-2: Slope and horizon / sky-view factor correction for direct solar radiation including shading
-(Remark: sky-view correction not yet activated) \\
+2: Removed \\
 3: Slope correction for direct solar radiation including shading, but no further consideration
 of sky-view factor effects.
-& 2 and 3 require the additional field HORIZON to be present in the extpar data
+& 3 requires the additional field HORIZON to be present in the extpar data
 \tabularnewline
 
 
@@ -8794,6 +8937,12 @@ The name of the file containing the EMVORADO namelist. If this is empty or not s
 &
 \tabularnewline
 
+\hline
+lmsgwam&
+L & .FALSE.& &
+Main switch which enables the online 3D gravity waves parametrisation: Multi-Scale Gravity Wave Model MS-GWaM. The MS-GWaM submodule of GU is needed. See the detailed \href{https://gitlab.dkrz.de/atmodynamics-goethe-universitaet-frankfurt/msgwam-release/-/tree/3e6af3fa885aada7f960634d2334d81bb9fea87d/doc}{MSGWAM namelist documentation} at \verb+./external/msgwam/doc/+.
+&
+\tabularnewline
 \end{longtab}
 
 Defined and used in: \verb+src/namelists/mo_run_nml.f90+

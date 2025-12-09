@@ -38,7 +38,7 @@ MODULE mo_nwp_ocean_coupling
   USE mo_dbg_nml             ,ONLY: idbg_mxmn, idbg_val
   USE mo_exception           ,ONLY: finish, message, message_text
   USE mo_ext_data_types      ,ONLY: t_external_data
-  USE mo_fortran_tools       ,ONLY: assert_acc_host_only, init
+  USE mo_fortran_tools       ,ONLY: init, set_acc_host_or_device
   USE mo_idx_list            ,ONLY: t_idx_list_blocked
   USE mo_impl_constants      ,ONLY: start_prog_cells, end_prog_cells
   USE mo_kind                ,ONLY: wp
@@ -196,9 +196,11 @@ CONTAINS
     INTEGER :: i_startblk, i_endblk, i_startidx, i_endidx
     INTEGER :: jb, jc
 
-    LOGICAL :: have_ice, have_hail, have_graupel
+    LOGICAL :: have_ice, have_hail, have_graupel, lzacc
 
-    CALL assert_acc_host_only('nwp_couple_ocean', lacc)
+    CALL set_acc_host_or_device(lzacc, lacc)
+
+    !$ACC DATA CREATE(rain_rate, snow_rate) ASYNC(1) IF(lzacc)
 
     ! include boundary interpolation zone of nested domains and halo points
     i_startblk = p_patch%cells%start_block(start_prog_cells)
@@ -213,6 +215,8 @@ CONTAINS
 
       CALL get_indices_c(p_patch, jb, i_startblk, i_endblk, i_startidx, i_endidx, start_prog_cells, end_prog_cells)
 
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+      !$ACC LOOP GANG VECTOR
       DO jc = i_startidx, i_endidx
         rain_rate(jc,jb) = prm_diag%rain_con_rate_corr(jc,jb) + prm_diag%rain_gsp_rate(jc,jb)
         snow_rate(jc,jb) = prm_diag%snow_con_rate_corr(jc,jb) + prm_diag%snow_gsp_rate(jc,jb)
@@ -221,6 +225,7 @@ CONTAINS
         IF (have_hail) snow_rate(jc,jb) = snow_rate(jc,jb) + prm_diag%hail_gsp_rate(jc,jb)
         IF (have_graupel) snow_rate(jc,jb) = snow_rate(jc,jb) + prm_diag%graupel_gsp_rate(jc,jb)
       END DO
+      !$ACC END PARALLEL
     END DO
 
     ! Send fields:
@@ -296,6 +301,8 @@ CONTAINS
 
     CALL couple_ocean(p_patch, ext_data%atm%list_sea, tx, rx, lacc)
 
+    !$ACC END DATA
+
   END SUBROUTINE nwp_couple_ocean
 
 
@@ -327,13 +334,13 @@ CONTAINS
     REAL(wp), PARAMETER   :: csmall = 1.0E-5_wp    ! small number (security constant)
 
     LOGICAL :: received_data
+    LOGICAL :: lzacc
 
     REAL(wp) :: co2conc
 
+    CHARACTER(LEN=*), PARAMETER :: routine = str_module // ':couple_ocean'
     LOGICAL, SAVE :: lcheck_for_timelag = .TRUE.
     TYPE(datetime)  :: curr_datetime_umfl
-
-    CHARACTER(LEN=*), PARAMETER :: routine = str_module // ':couple_ocean'
 
     IF(lcheck_for_timelag .AND. time_config%timeshift%dt_shift .eq. 0) &
       lcheck_for_timelag = .FALSE.
@@ -354,7 +361,15 @@ CONTAINS
 
     ENDIF !lcheck_for_timelag
 
-    CALL assert_acc_host_only('couple_ocean', lacc)
+    CALL set_acc_host_or_device(lzacc, lacc)
+
+    !$ACC UPDATE ASYNC(1) IF(lzacc) &
+    !$ACC   HOST(tx%frac_w, tx%frac_i, tx%umfl_s_w, tx%umfl_s_i, tx%vmfl_s_w, tx%vmfl_s_i) &
+    !$ACC   HOST(tx%qhfl_s_w, tx%qhfl_s_i, tx%shfl_s_w, tx%shfl_s_i, tx%lhfl_s_w, tx%lhfl_s_i) &
+    !$ACC   HOST(tx%chfl_i, tx%meltpot_i, tx%sp_10m, tx%pres_sfc, tx%swflxsfc_w, tx%swflxsfc_i) &
+    !$ACC   HOST(tx%lwflxsfc_w, tx%lwflxsfc_i, tx%rain_rate, tx%snow_rate, tx%q_co2)
+
+    !$ACC WAIT(1)
 
     ! As YAC does not touch masked data an explicit initialisation with zero
     ! is required as some compilers are asked to initialise with NaN
@@ -589,7 +604,7 @@ CONTAINS
     CALL cpl_get_field( &
       routine, in_field_ids(jg)%sst, 'sst', p_patch%n_patch_cells, &
       rx%t_seasfc, first_get=.TRUE., received_data=received_data)
-
+    !$ACC UPDATE DEVICE(rx%t_seasfc) ASYNC(1) IF(lzacc .AND. received_data)
 
     ! Check for errors with the coupling (enough if only done for sst as the time of all
     ! fields was synchronized in construct_atmo_ocean_coupling_common_finalize)
@@ -598,6 +613,7 @@ CONTAINS
       WRITE (message_text,'(a,l7)') 'received data oce to atm (sst): ', received_data
       CALL message(routine, message_text)
     ENDIF
+
 
     !------------------------------------------------
     !  Receive sea ice bundle
@@ -625,6 +641,7 @@ CONTAINS
         END DO
 
       ENDDO
+      !$ACC UPDATE DEVICE(rx%h_ice, rx%fr_seaice) ASYNC(1) IF(lzacc)
 
     END IF
 
@@ -639,6 +656,8 @@ CONTAINS
       CALL cpl_get_field( &
         routine, in_field_ids(jg)%surface_velocity, 'ocean and sea ice velocity bundle', p_patch%n_patch_cells, &
         field_1=rx%ocean_u, field_2=rx%ocean_v, field_3=rx%ice_u, field_4=rx%ice_v)
+      !$ACC UPDATE DEVICE(rx%ocean_u) ASYNC(1) IF(lzacc .AND. received_data)
+      !$ACC UPDATE DEVICE(rx%ocean_v) ASYNC(1) IF(lzacc .AND. received_data)
     END IF
 
     !------------------------------------------------
@@ -647,11 +666,13 @@ CONTAINS
     !    - ocean co2 flux
     !------------------------------------------------
 
-    IF (ccycle_config(jg)%iccycle /= CCYCLE_MODE_NONE .AND. &
-        ASSOCIATED(rx%flx_co2)) &
+    IF (ccycle_config(jg)%iccycle /= CCYCLE_MODE_NONE .AND. ASSOCIATED(rx%flx_co2)) THEN
       CALL cpl_get_field( &
         routine, in_field_ids(jg)%co2_flx, 'CO2 flux', p_patch%n_patch_cells, &
-        rx%flx_co2)
+        rx%flx_co2, received_data=received_data)
+      !$ACC UPDATE DEVICE(rx%flx_co2) ASYNC(1) IF(lzacc .AND. received_data)
+    END IF
+
 
     !------------------------------------------------
     ! Debug outputs

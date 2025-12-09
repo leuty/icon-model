@@ -243,7 +243,7 @@ CONTAINS
       CALL message('', 'repository: '//icon_remote_url)
       CALL message('', 'local branch: '//icon_local_branch)
 
-#if !defined(__NO_JSBACH__) || defined(__DACE__) || defined(HAVE_RADARFWO) || defined(__ICON_ART)
+#if !defined(__NO_JSBACH__) || defined(__DACE__) || defined(HAVE_RADARFWO) || defined(__ICON_ART) || defined(__MSGWAM)
       CALL message('', 'model components:')
 #ifndef __NO_JSBACH__
       CALL message('', '  JSBACH: '//get_revision('jsbach'))
@@ -256,6 +256,9 @@ CONTAINS
 #endif
 #ifdef __ICON_ART
       CALL message('', '  ART: '//get_revision('art'))
+#endif
+#ifdef __MSGWAM
+      CALL message('', '  MS-GWaM: '//get_revision('msgwam'))
 #endif
 #endif
 

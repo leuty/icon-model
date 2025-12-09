@@ -19,7 +19,7 @@ MODULE mo_wave_diagnostics
   USE mo_kind,                ONLY: wp
   USE mo_model_domain,        ONLY: t_patch
   USE mo_wave_config,         ONLY: t_wave_config
-  USE mo_wave_types,          ONLY: t_wave_diag
+  USE mo_wave_types,          ONLY: t_wave_diag, t_wesd
   USE mo_impl_constants,      ONLY: min_rlcell
   USE mo_loopindices,         ONLY: get_indices_c
   USE mo_physical_constants,  ONLY: grav
@@ -42,14 +42,14 @@ CONTAINS
   !>
   !! Calculation of purely diagnostic parameters
   !!
-  SUBROUTINE calculate_output_diagnostics(p_patch, wave_config, sp10m, dir10m, depth, tracer, p_diag)
+  SUBROUTINE calculate_output_diagnostics(p_patch, wave_config, sp10m, dir10m, depth, wesd, p_diag)
 
     TYPE(t_patch),         INTENT(IN)    :: p_patch
     TYPE(t_wave_config),   INTENT(IN)    :: wave_config
     REAL(wp),              INTENT(IN)    :: sp10m(:,:)
-    REAL(wp),              INTENT(IN)    :: dir10m(:,:)     ! wind direction in 10m [rad]
-    REAL(wp),              INTENT(IN)    :: depth(:,:)      ! water depth
-    REAL(wp),              INTENT(IN)    :: tracer(:,:,:,:) ! energy spectral bins
+    REAL(wp),              INTENT(IN)    :: dir10m(:,:)   ! wind direction in 10m [rad]
+    REAL(wp),              INTENT(IN)    :: depth(:,:)    ! water depth
+    TYPE(t_wesd),          INTENT(IN)    :: wesd(:)       ! energy spectral bins
     TYPE(t_wave_diag),     INTENT(INOUT) :: p_diag
 
     CHARACTER(len=*), PARAMETER ::  &
@@ -67,7 +67,7 @@ CONTAINS
     !
     CALL total_energy_sep(p_patch = p_patch, &
       &               wave_config = wave_config, &
-      &                    tracer = tracer, &
+      &                      wesd = wesd, &
       &                      mask = p_diag%swell_mask, &
       &                   emeanws = p_diag%emean_sea, & ! OUT
       &                    emeans = p_diag%emean_swell) ! OUT
@@ -76,7 +76,7 @@ CONTAINS
     !
     CALL mean_frequency_energy_sep(p_patch = p_patch, &
       &               wave_config = wave_config, &
-      &                    tracer = tracer, &
+      &                      wesd = wesd, &
       &                      mask = p_diag%swell_mask, &
       &                   emeanws = p_diag%emean_sea, &
       &                    emeans = p_diag%emean_swell, &
@@ -106,7 +106,7 @@ CONTAINS
     !
     CALL mean_wave_direction_spread(p_patch = p_patch, &
       &                         wave_config = wave_config, &
-      &                              tracer = tracer, &
+      &                                wesd = wesd, &
       &                            mean_dir = p_diag%hs_dir, & ! OUT
       &                         mean_spread = p_diag%ds)       ! OUT
 
@@ -115,7 +115,7 @@ CONTAINS
     !
     CALL mean_wave_direction_spread_sep(p_patch = p_patch, &
       &                             wave_config = wave_config, &
-      &                                  tracer = tracer, &
+      &                                    wesd = wesd, &
       &                                    mask = p_diag%swell_mask, &
       &                                  md_sea = p_diag%hs_sea_dir, &   ! OUT
       &                                  ms_sea = p_diag%ds_sea, &       ! OUT
@@ -144,7 +144,7 @@ CONTAINS
     !
     CALL m1_m2_periods_sep(p_patch = p_patch,            &
       &                wave_config = wave_config,        &
-      &                     tracer = tracer,             &
+      &                       wesd = wesd,               &
       &                       mask = p_diag%swell_mask,  &
       &                    emeanws = p_diag%emean_sea,   &
       &                     emeans = p_diag%emean_swell, &
@@ -160,7 +160,7 @@ CONTAINS
     !
     CALL peak_wave_period_wavenumber(p_patch = p_patch, &
       &               wave_config = wave_config,        &
-      &                    tracer = tracer,             &
+      &                      wesd = wesd,               &
       &                wave_num_c = p_diag%wave_num_c,  &
       &                        pp = p_diag%tpp,         & ! OUT
       &                        kp = p_diag%kp)            ! OUT
@@ -169,7 +169,7 @@ CONTAINS
     !
     CALL peak_wave_period_wavenumber_sep(p_patch = p_patch, &
       &                   wave_config = wave_config,        &
-      &                        tracer = tracer,             &
+      &                          wesd = wesd,               &
       &                    wave_num_c = p_diag%wave_num_c,  &
       &                          mask = p_diag%swell_mask,  &
       &                        pp_sea = p_diag%pp_sea,      & ! OUT
@@ -196,7 +196,7 @@ CONTAINS
       &           wave_config = wave_config, &
       &            wave_num_c = p_diag%wave_num_c, &
       &                 depth = depth,  &
-      &                tracer = tracer, &
+      &                  wesd = wesd, &
       &              u_stokes = p_diag%u_stokes, & ! OUT
       &              v_stokes = p_diag%v_stokes)   ! OUT
 
@@ -214,7 +214,7 @@ CONTAINS
           &            wave_num_c = p_diag%wave_num_c, &
           &                 depth = depth,  &
           &        last_idx_depth = p_diag%last_idx_depth, &
-          &                tracer = tracer, &
+          &                  wesd = wesd, &
           &            u3d_stokes = p_diag%u3d_stokes, & ! OUT
           &            v3d_stokes = p_diag%v3d_stokes)   ! OUT
 
@@ -225,7 +225,7 @@ CONTAINS
           &            wave_num_c = p_diag%wave_num_c, &
           &                 depth = depth,  &
           &        last_idx_depth = p_diag%last_idx_depth, &
-          &                tracer = tracer, &
+          &                  wesd = wesd, &
           &              u_stokes = p_diag%u_stokes, & !
           &              v_stokes = p_diag%v_stokes, & !
           &                  kbar = p_diag%kbar,     & ! OUT
@@ -282,14 +282,14 @@ CONTAINS
   !! TM1_TM2_PERIODS_B
   !! Integration of spectra and adding of tail factors.
   !!
-  SUBROUTINE m1_m2_periods_sep(p_patch, wave_config, tracer, mask, emeanws, emeans, &
+  SUBROUTINE m1_m2_periods_sep(p_patch, wave_config, wesd, mask, emeanws, emeans, &
     &                          m1ws, m1s, m2ws, m2s, f1meanws, f1means)
     CHARACTER(len=*), PARAMETER ::  &
          &  routine = modname//'m1_m2_periods_sep'
 
     TYPE(t_patch),               INTENT(IN)    :: p_patch
     TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
-    REAL(wp),                    INTENT(IN)    :: tracer(:,:,:,:) !< energy spectral bins (nproma,ndirs,nblks_c,nfreqs)
+    TYPE(t_wesd),                INTENT(IN)    :: wesd(:)         !< energy spectral bins (nproma,ndirs,nblks_c,nfreqs)
     INTEGER,                     INTENT(IN)    :: mask(:,:,:,:)   !< swell mask
     REAL(wp),                    INTENT(IN)    :: emeanws(:,:)    !< wind sea energy (nproma,nblks_c)
     REAL(wp),                    INTENT(IN)    :: emeans(:,:)     !< swell energy (nproma,nblks_c)
@@ -321,7 +321,7 @@ CONTAINS
     DO jb = i_startblk, i_endblk
       CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,           &
            &                 i_startidx, i_endidx, i_rlstart, i_rlend)
-      ! compute sum of all tracers that match a specific frequency
+      ! compute sum of all wesd components that match a specific frequency
       DO jf = 1,wc%nfreqs
 
         ! initialization
@@ -332,10 +332,10 @@ CONTAINS
 
         DO jd = 1,wc%ndirs
           DO jc = i_startidx, i_endidx
-            IF (mask(jc,jd,jb,jf)==1) THEN ! belongs to swell
-              temp(jc,jf) = temp(jc,jf) + tracer(jc,jd,jb,jf)
+            IF (mask(jc,jd,jf,jb)==1) THEN ! belongs to swell
+              temp(jc,jf) = temp(jc,jf) + wesd(jf)%ptr(jc,jd,jb)
             ELSE
-              temp1(jc,jf) = temp1(jc,jf) + tracer(jc,jd,jb,jf)
+              temp1(jc,jf) = temp1(jc,jf) + wesd(jf)%ptr(jc,jd,jb)
             END IF
           END DO
         END DO  ! jd
@@ -396,18 +396,19 @@ CONTAINS
   !! of the subroutine FEMEAN developed by S.D. HASSELMANN,
   !! optimized by L. Zambresky and H. Guenther, GKSS, 2001                              !
   !!
-  SUBROUTINE mean_frequency_energy_sep(p_patch, wave_config, tracer, mask, emeanws, emeans, femeanws, femeans)
+  SUBROUTINE mean_frequency_energy_sep(p_patch, wave_config, wesd, mask, emeanws, emeans, femeanws, femeans)
     CHARACTER(len=*), PARAMETER :: &
          & routine =  modname//'mean_frequency_energy_sep'
 
     TYPE(t_patch),               INTENT(IN)    :: p_patch
     TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
-    REAL(wp), INTENT(IN)    :: tracer(:,:,:,:) !energy spectral bins (nproma,ndirs,nblks_c,nfreqs)
-    INTEGER,  INTENT(IN)    :: mask(:,:,:,:)   !=1 - swell           (nproma,ndirs,nblks_c,nfreqs)
-    REAL(wp), INTENT(IN)    :: emeanws(:,:)    !wind sea energy      (nproma,nblks_c)
-    REAL(wp), INTENT(IN)    :: emeans(:,:)     !swell energy         (nproma,nblks_c)
-    REAL(wp), INTENT(INOUT) :: femeans(:,:)    !swell mean frequency energy    (nproma,nblks_c)
-    REAL(wp), INTENT(INOUT) :: femeanws(:,:)   !wind sea mean frequency energy (nproma,nblks_c)
+    TYPE(t_wesd), INTENT(IN)    :: wesd(:)         !energy spectral bins
+                                                   ! wesd(nfreqs)%(nproma,ndirs,nblks_c)
+    INTEGER,      INTENT(IN)    :: mask(:,:,:,:)   !=1 - swell           (nproma,ndirs,nfreqs,nblks_c)
+    REAL(wp),     INTENT(IN)    :: emeanws(:,:)    !wind sea energy      (nproma,nblks_c)
+    REAL(wp),     INTENT(IN)    :: emeans(:,:)     !swell energy         (nproma,nblks_c)
+    REAL(wp),     INTENT(INOUT) :: femeans(:,:)    !swell mean frequency energy    (nproma,nblks_c)
+    REAL(wp),     INTENT(INOUT) :: femeanws(:,:)   !wind sea mean frequency energy (nproma,nblks_c)
 
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
     INTEGER :: i_startidx, i_endidx
@@ -440,10 +441,10 @@ CONTAINS
 
         DO jd = 1,wc%ndirs
           DO jc = i_startidx, i_endidx
-            IF (mask(jc,jd,jb,jf)==1) THEN ! belongs to swell
-              temp(jc,jf) = temp(jc,jf) + tracer(jc,jd,jb,jf)
+            IF (mask(jc,jd,jf,jb)==1) THEN ! belongs to swell
+              temp(jc,jf) = temp(jc,jf) + wesd(jf)%ptr(jc,jd,jb)
             ELSE ! belongs to wind sea
-              temp_1(jc,jf) = temp_1(jc,jf) + tracer(jc,jd,jb,jf)
+              temp_1(jc,jf) = temp_1(jc,jf) + wesd(jf)%ptr(jc,jd,jb)
             ENDIF
           ENDDO
         ENDDO  ! jd
@@ -481,16 +482,16 @@ CONTAINS
   !! developed by S.D. HASSELMANN, optimized by L. Zambresky
   !! and H. Guenther, GKSS, 2001
   !!
-  SUBROUTINE total_energy_sep(p_patch, wave_config, tracer, mask, emeanws, emeans)
+  SUBROUTINE total_energy_sep(p_patch, wave_config, wesd, mask, emeanws, emeans)
     CHARACTER(len=*), PARAMETER ::  &
          &  routine = modname//'total_energy_sep'
 
     TYPE(t_patch),               INTENT(IN)    :: p_patch
     TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
-    REAL(wp), INTENT(IN)    :: tracer(:,:,:,:) !energy spectral bins (nproma,ndirs,nblks_c,nfreqs)
-    INTEGER,  INTENT(IN)    :: mask(:,:,:,:)   !=1 where energy belongs to swell emeans, =0 - belongs to wind sea emeanws
-    REAL(wp), INTENT(INOUT) :: emeanws(:,:)    !wind sea energy (nproma,nblks_c)
-    REAL(wp), INTENT(INOUT) :: emeans(:,:)     !swell energy (nproma,nblks_c)
+    TYPE(t_wesd), INTENT(IN)    :: wesd(:)         !energy spectral bins (nproma,ndirs,nblks_c,nfreqs)
+    INTEGER,      INTENT(IN)    :: mask(:,:,:,:)   !=1 where energy belongs to swell emeans, =0 - belongs to wind sea emeanws
+    REAL(wp),     INTENT(INOUT) :: emeanws(:,:)    !wind sea energy (nproma,nblks_c)
+    REAL(wp),     INTENT(INOUT) :: emeans(:,:)     !swell energy (nproma,nblks_c)
 
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
     INTEGER :: i_startidx, i_endidx
@@ -515,7 +516,7 @@ CONTAINS
         &                 i_startidx, i_endidx, i_rlstart, i_rlend)
 
 
-      ! compute sum of all tracers that match a specific frequency
+      ! compute sum of all wesd components that match a specific frequency
       DO jf = 1,wc%nfreqs
 
         ! initialization
@@ -526,10 +527,10 @@ CONTAINS
 
         DO jd = 1,wc%ndirs
           DO jc = i_startidx, i_endidx
-            IF (mask(jc,jd,jb,jf) == 1) THEN
-              sum1(jc,jf) = sum1(jc,jf) + tracer(jc,jd,jb,jf)
+            IF (mask(jc,jd,jf,jb) == 1) THEN
+              sum1(jc,jf) = sum1(jc,jf) + wesd(jf)%ptr(jc,jd,jb)
             ELSE
-              sum2(jc,jf) = sum2(jc,jf) + tracer(jc,jd,jb,jf)
+              sum2(jc,jf) = sum2(jc,jf) + wesd(jf)%ptr(jc,jd,jb)
             END IF
           END DO
         END DO  ! jd
@@ -618,7 +619,7 @@ CONTAINS
           DO jc = i_startidx, i_endidx
 
             trhld = fric/dw_phase_vel * 1.2_wp*ustar(jc,jb)*COS(wc%dirs(jd) - dir10m(jc,jb))
-            swell_mask(jc,jd,jb,jf) = MERGE(1, 0, trhld < 1._wp)
+            swell_mask(jc,jd,jf,jb) = MERGE(1, 0, trhld < 1._wp)
 
           END DO
         END DO
@@ -672,12 +673,12 @@ CONTAINS
   !! Calculation of peak wave period and peak wavenumber
   !! based on WAM 4.5 formulation
   !!
-  SUBROUTINE peak_wave_period_wavenumber(p_patch, wave_config, tracer, wave_num_c, pp, kp)
+  SUBROUTINE peak_wave_period_wavenumber(p_patch, wave_config, wesd, wave_num_c, pp, kp)
     CHARACTER(len=*), PARAMETER ::  &
       &  routine = modname//':peak_wave_period_wavenumber'
     TYPE(t_patch),       INTENT(IN)         :: p_patch
     TYPE(t_wave_config), TARGET, INTENT(IN) :: wave_config
-    REAL(wp),            INTENT(IN)         :: tracer(:,:,:,:)   !energy spectral bins
+    TYPE(t_wesd),                INTENT(IN) :: wesd(:)           !energy spectral bins
     REAL(wp),            INTENT(IN)         :: wave_num_c(:,:,:) !wavenumber (1/m)
     REAL(wp),            INTENT(INOUT)      :: pp(:,:)           !peak period
     REAL(wp),            INTENT(INOUT)      :: kp(:,:)           !peak wavenumber
@@ -706,7 +707,7 @@ CONTAINS
         END DO
         DO jd = 1,wc%ndirs
           DO jc = i_startidx, i_endidx
-            temp(jc,jf) = temp(jc,jf) + tracer(jc,jd,jb,jf)
+            temp(jc,jf) = temp(jc,jf) + wesd(jf)%ptr(jc,jd,jb)
           END DO
         END DO  ! jd
       END DO  ! jf
@@ -738,12 +739,12 @@ CONTAINS
   !! Calculation of peak period and wavenumber for wind sea and swell according to mask
   !! based on WAM 4.5 formulation
   !!
-  SUBROUTINE peak_wave_period_wavenumber_sep(p_patch, wave_config, tracer, wave_num_c, mask, pp_sea, pp_swell, kp_sea, kp_swell)
+  SUBROUTINE peak_wave_period_wavenumber_sep(p_patch, wave_config, wesd, wave_num_c, mask, pp_sea, pp_swell, kp_sea, kp_swell)
     CHARACTER(len=*), PARAMETER ::  &
       &  routine = modname//':peak_wave_period_wavenumber_sep'
     TYPE(t_patch),       INTENT(IN)         :: p_patch
     TYPE(t_wave_config), TARGET, INTENT(IN) :: wave_config
-    REAL(wp),            INTENT(IN)         :: tracer(:,:,:,:)   !< energy spectral bins
+    TYPE(t_wesd),        INTENT(IN)         :: wesd(:)           !< energy spectral bins
     REAL(wp),            INTENT(IN)         :: wave_num_c(:,:,:) !< wavenumber (1/m)
     INTEGER,             INTENT(IN)         :: mask(:,:,:,:)     !< =1 where energy belongs to swell, =0 - belongs to wind sea
     REAL(wp),            INTENT(INOUT)      :: pp_sea(:,:)       !< wind sea peak wave period
@@ -780,10 +781,10 @@ CONTAINS
         END DO
         DO jd = 1,wc%ndirs
           DO jc = i_startidx, i_endidx
-            IF (mask(jc,jd,jb,jf) == 1) THEN !swell
-              temp1(jc,jf) = temp1(jc,jf) + tracer(jc,jd,jb,jf)
+            IF (mask(jc,jd,jf,jb) == 1) THEN !swell
+              temp1(jc,jf) = temp1(jc,jf) + wesd(jf)%ptr(jc,jd,jb)
             ELSE
-              temp2(jc,jf) = temp2(jc,jf) + tracer(jc,jd,jb,jf)
+              temp2(jc,jf) = temp2(jc,jf) + wesd(jf)%ptr(jc,jd,jb)
             END IF
           END DO
         END DO  ! jd
@@ -872,14 +873,14 @@ CONTAINS
   !! Calculation of mean wave direction and spread
   !! based on WAM 4.5 formulation
   !!
-  SUBROUTINE mean_wave_direction_spread(p_patch, wave_config, tracer, mean_dir, mean_spread)
+  SUBROUTINE mean_wave_direction_spread(p_patch, wave_config, wesd, mean_dir, mean_spread)
 
     CHARACTER(len=*), PARAMETER ::  &
       &  routine = modname//':mean_wave_direction_spread'
 
     TYPE(t_patch),               INTENT(IN)    :: p_patch
     TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
-    REAL(wp),                    INTENT(IN)    :: tracer(:,:,:,:) !energy spectral bins
+    TYPE(t_wesd),                INTENT(IN)    :: wesd(:)    !energy spectral bins
     REAL(wp),                    INTENT(INOUT) :: mean_dir(:,:)
     REAL(wp),                    INTENT(INOUT) :: mean_spread(:,:)
 
@@ -922,7 +923,7 @@ CONTAINS
       DO jf = 1,wc%nfreqs
         DO jd = 1, wc%ndirs
           DO jc = i_startidx, i_endidx
-            temp(jc,jd) = temp(jc,jd) + tracer(jc,jd,jb,jf) * wc%DFIM(jf)
+            temp(jc,jd) = temp(jc,jd) + wesd(jf)%ptr(jc,jd,jb) * wc%DFIM(jf)
           END DO
         END DO
       END DO
@@ -975,14 +976,14 @@ CONTAINS
   !! according to mask
   !! based on WAM 4.5 formulation
   !!
-  SUBROUTINE mean_wave_direction_spread_sep(p_patch, wave_config, tracer, mask, md_sea, ms_sea, md_swell, ms_swell)
+  SUBROUTINE mean_wave_direction_spread_sep(p_patch, wave_config, wesd, mask, md_sea, ms_sea, md_swell, ms_swell)
 
     CHARACTER(len=*), PARAMETER ::  &
       &  routine = modname//':mean_wave_direction_spread'
 
     TYPE(t_patch),               INTENT(IN)    :: p_patch
     TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
-    REAL(wp),                    INTENT(IN)    :: tracer(:,:,:,:) !energy spectral bins
+    TYPE(t_wesd),                INTENT(IN)    :: wesd(:)         !energy spectral bins
     INTEGER,                     INTENT(IN)    :: mask(:,:,:,:)   !=1 where energy belongs to swell,
                                                                   !=0 - belongs to wind sea
     REAL(wp),                    INTENT(INOUT) :: md_sea(:,:) ! wind sea direction
@@ -1033,10 +1034,10 @@ CONTAINS
       DO jf = 1,wc%nfreqs
         DO jd = 1, wc%ndirs
           DO jc = i_startidx, i_endidx
-            IF (mask(jc,jd,jb,jf).EQ.1) THEN
-              temp1(jc,jd) = temp1(jc,jd) + tracer(jc,jd,jb,jf) * wc%DFIM(jf) ! swell
+            IF (mask(jc,jd,jf,jb).EQ.1) THEN
+              temp1(jc,jd) = temp1(jc,jd) + wesd(jf)%ptr(jc,jd,jb) * wc%DFIM(jf) ! swell
             ELSE
-              temp2(jc,jd) = temp2(jc,jd) + tracer(jc,jd,jb,jf) * wc%DFIM(jf) ! wind sea
+              temp2(jc,jd) = temp2(jc,jd) + wesd(jf)%ptr(jc,jd,jb) * wc%DFIM(jf) ! wind sea
             END IF
           END DO
         END DO
@@ -1127,7 +1128,7 @@ CONTAINS
   !! Kern E. Kenyon, JGR, Vol 74 NO 28, 1969
   !! O. Breivik, J.-R. Bidlot & P. Janssen, 2016 (high-frequency tail)
   !!
-  SUBROUTINE stokes_drift(p_patch, wave_config, wave_num_c, depth, tracer, u_stokes, v_stokes)
+  SUBROUTINE stokes_drift(p_patch, wave_config, wave_num_c, depth, wesd, u_stokes, v_stokes)
 
     CHARACTER(len=*), PARAMETER ::  &
       &  routine = modname//':stokes_drift'
@@ -1136,13 +1137,13 @@ CONTAINS
     TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
     REAL(wp),                    INTENT(IN)    :: wave_num_c(:,:,:)  !< wave number (1/m)
     REAL(wp),                    INTENT(IN)    :: depth(:,:)
-    REAL(wp),                    INTENT(IN)    :: tracer(:,:,:,:) !energy spectral bins
+    TYPE(t_wesd),                INTENT(IN)    :: wesd(:)            !< energy spectral bins
     REAL(wp),                    INTENT(INOUT) :: u_stokes(:,:)
     REAL(wp),                    INTENT(INOUT) :: v_stokes(:,:)
 
     TYPE(t_wave_config), POINTER :: wc => NULL()
 
-    REAL(wp) :: ak, akd, fact, tailfac
+    REAL(wp) :: ak, akd, fact
     REAL(wp) :: si(nproma), ci(nproma)
 
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
@@ -1174,8 +1175,8 @@ CONTAINS
       freqs:DO jf = 1,wc%nfreqs
         DO jd = 1, wc%ndirs
           DO jc = i_startidx, i_endidx
-            si(jc) = si(jc) + tracer(jc,jd,jb,jf) * wc%sin_dir(jd)
-            ci(jc) = ci(jc) + tracer(jc,jd,jb,jf) * wc%cos_dir(jd)
+            si(jc) = si(jc) + wesd(jf)%ptr(jc,jd,jb) * wc%sin_dir(jd)
+            ci(jc) = ci(jc) + wesd(jf)%ptr(jc,jd,jb) * wc%cos_dir(jd)
           END DO
         END DO
 
@@ -1199,9 +1200,9 @@ CONTAINS
 
       DO jd = 1, wc%ndirs
         DO jc = i_startidx, i_endidx
-          si(jc) = si(jc) + 2._wp*tracer(jc,jd,jb,wc%nfreqs) * wc%sin_dir(jd) *  &
+          si(jc) = si(jc) + 2._wp*wesd(wc%nfreqs)%ptr(jc,jd,jb) * wc%sin_dir(jd) *  &
                           &  wave_num_c(jc,wc%nfreqs,jb) * pi2*wc%freqs(wc%nfreqs)**2
-          ci(jc) = ci(jc) + 2._wp*tracer(jc,jd,jb,wc%nfreqs) * wc%cos_dir(jd) *  &
+          ci(jc) = ci(jc) + 2._wp*wesd(wc%nfreqs)%ptr(jc,jd,jb) * wc%cos_dir(jd) *  &
                           &  wave_num_c(jc,wc%nfreqs,jb) * pi2*wc%freqs(wc%nfreqs)**2
         END DO
       END DO

@@ -34,7 +34,7 @@ MODULE mo_sbm_util
   USE mo_loopindices,        ONLY: get_indices_c
   USE mo_atm_phy_nwp_config, ONLY: atm_phy_nwp_config
   USE mo_2mom_mcrph_driver,  ONLY: two_moment_mcrph_init
-  USE mo_2mom_mcrph_processes, ONLY: cfg_params
+  USE mo_2mom_mcrph_setup,   ONLY: cfg_params
   USE mo_run_config,         ONLY: iqv, iqc, iqi, iqr, iqs, iqg, iqh, iqbin, nkr => iqb_length, msg_level, &
        &                           iqb_water_start, iqb_water_end,      &
        &                           iqb_snow_start, iqb_snow_end,        &

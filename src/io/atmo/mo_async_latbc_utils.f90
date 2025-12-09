@@ -37,7 +37,7 @@
     USE mo_model_domain,        ONLY: t_patch
     USE mo_grid_config,         ONLY: nroot, n_dom
     USE mo_exception,           ONLY: message, finish, message_text
-    USE mo_impl_constants,      ONLY: MAX_CHAR_LENGTH, SUCCESS, min_rlcell
+    USE mo_impl_constants,      ONLY: MAX_CHAR_LENGTH, SUCCESS, min_rlcell, nintv_latbc
     USE mo_cdi_constants,       ONLY: GRID_UNSTRUCTURED_CELL, GRID_UNSTRUCTURED_EDGE
     USE mo_impl_constants_grf,  ONLY: grf_bdywidth_c, grf_bdywidth_e
     USE mo_io_units,            ONLY: filename_max
@@ -395,7 +395,7 @@
       INTEGER, TARGET                       :: idummy(1)
       LOGICAL                               :: is_restart
       TYPE(t_read_params) :: read_params(2) ! parameters for cdi read routine, 1 = for cells, 2 = for edges
-      INTEGER :: jn
+      INTEGER :: jn, i, ji, iend
 
 
       ! set pointer for the lateral BCs of OEM
@@ -438,13 +438,31 @@
       read_params(icell)%imode_asy = 0
       read_params(iedge)%imode_asy = 0
 
+      ! Determine how many intervals are set in the namelist
+      DO ji = 1, nintv_latbc
+        IF (latbc_config%dtime_latbc(ji) > 0._wp) iend = ji
+      ENDDO
 
-      ! get timedelta between consecutive boundary data
-      latbc%delta_dtime => latbc_config%dtime_latbc_mtime
+      DO ji = 1, nintv_latbc
+        ! get timedelta between consecutive boundary data
+        latbc%intv(ji)%delta_dtime => latbc_config%intv(ji)%dtime_latbc_mtime
+        latbc%intv(ji)%bcintv_enddate  => newDatetime(time_config%tc_exp_startdate)
 
-      ! create prefetching event:
-      latbc%prefetchEvent => newEvent("Prefetch input", time_config%tc_exp_startdate, &
-           time_config%tc_exp_startdate, time_config%tc_stopdate, latbc%delta_dtime)
+        IF (ji < iend) THEN
+          latbc%intv(ji)%bcintv_enddate  = time_config%tc_exp_startdate + latbc_config%intv(ji)%bcintv_endtime
+        ELSE
+          latbc%intv(ji)%bcintv_enddate = time_config%tc_stopdate + latbc_config%intv(iend)%dtime_latbc_mtime
+        ENDIF
+
+        ! create prefetching event:
+        IF (ji == 1) THEN
+          latbc%intv(ji)%prefetchEvent => newEvent("Prefetch input", time_config%tc_exp_startdate, &
+            time_config%tc_exp_startdate, time_config%tc_stopdate, latbc%intv(ji)%delta_dtime)
+        ELSE
+          latbc%intv(ji)%prefetchEvent => newEvent("Prefetch input", latbc%intv(ji-1)%bcintv_enddate, &
+            latbc%intv(ji-1)%bcintv_enddate, time_config%tc_stopdate, latbc%intv(ji)%delta_dtime)
+        ENDIF
+      ENDDO
 
       latbc%mtime_last_read  = time_config%tc_current_date
       latbc_read_datetime    = time_config%tc_current_date
@@ -549,20 +567,27 @@
       ! Read latbc data for first time level in case of restart
       IF (is_restart) THEN
         !
-        CALL getTriggerNextEventAtDateTime(latbc%prefetchEvent,time_config%tc_current_date,nextActive,ierr)
+        ji = 1
+        DO i = 1, nintv_latbc-1
+          IF (time_config%tc_current_date >= latbc%intv(i)%bcintv_enddate) ji = i+1
+        ENDDO
+
+        CALL getTriggerNextEventAtDateTime(latbc%intv(ji)%prefetchEvent,time_config%tc_current_date,nextActive,ierr)
         IF (nextActive > time_config%tc_current_date) THEN
-          latbc_read_datetime = nextActive + latbc%delta_dtime*(-1._dp) ! scale timedelta by dp
+          latbc_read_datetime = nextActive + latbc%intv(ji)%delta_dtime*(-1._dp) ! scale timedelta by dp
         ELSE
           latbc_read_datetime = nextActive
         ENDIF
 
         CALL read_next_timelevel(.FALSE.)
+      ELSE
+        ji = 1
       ENDIF
 
       ! Read input data for second boundary time level; in case of IAU (dt_shift<0), the second time level
       ! equals the nominal start date, which has already been read above
       IF (time_config%timeshift%dt_shift == 0._wp .OR. is_restart) THEN
-        latbc_read_datetime = latbc_read_datetime + latbc%delta_dtime
+        latbc_read_datetime = latbc_read_datetime + latbc%intv(ji)%delta_dtime
         CALL read_next_timelevel(.TRUE.)
       ENDIF
 
@@ -1041,37 +1066,61 @@
 #ifndef NOMPI
       ! local variables
       TYPE(datetime) :: nextActive             ! next trigger date for prefetch event
-      INTEGER        :: ierr
+      INTEGER        :: ierr, i, ji, iend
       TYPE(datetime) :: latbc_read_datetime    ! next input date to be read
       CHARACTER(LEN=*), PARAMETER :: routine = modname//"::async_init_latbc_data"
 
 
       IF (.NOT. my_process_is_pref())  RETURN
 
-      ! get timedelta between consecutive boundary data
-      latbc%delta_dtime => latbc_config%dtime_latbc_mtime
+      ! Determine how many intervals are set in the namelist
+      DO ji = 1, nintv_latbc
+        IF (latbc_config%dtime_latbc(ji) > 0._wp) iend = ji
+      ENDDO
 
-      ! create prefetching event:
-      latbc%prefetchEvent => newEvent("Prefetch input", time_config%tc_exp_startdate, &
-           time_config%tc_exp_startdate, time_config%tc_stopdate, latbc%delta_dtime)
+      DO ji = 1, nintv_latbc
+        ! get timedelta between consecutive boundary data
+        latbc%intv(ji)%delta_dtime => latbc_config%intv(ji)%dtime_latbc_mtime
+        latbc%intv(ji)%bcintv_enddate  => newDatetime(time_config%tc_exp_startdate)
+
+        IF (ji < iend) THEN
+          latbc%intv(ji)%bcintv_enddate  = time_config%tc_exp_startdate + latbc_config%intv(ji)%bcintv_endtime
+        ELSE
+          latbc%intv(ji)%bcintv_enddate = time_config%tc_stopdate + latbc_config%intv(iend)%dtime_latbc_mtime
+        ENDIF
+
+        ! create prefetching event:
+        IF (ji == 1) THEN
+          latbc%intv(ji)%prefetchEvent => newEvent("Prefetch input", time_config%tc_exp_startdate, &
+             time_config%tc_exp_startdate, time_config%tc_stopdate, latbc%intv(ji)%delta_dtime)
+        ELSE
+          latbc%intv(ji)%prefetchEvent => newEvent("Prefetch input", latbc%intv(ji-1)%bcintv_enddate, &
+             latbc%intv(ji-1)%bcintv_enddate, time_config%tc_stopdate, latbc%intv(ji)%delta_dtime)
+        ENDIF
+
+      ENDDO
 
       latbc%mtime_last_read = time_config%tc_current_date
-
       ! Ensure that the prefetch event control will start reading at the correct date
       IF(isRestart()) THEN
         !
-        CALL getTriggerNextEventAtDateTime(latbc%prefetchEvent,time_config%tc_current_date,nextActive,ierr)
+        ji = 1
+        DO i = 1, nintv_latbc-1
+          IF (time_config%tc_current_date >= latbc%intv(i)%bcintv_enddate) ji = i+1
+        ENDDO
+
+        CALL getTriggerNextEventAtDateTime(latbc%intv(ji)%prefetchEvent,time_config%tc_current_date,nextActive,ierr)
         IF (nextActive > time_config%tc_current_date) THEN
-          latbc_read_datetime = nextActive + latbc%delta_dtime*(-1._dp) ! scale timedelta by dp
+          latbc_read_datetime = nextActive + latbc%intv(ji)%delta_dtime*(-1._dp) ! scale timedelta by dp
         ELSE
           latbc_read_datetime = nextActive
         ENDIF
-        latbc_read_datetime = latbc_read_datetime + latbc%delta_dtime
+        latbc_read_datetime = latbc_read_datetime + latbc%intv(ji)%delta_dtime
       ELSE IF (time_config%timeshift%dt_shift < 0._wp ) THEN
         ! For IAU, the second frame is always taken at tc_exp_startdate
         latbc_read_datetime = time_config%tc_exp_startdate
       ELSE
-        latbc_read_datetime = time_config%tc_current_date + latbc%delta_dtime
+        latbc_read_datetime = time_config%tc_current_date + latbc%intv(1)%delta_dtime ! must always be first interval
       ENDIF
 
       latbc%mtime_last_read = latbc_read_datetime
@@ -1110,7 +1159,7 @@
       CHARACTER(LEN=*), PARAMETER :: routine = modname//"::prefetch_latbc_data"
 
       INTEGER(KIND=MPI_ADDRESS_KIND)        :: ioff(0:num_work_procs-1)
-      INTEGER                               :: jm, errno, nlevs_read, nlevs
+      INTEGER                               :: jm, errno, nlevs_read, nlevs, i, ji
       character(len=max_datetime_str_len)   :: vDateTime_str  ! vDateTime in String format
 
 
@@ -1118,7 +1167,11 @@
       ! return if latbc_read_datetime is at least one full boundary data
       ! interval beyond the simulation end, implying that no further
       ! data are required for correct results
-      IF (latbc_read_datetime >= time_config%tc_stopdate + latbc%delta_dtime) RETURN
+      ji = 1
+      DO i = 1, nintv_latbc-1
+        IF (latbc%mtime_last_read >= latbc%intv(i)%bcintv_enddate) ji = i+1
+      ENDDO
+      IF (latbc_read_datetime >= time_config%tc_stopdate + latbc%intv(ji)%delta_dtime) RETURN
 
       CALL reopen_latbc_file(latbc, latbc_read_datetime, .TRUE.)
 
@@ -1296,13 +1349,19 @@
       character(len=max_datetime_str_len)   :: vDateTime_str
       TYPE(datetime), POINTER               :: vDateTime_ptr
       TYPE(t_read_params)                   :: read_params(2)
-      INTEGER                               :: jn
+      INTEGER                               :: jn, i, ji
 
       ! check for event been active
       my_duration_slack => newTimedelta("PT0S")
       my_duration_slack = time_config%tc_dt_model*0.4999_dp ! scale timedelta by dp
 
-      isactive = isCurrentEventActive(latbc%prefetchEvent, cur_datetime, my_duration_slack, my_duration_slack)
+      ji = 1
+      DO i = 1, nintv_latbc-1
+        IF (latbc%mtime_last_read > latbc%intv(i)%bcintv_enddate) ji = i+1
+      ENDDO
+
+      isactive = isCurrentEventActive(latbc%intv(ji)%prefetchEvent, cur_datetime, my_duration_slack, my_duration_slack)
+
       CALL deallocateTimedelta(my_duration_slack)
 
       ! do we need to read boundary data
@@ -1312,7 +1371,7 @@
       ! return if latbc_read_datetime is at least one full boundary data
       ! interval beyond the simulation end, implying that no further
       ! data are required for correct results
-      IF (latbc_read_datetime >= time_config%tc_stopdate + latbc%delta_dtime) RETURN
+      IF (latbc_read_datetime >= time_config%tc_stopdate + latbc%intv(ji)%delta_dtime) RETURN
 
       ! copy values needed from the GPU to the CPU
 #ifdef _OPENACC

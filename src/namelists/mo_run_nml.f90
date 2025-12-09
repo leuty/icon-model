@@ -41,7 +41,8 @@ MODULE mo_run_nml
                          & config_profiling_output => profiling_output, &
                          & config_check_uuid_gracefully => check_uuid_gracefully, &
                          & cfg_modelTimeStep => modelTimeStep,        &
-                         & config_disable_print_gpu_mem => l_disable_print_gpu_mem
+                         & config_disable_print_gpu_mem => l_disable_print_gpu_mem,        &
+                         &config_lmsgwam            => lmsgwam
 #ifdef HAVE_RADARFWO
   USE radar_data_namelist, ONLY: radar_config_radarnmlfile => radarnmlfile
 #endif
@@ -98,6 +99,9 @@ CONTAINS
     !> switch for assimilation of radar data using latent heat nudging
     LOGICAL :: ldass_lhn
 
+    !logical switch for MS-GWaM GW parametrisation submodule
+    LOGICAL :: lmsgwam(max_dom)
+
     LOGICAL :: luse_radarfwo(max_dom)  !< switch for radar forward operator EMVORADO
     CHARACTER(LEN=255) :: radarnmlfile !< name of the file containing the radar namelist
     LOGICAL :: lvert_nest         ! if .TRUE., switch on vertical nesting
@@ -148,7 +152,7 @@ CONTAINS
       &                msg_timestamp, debug_check_level,               &
       &                restart_filename, profiling_output,             &
       &                check_uuid_gracefully, modelTimeStep,           &
-      &                l_disable_print_gpu_mem
+      &                l_disable_print_gpu_mem, lmsgwam
 
 
     !------------------------------------------------------------
@@ -200,6 +204,8 @@ CONTAINS
     check_uuid_gracefully = .FALSE.
 
     l_disable_print_gpu_mem = .FALSE.
+
+    lmsgwam(:) = .FALSE.      ! logical switch for MS-GWaM (instead of default GWD scheme)
 
     !------------------------------------------------------------------
     ! If this is a resumed integration, overwrite the defaults above
@@ -255,6 +261,15 @@ CONTAINS
 #endif
     END IF
 
+    IF (ANY(lmsgwam)) THEN
+#ifndef __MSGWAM
+      CALL finish( routine,'model set to run with MSGWAM but compiled without --enable-msgwam')
+#endif
+#ifdef _OPENACC
+       CALL finish(routine,'GPU version not available for MSGWAM (lmsgwam=.TRUE.).')
+#endif
+    END IF
+
     !----------------------------------------------------
     ! Fill part of the configuration state
     !----------------------------------------------------
@@ -301,6 +316,8 @@ CONTAINS
     cfg_modelTimeStep       = modelTimeStep
 
     config_disable_print_gpu_mem = l_disable_print_gpu_mem
+
+    config_lmsgwam(:)            = lmsgwam(:)
 
     IF (TRIM(output(1)) /= "default") THEN
       config_output(:) = output(:)

@@ -24,7 +24,7 @@ MODULE mo_hydro_ocean_run
   USE mo_impl_constants,         ONLY: max_char_length, success
   USE mo_model_domain,           ONLY: t_patch, t_patch_3d
   USE mo_grid_config,            ONLY: n_dom
-  USE mo_coupling_config,        ONLY: is_coupled_to_atmo, is_coupled_to_output
+  USE mo_coupling_config,        ONLY: is_coupled_to_atmo, is_coupled_to_waves, is_coupled_to_output
   USE mo_memory_log,             ONLY: memory_log_add
   USE mo_ocean_nml,              ONLY: iswm_oce, n_zlev, no_tracer, &
     &  i_sea_ice, cfl_check, cfl_threshold, cfl_stop_on_violation,   &
@@ -41,7 +41,7 @@ MODULE mo_hydro_ocean_run
     & GMRedi_configuration, Cartesian_Mixing, l_lhs_direct, &
     & select_lhs, select_lhs_operators, select_lhs_matrix, &
     & iau_reference_time, init_mode_oce, dt_iau_oce, MODE_IAU_OCE
-  USE mo_ocean_nml,              ONLY: iforc_oce, Coupled_FluxFromAtmo
+  USE mo_ocean_nml,              ONLY: iforc_oce, Coupled_FluxFromAtmo, OMIP_FluxFromFile
   USE mo_dynamics_config,        ONLY: nold, nnew
   USE mo_io_config,              ONLY: n_checkpoints, write_last_restart
   USE mo_run_config,             ONLY: dtime, ltimer, output_mode, debug_check_level
@@ -76,7 +76,7 @@ MODULE mo_hydro_ocean_run
   USE mo_sea_ice_types,          ONLY: t_atmos_fluxes, t_sea_ice
   USE mo_sea_ice_nml,            ONLY: i_ice_dyn
   USE mo_ocean_physics,          ONLY: update_ho_params, update_ho_params_zstar
-  USE mo_ocean_physics_types,    ONLY: t_ho_params
+  USE mo_ocean_physics_types,    ONLY: t_ho_params, v_params
   USE mo_ocean_thermodyn,        ONLY: calc_potential_density, calculate_density, &
     & calculate_density_zstar
   USE mo_name_list_output,       ONLY: write_name_list_output
@@ -97,6 +97,7 @@ MODULE mo_hydro_ocean_run
   USE mo_derived_variable_handling, ONLY: update_statistics
   USE mo_ocean_output
   USE mo_ocean_atmo_coupling,    ONLY: couple_ocean_toatmo_fluxes
+  USE mo_ocean_wave_coupling,    ONLY: couple_ocean_to_waves
   USE mo_hamocc_nml,             ONLY: l_cpl_co2
   USE mo_ocean_time_events,      ONLY: ocean_time_nextStep, isCheckpoint, isEndOfThisRun, newNullDatetime
   USE mo_ocean_ab_timestepping_mimetic, ONLY: clear_ocean_ab_timestepping_mimetic
@@ -353,6 +354,11 @@ CONTAINS
       IF (iforc_oce == Coupled_FluxFromAtmo) &
         & CALL finish(routine, 'OpenACC version for iforc_oce==Coupled_FluxFromAtmo ' &
         & // 'currently not tested/validated')
+
+      IF (iforc_oce == OMIP_FluxFromFile) &
+        & CALL message (routine, 'OpenACC version for iforc_oce==OMIP_FluxFromFile ' &
+        & // 'currently not tested/validated')
+
       IF (cfl_check) &
         & CALL finish(routine, 'OpenACC version for cfl_check == .TRUE. currently not tested/validated')
 
@@ -780,6 +786,25 @@ CONTAINS
             IF (ltimer) CALL timer_stop(timer_coupling)
           END IF
         ENDIF
+
+        ! send and receive waves fields for ocean at the end of time stepping loop
+        IF (iforc_oce == OMIP_FluxFromFile) THEN  !  12
+          IF ( is_coupled_to_waves() ) THEN
+            CALL couple_ocean_to_waves(patch_3d   = patch_3d,                          & ! IN
+              &                        ice_conc   = sea_ice%conc(:,1,:),               & ! IN
+              &                        cur_u      = ocean_state(jg)%p_diag%u(:,1,:),   & ! IN
+              &                        cur_v      = ocean_state(jg)%p_diag%v(:,1,:),   & ! IN
+              &                        ssh        = ocean_state(jg)%p_diag%ssh,        & ! IN
+              &                        ssd        = ocean_state(jg)%p_diag%rho(:,1,:), & ! IN
+              &                        u2d_stokes = v_params%u2d_stokes,               & ! INOUT
+              &                        v2d_stokes = v_params%v2d_stokes,               & ! INOUT
+              &                        tau_w      = v_params%tau_w,                    & ! INOUT
+              &                        swh        = v_params%swh,                      & ! INOUT
+              &                        Tm2        = v_params%Tm2,                      & ! INOUT
+              &                        kp         = v_params%kp,                       & ! INOUT
+              &                        lacc       = lzacc)                               ! OPTIONAL IN
+          END IF
+        END IF
 
         ! copy atmospheric wind speed of coupling from p_as%fu10 into forcing to be written by restart
         p_oce_sfc%Wind_Speed_10m(:,:) = p_as%fu10(:,:)

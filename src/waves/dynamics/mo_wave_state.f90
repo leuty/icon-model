@@ -13,6 +13,7 @@
 
 MODULE mo_wave_state
 
+  USE mo_kind,                      ONLY: wp
   USE mo_master_control,            ONLY: get_my_process_name
   USE mo_exception,                 ONLY: message, finish
   USE mo_parallel_config,           ONLY: nproma
@@ -20,7 +21,9 @@ MODULE mo_wave_state
   USE mo_grid_config,               ONLY: n_dom, l_limited_area, ifeedback_type
   USE mo_impl_constants,            ONLY: success, max_char_length, VNAME_LEN, TLEV_NNOW, &
     &                                     HINTP_TYPE_LONLAT_NNB, HINTP_TYPE_LONLAT_BCTR
+  USE mo_math_constants,            ONLY: rad2deg
   USE mo_var_list,                  ONLY: add_var, add_ref, t_var_list_ptr
+  USE mo_math_constants,            ONLY: pi2
   USE mo_var_list_register,         ONLY: vlr_add, vlr_del
   USE mo_var_groups,                ONLY: groups
   USE mo_cdi_constants,             ONLY: GRID_UNSTRUCTURED_CELL, GRID_CELL, &
@@ -30,10 +33,12 @@ MODULE mo_wave_state
   USE mo_zaxis_type,                ONLY: ZA_SURFACE, ZA_FREQ_GENERIC, ZA_DIR_GENERIC, &
     &                                     ZA_DEPTH_BELOW_SEA
   USE mo_cf_convention,             ONLY: t_cf_var
-  USE mo_grib2,                     ONLY: t_grib2_var, grib2_var
+  USE mo_grib2,                     ONLY: t_grib2_var, grib2_var, t_grib2_int_key, OPERATOR(+), &
+    &                                     t_grib2_intarr_key
   USE mo_io_config,                 ONLY: lnetcdf_flt64_output
   USE mo_wave_io_config,            ONLY: t_wave_var_in_output
-  USE mo_var_metadata,              ONLY: get_timelevel_string, create_hor_interp_metadata
+  USE mo_var_metadata,              ONLY: get_timelevel_string, create_hor_interp_metadata, post_op
+  USE mo_var_metadata_types,        ONLY: CLASS_WAVE_SPECTRUM, POST_OP_SCALE
   USE mo_tracer_metadata,           ONLY: create_tracer_metadata
 
   USE mo_wave_types,                ONLY: t_wave_prog, t_wave_source, t_wave_diag, &
@@ -106,16 +111,13 @@ CONTAINS
        ! Build lists for every timelevel
        !
        DO jt = 1, ntl
-
-          WRITE(listname,'(a,i2.2,a,i2.2)') 'wave_state_prog_of_domain_',jg, &
-               &                            '_and_timelev_',jt
-
-          ! Build prog state list
-          ! includes memory allocation
-          CALL new_wave_state_prog_list(p_patch(jg), p_wave_state(jg)%prog(jt), &
-               & p_wave_state_lists(jg)%prog_list(jt), &
-               & listname, jt)
-
+         WRITE(listname,'(a,i2.2,a,i2.2)') 'wave_state_prog_of_domain_',jg, &
+             &                            '_and_timelev_',jt
+         ! Build prog state list
+         ! includes memory allocation
+         CALL new_wave_state_prog_list(p_patch(jg), p_wave_state(jg)%prog(jt), &
+              & p_wave_state_lists(jg)%prog_list(jt), &
+              & listname, jt)
        END DO
 
        ! Build source state list
@@ -153,7 +155,7 @@ CONTAINS
     INTEGER,               INTENT(IN)    :: timelev
 
     CHARACTER(len=*), PARAMETER :: routine = modname//'::new_wave_state_prog_list'
-    TYPE(t_cf_var)    :: cf_desc
+    TYPE(t_cf_var)    :: cf_desc, new_cf_desc
     TYPE(t_grib2_var) :: grib2_desc
 
     INTEGER :: nblks_c       !< number of cell blocks to allocate
@@ -162,14 +164,19 @@ CONTAINS
     INTEGER :: ist
 
     CHARACTER(len=4)         :: suffix
-    CHARACTER(len=VNAME_LEN) :: freq_ind_str
-    CHARACTER(LEN=VNAME_LEN) :: tracer_container_name
-    CHARACTER(len=VNAME_LEN) :: tracer_name
+    CHARACTER(len=VNAME_LEN) :: dir_ind_str, freq_ind_str
+    CHARACTER(LEN=VNAME_LEN) :: wesd_container_name
+    CHARACTER(LEN=VNAME_LEN) :: wesd_name
 
     TYPE(t_wave_config),               POINTER :: wc
 
-    INTEGER :: shape4d_c(4), shape3d_c(3)
-    INTEGER :: jf
+    INTEGER :: shape3d_c(3), shape2d_c(2)
+    INTEGER :: jf, jd
+
+    INTEGER :: scaleFactor
+    INTEGER :: scaled_wdsp1, scaled_wdsp2  ! scaled Grib2 waveDirectionSequenceParameters
+    INTEGER :: scaled_wfsp1, scaled_wfsp2  ! scaled Grib2 waveFrequencySequenceParameters
+    INTEGER :: scaleFactorArr(2), wdspArr(2), wfspArr(2)
 
     !determine size of arrays
     nblks_c = p_patch%nblks_c
@@ -177,8 +184,8 @@ CONTAINS
     ! pointer to wave_config(jg) to save some paperwork
     wc => wave_config(p_patch%id)
 
-    shape4d_c = (/nproma, wc%ndirs, nblks_c, wc%nfreqs/)
     shape3d_c = (/nproma, wc%ndirs, nblks_c/)
+    shape2d_c = (/nproma, nblks_c/)
 
     ibits = DATATYPE_PACK16   ! "entropy" of horizontal slice
 
@@ -191,47 +198,94 @@ CONTAINS
     ! Suffix (mandatory for time level dependent variables)
     suffix = get_timelevel_string(timelev)
 
+    ! allocate wesd state
+    ALLOCATE(p_prog%wesd(wc%nfreqs), STAT=ist)
+    IF (ist/=SUCCESS) CALL finish(routine, 'allocation of prognostic wesd state failed')
+
+    ! scaling for waveDirectionSequenceParameters and waveFrequencySequenceParameters
+    ! according to
+    ! value = scaledValue * 10^{-scaleFactor}
+    ! strictly speaking the scaleFactor refers to a power-of-10 exponent!
+    !
+    scaleFactor    = 6
+    scaleFactorArr = (/scaleFactor, scaleFactor/)
+    !
+    ! scaled waveDirectionSequenceParameters
+    ! hint arithmetic sequence for direction calculation (see mo_wave_config)
+    ! dirs(jd) =  0.5_wp*wc%delth + REAL(jd-1,wp) * wc%delth
+    scaled_wdsp1 = NINT(rad2deg * 0.5_wp*wc%delth * 10**(scaleFactor))
+    scaled_wdsp2 = NINT(rad2deg * wc%delth * 10**(scaleFactor))
+    wdspArr      = (/scaled_wdsp1, scaled_wdsp2/)
+    !
+    ! scaled waveFrequencySequenceParameter
+    ! hint: geometric sequence for frequency calculation (see mo_wave_config)
+    ! freqs(jf) = wc%fr1 * wc%co**(jf-1)
+    scaled_wfsp1 = NINT(wc%fr1 * 10**(scaleFactor))
+    scaled_wfsp2 = NINT(wc%co * 10**(scaleFactor))
+    wfspArr      = (/scaled_wfsp1, scaled_wfsp2/)
+
     !
     ! Register a field list and apply default settings
     !
     CALL vlr_add(p_prog_list, TRIM(listname), patch_id=p_patch%id, lrestart=.TRUE., &
       &          model_type=get_my_process_name())
 
-
-    ! tracer        p_source%tracer(nproma,ndirs,nblks_c,nfreqs)
-    tracer_container_name = 'tracer'//suffix
-    cf_desc    = t_cf_var('tracer', '', 'spectral bin of wave energy', datatype_flt)
-    grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
-    CALL add_var( p_prog_list, tracer_container_name, p_prog%tracer,   &
-         & GRID_UNSTRUCTURED_CELL, ZA_DIR_GENERIC, cf_desc, grib2_desc,&
-         & ldims=shape4d_c ,                                           &
-         & lcontainer=.TRUE., lrestart=.FALSE., loutput=.FALSE. )
-
-    ALLOCATE(p_prog%tracer_ptr(wc%nfreqs), STAT=ist)
-    IF (ist/=SUCCESS) CALL finish(routine, &
-      &                    'allocation of tracer_ptr failed')
-
-    DO jf = 1, wc%nfreqs
+    DO jf = 1,wc%nfreqs
       write(freq_ind_str,'(I0.3)') jf
 
-      tracer_name = 'tracer_'//TRIM(freq_ind_str)//suffix
+      ! wesd        wesd(jf)%ptr(nproma,ndirs,nblks_c)
+      wesd_container_name = 'wesd_f'//TRIM(freq_ind_str)//suffix
+      cf_desc    = t_cf_var(TRIM(wesd_container_name), 'm^2 s', &
+        &                   'wave energy spectral density', datatype_flt)
+      grib2_desc = grib2_var(10, 0, 42, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( p_prog_list, wesd_container_name, p_prog%wesd(jf)%ptr, &
+           & GRID_UNSTRUCTURED_CELL, ZA_DIR_GENERIC, cf_desc, grib2_desc,  &
+           & ldims=shape3d_c,                                              &
+           & var_class=CLASS_WAVE_SPECTRUM,                                &
+           & lcontainer=.TRUE., lrestart=.FALSE., loutput=.FALSE. )
 
-      CALL add_ref( p_prog_list, tracer_container_name,                          &
-           & TRIM(tracer_name), p_prog%tracer_ptr(jf)%p_3d,                      &
-           & GRID_UNSTRUCTURED_CELL, ZA_DIR_GENERIC,                             &
-           & t_cf_var(TRIM(tracer_name), '-','spectral bin of wave energy',      &
-           & datatype_flt),                                                      &
-           & grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL),      &
-           & ldims=shape3d_c, ref_idx=jf,                                        &
-           & loutput=.TRUE., lrestart=.TRUE.,                                    &
-           & tlev_source=TLEV_NNOW,                                              &
-           & tracer_info=create_tracer_metadata(lis_tracer=.TRUE.,               &
-           &                       name        = TRIM(tracer_name),              &
-           &                       lfeedback   = .TRUE.,                         &
-           &                       ihadv_tracer= 2,                              &
-           &                       ivadv_tracer= 0 ),                            &
-           & in_group=groups("wave_spectrum"))
-    END DO
+      ALLOCATE(p_prog%wesd(jf)%dir(wc%ndirs), STAT=ist)
+      IF (ist/=SUCCESS) CALL finish(routine, &
+        &                    'allocation of p_prog%wesd(jf)%dir failed')
+
+      DO jd = 1, wc%ndirs
+        write(dir_ind_str,'(I0.3)') jd
+        wesd_name = 'wesd_f'//TRIM(freq_ind_str)//'_d'//TRIM(dir_ind_str)//suffix
+
+        cf_desc    = t_cf_var(TRIM(wesd_name), 'm^2 s', 'wave energy spectral density', datatype_flt)
+        new_cf_desc = t_cf_var(TRIM(wesd_name), 'm^2 s rad^-1', 'wave energy spectral density', &
+          &                    datatype_flt)
+        grib2_desc = grib2_var(10, 0, 42, ibits, GRID_UNSTRUCTURED, GRID_CELL)     &
+          &        + t_grib2_int_key("numberOfWaveDirections", wc%ndirs)           &
+          &        + t_grib2_int_key("typeOfWaveDirectionSequence", 2)             &
+          &        + t_grib2_int_key("waveDirectionNumber", jd)                    &
+          &        + t_grib2_int_key("numberOfWaveDirectionSequenceParameters", 2) &
+          &        + t_grib2_intarr_key("scaleFactorOfWaveDirectionSequenceParameter", scaleFactorArr) &
+          &        + t_grib2_intarr_key("scaledValueOfWaveDirectionSequenceParameter", wdspArr) &
+          &        + t_grib2_int_key("numberOfWaveFrequencies", wc%nfreqs)         &
+          &        + t_grib2_int_key("typeOfWaveFrequencySequence", 1)             &
+          &        + t_grib2_int_key("waveFrequencyNumber", jf)                    &
+          &        + t_grib2_int_key("numberOfWaveFrequencySequenceParameters", 2) &
+          &        + t_grib2_intarr_key("scaleFactorOfWaveFrequencySequenceParameter", scaleFactorArr) &
+          &        + t_grib2_intarr_key("scaledValueOfWaveFrequencySequenceParameter", wfspArr)
+
+        CALL add_ref( p_prog_list, wesd_container_name,                          &
+          &  TRIM(wesd_name), p_prog%wesd(jf)%dir(jd)%p_2d,                      &
+          &  GRID_UNSTRUCTURED_CELL, ZA_SURFACE,                                 &
+          &  cf_desc, grib2_desc,                                                &
+          &  ldims=shape2d_c, opt_var_ref_pos=2, ref_idx=jd,                     &
+          &  loutput=.TRUE., lrestart=.TRUE.,                                    &
+          &  tlev_source=TLEV_NNOW,                                              &
+          &  tracer_info=create_tracer_metadata(lis_tracer=.TRUE.,               &
+          &                        name        = TRIM(wesd_name),                &
+          &                        lfeedback   = .TRUE.,                         &
+          &                        ihadv_tracer= 2,                              &
+          &                        ivadv_tracer= 0 ),                            &
+          &  var_class=CLASS_WAVE_SPECTRUM,                                      &
+          &  post_op=post_op(POST_OP_SCALE, arg1=1._wp/pi2, new_cf=new_cf_desc), &
+          &  in_group=groups("wave_spectrum","DWD_FG_WAVE_VARS"))
+      ENDDO
+    ENDDO
 
   END SUBROUTINE new_wave_state_prog_list
 
@@ -260,12 +314,19 @@ CONTAINS
 
     TYPE(t_wave_config), POINTER :: wc
 
+    !------------------------------
+    ! Ensure that all pointers have a defined association status
+    !------------------------------
+    NULLIFY(p_source%fl,  &
+      &     p_source%sl,  &
+      &     p_source%llws)
+
     ! pointer to wave_config(jg) to save some paperwork
     wc => wave_config(p_patch%id)
 
     nblks_c = p_patch%nblks_c
 
-    shape4d_c = (/nproma, wc%ndirs, nblks_c, wc%nfreqs/)
+    shape4d_c = (/nproma, wc%ndirs, wc%nfreqs, nblks_c/)
     shape3d_c = (/nproma, wc%ndirs, nblks_c/)
 
     ibits = DATATYPE_PACK16   ! "entropy" of horizontal slice
@@ -280,7 +341,7 @@ CONTAINS
       &           model_type=get_my_process_name())
 
 
-    ! fl          p_source%fl(nproma,ndirs,nblks_c,nfreqs)
+    ! fl          p_source%fl(nproma,ndirs,nfreqs,nblks_c)
     cf_desc    = t_cf_var('fl', '-', 'DIAG. MTRX OF FUNC. DERIVATIVE', datatype_flt)
     grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
     CALL add_var(p_source_list, 'fl', p_source%fl,                  &
@@ -288,7 +349,7 @@ CONTAINS
          & ldims=shape4d_c, &
          & lcontainer=.TRUE., lrestart=.FALSE., loutput=.FALSE.)
 
-    ! sl          p_source%sl(nproma,ndirs,nblks_c,nfreqs)
+    ! sl          p_source%sl(nproma,ndirs,nfreqs,nblks_c)
     cf_desc    = t_cf_var('sl', '-', 'TOTAL SOURCE FUNCTION', datatype_flt)
     grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
     CALL add_var(p_source_list, 'sl', p_source%sl,                      &
@@ -296,7 +357,7 @@ CONTAINS
          & ldims=shape4d_c, &
          & lcontainer=.TRUE., lrestart=.FALSE., loutput=.FALSE.)
 
-    ! llws        p_source%llws(nproma,ndirs,nblks_c,nfreqs)
+    ! llws        p_source%llws(nproma,ndirs,nfreqs,nblks_c)
     cf_desc    = t_cf_var('llws', '-', '1 where sinput is positive', datatype_int)
     grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
     CALL add_var(p_source_list, 'llws', p_source%llws,                  &
@@ -314,33 +375,33 @@ CONTAINS
     DO jf = 1, wc%nfreqs
       write(freq_ind_str,'(I0.3)') jf
 
-      sl_name = 'sl_'//TRIM(freq_ind_str)
+      sl_name = 'sl_f'//TRIM(freq_ind_str)
       CALL add_ref(p_source_list, 'sl',                                     &
            & sl_name, p_source%sl_ptr(jf)%p_3d,                             &
            & GRID_UNSTRUCTURED_CELL, ZA_DIR_GENERIC,                        &
            & t_cf_var(sl_name, '-',sl_name, datatype_flt),                  &
            & grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL), &
-           & ldims=shape3d_c, ref_idx=jf,                                   &
+           & ldims=shape3d_c, opt_var_ref_pos=3, ref_idx=jf,                &
            & lrestart=.FALSE., loutput=.TRUE.)
 
-      fl_name = 'fl_'//TRIM(freq_ind_str)
+      fl_name = 'fl_f'//TRIM(freq_ind_str)
       CALL add_ref(p_source_list, 'fl',                                     &
            & fl_name, p_source%fl_ptr(jf)%p_3d,                             &
            & GRID_UNSTRUCTURED_CELL, ZA_DIR_GENERIC,                        &
            & t_cf_var(fl_name, '-',fl_name, datatype_flt),                  &
            & grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL), &
-           & ldims=shape3d_c, ref_idx=jf,                                   &
+           & ldims=shape3d_c, opt_var_ref_pos=3, ref_idx=jf,                &
            & lrestart=.FALSE., loutput=.TRUE.)
 
-      llws_name = 'llws_'//TRIM(freq_ind_str)
+      llws_name = 'llws_f'//TRIM(freq_ind_str)
       CALL add_ref(p_source_list, 'llws',                                   &
            & llws_name, p_source%llws_ptr(jf)%p,                            &
            & GRID_UNSTRUCTURED_CELL, ZA_DIR_GENERIC,                        &
            & t_cf_var(llws_name, '-',llws_name, datatype_int),              &
            & grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL), &
-           & ldims=shape3d_c, ref_idx=jf,                                   &
-           & lrestart=.TRUE., loutput=.TRUE.,                               &
-           & in_group=groups("wave_debug"))
+           & ldims=shape3d_c, opt_var_ref_pos=3, ref_idx=jf,                &
+           & lrestart=.FALSE., loutput=.TRUE.,                              &
+           & in_group=groups("wave_debug","DWD_FG_WAVE_VARS"))
     END DO
 
   END SUBROUTINE new_wave_state_source_list
@@ -397,9 +458,6 @@ CONTAINS
     &       p_diag%xkmean, &
     &       p_diag%swell_mask, &
     &       p_diag%last_prog_freq_ind, &
-    &       p_diag%ALPHAJ, &
-    &       p_diag%FP, &
-    &       p_diag%ET, &
     &       p_diag%flminfr_tab, &
     &       p_diag%ustar, &
     &       p_diag%z0, &
@@ -487,7 +545,7 @@ CONTAINS
     shape3d_freq_e    = (/nproma, nfreqs, nblks_e/)
     shape3d_dir_c     = (/nproma, ndirs, nblks_c/)
     shape3d_depth_c   = (/nproma, nlev, nblks_c/)
-    shape4d_c         = (/nproma, ndirs, nblks_c, nfreqs/)
+    shape4d_c         = (/nproma, ndirs, nfreqs, nblks_c/)
 
 
     ibits = DATATYPE_PACK16   ! "entropy" of horizontal slice
@@ -539,16 +597,18 @@ CONTAINS
          & lrestart=.FALSE., loutput=.TRUE.,                        &
          & ldims=shape2d_c, in_group=groups("wave_phy"))
 
-    cf_desc    = t_cf_var('hrms_frac', '-', 'square ratio (Hrms / Hmax)**2', datatype_flt)
+    cf_desc    = t_cf_var('hrms_frac', '-', 'square ratio (Hrms / Hmax)^2', datatype_flt)
     grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
-    CALL add_var(p_diag_list, 'hrms_frac', p_diag%hrms_frac,          &
+    CALL add_var(p_diag_list, 'hrms_frac', p_diag%hrms_frac,        &
          & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
+         & lrestart=.FALSE., loutput=.TRUE.,                        &
          & ldims=shape2d_c)
 
     cf_desc    = t_cf_var('wbr_frac', '-', 'fraction of breaking waves', datatype_flt)
     grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
     CALL add_var(p_diag_list, 'wbr_frac', p_diag%wbr_frac,          &
          & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
+         & lrestart=.FALSE., loutput=.TRUE.,                        &
          & ldims=shape2d_c, in_group=groups("wave_phy"))
 
     cf_desc    = t_cf_var('wave_num_c', '1/m', 'wave number at cell center', datatype_flt)
@@ -593,7 +653,7 @@ CONTAINS
          & lrestart=.FALSE., loutput=.TRUE.,                        &
          & ldims=shape2d_c, in_group=groups("wave_phy"))
 
-    ! swell_mask       p_source%swell_mask(nproma,ndirs,nblks_c,nfreqs)
+    ! swell_mask       p_diag%swell_mask(nproma,ndirs,nfreqs,nblks_c)
     cf_desc    = t_cf_var('swell_mask', '-', 'swell mask for tracers', datatype_int)
     grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
     CALL add_var(p_diag_list, 'swell_mask', p_diag%swell_mask,&
@@ -608,15 +668,15 @@ CONTAINS
     DO jf = 1, nfreqs
       write(freq_ind_str,'(I0.3)') jf
 
-      out_name = 'swmask_'//TRIM(freq_ind_str)
+      out_name = 'swmask_f'//TRIM(freq_ind_str)
       CALL add_ref(p_diag_list, 'swell_mask',                               &
            & out_name, p_diag%swmask_ptr(jf)%p,                             &
            & GRID_UNSTRUCTURED_CELL, ZA_DIR_GENERIC,                        &
            & t_cf_var(out_name, '-',out_name, datatype_int),                &
            & grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL), &
-           & ref_idx=jf, ldims=shape3d_dir_c,                               &
+           & opt_var_ref_pos=3, ref_idx=jf, ldims=shape3d_dir_c,            &
            & lrestart=.TRUE., loutput=.TRUE.,                               &
-           & in_group=groups("wave_debug"))
+           & in_group=groups("wave_debug","DWD_FG_WAVE_VARS"))
     END DO
 
 
@@ -627,28 +687,7 @@ CONTAINS
          & lrestart=.FALSE., loutput=.TRUE.,                        &
          & ldims=shape2d_c, in_group=groups("wave_phy"))
 
-    cf_desc    = t_cf_var('ALPHAJ', '-', 'JONSWAP alpha', datatype_flt)
-    grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
-    CALL add_var(p_diag_list, 'ALPHAJ', p_diag%ALPHAJ,              &
-         & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
-         & lrestart=.TRUE., loutput=.TRUE.,                         &
-         & ldims=shape2d_c , in_group=groups("wave_phy"))
-
-    cf_desc    = t_cf_var('FP', 'Hz', 'JONSWAP peak frequency', datatype_flt)
-    grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
-    CALL add_var(p_diag_list, 'FP', p_diag%FP,                      &
-         & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
-         & lrestart=.TRUE., loutput=.TRUE.,                         &
-         & ldims=shape2d_c , in_group=groups("wave_phy"))
-
-    cf_desc    = t_cf_var('ET', '-', 'JONSWAP spectra', datatype_flt)
-    grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
-    CALL add_var(p_diag_list, 'ET', p_diag%ET,                           &
-         & GRID_UNSTRUCTURED_CELL, ZA_FREQ_GENERIC, cf_desc, grib2_desc, &
-         & lrestart=.FALSE., loutput=.TRUE.,                             &
-         & ldims=shape3d_freq_c)
-
-    cf_desc    = t_cf_var('flminfr_tab', 'm**2 Hz-1', 'minimum allowed energy level', datatype_flt)
+    cf_desc    = t_cf_var('flminfr_tab', 'm^2 Hz-1', 'minimum allowed energy level', datatype_flt)
     grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
     CALL add_var(p_diag_list, 'flminfr_tab', p_diag%flminfr_tab,          &
          & GRID_UNSTRUCTURED_CELL, ZA_FREQ_GENERIC, cf_desc, grib2_desc,  &
@@ -660,7 +699,7 @@ CONTAINS
     CALL add_var(p_diag_list, 'ustar', p_diag%ustar,                &
          & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
          & lrestart=.FALSE., loutput=.TRUE.,                        &
-         & ldims=shape2d_c , in_group=groups("wave_phy"))
+         & ldims=shape2d_c , in_group=groups("wave_phy", "DWD_FG_WAVE_VARS"))
 
     cf_desc    = t_cf_var('roughness length', 'm', 'Surface roughness length', datatype_flt)
     grib2_desc = grib2_var(2, 0, 1, ibits, GRID_UNSTRUCTURED, GRID_CELL)
@@ -669,7 +708,7 @@ CONTAINS
          & lrestart=.FALSE., loutput=.TRUE.,                        &
          & ldims=shape2d_c , in_group=groups("wave_phy"))
 
-    cf_desc    = t_cf_var('wave_stress', '(m/s)**2', 'wave stress', datatype_flt)
+    cf_desc    = t_cf_var('wave_stress', '(m/s)^2', 'wave stress', datatype_flt)
     grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
     CALL add_var(p_diag_list, 'tauw', p_diag%tauw,                  &
          & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
@@ -1130,9 +1169,7 @@ CONTAINS
            & GRID_UNSTRUCTURED_CELL, ZA_DEPTH_BELOW_SEA, cf_desc, grib2_desc, &
            & lrestart=.FALSE., loutput=.TRUE.,                        &
            & ldims=shape3d_depth_c)
-
-   END IF
-
+    END IF
 
   END SUBROUTINE new_wave_state_diag_list
 

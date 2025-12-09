@@ -177,7 +177,7 @@ CONTAINS
       ! get time dimension from external data file
       nmonths_ext = vlistNtsteps(vlist_id)
 
-      IF (islope_rad(jg) >= 2) THEN
+      IF (islope_rad(jg) >= 3) THEN
       ! get the number of horizon sectors
         horizon_id = get_cdi_varID(cdi_extpar_id, "HORIZON")
         zaxis_id   = vlistInqVarZaxis(vlist_id, horizon_id)

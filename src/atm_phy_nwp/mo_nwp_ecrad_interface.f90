@@ -215,8 +215,8 @@ CONTAINS
 
 !$OMP PARALLEL PRIVATE(cosmu0mask, opt_ptrs_lw, opt_ptrs_sw, jw, ptr_camsaermr, jt,  &
 !$OMP                  zlwflx_up,     zlwflx_dn,     zswflx_up,     zswflx_dn,       &
-!$OMP                  zlwflx_up_clr, zlwflx_dn_clr, zswflx_up_clr, zswflx_dn_clr,   &
-!$OMP                  ecrad_aerosol,ecrad_single_level, ecrad_thermodynamics,       &
+!$OMP                  zlwflx_up_clr, zlwflx_dn_clr, zswflx_up_clr, zswflx_dn_clr)   &
+!$OMP     FIRSTPRIVATE(ecrad_aerosol,ecrad_single_level, ecrad_thermodynamics,       &
 !$OMP                  ecrad_gas, ecrad_cloud, ecrad_flux)
 
     IF (ecrad_check_input) THEN ! Check input fields for physical consistency
@@ -1062,8 +1062,8 @@ CONTAINS
     i_startblk = ptr_pp%cells%start_block(rl_start)
     i_endblk   = ptr_pp%cells%end_block(rl_end)
 
-!$OMP PARALLEL PRIVATE(cosmu0mask, opt_ptrs_lw, opt_ptrs_sw, jw, jt, ptr_camsaermr, &
-!$OMP                  ecrad_aerosol, ecrad_single_level, ecrad_thermodynamics,     &
+!$OMP PARALLEL PRIVATE(cosmu0mask, opt_ptrs_lw, opt_ptrs_sw, jw, jt, ptr_camsaermr) &
+!$OMP     FIRSTPRIVATE(ecrad_aerosol, ecrad_single_level, ecrad_thermodynamics,     &
 !$OMP                  ecrad_gas, ecrad_cloud, ecrad_flux)
 
     CALL ecrad_single_level%allocate(nproma_sub, 2, 1, .true.) !< use_sw_albedo_direct, 2 bands

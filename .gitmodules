@@ -45,6 +45,9 @@
 [submodule "externals/ppm"]
 	path = externals/ppm
 	url = ../../dkrz-sw/ppm.git
+[submodule "externals/msgwam"]
+	path = externals/msgwam
+	url = ../../atmodynamics-goethe-universitaet-frankfurt/msgwam-release.git
 [submodule "externals/comin"]
 	path = externals/comin
 	url = ../../icon-comin/comin.git

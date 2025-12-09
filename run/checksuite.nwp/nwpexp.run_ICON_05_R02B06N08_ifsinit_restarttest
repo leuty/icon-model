@@ -274,7 +274,7 @@ cat > NAMELIST_NWP << EOF
  inwp_cldcover               =                          3         ! cloud cover scheme for radiation
  inwp_turb                   =                          1         ! vertical diffusion and transfer
  inwp_satad                  =                          1         ! saturation adjustment
- inwp_sso                    =                          2         ! subgrid scale orographic drag
+ inwp_sso                    =                          1         ! subgrid scale orographic drag
  inwp_gwd                    =                          1         ! non-orographic gravity wave drag
  inwp_surface                =                          1         ! surface scheme
  latm_above_top              =              .FALSE.,.TRUE.        ! take into account atmosphere above model top for radiation computation
