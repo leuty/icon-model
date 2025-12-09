@@ -105,7 +105,7 @@ CONTAINS
 
       CALL construct_output_coupling ( &
         patch_3d%p_patch_2d(1:), output_comp_id, cell_point_id(1), &
-        vertex_point_id(1), timestepstring)
+        vertex_point_id(1), timestepstring, .TRUE.)
 
     END IF
 

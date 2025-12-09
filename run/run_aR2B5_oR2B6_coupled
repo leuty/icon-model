@@ -467,10 +467,6 @@ coupling:
     coupling_period: ${rivcouplingTimeStep}
     field: [surface_water_runoff,
             soil_water_runoff]
-#  - <<: [ *oce2atm, *conserv_interp_stack ]
-#    coupling_period: ${ocecouplingTimeStep}
-#    field: [eastward_sea_water_velocity,
-#            northward_sea_water_velocity]
   - <<: [ *riv2oce, *spmap_interp_stack ]
     coupling_period: ${rivcouplingTimeStep}
     field: river_runoff

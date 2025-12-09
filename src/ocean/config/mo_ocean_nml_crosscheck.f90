@@ -137,6 +137,11 @@ CONTAINS
       END IF
     END IF
 
+    IF((init_mode_oce .EQ. MODE_IAU_OCE) .AND. ( iau_reference_date .EQ. "" )) THEN
+      CALL warning(method_name, "Ocean IAU is used but no reference time is given. Reference time is set to start date.")
+      iau_reference_time => time_config%tc_exp_startdate
+    ENDIF
+
   END SUBROUTINE ocean_crosscheck
 
 

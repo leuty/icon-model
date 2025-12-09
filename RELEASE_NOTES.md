@@ -2,6 +2,9 @@
 
 ### ICON-Atmo
 
+- Improved consistency of surface roughness, drag and momentum flux over ocean/sea ice in VDIFF
+- Added viscous term in computation of surface roughness over ocean in VDIFF
+
 #### AES Physics
 
 - Correction of the roughness length computation over ocean in TMX
@@ -19,6 +22,7 @@
 - Fix variable assignment of some vars for write_initial_state (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/993)
 - Bugfix ocean initial state on GPU (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1133)
 - Fix for surface-level-type for Sea Ice Vars (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1098)
+- Implementation of symmetric IAU in ICON-O (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1020)
 
 ### Soil and Surface
 
@@ -26,9 +30,12 @@
 
 - QUINCY development
   - Updated the Jena-Soil-Model for use with QUINCY as an alternative to the simple soil-biogeochemistry model
+  - Improve paramaterization of vegetation phosphorus (P) uptake to avoid crops and natural vegetation dying by P limitation
+- Refactoring of anthropogenic land cover change process
 - Hydrology: Added ford inline documentation
 - Land initial files: Major update: 12 and 13 tile setups for jsbach and quincy
 - Land initial files: Fix for the skin layer conductivity
+- Land initialization: Initial soil moisture is turned to ice at temperatures below zero degrees.
 - Revised 'basic' output list
 - Anthropogenic emission files: Created anthropogenic emission data including aviation sources from the CMIP7 dataset
 
@@ -43,6 +50,7 @@
 - Clean up mo_kind for single and double w/o ecrad (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1009)
 - Fix for timeshift crosscheck affecting dwd_nec_sp (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1144)
 - Add single precision buildbot tests and download of grids (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1058)
+- Refactor Output Coupling: Masking and Half-Level Support (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1097)
 
 #### Scripting and testing
 
@@ -55,6 +63,7 @@
 - mkexp: update to 1.5.0, drop six dependency (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1143)
 - Add static analysis with Codee as nightly job (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1112)
 - mkexp: Update hardware parameters of the Levante gpu partition (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1148)
+- mkexp: remove deprecated hiopy setup (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1113)
 
 #### Building
 
@@ -65,12 +74,17 @@
 - Fix up MPI-M configure and Buildbot wrappers (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1095)
 - Update JUPITER config wrapper (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1085)
 - Add dolpung config wrappers and links (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1101)
+- Report to the relevant config.log when calling config.status of the bundled packages (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1161)
+- Fix detection of an external ComIn (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1163)
+- Fix the configuration and building order of the bundled packages (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1162)
 
 #### Miscellaneous
 
 - Switch from fprettify to Codee for Fortran formatting (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1059)
 - Add unit-tests section to iconbot notifications (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1146)
 - Improve entry point of documentation and add tutorial for beginners (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1027)
+- Open mkexp section and polish supported configurations in the documentation (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1147)
+- Add contributing guidelines for Ragnarok (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1081)
 
 
 # Release notes for icon-2025.10

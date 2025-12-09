@@ -39,7 +39,8 @@ MODULE mo_hydro_ocean_run
     &  use_draftave_for_transport_h, &
     & vert_cor_type, use_tides, check_total_volume, &
     & GMRedi_configuration, Cartesian_Mixing, l_lhs_direct, &
-    & select_lhs, select_lhs_operators, select_lhs_matrix
+    & select_lhs, select_lhs_operators, select_lhs_matrix, &
+    & iau_reference_time, init_mode_oce, dt_iau_oce, MODE_IAU_OCE
   USE mo_ocean_nml,              ONLY: iforc_oce, Coupled_FluxFromAtmo
   USE mo_dynamics_config,        ONLY: nold, nnew
   USE mo_io_config,              ONLY: n_checkpoints, write_last_restart
@@ -116,6 +117,11 @@ MODULE mo_hydro_ocean_run
   USE mo_fortran_tools,          ONLY: set_acc_host_or_device
   USE mo_ocean_age_tracer,       ONLY: calc_age_tracer
   USE mo_output_coupling,        ONLY: output_coupling
+  USE mo_ocean_initicono,        ONLY: read_initicono
+  USE mo_initicon_config,        ONLY: is_iau_active
+  USE mo_oce_io_with_cdi,        ONLY: apply_ocean_iau
+  USE mo_util_mtime,             ONLY: getElapsedSimTimeInSeconds
+  USE mo_iau,                    ONLY: compute_iau_wgt
 
   IMPLICIT NONE
 
@@ -463,6 +469,11 @@ CONTAINS
          ocean_state(jg)%p_prog(nold(1))%h(:,:), patch_3D%p_patch_1d(1)%prism_thick_flat_sfc_c(:,:,:),&
          sea_ice, 0)
 
+        IF ((MODE_IAU_OCE==init_mode_oce) ) THEN ! incremental analysis mode
+          CALL compute_iau_wgt(ABS(REAL(getElapsedSimTimeInSeconds(current_time, iau_reference_time), wp)), &
+          & dtime, 0.5*dt_iau_oce, .True.)
+        ENDIF
+
         ! start by_nils ts_budget
         ! zlev coordinate
         IF (do_ts_budget) THEN
@@ -668,6 +679,11 @@ CONTAINS
           CALL nudge_ocean_tracers( patch_3d, ocean_state(jg), lacc=lzacc)
         ENDIF
         !------------------------------------------------------------------------
+
+        !Apply incremental analysis update in case we read in observations and add them to the
+        !model state
+        IF (is_iau_active) CALL apply_ocean_iau(patch_3d, ocean_state, ocean_nudge, sea_ice, read_initicono, current_time)
+
         ! perform accumulation for special variables
         start_detail_timer(timer_extra20,5)
 
@@ -933,6 +949,11 @@ CONTAINS
           & ocean_state(jg)%p_prog(nold(1))%eta_c, &
           & ocean_state(jg)%p_prog(nold(1))%stretch_c, stretch_e, lacc=lzacc)
 
+        IF ((MODE_IAU_OCE==init_mode_oce) ) THEN ! incremental analysis mode
+          CALL compute_iau_wgt(ABS(REAL(getElapsedSimTimeInSeconds(current_time, iau_reference_time), wp)), &
+           & dtime, 0.5*dt_iau_oce, .True.)
+        ENDIF
+
         ! start by_nils ts_budget
         ! zstar coordinate
         IF (do_ts_budget) THEN
@@ -957,6 +978,10 @@ CONTAINS
           ENDDO
         ENDIF
         ! end by_nils ts_budget
+
+        !Apply incremental analysis update in case we read in observations and add them to the
+        !model state
+        IF (is_iau_active) CALL apply_ocean_iau(patch_3d, ocean_state, ocean_nudge, sea_ice, read_initicono, current_time)
 
         !------------------------------------------------------------------------
         ! calculate in situ density here, as it may be used fotr the tides load

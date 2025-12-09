@@ -85,7 +85,7 @@ FINAL_DATE = 2020-01-01T03:00:00
 INTERVAL = PT3H
 ```
 
-Now, generate the run scripts using mkexp:
+Now, generate the run scripts using [mkexp](ref_tools_mkexp):
 ```
 ../utils/mkexp/mkexp amip-aes-tutorial-intel-85bdcf4785.config
 ```

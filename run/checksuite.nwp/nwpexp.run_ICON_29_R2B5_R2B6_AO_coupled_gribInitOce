@@ -35,6 +35,7 @@
 ulimit -s 2097152
 ulimit -c 0
 
+
 #=============================================================================
 
 make_and_change_to_experiment_dir # function in ../add_run_routines
@@ -1379,6 +1380,7 @@ cat >> dict.icono.dwd << EOF
   zos                DSLM
   u                  USEA
   v                  VSEA
+  normal_velocity    VN
   SWPT               SWPT
   so                 SWPSAL
   conc               FR_ICE

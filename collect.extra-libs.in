@@ -39,7 +39,7 @@ query_config_status_fn ()
   #          the root build directory of an Autoconf-based package;
   #     $3 - substitution template.
 
-  eval "$1=\`echo \$3 | '$2/config.status' -q --file=-\`"
+  eval "$1=\`cd '$2' >/dev/null && echo \$3 | ./config.status --quiet --file=-\`"
 }
 
 query_libtool_CC_fn ()

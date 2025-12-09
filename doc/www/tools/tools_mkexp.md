@@ -1,6 +1,11 @@
-# mkexp for ICON
+```{eval-rst}
+:orphan:
+```
 
-MakeExperiments! (_mkexp_) is a tool for preparing experiments with MPI-M's earth system models. It provides a unified command line interface to perform experiments uisng ICON configurations maintained by the MPI-M.
+(ref_tools_mkexp)=
+# MakeExperiments! (mkexp)
+
+[MakeExperiments!](https://gitlab.dkrz.de/esmenv/mkexp/-/blob/master/mkexp) is a tool for preparing experiments with MPI-M's earth system models. It provides a unified command line interface to perform experiments using ICON configurations maintained by the MPI-M.
 
 Information on its use is provided in the _Running ICON_[^1] guide.
 
@@ -21,28 +26,40 @@ and run _mkexp_ on that file. The configuration is then gathered from default se
 
 The final config is applied to the requested job templates, creating one script for each. Templates are sought in the same locations as configs except for the environment. The latest template found is chosen to create the script. In addition, the environment template is included at the beginning of each script.
 
-For technical details, see `utils/mkexp/doc/mkexp.pdf`.
+For technical details, see {{ '[mkexp official documentation]({}/utils/mkexp/doc/mkexp.pdf)'.format(base_url) }}.
 
-### Default settings and templates (`mkexp/run/defaults`)
+### Default settings and templates (`run/mkexp/defaults`)
 
 * Global default configuration for all experiments (`DEFAULT.config`)
 * Default job templates (`DEFAULT.*.tmpl`)
 * Ancillary templates as required by formatting or job templates
 
-### Experiment types (`mkexp/run/types`)
+### Experiment types (`run/mkexp/types`)
 
 * Experiment specific configuration (`<EXP_TYPE>.config`)
 * Specialized job templates if required (`<EXP_TYPE>.*.tmpl`)
 
-### Packaged Options (`mkexp/run/options`)
+### Packaged Options (`run/mkexp/options`)
 
 * Collections of optional config settings per topic (`<EXP_OPTION>.config`)
+* `link_output_files.config`: Create an inline `link` job which is added to each `run` job and links all output files in the work directory to the data directory. This is mutually exclusive to the standard post-processing job (`post`).
 
-### Computing environment settings (`mkexp/run/environments`)
+### Computing environment settings (`run/mkexp/environments`)
 
 * Fallback settings for all environments (`DEFAULT.config`)
 * Specific environment settings and job resource specifications (`<ENVIRONMENT>.config`)
 * Environment template formatting information according to system needs (`<ENVIRONMENT>.tmpl`)
+
+The run types can be set via the `ENVIRONMENT` variable. These are:
+
+* `macOS`: run on macOS
+* `levante`: run on the CPU partition of Levante (DKRZ). For coupled runs, the atmosphere and ocean processes can run on the same nodes (job:run:share_nodes = true), or they can be distributed as two blocks one after the other.
+* `levante_gpu`: run on the GPU partition of Levante (DKRZ). IO processes are distributed equally among the CPUs of the GPU nodes.
+
+### Supported grids
+
+* `mkexp` supports R2B4, R2B6, R2B8, R02B9, and R2B10 grids (check for `Change the resolution` in mkexp runscripts). See [here](ref_buildrun_grid_files) more information about grids.
+
 
 ## Frequently changed settings
 

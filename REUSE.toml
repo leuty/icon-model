@@ -29,6 +29,7 @@ path = [
   "doc/**/*.png",
   "doc/**/*.svg",
   "ragnarok/README.md",
+  "ragnarok/CONTRIBUTING.md",
   "run/**/README*",
   "schedulers/ecmwf/doc/doc.html",
   "scripts/**/README*",

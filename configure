@@ -608,14 +608,14 @@ DEFAULT_VERBOSITY
 icon_bundled_cmake_builddirs
 icon_bundled_builddirs
 ICON_HD_FCFLAGS
-ICON_MEMMAN_CXXFLAGS
-ICON_MEMMAN_CFLAGS
-ICON_MEMMAN_FCFLAGS
 ICON_RAGNAROK_HIPFLAGS
 ICON_RAGNAROK_CUDAFLAGS
 ICON_RAGNAROK_CXXFLAGS
 ICON_RAGNAROK_FCFLAGS
 ICON_ICONMATH_FCFLAGS
+ICON_MEMMAN_CXXFLAGS
+ICON_MEMMAN_CFLAGS
+ICON_MEMMAN_FCFLAGS
 ICON_KOKKOS_HIPFLAGS
 ICON_KOKKOS_CUDAFLAGS
 ICON_KOKKOS_CXXFLAGS
@@ -881,14 +881,14 @@ ICON_FORTRAN_SUPPORT_CFLAGS
 ICON_KOKKOS_CXXFLAGS
 ICON_KOKKOS_CUDAFLAGS
 ICON_KOKKOS_HIPFLAGS
+ICON_MEMMAN_FCFLAGS
+ICON_MEMMAN_CFLAGS
+ICON_MEMMAN_CXXFLAGS
 ICON_ICONMATH_FCFLAGS
 ICON_RAGNAROK_FCFLAGS
 ICON_RAGNAROK_CXXFLAGS
 ICON_RAGNAROK_CUDAFLAGS
 ICON_RAGNAROK_HIPFLAGS
-ICON_MEMMAN_FCFLAGS
-ICON_MEMMAN_CFLAGS
-ICON_MEMMAN_CXXFLAGS
 ICON_HD_FCFLAGS'
 ac_subdirs_all='externals/rte-rrtmgp
 externals/ecrad
@@ -1857,6 +1857,17 @@ Some influential environment variables:
   ICON_KOKKOS_HIPFLAGS
               HIP C++ compiler flags to be appended to HIPFLAGS when
               configuring the KOKKOS library [default=$ICON_BUNDLED_HIPFLAGS]
+  ICON_MEMMAN_FCFLAGS
+              Fortran compiler flags to be appended to FCFLAGS when
+              configuring the bundled version of MEMMAN library
+              [default=$ICON_BUNDLED_FCFLAGS]
+  ICON_MEMMAN_CFLAGS
+              C compiler flags to be appended to CFLAGS when configuring the
+              bundled version of MEMMAN library [default=$ICON_BUNDLED_CFLAGS]
+  ICON_MEMMAN_CXXFLAGS
+              C++ compiler flags to be appended to CXXFLAGS when configuring
+              the bundled version of MEMMAN library
+              [default=$ICON_BUNDLED_CXXFLAGS]
   ICON_ICONMATH_FCFLAGS
               Fortran compiler flags to be appended to FCFLAGS when
               configuring the bundled version of ICONMATH library
@@ -1875,17 +1886,6 @@ Some influential environment variables:
               HIP C++ compiler flags to be appended to HIPFLAGS when
               configuring the RAGNAROK library
               [default=$ICON_BUNDLED_HIPFLAGS]
-  ICON_MEMMAN_FCFLAGS
-              Fortran compiler flags to be appended to FCFLAGS when
-              configuring the bundled version of MEMMAN library
-              [default=$ICON_BUNDLED_FCFLAGS]
-  ICON_MEMMAN_CFLAGS
-              C compiler flags to be appended to CFLAGS when configuring the
-              bundled version of MEMMAN library [default=$ICON_BUNDLED_CFLAGS]
-  ICON_MEMMAN_CXXFLAGS
-              C++ compiler flags to be appended to CXXFLAGS when configuring
-              the bundled version of MEMMAN library
-              [default=$ICON_BUNDLED_CXXFLAGS]
   ICON_HD_FCFLAGS
               Fortran compiler flags to be appended to FCFLAGS when
               configuring the bundled version of HD model
@@ -9805,6 +9805,7 @@ else
       implicit none
       type(t_comin_setup_version_info) :: version
       version = comin_setup_get_version()
+      write(*,"(i0)") version%version_no_major
       end
 _ACEOF
 if ac_fn_fc_try_link "$LINENO"; then :
@@ -11865,6 +11866,76 @@ esac
    as_fn_append icon_pvcs_subdirs ' externals/kokkos'
 fi
 
+if test "x$enable_aes" = xyes; then :
+  icon_subdir_srcdir="$srcdir/externals/memman"
+   icon_subdir_unique_file="src/bindings/fortran/memman_f.F90"
+   if test ! -r "$icon_subdir_srcdir/$icon_subdir_unique_file"; then :
+  as_fn_error $? "unable to find sources of the bundled version of MEMMAN library ($icon_subdir_unique_file) in '$icon_subdir_srcdir'" "$LINENO" 5
+fi
+      ICON_MEMMAN_FCFLAGS=${ICON_MEMMAN_FCFLAGS-$ICON_BUNDLED_FCFLAGS}
+      ICON_MEMMAN_CFLAGS=${ICON_MEMMAN_CFLAGS-$ICON_BUNDLED_CFLAGS}
+      ICON_MEMMAN_CXXFLAGS=${ICON_MEMMAN_CXXFLAGS-$ICON_BUNDLED_CXXFLAGS}
+                        acx_subdir_run_cmd_externals_memman_build="'${CMAKE}'"
+   acx_subdir_build_type_externals_memman_build='cmake'
+                                             acx_subdir_pre_adjust_cmake_args_nocomps_noutils
+      acx_subdir_run_args_externals_memman_build=$acx_subdir_pre_adjusted_cmake_args_nocomps_noutils
+         acx_subdir_srcdirs_fn "externals/memman/build"
+      acx_tmp="$ac_top_srcdir/utils/cmake-wrapper"
+      case $acx_tmp in #(
+  *\'*) :
+    acx_tmp=`$as_echo "$acx_tmp" | sed "s/'/'\\\\\\\\''/g"` ;; #(
+  *) :
+     ;;
+esac
+      as_fn_append acx_subdir_run_args_externals_memman_build " '$acx_tmp'"
+      as_fn_append extra_build_subdirs " externals/memman/build"
+   acx_subdir_run_externals_memman_build=no
+   eval "set dummy $acx_subdir_run_args_externals_memman_build"; shift
+   acx_subdir_run_args_externals_memman_build=
+   while test $# != 0; do
+     acx_tmp=$1
+     case $acx_tmp in #(
+  -DCMAKE_C_FLAGS=*|-DCMAKE_Fortran_FLAGS=*|-DCMAKE_CXX_FLAGS=*) :
+     ;; #(
+  *) :
+           case $acx_tmp in #(
+  *\'*) :
+    acx_tmp=`$as_echo "$acx_tmp" | sed "s/'/'\\\\\\\\''/g"` ;; #(
+  *) :
+     ;;
+esac
+        as_fn_append acx_subdir_run_args_externals_memman_build " '$acx_tmp'" ;;
+esac
+     shift
+   done
+   icon_memman_extra_args=
+   case $icon_gpu_secondary in #(
+  cuda) :
+    as_fn_append icon_memman_extra_args ' -DMM_ENABLE_BACKEND_CUDA=ON -DMM_ENABLE_BACKEND_HIP=OFF' ;; #(
+  hip) :
+    as_fn_append icon_memman_extra_args ' -DMM_ENABLE_BACKEND_CUDA=OFF -DMM_ENABLE_BACKEND_HIP=ON' ;; #(
+  *) :
+    as_fn_append icon_memman_extra_args ' -DMM_ENABLE_BACKEND_CUDA=OFF -DMM_ENABLE_BACKEND_HIP=OFF' ;;
+esac
+   set dummy -DCMAKE_AR="$AR" -DCMAKE_RANLIB="$RANLIB" -DCMAKE_C_FLAGS="$subdir_CFLAGS $ICON_MEMMAN_CFLAGS $subdir_CPPFLAGS" -DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_MEMMAN_FCFLAGS" -DCMAKE_CXX_FLAGS="$subdir_CXXFLAGS $ICON_MEMMAN_CXXFLAGS $subdir_CPPFLAGS" -DCMAKE_BUILD_TYPE=None -DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH" -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF -DICON_DEP_SOURCE_DIR="${icon_abs_top_srcdir}/externals/memman" -DMM_BUILD_DOC=OFF -DMM_GENERATE_BINDINGS=OFF -DMM_ENABLE_C=ON -DMM_ENABLE_FORTRAN=ON $icon_memman_extra_args; shift
+   for acx_tmp; do
+     case $acx_tmp in #(
+  *\'*) :
+    acx_tmp=`$as_echo "$acx_tmp" | sed "s/'/'\\\\\\\\''/g"` ;; #(
+  *) :
+     ;;
+esac
+     as_fn_append acx_subdir_run_args_externals_memman_build " '$acx_tmp'"
+   done
+   as_fn_append bundled_CMAKE_PREFIX_PATH "${bundled_CMAKE_PREFIX_PATH:+";"}${icon_abs_top_builddir}/externals/memman/build/_icon"
+   as_fn_append bundled_includes "${FC_MOD_IN}externals/memman/build/_icon/src/bindings/fortran/mod "
+   BUNDLED_LIBFILES="externals/memman/build/_icon/src/core/libmemman.a $BUNDLED_LIBFILES"
+   BUNDLED_LIBFILES="externals/memman/build/_icon/src/bindings/cpp/libmemmancpp.a $BUNDLED_LIBFILES"
+   BUNDLED_LIBFILES="externals/memman/build/_icon/src/bindings/c/libmemmanc.a $BUNDLED_LIBFILES"
+   BUNDLED_LIBFILES="externals/memman/build/_icon/src/bindings/fortran/libmemmanf.a $BUNDLED_LIBFILES"
+   as_fn_append icon_pvcs_subdirs ' externals/memman'
+fi
+
 icon_subdir_srcdir="$srcdir/externals/iconmath"
 icon_subdir_unique_file="src/support/mo_math_constants.f90"
 if test ! -r "$icon_subdir_srcdir/$icon_subdir_unique_file"; then :
@@ -11988,76 +12059,6 @@ fi
    as_fn_append BUNDLED_RULES "ragnarok/build: externals/kokkos/build$as_nl"
    as_fn_append bundled_includes "${FC_MOD_IN}ragnarok/build/mod "
    BUNDLED_LIBFILES="ragnarok/build/libragnarok.a $BUNDLED_LIBFILES"
-fi
-
-if test "x$enable_aes" = xyes; then :
-  icon_subdir_srcdir="$srcdir/externals/memman"
-   icon_subdir_unique_file="src/bindings/fortran/memman_f.F90"
-   if test ! -r "$icon_subdir_srcdir/$icon_subdir_unique_file"; then :
-  as_fn_error $? "unable to find sources of the bundled version of MEMMAN library ($icon_subdir_unique_file) in '$icon_subdir_srcdir'" "$LINENO" 5
-fi
-      ICON_MEMMAN_FCFLAGS=${ICON_MEMMAN_FCFLAGS-$ICON_BUNDLED_FCFLAGS}
-      ICON_MEMMAN_CFLAGS=${ICON_MEMMAN_CFLAGS-$ICON_BUNDLED_CFLAGS}
-      ICON_MEMMAN_CXXFLAGS=${ICON_MEMMAN_CXXFLAGS-$ICON_BUNDLED_CXXFLAGS}
-                        acx_subdir_run_cmd_externals_memman_build="'${CMAKE}'"
-   acx_subdir_build_type_externals_memman_build='cmake'
-                                             acx_subdir_pre_adjust_cmake_args_nocomps_noutils
-      acx_subdir_run_args_externals_memman_build=$acx_subdir_pre_adjusted_cmake_args_nocomps_noutils
-         acx_subdir_srcdirs_fn "externals/memman/build"
-      acx_tmp="$ac_top_srcdir/utils/cmake-wrapper"
-      case $acx_tmp in #(
-  *\'*) :
-    acx_tmp=`$as_echo "$acx_tmp" | sed "s/'/'\\\\\\\\''/g"` ;; #(
-  *) :
-     ;;
-esac
-      as_fn_append acx_subdir_run_args_externals_memman_build " '$acx_tmp'"
-      as_fn_append extra_build_subdirs " externals/memman/build"
-   acx_subdir_run_externals_memman_build=no
-   eval "set dummy $acx_subdir_run_args_externals_memman_build"; shift
-   acx_subdir_run_args_externals_memman_build=
-   while test $# != 0; do
-     acx_tmp=$1
-     case $acx_tmp in #(
-  -DCMAKE_C_FLAGS=*|-DCMAKE_Fortran_FLAGS=*|-DCMAKE_CXX_FLAGS=*) :
-     ;; #(
-  *) :
-           case $acx_tmp in #(
-  *\'*) :
-    acx_tmp=`$as_echo "$acx_tmp" | sed "s/'/'\\\\\\\\''/g"` ;; #(
-  *) :
-     ;;
-esac
-        as_fn_append acx_subdir_run_args_externals_memman_build " '$acx_tmp'" ;;
-esac
-     shift
-   done
-   icon_memman_extra_args=
-   case $icon_gpu_secondary in #(
-  cuda) :
-    as_fn_append icon_memman_extra_args ' -DMM_ENABLE_BACKEND_CUDA=ON -DMM_ENABLE_BACKEND_HIP=OFF' ;; #(
-  hip) :
-    as_fn_append icon_memman_extra_args ' -DMM_ENABLE_BACKEND_CUDA=OFF -DMM_ENABLE_BACKEND_HIP=ON' ;; #(
-  *) :
-    as_fn_append icon_memman_extra_args ' -DMM_ENABLE_BACKEND_CUDA=OFF -DMM_ENABLE_BACKEND_HIP=OFF' ;;
-esac
-   set dummy -DCMAKE_AR="$AR" -DCMAKE_RANLIB="$RANLIB" -DCMAKE_C_FLAGS="$subdir_CFLAGS $ICON_MEMMAN_CFLAGS $subdir_CPPFLAGS" -DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_MEMMAN_FCFLAGS" -DCMAKE_CXX_FLAGS="$subdir_CXXFLAGS $ICON_MEMMAN_CXXFLAGS $subdir_CPPFLAGS" -DCMAKE_BUILD_TYPE=None -DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH" -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF -DICON_DEP_SOURCE_DIR="${icon_abs_top_srcdir}/externals/memman" -DMM_BUILD_DOC=OFF -DMM_GENERATE_BINDINGS=OFF -DMM_ENABLE_C=ON -DMM_ENABLE_FORTRAN=ON $icon_memman_extra_args; shift
-   for acx_tmp; do
-     case $acx_tmp in #(
-  *\'*) :
-    acx_tmp=`$as_echo "$acx_tmp" | sed "s/'/'\\\\\\\\''/g"` ;; #(
-  *) :
-     ;;
-esac
-     as_fn_append acx_subdir_run_args_externals_memman_build " '$acx_tmp'"
-   done
-   as_fn_append bundled_CMAKE_PREFIX_PATH "${bundled_CMAKE_PREFIX_PATH:+";"}${icon_abs_top_builddir}/externals/memman/build/_icon"
-   as_fn_append bundled_includes "${FC_MOD_IN}externals/memman/build/_icon/src/bindings/fortran/mod "
-   BUNDLED_LIBFILES="externals/memman/build/_icon/src/core/libmemman.a $BUNDLED_LIBFILES"
-   BUNDLED_LIBFILES="externals/memman/build/_icon/src/bindings/cpp/libmemmancpp.a $BUNDLED_LIBFILES"
-   BUNDLED_LIBFILES="externals/memman/build/_icon/src/bindings/c/libmemmanc.a $BUNDLED_LIBFILES"
-   BUNDLED_LIBFILES="externals/memman/build/_icon/src/bindings/fortran/libmemmanf.a $BUNDLED_LIBFILES"
-   as_fn_append icon_pvcs_subdirs ' externals/memman'
 fi
 
 FCFLAGS="${bundled_includes}${FCFLAGS}"

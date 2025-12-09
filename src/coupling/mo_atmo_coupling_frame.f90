@@ -166,7 +166,7 @@ CONTAINS
 
       CALL construct_output_coupling ( &
         p_patch, output_comp_id, cell_point_id(1), vertex_point_id(1), &
-        timestepstring)
+        timestepstring, .FALSE.)
 
     END IF
 

@@ -411,9 +411,9 @@ CONTAINS
       INTEGER, INTENT(OUT) :: outGroupSize
 
       CALL add_to_list(outGroup, outGroupSize,                                          &
-      &    str_list2=(/'to           ','so           ','zos          ','conc         ', &
-      &                'u            ','v            ','vn           ','stretch_c    ', &
-      &                'hi           ','hs           ','SWPT         '/))
+      &    str_list2=(/'to             ','so             ','zos            ','conc           ', &
+      &                'u              ','v              ','normal_velocity','stretch_c      ', &
+      &                'hi             ','hs             ','SWPT           ','tke            '/))
 
     END SUBROUTINE collectGroupOceFgOpt
 

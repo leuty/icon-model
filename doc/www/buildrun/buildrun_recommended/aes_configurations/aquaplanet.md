@@ -6,10 +6,20 @@
 # Aquaplanet Configuration
 
 Input dependencies:
-: Any ICON grid, bc_ozone, and greenhous_historical_plus, data is located in pool at each ICON grid directory
+: (for Levante)
+```
+root = /pool/data/ICON/grids/public/mpim/
+
+# Grid (any grid spacing works, e.g. 0052, 0054, etc )
+$root/0052/icon_grid_0052_R02B06_G.nc  # icon_grid_0054_R02B08_G.nc if grid spacing is 0054, etc
+
+# Boundary conditions
+$root/0052/ozone/*  # Any
+$root/common/greenhouse_historical_plus.nc
+```
 
 Compatible machines and compilers:
-: Levante, Linux
+: Levante
 
 Recommended resources:
 : Single Processor for development, for scientific purpose it should be four nodes for R02B04.
@@ -17,10 +27,8 @@ Recommended resources:
 Estimated runtime (for resources indicated above):
 : For R02B04, $\approx$ 640 SDPD for a single node, and $\approx$ 2500 SDPD for four nodes. For development, it is only required a few time steps; however, for scientific purposes, it is required six month of spin-up time and a minimum of four months and ideally one year of simulated time.
 
-Sources:
-: {{ '[Config]({}/run/exp.aes_aquaplanet_r02b04)'.format(base_url) }} for `make_runscripts` and {{ '[Config]({}/run/checksuite.atm/test_aes_ape.config)'.format(base_url) }} for mkexp
-
-The aquaplanet is configured and set in {{ '[here]({}/src/testcases/mo_nh_testcases.f90'.format(base_url) }}, using the time constant sea surface temperature {{ '[here]({}/src/testcases/mo_ape_params.f90)'.format(base_url) }}, which, along with model parameters, can be modified within Namelists.
+Scripting:
+: {{ '[Aquaplanet mkexp config]({}/run/checksuite.atm/test_aes_ape.config)'.format(base_url) }} (the aquaplanet is configured and set in {{ '[here]({}/src/testcases/mo_nh_testcases.f90'.format(base_url) }}, using the time constant sea surface temperature {{ '[here]({}/src/testcases/mo_ape_params.f90)'.format(base_url) }}, which, along with model parameters, can be modified within Namelists) (remove the `buildbot` option from `EXP_OPTIONS` and add your slurm account `ACCOUNT` in the mkexp script to run in Levante).
 
 Analysis/postprocessing:
 : (under development)

@@ -20,10 +20,10 @@ digraph ICON {
 
 		"ICON" [shape=box; fillcolor=white; fontsize=20; penwidth=2.0];
 		"ICON" -> {"STDC++"; "CUDA"; "ROCm"; "MPI"; "ZLIB"; "HDF5";
-			       "NetCDF-Fortran"; "RTE+RRTMGP"; "ECRAD"; "BLAS";
-			       "LAPACK"; "RTTOV"; "SCT"; "YAXT"; "ECCODES";
-			       "CDI"; "SERIALBOX"; "MTIME"; "YAC"; "ICON-TIXI";
-			       "COMIN"; "FORTRAN-SUPPORT"; "MEMMAN"; };
+			   "NetCDF-Fortran"; "RTE+RRTMGP"; "ECRAD"; "BLAS";
+			   "LAPACK"; "RTTOV"; "SCT"; "YAXT"; "ECCODES"; "CDI";
+			   "SERIALBOX"; "MTIME"; "YAC"; "ICON-TIXI"; "COMIN";
+			   "FORTRAN-SUPPORT"; "KOKKOS"; "MEMMAN"; "ICONMATH"};
 
 		"STDC++";
 
@@ -84,8 +84,14 @@ digraph ICON {
 
 		"FORTRAN-SUPPORT" [shape=box; fillcolor="#47A1F1"];
 
+		"KOKKOS" [shape=box];
+		"KOKKOS" -> {"STDC++"; "CUDA"; "ROCm"};
+
 		"MEMMAN" [shape=box];
 		"MEMMAN" -> {"STDC++"; "CUDA"; "ROCm"};
+
+		"ICONMATH" [shape=box; fillcolor="#47A1F1"];
+		"ICONMATH" -> {"FORTRAN-SUPPORT"};
 
 		"AEC / SZIP" [fillcolor="#DEF1D1"];
 		"AEC / SZIP";

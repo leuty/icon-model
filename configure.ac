@@ -2036,7 +2036,8 @@ AS_IF([test "x$enable_comin" = xyes && test "x$with_external_comin" = xyes],
                                     & comin_setup_get_version
       implicit none
       type(t_comin_setup_version_info) :: version
-      version = comin_setup_get_version()]])],
+      version = comin_setup_get_version()
+      write(*,"(i0)") version%version_no_major]])],
         [icon_cv_have_comin=yes])])
    AS_VAR_IF([icon_cv_have_comin], [no],
      [AC_MSG_FAILURE([unable to link a test program using COMIN library: dnl
@@ -3043,6 +3044,67 @@ $BUNDLED_LIBFILES"
 "externals/kokkos/build/_icon/core/src/libkokkoscore.a $BUNDLED_LIBFILES"
    AS_VAR_APPEND([icon_pvcs_subdirs], [' externals/kokkos'])])
 
+AS_VAR_IF([enable_aes], [yes],
+  [icon_subdir_srcdir="$srcdir/externals/memman"
+   icon_subdir_unique_file="src/bindings/fortran/memman_f.F90"
+   AS_IF([test ! -r "$icon_subdir_srcdir/$icon_subdir_unique_file"],
+     [AC_MSG_ERROR([unable to find sources of the bundled version of MEMMAN dnl
+library ($icon_subdir_unique_file) in '$icon_subdir_srcdir'])])
+   AC_ARG_VAR([ICON_MEMMAN_FCFLAGS],
+     [Fortran compiler flags to be appended to FCFLAGS when configuring the
+bundled version of MEMMAN library @<:@default=$ICON_BUNDLED_FCFLAGS@:>@])dnl
+   ICON_MEMMAN_FCFLAGS=${ICON_MEMMAN_FCFLAGS-$ICON_BUNDLED_FCFLAGS}
+   AC_ARG_VAR([ICON_MEMMAN_CFLAGS],
+     [C compiler flags to be appended to CFLAGS when configuring the bundled
+version of MEMMAN library @<:@default=$ICON_BUNDLED_CFLAGS@:>@])dnl
+   ICON_MEMMAN_CFLAGS=${ICON_MEMMAN_CFLAGS-$ICON_BUNDLED_CFLAGS}
+   AC_ARG_VAR([ICON_MEMMAN_CXXFLAGS],
+     [C++ compiler flags to be appended to CXXFLAGS when configuring the bundled
+version of MEMMAN library @<:@default=$ICON_BUNDLED_CXXFLAGS@:>@])dnl
+   ICON_MEMMAN_CXXFLAGS=${ICON_MEMMAN_CXXFLAGS-$ICON_BUNDLED_CXXFLAGS}
+   ACX_SUBDIR_INIT_CMAKE([utils/cmake-wrapper],
+     [no-run no-adjust-compilers no-adjust-utilities],
+     [externals/memman/build], ['${CMAKE}'])
+   ACX_SUBDIR_REMOVE_ARGS([externals/memman/build],
+     [-DCMAKE_C_FLAGS=*|-DCMAKE_Fortran_FLAGS=*|-DCMAKE_CXX_FLAGS=*])
+   icon_memman_extra_args=
+   AS_CASE([$icon_gpu_secondary],
+     [cuda],
+     [AS_VAR_APPEND([icon_memman_extra_args],
+        [' -DMM_ENABLE_BACKEND_CUDA=ON -DMM_ENABLE_BACKEND_HIP=OFF'])],
+     [hip],
+     [AS_VAR_APPEND([icon_memman_extra_args],
+        [' -DMM_ENABLE_BACKEND_CUDA=OFF -DMM_ENABLE_BACKEND_HIP=ON'])],
+     [AS_VAR_APPEND([icon_memman_extra_args],
+        [' -DMM_ENABLE_BACKEND_CUDA=OFF -DMM_ENABLE_BACKEND_HIP=OFF'])])
+   ACX_SUBDIR_APPEND_ARGS([externals/memman/build],
+     [-DCMAKE_AR="$AR"], [-DCMAKE_RANLIB="$RANLIB"],
+     [-DCMAKE_C_FLAGS="$subdir_CFLAGS $ICON_MEMMAN_CFLAGS $subdir_CPPFLAGS"],
+     [-DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_MEMMAN_FCFLAGS"],
+     [-DCMAKE_CXX_FLAGS=dnl
+"$subdir_CXXFLAGS $ICON_MEMMAN_CXXFLAGS $subdir_CPPFLAGS"],
+     [-DCMAKE_BUILD_TYPE=None],
+     [-DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH"],
+     [-DBUILD_SHARED_LIBS=OFF], [-DBUILD_TESTING=OFF],
+     [-DICON_DEP_SOURCE_DIR="${icon_abs_top_srcdir}/externals/memman"],
+     [-DMM_BUILD_DOC=OFF], [-DMM_GENERATE_BINDINGS=OFF], [-DMM_ENABLE_C=ON],
+     [-DMM_ENABLE_FORTRAN=ON], [$icon_memman_extra_args])
+   AS_VAR_APPEND([bundled_CMAKE_PREFIX_PATH],
+     ["${bundled_CMAKE_PREFIX_PATH:+";"}dnl
+${icon_abs_top_builddir}/externals/memman/build/_icon"])
+   AS_VAR_APPEND([bundled_includes],
+       ["${FC_MOD_IN}externals/memman/build/_icon/src/bindings/fortran/mod "])
+   BUNDLED_LIBFILES=dnl
+"externals/memman/build/_icon/src/core/libmemman.a $BUNDLED_LIBFILES"
+   BUNDLED_LIBFILES=dnl
+"externals/memman/build/_icon/src/bindings/cpp/libmemmancpp.a $BUNDLED_LIBFILES"
+   BUNDLED_LIBFILES=dnl
+"externals/memman/build/_icon/src/bindings/c/libmemmanc.a $BUNDLED_LIBFILES"
+   BUNDLED_LIBFILES=dnl
+"externals/memman/build/_icon/src/bindings/fortran/libmemmanf.a dnl
+$BUNDLED_LIBFILES"
+   AS_VAR_APPEND([icon_pvcs_subdirs], [' externals/memman'])])
+
 icon_subdir_srcdir="$srcdir/externals/iconmath"
 icon_subdir_unique_file="src/support/mo_math_constants.f90"
 AS_IF([test ! -r "$icon_subdir_srcdir/$icon_subdir_unique_file"],
@@ -3134,67 +3196,6 @@ RAGNAROK library @<:@default=$ICON_BUNDLED_HIPFLAGS@:>@])dnl
    AS_VAR_APPEND([bundled_includes],
      ["${FC_MOD_IN}ragnarok/build/mod " ])
    BUNDLED_LIBFILES="ragnarok/build/libragnarok.a $BUNDLED_LIBFILES"])
-
-AS_VAR_IF([enable_aes], [yes],
-  [icon_subdir_srcdir="$srcdir/externals/memman"
-   icon_subdir_unique_file="src/bindings/fortran/memman_f.F90"
-   AS_IF([test ! -r "$icon_subdir_srcdir/$icon_subdir_unique_file"],
-     [AC_MSG_ERROR([unable to find sources of the bundled version of MEMMAN dnl
-library ($icon_subdir_unique_file) in '$icon_subdir_srcdir'])])
-   AC_ARG_VAR([ICON_MEMMAN_FCFLAGS],
-     [Fortran compiler flags to be appended to FCFLAGS when configuring the
-bundled version of MEMMAN library @<:@default=$ICON_BUNDLED_FCFLAGS@:>@])dnl
-   ICON_MEMMAN_FCFLAGS=${ICON_MEMMAN_FCFLAGS-$ICON_BUNDLED_FCFLAGS}
-   AC_ARG_VAR([ICON_MEMMAN_CFLAGS],
-     [C compiler flags to be appended to CFLAGS when configuring the bundled
-version of MEMMAN library @<:@default=$ICON_BUNDLED_CFLAGS@:>@])dnl
-   ICON_MEMMAN_CFLAGS=${ICON_MEMMAN_CFLAGS-$ICON_BUNDLED_CFLAGS}
-   AC_ARG_VAR([ICON_MEMMAN_CXXFLAGS],
-     [C++ compiler flags to be appended to CXXFLAGS when configuring the bundled
-version of MEMMAN library @<:@default=$ICON_BUNDLED_CXXFLAGS@:>@])dnl
-   ICON_MEMMAN_CXXFLAGS=${ICON_MEMMAN_CXXFLAGS-$ICON_BUNDLED_CXXFLAGS}
-   ACX_SUBDIR_INIT_CMAKE([utils/cmake-wrapper],
-     [no-run no-adjust-compilers no-adjust-utilities],
-     [externals/memman/build], ['${CMAKE}'])
-   ACX_SUBDIR_REMOVE_ARGS([externals/memman/build],
-     [-DCMAKE_C_FLAGS=*|-DCMAKE_Fortran_FLAGS=*|-DCMAKE_CXX_FLAGS=*])
-   icon_memman_extra_args=
-   AS_CASE([$icon_gpu_secondary],
-     [cuda],
-     [AS_VAR_APPEND([icon_memman_extra_args],
-        [' -DMM_ENABLE_BACKEND_CUDA=ON -DMM_ENABLE_BACKEND_HIP=OFF'])],
-     [hip],
-     [AS_VAR_APPEND([icon_memman_extra_args],
-        [' -DMM_ENABLE_BACKEND_CUDA=OFF -DMM_ENABLE_BACKEND_HIP=ON'])],
-     [AS_VAR_APPEND([icon_memman_extra_args],
-        [' -DMM_ENABLE_BACKEND_CUDA=OFF -DMM_ENABLE_BACKEND_HIP=OFF'])])
-   ACX_SUBDIR_APPEND_ARGS([externals/memman/build],
-     [-DCMAKE_AR="$AR"], [-DCMAKE_RANLIB="$RANLIB"],
-     [-DCMAKE_C_FLAGS="$subdir_CFLAGS $ICON_MEMMAN_CFLAGS $subdir_CPPFLAGS"],
-     [-DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_MEMMAN_FCFLAGS"],
-     [-DCMAKE_CXX_FLAGS=dnl
-"$subdir_CXXFLAGS $ICON_MEMMAN_CXXFLAGS $subdir_CPPFLAGS"],
-     [-DCMAKE_BUILD_TYPE=None],
-     [-DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH"],
-     [-DBUILD_SHARED_LIBS=OFF], [-DBUILD_TESTING=OFF],
-     [-DICON_DEP_SOURCE_DIR="${icon_abs_top_srcdir}/externals/memman"],
-     [-DMM_BUILD_DOC=OFF], [-DMM_GENERATE_BINDINGS=OFF], [-DMM_ENABLE_C=ON],
-     [-DMM_ENABLE_FORTRAN=ON], [$icon_memman_extra_args])
-   AS_VAR_APPEND([bundled_CMAKE_PREFIX_PATH],
-     ["${bundled_CMAKE_PREFIX_PATH:+";"}dnl
-${icon_abs_top_builddir}/externals/memman/build/_icon"])
-   AS_VAR_APPEND([bundled_includes],
-       ["${FC_MOD_IN}externals/memman/build/_icon/src/bindings/fortran/mod "])
-   BUNDLED_LIBFILES=dnl
-"externals/memman/build/_icon/src/core/libmemman.a $BUNDLED_LIBFILES"
-   BUNDLED_LIBFILES=dnl
-"externals/memman/build/_icon/src/bindings/cpp/libmemmancpp.a $BUNDLED_LIBFILES"
-   BUNDLED_LIBFILES=dnl
-"externals/memman/build/_icon/src/bindings/c/libmemmanc.a $BUNDLED_LIBFILES"
-   BUNDLED_LIBFILES=dnl
-"externals/memman/build/_icon/src/bindings/fortran/libmemmanf.a dnl
-$BUNDLED_LIBFILES"
-   AS_VAR_APPEND([icon_pvcs_subdirs], [' externals/memman'])])
 
 dnl Prepend the include search flags to FCFLAGS:
 FCFLAGS="${bundled_includes}${FCFLAGS}"

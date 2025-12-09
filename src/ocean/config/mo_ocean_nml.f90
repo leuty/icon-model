@@ -29,11 +29,11 @@ MODULE mo_ocean_nml
        &                       max_datetime_str_len, max_timedelta_str_len,                  &
        &                       datetime, newDatetime, deallocateDatetime,                    &
        &                       timedelta, newTimedelta, deallocateTimedelta,                 &
-       &                       datetimeToString, OPERATOR(+),&
+       &                       datetimeToString, OPERATOR(+), &
        &                       getTimeDeltaFromDateTime, getTotalSecondsTimeDelta
   USE mo_master_config,      ONLY: my_model_do_restart
   USE mo_time_config,        ONLY: set_tc_timeshift
-  USE mo_initicon_config,    ONLY: dwdana_filename
+  USE mo_initicon_config,    ONLY: dwdana_filename, type_iau_wgt
 
   USE mo_cdi,                ONLY: cdiInqMissval
 
@@ -971,6 +971,8 @@ MODULE mo_ocean_nml
   REAL(wp) :: dt_iau_oce = 0._wp !Time window for incr. analysis update
   REAL(wp) :: dt_ana_oce = 0._wp !Time window for assimilation cycle
   REAL(wp) :: dt_shift_oce = 0._wp ! Offset for incr. analysis update
+  CHARACTER(len=max_datetime_str_len) :: iau_reference_date = ''
+  TYPE(datetime), POINTER :: iau_reference_time
   INTEGER :: type_iau_wgt_oce = 1 !IAU weighting function (const.)
   CHARACTER(LEN= max_char_length) :: ana_filename = "<path>dwdana_R<nroot>B<jlev>_DOM<idom>_oce.grb" !analysis file
   CHARACTER(LEN= max_char_length) :: fg_filename = "<path>dwdFG_R<nroot>B<jlev>_DOM<idom>_oce.grb"!first-guess file
@@ -1031,6 +1033,7 @@ MODULE mo_ocean_nml
     & dt_ana_oce                 , &
     & dt_shift_oce               , &
     & type_iau_wgt_oce           , &
+    & iau_reference_date         , &
     & ana_filename               , &
     & fg_filename                , &
     & init_mode_oce              , &
@@ -1572,6 +1575,11 @@ IF ( use_initicono ) THEN
     CALL finish( TRIM(method_name),                         &
       &  'oce_ana_filename required, but missing.')
     ENDIF
+  ENDIF
+
+  IF(init_mode_oce .EQ. MODE_IAU_OCE) THEN
+    type_iau_wgt = type_iau_wgt_oce
+    IF(iau_reference_date /= '') iau_reference_time => newDatetime(TRIM(iau_reference_date))
   ENDIF
 ENDIF
 

@@ -9,8 +9,8 @@
 # ---------------------------------------------------------------
 
 include:
-  - local: .gitlab/ci/utils/log.yml
   - local: .gitlab/ci/common/dkrz.yml
+  - local: .gitlab/ci/common/any-image.yml
 
 .ragnarok:common:
   stage: unit
@@ -52,14 +52,12 @@ include:
 
 .ragnarok:docker:
   extends:
-    - .utils:log
+    - .common:any-image
     - .ragnarok:common
   variables:
     CMAKE_BUILD_PARALLEL_LEVEL: 8
     CTEST_PARALLEL_LEVEL: 8
-  tags:
-    - docker-any-image
-  image: registry.gitlab.dkrz.de/icon/containers/icon-dev
+  image: registry.gitlab.dkrz.de/icon/containers/icon-ci-build:f6633645
   rules:
     - if: $CI_PIPELINE_SOURCE == "web"
       when: manual

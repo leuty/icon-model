@@ -516,7 +516,7 @@ MODULE mo_ocean_model
     CALL init_oce_index(ocean_patch_3d%p_patch_2d,ocean_patch_3d, ocean_state, ext_data )
 
     CALL init_ho_params(ocean_patch_3d, v_params, p_as%fu10)
-    IF (use_initicono) CALL init_from_analysis(ocean_patch_3d, v_sea_ice, ocean_state, read_initicono )
+    IF (use_initicono) CALL init_from_analysis(ocean_patch_3d, v_sea_ice, ocean_state, v_params, read_initicono )
 
     IF (use_layers) THEN
       CALL init_layers(ocean_patch_3d, ocean_state(1)%p_diag) ! by_nils

@@ -9,19 +9,18 @@
 # ---------------------------------------------------------------
 
 include:
-  - local: .gitlab/ci/common/alpine.yml
+  - local: .gitlab/ci/common/any-image.yml
   - local: .gitlab/ci/common/warning.yml
 
 .cscs:common:trigger:
   stage: external
   needs: []
-  extends: .common:alpine
+  extends: .common:any-image
   variables:
     GIT_STRATEGY: none
-    ICON_CI_UTILS_APK_PACKAGES: >-
-      py3-ratelim py3-requests py3-retry py3-yaml python3
     CSCS_CI_COMMIT_SHA: ${CI_COMMIT_SHA}
     CSCS_CI_TAG: merge2rc
+  image: registry.gitlab.dkrz.de/icon/containers/icon-ci-trigger:b4dfdf53
   # Manual that is allowed to fail by default:
   when: manual
   # There is no mechanism to interrupt the jobs fully:

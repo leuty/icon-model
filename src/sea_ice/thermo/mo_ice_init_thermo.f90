@@ -230,8 +230,8 @@ CONTAINS
       &          t_cf_var('hi', 'm', 'ice thickness', datatype_flt),&
       &          grib2_var(10, 2, 1, DATATYPE_PACK16, GRID_UNSTRUCTURED, GRID_CELL),&
       &          ldims=(/nproma,i_no_ice_thick_class,alloc_cell_blocks/),in_group=groups("ice_default", &
-      &          "dwd_fg_oce_vars","mode_dwd_fg_oce_in",'mode_dwd_ana_oce_in', 'mode_iau_ana_oce_in'), &
-      &          lopenacc=.TRUE.)
+      &          "dwd_fg_oce_vars","mode_dwd_fg_oce_in","mode_iau_fg_oce_in", 'mode_dwd_ana_oce_in', &
+      &          'mode_iau_ana_oce_in'), lopenacc=.TRUE.)
     __acc_attach(p_ice%hi)
 
     CALL add_var(ocean_restart_list, 'hs', p_ice%hs ,&
@@ -239,8 +239,8 @@ CONTAINS
       &          t_cf_var('hs', 'm', 'snow thickness', datatype_flt),&
       &          grib2_var(10, 2, 192, DATATYPE_PACK16, GRID_UNSTRUCTURED, GRID_CELL),&
       &          ldims=(/nproma,i_no_ice_thick_class,alloc_cell_blocks/),in_group=groups("ice_default", &
-      &          "dwd_fg_oce_vars","mode_dwd_fg_oce_in",'mode_dwd_ana_oce_in', 'mode_iau_ana_oce_in'), &
-      &          lopenacc=.TRUE.)
+      &          "dwd_fg_oce_vars","mode_dwd_fg_oce_in","mode_iau_fg_oce_in", 'mode_dwd_ana_oce_in', &
+      &          'mode_iau_ana_oce_in'), lopenacc=.TRUE.)
     __acc_attach(p_ice%hs)
 
     CALL add_var(ocean_restart_list, 'conc', p_ice%conc ,&
@@ -248,8 +248,8 @@ CONTAINS
       &          t_cf_var('conc', '', 'ice concentration in each ice class', datatype_flt),&
       &          grib2_var(10, 2, 0, DATATYPE_PACK16, GRID_UNSTRUCTURED, GRID_CELL),&
       &          ldims=(/nproma,i_no_ice_thick_class,alloc_cell_blocks/),in_group=groups("ice_default", &
-      &          "dwd_fg_oce_vars","mode_dwd_fg_oce_in",'mode_dwd_ana_oce_in', 'mode_iau_ana_oce_in'), &
-      &          lopenacc=.TRUE.)
+      &          "dwd_fg_oce_vars","mode_dwd_fg_oce_in","mode_iau_fg_oce_in", 'mode_dwd_ana_oce_in', &
+      &          'mode_iau_ana_oce_in'), lopenacc=.TRUE.)
     __acc_attach(p_ice%conc)
 !fixme why is this needed
     CALL add_var(ocean_restart_list, 'concSum', p_ice%concSum ,&

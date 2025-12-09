@@ -107,3 +107,11 @@ Note that you will need to register the hooks for each fresh clone of the reposi
 ### Documentation
 
 The [ICON documentation](https://docs.icon-model.org) is automatically generated from the content of the subdirectory `doc/www/`. Please consider extending and updating the documentation with each merge request.
+
+### Code Contributions for Ragnarok
+
+Several components of the AES physics are currently being ported to C++/Kokkos to enhance ICON's performance portability. Because introducing C++ into a predominantly Fortran-based codebase represents a major structural change, this effort was named [Ragnarok](https://en.wikipedia.org/wiki/Ragnarök), inspired by the Norse mythology. All related source code resides in the `ragnarok/` directory at the root of the ICON repository.
+
+While the general ICON contribution rules still apply, the Ragnarok codebase includes additional recommendations, which are documented in the {{ '[`Ragnarok contribution guide`]({}/ragnarok/CONTRIBUTING.md)'.format(base_url) }}.
+
+> **Note:** Ragnarok is currently under active development and is not yet suitable for production runs.
