@@ -54,6 +54,9 @@ CFLAGS="-g ${march_flags} -pc64 -ftz -fma -ip -qno-opt-dynamic-align -gnu-prefix
 ICON_CFLAGS='-O3'
 ICON_BUNDLED_CFLAGS='-O2'
 
+# Enable linking of YAC test programs to static YAXT, which depends on Pthreads:
+ICON_YAC_CFLAGS="${ICON_BUNDLED_CFLAGS} -pthread"
+
 CXX=$(eval "${BUILD_ENV}" >/dev/null; mpicxx -show | sed 's: .*$::')
 CXXFLAGS="-g ${march_flags} -pc64 -ftz -fma -ip -qno-opt-dynamic-align -O2 -gnu-prefix=/usr/bin/"
 
@@ -101,6 +104,7 @@ ICON_ECRAD_FCFLAGS="${ICON_ECRAD_FCFLAGS}" \
 ICON_FCFLAGS="${ICON_FCFLAGS}" \
 ICON_OCEAN_FCFLAGS="${ICON_OCEAN_FCFLAGS}" \
 ICON_OCEAN_PATH="${ICON_OCEAN_PATH}" \
+ICON_YAC_CFLAGS="${ICON_YAC_CFLAGS}" \
 LDFLAGS="${LDFLAGS}" \
 LIBS="${LIBS}" \
 MPI_LAUNCH="${MPI_LAUNCH}" \
