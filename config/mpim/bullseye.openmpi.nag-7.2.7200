@@ -42,12 +42,12 @@ fi
 BUILD_ENV="export PATH=\"${sw_root}/bin:\${PATH-}\"; export LD_LIBRARY_PATH=\"${sw_root}/lib:\${LD_LIBRARY_PATH-}\"; export PYTHONPATH=\"${sw_root}/python/pp_ser:\${PYTHONPATH-}\";"
 
 CC='mpicc'
-CFLAGS='-g -march=native -mpc64'
+CFLAGS='-g -mpc64'
 ICON_CFLAGS='-O3'
 ICON_BUNDLED_CFLAGS='-O2'
 
 CXX=$(eval "${BUILD_ENV}" >/dev/null; mpicxx -show | sed 's: .*$::')
-CXXFLAGS='-g -march=native -mpc64 -O2'
+CXXFLAGS='-g -mpc64 -O2'
 
 CPPFLAGS="-I${sw_root}/include -I${sw_root}/include/libxml2"
 
