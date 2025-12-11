@@ -235,8 +235,8 @@ ${CMAKE_CURRENT_BINARY_DIR}/microphysics_1mom_driver ${scheme}"
       tolerance_probtest_tolerance_${scheme}_${case}
       COMMAND "${CMAKE_COMMAND}" -E make_directory tolerance
       COMMAND
-        ${probtest_CMD} tolerance --stats-file-name
-        "${scheme}_${case}_{member_id}" --tolerance-file-name
+        ${probtest_CMD} tolerance --ensemble-files
+        "${scheme}_${case}_{member_id}" --tolerance-files
         "tolerance/${scheme}_${case}"
       COMMENT
         "Running probtest tolerance for ${scheme} (${case}) for the tolerance data update"
@@ -248,8 +248,8 @@ ${CMAKE_CURRENT_BINARY_DIR}/microphysics_1mom_driver ${scheme}"
     add_custom_target(
       tolerance_probtest_check_${scheme}_${case}
       COMMAND
-        ${probtest_CMD} check --input-file-ref "${scheme}_${case}_ref"
-        --input-file-cur "${scheme}_${case}_1" --tolerance-file-name
+        ${probtest_CMD} check --reference-files "${scheme}_${case}_ref"
+        --current-files "${scheme}_${case}_1" --tolerance-files
         "tolerance/${scheme}_${case}"
       COMMENT
         "Running probtest check for ${scheme} (${case}) for the tolerance data update"
@@ -279,9 +279,9 @@ ${CMAKE_CURRENT_BINARY_DIR}/microphysics_1mom_driver ${scheme}"
     add_test(
       NAME check_${scheme}_${case}
       COMMAND
-        ${probtest_CMD} check --input-file-ref
-        "${PROJECT_SOURCE_DIR}/reference/${scheme}_${case}_ref"
-        --input-file-cur "${scheme}_${case}" --tolerance-file-name
+        ${probtest_CMD} check --reference-files
+        "${PROJECT_SOURCE_DIR}/reference/${scheme}_${case}_ref" --current-files
+        "${scheme}_${case}" --tolerance-files
         "${PROJECT_SOURCE_DIR}/tolerance/${scheme}_${case}"
     )
     set_tests_properties(

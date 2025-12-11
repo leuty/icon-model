@@ -43,6 +43,10 @@ tests:
       - balfrin_cpu_nvidia_mixed: [1,2,37,44,49,60]
     tolerance_factor:
       - balfrin: 5
+    test_file_types:
+      - balfrin: ['stats', 'fof']
+    fof_types:
+      - balfrin: AIREP,PILOT,TEMP
   - name: mch_pollen_test
     tags: ['atm','merge2rc','probtest']
     machines:

@@ -12,3 +12,5 @@ perturb_amplitude:
   - mixed: 1e-3
   - double: 1e-14
 file_id: ['--file-id', 'NetCDF', '*atm_3d*.nc']
+test_file_types: ['stats']
+fof_types: [""]

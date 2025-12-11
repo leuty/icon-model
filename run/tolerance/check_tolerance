@@ -112,6 +112,13 @@ if [[ "${builder}" == santis* ]]; then
 else
     LOG=probtest_${EXPERIMENT}.log
 
+    export TEST_FILE_TYPES=$("./scripts/experiments/get_param_for_exp_by_machine" --experiment "$EXPERIMENT" --param test_file_types)
+    TEST_FILE_TYPES="${TEST_FILE_TYPES:-STATS}"
+    export TEST_FILE_TYPES
+
+    export FOF_TYPES=$("./scripts/experiments/get_param_for_exp_by_machine" --experiment "$EXPERIMENT" --param fof_types)
+
+
     export PROBTEST_CONFIG=${EXP_BASE}.json
     # initialize configuration file
     if ! "${PROBTEST}" --log-file "${LOG}.init" init \
@@ -134,13 +141,21 @@ else
         exit 1
     fi
 
+    current_files="${EXPERIMENT}.csv"
+    reference_files="${CPU_REFERENCE}/${EXPERIMENT}_reference.csv"
+    tolerance_files="${CPU_REFERENCE}/${EXPERIMENT}_tolerance.csv"
+    if [[ " ${TEST_FILE_TYPES[@]} " =~ "fof" ]]; then
+        tolerance_files+=",${CPU_REFERENCE}/${EXPERIMENT}_tolerance_fof{fof_type}.csv"
+        reference_files+=",${CPU_REFERENCE}/${EXPERIMENT}_fof{fof_type}_reference.nc"
+        current_files+=",experiments/${EXPERIMENT}_base/fof{fof_type}.nc"
+    fi
     # validate the generated stats against the reference
     if ! "${PROBTEST}" --log-file "${LOG}.check" check \
-        --input-file-cur "${EXPERIMENT}.csv" \
-        --input-file-ref "${CPU_REFERENCE}/${EXPERIMENT}_reference.csv" \
-        --tolerance-file-name "${CPU_REFERENCE}/${EXPERIMENT}_tolerance.csv" \
-        --factor $FACTOR
-    then
+        --current-files "$current_files" \
+        --reference-files "$reference_files" \
+        --tolerance-files "$tolerance_files" \
+        --factor $FACTOR \
+        ${FOF_TYPES:+--fof-types "$FOF_TYPES"}; then
         echo "probtest tolerance test did not complete successfully"
         exit 1
     fi

@@ -54,7 +54,7 @@ cp "$default_reference_stats_file_name" "$reference_file_name" || exit 3
 selected_members_file_name="${basedir}/${probtest_exp}_selected_members.csv"
 # Select members for the tolerance generation
 "$PROBTEST" select-members \
-    --stats-file-name "$stats_file_name" \
+    --ensemble-files "$stats_file_name" \
     --selected-members-file-name "$selected_members_file_name" \
     --max-member-count 20 \
     --total-member-count 49 \
@@ -63,7 +63,7 @@ selected_members_file_name="${basedir}/${probtest_exp}_selected_members.csv"
 
 tolerance_file_name="${basedir}/${probtest_exp}_tolerance.csv"
 # compute tolerance range from all 50 stats files (simple because they were anyway generated)
-"$PROBTEST" tolerance --stats-file-name "$stats_file_name" --tolerance-file-name "$tolerance_file_name" || exit 5
+"$PROBTEST" tolerance --ensemble-files "$stats_file_name" --tolerance-files "$tolerance_file_name" || exit 5
 
 # exit 0 on success (and don't execute any appended scripts)
 exit 0

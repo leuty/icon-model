@@ -22,6 +22,10 @@ probtest_exp=${EXPNAME#generate_tolerance_}
 
 echo "Generate new tolerance data for '$probtest_exp' (using job $EXPNAME)"
 
+export TEST_FILE_TYPES=$("${basedir}/scripts/experiments/get_param_for_exp_by_machine" --experiment "$probtest_exp" --param test_file_types)
+TEST_FILE_TYPES="${TEST_FILE_TYPES:-STATS}"
+export TEST_FILE_TYPES
+
 # make sure the resulting data and directories are global readable
 umask 0022
 
@@ -48,9 +52,50 @@ export PROBTEST_CONFIG="${basedir}/${probtest_exp}-config.json"
 echo "storing reference ${default_reference_stats_file_name} to ${reference_file_name}"
 cp "$default_reference_stats_file_name" "$reference_file_name" || exit 4
 
-tolerance_file_name="${basedir}/${probtest_exp}_tolerance.csv"
-# compute tolerance range from above stats files (maximum spread across all pairs of stats files and maximum across all layers)
-"$PROBTEST" tolerance --stats-file-name "$stats_file_name" --tolerance-file-name "$tolerance_file_name" || exit 5
+has_fof=false
+if [[ " ${TEST_FILE_TYPES[@]} " =~ "fof" ]]; then
+    has_fof=true
 
-# exit 0 on success (and don't execute any appended scripts)
+    fof_types=(AIREP PILOT TEMP SYNOP)
+
+    for fof_type in "${fof_types[@]}"; do
+        default_reference_fof_file_name="${basedir}/experiments/${probtest_exp}/fof${fof_type}.nc"
+        reference_fof_name="${basedir}/${probtest_exp}_fof${fof_type}_reference.nc"
+
+        echo "storing reference ${default_reference_fof_file_name} to ${reference_fof_name}"
+
+        cp "$default_reference_fof_file_name" "$reference_fof_name" || exit 5
+
+    done
+
+    if [[ $BB_NAME == *mixed* ]]; then
+        member_type="mixed"
+    else
+        member_type="double"
+    fi
+    fof_types_csv=$(IFS=,; echo "${fof_types[*]}")
+
+else
+    member_type=""
+    fof_types_csv=""
+fi
+
+ensemble_files="stats_${probtest_exp}_{member_id}.csv"
+
+tolerance_files="${basedir}/${probtest_exp}_tolerance.csv"
+
+if $has_fof; then
+
+    ensemble_files+=",${basedir}/experiments/${probtest_exp}{member_type}{member_id}/fof{fof_type}.nc"
+
+    tolerance_files+=",${basedir}/${probtest_exp}_tolerance_fof{fof_type}.csv"
+fi
+
+"$PROBTEST" tolerance \
+    --ensemble-files "$ensemble_files" \
+    --tolerance-files "$tolerance_files" \
+    ${fof_types_csv:+--fof-types "$fof_types_csv"}\
+    ${member_type:+--member-type "$member_type"} \
+    || exit 6
+
 exit 0
