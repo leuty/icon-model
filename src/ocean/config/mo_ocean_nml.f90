@@ -338,6 +338,9 @@ MODULE mo_ocean_nml
 
   INTEGER :: minVerticalLevels       = 2
 
+  LOGICAL :: is_ocean_limited_area = .FALSE. ! TRUE: use limited area mode, provide ocean_limarea_nml
+  REAL(wp) :: ssh_fatal_level = 300.0_wp
+
   NAMELIST/ocean_dynamics_nml/&
     &                 ab_beta                      , &
     &                 ab_const                     , &
@@ -394,7 +397,9 @@ MODULE mo_ocean_nml
     &                 solver_FirstGuess            , &
     &                 use_smooth_ocean_boundary    , &
     &                 createSolverMatrix           , &
-    &                 minVerticalLevels
+    &                 minVerticalLevels            , &
+    &                 is_ocean_limited_area        , &
+    &                 ssh_fatal_level
 
   LOGICAL :: use_draftave_for_transport_h = .true.   !
 
@@ -712,7 +717,9 @@ MODULE mo_ocean_nml
   LOGICAL  :: lsediment_only=.FALSE.
   INTEGER  :: nbgctra, nbgcadv
   LOGICAL  :: l_couple_icon_waves = .FALSE.
+  REAL(wp) :: sp_thermal_coefficient = 2.5E-4 ! used in EOS for Stuhne and Peltier test case
 
+  !$ACC DECLARE CREATE(sp_thermal_coefficient)
 
   NAMELIST/ocean_physics_nml/&
     &  EOS_TYPE                    , &
@@ -722,6 +729,7 @@ MODULE mo_ocean_nml
     &  LinearHalineContractionCoefficient,&
     &  OceanReferenceDensity,       &
     &  lhamocc, lbgcadv, lsediment_only, &
+    &  sp_thermal_coefficient, &
     &  l_couple_icon_waves
 
   ! ------------------------------------------------------------------------
@@ -990,6 +998,11 @@ MODULE mo_ocean_nml
                                             ! that optional first guess fields experience a cold-start
                                             ! initialization if they are missing. The model does not abort.
   CHARACTER(LEN= max_char_length) :: ana_varnames_map_file_oce = " "
+  INTEGER  :: evaluation_point = 1 ! where to evaluate initial conditions (1 barycenter, 2 centroid) for gaussian wave test
+  ! parameters for density front tests
+  INTEGER :: sp_density_front_num_sines = 10 ! number of full waves sines
+  REAL(wp) :: sp_density_front_sine_amp = 1  ! degrees
+  REAL(wp) :: sp_press_equilibrium_depth = 3000.0_wp ! depth at which pressure of different density regions is in equilibrium
 
 
   ! test cases for ocean model; for the index see run scripts
@@ -1038,10 +1051,14 @@ MODULE mo_ocean_nml
     & fg_filename                , &
     & init_mode_oce              , &
     & lread_ana_oce              , &
-    &lconsistency_checks_oce     , &
-    &check_fg_oce                , &
-    &check_ana_oce               , &
-    &ana_varnames_map_file_oce
+    & lconsistency_checks_oce    , &
+    & check_fg_oce               , &
+    & check_ana_oce              , &
+    & ana_varnames_map_file_oce  , &
+    & evaluation_point           , &
+    & sp_density_front_num_sines , &
+    & sp_density_front_sine_amp  , &
+    & sp_press_equilibrium_depth
 
 
     !----------------------------------------------------------------------------
@@ -1127,6 +1144,49 @@ MODULE mo_ocean_nml
     & greenStartDate, greenStopDate, &
     & Green_tracer_width, &
     & check_total_volume
+
+  !----------------------------------------------------------------------------
+  ! ocean limited area mode (LAM) parameters
+  INTEGER :: ocean_latbc_bnd_intp_width = 4  ! number of cell rows for boundary interpolation zone
+  INTEGER :: ocean_latbc_nudg_width     = 8  ! number of cell rows for nudging zone
+  INTEGER :: ocean_max_refin_c_ctrl     = 12 ! maximum value of the refin_c_ctrl variable in the grid file
+                                             ! this cannot be hard coded, and there has to be some checking.
+                                             ! we assume the max value of refin_e_ctrl is double of that
+  INTEGER :: ocean_latbc_itype     = 1       ! 0 - constant BCs, 1 - time dependent BCs
+  INTEGER :: ocean_latbc_nudg_func = 1       ! 1 - discrete parabolic sigmoid, 2 - exponential decay
+  REAL(wp) :: ocean_latbc_exp_const_A = 1.65 ! amplitude of nudging function 2 (exponential decay)
+  REAL(wp) :: ocean_latbc_exp_const_b = 0.55 ! decay rate of nudging function 2 (exponential decay)
+  REAL(wp) :: ocean_latbc_dtime    = -1.0_wp ! time difference between two consecutive latbc files
+  CHARACTER(LEN=max_datetime_str_len) :: ocean_latbc_start_datetime_str = ''
+                                             ! date and time from which latbcs start. it cannot
+                                             ! be after the end of the first timestep. if empty,
+                                             ! will default to experiment start
+  CHARACTER(LEN=filename_max) :: ocean_latbc_filepattern = &  ! pattern of the latbc filenames
+    & "BC_oce_R<nroot>B<jlev>_<y><m><d><h>.nc"
+  CHARACTER(LEN=filename_max) :: ocean_latbc_path = "./latbc" ! path to the latbc files
+  LOGICAL :: ocean_latbc_async_io           ! use asynchronous io for lateral boundary data
+  LOGICAL :: ocean_latbc_is_sparse          ! use sparse lateral boundary data
+  LOGICAL :: ocean_latbc_from_vn = .false.  ! test option to initialize latbc velocities directly
+                                            ! from vn instead u,v. works only when LAM and global
+                                            ! have the same resolution
+
+  NAMELIST/ocean_limarea_nml/&
+    & ocean_latbc_bnd_intp_width,     &
+    & ocean_latbc_nudg_width,         &
+    & ocean_max_refin_c_ctrl,         &
+    & ocean_latbc_itype,              &
+    & ocean_latbc_nudg_func,          &
+    & ocean_latbc_exp_const_A,        &
+    & ocean_latbc_exp_const_b,        &
+    & ocean_latbc_dtime,              &
+    & ocean_latbc_start_datetime_str, &
+    & ocean_latbc_filepattern,        &
+    & ocean_latbc_path,               &
+    & ocean_latbc_async_io,           &
+    & ocean_latbc_is_sparse,          &
+    & ocean_latbc_from_vn
+
+
   ! ------------------------------------------------------------------------
   ! 3.0 Namelist variables and auxiliary parameters for octst_nml
   !     This namelists mainly exists during the development of the ocean model
@@ -1419,6 +1479,24 @@ MODULE mo_ocean_nml
       END IF
     END IF
 
+    IF (is_ocean_limited_area) THEN
+      CALL position_nml ('ocean_limarea_nml', status=i_status)
+      IF (my_process_is_stdio()) THEN
+        iunit = temp_defaults()
+        WRITE(iunit, ocean_limarea_nml)   ! write defaults to temporary text file
+      END IF
+      SELECT CASE (i_status)
+      CASE (positioned)
+        READ (nnml, ocean_limarea_nml)    ! overwrite default settings
+        IF (my_process_is_stdio()) THEN
+          iunit = temp_settings()
+          WRITE(iunit, ocean_limarea_nml) ! write settings to temporary text file
+        END IF
+      CASE DEFAULT
+        CALL finish(method_name, 'Ocean LAM activated in grid_nml but not defined')
+      END SELECT
+    END IF
+
     !------------------------------------------------------------
     ! 6.0 check the consistency of the parameters
     !------------------------------------------------------------
@@ -1541,6 +1619,49 @@ MODULE mo_ocean_nml
       CALL message(method_name,'WARNING, forcing_set_runoff_to_zero is .TRUE. - forcing with river runoff is set to zero')
     END IF
 
+    IF (is_ocean_limited_area) THEN
+#ifdef _OPENACC
+      CALL finish(method_name,'LAM: ocean limited area does not yet support ACC computations')
+#endif
+
+      IF (ocean_latbc_async_io) &
+        & CALL finish(method_name, 'LAM: asynchronous latbcs not implemented')
+
+      IF (ocean_latbc_is_sparse) &
+        & CALL finish(method_name, 'LAM: sparse latbcs not implemented')
+
+      IF (ocean_latbc_itype /= 0 .AND. ocean_latbc_itype /= 1) &
+        & CALL finish(method_name,'LAM: ocean latbc type can be either 0 or 1')
+
+      IF (ocean_latbc_itype == 0 .AND. ocean_latbc_is_sparse) &
+        & CALL finish(method_name,'LAM: sparse latbcs optimization not supported with constant latbcs')
+
+      IF (ocean_latbc_itype > 0 .AND. ocean_latbc_dtime < 0) &
+        & CALL finish(method_name,'LAM: (positive) time difference between latbcs is required')
+
+      IF (ocean_latbc_itype > 0 .AND. ocean_latbc_dtime > 86400._wp) &
+        & CALL finish(method_name, &
+        & 'LAM: ocean_latbc_dtime (ocean_limarea_nml) too large for mtime conversion')
+
+      IF (ocean_latbc_bnd_intp_width < 4) &
+        & CALL finish(method_name, 'LAM: width of boundary interpolation zone must be at least 4')
+
+      IF (ocean_latbc_nudg_width < 4) &
+        & CALL finish(method_name, 'LAM: width of nudging zone must be at least 4')
+
+      IF (ocean_latbc_bnd_intp_width + ocean_latbc_nudg_width > ocean_max_refin_c_ctrl) &
+        & CALL finish(method_name, &
+        & 'LAM: sum of widths of boundary interpolation zone and nudging zone cant exceed maximum of refin_c_ctrl')
+
+      IF (ocean_latbc_nudg_func <= 0 .OR. ocean_latbc_nudg_func >= 3) &
+        & CALL finish(method_name, &
+        & 'LAM: ocean_latbc_nudg_func has to be either 1 or 2')
+
+      IF (ocean_latbc_exp_const_A < 0 .OR. ocean_latbc_exp_const_b < 0) &
+        & CALL finish(method_name, &
+        & 'LAM: constants in the exponential decay nudging function have to be positive')
+    END IF
+
 #ifndef __NO_ICON_ATMO__
     IF ( is_coupled_to_atmo() .AND. iforc_oce /= Coupled_FluxFromAtmo ) THEN
       iforc_oce = Coupled_FluxFromAtmo
@@ -1594,6 +1715,7 @@ ENDIF
       WRITE(nnml_output,nml=ocean_forcing_nml)
       WRITE(nnml_output,nml=ocean_initialConditions_nml)
       WRITE(nnml_output,nml=ocean_diagnostics_nml)
+      WRITE(nnml_output,nml=ocean_limarea_nml)
     ENDIF
     !------------------------------------------------------------
     ! 6.0 Read octst_nml namelist
@@ -1647,6 +1769,7 @@ ENDIF
     !$ACC   DEVICE(eos_type) &
     !$ACC   DEVICE(fillValue) &
     !$ACC   DEVICE(OceanReferenceDensity) &
+    !$ACC   DEVICE(sp_thermal_coefficient) &
     !$ACC   DEVICE(LinearThermoExpansionCoefficient) &
     !$ACC   DEVICE(LinearHalineContractionCoefficient) &
     !$ACC   ASYNC(1)

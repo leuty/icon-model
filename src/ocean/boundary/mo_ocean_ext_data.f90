@@ -397,7 +397,7 @@ CONTAINS
         & 'Number of patch verts and verts in bathymetry file do not match.')
       ENDIF
 
-      WRITE(message_text,'(3(a,i6))') 'No of cells =', no_cells, &
+      WRITE(message_text,'(3(a,i9))') 'No of cells =', no_cells, &
         &                           '  no of edges =', p_patch(jg)%n_patch_edges_g, &
         &                           '  no of verts =', no_verts
       CALL message( TRIM(routine),TRIM(message_text))

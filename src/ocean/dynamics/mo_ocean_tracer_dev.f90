@@ -34,7 +34,7 @@ MODULE mo_ocean_tracer_dev
     & Cartesian_Mixing, tracer_threshold_min, tracer_threshold_max,       &
     & namelist_tracer_name, tracer_update_mode, use_none,                 &
     & GMREDI_COMBINED_DIAGNOSTIC,GM_INDIVIDUAL_DIAGNOSTIC,REDI_INDIVIDUAL_DIAGNOSTIC, &
-    & vert_mix_type
+    & vert_mix_type, ocean_latbc_bnd_intp_width, is_ocean_limited_area
   USE mo_util_dbg_prnt,             ONLY: dbg_print
   USE mo_parallel_config,           ONLY: nproma
   USE mo_dynamics_config,           ONLY: nold, nnew
@@ -1074,6 +1074,10 @@ CONTAINS
       ENDIF
 
       DO jc = start_cell_index, end_cell_index
+        IF (is_ocean_limited_area .AND. & ! Skip boundary interpolation zone in LAM
+          & patch_2D%cells%refin_ctrl(jc,jb) > 0 .AND. &
+          & patch_2D%cells%refin_ctrl(jc,jb) <= ocean_latbc_bnd_intp_width) CYCLE
+
         !! d_z*(coeff*w*C) = coeff*d_z(w*C) since coeff is constant for each column
         div_adv_flux_vert(jc, :, jb) = stretch_c(jc, jb)*div_adv_flux_vert(jc, :, jb)
         div_diff_flx_vert(jc, :, jb) = stretch_c(jc, jb)*div_diff_flx_vert(jc, :, jb)

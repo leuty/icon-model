@@ -50,7 +50,7 @@ MODULE mo_ocean_model
   USE mo_ocean_nml_crosscheck,   ONLY: ocean_crosscheck
   USE mo_ocean_nml,              ONLY: i_sea_ice, no_tracer, &
     & use_layers, & ! by_nils
-    & initialize_fromRestart, use_initicono
+    & initialize_fromRestart, use_initicono, is_ocean_limited_area
 
   USE mo_model_domain,        ONLY: t_patch_3d, p_patch_local_parent
 
@@ -112,7 +112,7 @@ MODULE mo_ocean_model
   USE mo_ocean_time_events,    ONLY: init_ocean_time_events
   USE mo_icon_output_tools,    ONLY: init_io_processes, prepare_output
   USE mo_ocean_initicono,      ONLY: read_initicono, t_initicono_read
-
+  USE mo_ocean_limarea,        ONLY: init_ocean_latbc, destruct_ocean_latbc
   !-------------------------------------------------------------
   ! For the coupling
   USE mo_coupling_config,      ONLY: is_coupled_run
@@ -281,6 +281,9 @@ MODULE mo_ocean_model
     !  cleaning up process
     !------------------------------------------------------------------
     CALL message(TRIM(method_name),'start to clean up')
+
+    ! Ocean LAM cleanup
+    IF (is_ocean_limited_area) CALL destruct_ocean_latbc()
 
     CALL destruct_oce_diagnostics()
     !------------------------------------------------------------------
@@ -535,6 +538,9 @@ MODULE mo_ocean_model
 
     IF (i_sea_ice >= 1) &
       &   CALL ice_init(ocean_patch_3D, ocean_state(1), v_sea_ice, v_oce_sfc%cellThicknessUnderIce)
+
+    ! Call LAM initialization (precalculate nudging coefficients, prepare for data loading)
+    IF (is_ocean_limited_area) CALL init_ocean_latbc(ocean_patch_3d, operators_coefficients)
 
     IF (ltimer) CALL timer_stop(timer_model_init)
 

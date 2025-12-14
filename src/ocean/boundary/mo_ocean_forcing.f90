@@ -699,7 +699,7 @@ CONTAINS
         !
         ! check the number of cells
         !
-        WRITE(message_text,'(a,i6)') 'No of cells =', no_cells
+        WRITE(message_text,'(a,i9)') 'No of cells =', no_cells
         CALL message(TRIM(routine),TRIM(message_text))
         IF (patch_2d%n_patch_cells_g /= no_cells) THEN
           CALL finish(TRIM(routine),&

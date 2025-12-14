@@ -142,6 +142,12 @@ CONTAINS
       iau_reference_time => time_config%tc_exp_startdate
     ENDIF
 
+    IF (is_ocean_limited_area) THEN
+      IF (solver_FirstGuess /= 2) CALL finish(method_name, &
+        & "LAM: Limited area mode works only with solver_FirstGuess == 2. Please set this in the namelist.")
+      IF (vert_cor_type /= 1) CALL finish(method_name, &
+        & "LAM: Limited area mode works only with z* coordinate system for now. Please set vert_cor_type to 1")
+    END IF
   END SUBROUTINE ocean_crosscheck
 
 

@@ -37,10 +37,11 @@ MODULE mo_hydro_ocean_run
     &  use_layers, & ! by_nils
     &  do_ts_budget, & ! by_nils ts_budget
     &  use_draftave_for_transport_h, &
-    & vert_cor_type, use_tides, check_total_volume, &
-    & GMRedi_configuration, Cartesian_Mixing, l_lhs_direct, &
-    & select_lhs, select_lhs_operators, select_lhs_matrix, &
-    & iau_reference_time, init_mode_oce, dt_iau_oce, MODE_IAU_OCE
+    &  vert_cor_type, use_tides, check_total_volume, &
+    &  GMRedi_configuration, Cartesian_Mixing, l_lhs_direct, &
+    &  select_lhs, select_lhs_operators, select_lhs_matrix, &
+    &  iau_reference_time, init_mode_oce, dt_iau_oce, MODE_IAU_OCE, &
+    &  is_ocean_limited_area
   USE mo_ocean_nml,              ONLY: iforc_oce, Coupled_FluxFromAtmo, OMIP_FluxFromFile
   USE mo_dynamics_config,        ONLY: nold, nnew
   USE mo_io_config,              ONLY: n_checkpoints, write_last_restart
@@ -123,6 +124,8 @@ MODULE mo_hydro_ocean_run
   USE mo_oce_io_with_cdi,        ONLY: apply_ocean_iau
   USE mo_util_mtime,             ONLY: getElapsedSimTimeInSeconds
   USE mo_iau,                    ONLY: compute_iau_wgt
+  USE mo_ocean_limarea,          ONLY: preload_ocean_latbc, apply_ocean_ssh_latbc, &
+    & apply_ocean_velocity_latbc, apply_ocean_tracer_latbc
 
   IMPLICIT NONE
 
@@ -914,6 +917,9 @@ CONTAINS
 
         END IF
 
+        IF (is_ocean_limited_area) CALL preload_ocean_latbc(patch_3d, current_time, &
+          & operators_coefficients, jstep)
+
 !        IF (lcheck_salt_content) CALL check_total_salt_content_zstar(110, &
 !          & ocean_state(jg)%p_prog(nold(1))%tracer(:,:,:,2), patch_2d, &
 !          & ocean_state(jg)%p_prog(nold(1))%stretch_c(:,:), &
@@ -1117,6 +1123,9 @@ CONTAINS
 
         stop_timer(timer_solve_ab,1)
 
+        IF (is_ocean_limited_area) &
+          & CALL apply_ocean_ssh_latbc(patch_3d, ocean_state(jg), nnew(jg)) ! Update the SSH on the boundary
+
 #ifdef _OPENACC
         lzacc = temp_lzacc
 
@@ -1156,6 +1165,9 @@ CONTAINS
         CALL calc_normal_velocity_ab_zstar(patch_3d, ocean_state(jg), operators_coefficients, &
           & ocean_state(jg)%p_prog(nnew(1))%eta_c, lacc=lzacc)
         stop_timer(timer_normal_veloc,4)
+
+        IF (is_ocean_limited_area) &
+          & CALL apply_ocean_velocity_latbc(patch_3d, ocean_state(jg), nnew(jg)) ! Update the velocity on the boundary
 
         !------------------------------------------------------------------------
         ! Step 5: calculate vertical velocity and mass_flx_e from continuity equation under
@@ -1220,6 +1232,8 @@ CONTAINS
         !! FIXME zstar: Not adapted to zstar
         IF (no_tracer>=1) THEN
           CALL nudge_ocean_tracers( patch_3d, ocean_state(jg), lacc=lzacc)
+          IF (is_ocean_limited_area) &
+            & CALL apply_ocean_tracer_latbc(patch_3d, ocean_state(jg), nnew(jg)) ! Update the tracers on the boudnary
         ENDIF
 
         !------------------------------------------------------------------------
@@ -1654,8 +1668,8 @@ CONTAINS
     ! in general nml output is writen based on the nnew status of the
     ! prognostics variables. Unfortunately, the initialization has to be written
     ! to the nold state. That's why the following manual copying is nec.
-      ocean_state%p_prog(nnew(1))%h         = ocean_state%p_prog(nold(1))%h
-    IF ( vert_cor_type == 1 ) THEN
+    ocean_state%p_prog(nnew(1))%h           = ocean_state%p_prog(nold(1))%h
+    IF (vert_cor_type == 1) THEN
       ocean_state%p_prog(nnew(1))%eta_c     = ocean_state%p_prog(nold(1))%eta_c
       ocean_state%p_prog(nnew(1))%stretch_c = ocean_state%p_prog(nold(1))%stretch_c
     ENDIF
@@ -1666,6 +1680,14 @@ CONTAINS
     ENDIF
 
     ocean_state%p_prog(nnew(1))%vn          = ocean_state%p_prog(nold(1))%vn
+
+    !--------------------------------------------------------------------------
+    ! calculate in situ density here
+    IF (no_tracer > 0) THEN
+      CALL calculate_density(patch_3d,                 &
+        & ocean_state%p_prog(nold(1))%tracer(:,:,:,:), &
+        & ocean_state%p_diag%rho(:,:,:), lacc = lzacc)
+    ENDIF
 
     CALL calc_scalar_product_veloc_3d(patch_3d, ocean_state%p_prog(nnew(1))%vn, &
       & ocean_state%p_diag, operators_coefficients)
@@ -1679,7 +1701,7 @@ CONTAINS
     !$ACC UPDATE DEVICE(ocean_state%p_diag%u, ocean_state%p_diag%v) IF(lzacc)
     !$ACC UPDATE DEVICE(ocean_state%p_diag%kin) IF(lzacc)
     !$ACC UPDATE DEVICE(ocean_state%p_prog(nnew(1))%eta_c, ocean_state%p_prog(nnew(1))%stretch_c) IF(lzacc .AND. vert_cor_type == 1)
-
+    !$ACC UPDATE DEVICE(ocean_state%p_diag%rho) IF(lzacc)
 #endif
     CALL update_statistics(lacc=lzacc)
 

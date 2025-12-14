@@ -136,6 +136,8 @@ $addexp "checksuite.nwp/nwpexp.run_ICON_28_R2B6_IAU_atmo_waves_fromRestart_cpl" 
 $addexp "checksuite.nwp/nwpexp.run_ICON_30_R2B4_waves_ocean_coupled"      --builders "levante_intel" --list $listname --runflags "queue=compute"
 # implementation of coupling the nested atmosphere to the ocean
 $addexp "checksuite.atm/exp.test_coupled_160kmNestedAtm_40kmOce" --builders "levante_gcc_hybrid levante_nag" --list $listname  --runflags "cpu_time=00:20:00 no_of_nodes=2"
+$addexp "checksuite.ocean_internal/lam/exp.ocean_lam_r2b6"                --builders "levante_nag levante_intel" --list $listname --runflags "cpu_time=00:20:00 no_of_nodes=2"
+
 #-----------------------------------------------------------
 # OES
 # add omip technical tests only with mpi parallelization
@@ -216,6 +218,9 @@ $addexp checksuite.rcnl.dwd.de/exp.run_ICON-SCM_03_LANFEX.run                  -
 # ART experiments
 $addexp checksuite.nwp/nwpexp.run_ICON-ART_01_R3B08_lam_initmode7_pollen       --builders dwd_nec_oper --list $listname
 $addexp checksuite.icon-dev/check.dwd_art_dustrad_R2B4N5                       --builders dwd_nec_oper --list $listname
+
+# dwd ocean only development - ocean lam
+$addexp checksuite.nwp/nwpexp.run_ICON_30_R2B6_ocean_lam                       --builders dwd_nec_coupling --list $listname
 
 # dwd_nec_coupling
 $addexp checksuite.nwp/nwpexp.run_ICON_17_R2B4_AO_coupled                      --builders dwd_nec_coupling --list $listname
