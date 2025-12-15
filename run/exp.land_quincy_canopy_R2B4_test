@@ -352,7 +352,7 @@ cat >> $jsbach_namelist << EOF
   bc_filename         = 'bc_land_phys.nc'
   ic_filename         = 'ic_land_soil.nc'
 /
-&jsb_veg_nml
+&lnd_veg_nml
   active               = .TRUE.
   flag_dynamic_roots   = ${flag_dynamicRoots}
   veg_bnf_scheme       = "${veg_bnf_scheme}"
@@ -361,7 +361,7 @@ cat >> $jsbach_namelist << EOF
   flag_veg_interactive_n = .FALSE.
   flag_veg_interactive_p = .FALSE.
 /
-&jsb_sb_nml
+&lnd_sb_nml
   active                  = .TRUE.
   bc_quincy_soil_filename = 'bc_quincy_soil.nc'
   flag_sb_prescribe_nh4   = ${flag_N_prescribed}
@@ -372,17 +372,17 @@ cat >> $jsbach_namelist << EOF
   flag_sb_interactive_n   = .FALSE.
   flag_sb_interactive_p   = .FALSE.
 /
-&jsb_spq_nml
+&lnd_spq_nml
   active                  = .FALSE.
   bc_sso_filename         = 'bc_land_sso.nc'
   bc_quincy_soil_filename = 'bc_quincy_soil.nc'
 /
-&q_assimi_nml
+&lnd_q_assimi_nml
   active                  = .TRUE.
   flag_t_resp_acclimation = ${flag_t_resp_acclimation}
   flag_t_jmax_acclimation = ${flag_t_jmax_acclimation}
 /
-&q_pheno_nml
+&lnd_q_pheno_nml
   active          = .TRUE.
   ic_filename     = 'ic_land_soil.nc'
 /
