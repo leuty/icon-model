@@ -3612,7 +3612,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
 
     ! &      diag%t_2m(nproma,nblks_c)
     IF (icpl_da_sfcevap == 1 .OR. icpl_da_sfcevap == 2) THEN
-      in_group = groups("pbl_vars","dwd_fg_atm_vars","mode_iau_ana_in")
+      in_group = groups("pbl_vars","dwd_fg_atm_vars","mode_iau_ana_in","ana_increment")
     ELSE
       in_group = groups("pbl_vars","dwd_fg_atm_vars")
     ENDIF

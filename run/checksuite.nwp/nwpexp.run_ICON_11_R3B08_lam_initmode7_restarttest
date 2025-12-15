@@ -282,7 +282,8 @@ cat > NAMELIST_NWP << EOF
 ! limarea_nml: settings for limited area mode ---------------------------------
 &limarea_nml
  itype_latbc                 =                          1         ! 1: time-dependent lateral boundary conditions
- dtime_latbc                 =                       7200.        ! time difference between 2 consecutive boundary data
+ dtime_latbc                 =                7200.,14400.        ! time difference between 2 consecutive boundary data
+ bcintv_endtime              =                      14400.        ! time at which the boundary data interval switches
  nlev_latbc                  =                         60         ! Number of vertical levels in boundary data
  latbc_boundary_grid         =  'lateral_boundary.grid.nc'        ! Grid file defining the lateral boundary
  latbc_path                  =                 '${LBCDIR}'        ! Absolute path to boundary data

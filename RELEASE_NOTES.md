@@ -1,3 +1,43 @@
+# Release notes for icon-2025.10-1
+
+### ICON-Atmo
+
+#### NWP Physics
+
+- Bugfix in vdiff interface concerning restart reproducibility
+- Introducing CO2 prognostic tracer to ecRad to enable emission-driven simulations with interactive land-ocean-atmosphere carbon cycle
+- Allow more than one time interval for lateral boundary conditions
+- Set taudecay in cover_koe separately for shallow, mid-level and deep convection
+- Modified call to SR set_cdnc_from_extdata to get correct update for cloud_num in radiation after restarts
+- Clean-up of mo_nwp_gscp_interface and 2mom microphysics scheme
+- Fixes in Emvorado:
+  - determination of nearest ICON cell
+  - fix interface to eccodes routine codes_open_file
+
+### ICON-Ocean
+
+- Use ice class as vertical axis attribute for 3d sea ice variables
+
+### ICON-ART
+
+- Update the testsuite setup and scripts
+
+### Externals
+
+- Switch to ComIn 0.4.0
+
+### Infrastructure
+
+- Add distributed GRIB decoding
+- Merge 2-Moment Microphysics Type Extensions into Parent Types
+
+#### Building
+
+- Clean up and clarify single-precision options
+- Fixes:
+  - Handle apostrophes in the hostname
+
+
 # Release notes for icon-2025.10
 
 ### ICON-Atmo
@@ -30,7 +70,7 @@ NWP Physics:
 
 - Allow for external specification of trace gases in ecrad
 - New mixed-phase Spectral Bin Microphysics
-- enable reading and interpolating ozone and Kinne aerosol data using YAC (icon-nwp!1716)
+- enable reading and interpolating ozone and Kinne aerosol data using YAC
 - Tuning changes for better prediction of fog / low stratus
 - Extension of adaptive parameter tuning to reduce cold/moist bias around sunset
 - Improved tuning of filtering time scales for adaptive parameter tuning
@@ -123,8 +163,8 @@ Climate: ICON-Land
 NWP: TERRA and other surface issues
 
 - Fixes:
-  - rime formation term for interception storage (icon-nwp!1740)
-  - w_i nonconservation (icon-nwp!1746)
+  - rime formation term for interception storage
+  - w_i nonconservation
   - bug fix for bare-soil evaporation
 
 ### ICON-ART

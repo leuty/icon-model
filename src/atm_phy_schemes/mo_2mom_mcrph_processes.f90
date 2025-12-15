@@ -59,15 +59,12 @@ MODULE mo_2mom_mcrph_processes
        & e_ws  => sat_pres_water,  & ! saturation pressure over liquid water
        & e_es  => sat_pres_ice       ! saturation pressure over ice
   USE mo_2mom_mcrph_types, ONLY: &
-       & particle, particle_frozen, particle_lwf, atmosphere, &
-       & particle_sphere, particle_rain_coeffs, particle_cloud_coeffs, aerosol_ccn, &
-       & particle_ice_coeffs, particle_snow_coeffs, particle_graupel_coeffs, &
+       & particle, atmosphere, aerosol_ccn, &
        & particle_coeffs, collection_coeffs, rain_riming_coeffs, dep_imm_coeffs, &
        & coll_coeffs_ir_pm, lookupt_1D, lookupt_4D
   USE mo_2mom_mcrph_setup, ONLY: cfg_params, &
        & particle_mass, particle_meanmass,  particle_diameter, particle_normdiameter, &
        & particle_velocity, particle_lwf_idx, &
-       & particle_assign, particle_frozen_assign, particle_lwf_assign, &
        & coll_delta_11, coll_delta_12, coll_theta_11, coll_theta_12,   &
        & rain_mue_dm_relation, moment_gamma, n_f, n_sc
 
@@ -113,13 +110,6 @@ MODULE mo_2mom_mcrph_processes
 
   ! .. some physical parameters not found in ICON
   REAL(wp), PARAMETER :: T_f     = 233.0_wp     !..below this temperature there is no liquid water
-
-  ! .. for old saturation pressure relations (keep this for some time for testing)
-  REAL(wp), PARAMETER :: A_e  = 2.18745584e1_wp !..Konst. Saettigungsdamppfdruck - Eis
-  REAL(wp), PARAMETER :: A_w  = 1.72693882e1_wp !..Konst. Saettigungsdamppfdruck - Wasser
-  REAL(wp), PARAMETER :: B_e  = 7.66000000e0_wp !..Konst. Saettigungsdamppfdruck - Eis
-  REAL(wp), PARAMETER :: B_w  = 3.58600000e1_wp !..Konst. Saettigungsdamppfdruck - Wasser
-  REAL(wp), PARAMETER :: e_3  = 6.10780000e2_wp !..Saettigungsdamppfdruck bei T = T_3
 
   ! .. Hallet-Mossop ice multiplication
   REAL(wp), PARAMETER ::           &
@@ -181,12 +171,13 @@ MODULE mo_2mom_mcrph_processes
        &    T_nuc     = 268.15_wp, & ! lower temperature threshold for ice nucleation, -5 C
        &    T_freeze  = 273.15_wp    ! lower temperature threshold for raindrop freezing
 
+  REAL(wp), PARAMETER :: e_3  = 6.10780000e2_wp  ! saturation pressure at triple point
+
   ! Parameter for evaporation of rain, determines change of n_rain during evaporation
   REAL(wp) :: rain_gfak   ! this is set in init_twomoment
 
   ! debug switches
   LOGICAL, PARAMETER     :: isdebug = .false.   ! use only when really desperate
-  LOGICAL, PARAMETER     :: isprint = .true.    ! print-out initialization values
 
   ! some cloud microphysical switches
   LOGICAL, PARAMETER     :: ice_multiplication = .TRUE.  ! default is .true.
@@ -197,12 +188,9 @@ MODULE mo_2mom_mcrph_processes
 
   ! Parameters
   PUBLIC :: q_crit
-  PUBLIC :: cfg_2mom_default, cfg_params
   ! Switches
   PUBLIC :: ice_typ, nuc_i_typ, nuc_c_typ, auto_typ
-  PUBLIC :: isdebug, isprint
-  ! Functions
-  PUBLIC :: particle_assign, particle_frozen_assign, particle_lwf_assign
+  PUBLIC :: isdebug
   ! Process Routines
   PUBLIC :: sedi_vel_rain, sedi_vel_sphere, sedi_vel_lwf, init_2mom_sedi_vel
   PUBLIC :: autoconversionSB, accretionSB, rain_selfcollectionSB
@@ -233,8 +221,8 @@ CONTAINS
   !********************************************************************************
 
   SUBROUTINE sedi_vel_rain(this,thisCoeffs,q,x,rhocorr,vn,vq,its,ite,qc,lacc)
-    CLASS(particle), INTENT(in) :: this
-    TYPE(particle_rain_coeffs), INTENT(in) :: thisCoeffs
+    TYPE(particle), INTENT(in) :: this
+    TYPE(particle_coeffs), INTENT(in) :: thisCoeffs
     INTEGER,  INTENT(in)  :: its,ite
     REAL(wp), INTENT(in)  :: q(:),x(:), rhocorr(:)
     REAL(wp), INTENT(in), OPTIONAL  :: qc(:)
@@ -285,8 +273,8 @@ CONTAINS
 
   ! bulk sedimentation velocities
   SUBROUTINE sedi_vel_sphere(this,thisCoeffs,q,x,rhocorr,vn,vq,its,ite)
-    CLASS(particle), INTENT(in)        :: this
-    CLASS(particle_sphere), INTENT(in) :: thisCoeffs
+    TYPE(particle), INTENT(in)         :: this
+    TYPE(particle_coeffs), INTENT(in)  :: thisCoeffs
     INTEGER,  INTENT(in)  :: its,ite
     REAL(wp), INTENT(in)  :: q(:),x(:),rhocorr(:)
     REAL(wp), INTENT(out) :: vn(:), vq(:)
@@ -318,9 +306,8 @@ CONTAINS
 
 
   ! bulk sedimentation velocities
-  SUBROUTINE sedi_vel_lwf(this,thisCoeffs,q,ql,x,rhocorr,vn,vq,vl,its,ite)
-    CLASS(particle_lwf), INTENT(in)    :: this
-    CLASS(particle_sphere), INTENT(in) :: thisCoeffs
+  SUBROUTINE sedi_vel_lwf(this,q,ql,x,rhocorr,vn,vq,vl,its,ite)
+    TYPE(particle), INTENT(in) :: this
     INTEGER,  INTENT(in)  :: its,ite
     REAL(wp), INTENT(in)  :: q(:),x(:),ql(:),rhocorr(:)
     REAL(wp), INTENT(out) :: vn(:),vq(:),vl(:)
@@ -377,8 +364,8 @@ CONTAINS
 
   ! initialize coefficients for bulk sedimentation velocity
   SUBROUTINE init_2mom_sedi_vel(this,thisCoeffs)
-    CLASS(particle), INTENT(in) :: this
-    CLASS(particle_sphere), INTENT(out) :: thisCoeffs
+    TYPE(particle), INTENT(in) :: this
+    TYPE(particle_coeffs), INTENT(out) :: thisCoeffs
 
     CHARACTER(len=*), PARAMETER :: sroutine = 'init_2mom_sedi_vel'
 
@@ -386,12 +373,6 @@ CONTAINS
     thisCoeffs%coeff_alfa_q = this%a_vel * GAMMA((this%nu+this%b_vel+2.0)/this%mu) / GAMMA((this%nu+2.0)/this%mu)
     thisCoeffs%coeff_lambda = GAMMA((this%nu+1.0)/this%mu)/GAMMA((this%nu+2.0)/this%mu)
 
-    IF (isprint) THEN
-      WRITE (txt,'(2A)') "    name  = ",this%name ; CALL message(sroutine,TRIM(txt))
-      WRITE (txt,'(A,D14.7)') "    c_lam = ",thisCoeffs%coeff_lambda ; CALL message(sroutine,TRIM(txt))
-      WRITE (txt,'(A,D14.7)') "    alf_n = ",thisCoeffs%coeff_alfa_n ; CALL message(sroutine,TRIM(txt))
-      WRITE (txt,'(A,D14.7)') "    alf_q = ",thisCoeffs%coeff_alfa_q ; CALL message(sroutine,TRIM(txt))
-    END IF
   END SUBROUTINE init_2mom_sedi_vel
 
   ! currently not used
@@ -400,7 +381,7 @@ CONTAINS
     !     gueltig fuer D = a_geo * x^b_geo
     !     Berechnung des mittleren Durchmessers: D_average = parti%b_geo * D_average_factor * (q/qn)**parti%b_geo
     REAL(wp) :: D_average_factor
-    CLASS(particle), INTENT(in) :: parti
+    TYPE(particle), INTENT(in) :: parti
 
     D_average_factor = &
          ( GAMMA( (parti%b_geo+parti%nu+1.0_wp)/parti%mu ) / &
@@ -425,33 +406,6 @@ CONTAINS
   END FUNCTION diffusivity
 
   !*******************************************************************************
-  ! saturation pressure over ice and liquid water                                *
-  !*******************************************************************************
-
-  ! ELEMENTAL REAL(wp) FUNCTION e_es (ta)
-  !   !$ACC ROUTINE SEQ
-  !   REAL(wp), INTENT(IN) :: ta
-  !   e_es  = sat_pres_ice(ta)
-  ! END FUNCTION e_es
-
-  !  ELEMENTAL REAL(wp) FUNCTION e_ws (ta)
-  !    REAL(wp), INTENT (IN) :: ta
-  !    e_ws  = e_3 * EXP (A_w * (ta - T_3) / (ta - B_w))
-  !  END FUNCTION e_ws_old
-
-  ! FUNCTION e_ws_vec (ta,idim,jdim)
-  !   INTEGER :: idim, jdim
-  !   REAL(wp)               :: e_ws_vec(idim,jdim)
-  !   REAL(wp), INTENT (IN)  :: ta(idim,jdim)
-  !   e_ws_vec  = e_3 * EXP (A_w * (ta - T_3) / (ta - B_w))
-  ! END FUNCTION e_ws_vec
-
-  ! FUNCTION e_es_vec (ta,idim,jdim)
-  !   INTEGER :: idim, jdim
-  !   REAL(wp)               :: e_es_vec(idim,jdim)
-  !   REAL(wp), INTENT (IN)  :: ta(idim,jdim)
-  !   e_es_vec  = e_3 * EXP (A_e * (ta - T_3) / (ta - B_e))
-  ! END FUNCTION e_es_vec
 
   SUBROUTINE autoconversionSB(ik_slice,dt,atmo,cloud_coeffs,cloud,rain)
     !*******************************************************************************
@@ -461,9 +415,9 @@ CONTAINS
     ! istart = slice(1), iend = slice(2), kstart = slice(3), kend = slice(4)
     INTEGER,  INTENT(in) :: ik_slice(4)
     REAL(wp), INTENT(in) :: dt
-    CLASS(atmosphere), INTENT(in)   :: atmo
-    TYPE(particle_cloud_coeffs), INTENT(in) :: cloud_coeffs
-    CLASS(particle), INTENT(inout) :: cloud, rain
+    TYPE(atmosphere), INTENT(in)   :: atmo
+    TYPE(particle_coeffs), INTENT(in) :: cloud_coeffs
+    TYPE(particle), INTENT(inout) :: cloud, rain
     ! start and end indices for 2D slices
     INTEGER :: istart, iend, kstart, kend
     INTEGER          :: i,k
@@ -559,8 +513,8 @@ CONTAINS
     ! istart = slice(1), iend = slice(2), kstart = slice(3), kend = slice(4)
     INTEGER,  INTENT(in) :: ik_slice(4)
     REAL(wp), INTENT(in) :: dt
-    CLASS(atmosphere), INTENT(in)   :: atmo
-    CLASS(particle), INTENT(inout)  :: cloud, rain
+    TYPE(atmosphere), INTENT(in)   :: atmo
+    TYPE(particle), INTENT(inout)  :: cloud, rain
     ! start and end indices for 2D slices
     INTEGER :: istart, iend, kstart, kend
     INTEGER     :: i, k
@@ -587,7 +541,7 @@ CONTAINS
           q_c = cloud%q(i,k)
           q_r = rain%q(i,k)
           n_r = rain%n(i,k)
-          ! Calculate dissipation rate assuming tur_len =300 (namelist) and B1=16.6 (same as in Mello-Yamada and in code)
+          ! Calculate dissipation rate assuming tur_len =300 (namelist) and B1=16.6 (same as in Mellor-Yamada and in code)
           ! Approximation only valid when z >> tur_len and no stability corrections (which are small for large tke)
           IF (q_c > 0.0_wp.AND.q_r > 0.0_wp) THEN
 
@@ -627,7 +581,7 @@ CONTAINS
     INTEGER,  INTENT(in) :: ik_slice(4)
     REAL(wp), INTENT(in) :: dt
     TYPE(atmosphere), INTENT(inout) :: atmo
-    CLASS(particle), INTENT(inout)  :: rain
+    TYPE(particle), INTENT(inout)   :: rain
     ! start and end indices for 2D slices
     INTEGER :: istart, iend, kstart, kend
     INTEGER        :: i, k
@@ -686,7 +640,7 @@ CONTAINS
     ! istart = slice(1), iend = slice(2), kstart = slice(3), kend = slice(4)
     INTEGER,  INTENT(in) :: ik_slice(4)
     REAL(wp), INTENT(in) :: dt
-    CLASS(particle), INTENT(inout) :: cloud, rain
+    TYPE(particle), INTENT(inout) :: cloud, rain
     ! start and end indices for 2D slices
     INTEGER :: istart, iend, kstart, kend
     INTEGER          :: i,k
@@ -735,7 +689,7 @@ CONTAINS
     ! istart = slice(1), iend = slice(2), kstart = slice(3), kend = slice(4)
     INTEGER,  INTENT(in) :: ik_slice(4)
     REAL(wp), INTENT(in) :: dt
-    CLASS(particle), INTENT(inout)   :: cloud, rain
+    TYPE(particle), INTENT(inout)   :: cloud, rain
 
     !..Parameter of Beheng (1994)
     REAL(wp), PARAMETER :: k_r = 6.00d+00
@@ -776,7 +730,7 @@ CONTAINS
     ! istart = slice(1), iend = slice(2), kstart = slice(3), kend = slice(4)
     INTEGER,  INTENT(in) :: ik_slice(4)
     REAL(wp), INTENT(in) :: dt
-    CLASS(particle), INTENT(inout) :: cloud, rain
+    TYPE(particle), INTENT(inout) :: cloud, rain
     ! start and end indices for 2D slices
     INTEGER :: istart, iend, kstart, kend
     INTEGER             :: i,k
@@ -819,7 +773,7 @@ CONTAINS
     ! istart = slice(1), iend = slice(2), kstart = slice(3), kend = slice(4)
     INTEGER,  INTENT(in) :: ik_slice(4)
     REAL(wp), INTENT(in) :: dt
-    CLASS(particle), INTENT(inout) :: cloud, rain
+    TYPE(particle), INTENT(inout) :: cloud, rain
     ! start and end indices for 2D slices
     INTEGER :: istart, iend, kstart, kend
     INTEGER             :: i,k
@@ -862,12 +816,12 @@ CONTAINS
     REAL(wp), INTENT(in) :: dt
 
     REAL(wp), INTENT(in) :: rain_gfak   ! this is set in init_twomoment
-    TYPE(particle_rain_coeffs), INTENT(in) :: rain_coeffs
+    TYPE(particle_coeffs), INTENT(in) :: rain_coeffs
 
     ! 2mom variables
     TYPE(atmosphere), INTENT(inout) :: atmo
-    CLASS(particle),  INTENT(in)    :: cloud
-    CLASS(particle),  INTENT(inout) :: rain
+    TYPE(particle),  INTENT(in)     :: cloud
+    TYPE(particle),  INTENT(inout)  :: rain
 
     ! start and end indices for 2D slices
     INTEGER :: istart, iend, kstart, kend
@@ -1013,8 +967,8 @@ CONTAINS
     INTEGER,  INTENT(in) :: ik_slice(4)
     REAL(wp), INTENT(in) :: dt
     TYPE(atmosphere), INTENT(inout) :: atmo
-    CLASS(particle), INTENT(inout)  :: prtcl
-    CLASS(particle_coeffs), INTENT(in) :: coeffs
+    TYPE(particle), INTENT(inout)   :: prtcl
+    TYPE(particle_coeffs), INTENT(in) :: coeffs
 
     LOGICAL, PARAMETER  :: reduce_melting = .true.
 
@@ -1089,9 +1043,9 @@ CONTAINS
     INTEGER,  INTENT(in) :: ik_slice(4)
     REAL(wp), INTENT(in) :: dt
     REAL(wp), INTENT(in) :: qnc_const
-    TYPE(particle_cloud_coeffs), INTENT(in) :: cloud_coeffs
+    TYPE(particle_coeffs), INTENT(in) :: cloud_coeffs
     TYPE(atmosphere), INTENT(inout) :: atmo
-    CLASS(particle), INTENT(inout) :: cloud, ice
+    TYPE(particle), INTENT(inout)   :: cloud, ice
     ! start and end indices for 2D slices
     INTEGER :: istart, iend, kstart, kend
     INTEGER            :: i, k
@@ -1123,13 +1077,10 @@ CONTAINS
               x_c = particle_meanmass(cloud, q_c, n_c)
 
               !..Hom. freezing based on Jeffrey und Austin (1997), see also Cotton und Field (2001)
-              !  (note that log in Cotton and Field is log10, not ln)
+              !  (note that log in Cotton and Field is log10)
               IF (T_c > -30.0_wp) THEN
-!                 j_hom = 1.0e6_wp/rho_w * 10**(-7.63-2.996*(T_c+30.0))           !..J in 1/(kg s)
                  j_hom = 1.0e6_wp/rho_w * EXP((-7.63_wp-2.996_wp*(T_c+30.0_wp))*log_10)
               ELSE
-!                 j_hom = 1.0e6_wp/rho_w &
-!                      &  * 10**(-243.4-14.75*T_c-0.307*T_c**2-0.00287*T_c**3-0.0000102*T_c**4)
                  j_hom = 1.0e6_wp/rho_w &
                       &  * EXP((-243.4_wp-14.75_wp*T_c-0.307_wp*T_c**2-0.00287_wp*T_c**3-0.0000102_wp*T_c**4)*log_10)
               ENDIF
@@ -1187,7 +1138,7 @@ CONTAINS
     LOGICAL, INTENT(in) :: use_prog_in
 
     TYPE(atmosphere), INTENT(inout) :: atmo
-    CLASS(particle), INTENT(inout) :: ice, cloud
+    TYPE(particle), INTENT(inout)   :: ice, cloud
     REAL(wp), DIMENSION(:,:) :: n_inact
     REAL(wp), DIMENSION(:,:), OPTIONAL :: n_inpot
 
@@ -1436,7 +1387,7 @@ CONTAINS
     ! istart = slice(1), iend = slice(2), kstart = slice(3), kend = slice(4)
     INTEGER, INTENT(in) :: ik_slice(4)
     TYPE(atmosphere), INTENT(inout) :: atmo
-    CLASS(particle), INTENT(in) :: ice, cloud
+    TYPE(particle), INTENT(in) :: ice, cloud
     LOGICAL, INTENT(in) :: use_prog_in
     REAL(wp), INTENT(inout), DIMENSION(:,:) :: n_inact
     REAL(wp), INTENT(out) :: &
@@ -1576,7 +1527,7 @@ CONTAINS
     ! istart = slice(1), iend = slice(2), kstart = slice(3), kend = slice(4)
     INTEGER, INTENT(in) :: ik_slice(4)
     TYPE(atmosphere), INTENT(inout) :: atmo
-    CLASS(particle), INTENT(in) :: ice, cloud
+    TYPE(particle), INTENT(in) :: ice, cloud
     LOGICAL, INTENT(in) :: use_prog_in
     TYPE(dep_imm_coeffs), INTENT(in) :: nuc_coeffs
     REAL(wp), INTENT(inout), DIMENSION(:,:) :: n_inact
@@ -1673,8 +1624,8 @@ CONTAINS
     ! istart = slice(1), iend = slice(2), kstart = slice(3), kend = slice(4)
     INTEGER, INTENT(in) :: ik_slice(4)
     TYPE(atmosphere)    :: atmo
-    CLASS(particle), INTENT(INOUT) :: ice, snow, graupel, hail
-    CLASS(particle_sphere), INTENT(IN) :: ice_coeffs, snow_coeffs, graupel_coeffs, hail_coeffs
+    TYPE(particle), INTENT(INOUT) :: ice, snow, graupel, hail
+    TYPE(particle_coeffs), INTENT(IN) :: ice_coeffs, snow_coeffs, graupel_coeffs, hail_coeffs
     REAL(wp), INTENT(IN) :: dt_local
     REAL(wp), INTENT(INOUT), DIMENSION(:,:) :: dep_rate_ice, dep_rate_snow
 
@@ -1828,8 +1779,8 @@ CONTAINS
   SUBROUTINE vapor_deposition_generic(ik_slice, prtcl, coeffs, g_i, s_si, &
        dt, dep_q)
     INTEGER, INTENT(in) :: ik_slice(4)
-    CLASS(particle), INTENT(in) :: prtcl
-    CLASS(particle_coeffs), INTENT(in) :: coeffs
+    TYPE(particle), INTENT(in) :: prtcl
+    TYPE(particle_coeffs), INTENT(in) :: coeffs
     REAL(wp), INTENT(in) :: g_i(:, :), s_si(:, :)
     REAL(wp), INTENT(in) :: dt
     REAL(wp), INTENT(out) :: dep_q(:, :)
@@ -1883,10 +1834,10 @@ CONTAINS
     ! coefficients and tables
     TYPE(gamlookuptable), INTENT(in) :: rain_ltable1, rain_ltable2, rain_ltable3
     REAL(wp),INTENT(in)              :: rain_nm1, rain_nm2, rain_nm3, rain_g1, rain_g2
-    TYPE(particle_rain_coeffs),INTENT(in) :: rain_coeffs
+    TYPE(particle_coeffs),INTENT(in) :: rain_coeffs
     ! prognostic variables
     TYPE(atmosphere), INTENT(inout)  :: atmo
-    CLASS(particle), INTENT(inout) :: rain, ice, snow, graupel, hail
+    TYPE(particle), INTENT(inout)    :: rain, ice, snow, graupel, hail
 
     ! start and end indices for 2D slices
     INTEGER :: istart, iend, kstart, kend
@@ -2074,11 +2025,11 @@ CONTAINS
     ! istart = slice(1), iend = slice(2), kstart = slice(3), kend = slice(4)
     INTEGER,  INTENT(in) :: ik_slice(4)
     REAL(wp), INTENT(in) :: dt
-    TYPE(particle_ice_coeffs), INTENT(in) :: ice_coeffs
+    TYPE(particle_coeffs), INTENT(in) :: ice_coeffs
 
     ! 2mom variables
-    TYPE(atmosphere),       INTENT(inout) :: atmo
-    CLASS(particle_frozen), INTENT(inout) :: ice, snow
+    TYPE(atmosphere), INTENT(inout) :: atmo
+    TYPE(particle), INTENT(inout)   :: ice, snow
     TYPE(lookupt_1D), INTENT(in), TARGET :: ltab_estick_ice
     TYPE(lookupt_1D), POINTER :: p_ltab_estick_ice
 
@@ -2154,11 +2105,11 @@ CONTAINS
     INTEGER,  INTENT(in) :: ik_slice(4)
     REAL(wp), INTENT(in) :: dt
 
-    TYPE(particle_snow_coeffs), INTENT(in) :: snow_coeffs
-    TYPE(atmosphere), INTENT(inout)        :: atmo
-    CLASS(particle_frozen), INTENT(inout) :: snow
+    TYPE(particle_coeffs), INTENT(in)    :: snow_coeffs
+    TYPE(atmosphere), INTENT(inout)      :: atmo
+    TYPE(particle), INTENT(inout)        :: snow
     TYPE(lookupt_1D), INTENT(in), TARGET :: ltab_estick_snow
-    TYPE(lookupt_1D), POINTER :: p_ltab_estick_snow
+    TYPE(lookupt_1D), POINTER            :: p_ltab_estick_snow
 
     ! start and end indices for 2D slices
     INTEGER :: istart, iend, kstart, kend
@@ -2217,9 +2168,9 @@ CONTAINS
     ! istart = slice(1), iend = slice(2), kstart = slice(3), kend = slice(4)
     INTEGER,  INTENT(in) :: ik_slice(4)
     REAL(wp), INTENT(in) :: dt
-    CLASS(particle_sphere), INTENT(in) :: snow_coeffs
-    TYPE(atmosphere), INTENT(inout) :: atmo
-    CLASS(particle), INTENT(inout) :: snow, rain
+    TYPE(particle_coeffs), INTENT(in) :: snow_coeffs
+    TYPE(atmosphere), INTENT(inout)   :: atmo
+    TYPE(particle), INTENT(inout)     :: snow, rain
     ! start and end indices for 2D slices
     INTEGER :: istart, iend, kstart, kend
     INTEGER             :: i,k
@@ -2307,7 +2258,7 @@ CONTAINS
 
     ! 2mom variables and coefficients
     TYPE(atmosphere), INTENT(inout)        :: atmo
-    CLASS(particle_frozen), INTENT(inout) :: ctype, ptype
+    TYPE(particle), INTENT(inout)          :: ctype, ptype
     TYPE(collection_coeffs), INTENT(in)    :: coeffs
     TYPE(lookupt_1D), INTENT(in), TARGET :: ltab_estick_parti
     TYPE(lookupt_1D), POINTER :: p_ltab_estick_parti
@@ -2396,9 +2347,9 @@ CONTAINS
     ! istart = slice(1), iend = slice(2), kstart = slice(3), kend = slice(4)
     INTEGER,  INTENT(in) :: ik_slice(4)
     REAL(wp), INTENT(in) :: dt
-    TYPE(particle_graupel_coeffs), INTENT(in) :: graupel_coeffs
-    TYPE(atmosphere), INTENT(inout)           :: atmo
-    CLASS(particle), INTENT(inout)    :: graupel
+    TYPE(particle_coeffs), INTENT(in) :: graupel_coeffs
+    TYPE(atmosphere), INTENT(inout)   :: atmo
+    TYPE(particle), INTENT(inout)     :: graupel
 
     ! start and end indices for 2D slices
     INTEGER :: istart, iend, kstart, kend
@@ -2450,7 +2401,7 @@ CONTAINS
     ! istart = slice(1), iend = slice(2), kstart = slice(3), kend = slice(4)
     INTEGER, INTENT(in) :: ik_slice(4)
     TYPE(atmosphere), INTENT(inout) :: atmo
-    CLASS(particle), INTENT(inout) :: ice, cloud, rain
+    TYPE(particle), INTENT(inout)   :: ice, cloud, rain
     ! start and end indices for 2D slices
     INTEGER :: istart, iend, kstart, kend
     INTEGER             :: i,k
@@ -2513,9 +2464,7 @@ CONTAINS
 
     TYPE(collection_coeffs), INTENT(in)   :: coeffs
     TYPE(atmosphere), INTENT(inout)       :: atmo
-    CLASS(particle_frozen), INTENT(inout) :: ice
-    CLASS(particle), INTENT(inout) :: cloud, rain
-    CLASS(particle_frozen), INTENT(inout) :: ptype
+    TYPE(particle), INTENT(inout)         :: ice, cloud, rain, ptype
 
     ! coefficients, add. hydrometeors, incomplete gamma functions
     !  and wet growht LUT for OPTIONAL droplet shedding:
@@ -2523,10 +2472,8 @@ CONTAINS
     TYPE(gamlookuptable), INTENT(in), OPTIONAL :: &
        shed_ltab_dpp_03, shed_ltab_dpc_02, shed_ltab_dcc_01, &
        shed_ltab_tpp_05, shed_ltab_tpp_03, shed_ltab_tpc_04
-    CLASS(particle_frozen), INTENT(in), OPTIONAL :: snow
+    TYPE(particle), INTENT(in), OPTIONAL :: snow
     TYPE(lookupt_4d), INTENT(in), TARGET, OPTIONAL :: ltabdminwgp
-
-    ! UB: why particle_frozen and not particle like in particle rain riming?
     TYPE(lookupt_4D)      , POINTER :: p_ltabdminwgp
 
     ! start and end indices for 2D slices
@@ -2761,7 +2708,7 @@ CONTAINS
     REAL(wp), INTENT(in) :: dt
     TYPE(collection_coeffs), INTENT(in) :: coeffs
     TYPE(atmosphere), INTENT(inout) :: atmo
-    CLASS(particle), INTENT(inout) :: ice, rain, ptype
+    TYPE(particle), INTENT(inout)   :: ice, rain, ptype
 
     ! coefficients, add. hydrometeors, incomplete gamma functions
     !  and wet growht LUT for OPTIONAL droplet shedding:
@@ -2769,7 +2716,7 @@ CONTAINS
     TYPE(gamlookuptable), INTENT(in), OPTIONAL :: &
        shed_ltab_dpp_03, shed_ltab_dpr_02, shed_ltab_drr_01, &
        shed_ltab_tpp_05, shed_ltab_tpp_03, shed_ltab_tpr_04
-    CLASS(particle), INTENT(in), OPTIONAL :: cloud, snow
+    TYPE(particle), INTENT(in), OPTIONAL :: cloud, snow
     TYPE(lookupt_4d), INTENT(in), TARGET, OPTIONAL :: ltabdminwgp
 
     TYPE(lookupt_4D), POINTER            :: p_ltabdminwgp
@@ -2980,9 +2927,9 @@ CONTAINS
     ! istart = slice(1), iend = slice(2), kstart = slice(3), kend = slice(4)
     INTEGER,  INTENT(in) :: ik_slice(4)
     REAL(wp), INTENT(in) :: dt
-    CLASS(particle_sphere), INTENT(in) :: graupel_coeffs
+    TYPE(particle_coeffs), INTENT(in)  :: graupel_coeffs
     TYPE(atmosphere), INTENT(inout)    :: atmo
-    CLASS(particle), INTENT(inout)     :: rain, graupel
+    TYPE(particle), INTENT(inout)      :: rain, graupel
 
     ! start and end indices for 2D slices
     INTEGER :: istart, iend, kstart, kend
@@ -3052,7 +2999,7 @@ CONTAINS
 !!$       INTEGER,  INTENT(in) :: ik_slice(4)
 !!$       REAL(wp), INTENT(in) :: dt
 !!$       TYPE(atmosphere), INTENT(inout) :: atmo
-!!$       CLASS(particle), INTENT(inout)  :: rain
+!!$       TYPE(particle), INTENT(inout)  :: rain
 !!$       TYPE(particle), INTENT(inout)   :: hail
 !!$     END SUBROUTINE hail_melting_simple
 !!$
@@ -3060,8 +3007,8 @@ CONTAINS
 !!$       INTEGER, INTENT(in) :: ik_slice(4)
 !!$       REAL(wp), INTENT(in) :: dt
 !!$       TYPE(atmosphere), INTENT(inout)   :: atmo
-!!$       CLASS(particle),  INTENT(inout)   :: rain
-!!$       TYPE(particle_lwf), INTENT(inout) :: hail
+!!$       TYPE(particle),  INTENT(inout)   :: rain
+!!$       TYPE(particle), INTENT(inout) :: hail
 !!$     END SUBROUTINE HAIL_MELTING_LWF
 !!$  END INTERFACE hail_melting
 
@@ -3073,9 +3020,9 @@ CONTAINS
     ! istart = slice(1), iend = slice(2), kstart = slice(3), kend = slice(4)
     INTEGER,  INTENT(in) :: ik_slice(4)
     REAL(wp), INTENT(in) :: dt
-    TYPE(particle_sphere), INTENT(in) :: hail_coeffs
+    TYPE(particle_coeffs), INTENT(in) :: hail_coeffs
     TYPE(atmosphere), INTENT(inout)   :: atmo
-    CLASS(particle), INTENT(inout)    :: rain, hail
+    TYPE(particle), INTENT(inout)     :: rain, hail
     ! start and end indices for 2D slices
     INTEGER :: istart, iend, kstart, kend
     ! local variables
@@ -3152,8 +3099,7 @@ CONTAINS
     REAL(wp), INTENT(in) :: dt
 
     ! 2mom variables
-    CLASS(particle),  INTENT(inout)      :: rain
-    TYPE(particle_lwf), INTENT(inout)    :: ptype
+    TYPE(particle),  INTENT(inout) :: rain, ptype
     REAL(wp), INTENT(IN), DIMENSION(:,:) :: gta   ! Thermodynamic environment function
 
     ! local variables
@@ -3394,10 +3340,8 @@ CONTAINS
     TYPE(lookupt_4D), POINTER       :: p_ltabdminwgg
 
     ! 2mom variables
-    TYPE(atmosphere), INTENT(inout)       :: atmo
-    CLASS(particle),  INTENT(inout)       :: cloud, rain
-    CLASS(particle_frozen), INTENT(inout) :: ice, snow, hail
-    CLASS(particle_frozen), INTENT(inout) :: graupel
+    TYPE(atmosphere), INTENT(inout) :: atmo
+    TYPE(particle),  INTENT(inout)  :: cloud, rain, ice, snow, hail, graupel
 
     ! start and end indices for 2D slices
     INTEGER :: istart, iend, kstart, kend
@@ -3507,10 +3451,7 @@ CONTAINS
     TYPE(rain_riming_coeffs), INTENT(in) :: irr_coeffs
     ! progn. variables
     TYPE(atmosphere), INTENT(inout)       :: atmo
-    CLASS(particle), INTENT(inout)        :: cloud
-    CLASS(particle_frozen), INTENT(inout) :: graupel
-    CLASS(particle), INTENT(inout) :: rain
-    CLASS(particle_frozen), INTENT(inout) :: ice
+    TYPE(particle), INTENT(inout)         :: cloud, graupel, rain, ice
 
     REAL(wp), INTENT (IN), DIMENSION(:,:) :: dep_rate_ice
     REAL(wp), DIMENSION(size(dep_rate_ice,1),size(dep_rate_ice,2)) ::       &
@@ -3778,11 +3719,7 @@ CONTAINS
     TYPE(rain_riming_coeffs),INTENT(in) :: srr_coeffs  ! snow rain riming
     ! 2mom variables
     TYPE(atmosphere), INTENT(inout)       :: atmo
-    CLASS(particle), INTENT(inout)        :: cloud
-    CLASS(particle_frozen), INTENT(inout) :: ice
-    CLASS(particle_frozen), INTENT(inout) :: graupel
-    CLASS(particle), INTENT(inout) :: rain
-    CLASS(particle_frozen), INTENT(inout) :: snow
+    TYPE(particle), INTENT(inout)         :: cloud, ice, graupel, rain, snow
 
     REAL(wp), INTENT(IN), DIMENSION(:,:)  :: dep_rate_snow
     REAL(wp), DIMENSION(size(dep_rate_snow,1),size(dep_rate_snow,2)) ::       &
@@ -4061,8 +3998,7 @@ CONTAINS
    ! start and end indices for 2D slices
    ! istart = slice(1), iend = slice(2), kstart = slice(3), kend = slice(4)
    INTEGER, INTENT(in) :: ik_slice(4)
-   CLASS(particle_frozen), INTENT(in):: ptype
-   CLASS(particle), INTENT(in) :: cloud
+   TYPE(particle), INTENT(in) :: ptype, cloud
 
    REAL(wp), INTENT(in)                :: dt
    TYPE(collection_coeffs), INTENT(in) :: coeffs
@@ -4155,8 +4091,7 @@ CONTAINS
     REAL(wp), INTENT(in) :: dt
 
     ! 2mom variables
-    CLASS(particle_frozen), INTENT(in) :: ptype
-    CLASS(particle), INTENT(in) :: rain
+    TYPE(particle), INTENT(in) :: ptype, rain
 
     TYPE(rain_riming_coeffs), INTENT(in) :: coeffs
     REAL(wp), INTENT(out)                :: rime_rate_qa(:,:), rime_rate_qb(:,:), &
@@ -4254,7 +4189,7 @@ CONTAINS
 
     ! 2mom variables
     TYPE(atmosphere), INTENT(inout)     :: atmo
-    CLASS(particle), INTENT(inout)      :: cloud
+    TYPE(particle), INTENT(inout)       :: cloud
     REAL(wp), DIMENSION(:,:), OPTIONAL  :: n_cn
 
     ! start and end indices for 2D slices
@@ -4624,7 +4559,7 @@ CONTAINS
     INTEGER, INTENT(in) :: ik_slice(4)
 
     TYPE(atmosphere), INTENT(inout) :: atmo
-    CLASS(particle), INTENT(inout)  :: cloud
+    TYPE(particle), INTENT(inout)   :: cloud
 
     ! Locale Variablen
     ! start and end indices for 2D slices
@@ -4719,7 +4654,7 @@ CONTAINS
 
     ! 2mom variables
     TYPE(atmosphere), INTENT(inout), OPTIONAL :: atmo
-    CLASS(particle),  INTENT(inout), OPTIONAL :: cloud
+    TYPE(particle),  INTENT(inout), OPTIONAL  :: cloud
     REAL(wp), DIMENSION(:,:), OPTIONAL        :: n_cn
 
     ! local variables
@@ -4899,8 +4834,8 @@ CONTAINS
   SUBROUTINE sedi_icon_rain (rain,rain_coeffs,qp,np,precrate,precrate3D,qc,rhocorr,adz,dt, &
       &                      its,ite,kts,kte,cmax,lacc)
 
-    CLASS(particle), INTENT(in)             :: rain
-    TYPE(particle_rain_coeffs), INTENT(in)  :: rain_coeffs
+    TYPE(particle), INTENT(in)              :: rain
+    TYPE(particle_coeffs), INTENT(in)       :: rain_coeffs
     INTEGER,  INTENT(IN)                    :: its,ite,kts,kte
     REAL(wp), DIMENSION(:,:), INTENT(INOUT) :: qp,np,precrate3D
     REAL(wp), DIMENSION(:,:), INTENT(IN)    :: adz,qc,rhocorr
@@ -4985,8 +4920,8 @@ CONTAINS
   SUBROUTINE sedi_icon_sphere (ptype,pcoeffs,qp,np,precrate,precrate3D,rhocorr,adz,dt, &
       &                  its,ite,kts,kte,cmax,lacc)
 
-    CLASS(particle), INTENT(in)             :: ptype
-    CLASS(particle_sphere), INTENT(in)      :: pcoeffs
+    TYPE(particle), INTENT(in)              :: ptype
+    TYPE(particle_coeffs), INTENT(in)       :: pcoeffs
     INTEGER, INTENT(IN)                     :: its,ite,kts,kte
     REAL(wp), DIMENSION(:,:), INTENT(INOUT) :: qp,np,precrate3D
     REAL(wp), DIMENSION(:,:), INTENT(IN)    :: adz,rhocorr
@@ -5072,8 +5007,8 @@ CONTAINS
   SUBROUTINE sedi_icon_sphere_lwf (ptype,pcoeffs,qp,np,ql,precrate,precrate3D,rhocorr,adz,dt, &
       &                  its,ite,kts,kte,cmax) !
 
-    TYPE(particle_lwf), INTENT(in)          :: ptype
-    CLASS(particle_sphere), INTENT(in)      :: pcoeffs
+    TYPE(particle), INTENT(in)              :: ptype
+    TYPE(particle_coeffs), INTENT(in)       :: pcoeffs
     INTEGER, INTENT(IN)                     :: its,ite,kts,kte
     REAL(wp), DIMENSION(:,:), INTENT(INOUT) :: qp,np,ql,precrate3D
     REAL(wp), DIMENSION(:,:), INTENT(IN)    :: adz,rhocorr
@@ -5184,7 +5119,7 @@ CONTAINS
   !*******************************************************************************
   SUBROUTINE set_default_n(ik_slice, cloud, ice, rain, snow, graupel, hail, n_cn)
     INTEGER, INTENT(in) :: ik_slice(4)
-    CLASS(particle), INTENT(inout)      :: cloud, ice ,rain, snow, graupel, hail
+    TYPE(particle), INTENT(inout)       :: cloud, ice ,rain, snow, graupel, hail
     REAL(wp), DIMENSION(:,:), OPTIONAL  :: n_cn
     LOGICAL                             :: n_cn_pres
 

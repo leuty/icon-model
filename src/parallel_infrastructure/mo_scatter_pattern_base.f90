@@ -74,52 +74,57 @@ PRIVATE
         !---------------------------------------------------------------------------------------------------------------------------
         !> do the data distribution for a double precision array
         !---------------------------------------------------------------------------------------------------------------------------
-        SUBROUTINE interface_distribute_dp(me, globalArray, localArray, ladd_value)
+        SUBROUTINE interface_distribute_dp(me, globalArray, localArray, ladd_value, nsender)
             IMPORT t_ScatterPattern, dp
             CLASS(t_ScatterPattern), INTENT(INOUT) :: me
             REAL(dp), INTENT(IN   ) :: globalArray(:)
             REAL(dp), INTENT(INOUT) :: localArray(:,:)
             LOGICAL, INTENT(IN) :: ladd_value
+            INTEGER, INTENT(IN), OPTIONAL :: nsender
         END SUBROUTINE interface_distribute_dp
         !---------------------------------------------------------------------------------------------------------------------------
         !> do the data distribution for a single precision array to double precision
         !---------------------------------------------------------------------------------------------------------------------------
-        SUBROUTINE interface_distribute_spdp(me, globalArray, localArray, ladd_value)
+        SUBROUTINE interface_distribute_spdp(me, globalArray, localArray, ladd_value, nsender)
             IMPORT t_ScatterPattern, sp, dp
             CLASS(t_ScatterPattern), INTENT(INOUT) :: me
             REAL(sp), INTENT(IN   ) :: globalArray(:)
             REAL(dp), INTENT(INOUT) :: localArray(:,:)
             LOGICAL, INTENT(IN) :: ladd_value
+            INTEGER, INTENT(IN), OPTIONAL :: nsender
         END SUBROUTINE interface_distribute_spdp
         !---------------------------------------------------------------------------------------------------------------------------
         !> do the data distribution for a double precision array to single precision
         !---------------------------------------------------------------------------------------------------------------------------
-        SUBROUTINE interface_distribute_dpsp(me, globalArray, localArray, ladd_value)
+        SUBROUTINE interface_distribute_dpsp(me, globalArray, localArray, ladd_value, nsender)
             IMPORT t_ScatterPattern, sp, dp
             CLASS(t_ScatterPattern), INTENT(INOUT) :: me
             REAL(dp), INTENT(IN   ) :: globalArray(:)
             REAL(sp), INTENT(INOUT) :: localArray(:,:)
             LOGICAL, INTENT(IN) :: ladd_value
+            INTEGER, INTENT(IN), OPTIONAL :: nsender
         END SUBROUTINE interface_distribute_dpsp
         !---------------------------------------------------------------------------------------------------------------------------
         !> do the data distribution for a single precision array
         !---------------------------------------------------------------------------------------------------------------------------
-        SUBROUTINE interface_distribute_sp(me, globalArray, localArray, ladd_value)
+        SUBROUTINE interface_distribute_sp(me, globalArray, localArray, ladd_value, nsender)
             IMPORT t_ScatterPattern, sp
             CLASS(t_ScatterPattern), INTENT(INOUT) :: me
             REAL(sp), INTENT(IN   ) :: globalArray(:)
             REAL(sp), INTENT(INOUT) :: localArray(:,:)
             LOGICAL, INTENT(IN) :: ladd_value
+            INTEGER, INTENT(IN), OPTIONAL :: nsender
         END SUBROUTINE interface_distribute_sp
         !---------------------------------------------------------------------------------------------------------------------------
         !> do the data distribution for a integer
         !---------------------------------------------------------------------------------------------------------------------------
-        SUBROUTINE interface_distribute_int(me, globalArray, localArray, ladd_value)
+        SUBROUTINE interface_distribute_int(me, globalArray, localArray, ladd_value, nsender)
             IMPORT t_ScatterPattern
             CLASS(t_ScatterPattern), INTENT(INOUT) :: me
             INTEGER, INTENT(IN   ) :: globalArray(:)
             INTEGER, INTENT(INOUT) :: localArray(:,:)
             LOGICAL, INTENT(IN) :: ladd_value
+            INTEGER, INTENT(IN), OPTIONAL :: nsender
         END SUBROUTINE interface_distribute_int
     END INTERFACE
 
@@ -190,10 +195,11 @@ CONTAINS
     !> constructor
     !-------------------------------------------------------------------------------------------------------------------------------
     SUBROUTINE constructScatterPattern(me, jg, loc_arr_len, glb_index, &
-         communicator, root_rank)
+         communicator, all_workers, root_rank)
         CLASS(t_ScatterPattern), TARGET, INTENT(OUT) :: me
         INTEGER, VALUE :: jg, loc_arr_len, communicator
         INTEGER, INTENT(IN) :: glb_index(:)
+        LOGICAL, INTENT(IN) :: all_workers
         INTEGER, OPTIONAL, INTENT(in) :: root_rank
 
         CHARACTER(*), PARAMETER :: routine = modname//":constructScatterPattern"

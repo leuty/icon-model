@@ -91,7 +91,8 @@ MODULE mo_nh_stepping
     &                                    MODE_IFSANA,MODE_COMBINED,MODE_COSMO,MODE_ICONVREMAP, &
     &                                    SSTICE_AVG_MONTHLY, SSTICE_AVG_DAILY, SSTICE_INST,    &
     &                                    max_dom, min_rlcell, min_rlvert, ismag, iprog,        &
-    &                                    ivdiff, TLEV_NNOW_RCF, TLEV_NNOW
+    &                                    ivdiff, TLEV_NNOW_RCF, TLEV_NNOW, nintv_latbc,        &
+    &                                    UPDATE_LOCATION_ADVECTION
   USE mo_math_divrot,              ONLY: rot_vertex, div_avg !, div
   USE mo_solve_nonhydro,           ONLY: solve_nh
   USE mo_update_dyn_scm,           ONLY: add_slowphys_scm
@@ -802,7 +803,7 @@ MODULE mo_nh_stepping
   TYPE(t_simulation_status)            :: simulation_status
   TYPE(datetime),   POINTER            :: mtime_old         ! copy of current datetime (mtime)
 
-  INTEGER                              :: i
+  INTEGER                              :: i, ji
   REAL(wp)                             :: elapsed_time_global
   INTEGER                              :: jstep   ! step number
   INTEGER                              :: jstep0  ! step for which the restart file
@@ -1731,7 +1732,11 @@ MODULE mo_nh_stepping
     IF(num_prefetch_proc >= 1 .AND. latbc_config%itype_latbc > 0 .AND. &
     &  .NOT.(jstep == 0 .AND. iau_iter == 1) ) THEN
       !$ser verbatim CALL serialize_all(nproma, 1, "latbc_data", .TRUE., opt_id=iau_iter)
-      latbc_read_datetime = latbc%mtime_last_read + latbc%delta_dtime
+      ji = 1
+      DO i = 1, nintv_latbc-1
+        IF (latbc%mtime_last_read >= latbc%intv(i)%bcintv_enddate) ji = i+1
+      ENDDO
+      latbc_read_datetime = latbc%mtime_last_read + latbc%intv(ji)%delta_dtime
       CALL recv_latbc_data(latbc               = latbc,              &
          &                  p_patch             = p_patch(1:),        &
          &                  p_nh_state          = p_nh_state(1),      &
@@ -2162,7 +2167,7 @@ MODULE mo_nh_stepping
 
 #ifndef __NO_ICON_COMIN__
         IF (comin_config%nplugins /= 0) THEN
-           CALL icon_update_expose_variables(TLEV_NNOW, nnew(jg))
+           CALL icon_update_expose_variables(TLEV_NNOW, nnew(jg), UPDATE_LOCATION_ADVECTION)
         END IF
         CALL icon_call_callback(EP_ATM_ADVECTION_BEFORE, jg, lacc=.TRUE.)
 #endif
@@ -2237,7 +2242,7 @@ MODULE mo_nh_stepping
 
 #ifndef __NO_ICON_COMIN__
           IF (comin_config%nplugins /= 0) THEN
-             CALL icon_update_expose_variables(TLEV_NNOW_RCF, nnew_rcf(jg))
+             CALL icon_update_expose_variables(TLEV_NNOW_RCF, nnew_rcf(jg), UPDATE_LOCATION_ADVECTION)
           END IF
 #endif
 

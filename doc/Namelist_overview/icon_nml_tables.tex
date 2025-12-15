@@ -2961,6 +2961,20 @@ Requires:
 i2daero\_fire = 1
 \tabularnewline
 
+%\hline
+parallel\_grib\_decoding&
+L & .FALSE.& &
+Parallel decoding of GRIB2 input data by Work PEs:\\
+{\textasteriskcentered} .FALSE.: Workroot PE reads and decodes the records of a GRIB input file sequentially.\\
+{\textasteriskcentered} .TRUE.: Workroot PE reads the records and distributes them to all Work PEs for decoding in parallel.\\
+The second case requires input files of format GRIB2 with file extension '.grb', '.grb2', '.grib' or '.grib2'.
+In addition, a dictionary is mandatory (ana\_varnames\_map\_file).\\
+(A few corresponding timers are implemented and subordinated to the init\_icon timer.
+Activating them requires run\_nml: timers\_level > 8.)
+& ICON compiled with Fortran90 interfaces of package \verb+ecCodes+;\\
+init\_mode=1, 5, 7
+\tabularnewline
+
 \end{longtab}
 
 Defined and used in: \verb+src/namelists/mo_initicon_nml.f90+
@@ -3937,11 +3951,23 @@ source (IFS, COSMO or a coarser-resolution ICON run)
 
 %\hline
 \textbf{dtime\_latbc}&
-R &
+R(3) &
 -1.0& s
 &
 Time difference between two consecutive boundary data.
-(Upper bound for asynchronous read-in: 1 day = 86400 s.)
+(Upper bound for asynchronous read-in: 1 day = 86400 s.) \\
+Up to 3 values for bc intervals are allowed; specifying more than one value requires setting interval bounds via bcintv\_endtime.
+&
+itype\_latbc $\ge$ 1
+\tabularnewline
+
+%\hline
+\textbf{bcintv\_endtime}&
+R(3) &
+-1.0& s
+&
+Upper interval bounds for dtime\_latbc, relative time w.r.t. model start (required if more than one value is specified for dtime\_latbc;
+in any case, one entry less is needed for bcintv\_endtime than for dtime\_latbc).
 &
 itype\_latbc $\ge$ 1
 \tabularnewline
@@ -5433,6 +5459,7 @@ I (max\_ dom)&
 1&
 &
 cloud microphysics and precipitation\\
+-1: Externally specified (e.g. ComIn)\\
 0: none\\
 1: cloud ice scheme (based on COSMO-EU microphysics, 2-cat ice: cloud ice, snow)\\
 2: graupel scheme (based on COSMO-DE microphysics, 3-cat ice: cloud ice, snow, graupel)\\
@@ -6485,6 +6512,34 @@ run\_nml:iforcing = inwp; lgrayzone\_deepconv = .TRUE.
 
 \multicolumn{6}{|l|}{\textbf{Cloud scheme}}
 \tabularnewline
+
+\hline
+tune\_tau\_shallow&
+R&
+1500.0&
+s&
+Decay time scale for shallow convective anvils in cloud cover scheme&
+run\_nml:iforcing = inwp; inwp\_cldcover = 1
+\tabularnewline
+
+\hline
+tune\_tau\_mid&
+R&
+1500.0&
+s&
+Decay time scale for mid-level convective anvils in cloud cover scheme&
+run\_nml:iforcing = inwp; inwp\_cldcover = 1
+\tabularnewline
+
+\hline
+tune\_tau\_deep&
+R&
+1500.0&
+s&
+Decay time scale for deep convective anvils in cloud cover scheme&
+run\_nml:iforcing = inwp; inwp\_cldcover = 1
+\tabularnewline
+
 \hline
 tune\_box\_liq&
 R&
@@ -8114,6 +8169,16 @@ Stride of processes taking part in reading of data. (Few reading
 processes, i.e. a large stride, often gives best performance.)
 &
 \tabularnewline
+
+%\hline
+process\_stride\_pgrib
+I & 1 & &
+\emph{(Advanced namelist parameter:)}
+Stride of processes taking part in parallel GRIB decoding (recommendation: select
+stride such as to have between 100 and 1000 decoder PEs)
+& initicon\_nml:parallel\_grib\_decoding
+\tabularnewline
+
 
 %\hline
 io\_process\_rotate &

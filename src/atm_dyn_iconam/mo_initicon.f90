@@ -17,11 +17,12 @@
 
 MODULE mo_initicon
 
-  USE mo_kind,                ONLY: wp, vp, sp
+  USE mo_kind,                ONLY: wp, vp, sp, i8
   USE mo_io_units,            ONLY: filename_max
   USE mo_parallel_config,     ONLY: nproma
   USE mo_run_config,          ONLY: iqv, iqc, iqi, iqr, iqs, iqg, iqm_max, iforcing, check_uuid_gracefully, &
-                                    iqh, iqnc, iqnr, iqni, iqns, iqng, iqnh
+    &                               iqh, iqnc, iqnr, iqni, iqns, iqng, iqnh,                                &
+    &                               msg_level, ltimer, timers_level
   USE mo_dynamics_config,     ONLY: nnow, nnow_rcf
   USE mo_model_domain,        ONLY: t_patch
   USE mo_nonhydro_types,      ONLY: t_nh_state, t_nh_prog, t_nh_diag
@@ -31,12 +32,13 @@ MODULE mo_initicon
   USE mo_ext_data_types,      ONLY: t_external_data
   USE mo_grf_intp_data_strc,  ONLY: t_gridref_state
   USE mo_initicon_types,      ONLY: t_initicon_state, ana_varnames_dict, t_init_state_const
-  USE mo_initicon_config,     ONLY: init_mode, dt_iau, lvert_remap_fg, lread_ana, ltile_init, &
-    &                               lp2cintp_incr, lp2cintp_sfcana, ltile_coldstart, lconsistency_checks, &
-    &                               niter_divdamp, niter_diffu, lanaread_tseasfc, qcana_mode, qiana_mode, &
-    &                               qrsgana_mode, fgFilename, anaFilename, ana_varnames_map_file,         &
-    &                               icpl_da_sfcevap, icpl_da_skinc, adjust_tso_tsnow,                     &
-    &                               lcouple_ocean_coldstart, icpl_da_seaice, smi_relax_timescale, itype_sma
+  USE mo_initicon_config,     ONLY: init_mode, dt_iau, lvert_remap_fg, lread_ana, ltile_init,                &
+    &                               lp2cintp_incr, lp2cintp_sfcana, ltile_coldstart, lconsistency_checks,    &
+    &                               niter_divdamp, niter_diffu, lanaread_tseasfc, qcana_mode, qiana_mode,    &
+    &                               qrsgana_mode, fgFilename, anaFilename, ana_varnames_map_file,            &
+    &                               icpl_da_sfcevap, icpl_da_skinc, adjust_tso_tsnow,                        &
+    &                               lcouple_ocean_coldstart, icpl_da_seaice, smi_relax_timescale, itype_sma, &
+    &                               parallel_grib_decoding
   USE mo_apt_routines,        ONLY: compute_filtincs
   USE mo_limarea_config,      ONLY: latbc_config
   USE mo_advection_config,    ONLY: advection_config
@@ -45,7 +47,7 @@ MODULE mo_initicon
     &                               MODE_IAU, MODE_IAU_OLD, MODE_IFSANA,              &
     &                               MODE_ICONVREMAP, MODE_COMBINED, MODE_COSMO,       &
     &                               min_rlcell, INWP, iaes, min_rledge_int, grf_bdywidth_c, &
-    &                               min_rlcell_int
+    &                               min_rlcell_int, vname_len
   USE mo_physical_constants,  ONLY: rd, cpd, cvd, p0ref, vtmpc1, rd_o_cpd, tmelt, tf_salt
   USE mo_exception,           ONLY: message, finish
   USE mo_grid_config,         ONLY: n_dom, l_limited_area
@@ -78,11 +80,15 @@ MODULE mo_initicon
   USE mo_input_request_list,  ONLY: t_InputRequestList, InputRequestList_create
   USE mo_mpi,                 ONLY: my_process_is_stdio
   USE mo_input_instructions,  ONLY: t_readInstructionListPtr, readInstructionList_make, kInputSourceAna, &
-                                    kInputSourceBoth, kInputSourceCold, kInputSourceAnaI, kInputSourceFgAnaI, kInputSourceFg
+                                  & kInputSourceBoth, kInputSourceCold, kInputSourceAnaI, kInputSourceFgAnaI, kInputSourceFg, &
+                                  & collectGroupAnaIncrement
   USE mo_util_uuid_types,     ONLY: t_uuid
   USE mo_nwp_sfc_utils,       ONLY: seaice_albedo_coldstart
   USE mo_fortran_tools,       ONLY: init
   USE mo_coupling_config,     ONLY: is_coupled_to_ocean
+  USE mo_util_vgrid_types,    ONLY: vgrid_buffer
+  USE mo_scatter_pattern_base,    ONLY: t_scatterPattern
+  USE mo_scatter_pattern_scatter, ONLY: t_scatterPatternScatter
 
 
   IMPLICIT NONE
@@ -118,8 +124,9 @@ MODULE mo_initicon
     TYPE(t_external_data),    INTENT(INOUT), OPTIONAL :: ext_data(:)
 
     CHARACTER(LEN = *), PARAMETER :: routine = modname//':init_icon'
-    INTEGER :: jg, ist
+    INTEGER :: jg, ist, ip
     TYPE(t_readInstructionListPtr) :: inputInstructions(n_dom)
+    CLASS(t_ScatterPattern), POINTER :: scpat
 
     ! Allocate initicon data type
     ALLOCATE (initicon(n_dom), initicon_const(n_dom),  &
@@ -191,6 +198,30 @@ MODULE mo_initicon
     ! dependence on p_diag_lnd.
 !DR    CALL init_sea_lists(p_patch, ext_data, p_diag_lnd, lseaice)
 
+    IF (parallel_grib_decoding .AND. .NOT. my_process_is_stdio()) THEN
+      ! deallocate scatter pattern information on worker PEs to free memory;
+      ! stdio is excluded because there might be applications in which data are read during runtime,
+      ! whose distribution requires the scatter patterns on the IO PE.
+      DO jg = 1, n_dom
+        DO ip = 1, 2
+          IF (ip == 1) THEN
+            scpat => p_patch(jg)%comm_pat_scatter_c
+          ELSE
+            scpat => p_patch(jg)%comm_pat_scatter_e
+          ENDIF
+          SELECT TYPE (scpat)
+          CLASS IS (t_scatterPatternScatter)
+            ! deallocates allocatable components of (child) type t_scatterPatternScatter
+            ! by invoking the child-only destructor.
+            ! i.e. deallocates the arrays pointIndices and point_counts
+            CALL scpat%destruct_child()
+          CLASS default
+            ! no child components to clean
+          END SELECT
+        ENDDO
+      ENDDO
+    ENDIF
+
   END SUBROUTINE init_icon
 
   ! Write an output line that informs the user of the init_mode we are using (failing the program if init_mode is invalid).
@@ -236,6 +267,8 @@ MODULE mo_initicon
     INTEGER :: jg, jg1
     CLASS(t_InputRequestList), POINTER :: requestList
     CHARACTER(LEN=filename_max) :: fgFilename_str(max_dom)
+    CHARACTER(LEN=vname_len), ALLOCATABLE :: ana_incr_list(:)
+    INTEGER :: fname_len, ist
 
     !The input file paths & types are NOT initialized IN all modes, so we need to avoid creating InputRequestLists IN these cases.
     SELECT CASE(init_mode)
@@ -253,6 +286,13 @@ MODULE mo_initicon
         CALL inputInstructions(jg)%ptr%fileRequests(requestList, lIsFg = .TRUE.)
       ENDIF
     END DO
+
+    ! Dummy allocation
+    IF (parallel_grib_decoding) THEN
+      ALLOCATE (ana_incr_list(1), STAT=ist)
+      IF (ist /= SUCCESS) CALL finish(routine, 'Allocation of ana_incr_list failed')
+      ana_incr_list(1) = " "
+    ENDIF
 
     DO jg = 1, n_dom
       fgFilename_str(jg) = " "
@@ -277,18 +317,59 @@ MODULE mo_initicon
     ! Scan the input files AND distribute the relevant variables across the processes.
     DO jg = 1, n_dom
       IF(p_patch(jg)%ldom_active) THEN
+        ! Get length of filename
+        ! (used to reduce overhead of repeated TRIMs)
+        fname_len = LEN_TRIM(fgFilename_str(jg))
         IF(my_process_is_stdio()) THEN
-          CALL message(routine, 'read atm_FG fields from '//TRIM(fgFilename_str(jg)))
+          CALL message(routine, 'read atm_FG fields from '//fgFilename_str(jg)(1:fname_len))
         ENDIF  ! p_io
-        IF (ana_varnames_map_file /= ' ') THEN
-          CALL requestList%readFile(p_patch(jg), TRIM(fgFilename_str(jg)), .TRUE., &
-            &                       opt_dict = ana_varnames_dict)
+
+        ! There are different strategies for distributing
+        ! the reading and decoding of input data between the Work PEs:
+        ! - "Decoding by single process":
+        !   - Standard case
+        !   - Workroot PE reads and decodes input data
+        !   - Used library: CDI
+        !   - Allowed filetypes: (NetCDF), GRIB2
+        ! - "Decoding by multiple processes":
+        !   - Workroot PE reads data and distributes them to all other Work PEs for decoding
+        !   - Other Work PEs decode data
+        !   - Used library: ecCodes
+        !   - Allowed filetypes: GRIB2
+        IF (.NOT. parallel_grib_decoding) THEN
+          ! Standard case
+          IF (ana_varnames_map_file /= ' ') THEN
+            CALL requestList%readFile(p_patch(jg), fgFilename_str(jg)(1:fname_len), .TRUE., opt_dict = ana_varnames_dict)
+          ELSE
+            CALL requestList%readFile(p_patch(jg), fgFilename_str(jg)(1:fname_len), .TRUE.)
+          END IF
         ELSE
-          CALL requestList%readFile(p_patch(jg), TRIM(fgFilename_str(jg)), .TRUE.)
-        END IF
-      END IF
-    END DO
-    IF(my_process_is_stdio()) THEN
+          ! Distributed input-data decoding
+          ! (to keep the following interface structurally simple, neither the full p_patch is handed over,
+          ! nor optional arguments (e.g., for h/vgrid_uuid) are used.)
+          CALL requestList%readFile_grib(grib_file_path       = fgFilename_str(jg)(1:fname_len),           & ! in
+            &                            lIsFg                = .TRUE.,                                    & ! in
+            &                            dict                 = ana_varnames_dict,                         & ! in
+            &                            jg                   = p_patch(jg)%id,                            & ! in
+            &                            ncells_global        = INT(p_patch(jg)%n_patch_cells_g, KIND=i8), & ! in
+            &                            nedges_global        = INT(p_patch(jg)%n_patch_edges_g, KIND=i8), & ! in
+            &                            hgrid_uuid           = p_patch(jg)%grid_uuid,                     & ! in
+            &                            vgrid_uuid           = vgrid_buffer(jg)%uuid,                     & ! in
+            &                            ana_incr_list        = ana_incr_list,                             & ! in
+            &                            verify_hgrid_uuid    = lconsistency_checks .AND.                  &
+            &                                                   (.NOT. check_uuid_gracefully),             & ! in
+            &                            verify_vgrid_uuid    = .FALSE.,                                   & ! in
+            &                            verify_ana_incr_list = .FALSE.,                                   & ! in
+            &                            verbose              = (msg_level > 4),                           & ! in
+            &                            timing               = ltimer .AND. (timers_level > 8),           & ! in
+            &                            inventory            = .TRUE.                                     ) ! in
+        END IF ! IF (.NOT. parallel_grib_decoding)
+
+      END IF ! IF(p_patch(jg)%ldom_active)
+    END DO ! jg
+
+    ! Printing a file inventory is included in "requestList%readFile_grib"
+    IF(my_process_is_stdio() .AND. (.NOT. parallel_grib_decoding)) THEN
         CALL requestList%printInventory()
         IF(lconsistency_checks) THEN
           CALL requestList%checkRuntypeAndUuids([CHARACTER(LEN=1)::], gridUuids(p_patch), lIsFg=.TRUE., &
@@ -311,6 +392,10 @@ MODULE mo_initicon
     ! Cleanup.
     CALL requestList%destruct()
     DEALLOCATE(requestList)
+    IF (ALLOCATED(ana_incr_list)) THEN
+      DEALLOCATE(ana_incr_list, STAT=ist)
+      IF (ist /= SUCCESS) CALL finish(routine, 'Deallocation of ana_incr_list failed')
+    ENDIF
   END SUBROUTINE read_dwdfg
 
   ! Do postprocessing of data from first-guess file.
@@ -363,9 +448,11 @@ MODULE mo_initicon
 
     CHARACTER(LEN = *), PARAMETER :: routine = modname//":read_dwdana"
     CHARACTER(LEN = :), ALLOCATABLE :: incrementsList(:)
+    CHARACTER(LEN = vname_len), ALLOCATABLE :: ana_incr_list(:)
     CLASS(t_InputRequestList), POINTER :: requestList
     CHARACTER(LEN=filename_max) :: anaFilename_str(max_dom)
     INTEGER :: jg, jg1
+    INTEGER :: fname_len, ana_incr_list_size, ist
 
     !The input file paths & types are NOT initialized IN all modes, so we need to avoid creating InputRequestLists IN these cases.
     SELECT CASE(init_mode)
@@ -393,6 +480,11 @@ MODULE mo_initicon
       ENDIF
     END DO
 
+    ! Get list of all input variables that may be provided as analysis increments
+    ana_incr_list_size = 0
+    IF (parallel_grib_decoding) &
+      & CALL collectGroupAnaIncrement(outGroup=ana_incr_list, outGroupSize=ana_incr_list_size, init_mode=init_mode)
+
     ! Scan the input files AND distribute the relevant variables across the processes.
     DO jg = 1, n_dom
       anaFilename_str(jg) = ""
@@ -415,20 +507,54 @@ MODULE mo_initicon
     END DO
 
     DO jg = 1, n_dom
-        IF(p_patch(jg)%ldom_active .AND. lread_ana) THEN
-            IF (lp2cintp_incr(jg) .AND. lp2cintp_sfcana(jg)) CYCLE
-            IF(my_process_is_stdio()) THEN
-                CALL message(routine, 'read atm_ANA fields from '//TRIM(anaFilename_str(jg)))
-            ENDIF  ! p_io
-            IF (ana_varnames_map_file /= ' ') THEN
-              CALL requestList%readFile(p_patch(jg), TRIM(anaFilename_str(jg)), .FALSE., &
-                &                       opt_dict = ana_varnames_dict)
-            ELSE
-              CALL requestList%readFile(p_patch(jg), TRIM(anaFilename_str(jg)), .FALSE.)
-            END IF
-        END IF
-    END DO
-    IF(my_process_is_stdio()) THEN
+      IF(p_patch(jg)%ldom_active .AND. lread_ana) THEN
+        IF (lp2cintp_incr(jg) .AND. lp2cintp_sfcana(jg)) CYCLE
+        ! Get length of filename
+        ! (used to reduce overhead of repeated TRIMs)
+        fname_len = LEN_TRIM(anaFilename_str(jg))
+        IF(my_process_is_stdio()) THEN
+          CALL message(routine, 'read atm_ANA fields from '//anaFilename_str(jg)(1:fname_len))
+        ENDIF  ! p_io
+
+        ! See read_dwdfg above for the two modes of input-data decoding
+        IF (.NOT. parallel_grib_decoding) THEN
+          ! Standard case
+          IF (ana_varnames_map_file /= ' ') THEN
+            CALL requestList%readFile(p_patch(jg), anaFilename_str(jg)(1:fname_len), .FALSE., opt_dict = ana_varnames_dict)
+          ELSE
+            CALL requestList%readFile(p_patch(jg), anaFilename_str(jg)(1:fname_len), .FALSE.)
+          END IF
+        ELSE
+          ! Distributed input-data decoding
+          ! (to keep the following interface structurally simple, neither the full p_patch is handed over,
+          ! nor optional arguments (e.g., for h/vgrid_uuid) are used.)
+          CALL requestList%readFile_grib(grib_file_path       = anaFilename_str(jg)(1:fname_len),          & ! in
+            &                            lIsFg                = .FALSE.,                                   & ! in
+            &                            dict                 = ana_varnames_dict,                         & ! in
+            &                            jg                   = p_patch(jg)%id,                            & ! in
+            &                            ncells_global        = INT(p_patch(jg)%n_patch_cells_g, KIND=i8), & ! in
+            &                            nedges_global        = INT(p_patch(jg)%n_patch_edges_g, KIND=i8), & ! in
+            &                            hgrid_uuid           = p_patch(jg)%grid_uuid,                     & ! in
+            &                            vgrid_uuid           = vgrid_buffer(jg)%uuid,                     & ! in
+            &                            ana_incr_list        = ana_incr_list,                             & ! in
+            &                            verify_hgrid_uuid    = lconsistency_checks .AND.                  &
+            &                                                   (.NOT. check_uuid_gracefully),             & ! in
+            &                            verify_vgrid_uuid    = .FALSE.,                                   & ! in
+            &                            verify_ana_incr_list = lconsistency_checks     .AND.              &
+            &                                                   (init_mode == MODE_IAU) .AND.              &
+            &                                                   (ana_incr_list_size > 0),                  & ! in
+            &                            verbose              = (msg_level > 4),                           & ! in
+            &                            timing               = ltimer .AND. (timers_level > 8),           & ! in
+            &                            inventory            = .TRUE.                                     ) ! in
+        END IF ! IF (.NOT. parallel_grib_decoding)
+
+      END IF ! IF(p_patch(jg)%ldom_active .AND. lread_ana)
+    END DO ! jg
+
+    ! Printing a file inventory is included in "requestList%readFile_grib".
+    ! (Note that "requestList%checkRuntypeAndUuids" does not work for parallel GRIB decoding.
+    ! The potential check of the "gridUuid" and "incrementsList" is taken over by "requestList%readFile_grib".)
+    IF(my_process_is_stdio() .AND. (.NOT. parallel_grib_decoding)) THEN
         CALL requestList%printInventory()
         IF(lconsistency_checks) THEN
             SELECT CASE(init_mode)
@@ -460,6 +586,10 @@ MODULE mo_initicon
     ! Cleanup.
     CALL requestList%destruct()
     DEALLOCATE(requestList)
+    IF (ALLOCATED(ana_incr_list)) THEN
+      DEALLOCATE(ana_incr_list, STAT=ist)
+      IF (ist /= SUCCESS) CALL finish(routine, 'Deallocation of ana_incr_list failed')
+    ENDIF
   END SUBROUTINE read_dwdana
 
   ! Do postprocessing of data from analysis files.

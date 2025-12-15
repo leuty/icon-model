@@ -29,6 +29,7 @@ MODULE mo_initicon_nml
   USE mo_mpi,                ONLY: my_process_is_stdio
   USE mo_time_config,        ONLY: set_tc_timeshift
   USE mo_initicon_config,    ONLY: initicon_config,      &
+    &                              is_filetype_grib2,    &
     & config_init_mode           => init_mode,           &
     & config_nlevsoil_in         => nlevsoil_in,         &
     & config_zpbl1               => zpbl1,               &
@@ -73,7 +74,8 @@ MODULE mo_initicon_nml
     & config_pinit_seed          => pinit_seed,          &
     & config_pinit_amplitude     => pinit_amplitude,     &
     & config_lcouple_ocean_coldstart => lcouple_ocean_coldstart, &
-    & config_fire2d_filename     => fire2d_filename
+    & config_fire2d_filename     => fire2d_filename,     &
+    & config_parallel_grib_decoding => parallel_grib_decoding
 
   USE mo_nml_annotate,       ONLY: temp_defaults, temp_settings
 
@@ -100,6 +102,7 @@ CONTAINS
   INTEGER :: z_go_init(7)   ! for consistency check
   INTEGER :: iunit
   INTEGER :: jg
+  LOGICAL :: is_fg_filetype_grib2, is_ana_filetype_grib2
 
   CHARACTER(len=*), PARAMETER ::  &
     &  routine = 'mo_initicon_nml: read_initicon_namelist'
@@ -236,6 +239,18 @@ CONTAINS
   CHARACTER(LEN=filename_max) :: & !< Filename that contains wildfire precursor emissions (2d-aerosol, i2daero_fire==1)
     &  fire2d_filename             !< Allowed keywords: <species>, <gridfile>, <nroot>, <nroot0>, <jlev>, <idom>, <yyyymmdd>
 
+  LOGICAL :: parallel_grib_decoding ! Decoding of GRIB2 input data by Work PEs in parallel:
+                                    ! - .FALSE.: "Decoding by single process"
+                                    !   * Workroot PE reads and decodes input data
+                                    !   * Used library: CDI
+                                    !   * Allowed filetypes: (NetCDF), GRIB2
+                                    ! - .TRUE.: "Decoding by multiple processes"
+                                    !   * Workroot PE reads records and distributes them
+                                    !     to all other Work PEs for decoding
+                                    !   * Other Work PEs decode data
+                                    !   * Used library: ecCodes
+                                    !   * Allowed filetypes: GRIB2
+
   NAMELIST /initicon_nml/ init_mode, zpbl1, zpbl2, l_coarse2fine_mode,      &
                           nlevsoil_in, lread_ana,                           &
                           lconsistency_checks,                              &
@@ -253,7 +268,8 @@ CONTAINS
                           icpl_da_sfcfric, lcouple_ocean_coldstart,         &
                           icpl_da_tkhmin, icpl_da_seaice, fire2d_filename,  &
                           scalfac_da_sfcfric, smi_relax_timescale,          &
-                          icpl_da_landalb, itype_sma, dt_filt
+                          icpl_da_landalb, itype_sma, dt_filt,              &
+                          parallel_grib_decoding
 
   !------------------------------------------------------------
   ! 2.0 set up the default values for initicon
@@ -356,6 +372,13 @@ CONTAINS
 
   fire2d_filename = 'gfas2d_emi_<species>_<gridfile>_<yyyymmdd>.nc'
 
+  parallel_grib_decoding = .FALSE. ! Distribution of input-data decoding between Work PEs:
+                                   ! .FALSE. => "Decoding by single process".
+                                   !            Workroot PE reads and decodes input data (default)
+                                   ! .TRUE. => "Decoding by multiple processes".
+                                   !           Workroot PE reads records and distributes them
+                                   !           to all other Work PEs for decoding
+
   !------------------------------------------------------------
   ! 3.0 Read the initicon namelist.
   !------------------------------------------------------------
@@ -455,6 +478,20 @@ CONTAINS
     CALL finish( TRIM(routine),'Invalid value for itype_vert_expol.' )
   END SELECT
 
+  ! Checking parallel GRIB decoding:
+  ! The function "is_filetype_grib2" just checks the file extension,
+  ! so it can be applied to non-expanded filename patterns as well.
+  is_fg_filetype_grib2 = is_filetype_grib2(dwdfg_filename)
+  is_ana_filetype_grib2 = is_filetype_grib2(dwdana_filename)
+  IF (parallel_grib_decoding .AND. (LEN_TRIM(ana_varnames_map_file) < 1)) THEN
+    CALL finish(routine,'Specifying ana_varnames_map_file is mandatory for parallel_grib_decoding = .TRUE.')
+  ELSEIF (parallel_grib_decoding .AND. ALL([MODE_DWDANA, MODE_IAU, MODE_ICONVREMAP] /= init_mode)) THEN
+    CALL finish(routine,'parallel_grib_decoding = .TRUE. requires init_mode = 1, 5 or 7')
+  ELSEIF (parallel_grib_decoding .AND. .NOT. is_fg_filetype_grib2) THEN
+    CALL finish(routine,'parallel_grib_decoding = .TRUE. requires FG file(s) in GRIB format')
+  ELSEIF (parallel_grib_decoding .AND. lread_ana .AND. .NOT. is_ana_filetype_grib2) THEN
+    CALL finish(routine,'parallel_grib_decoding = .TRUE. requires ANA file(s) in GRIB format')
+  ENDIF
 
   !------------------------------------------------------------
   ! 5.0 Fill the configuration state
@@ -505,6 +542,7 @@ CONTAINS
   config_pinit_amplitude       = pinit_amplitude
   config_lcouple_ocean_coldstart = lcouple_ocean_coldstart
   config_fire2d_filename       = TRIM(fire2d_filename)
+  config_parallel_grib_decoding = parallel_grib_decoding
 
   DO jg=1,max_dom
     initicon_config(jg)%ana_checklist = check_ana(jg)%list

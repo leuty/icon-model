@@ -47,7 +47,7 @@ MODULE mo_cover_koe
 
   USE mo_nwp_tuning_config,  ONLY: tune_box_liq, tune_box_liq_asy, tune_thicklayfac, tune_sgsclifac, icpl_turb_clc, &
                                    allow_overcast, tune_sc_eis, tune_sc_invmin, tune_sc_invmax, tune_box_ice, &
-                                   tune_cu_alfa, tune_cu_cdnc
+                                   tune_cu_alfa, tune_cu_cdnc, tune_tau_shallow, tune_tau_mid, tune_tau_deep
 
   USE mo_ensemble_pert_config, ONLY: box_liq_sv, thicklayfac_sv, box_liq_asy_sv
 
@@ -245,9 +245,11 @@ LOGICAL, DIMENSION(klon) ::  &
 !! Local parameters:
 !! -----------------
 
+REAL(KIND=wp), DIMENSION(0:3) :: &
+  & taudecay                ! decay time scale of convective anvils (no, deep, shallow, mid-level convection)
+
 REAL(KIND=wp), PARAMETER  :: &
   & zcldlim  = 1.0e-8_wp, & ! threshold of cloud water/ice for cloud cover  (kg/kg)
-  & taudecay = 1500.0_wp, & ! decay time scale of convective anvils
   & cc_cu_mode = 0.50_wp, & ! value of spurious mode in unmodified clc histogram over ocean
   & cc_cu_min  = 0.05_wp, & ! minimum cloud cover for low cloud droplet number concentration
   & cc_cu_qc   = 0.20_wp, & ! inverse of amplification factor for qc in shallow cumulus
@@ -274,14 +276,22 @@ REAL(KIND=wp), PARAMETER :: lvocv = alv/cvd
 
 ! statement function for dq_sat_dT
   dqsdt(ztt,zqs) = c5les * (1._wp-zqs) * zqs / (ztt-c4les)**2
+
+!-----------------------------------------------------------------------
+! select separate decay time-scale for no, deep, shallow and mid-level convection
+! note: taudecay(0)=1500 to avoid division by 0, taudecay has no impact for no convection
+
+taudecay = (/1500.0_wp, tune_tau_deep, tune_tau_shallow, tune_tau_mid/)
+
 !-----------------------------------------------------------------------
 
-  CALL set_acc_host_or_device(lzacc, lacc)
+CALL set_acc_host_or_device(lzacc, lacc)
 
 !$ACC DATA &
 !$ACC   CREATE(cc_turb, qc_turb, qi_turb, cc_conv, qc_conv, qi_conv, cc_turb_liq, cc_turb_ice) &
 !$ACC   CREATE(p0, zqlsat, zqisat, zagl_lim, zdqlsat_dT, stratocumulus, zsc_top, zratfsd, qsum_col) &
 !$ACC   CREATE(shallowcumulus, zaux_sc) &
+!$ACC   COPYIN(taudecay) &
 !$ACC   IF(lzacc)
 
 ! saturation mixing ratio at -50 C and 200 hPa
@@ -518,7 +528,7 @@ CASE( 1 )
       ! reduction of decay time scale depending on saturation deficit
       satdef_fac = 1._wp - MIN(0.9_wp,125._wp*( tfac*(zqlsat(jl,jk)-qv(jl,jk)) + (1._wp-tfac)*(zqisat(jl,jk)-qv(jl,jk)) ))
       cc_conv(jl,jk) = ( pmfude_rate(jl,jk) / rho(jl,jk) ) &  ! cc = detrainment/rho / (Du/rho + 1/tau,decay)
-           & / ( pmfude_rate(jl,jk) / rho(jl,jk) + 1.0_wp / (taudecay*satdef_fac) )
+           & / ( pmfude_rate(jl,jk) / rho(jl,jk) + 1.0_wp / (taudecay(ktype(jl))*satdef_fac) )
 
       ! Option to add updraft core fraction to convective cloud fraction contribution
       IF (luse_core) THEN
@@ -534,7 +544,7 @@ CASE( 1 )
 
       ! alternative formulation of source term for liquid convective clouds depending on detrained cloud water and RH;
       ! as most important difference, it uses the same clcov-qc relationship as turbulent clouds but is restricted to low mixing ratios
-      qcc = MAX(0._wp, MIN(0.075_wp*tune_box_liq*zqlsat(jl,jk), (rhoc_tend(jl,jk)/rho(jl,jk))*taudecay* &
+      qcc = MAX(0._wp, MIN(0.075_wp*tune_box_liq*zqlsat(jl,jk), (rhoc_tend(jl,jk)/rho(jl,jk))*taudecay(ktype(jl))* &
         (1._wp - 4._wp*(1._wp-qv(jl,jk)/zqlsat(jl,jk))) ))
       cc_conv(jl,jk) = MAX(cc_conv(jl,jk),SQRT(qcc/(tune_box_liq*zqlsat(jl,jk))) )
       qc_conv(jl,jk) = MAX(qcc,qc_conv(jl,jk))

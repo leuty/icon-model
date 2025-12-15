@@ -41,7 +41,7 @@ MODULE mo_parallel_config
        &  num_dist_array_replicas, comm_pattern_type_orig,          &
        &  comm_pattern_type_yaxt, default_comm_pattern_type,        &
        &  io_process_stride, io_process_rotate, proc0_shift,        &
-       &  use_omp_input
+       &  use_omp_input, process_stride_pgrib
 
   PUBLIC :: set_nproma, set_nproma_nblocks, set_nproma_nblocks_sub, get_nproma, cpu_min_nproma, proc0_offloading, &
        &    check_parallel_configuration, use_async_restart_output, blk_no, idx_no, idx_1d,    &
@@ -117,6 +117,7 @@ MODULE mo_parallel_config
   INTEGER :: max_no_of_comm_patterns   = 32
   INTEGER :: icon_comm_method = 1
   INTEGER :: sync_barrier_mode = 0
+  INTEGER :: process_stride_pgrib = 1 ! process stride for parallel GRIB decoding
 
   LOGICAL :: icon_comm_openmp = .false.
 
@@ -285,6 +286,9 @@ CONTAINS
          CALL finish(TRIM(method_name),'The no of prefetch processor can be zero or one, but should not be set more than one!')
 
 #endif
+
+    IF (process_stride_pgrib < 1) &
+      & CALL finish(method_name, "A positive definite integer value is required for process_stride_pgrib")
 
   END SUBROUTINE check_parallel_configuration
   !-------------------------------------------------------------------------

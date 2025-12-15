@@ -349,9 +349,10 @@ MODULE mo_sppt_config
 
     DO jg=1,n_dom
 
-      ! Exit if higher order microphysic schemes are used
-      IF(atm_phy_nwp_config(jg)%inwp_gscp > 2) THEN
-        CALL finish(routine, "SPPT in combination with higher order microphysic schemes not supported/tested.")
+      ! Exit if higher order or external microphysic schemes are used
+      IF(atm_phy_nwp_config(jg)%inwp_gscp > 2 .OR. atm_phy_nwp_config(jg)%inwp_gscp == -1) THEN
+        CALL finish(routine, &
+          &  "SPPT in combination with higher order or external microphysic schemes not supported/tested.")
       ENDIF
 
     END DO

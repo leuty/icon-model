@@ -40,7 +40,7 @@ MODULE mo_nh_interface_nwp
     &                                   itsatad, itturb, itsfc, itradheat,                    &
     &                                   itsso, itgwd, itfastphy, icosmo, igme, ivdiff,               &
     &                                   min_rlcell_int, min_rledge_int, min_rlcell,           &
-    &                                   ismag, iprog, io3_art
+    &                                   ismag, iprog, io3_art, UPDATE_LOCATION_SURFACE
   USE mo_impl_constants_grf,      ONLY: grf_bdywidth_c, grf_bdywidth_e
   USE mo_loopindices,             ONLY: get_indices_c, get_indices_e
   USE mo_intp_rbf,                ONLY: rbf_vec_interpol_cell
@@ -144,6 +144,8 @@ MODULE mo_nh_interface_nwp
   USE mo_sppt_util,               ONLY: construct_rn
   USE mo_sppt_core,               ONLY: calc_tend, pert_tend, apply_tend, save_state
 #ifndef __NO_ICON_COMIN__
+  USE mo_impl_constants,    ONLY: TLEV_NNOW_RCF
+  USE mo_dynamics_config,   ONLY: nnew_rcf
   USE comin_host_interface, ONLY: EP_ATM_SURFACE_BEFORE,           &
     &                             EP_ATM_SURFACE_AFTER,            &
     &                             EP_ATM_TURBULENCE_BEFORE,        &
@@ -158,7 +160,9 @@ MODULE mo_nh_interface_nwp
     &                             EP_ATM_RADHEAT_AFTER,            &
     &                             EP_ATM_GWDRAG_BEFORE,            &
     &                             EP_ATM_GWDRAG_AFTER
-  USE mo_comin_adapter,     ONLY: icon_call_callback
+  USE mo_comin_config,      ONLY: comin_config
+  USE mo_comin_adapter,     ONLY: icon_call_callback,              &
+                                  icon_update_expose_variables
 #endif
 
 
@@ -796,6 +800,9 @@ CONTAINS
       IF (timers_level > 2) CALL timer_stop(timer_nwp_surface)
     END IF
 #ifndef __NO_ICON_COMIN__
+    IF (comin_config%nplugins /= 0) THEN
+       CALL icon_update_expose_variables(TLEV_NNOW_RCF, nnew_rcf(jg), UPDATE_LOCATION_SURFACE)
+    END IF
     CALL icon_call_callback(EP_ATM_SURFACE_AFTER, jg, lacc=lacc)
 #endif
 #ifndef __NO_ICON_COMIN__

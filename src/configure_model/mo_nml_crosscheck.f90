@@ -321,8 +321,7 @@ CONTAINS
     IF (iforcing==inwp) THEN
 
       DO jg =1,n_dom
-
-        IF (atm_phy_nwp_config(jg)%inwp_gscp /= 8) THEN
+        IF (.NOT. ANY( atm_phy_nwp_config(jg)%inwp_gscp == (/-1, 8/) ) ) THEN
           IF( atm_phy_nwp_config(jg)%inwp_satad == 0       .AND. &
           & ((atm_phy_nwp_config(jg)%inwp_convection >0 ) .OR. &
           &  (atm_phy_nwp_config(jg)%inwp_gscp > 0 )   ) ) &
@@ -340,6 +339,11 @@ CONTAINS
           CALL finish(routine,'SBM is not supported on GPU')
 #endif
         END IF
+
+        IF (atm_phy_nwp_config(jg)%inwp_gscp == -1 .AND. &
+          & atm_phy_nwp_config(jg)%icalc_reff /= 0) THEN
+          CALL finish( routine,'Only standard reff calculation for external microphysics')
+        ENDIF
 
         IF( (atm_phy_nwp_config(jg)%inwp_gscp==0) .AND. &
           & (atm_phy_nwp_config(jg)%inwp_convection==0) .AND.&

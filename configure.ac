@@ -13,7 +13,7 @@ AC_PREREQ([2.69])
 
 ACX_POLYMORPHIC_OPTION([enable], [fcgroup-*], [icon_fcgroups])
 
-AC_INIT([icon], [2025.10], [], [icon-2025.10])
+AC_INIT([icon], [2025.10-1], [], [icon-2025.10-1])
 
 AC_CONFIG_MACRO_DIR([m4])
 m4_pattern_forbid([^A[SC]?X_])dnl
@@ -505,9 +505,21 @@ AC_ARG_ENABLE([single-precision],
 
 AC_ARG_ENABLE([single-precision-ecrad],
   [AS_HELP_STRING([--enable-single-precision-ecrad],
-     [enable single precision for ECRAD @<:@default=no@:>@])],
-  [AS_IF([test x"$enableval" != xno], [enable_single_precision_ecrad=yes])],
-  [enable_single_precision_ecrad=no])
+     [enable single precision for ECRAD @<:@default=auto@:>@])],
+  [AS_IF([test x"$enableval" != xno && test x"$enableval" != xauto],
+     [enable_single_precision_ecrad=yes])],
+  [enable_single_precision_ecrad=auto])
+
+AS_VAR_IF([enable_single_precision_ecrad], [auto],
+  [AS_IF([test "x$enable_ecrad$enable_single_precision" = xyesyes],
+     [AC_MSG_NOTICE([single precision for ECRAD is enabled because single dnl
+precision as the working precision is requested])
+      enable_single_precision_ecrad=yes],
+     [enable_single_precision_ecrad=no])],
+  [AS_VAR_IF([enable_ecrad], [no],
+     [AC_MSG_WARN([option dnl
+'--enable-single-precision-ecrad=$enable_single_precision_ecrad' is ignored: dnl
+the usage of the ECMWF radiation scheme (ECRAD) is disabled])])])
 
 AC_ARG_ENABLE([intel-consistency],
   [AS_HELP_STRING([--enable-intel-consistency],
@@ -709,11 +721,20 @@ AC_ARG_WITH([external-comin],
 
 AS_VAR_IF([enable_single_precision], [yes],
   [AS_VAR_IF([enable_mixed_precision], [yes],
-    [AC_MSG_ERROR([unsupported combination of the configure options: you are dnl
-trying to configure with the single precision as the working precision and dnl
-the mixed precision dycore: either disable the single precision dnl
+     [AC_MSG_ERROR([unsupported combination of the configure options: you dnl
+are trying to configure with the single precision as the working precision dnl
+and the mixed precision dycore: either disable the single precision dnl
 (--disable-single-precision) or disable the mixed precision dycore dnl
 (--disable-mixed-precision)])])])
+
+AS_VAR_IF([enable_ecrad], [yes],
+  [AS_IF(
+     [test "x$enable_single_precision$enable_single_precision_ecrad" = xyesno],
+     [AC_MSG_ERROR([unsupported combination of the configure options: you dnl
+are trying to configure with the single precision as the working precision dnl
+but the single precision for ECRAD is disabled: either disable the single dnl
+precision as the working precision (--disable-single-precision) or enable dnl
+the single precision for ECRAD (--enable-single-precision-ecrad)])])])
 
 AS_VAR_IF([enable_jsbach], [no],
   [AS_VAR_IF([enable_jsbach_hd], [yes],
@@ -3307,7 +3328,7 @@ dnl The make_runscripts generator should call run/collect.set-up.info and
 dnl generate run/set-up.info. This is currently not the case, therefore we
 dnl delegate this task to the configure script:
 AC_CONFIG_COMMANDS([run/set-up.info],
-  [run/collect.set-up.info "$ac_file" 2>/dev/null || dnl
+  [run/collect.set-up.info "$ac_file" 2>&AS_MESSAGE_LOG_FD || dnl
    AC_MSG_ERROR([failed to create $ac_file])])
 
 dnl An additional step to generate dummy dependencies:

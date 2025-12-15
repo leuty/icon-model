@@ -263,6 +263,9 @@ MODULE mo_impl_constants
   ! maximum allowed number of srh levels:
   INTEGER, PARAMETER :: max_srh = 10
 
+  ! maximum allowed number of different time intervals for lateral boundary conditions
+  INTEGER, PARAMETER :: nintv_latbc = 3
+
   ! identifiers for model initialization
   INTEGER, PARAMETER :: ianalytic      =  0 ! - from analytical functions
   INTEGER, PARAMETER :: irestart       =  1 ! - from restart file
@@ -616,6 +619,24 @@ MODULE mo_impl_constants
   ! separator for varname and time level
   CHARACTER(LEN=3), PARAMETER, PUBLIC :: TIMELEVEL_SUFFIX = '.TL'
 
+  !-------------------------------------------------------------!
+  !  LOCATION OF TIME-LEVEL UPDATE OF MULTI-TIMELEVEL VARIABLES !
+  !-------------------------------------------------------------!
+
+  ! list of code locations, where different sets of time dependent
+  ! variables are updated to their nnew(_rcf) time slice
+  ENUM, BIND(C)
+    ENUMERATOR :: UPDATE_LOCATION_ADVECTION = 1,  &
+         &        UPDATE_LOCATION_SURFACE
+  END ENUM
+  INTEGER, PARAMETER :: UPDATE_LOCATION_MAX = UPDATE_LOCATION_SURFACE ! set here last
+  ! of enumerator above this declaration
+
+  CHARACTER(LEN=vname_len), PARAMETER :: &
+       UPDATE_LOCATION_GROUPNAME(UPDATE_LOCATION_MAX) = &
+     [ "TLEV_UPDATE_ADVECTION ",  &  ! ICON point of time loop, from which point
+    &  "TLEV_UPDATE_SURFACE   "]     ! on the time slice nnew is meaningful
+
   !-------------------------!
   !  RTTOV FIELD CATEGORIES !
   !-------------------------!
@@ -662,7 +683,6 @@ MODULE mo_impl_constants
   END TYPE t_ivexpol
   TYPE(t_ivexpol), PARAMETER :: ivexpol = t_ivexpol( 1, &  !lin
     &                                                2  )  !upatmo
-
 
 
 !--------------------------------------------------------------------

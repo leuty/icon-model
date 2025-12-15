@@ -512,7 +512,8 @@ CONTAINS
              ! Calculation is suppressed for itune_gust_diag=4 because gusts are not computed at each time step in this case
              ! This is going to be replaced by a separate switch
              !
-             IF (ext_data%atm%lc_class_t(jc,jb,isubs) == ext_data%atm%i_lc_snow_ice .AND. itune_gust_diag < 4) THEN
+             IF (ext_data%atm%lc_class_t(jc,jb,isubs) == ext_data%atm%i_lc_snow_ice &
+               & .AND. itune_gust_diag < 4 .AND. atm_phy_nwp_config(jg)%inwp_gscp > 0) THEN
                IF (icpl_da_sfcevap>=2) THEN
                  tmp2 = 7.5e-9_wp*MAX(0._wp,1._wp+100._wp*10800._wp/dt_ana*p_diag%rh_avginc(jc,jb))
                ELSE

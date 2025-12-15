@@ -24,7 +24,7 @@ MODULE mo_opt_nwp_reflectivity
   USE mo_math_constants,        ONLY: pi
   USE mo_2mom_mcrph_main,       ONLY: init_2mom_scheme,      &
     &                                 rain_coeffs  ! contains the parameters for the mue-Dm-relation
-  USE mo_2mom_mcrph_types,      ONLY: particle, particle_frozen
+  USE mo_2mom_mcrph_types,      ONLY: particle
   USE mo_2mom_mcrph_setup,      ONLY: moment_gamma, rain_mue_dm_relation
   USE mo_exception,             ONLY: finish, message
   USE mo_fortran_tools,         ONLY: set_acc_host_or_device
@@ -540,12 +540,12 @@ CONTAINS
     REAL(wp), SAVE :: z_fac_c, z_fac_r, z_fac_i, z_fac_s, z_fac_g, z_fac_h, mom_fac
 
     TYPE(particle)        :: cloud, rain
-    TYPE(particle_frozen) :: ice, snow, graupel, hail
+    TYPE(particle) :: ice, snow, graupel, hail
 
     LOGICAL :: lzacc             ! OpenACC flag
     CALL set_acc_host_or_device(lzacc, lacc)
 
-!!$ LWF scheme not yet implemented:    CLASS(particle_lwf)    :: graupel_lwf, hail_lwf
+!!$ LWF scheme not yet implemented:    TYPE(particle)    :: graupel_lwf, hail_lwf
 
     IF (lmessage_light .OR. lmessage_full) THEN
       message_text(:) = ' '

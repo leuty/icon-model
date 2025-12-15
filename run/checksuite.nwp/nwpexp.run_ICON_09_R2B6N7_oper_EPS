@@ -196,6 +196,8 @@ cat > ${atmo_namelist} << EOF
  use_lakeiceana               = .true.
  lp2cintp_incr                = .TRUE.
  lp2cintp_sfcana              = .TRUE.
+ parallel_grib_decoding       = .TRUE.  ! .FALSE.: Workroot PE reads and decodes GRIB file records
+                                        ! .TRUE.:  Workroot PE reads GRIB file records, Work PEs decode them
 /
 &io_nml
  itype_pres_msl               = 5        ! (1) 3: IFS-type extrapolation
@@ -867,7 +869,7 @@ ICON_COMPONENT1_VH_procs=$((num_restart_procs + num_io_procs + num_prefetch_proc
 
 if [[ "$builder" = "rcl_nec" ]] && [[ "$with_openmp" = "no" ]]; then
   LOWER_MEM_LIMIT=37000
-  UPPER_MEM_LIMIT=37300
+  UPPER_MEM_LIMIT=37450
   set -o pipefail
   # Check the memory consumption on NEC
   $START_MODEL 3>&1 1>&2 2>&3 | $ICONDIR/run/checksuite.nwp/NEC.mem_check.py --lower_mem_limit "$LOWER_MEM_LIMIT" --upper_mem_limit "$UPPER_MEM_LIMIT" 3>&1 1>&2 2>&3

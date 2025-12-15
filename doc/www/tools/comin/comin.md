@@ -37,11 +37,14 @@ It contains descriptive data structures, and regulates the access to existing an
 :gutter: 1 1 1 2
 
 :::{grid-item-card}
-:link: https://icon-comin.gitlab-pages.dkrz.de/comin/
+:link: https://comin.icon-model.org
 **Documentation**
 ^^^
 * User Guide
+* Publications
 * Examples
+* How to develop your own plugin
+* Setup instructions
 :::
 
 :::{grid-item-card}

@@ -591,7 +591,7 @@ MODULE mo_nh_testcases
       END IF
 
       IF ( ltransport .AND. iforcing == inwp ) THEN
-        IF ( atm_phy_nwp_config(jg)%inwp_gscp /= 0 .OR.&
+        IF ( atm_phy_nwp_config(jg)%inwp_gscp > 0 .OR.&
                      &                 atm_phy_nwp_config(jg)%inwp_convection /= 0  ) THEN   !
 
         CALL init_nh_inwp_tracers ( p_patch(jg), p_nh_state(jg)%prog(nnow(jg)), &
@@ -636,7 +636,7 @@ MODULE mo_nh_testcases
 
      IF ( iforcing == inwp ) THEN
        CALL message(TRIM(routine),' iforcing == inwp')
-       IF ( atm_phy_nwp_config(jg)%inwp_gscp /= 0 .OR.&
+       IF ( atm_phy_nwp_config(jg)%inwp_gscp > 0 .OR.&
                       &                 atm_phy_nwp_config(jg)%inwp_convection /= 0  ) THEN
          l_moist = .TRUE.
        END IF
@@ -680,7 +680,7 @@ MODULE mo_nh_testcases
 
      IF ( iforcing == inwp ) THEN
        CALL message(TRIM(routine),' iforcing == inwp')
-       IF ( atm_phy_nwp_config(jg)%inwp_gscp /= 0 .OR.&
+       IF ( atm_phy_nwp_config(jg)%inwp_gscp > 0 .OR.&
                       &                 atm_phy_nwp_config(jg)%inwp_convection /= 0  ) THEN
          l_moist = .TRUE.
        END IF
