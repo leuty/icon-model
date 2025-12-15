@@ -13,13 +13,10 @@
 
 #### NWP Physics
 
-- Bugfix in vdiff interface concerning restart reproducibility
 - Gravity waves parametrisation MS-GWaM (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1647)
-- Allow more than one time interval for lateral boundary conditions (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1880)
 - Revision of diagnostics for ceiling and visibility (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1881)
 - Tuning options to improve 10m-winds in mountainous regions (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1890)
 - Multiscale stochastic pattern generator and iSPPT (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1863)
-- Set taudecay in cover_koe separately for shallow, mid-level and deep convection (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1903)
 - Modified cloud fraction for two-moment cloud ice microphysics (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1769, https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1922)
 - ecRad updates (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1869)
 - Coupling CAMS aerosols with Segal and Khain cloud droplets activation scheme (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1555)
@@ -31,7 +28,6 @@
 - Add constant initial u velocity for torus tests (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1103)
 - Fix variable assignment of some vars for write_initial_state (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/993)
 - Bugfix ocean initial state on GPU (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1133)
-- Fix for surface-level-type for Sea Ice Vars (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1098)
 - Implementation of symmetric IAU in ICON-O (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1020)
 
 ### Soil and Surface
@@ -65,14 +61,11 @@
 ### Infrastructure
 
 - Add namelist parameter for RBF coefficients filenames (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1057)
-- Clean up mo_kind for single and double w/o ecrad (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1009)
 - Fix for timeshift crosscheck affecting dwd_nec_sp (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1144)
 - Add single precision buildbot tests and download of grids (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1058)
 - Refactor Output Coupling: Masking and Half-Level Support (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1097)
 - Enable coupling between atmo on GPU and oce on CPU (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1868)
 - Coupling of icon-waves and ocean (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1833)
-- Distributed GRIB decoding (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1899, https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1920)
-- Merge 2-Moment Microphysics Type Extensions into Parent Types (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1640)
 
 #### Scripting and testing
 
@@ -107,6 +100,46 @@
 - Improve entry point of documentation and add tutorial for beginners (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1027)
 - Open mkexp section and polish supported configurations in the documentation (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1147)
 - Add contributing guidelines for Ragnarok (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1081)
+
+
+# Release notes for icon-2025.10-1
+
+### ICON-Atmo
+
+#### NWP Physics
+
+- Bugfix in vdiff interface concerning restart reproducibility
+- Introducing CO2 prognostic tracer to ecRad to enable emission-driven simulations with interactive land-ocean-atmosphere carbon cycle
+- Allow more than one time interval for lateral boundary conditions
+- Set taudecay in cover_koe separately for shallow, mid-level and deep convection
+- Modified call to SR set_cdnc_from_extdata to get correct update for cloud_num in radiation after restarts
+- Clean-up of mo_nwp_gscp_interface and 2mom microphysics scheme
+- Fixes in Emvorado:
+  - determination of nearest ICON cell
+  - fix interface to eccodes routine codes_open_file
+
+### ICON-Ocean
+
+- Use ice class as vertical axis attribute for 3d sea ice variables
+
+### ICON-ART
+
+- Update the testsuite setup and scripts
+
+### Externals
+
+- Switch to ComIn 0.4.0
+
+### Infrastructure
+
+- Add distributed GRIB decoding
+- Merge 2-Moment Microphysics Type Extensions into Parent Types
+
+#### Building
+
+- Clean up and clarify single-precision options
+- Fixes:
+  - Handle apostrophes in the hostname
 
 
 # Release notes for icon-2025.10
