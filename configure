@@ -2514,9 +2514,9 @@ fi
 acx_subdir_extra_run_0 ()
 {
 icon_try="${MAKE-make} -C '${icon_abs_top_builddir}/externals/yaxt/inst_headers'"
-         { $as_echo "$as_me:${as_lineno-$LINENO}: running $icon_try" >&5
+            { $as_echo "$as_me:${as_lineno-$LINENO}: running $icon_try" >&5
 $as_echo "$as_me: running $icon_try" >&6;}
-         { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$icon_try\""; } >&5
+            { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$icon_try\""; } >&5
   (eval $icon_try) 2>&5
   ac_status=$?
   $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
@@ -11515,8 +11515,7 @@ esac
      as_fn_append acx_subdir_run_args_externals_yac " '$acx_tmp'"
    done
 else
-                 as_fn_append acx_subdir_run_before_externals_yac ' acx_subdir_extra_run_0'
-      set dummy YAXT_CFLAGS="-I${icon_abs_top_builddir}/externals/yaxt/inst_headers" acx_cv_c_lib_func_xt_initialized="${icon_abs_top_builddir}/externals/yaxt/src/.libs/libyaxt_c.a"; shift
+  set dummy YAXT_CFLAGS="-I${icon_abs_top_builddir}/externals/yaxt/inst_headers" ac_cv_header_yaxt_h=yes acx_cv_c_lib_func_xt_initialized="${icon_abs_top_builddir}/externals/yaxt/src/.libs/libyaxt_c.a"; shift
    for acx_tmp; do
      case $acx_tmp in #(
   *\'*) :
@@ -11549,10 +11548,15 @@ esac
      as_fn_append acx_subdir_run_args_externals_yac " '$acx_tmp'"
    done
 fi
-      if test "x$enable_delayed_config" = xyes; then :
+      if test "x$enable_mpi_checks" = xyes; then :
+                 as_fn_append acx_subdir_run_before_externals_yac ' acx_subdir_extra_run_0'
+         if test "x$enable_delayed_config" = xyes; then :
   as_fn_append BUNDLED_RULES "externals/yac/Makefile:| externals/yaxt$as_nl"
 fi
    as_fn_append BUNDLED_RULES "externals/yac: externals/yaxt$as_nl"
+else
+  as_fn_append BUNDLED_RULES "externals/yac: externals/yaxt$as_nl"
+fi
 fi
    if test "x$with_external_mtime" = xyes; then :
   set dummy MTIME_CFLAGS=; shift

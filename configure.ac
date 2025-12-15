@@ -2799,14 +2799,10 @@ version of YAC library @<:@default=$ICON_BUNDLED_CFLAGS@:>@])dnl
    AS_VAR_IF([with_external_yaxt], [yes],
      [ACX_SUBDIR_APPEND_ARGS([externals/yac],
         [YAXT_CFLAGS=], [YAXT_FCFLAGS=])],
-     [ACX_SUBDIR_RUN_EXTRA([externals/yac],
-        [icon_try=dnl
-"${MAKE-make} -C '${icon_abs_top_builddir}/externals/yaxt/inst_headers'"
-         AC_MSG_NOTICE([running $icon_try])
-         AC_TRY_EVAL([icon_try]) >&AS_MESSAGE_LOG_FD])
-      ACX_SUBDIR_APPEND_ARGS([externals/yac],
+     [ACX_SUBDIR_APPEND_ARGS([externals/yac],
         [YAXT_CFLAGS=dnl
 "-I${icon_abs_top_builddir}/externals/yaxt/inst_headers"],
+        [ac_cv_header_yaxt_h=yes],
         [acx_cv_c_lib_func_xt_initialized=dnl
 "${icon_abs_top_builddir}/externals/yaxt/src/.libs/libyaxt_c.a"])
       AS_IF([test x"${icon_bundled_yaxt_fc-no}" != xno],
@@ -2818,7 +2814,14 @@ version of YAC library @<:@default=$ICON_BUNDLED_CFLAGS@:>@])dnl
 "${icon_abs_top_builddir}/externals/yaxt/src/.libs/libyaxt.a dnl
 ${icon_abs_top_builddir}/externals/yaxt/src/.libs/libyaxt_c.a"])],
         [ACX_SUBDIR_APPEND_ARGS([externals/yac], [YAXT_FCFLAGS=])])
-      icon_bundled_config_after_build([externals/yac], [externals/yaxt])])
+      AS_VAR_IF([enable_mpi_checks], [yes],
+        [ACX_SUBDIR_RUN_EXTRA([externals/yac],
+           [icon_try=dnl
+"${MAKE-make} -C '${icon_abs_top_builddir}/externals/yaxt/inst_headers'"
+            AC_MSG_NOTICE([running $icon_try])
+            AC_TRY_EVAL([icon_try]) >&AS_MESSAGE_LOG_FD])
+         icon_bundled_config_after_build([externals/yac], [externals/yaxt])],
+        [icon_bundled_build_after_build([externals/yac], [externals/yaxt])])])
    AS_VAR_IF([with_external_mtime], [yes],
      [ACX_SUBDIR_APPEND_ARGS([externals/yac], [MTIME_CFLAGS=])],
      [ACX_SUBDIR_APPEND_ARGS([externals/yac],
