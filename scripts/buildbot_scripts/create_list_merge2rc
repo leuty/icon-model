@@ -322,7 +322,7 @@ $addexp  checksuite.infrastructure/checkExternals/exp.check_externals_LEVANTE.ru
 ./adddep --from-experiment "checksuite.infrastructure/comin/exp.build_comin_plugins_LEVANTE.run" --to-experiment "checksuite.infrastructure/checkExternals/exp.check_externals_LEVANTE.run" --builders "levante_gcc" --list $listname
 
 #add tests for msgwam submodule
-# $addexp "checksuite.icon-dev/check.atm_msgwam_gc_R2B4" --builders "levante_gcc" --list $listname
+$addexp "checksuite.icon-dev/check.atm_msgwam_gc_R2B4" --builders "levante_gcc" --list $listname
 $addexp "checksuite.icon-dev/check.atm_msgwam_gc_R2B4" --builders "breeze_intel" --list $listname
 $addexp "checksuite.icon-dev/check.atm_msgwam_gc_R2B4" --builders "levante_gcc_hybrid" \
          --runflags "cpu_time=00:10:00 no_of_nodes=2" --list $listname
