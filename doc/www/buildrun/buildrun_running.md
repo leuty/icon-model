@@ -160,9 +160,11 @@ cd ./run && ln -sf ./checksuite.ocean_internal/omip/exp.ocean_omip_long exp.ocea
 ```
 :::
 
+
 (ref_buildrun_gridextpar)=
 ## Grids & External Parameters
 
+(ref_buildrun_grids)=
 ### Grid Files
 
 The ICON model receives information about the horizontal grid from so-called **grid files** in the [NetCDF format](https://www.unidata.ucar.edu/software/netcdf/).
