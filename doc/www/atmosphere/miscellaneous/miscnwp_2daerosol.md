@@ -1,5 +1,6 @@
 (ref_miscnwp_2daero)=
 # Simplified Prognostic Aerosol Module _Prog2DAero_
+{{author}}D. Rieger, DWD{{endauthor}}
 
 ICON contains a simplified, computationally cheap aerosol module _Prog2DAero_. The additional cost in a global simulation is typically below 1%. The idea is to account for the main causes of variability in atmospheric aerosol concentrations not reflected in climatological values. It is based on the [Tegen climatological aerosol](ref_atmosphere_ecrad_aerosol_tegen) which is used for operational numerical weather prediction with ICON. Severeal design choices for _Prog2DAero_ were made based on characteristics of this climatology ([see here](ref_atmosphere_ecrad_aerosol_tegen)). _Prog2DAero_ makes use of the vertically integrated optical depth of the five species Sea Salt, Soil Dust, Sulfate, Organic Carbon and Black Carbon as prognostic variable and adds the following process descriptions:
 

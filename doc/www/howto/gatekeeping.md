@@ -1,5 +1,6 @@
 (ref_gate_keeping)=
 # Gatekeeper Guidelines
+{{author}}Ralf Mueller{{endauthor}}
 _for gatekeepers,only_
 
 The gatekeeper's task is to take the final decision about whether code enters

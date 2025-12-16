@@ -56,6 +56,12 @@ else:
     )
 
 myst_substitutions["base_url"] = project_url + "/-/blob/" + commit_ref_name
+# Optionally, a section author may be added using {{author}}A. Name{{endauthor}}
+# If an author is named, the section should not be changed without consulting that person.
+myst_substitutions["author"] = (
+    """<div style="text-align: right;"><i>Section Author</i></div>\n<div style="text-align: right;"><i>"""
+)
+myst_substitutions["endauthor"] = """</i></div>"""
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
