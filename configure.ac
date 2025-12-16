@@ -2725,6 +2725,8 @@ version of MTIME library @<:@default=$ICON_BUNDLED_CFLAGS@:>@])dnl
      [-DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_MTIME_FCFLAGS"],
      [-DCMAKE_BUILD_TYPE=None],
      [-DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH"],
+dnl The Python interface of YAC requires PIC objects:
+     [-DCMAKE_POSITION_INDEPENDENT_CODE="$icon_yac_python"],
      [-DBUILD_SHARED_LIBS=OFF], [-DBUILD_TESTING=OFF],
      [-DMTIME_ENABLE_PYTHON="$icon_mtime_python"],
      [-DPython_EXECUTABLE="$PYTHON"])
