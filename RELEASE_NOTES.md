@@ -25,6 +25,12 @@
 - Revised 'basic' output list
 - Anthropogenic emission files: Created anthropogenic emission data including aviation sources from the CMIP7 dataset
 
+### Infrastructure
+
+#### Building
+
+- Fix building of the YAC Python interface when the Python interface of MTIME is disabled
+
 
 # Release notes for icon-2025.10-1
 
