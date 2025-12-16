@@ -484,7 +484,6 @@ CONTAINS
     &       p_diag%FKLAM, &
     &       p_diag%FKLAM1, &
     &       p_diag%hs, &
-    &       p_diag%hs_max, &
     &       p_diag%hs_dir, &
     &       p_diag%tpp, &
     &       p_diag%kp, &
@@ -523,7 +522,19 @@ CONTAINS
     &       p_diag%kbar, &
     &       p_diag%T_stokes, &
     &       p_diag%u3d_stokes, &
-    &       p_diag%v3d_stokes)
+    &       p_diag%v3d_stokes, &
+    &       p_diag%steepness, &
+    &       p_diag%thp_adj, &
+    &       p_diag%sigma_f, &
+    &       p_diag%sigma_th, &
+    &       p_diag%qp_goda, &
+    &       p_diag%nu_f_LH, &
+    &       p_diag%bfis, &
+    &       p_diag%relw_fth, &
+    &       p_diag%kurtosis, &
+    &       p_diag%hmaxn, &
+    &       p_diag%hmax, &
+    &       p_diag%Tmax)
 
 
     ! pointer to wave_config(jg) to save some paperwork
@@ -875,16 +886,6 @@ CONTAINS
          & lrestart=.FALSE., loutput=.TRUE.,                        &
          & ldims=shape2d_c, in_group=groups("wave_short"))
 
-    cf_desc    = t_cf_var('hs_max', 'm', 'Maximum individual wave height', datatype_flt)
-    grib2_desc = grib2_var(10, 0, 24, ibits, GRID_UNSTRUCTURED, GRID_CELL)
-    CALL add_var(p_diag_list, 'hs_max', p_diag%hs_max,              &
-         & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
-         & hor_interp=create_hor_interp_metadata(                   &
-         &    hor_intp_type=HINTP_TYPE_LONLAT_BCTR,                 &
-         &    fallback_type=HINTP_TYPE_LONLAT_NNB),                 &
-         & lrestart=.FALSE., loutput=.TRUE.,                        &
-         & ldims=shape2d_c, in_group=groups("wave_short"))
-
     cf_desc    = t_cf_var('hs_dir', 'deg', 'Total mean wave direction', datatype_flt)
     grib2_desc = grib2_var(10, 0, 14, ibits, GRID_UNSTRUCTURED, GRID_CELL)
     CALL add_var(p_diag_list, 'hs_dir', p_diag%hs_dir,              &
@@ -1006,7 +1007,7 @@ CONTAINS
          & ldims=shape2d_c, in_group=groups("wave_short"))
 
     cf_desc    = t_cf_var('ds_sea', 'deg', 'Sea directional wave spread', datatype_flt)
-    grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+    grib2_desc = grib2_var(10, 0, 32, ibits, GRID_UNSTRUCTURED, GRID_CELL)
     CALL add_var(p_diag_list, 'ds_sea', p_diag%ds_sea,              &
          & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
          & lrestart=.FALSE., loutput=.FALSE.,                        &
@@ -1084,7 +1085,7 @@ CONTAINS
          & ldims=shape2d_c, in_group=groups("wave_short"))
 
     cf_desc    = t_cf_var('ds_swell', 'deg', 'Swell directional wave spread', datatype_flt)
-    grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+    grib2_desc = grib2_var(10, 0, 33, ibits, GRID_UNSTRUCTURED, GRID_CELL)
     CALL add_var(p_diag_list, 'ds_swell', p_diag%ds_swell,          &
          & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
          & lrestart=.FALSE., loutput=.TRUE.,                        &
@@ -1116,14 +1117,104 @@ CONTAINS
     CALL add_var(p_diag_list, 'u_stokes', p_diag%u_stokes,          &
          & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
          & lrestart=.FALSE., loutput=.TRUE.,                        &
-         & ldims=shape2d_c)
+         & ldims=shape2d_c, in_group=groups("wave_stokes"))
 
     cf_desc    = t_cf_var('v_stokes', 'ms-1', 'V-component surface Stokes drift', datatype_flt)
     grib2_desc = grib2_var(10, 0, 22, ibits, GRID_UNSTRUCTURED, GRID_CELL)
     CALL add_var(p_diag_list, 'v_stokes', p_diag%v_stokes,          &
          & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
          & lrestart=.FALSE., loutput=.TRUE.,                        &
-         & ldims=shape2d_c)
+         & ldims=shape2d_c, in_group=groups("wave_stokes"))
+
+    !!------------------------------------------------------------------------------------------
+    ! Extreme wave statistics and diagnostics
+    !!------------------------------------------------------------------------------------------
+
+    cf_desc    = t_cf_var('steepness', '-', 'Wave steepness', datatype_flt)
+    grib2_desc = grib2_var(10, 0, 192, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+    CALL add_var(p_diag_list, 'steepness', p_diag%steepness,            &
+         & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
+         & lrestart=.FALSE., loutput=.TRUE.,                        &
+         & ldims=shape2d_c, in_group=groups("wave_extreme"))
+
+    cf_desc    = t_cf_var('thp_adj', '-', 'Adjusted peak direction', datatype_flt)
+    grib2_desc = grib2_var(10, 0, 46, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+    CALL add_var(p_diag_list, 'thp_adj', p_diag%thp_adj,            &
+         & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
+         & lrestart=.FALSE., loutput=.TRUE.,                        &
+         & ldims=shape2d_c, in_group=groups("wave_extreme"))
+
+    cf_desc    = t_cf_var('sigma_f', '-', 'Frequency bandwith', datatype_flt)
+    grib2_desc = grib2_var(255,255,255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+    CALL add_var(p_diag_list, 'sigma_f', p_diag%sigma_f,            &
+         & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
+         & lrestart=.FALSE., loutput=.TRUE.,                        &
+         & ldims=shape2d_c, in_group=groups("wave_extreme"))
+
+    cf_desc    = t_cf_var('sigma_th', '-', 'Directional bandwith', datatype_flt)
+    grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+    CALL add_var(p_diag_list, 'sigma_th', p_diag%sigma_th,          &
+         & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
+         & lrestart=.FALSE., loutput=.TRUE.,                        &
+         & ldims=shape2d_c, in_group=groups("wave_extreme"))
+
+    cf_desc    = t_cf_var('qp_goda', '-', 'Goda peakedness parameter', datatype_flt)
+    grib2_desc = grib2_var(10, 0, 98, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+    CALL add_var(p_diag_list, 'qp_goda', p_diag%qp_goda,            &
+         & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
+         & lrestart=.FALSE., loutput=.TRUE.,                        &
+         & ldims=shape2d_c, in_group=groups("wave_extreme"))
+
+    cf_desc    = t_cf_var('nu_f_LH', '-', 'Longuet-Higgins broadbandness parameter', datatype_flt)
+    grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+    CALL add_var(p_diag_list, 'nu_f_LH', p_diag%nu_f_LH,            &
+         & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
+         & lrestart=.FALSE., loutput=.TRUE.,                        &
+         & ldims=shape2d_c, in_group=groups("wave_extreme"))
+
+    cf_desc    = t_cf_var('bfis', '-', 'finite-depth Benjamin-Feir index', datatype_flt)
+    grib2_desc = grib2_var(10, 0, 44, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+    CALL add_var(p_diag_list, 'bfis', p_diag%bfis,                &
+         & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
+         & lrestart=.FALSE., loutput=.TRUE.,                        &
+         & ldims=shape2d_c, in_group=groups("wave_extreme"))
+
+    cf_desc    = t_cf_var('relw_fth', '-', 'Relative direction-frequency width', datatype_flt)
+    grib2_desc = grib2_var(10, 0, 80, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+    CALL add_var(p_diag_list, 'relw_fth', p_diag%relw_fth,          &
+         & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
+         & lrestart=.FALSE., loutput=.TRUE.,                        &
+         & ldims=shape2d_c, in_group=groups("wave_extreme"))
+
+    cf_desc    = t_cf_var('kurtosis', '-', 'Spectral kurtosis', datatype_flt)
+    grib2_desc = grib2_var(10, 0, 43, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+    CALL add_var(p_diag_list, 'kurtosis', p_diag%kurtosis,          &
+         & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
+         & lrestart=.FALSE., loutput=.TRUE.,                        &
+         & ldims=shape2d_c, in_group=groups("wave_extreme"))
+
+    cf_desc    = t_cf_var('hmaxn', '-', 'Normalised max. significant wave height', datatype_flt)
+    grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+    CALL add_var(p_diag_list, 'hmaxn', p_diag%hmaxn,                &
+         & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
+         & lrestart=.FALSE., loutput=.TRUE.,                        &
+         & ldims=shape2d_c, in_group=groups("wave_extreme"))
+
+    ! The grib2 reference is the envelope-max individual wave height
+    cf_desc    = t_cf_var('hmax', 'm', 'Max. significant wave height', datatype_flt)
+    grib2_desc = grib2_var(10, 0, 93, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+    CALL add_var(p_diag_list, 'hmax', p_diag%hmax,                  &
+         & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
+         & lrestart=.FALSE., loutput=.TRUE.,                        &
+         & ldims=shape2d_c, in_group=groups("wave_extreme"))
+
+    cf_desc    = t_cf_var('Tmax', 's', 'Max. wave period', datatype_flt)
+    grib2_desc = grib2_var(10, 0, 23, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+    CALL add_var(p_diag_list, 'Tmax', p_diag%Tmax,                  &
+         & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
+         & lrestart=.FALSE., loutput=.TRUE.,                        &
+         & ldims=shape2d_c, in_group=groups("wave_extreme"))
+
 
     IF (var_in_output%last_idx_depth .OR. &
       & var_in_output%kbar           .OR. &
