@@ -873,6 +873,13 @@ CONTAINS
 
           IF (fr_seaice(jc,i_blk) >= frsi_min) THEN
             h_ice(jc,i_blk) = MIN(MAX(hice_min, h_ice(jc,i_blk)), hice_max)
+            IF (fr_seaice(jc,i_blk) > 1._wp-frsi_min) THEN
+              fr_seaice(jc,i_blk) = 1.0_wp
+            END IF
+          ELSE
+            ! fr_seaice close to 0
+            fr_seaice(jc,i_blk) = 0._wp
+            h_ice(jc,i_blk)     = 0._wp
           END IF
         END DO
         !$ACC END PARALLEL
