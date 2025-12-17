@@ -575,6 +575,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
     CALL add_var( diag_list, 'snow_gsp_rate', diag%snow_gsp_rate,            &
                 & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,   &
                 & ldims=shape2d,                                             &
+                & lrestart=.true.,                                           &
                 & isteptype=TSTEP_INSTANT,                                   &
                 & in_group=groups("iau_init_vars"),                          &
                 & lopenacc=.TRUE. )
