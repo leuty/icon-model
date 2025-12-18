@@ -48,6 +48,7 @@ function fill_hostfile(){
        if [ $left -le $(($myblock*$nio)) ] ; then
          myblock=$(($myblock - 1))
          iohsts="$iohsts $hst"
+         left=$(($left - 1))
        fi
        for ib in $(seq 1 $myblock); do
          echo "$hst"

@@ -72,6 +72,10 @@ rm -f ${final_status_file} ${current_status_file}
 # OpenMP environment variables
 # ----------------------------
 #%  set threads_per_task = JOB.threads_per_task|d(JOB.default_threads_per_task)|d(1)|int
+#%  if openmp_enabled is not set and threads_per_task > 1:
+#%    do die("{} threads requested, but multithreading (OpenMP) support was not enabled during build".format(threads_per_task))
+#%  endif
+
 export OMP_NUM_THREADS=%{threads_per_task}
 export ICON_THREADS=$OMP_NUM_THREADS
 #
@@ -520,9 +524,9 @@ if [ $mpi_atm_io_procs -eq 0 ] ; then
   atm_io_line="0 numactl --interleave=0-3 -- ${MODEL}"
 else
   if [ $((atm_per_node*2)) -lt  $mpi_procs_pernode ] ; then
-    atm_io_line="$((mpi_atm_procs -1 - mpi_atm_io_procs))-$((mpi_atm_procs -1)) numactl --interleave=0-3 -- ${MODEL}"
+    atm_io_line="$((mpi_atm_procs - mpi_atm_io_procs))-$((mpi_atm_procs -1)) numactl --interleave=0-3 -- ${MODEL}"
   else
-    atm_io_line="$((mpi_atm_procs -1 - mpi_atm_io_procs))-$((mpi_atm_procs -1)) numactl --interleave=4-7 -- ${MODEL}"
+    atm_io_line="$((mpi_atm_procs - mpi_atm_io_procs))-$((mpi_atm_procs -1)) numactl --interleave=4-7 -- ${MODEL}"
   fi
 fi
 oce_io_line=
@@ -535,7 +539,7 @@ if [ $mpi_oce_io_procs -eq 0 ] ; then
     fi
   fi
 else
-  oce_io_line="$((mpi_atm_procs + mpi_oce_procs -1 - mpi_oce_io_procs))-$((mpi_atm_procs + mpi_oce_procs -1)) numactl --interleave=4-7 -- ${MODEL}"
+  oce_io_line="$((mpi_atm_procs + mpi_oce_procs - mpi_oce_io_procs))-$((mpi_atm_procs + mpi_oce_procs -1)) numactl --interleave=4-7 -- ${MODEL}"
 fi
 
 #%  endif
