@@ -8,10 +8,8 @@
 # See LICENSES/ for license information
 # SPDX-License-Identifier: BSD-3-Clause
 # ---------------------------------------------------------------
-import ast
 import copy
 import os
-import re
 import shutil
 import subprocess
 import sys
@@ -30,10 +28,6 @@ from yaml_experiment_test_processor import ExperimentTestCollection
 probtest_container = "srun --container-writable --environment=probtest"
 probtest = "/probtest/probtest.py"
 # Full bash command that runs inside the container
-probtest_conda = (
-    f"source /opt/conda/miniconda/etc/profile.d/conda.sh && "
-    f"conda activate probtest"
-)
 
 # Set EDF_PATH if not set to know the path to the toml file
 if "EDF_PATH" not in os.environ:
@@ -64,35 +58,27 @@ def check_ref_file(experiment, build_dir):
             )
 
 
-def update_member_runscript(
-    runscript_path: Path,
-    parent_exp: str,
-    exp: str,
-    member_id: int,
-    perturb_amplitude: float,
-):
-    """Updates the run script with to the new experiment name and perturbation seed and amplitude."""
-    with open(runscript_path, "r") as file:
-        content = file.read()
+def prepare_probtest_mounts(base_toml: Path, mounts: list[str]) -> Path:
+    """Return a probtest_mounts.toml file containing the given mount entries,
+    only adding entries that are not already present.
+    """
+    probtest_toml_mounts = base_toml.with_name("probtest_mounts.toml")
+    shutil.copy(base_toml, probtest_toml_mounts)
 
-    seed = subprocess.check_output(
-        [
-            "bash",
-            "-c",
-            f"{probtest_container} python -c \"import sys; sys.path.insert(0, '/probtest/util'); "
-            f'from utils import get_seed_from_member_id; print(get_seed_from_member_id({member_id}))"',
-        ],
-        universal_newlines=True,
-    ).strip()
+    with base_toml.open("r") as f:
+        config = toml.load(f)
 
-    content = content.replace(parent_exp, exp)
-    content = re.sub(r"pinit_seed .*", f"pinit_seed = {seed}", content)
-    content = re.sub(
-        r"pinit_amplitude .*", f"pinit_amplitude = {perturb_amplitude}", content
-    )
+    config_mounts = copy.deepcopy(config)
+    existing = set(config_mounts.get("mounts", []))
 
-    with open(runscript_path, "w") as file:
-        file.write(content)
+    new_mounts = [m for m in mounts if m not in existing]
+    if existing or new_mounts:
+        config_mounts["mounts"] = list(existing | set(new_mounts))
+
+    with probtest_toml_mounts.open("w") as f:
+        toml.dump(config_mounts, f)
+
+    return probtest_toml_mounts
 
 
 def generate_stats_file(
@@ -100,7 +86,7 @@ def generate_stats_file(
     parent_experiment,
     build_dir,
     member_name=None,
-    stats_file_path=None,
+    stats_file_name=None,
     file_id=None,
 ):
     """Generates the stats file for the given experiment."""
@@ -116,22 +102,38 @@ def generate_stats_file(
         file_id = etc.get_file_ids_for_exp_as_string(parent_experiment)
 
     # Determine stats file name
-    if not stats_file_path:
-        stats_file_path = build_dir / f"stats_{experiment}.csv"
+    if not stats_file_name:
+        stats_file_name = build_dir / f"stats_{experiment}.csv"
 
     # Commands to run inside container
     probtest_init = f"{probtest} init {file_id}"
     probtest_stats = (
         f"{probtest} stats --no-ensemble "
-        f"--stats-file-name {stats_file_path} "
+        f"--stats-file-name {stats_file_name} "
         f"--model-output-dir {model_output_dir}"
     )
 
+    # If the model_output_dir is not a subdirectory of EDF_PATH, we need to add a mount
+    EDF_PATH = Path(get_env_var("EDF_PATH"))
+    if EDF_PATH not in model_output_dir.parents:
+        mounts = [f"{model_output_dir}:{model_output_dir}"]
+        probtest_toml = EDF_PATH / "probtest.toml"
+        probtest_toml_mounts = prepare_probtest_mounts(probtest_toml, mounts)
+        container_cmd = (
+            "srun --container-writable --environment=probtest_mounts"
+        )
+    else:
+        container_cmd = probtest_container
+
     subprocess.run(
-        f'{probtest_container} bash -c "{probtest_conda} && {probtest_init} && {probtest_stats}"',
+        f'{container_cmd} bash -c "{probtest_init} && {probtest_stats}"',
         check=True,
         shell=True,
     )
+
+    # Delete probtest_mounts.toml after use
+    if "probtest_toml_mounts" in locals():
+        os.remove(probtest_toml_mounts)
 
 
 def generate_tolerance_file(
@@ -165,8 +167,8 @@ def generate_tolerance_file(
     )
 
     # Generate tolerance file
-    stats_file_path = build_dir / f"stats_{experiment}_{{member_id}}.csv"
-    tolerance_file_path = build_dir / f"{experiment}_tolerance.csv"
+    ensemble_files = build_dir / f"stats_{experiment}_{{member_id}}.csv"
+    tolerance_files = build_dir / f"{experiment}_tolerance.csv"
 
     # Ensure correct reference file is available
     check_ref_file(experiment, build_dir)
@@ -174,14 +176,14 @@ def generate_tolerance_file(
     probtest_tolerance = (
         probtest
         + " tolerance"
-        + " --stats-file-name "
-        + str(stats_file_path)
-        + " --tolerance-file-name "
-        + str(tolerance_file_path)
+        + " --ensemble-files "
+        + str(ensemble_files)
+        + " --tolerance-files "
+        + str(tolerance_files)
     )
 
     subprocess.run(
-        f'{probtest_container} bash -c "{probtest_conda} && {probtest_init} && {probtest_tolerance}"',
+        f'{probtest_container} bash -c "{probtest_init} && {probtest_tolerance}"',
         check=True,
         shell=True,
     )
@@ -196,50 +198,33 @@ def generate_tolerance_file(
 def run_tolerance_check(
     etc,
     experiment,
-    input_file_cur,
-    input_file_ref,
-    tolerance_file_name,
-    factor,
     file_id,
+    current_files,
+    reference_files,
+    tolerance_files,
+    factor,
 ):
     """Runs the tolerance check using the given input file, reference file, and tolerance file."""
     bb_name = get_env_var("BB_NAME")
     EDF_PATH = Path(get_env_var("EDF_PATH"))
 
+    current_file = Path(current_files).resolve()
+    reference_file = Path(reference_files).resolve()
+    tolerance_file = Path(tolerance_files).resolve()
+
     # Mount input, references and tolerances files in probtest container
     probtest_toml = EDF_PATH / f"probtest.toml"
-    probtest_toml_mounts = EDF_PATH / f"probtest_mounts.toml"
-    if not os.path.exists(probtest_toml):
-        raise FileNotFoundError(f"File not found: {probtest_toml}")
-    else:
-        shutil.copy(probtest_toml, probtest_toml_mounts)
+    probtest_toml = EDF_PATH / "probtest.toml"
+    mounts = [
+        f"{current_file}:{current_file}",
+        f"{reference_file}:{reference_file}",
+        f"{tolerance_file}:{tolerance_file}",
+    ]
 
-    input_file = Path(input_file_cur).resolve()
-    reference_file = Path(input_file_ref).resolve()
-    tolerance_file = Path(tolerance_file_name).resolve()
-    mount_entry_cur = f"{input_file}:{input_file}"
-    mount_entry_ref = f"{reference_file}:{reference_file}"
-    mount_entry_tol = f"{tolerance_file}:{tolerance_file}"
-
-    with probtest_toml.open("r") as f:
-        config = toml.load(f)
-    # Ensure "mounts" key exists and add the new mount if not already present
-    config_mounts = copy.deepcopy(config)
-    if "mounts" in config_mounts:
-        if str(mount_entry_cur) not in config_mounts["mounts"]:
-            config_mounts["mounts"].append(str(mount_entry_cur))
-        if str(mount_entry_ref) not in config_mounts["mounts"]:
-            config_mounts["mounts"].append(str(mount_entry_ref))
-        if str(mount_entry_tol) not in config_mounts["mounts"]:
-            config_mounts["mounts"].append(str(mount_entry_tol))
-    else:
-        config_mounts["mounts"] = [
-            str(mount_entry_cur),
-            str(mount_entry_ref),
-            str(mount_entry_tol),
-        ]
-    with probtest_toml_mounts.open("w") as f:
-        toml.dump(config_mounts, f)
+    probtest_toml_mounts = prepare_probtest_mounts(probtest_toml, mounts)
+    probtest_container_mounts = (
+        "srun --container-writable --environment=probtest_mounts"
+    )
 
     # Get file IDs from YAML files if not given
     if not file_id:
@@ -258,11 +243,11 @@ def run_tolerance_check(
     probtest_check = (
         probtest
         + " check"
-        + " --input-file-cur "
-        + str(input_file)
-        + " --input-file-ref "
+        + " --current-files "
+        + str(current_file)
+        + " --reference-files "
         + str(reference_file)
-        + " --tolerance-file-name "
+        + " --tolerance-files "
         + str(tolerance_file)
         + " --factor "
         + str(factor)
@@ -273,10 +258,13 @@ def run_tolerance_check(
         "srun --container-writable --environment=probtest_mounts"
     )
     subprocess.run(
-        f'{probtest_container_mounts} bash -c "{probtest_conda} && {probtest_init} && {probtest_check}"',
+        f'{probtest_container_mounts} bash -c "{probtest_init} && {probtest_check}"',
         check=True,
         shell=True,
     )
+
+    # Delete probtest_mounts.toml after use
+    os.remove(probtest_toml_mounts)
 
 
 def select_members(etc, experiment, build_dir, file_id):
@@ -292,11 +280,11 @@ def select_members(etc, experiment, build_dir, file_id):
         probtest + " init " + file_id + " --experiment-name " + experiment
     )
 
-    stats_file_path = build_dir / f"stats_{experiment}_{{member_id}}.csv"
-    selected_members_file_path = (
+    ensemble_files = build_dir / f"stats_{experiment}_{{member_id}}.csv"
+    selected_members_file_name = (
         build_dir / f"{experiment}_selected_members.csv"
     )
-    tolerance_file_path = build_dir / f"{experiment}_tolerance.csv"
+    tolerance_file = build_dir / f"{experiment}_tolerance.csv"
     reference_file_path = build_dir / f"stats_{experiment}_ref.csv"
 
     # Ensure correct reference file is available
@@ -306,35 +294,35 @@ def select_members(etc, experiment, build_dir, file_id):
     probtest_select = (
         probtest
         + " select-members"
-        + " --stats-file-name "
-        + str(stats_file_path)
+        + " --ensemble-files "
+        + str(ensemble_files)
         + " --selected-members-file-name "
-        + str(selected_members_file_path)
+        + str(selected_members_file_name)
         + " --max-member-count 20"
         # GitLab-CI does not allow more than 50 dependents for a single job
         # use 49 members instead
         + " --total-member-count 49"
         + " --min-factor 5"
         + " --max-factor 50"
-        + " --tolerance-file-name "
-        + str(tolerance_file_path)
+        + " --tolerance-files "
+        + str(tolerance_file)
     )
 
     # Generate tolerance file from all members
     probtest_tolerance = (
         probtest
         + " tolerance"
-        + " --stats-file-name "
-        + str(stats_file_path)
-        + " --tolerance-file-name "
-        + str(tolerance_file_path)
+        + " --ensemble-files "
+        + str(ensemble_files)
+        + " --tolerance-files "
+        + str(tolerance_file)
         + " --member-ids '"
         + ",".join(str(i) for i in range(1, 50))
         + "'"
     )
 
     subprocess.run(
-        f'{probtest_container} bash -c "{probtest_conda} && {probtest_init}  && {probtest_select} && {probtest_tolerance}"',
+        f'{probtest_container} bash -c "{probtest_init}  && {probtest_select} && {probtest_tolerance}"',
         check=True,
         shell=True,
     )
@@ -367,7 +355,8 @@ def ensemble_member(
             experiment = parent_experiment
 
     run_dir = build_dir / "run"
-    runscript_path = run_dir / f"exp.{experiment}.run"
+    perturbed_run_script_name = f"exp.{experiment}.run"
+    run_script_name = f"exp.{parent_experiment}.run"
 
     # Create member runscript
     if parent_experiment != experiment:
@@ -375,33 +364,56 @@ def ensemble_member(
             member_id = int(get_env_var("MEMBER_ID"), 0)
         if not perturb_amplitude:
             perturb_amplitude = get_env_var("PERTURB_AMPLITUDE")
-        shutil.copy(run_dir / f"exp.{parent_experiment}.run", runscript_path)
-        update_member_runscript(
-            runscript_path,
-            parent_experiment,
-            experiment,
-            member_id,
-            perturb_amplitude,
+        rhs_new = f"{{seed}},{perturb_amplitude}"
+
+        # Generate probtest.json
+        probtest_init = f"{probtest} init"
+        # Generate runscript for member
+        probtest_member = (
+            probtest
+            + " run-ensemble"
+            + " --dry"
+            + " --run-dir"
+            + f" {run_dir}"
+            + " --run-script-name"
+            + f" {run_script_name}"
+            + " --perturbed-run-script-name"
+            + f" {perturbed_run_script_name}"
+            + " --member-ids"
+            + f" {member_id}"
+            + " --experiment-name"
+            + f" {parent_experiment}"
+            + " --perturbed-experiment-name"
+            + f" {experiment}"
+            + " --rhs-new"
+            + f" {rhs_new}"
         )
-        stats_file_path = (
+        subprocess.run(
+            f'{probtest_container} bash -c "{probtest_init} && {probtest_member}"',
+            check=True,
+            shell=True,
+        )
+        run_script_path = build_dir / "run" / perturbed_run_script_name
+        stats_file_name = (
             build_dir / f"stats_{parent_experiment}_{member_id}.csv"
         )
     else:
-        stats_file_path = build_dir / f"stats_{experiment}_ref.csv"
+        run_script_path = build_dir / "run" / run_script_name
+        stats_file_name = build_dir / f"stats_{experiment}_ref.csv"
 
     # Create experiments folder
     os.makedirs(build_dir / "experiments", exist_ok=True)
 
     # Run member
-    os.chmod(runscript_path, 0o755)
-    subprocess.run([runscript_path], check=True, stdout=subprocess.PIPE)
+    os.chmod(run_script_path, 0o755)
+    subprocess.run([run_script_path], check=True, stdout=subprocess.PIPE)
 
     generate_stats_file(
         etc,
         parent_experiment,
         build_dir=build_dir,
         member_name=experiment,
-        stats_file_path=stats_file_path,
+        stats_file_name=stats_file_name,
         file_id=file_id,
     )
 
@@ -410,8 +422,8 @@ def run_ensemble(
     etc,
     experiment,
     build_dir,
-    member_ids=None,
     file_id=None,
+    member_ids=None,
     perturb_amplitude=1e-14,
 ):
     """Runs the ensemble with perturbated members and creates the stats files."""
@@ -466,9 +478,7 @@ def run_ensemble(
 @click.option(
     "--member-name", help="Name of member in case of an ensemble run."
 )
-@click.option(
-    "--stats-file-path", help="Stats file path for stats file generation."
-)
+@click.option("--stats-file-name", help="Name of stats file to be created.")
 @click.option(
     "--file-id",
     nargs=2,
@@ -478,25 +488,25 @@ def run_ensemble(
     help="Unique identifier and file pattern.",
 )
 @click.option(
-    "--input-file-cur", help="Path to stats file to run the tolerance check."
+    "--member-ids",
+    type=str,
+    help="Comma separated list of members (e.g. '1,3,14').",
 )
 @click.option(
-    "--input-file-ref",
+    "--current-files", help="Path to stats file to run the tolerance check."
+)
+@click.option(
+    "--reference-files",
     help="Path to the reference file for the tolerance check.",
 )
 @click.option(
-    "--tolerance-file-name",
+    "--tolerance-files",
     help="Path to the tolerance file for the tolerance check.",
 )
 @click.option(
     "--factor",
     type=float,
     help="Tolerance factor.",
-)
-@click.option(
-    "--member-ids",
-    type=str,
-    help="Comma separated list of members (e.g. '1,3,14').",
 )
 @click.option(
     "--perturb-amplitude",
@@ -509,13 +519,13 @@ def main(
     experiment,
     build_dir,
     member_name,
-    stats_file_path,
+    stats_file_name,
     file_id,
-    input_file_cur,
-    input_file_ref,
-    tolerance_file_name,
-    factor,
     member_ids,
+    current_files,
+    reference_files,
+    tolerance_files,
+    factor,
     perturb_amplitude,
 ):
     if not build_dir:
@@ -526,7 +536,7 @@ def main(
     etc = ExperimentTestCollection()
     if task == "stats":
         generate_stats_file(
-            etc, experiment, build_dir, member_name, stats_file_path, file_id
+            etc, experiment, build_dir, member_name, stats_file_name, file_id
         )
     elif task == "tolerance":
         generate_tolerance_file(etc, experiment, build_dir, file_id, member_ids)
@@ -534,11 +544,11 @@ def main(
         run_tolerance_check(
             etc,
             experiment,
-            input_file_cur,
-            input_file_ref,
-            tolerance_file_name,
-            factor,
             file_id,
+            current_files,
+            reference_files,
+            tolerance_files,
+            factor,
         )
     elif task == "select-members":
         select_members(etc, experiment, build_dir, file_id)
@@ -549,8 +559,8 @@ def main(
             etc,
             experiment,
             build_dir,
-            member_ids,
             file_id,
+            member_ids,
             perturb_amplitude=1e-14,
         )
 

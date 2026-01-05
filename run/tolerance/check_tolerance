@@ -102,13 +102,13 @@ if [[ "${builder}" == santis* ]]; then
     python3 scripts/cscs_ci/probtest_container_wrapper.py stats "$EXPERIMENT" \
       --build-dir "${MODEL_DIR1}" \
       --member-name "${EXP_BASE}" \
-      --stats-file-path "${MODEL_DIR1}/${EXPERIMENT}.csv"
+      --stats-file-name "${MODEL_DIR1}/${EXPERIMENT}.csv"
 
     # Run tolerance check
     python3 scripts/cscs_ci/probtest_container_wrapper.py check "$EXPERIMENT" \
-      --input-file-cur "${EXPERIMENT}.csv" \
-      --input-file-ref "${CPU_REFERENCE}/${EXPERIMENT}_reference.csv" \
-      --tolerance-file-name "${CPU_REFERENCE}/${EXPERIMENT}_tolerance.csv"
+      --current-files "${EXPERIMENT}.csv" \
+      --reference-files "${CPU_REFERENCE}/${EXPERIMENT}_reference.csv" \
+      --tolerance-files "${CPU_REFERENCE}/${EXPERIMENT}_tolerance.csv"
 else
     LOG=probtest_${EXPERIMENT}.log
 
