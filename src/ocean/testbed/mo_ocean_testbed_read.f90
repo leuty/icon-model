@@ -182,13 +182,13 @@ CONTAINS
         &      dummy_patch%verts%dist_io_data)
 
       CALL setup_distrib_read(p_n_work * 2 * nproma, &
-        &                     dummy_patch%cells%decomp_info, &
+        &                     dummy_patch%cells%decomp_info%glb_index, &
         &                     dummy_patch%cells%dist_io_data)
       CALL setup_distrib_read(p_n_work * 2 * nproma, &
-        &                     dummy_patch%edges%decomp_info, &
+        &                     dummy_patch%edges%decomp_info%glb_index, &
         &                     dummy_patch%edges%dist_io_data)
       CALL setup_distrib_read(p_n_work * 2 * nproma, &
-        &                     dummy_patch%verts%decomp_info, &
+        &                     dummy_patch%verts%decomp_info%glb_index, &
         &                     dummy_patch%verts%dist_io_data)
 
       dummy_patch%n_patch_cells = 2*nproma

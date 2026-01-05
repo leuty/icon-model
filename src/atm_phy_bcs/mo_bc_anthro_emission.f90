@@ -15,9 +15,6 @@ MODULE mo_bc_anthro_emission
 
   USE mo_kind,            ONLY: wp, i8
   USE mo_exception,       ONLY: finish, message, message_text
-  USE mo_netcdf,          ONLY: nf90_nowrite, nf90_noerr
-  USE mo_netcdf_parallel, ONLY: p_nf90_open, p_nf90_inq_dimid, p_nf90_inquire_dimension, &
-       &                        p_nf90_inq_varid, p_nf90_get_var, p_nf90_close
   USE mo_bcs_time_interpolation, ONLY: t_time_interpolation_weights
   USE mo_run_config,      ONLY: msg_level
   USE mo_grid_config,     ONLY: n_dom

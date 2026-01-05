@@ -5062,7 +5062,7 @@ CONTAINS
     ! setup io data
     ALLOCATE(decomp_info%glb_index(SIZE(local_ptr)))
     decomp_info%glb_index = (/(i, i=LBOUND(local_ptr,1), UBOUND(local_ptr,1))/)
-    CALL setup_distrib_read(no_of_cells, decomp_info, io_data)
+    CALL setup_distrib_read(no_of_cells, decomp_info%glb_index, io_data)
 
     ! read cell owner
     IF (p_pe_work == 0) &

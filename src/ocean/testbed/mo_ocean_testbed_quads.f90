@@ -30,7 +30,6 @@ MODULE mo_ocean_testbed_quads
   USE mo_grid_config,         ONLY: dynamics_grid_filename
 !   USE mo_test_netcdf_read,    ONLY: netcdf_write_oncells_3D_time
   USE mo_read_interface
-  USE mo_read_netcdf_distributed, ONLY: setup_distrib_read, delete_distrib_read
   USE mo_communication,       ONLY: idx_no, blk_no, makeScatterPattern
   USE mo_util_file,           ONLY: util_unlink
 

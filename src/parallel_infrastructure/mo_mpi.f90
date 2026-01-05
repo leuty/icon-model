@@ -961,6 +961,8 @@ MODULE mo_mpi
 
   INTERFACE p_alltoallv
     MODULE PROCEDURE p_alltoallv_int
+    MODULE PROCEDURE p_alltoallv_dp
+    MODULE PROCEDURE p_alltoallv_sp
     MODULE PROCEDURE p_alltoallv_int_i8_1d
     MODULE PROCEDURE p_alltoallv_dp_2d
     MODULE PROCEDURE p_alltoallv_sp_2d
@@ -11758,6 +11760,54 @@ CONTAINS
        sendbuf(sdispls(1)+1:sdispls(1)+sendcounts(1))
 #endif
    END SUBROUTINE p_alltoallv_int
+
+   SUBROUTINE p_alltoallv_dp (sendbuf, sendcounts, sdispls, &
+     &                        recvbuf, recvcounts, rdispls, comm)
+     REAL(dp),          INTENT(in) :: sendbuf(:)
+     INTEGER,           INTENT(in) :: sendcounts(:), sdispls(:)
+     REAL(dp),          INTENT(inout) :: recvbuf(:)
+     INTEGER,           INTENT(in) :: recvcounts(:), rdispls(:)
+     INTEGER,           INTENT(in) :: comm
+#if !defined(NOMPI)
+     CHARACTER(*), PARAMETER :: routine = modname//"::p_alltoallv_dp"
+     INTEGER :: p_comm, p_error
+
+     p_comm = comm
+     CALL MPI_ALLTOALLV(sendbuf, sendcounts, sdispls, p_real_dp, &
+       &                recvbuf, recvcounts, rdispls, p_real_dp, &
+       &                p_comm, p_error)
+     IF (p_error /=  MPI_SUCCESS) &
+       CALL finish (routine, 'Error in MPI_ALLTOALLV operation!')
+#else
+     ! displs are zero based -> have to add 1
+     recvbuf(rdispls(1)+1:rdispls(1)+recvcounts(1)) = &
+       sendbuf(sdispls(1)+1:sdispls(1)+sendcounts(1))
+#endif
+   END SUBROUTINE p_alltoallv_dp
+
+   SUBROUTINE p_alltoallv_sp (sendbuf, sendcounts, sdispls, &
+     &                        recvbuf, recvcounts, rdispls, comm)
+     REAL(sp),          INTENT(in) :: sendbuf(:)
+     INTEGER,           INTENT(in) :: sendcounts(:), sdispls(:)
+     REAL(sp),          INTENT(inout) :: recvbuf(:)
+     INTEGER,           INTENT(in) :: recvcounts(:), rdispls(:)
+     INTEGER,           INTENT(in) :: comm
+#if !defined(NOMPI)
+     CHARACTER(*), PARAMETER :: routine = modname//"::p_alltoallv_sp"
+     INTEGER :: p_comm, p_error
+
+     p_comm = comm
+     CALL MPI_ALLTOALLV(sendbuf, sendcounts, sdispls, p_real_sp, &
+       &                recvbuf, recvcounts, rdispls, p_real_sp, &
+       &                p_comm, p_error)
+     IF (p_error /=  MPI_SUCCESS) &
+       CALL finish (routine, 'Error in MPI_ALLTOALLV operation!')
+#else
+     ! displs are zero based -> have to add 1
+     recvbuf(rdispls(1)+1:rdispls(1)+recvcounts(1)) = &
+       sendbuf(sdispls(1)+1:sdispls(1)+sendcounts(1))
+#endif
+   END SUBROUTINE p_alltoallv_sp
 
    SUBROUTINE p_alltoallv_int_i8_1d(sendbuf, sendcounts, sdispls, &
      &                         recvbuf, recvcounts, rdispls, comm)

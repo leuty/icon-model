@@ -79,6 +79,18 @@ MODULE mo_model_domimp_patches
   USE mpi, ONLY: MPI_INFO_NULL
 #endif
   USE mo_read_netcdf_distributed, ONLY: setup_distrib_read
+  USE ppm_extents, ONLY: extent
+  USE mo_read_netcdf_distributed_cont, ONLY: t_distrib_read_data_cont, &
+    &                                        setup_distrib_read_cont, &
+    &                                        delete_distrib_read_cont, &
+    &                                        distrib_nf_open_cont, &
+    &                                        distrib_nf_close_cont, &
+    &                                        distrib_read_cont, &
+    &                                        distrib_read_root_cont, &
+    &                                        distrib_nf_inq_varexists_cont, &
+    &                                        distrib_nf_inq_attexists_cont, &
+    &                                        distrib_nf_inq_dimlen_cont, &
+    &                                        distrib_nf_get_att_cont
   USE mo_read_interface, ONLY: t_stream_id, p_t_patch, openInputFile, &
     &                          closeFile, on_cells, on_edges, on_vertices, &
     &                          read_2D, read_2D_int, read_2D_extdim, &
@@ -88,37 +100,19 @@ MODULE mo_model_domimp_patches
 #endif
   USE ppm_distributed_array,  ONLY: dist_mult_array_local_ptr, &
     &                               dist_mult_array_expose
-  USE fortran_support,  ONLY: t_ptr_2d_wp, t_ptr_2d_int, t_ptr_3d_wp, t_ptr_3d_int
-  USE mo_netcdf, ONLY: nf90_nowrite, nf90_global, nf90_noerr
+  USE fortran_support,  ONLY: t_ptr_2d_wp, t_ptr_2d_int, t_ptr_3d_wp, &
+    &                         t_ptr_2d_int, t_ptr_3d_int
 
-#if defined(NOMPI) || defined(HAVE_PARALLEL_NETCDF)
-  USE mo_netcdf, ONLY:                      &
-    & nf90_open,                            &
-    & nf90_inquire_dimension,               &
-    & nf90_inquire_attribute,               &
-    & nf90_inq_varid,                       &
-    & nf90_inq_dimid,                       &
-    & nf90_get_var,                         &
-    & nf90_get_att,                         &
-    & nf90_close,                           &
-    & p_nf90x_get_var_local => nf90_get_var
-#if defined(HAVE_PARALLEL_NETCDF)
-  USE mo_netcdf, ONLY: &
-    & nf90_open_par,   &
-    & nf90_mpiio
-#endif
-#else
+  ! Access NetCDF file metadata using mo_netcdf_parallel
+  ! --> single file (p_pe_work == p_io) accesses file and broadcasts result
   USE mo_netcdf_parallel, ONLY:                            &
     & nf90_open               => p_nf90_open,              &
-    & nf90_inquire_dimension  => p_nf90_inquire_dimension, &
     & nf90_inquire_attribute  => p_nf90_inquire_attribute, &
     & nf90_inq_varid          => p_nf90_inq_varid,         &
-    & nf90_inq_dimid          => p_nf90_inq_dimid,         &
     & nf90_get_var            => p_nf90_get_var,           &
     & nf90_get_att            => p_nf90_get_att,           &
     & nf90_close              => p_nf90_close,             &
-    & p_nf90x_get_var_local
-#endif
+    & nf90_nowrite, nf90_global, nf90_noerr
 
   IMPLICIT NONE
 
@@ -442,13 +436,13 @@ CONTAINS
         &      patch(jg)%verts%dist_io_data)
 
       CALL setup_distrib_read(patch(jg)%n_patch_cells_g, &
-                              patch(jg)%cells%decomp_info, &
+                              patch(jg)%cells%decomp_info%glb_index, &
                               patch(jg)%cells%dist_io_data)
       CALL setup_distrib_read(patch(jg)%n_patch_edges_g, &
-                              patch(jg)%edges%decomp_info, &
+                              patch(jg)%edges%decomp_info%glb_index, &
                               patch(jg)%edges%dist_io_data)
       CALL setup_distrib_read(patch(jg)%n_patch_verts_g, &
-                              patch(jg)%verts%decomp_info, &
+                              patch(jg)%verts%decomp_info%glb_index, &
                               patch(jg)%verts%dist_io_data)
       IF (jg > n_dom_start) THEN
 
@@ -457,13 +451,13 @@ CONTAINS
           &      p_patch_local_parent(jg)%verts%dist_io_data)
 
         CALL setup_distrib_read(p_patch_local_parent(jg)%n_patch_cells_g, &
-                                p_patch_local_parent(jg)%cells%decomp_info, &
+                                p_patch_local_parent(jg)%cells%decomp_info%glb_index, &
                                 p_patch_local_parent(jg)%cells%dist_io_data)
         CALL setup_distrib_read(p_patch_local_parent(jg)%n_patch_edges_g, &
-                                p_patch_local_parent(jg)%edges%decomp_info, &
+                                p_patch_local_parent(jg)%edges%decomp_info%glb_index, &
                                 p_patch_local_parent(jg)%edges%dist_io_data)
         CALL setup_distrib_read(p_patch_local_parent(jg)%n_patch_verts_g, &
-                                p_patch_local_parent(jg)%verts%decomp_info, &
+                                p_patch_local_parent(jg)%verts%decomp_info%glb_index, &
                                 p_patch_local_parent(jg)%verts%dist_io_data)
       END IF
     ENDDO
@@ -1006,89 +1000,58 @@ CONTAINS
     !> If .true., read fields related to grid refinement from separate  grid files:
     LOGICAL,                           INTENT(OUT)   ::  lsep_grfinfo
 
-    ! local variables
-    INTEGER, ALLOCATABLE :: &
-      & start_idx_c(:,:), end_idx_c(:,:), &  ! temporary arrays to read in index lists
-      & start_idx_e(:,:), end_idx_e(:,:), &
-      & start_idx_v(:,:), end_idx_v(:,:)
-
     CHARACTER(LEN=uuid_string_length) :: uuid_string, uuid_string_grfinfo
 
     ! status variables
-    INTEGER :: ist, netcd_status, ncid, ncid_grf, dimid, varid, max_cell_connectivity, &
-      &        max_verts_connectivity, ji, jc, ic, ilev, dim_idxlist, ierr, tlen
+    INTEGER :: ji, jc, ic, dim_idxlist
+    INTEGER :: max_cell_connectivity, max_verts_connectivity
+    INTEGER, PARAMETER :: max_edge_connectivity = 2
     INTEGER,  POINTER :: local_ptr(:), local_ptr_2d(:,:)
     REAL(wp), POINTER :: local_ptr_wp_2d(:, :)
-    LOGICAL :: lhave_phys_id
+
+    ! variables for distributed reading
+    TYPE(t_distrib_read_data_cont) :: distrib_io_data_cont
+    INTEGER :: distrib_ncid, distrib_ncid_grf
+
     !-----------------------------------------------------------------------
-
-    ! set dummy values to zero
-!    n_e_halo_cells = 0
-!    n_e_halo_edges = 0
-!    n_e_halo_verts = 0
-
-    ilev = patch_pre%level
 
     CALL message (routine, 'start to init patch_pre')
 
-    WRITE(message_text,'(a,a)') 'Read grid file ', TRIM(patch_pre%grid_filename)
-    CALL message ('', TRIM(message_text))
+    !---------------------------------------------------------------------------
+    ! open the grid file for distributed reading
+    !---------------------------------------------------------------------------
 
-    tlen = LEN_TRIM(patch_pre%grid_filename)
-#if defined (HAVE_PARALLEL_NETCDF) && !defined (NOMPI)
-    ierr = nf90_open_par(patch_pre%grid_filename(1:tlen), &
-       &                 IOR(nf90_nowrite, nf90_mpiio), &
-       &                 p_comm_work, MPI_INFO_NULL, ncid)
-    IF (ierr /= nf90_noerr) THEN
-#endif
-      CALL nf(nf90_open(patch_pre%grid_filename(1:tlen), nf90_nowrite, ncid), routine)
-#if defined (HAVE_PARALLEL_NETCDF) && !defined (NOMPI)
-      WRITE(message_text,'(2a)')  'warning: falling back to serial semantics for&
-           & opening netcdf file ', patch_pre%grid_filename(1:tlen)
-      CALL message(routine,message_text)
-    END IF
-#endif
-
+    CALL message (routine, 'Read grid file ' // TRIM(patch_pre%grid_filename))
+    distrib_ncid = distrib_nf_open_cont(TRIM(patch_pre%grid_filename))
     ! Test, if grid refinement information is available in the NetCDF
     ! file. If not, try to open "patch_pre%grid_filename_grfinfo":
-    lsep_grfinfo = (nf90_inq_varid(ncid, 'refin_c_ctrl', varid) /= nf90_noerr)
+    lsep_grfinfo = &
+      .NOT. distrib_nf_inq_varexists_cont(distrib_ncid, 'refin_c_ctrl')
     IF (lsep_grfinfo) THEN
-      WRITE(message_text,'(a,a)') 'Read gridref info from file ', TRIM(patch_pre%grid_filename_grfinfo)
-      CALL message ('', TRIM(message_text))
-      tlen = LEN_TRIM(patch_pre%grid_filename_grfinfo)
-#if defined (HAVE_PARALLEL_NETCDF) && !defined (NOMPI)
-      ierr = nf90_open_par(patch_pre%grid_filename_grfinfo(1:tlen), &
-         &               IOR(nf90_nowrite, nf90_mpiio), p_comm_work, &
-         &               MPI_INFO_NULL, ncid_grf)
-      IF (ierr /= nf90_noerr) THEN
-#endif
-        CALL nf(nf90_open(patch_pre%grid_filename_grfinfo(1:tlen), nf90_nowrite, &
-             ncid_grf), routine)
-#if defined (HAVE_PARALLEL_NETCDF) && !defined (NOMPI)
-        WRITE(message_text,'(2a)')  'warning: falling back to serial semantics for&
-             & opening netcdf file ', patch_pre%grid_filename_grfinfo(1:tlen)
-        CALL message(routine,message_text)
-      END IF
-#endif
+      CALL message (routine, 'Read gridref info from file ' // TRIM(patch_pre%grid_filename_grfinfo))
+      distrib_ncid_grf = &
+        distrib_nf_open_cont(TRIM(patch_pre%grid_filename_grfinfo))
     ELSE
-      ncid_grf = ncid
+      distrib_ncid_grf = distrib_ncid
     END IF
 
-    uuid_string = 'warning: not given ...' ! To avoid null characters in the standard output
-
-    IF (nf90_get_att(ncid, nf90_global, 'uuidOfHGrid', uuid_string) /= nf90_noerr) THEN
+    IF (distrib_nf_inq_attexists_cont( &
+          distrib_ncid, 'global', 'uuidOfHGrid')) THEN
+      CALL distrib_nf_get_att_cont( &
+        distrib_ncid, 'global', 'uuidOfHGrid', uuid_string)
+      CALL uuid_parse(uuid_string, patch_pre%grid_uuid)
+      CALL message  (routine, 'grid uuid: ' // TRIM(uuid_string))
+    ELSE
+      uuid_string = 'warning: not given ...' ! To avoid null characters in the standard output
       IF (is_grib_output()) THEN
         CALL message(routine, "Warning: uuidOfHGrid not set as an attribute!")
       END IF
       CALL clear_uuid(patch_pre%grid_uuid)
-    ELSE
-      CALL uuid_parse(uuid_string, patch_pre%grid_uuid)
-      WRITE(message_text,'(a,a)') 'grid uuid: ', TRIM(uuid_string)
-      CALL message  (routine, message_text)
     END IF
 
     IF (lsep_grfinfo) THEN ! check correspondence of uuids between main grid file and connectivity info file
-      CALL nf(nf90_get_att(ncid_grf, nf90_global, 'uuidOfHGrid', uuid_string_grfinfo), routine)
+      CALL distrib_nf_get_att_cont( &
+        distrib_ncid_grf, 'global', 'uuidOfHGrid', uuid_string_grfinfo)
       IF (TRIM(uuid_string_grfinfo) /= TRIM(uuid_string)) THEN
         WRITE(message_text,'(a,a)') 'uuidOfHGrid of grfinfo file does not match uuidOfHGrid of basic grid file'
         IF (check_uuid_gracefully) THEN
@@ -1101,45 +1064,51 @@ CONTAINS
 
     ! Read also parent grid UUID for subsequent crosscheck (if available):
     grid_metadata%uuid_grid = uuid_string
-    ierr = nf90_get_att(ncid_grf, nf90_global, 'uuidOfParHGrid', grid_metadata%uuid_par)
-    IF (ierr /= nf90_noerr)  grid_metadata%uuid_par = ""
+    IF (distrib_nf_inq_attexists_cont( &
+          distrib_ncid_grf, 'global', 'uuidOfParHGrid')) THEN
+      CALL distrib_nf_get_att_cont( &
+        distrib_ncid_grf, 'global', 'uuidOfParHGrid', grid_metadata%uuid_par)
+    ELSE
+      grid_metadata%uuid_par = ""
+    END IF
 
     ! Read additional grid identifiers
     ! grid_generatingCenter
     ! grid_generatingSubcenter
     ! number_of_grid_used
     ! ICON_grid_file_uri
-    netcd_status = nf90_get_att(ncid, nf90_global, 'centre', &
-      &                         grid_generatingCenter(ig)  )
-    IF (netcd_status == nf90_noerr) THEN
+    IF (distrib_nf_inq_attexists_cont(distrib_ncid, 'global', 'centre')) THEN
+      CALL distrib_nf_get_att_cont( &
+        distrib_ncid, 'global', 'centre', grid_generatingCenter(ig))
       WRITE(message_text,'(a,i4,a,i4)') &
-        & 'generating center of patch ', ig, ': ',grid_generatingCenter(ig)
+        & 'generating centre of patch ', ig, ': ',grid_generatingCenter(ig)
       CALL message  (routine, TRIM(message_text))
     ELSE
       WRITE(message_text,'(a,i4,a,i4)') &
-        & 'WARNING: generating center of patch ', ig, ' not found'
+        & 'WARNING: generating centre of patch ', ig, ' not found'
       CALL message  (routine, TRIM(message_text))
       ! set default value
       grid_generatingCenter(ig) = 78    ! DWD
     ENDIF
 
-    netcd_status = nf90_get_att(ncid, nf90_global, 'subcentre', &
-      &                         grid_generatingSubcenter(ig)  )
-    IF (netcd_status == nf90_noerr) THEN
+    IF (distrib_nf_inq_attexists_cont(distrib_ncid, 'global', 'subcentre')) THEN
+      CALL distrib_nf_get_att_cont( &
+        distrib_ncid, 'global', 'subcentre', grid_generatingSubcenter(ig))
       WRITE(message_text,'(a,i4,a,i4)') &
-        & 'generating subcenter of patch ', ig, ': ',grid_generatingSubcenter(ig)
+        & 'generating subcentre of patch ', ig, ': ',grid_generatingSubcenter(ig)
       CALL message  (routine, TRIM(message_text))
     ELSE
       WRITE(message_text,'(a,i4,a,i4)') &
-        & 'WARNING: generating subcenter of patch ', ig, ' not found'
+        & 'WARNING: generating subcentre of patch ', ig, ' not found'
       CALL message  (routine, TRIM(message_text))
       ! set default value
       grid_generatingSubcenter(ig) = 255
     ENDIF
 
-    netcd_status = nf90_get_att(ncid, nf90_global, 'number_of_grid_used', &
-      &            number_of_grid_used(ig))
-    IF (netcd_status == nf90_noerr) THEN
+    IF (distrib_nf_inq_attexists_cont( &
+          distrib_ncid, 'global', 'number_of_grid_used')) THEN
+      CALL distrib_nf_get_att_cont( &
+        distrib_ncid, 'global', 'number_of_grid_used', number_of_grid_used(ig))
       WRITE(message_text,'(a,i4,a,i4)') &
         & 'number_of_grid_used of patch ', ig, ': ',number_of_grid_used(ig)
       CALL message  (routine, TRIM(message_text))
@@ -1151,9 +1120,10 @@ CONTAINS
       number_of_grid_used(ig) = 42
     ENDIF
 
-    netcd_status = nf90_get_att(ncid, nf90_global, 'ICON_grid_file_uri', &
-      &                         ICON_grid_file_uri(ig))
-    IF (netcd_status == nf90_noerr) THEN
+    IF (distrib_nf_inq_attexists_cont( &
+          distrib_ncid, 'global', 'ICON_grid_file_uri')) THEN
+      CALL distrib_nf_get_att_cont( &
+        distrib_ncid, 'global', 'ICON_grid_file_uri', ICON_grid_file_uri(ig))
       WRITE(message_text,'(a,i4,a,a)') &
         & 'URI of patch ', ig, ': ',TRIM(ICON_grid_file_uri(ig))
       CALL message  (routine, TRIM(message_text))
@@ -1165,7 +1135,8 @@ CONTAINS
       ICON_grid_file_uri(ig) = ""
     ENDIF
 
-    CALL nf(nf90_get_att(ncid, nf90_global, 'grid_root', grid_metadata%grid_root), routine)
+    CALL distrib_nf_get_att_cont( &
+      distrib_ncid, 'global', 'grid_root', grid_metadata%grid_root)
     IF (grid_metadata%grid_root /= nroot) THEN
       WRITE(message_text,'(a,i4,a,i4)') &
         & 'grid_root attribute:', grid_metadata%grid_root,', R:',nroot
@@ -1175,26 +1146,25 @@ CONTAINS
       CALL finish  (routine, TRIM(message_text))
     END IF
 
-    CALL nf(nf90_get_att(ncid, nf90_global, 'grid_level', grid_metadata%grid_level), routine)
+
+    CALL distrib_nf_get_att_cont( &
+      distrib_ncid, 'global', 'grid_level', grid_metadata%grid_level)
 
     !--------------------------------------
     ! get number of cells, edges and vertices
-    CALL nf(nf90_inq_dimid(ncid, 'edge', dimid), routine)
-    CALL nf(nf90_inquire_dimension(ncid, dimid, len = patch_pre%n_patch_edges_g), routine)
-    CALL nf(nf90_inq_dimid(ncid, 'cell', dimid), routine)
-    CALL nf(nf90_inquire_dimension(ncid, dimid, len = patch_pre%n_patch_cells_g), routine)
-    CALL nf(nf90_inq_dimid(ncid, 'vertex', dimid), routine)
-    CALL nf(nf90_inquire_dimension(ncid, dimid, len = patch_pre%n_patch_verts_g), routine)
-    CALL nf(nf90_inq_dimid(ncid, 'nv', dimid), routine)
-    CALL nf(nf90_inquire_dimension(ncid, dimid, len = max_cell_connectivity), routine)
+    CALL distrib_nf_inq_dimlen_cont( &
+      distrib_ncid, 'edge', patch_pre%n_patch_edges_g)
+    CALL distrib_nf_inq_dimlen_cont( &
+      distrib_ncid, 'cell', patch_pre%n_patch_cells_g)
+    CALL distrib_nf_inq_dimlen_cont( &
+      distrib_ncid, 'vertex', patch_pre%n_patch_verts_g)
+    CALL distrib_nf_inq_dimlen_cont(distrib_ncid, 'nv', max_cell_connectivity)
     patch_pre%cells%max_connectivity = max_cell_connectivity
-    CALL nf(nf90_inq_dimid(ncid, 'ne', dimid), routine)
-    CALL nf(nf90_inquire_dimension(ncid, dimid, len = max_verts_connectivity), routine)
+    CALL distrib_nf_inq_dimlen_cont(distrib_ncid, 'ne', max_verts_connectivity)
     patch_pre%verts%max_connectivity = max_verts_connectivity
     ! dimension of start/end index list fields (always 1 in new patch files, but this
     ! provides backward compatibility)
-    CALL nf(nf90_inq_dimid(ncid, 'max_chdom', dimid), routine)
-    CALL nf(nf90_inquire_dimension(ncid, dimid, len = dim_idxlist), routine)
+    CALL distrib_nf_inq_dimlen_cont(distrib_ncid, 'max_chdom', dim_idxlist)
     IF (dim_idxlist>1) THEN
       WRITE(message_text,'(a)') &
         & 'WARNING: you are using an old grid file with multiple nesting'
@@ -1221,83 +1191,65 @@ CONTAINS
       &                  (patch_pre%nblks_v - 1)*nproma
 
     !
-    ! allocate temporary arrays to read in data form the grid/patch generator
-    !
-    ! integer arrays for index lists
-    ALLOCATE( start_idx_c(min_rlcell:max_rlcell,dim_idxlist),  &
-      & end_idx_c  (min_rlcell:max_rlcell,dim_idxlist),  &
-      & start_idx_e(min_rledge:max_rledge,dim_idxlist),  &
-      & end_idx_e  (min_rledge:max_rledge,dim_idxlist),  &
-      & start_idx_v(min_rlvert:max_rlvert,dim_idxlist),  &
-      & end_idx_v  (min_rlvert:max_rlvert,dim_idxlist),  &
-      & stat=ist )
-
-    IF (ist /= success) THEN
-      CALL finish (routine, 'allocation for array_[cev]_indlist failed')
-    ENDIF
-
-!     write(0,*) "allocate_pre_patch..."
-    !
     ! Allocate patch arrays which are read here
     !
     CALL allocate_pre_patch( patch_pre )
 
-!     write(0,*) "get idx..."
+    !---------------------------------------------------------------------------
+    ! setup distrib_read data structure for reading of larger cell-data arrays
+    !---------------------------------------------------------------------------
+
+    CALL setup_distrib_read_cont( &
+      patch_pre%n_patch_cells_g, patch_pre%cells%local_chunk(1,1), &
+      distrib_io_data_cont)
+
+    !---------------------------------------------------------------------------
+    ! get cell-based data from grid file
+    !---------------------------------------------------------------------------
+
     ! patch_pre%cells%start(:)
     ! patch_pre%cells%end(:)
     ! nesting does not work for hex grids
-    CALL nf(nf90_inq_varid(ncid_grf, 'start_idx_c', varid), routine)
-    CALL nf(nf90_get_var(ncid_grf, varid, patch_pre%cells%start(:), &
-      &                  (/1,1/), (/max_rlcell - min_rlcell + 1, 1/)), &
-      &     routine)
-    CALL nf(nf90_inq_varid(ncid_grf, 'end_idx_c', varid), routine)
-    CALL nf(nf90_get_var(ncid_grf, varid, end_idx_c(:,:)), routine)
+    CALL distrib_read_root_cont( &
+      distrib_ncid_grf, 'start_idx_c', patch_pre%cells%start(:), &
+      (/1,1/), (/max_rlcell - min_rlcell + 1, 1/))
+    CALL distrib_read_root_cont( &
+      distrib_ncid_grf, 'end_idx_c', patch_pre%cells%end(:), &
+      (/1,1/), (/max_rlcell - min_rlcell + 1, 1/))
     ! Needed for backward compatibility of old grids
-    CALL nf(nf90_get_var(ncid_grf, varid, patch_pre%cells%end(:), &
-      &                  (/1,1/), (/max_rlcell - min_rlcell + 1, 1/)), &
-      &     routine)
     IF (dim_idxlist > 1) &
       patch_pre%cells%end(min_rlcell_int) = patch_pre%n_patch_cells_g
 
     ! patch_pre%edges%start(:)
     ! patch_pre%edges%end(:)
-    CALL nf(nf90_inq_varid(ncid_grf, 'start_idx_e', varid), routine)
-    CALL nf(nf90_get_var(ncid_grf, varid, patch_pre%edges%start(:), &
-      &                  (/1,1/), (/max_rledge - min_rledge + 1, 1/)), &
-      &     routine)
-    CALL nf(nf90_inq_varid(ncid_grf, 'end_idx_e', varid), routine)
-    CALL nf(nf90_get_var(ncid_grf, varid, end_idx_e(:,:)), routine)
-    CALL nf(nf90_get_var(ncid_grf, varid, patch_pre%edges%end(:), &
-      &                  (/1,1/), (/max_rledge - min_rledge + 1, 1/)), &
-      &     routine)
+    CALL distrib_read_root_cont( &
+      distrib_ncid_grf, 'start_idx_e', patch_pre%edges%start(:), &
+      (/1,1/), (/max_rledge - min_rledge + 1, 1/))
+    CALL distrib_read_root_cont( &
+      distrib_ncid_grf, 'end_idx_e', patch_pre%edges%end(:), &
+      (/1,1/), (/max_rledge - min_rledge + 1, 1/))
     ! Needed for backward compatibility of old grids
     IF (dim_idxlist > 1) &
       patch_pre%edges%end(min_rledge_int) = patch_pre%n_patch_edges_g
 
     ! patch_pre%verts%start(:)
     ! patch_pre%verts%end(:)
-    CALL nf(nf90_inq_varid(ncid_grf, 'start_idx_v', varid), routine)
-    CALL nf(nf90_get_var(ncid_grf, varid, patch_pre%verts%start(:), &
-      &                  (/1,1/), (/max_rlvert - min_rlvert + 1, 1/)), &
-      &     routine)
-    CALL nf(nf90_inq_varid(ncid_grf, 'end_idx_v', varid), routine)
-    CALL nf(nf90_get_var(ncid_grf, varid, patch_pre%verts%end(:), &
-      &                  (/1,1/), (/max_rlvert - min_rlvert + 1, 1/)), &
-      &     routine)
+    CALL distrib_read_root_cont( &
+      distrib_ncid_grf, 'start_idx_v', patch_pre%verts%start(:), &
+      (/1,1/), (/max_rlvert - min_rlvert + 1, 1/))
+    CALL distrib_read_root_cont( &
+      distrib_ncid_grf, 'end_idx_v', patch_pre%verts%end(:), &
+      (/1,1/), (/max_rlvert - min_rlvert + 1, 1/))
     ! Needed for backward compatibility of old grids
     IF (dim_idxlist > 1) &
       patch_pre%verts%end(min_rlvert_int) = patch_pre%n_patch_verts_g
 
     ! patch_pre%cells%neighbor
-    CALL nf(nf90_inq_varid(ncid, 'neighbor_cell_index', varid), routine)
-    CALL dist_mult_array_local_ptr(patch_pre%cells%dist, c_neighbor, local_ptr_2d)
-    local_ptr_2d(:,:) = 0
-    CALL nf(p_nf90x_get_var_local(ncid, varid, &
-      &                           local_ptr_2d(:,1:max_cell_connectivity), &
-      &                           (/patch_pre%cells%local_chunk(1,1)%first, 1/), &
-      &                           (/patch_pre%cells%local_chunk(1,1)%size, &
-      &                             max_cell_connectivity/)), &
-      &     routine)
+    CALL dist_mult_array_local_ptr( &
+      patch_pre%cells%dist, c_neighbor, local_ptr_2d)
+    CALL distrib_read_cont( &
+      distrib_ncid, 'neighbor_cell_index', local_ptr_2d, &
+      distrib_io_data_cont, max_cell_connectivity)
 
     IF (max_cell_connectivity == 6 .AND. use_duplicated_connectivity) THEN
       DO ic = patch_pre%cells%local_chunk(1,1)%first, &
@@ -1321,17 +1273,11 @@ CONTAINS
       END DO ! cells
     END IF
 
-!     write(0,*) "get edge_of_cell..."
     ! patch_pre%cells%edge
-    CALL nf(nf90_inq_varid(ncid, 'edge_of_cell', varid), routine)
     CALL dist_mult_array_local_ptr(patch_pre%cells%dist, c_edge, local_ptr_2d)
-    local_ptr_2d(:,:) = 0
-    CALL nf(p_nf90x_get_var_local(ncid, varid, &
-      &                           local_ptr_2d(:,1:max_cell_connectivity), &
-      &                           (/patch_pre%cells%local_chunk(1,1)%first, 1/), &
-      &                           (/patch_pre%cells%local_chunk(1,1)%size, &
-      &                             max_cell_connectivity/)), &
-      &     routine)
+    CALL distrib_read_cont( &
+      distrib_ncid, 'edge_of_cell', local_ptr_2d, &
+      distrib_io_data_cont, max_cell_connectivity)
 
     IF (max_cell_connectivity == 6 .AND. use_duplicated_connectivity) THEN
 
@@ -1354,25 +1300,9 @@ CONTAINS
       END DO ! cells
     ENDIF
 
-    ! patch_pre%cells%phys_id(:)
-    !
-    ! If no domain merging is used, the physical cell/edge ID must not
-    ! necessarily specified in the grid file:
-    CALL dist_mult_array_local_ptr(patch_pre%cells%dist, c_phys_id, local_ptr)
-    lhave_phys_id = (nf90_inq_varid(ncid_grf, 'phys_cell_id', varid) == nf90_noerr)
-    IF (lhave_phys_id) THEN
-      CALL nf(p_nf90x_get_var_local(ncid_grf, varid, local_ptr(:), &
-        &                           (/patch_pre%cells%local_chunk(1,1)%first/), &
-        &                           (/patch_pre%cells%local_chunk(1,1)%size/)), &
-        &     routine)
-    ELSE
-      local_ptr(:) = ig
-    END IF
-
     !----------------------------------------------------------------------------------
     ! compute cells%num_edges
     ! works for general unstructured grid
-!     write(0,*) "compute cells%num_edges..."
     CALL dist_mult_array_local_ptr(patch_pre%cells%dist, c_num_edges, local_ptr)
     DO jc = patch_pre%cells%local_chunk(1,1)%first, &
       patch_pre%cells%local_chunk(1,1)%first + &
@@ -1380,17 +1310,24 @@ CONTAINS
       local_ptr(jc) = COUNT(local_ptr_2d(jc, 1:max_cell_connectivity) > 0)
     END DO
 
+    ! patch_pre%cells%phys_id(:)
+    !
+    ! If no domain merging is used, the physical cell/edge ID must not
+    ! necessarily specified in the grid file:
+    CALL dist_mult_array_local_ptr(patch_pre%cells%dist, c_phys_id, local_ptr)
+    IF (distrib_nf_inq_varexists_cont(distrib_ncid_grf, 'phys_cell_id')) THEN
+      CALL distrib_read_cont( &
+        distrib_ncid_grf, 'phys_cell_id', local_ptr, &
+        distrib_io_data_cont)
+    ELSE
+      local_ptr(:) = ig
+    END IF
+
     ! patch_pre%cells%vertex
-!     write(0,*) "get vertex_of_cell..."
-    CALL nf(nf90_inq_varid(ncid, 'vertex_of_cell', varid), routine)
     CALL dist_mult_array_local_ptr(patch_pre%cells%dist, c_vertex, local_ptr_2d)
-    local_ptr_2d(:,:) = 0
-    CALL nf(p_nf90x_get_var_local(ncid, varid, &
-      &                           local_ptr_2d(:,1:max_cell_connectivity), &
-      &                           (/patch_pre%cells%local_chunk(1,1)%first, 1/), &
-      &                           (/patch_pre%cells%local_chunk(1,1)%size, &
-      &                             max_cell_connectivity/)), &
-      &     routine)
+    CALL distrib_read_cont( &
+      distrib_ncid, 'vertex_of_cell', local_ptr_2d, &
+      distrib_io_data_cont, max_cell_connectivity)
 
     IF (max_cell_connectivity == 6 .AND. use_duplicated_connectivity) THEN
 
@@ -1414,124 +1351,99 @@ CONTAINS
     ENDIF
 
     ! patch_pre%cells%center latitude
-    CALL nf(nf90_inq_varid(ncid, 'lat_cell_centre', varid), routine)
-    CALL dist_mult_array_local_ptr(patch_pre%cells%dist, c_center, local_ptr_wp_2d)
-    CALL nf(p_nf90x_get_var_local(ncid, varid, local_ptr_wp_2d(:, 1), &
-      &                           (/patch_pre%cells%local_chunk(1,1)%first/), &
-      &                           (/patch_pre%cells%local_chunk(1,1)%size/)), &
-      &     routine)
+    CALL dist_mult_array_local_ptr( &
+      patch_pre%cells%dist, c_center, local_ptr_wp_2d)
+    CALL distrib_read_cont( &
+      distrib_ncid, 'lat_cell_centre',  &
+      local_ptr_wp_2d(:,1), distrib_io_data_cont)
 
     ! patch_pre%cells%center longitude
-    CALL nf(nf90_inq_varid(ncid, 'lon_cell_centre', varid), routine)
-    CALL nf(p_nf90x_get_var_local(ncid, varid, local_ptr_wp_2d(:, 2), &
-      &                           (/patch_pre%cells%local_chunk(1,1)%first/), &
-      &                           (/patch_pre%cells%local_chunk(1,1)%size/)), &
-      &     routine)
-
-    ! patch_pre%verts%vertex(:)%lat
-    CALL nf(nf90_inq_varid(ncid, 'latitude_vertices', varid), routine)
-    CALL dist_mult_array_local_ptr(patch_pre%verts%dist, v_vertex, &
-         local_ptr_wp_2d)
-    CALL nf(p_nf90x_get_var_local(ncid, varid, local_ptr_wp_2d(:, 1), &
-      &                           (/patch_pre%verts%local_chunk(1,1)%first/), &
-      &                           (/patch_pre%verts%local_chunk(1,1)%size/)), &
-      &     routine)
-
-    ! patch_pre%verts%vertex(:)%lon
-    CALL nf(nf90_inq_varid(ncid, 'longitude_vertices', varid), routine)
-    CALL nf(p_nf90x_get_var_local(ncid, varid, local_ptr_wp_2d(:, 2), &
-      &                           (/patch_pre%verts%local_chunk(1,1)%first/), &
-      &                           (/patch_pre%verts%local_chunk(1,1)%size/)), &
-      &     routine)
+    CALL distrib_read_cont( &
+      distrib_ncid, 'lon_cell_centre', &
+      local_ptr_wp_2d(:,2), distrib_io_data_cont)
 
     !------------------------------------------
     ! nesting/lateral boundary indexes
     IF (max_cell_connectivity == 3) THEN ! triangular grid
       ! patch_pre%cells%parent
       IF (ig > 0) THEN
-        CALL nf(nf90_inq_varid(ncid_grf, 'parent_cell_index', varid), routine)
-        CALL dist_mult_array_local_ptr(patch_pre%cells%dist, c_parent, local_ptr)
-        CALL nf(p_nf90x_get_var_local(ncid_grf, varid, local_ptr, &
-          &                           (/patch_pre%cells%local_chunk(1,1)%first/), &
-          &                           (/patch_pre%cells%local_chunk(1,1)%size/)), &
-          &     routine)
+        CALL dist_mult_array_local_ptr( &
+          patch_pre%cells%dist, c_parent, local_ptr)
+        CALL distrib_read_cont( &
+          distrib_ncid_grf, 'parent_cell_index', &
+          local_ptr, distrib_io_data_cont)
       ENDIF
     ELSE
       CALL message ('read_patch',&
         & 'nesting incompatible with non-triangular grid')
     ENDIF
 
-!     write(0,*) "dist_mult_array_expose(patch_pre%cells%dist)..."
+    ! patch_pre%cells%refin_ctrl
+    CALL dist_mult_array_local_ptr( &
+      patch_pre%cells%dist, c_refin_ctrl, local_ptr)
+    CALL distrib_read_cont( &
+      distrib_ncid_grf, 'refin_c_ctrl', local_ptr, distrib_io_data_cont)
+
+    !---------------------------------------------------------------------------
+    ! make data cell-based data in distributed array available to all processes
+    !---------------------------------------------------------------------------
+
     CALL dist_mult_array_expose(patch_pre%cells%dist)
 
-    ! patch_pre%cells%refin_ctrl
-!     write(0,*) "refin_c_ctrl..."
-    CALL nf(nf90_inq_varid(ncid_grf, 'refin_c_ctrl', varid), routine)
-    CALL dist_mult_array_local_ptr(patch_pre%cells%dist, c_refin_ctrl, &
-         local_ptr)
-    CALL nf(p_nf90x_get_var_local(ncid_grf, varid, local_ptr, &
-      &                           (/patch_pre%cells%local_chunk(1,1)%first/), &
-      &                           (/patch_pre%cells%local_chunk(1,1)%size/)), &
-      &     routine)
+    !---------------------------------------------------------------------------
+    ! cleanup data required for distributed reading
+    !---------------------------------------------------------------------------
 
-    ! patch_pre%edges%parent
-!     write(0,*) "parent_edge_index..."
-    IF (ig > 0) THEN
-      CALL nf(nf90_inq_varid(ncid_grf, 'parent_edge_index', varid), routine)
-      CALL dist_mult_array_local_ptr(patch_pre%edges%dist, e_parent, local_ptr)
-      CALL nf(p_nf90x_get_var_local(ncid_grf, varid, local_ptr, &
-        &                           (/patch_pre%edges%local_chunk(1,1)%first/), &
-        &                           (/patch_pre%edges%local_chunk(1,1)%size/)), &
-        &     routine)
-    ENDIF
-    ! patch_pre%edges%refin_ctrl
-!     write(0,*) "refin_e_ctrl..."
-    CALL nf(nf90_inq_varid(ncid_grf, 'refin_e_ctrl', varid), routine)
-    CALL dist_mult_array_local_ptr(patch_pre%edges%dist, e_refin_ctrl, &
-         local_ptr)
-    CALL nf(p_nf90x_get_var_local(ncid_grf, varid, local_ptr, &
-      &                           (/patch_pre%edges%local_chunk(1,1)%first/), &
-      &                           (/patch_pre%edges%local_chunk(1,1)%size/)), &
-      &     routine)
+    CALL delete_distrib_read_cont(distrib_io_data_cont)
+
+    !---------------------------------------------------------------------------
+    ! setup distrib_read data structure for reading of larger vertex-data arrays
+    !---------------------------------------------------------------------------
+
+    CALL setup_distrib_read_cont( &
+      patch_pre%n_patch_verts_g, patch_pre%verts%local_chunk(1,1), &
+      distrib_io_data_cont)
+
+    !---------------------------------------------------------------------------
+    ! get vertex-based data from grid file
+    !---------------------------------------------------------------------------
+
+    ! patch_pre%verts%vertex(:)%lat
+    CALL dist_mult_array_local_ptr( &
+      patch_pre%verts%dist, v_vertex, local_ptr_wp_2d)
+    CALL distrib_read_cont( &
+      distrib_ncid, 'latitude_vertices', &
+      local_ptr_wp_2d(:,1), distrib_io_data_cont)
+
+    ! patch_pre%verts%vertex(:)%lon
+    CALL distrib_read_cont( &
+      distrib_ncid, 'longitude_vertices', &
+      local_ptr_wp_2d(:,2), distrib_io_data_cont)
 
     ! patch_pre%verts%refin_ctrl
-!     write(0,*) "refin_v_ctrl..."
-    CALL nf(nf90_inq_varid(ncid_grf, 'refin_v_ctrl', varid), routine)
-    CALL dist_mult_array_local_ptr(patch_pre%verts%dist, v_refin_ctrl, &
-         local_ptr)
-    CALL nf(p_nf90x_get_var_local(ncid_grf, varid, local_ptr, &
-      &                           (/patch_pre%verts%local_chunk(1,1)%first/), &
-      &                           (/patch_pre%verts%local_chunk(1,1)%size/)), &
-      &     routine)
+    CALL dist_mult_array_local_ptr(patch_pre%verts%dist, v_refin_ctrl, local_ptr)
+    CALL distrib_read_cont( &
+      distrib_ncid_grf, 'refin_v_ctrl', local_ptr, distrib_io_data_cont)
 
     ! BEGIN NEW SUBDIV
 
-!     write(0,*) max_verts_connectivity, "cells_of_vertex..."
-    CALL nf(nf90_inq_varid(ncid, 'cells_of_vertex', varid), routine)
-!     write(0,*) max_verts_connectivity, "  dist_mult_array_local_ptr..."
+    ! patch_pre%verts%cells
     CALL dist_mult_array_local_ptr(patch_pre%verts%dist, v_cell, local_ptr_2d)
-!     write(0,*) max_verts_connectivity, "  nf90_get_var..."
-    CALL nf(p_nf90x_get_var_local(ncid, varid, local_ptr_2d, &
-      &                           (/patch_pre%verts%local_chunk(1,1)%first, 1/), &
-      &                           (/patch_pre%verts%local_chunk(1,1)%size, &
-      &                             max_verts_connectivity/)), &
-      &     routine)
+    CALL distrib_read_cont( &
+      distrib_ncid, 'cells_of_vertex', local_ptr_2d, &
+      distrib_io_data_cont, max_verts_connectivity)
     ! eliminate indices < 0, this should not happen but some older grid files
     ! seem to contain such indices
-!     write(0,*) "SIZE(local_ptr_2d):", SIZE(local_ptr_2d,1), SIZE(local_ptr_2d,2)
-!     write(0,*) max_verts_connectivity, "  WHERE..."
     WHERE(local_ptr_2d(:, :) < 0) local_ptr_2d(:, :) = 0
     ! account for dummy cells arising in case of a pentagon
     ! Fill dummy cell with existing index to simplify do loops
     ! Note, however, that related multiplication factors must be zero
-!     write(0,*) "move_dummies_to_end verts%local_chunk..."
     CALL move_dummies_to_end(local_ptr_2d, &
       patch_pre%verts%local_chunk(1,1)%size, max_verts_connectivity, &
       use_duplicated_connectivity)
 
     !
     ! Set verts%num_edges
-!     write(0,*) "Set verts%num_edges..."
     CALL dist_mult_array_local_ptr(patch_pre%verts%dist, v_num_edges, local_ptr)
     DO ji = patch_pre%verts%local_chunk(1,1)%first, &
       patch_pre%verts%local_chunk(1,1)%first + &
@@ -1539,38 +1451,82 @@ CONTAINS
       local_ptr(ji) = COUNT(local_ptr_2d(ji, 1:max_verts_connectivity) > 0)
     END DO
 
-    ! patch_pre%edges%cell(:,:)
-    CALL nf(nf90_inq_varid(ncid, 'adjacent_cell_of_edge', varid), routine)
-    CALL dist_mult_array_local_ptr(patch_pre%edges%dist, e_cell, local_ptr_2d)
-    CALL nf(p_nf90x_get_var_local(ncid, varid, local_ptr_2d, &
-      &                           (/patch_pre%edges%local_chunk(1,1)%first, 1/), &
-      &                           (/patch_pre%edges%local_chunk(1,1)%size, 2/)), &
-      &     routine)
-    WHERE(local_ptr_2d(:, :) < 0) local_ptr_2d(:, :) = 0
+    ! END NEW SUBDIV
+
+    !---------------------------------------------------------------------------
+    ! make data vertex-based data in distributed array available to all
+    ! processes
+    !---------------------------------------------------------------------------
 
     CALL dist_mult_array_expose(patch_pre%verts%dist)
-    CALL dist_mult_array_expose(patch_pre%edges%dist)
+
+    !---------------------------------------------------------------------------
+    ! cleanup data required for distributed reading
+    !---------------------------------------------------------------------------
+
+    CALL delete_distrib_read_cont(distrib_io_data_cont)
+
+    !---------------------------------------------------------------------------
+    ! setup distrib_read data structure for reading of larger edge-data arrays
+    !---------------------------------------------------------------------------
+
+    CALL setup_distrib_read_cont( &
+      patch_pre%n_patch_edges_g, patch_pre%edges%local_chunk(1,1), &
+      distrib_io_data_cont)
+
+    !---------------------------------------------------------------------------
+    ! get edge-based data from grid file
+    !---------------------------------------------------------------------------
+
+    ! patch_pre%edges%parent
+    IF (ig > 0) THEN
+      CALL dist_mult_array_local_ptr(patch_pre%edges%dist, e_parent, local_ptr)
+      CALL distrib_read_cont( &
+        distrib_ncid_grf, 'parent_edge_index', &
+        local_ptr, distrib_io_data_cont)
+    ENDIF
+
+    ! patch_pre%edges%refin_ctrl
+    CALL dist_mult_array_local_ptr( &
+      patch_pre%edges%dist, e_refin_ctrl, local_ptr)
+    CALL distrib_read_cont( &
+      distrib_ncid_grf, 'refin_e_ctrl', local_ptr, distrib_io_data_cont)
+
+    ! BEGIN NEW SUBDIV
+
+    ! patch_pre%edges%cell(:,:)
+    CALL dist_mult_array_local_ptr(patch_pre%edges%dist, e_cell, local_ptr_2d)
+    CALL distrib_read_cont( &
+      distrib_ncid, 'adjacent_cell_of_edge', local_ptr_2d, &
+      distrib_io_data_cont, max_edge_connectivity)
+    WHERE(local_ptr_2d(:, :) < 0) local_ptr_2d(:, :) = 0
 
     ! END NEW SUBDIV
 
+    !---------------------------------------------------------------------------
+    ! make data edge-based data in distributed array available to all
+    ! processes
+    !---------------------------------------------------------------------------
 
-    CALL nf(nf90_close(ncid), routine)
-    IF (lsep_grfinfo) CALL nf(nf90_close(ncid_grf), routine)
+    CALL dist_mult_array_expose(patch_pre%edges%dist)
 
-    !
-    ! deallocate temporary arrays to read in data form the grid/patch generator
-    !
-    ! index lists arrays
-    DEALLOCATE( start_idx_c, end_idx_c, start_idx_e, end_idx_e, start_idx_v, end_idx_v, &
-      & stat=ist )
-    IF (ist /= success) THEN
-      CALL finish (routine, 'deallocation for array_[cev]_indlist failed')
-    ENDIF
+    !---------------------------------------------------------------------------
+    ! cleanup data required for distributed reading
+    !---------------------------------------------------------------------------
+
+    CALL delete_distrib_read_cont(distrib_io_data_cont)
+
+    !---------------------------------------------------------------------------
+    ! close grid files
+    !---------------------------------------------------------------------------
+
+    ! close grid file (distributed read) and delete distributed read data
+    IF (lsep_grfinfo) CALL distrib_nf_close_cont(distrib_ncid_grf)
+    CALL distrib_nf_close_cont(distrib_ncid)
 
     CALL message (routine, 'read_patches finished')
 
   END SUBROUTINE read_pre_patch
-  !-------------------------------------------------------------------------
 
 
   !-------------------------------------------------------------------------
