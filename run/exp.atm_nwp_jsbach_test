@@ -605,7 +605,7 @@ varlist="'pres_sfc'"
 varlist="${varlist} 't_g'"
 varlist="${varlist} 'cosmu0' 'albdif' "
 varlist="${varlist} 'sp_10m' 'u_10m' 'v_10m' 't_2m' 'td_2m'"
-varlist="${varlist} 'rain_gsp_rate' 'snow_gsp_rate' 'rain_con_rate' 'snow_con_rate' 'clct'"
+varlist="${varlist} 'rain_gsp_rate' 'snow_gsp_rate' 'rain_con_rate' 'snow_con_rate' 'clct' 'pbas_con' 'ptop_con'"
 #
 if [ "x${varlist}" != x ] ; then
 cat >> ${basedir}/run/${atmo_namelist} << EOF

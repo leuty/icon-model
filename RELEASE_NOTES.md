@@ -10,6 +10,7 @@
 - Correction of the roughness length computation over ocean in TMX
 - Add multiscale stochastic pattern generator and iSPPT
 - Bugfixes for restart issues with NWP sea ice
+- Added diagnostics: pressure at convective cloud top/base
 
 ### Soil and Surface
 

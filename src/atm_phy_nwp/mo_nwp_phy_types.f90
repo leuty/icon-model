@@ -147,6 +147,8 @@ MODULE mo_nwp_phy_types
       &  hbas_con(:,:),        & !! height of base of convection [m]
       &  htop_con(:,:),        & !! height of top of convection [m]
       &  htop_dc(:,:),         & !! height above msl of the top of dry convection [m]
+      &  pbas_con(:,:),        & !! pressure at base of convection [Pa]
+      &  ptop_con(:,:),        & !! pressure at top of convection [Pa]
       &  tot_cld(:,:,:,:),     & !! total cloud variables (qv,qc,qi)
       &  tot_cld_vi(:,:,:),    & !! vertically integrated tot_cld (qv,qc,qi), including vertical
                                  !! integrals of qr and qs
