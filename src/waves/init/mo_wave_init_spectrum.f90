@@ -34,6 +34,8 @@ MODULE mo_wave_init_spectrum
   USE mo_time_config,          ONLY: time_config
   USE mo_master_config,        ONLY: getModelBaseDir
   USE mo_post_op,              ONLY: inverse_post_op
+  USE mo_timer,                ONLY: timer_start, timer_stop, timers_level
+  USE mo_wave_timer,           ONLY: timer_wave_exch
 
   IMPLICIT NONE
 
@@ -205,12 +207,16 @@ CONTAINS
 
     CALL closeFile(stream_id)
 
+    IF (timers_level >= 5) CALL timer_start(timer_wave_exch)
+
     CALL sync_patch_array_mult(typ         = SYNC_C,          &
       &                        p_patch     = p_patch,         &
       &                        nfields     = SIZE(wesd_ptr),  &
       &                        f3din_arr   = wesd_ptr,        &
       &                        opt_varname = 'wesd_now',      &
       &                        lacc        = .FALSE.)
+
+    IF (timers_level >= 5) CALL timer_stop(timer_wave_exch)
 
     CALL message(routine, 'finished')
     !

@@ -270,13 +270,16 @@ CONTAINS
     END DO
 !$OMP ENDDO
 
-    ! Correction of normal to edge group velocity,
-    ! avoiding of wave energy propagation from land
-    ! and insuring full "outflow" of wave energy towards land.
+    ! Correction of the group velocity vector at ocean-land boundary edges,
+    ! in order to
+    ! - ensure zero energy propagation from land to ocean
+    ! - ensure full "outflow" of wave energy towards land.
 
-    ! Set the wave group velocity to zero at the boundary edge
-    ! in case of wave energy propagation towards the ocean,
-    ! and set gn = deep water group velocity otherwise.
+    ! To this end the group velocity vector is set to zero, if
+    ! its normal component points towards the ocean (this is equivalent
+    ! to checking if the spectral direction points towards the ocean).
+    ! Otherwise the length of the group velocity vector is adjusted
+    ! to the deep water group velocity.
 
     ! We make use of the fact that the edge-normal velocity vector points
     ! * towards the coast, if
@@ -289,25 +292,42 @@ CONTAINS
     !   cells%edge_orientation < 0 .AND. vn > 0
 
     ! hence:
-    ! * towards the coast, if (cells%edge_orientation * vn) > 0
-    ! * towards the sea,   if (cells%edge_orientation * vn) < 0
+    ! * towards coast, if (cells%edge_orientation * vn) > 0
+    ! * towards sea,   if (cells%edge_orientation * vn) < 0
 
-    ! For optimization, the index list of the coastal edge points is precomputed,
+    ! For optimization purposes, the index list of the coastal edge points is precomputed,
     ! and p_config%orient_coastedges contains the values of cells%edge_orientation
 
-!$OMP DO PRIVATE(jd,ic,jje,jjb,is_towards_coastline) ICON_OMP_DEFAULT_SCHEDULE
+!$OMP DO PRIVATE(jd,ic,jje,jjb,is_towards_coastline,gvu,gvv) ICON_OMP_DEFAULT_SCHEDULE
 !NEC$ outerloop_unroll(4)
     DO jd = 1, ndirs
+
+      ! deep water group velocity
+      ! components in zonal and meridional direction
+      gvu = gv * p_config%sin_dir(jd)
+      gvv = gv * p_config%cos_dir(jd)
+
 !$NEC ivdep
       DO ic = 1, p_config%n_coastedges
         jje = p_config%idx_coastedges(ic)
         jjb = p_config%blk_coastedges(ic)
         is_towards_coastline = (p_config%orient_coastedges(ic)*gvn_e(jje,jd,jjb)) > 0._wp
-        gvn_e(jje,jd,jjb) = MERGE(gv, 0.0_wp, is_towards_coastline)
+        IF (is_towards_coastline) THEN
+          ! projection into normal and tangential direction
+          gvn_e(jje,jd,jjb) = &
+            &  gvu * p_patch%edges%primal_normal(jje,jjb)%v1 + &
+            &  gvv * p_patch%edges%primal_normal(jje,jjb)%v2
+          gvt_e(jje,jd,jjb) = &
+            &  gvu * p_patch%edges%dual_normal(jje,jjb)%v1 + &
+            &  gvv * p_patch%edges%dual_normal(jje,jjb)%v2
+        ELSE ! towards ocean
+          ! set group velocity vector to zero
+          gvn_e(jje,jd,jjb) = 0._wp
+          gvt_e(jje,jd,jjb) = 0._wp
+        ENDIF
       ENDDO  !jc
     ENDDO  !jd
 !$OMP ENDDO NOWAIT
-
 !$OMP END PARALLEL
   END SUBROUTINE wave_group_velocity_nt
 

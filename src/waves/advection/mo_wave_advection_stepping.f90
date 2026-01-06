@@ -44,7 +44,7 @@ MODULE mo_wave_advection_stepping
   USE mo_sync,                      ONLY: SYNC_C, sync_patch_array_mult
   USE mo_timer,                     ONLY: timer_start, timer_stop, timers_level
   USE mo_wave_timer,                ONLY: timer_wave_propagation, timer_wave_energy_propagation, &
-    &                                     timer_wave_grid_refraction
+    &                                     timer_wave_grid_refraction, timer_wave_exch
   USE fortran_support,              ONLY: t_ptr_3d_wp
 
   IMPLICIT NONE
@@ -149,9 +149,7 @@ CONTAINS
     TYPE(t_ptr_3d_wp) :: wesd_ptr(SIZE(wesd_now))
     !-----------------------------------------------------------------------
 
-    IF (timers_level >= 5) CALL timer_start(timer_wave_propagation)
-
-    IF (timers_level >= 8) CALL timer_start(timer_wave_energy_propagation)
+    IF (timers_level >= 5) CALL timer_start(timer_wave_exch)
 
     DO n = 1,SIZE(wesd_now)
       wesd_ptr(n)%p => wesd_now(n)%ptr(:,:,:)
@@ -165,6 +163,12 @@ CONTAINS
       &                        opt_varname='wesd_now',           &
       &                        lacc       = .FALSE.)
 
+    IF (timers_level >= 5) CALL timer_stop(timer_wave_exch)
+
+
+    IF (timers_level >= 5) CALL timer_start(timer_wave_propagation)
+
+    IF (timers_level >= 8) CALL timer_start(timer_wave_energy_propagation)
 
     ! pointer to energy_propagation_config to save some paperwork
     enprop_conf => energy_propagation_config
