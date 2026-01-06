@@ -1493,6 +1493,27 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       & lopenacc=.TRUE.)
     __acc_attach(diag%htop_con)
 
+    ! &      diag%pbas_con(nproma,nblks_c)
+    cf_desc    = t_cf_var('pbas_con', 'Pa', 'pressure at convective cloud base', datatype_flt)
+    grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+    CALL add_var( diag_list, 'pbas_con', diag%pbas_con,                       &
+      & GRID_UNSTRUCTURED_CELL, ZA_CLOUD_BASE, cf_desc, grib2_desc,           &
+      & ldims=shape2d, lrestart=.FALSE.,                                      &
+      & lmiss=.TRUE., missval=-500._wp,                                       &
+      & hor_interp=create_hor_interp_metadata(hor_intp_type=HINTP_TYPE_LONLAT_NNB), &
+      & lopenacc=.TRUE.)
+    __acc_attach(diag%pbas_con)
+
+    ! &      diag%ptop_con(nproma,nblks_c)
+    cf_desc    = t_cf_var('ptop_con', 'Pa', 'pressure at convective cloud top', datatype_flt)
+    grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+    CALL add_var( diag_list, 'ptop_con', diag%ptop_con,                       &
+      & GRID_UNSTRUCTURED_CELL, ZA_CLOUD_TOP, cf_desc, grib2_desc,            &
+      & ldims=shape2d, lrestart=.FALSE.,                                      &
+      & lmiss=.TRUE., missval=-500._wp,                                       &
+      & hor_interp=create_hor_interp_metadata(hor_intp_type=HINTP_TYPE_LONLAT_NNB), &
+      & lopenacc=.TRUE.)
+    __acc_attach(diag%ptop_con)
 
     ! &      diag%htop_dc(nproma,nblks_c)
     cf_desc    = t_cf_var('htop_dc', 'm', 'height of top of dry convection', datatype_flt)

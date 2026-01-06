@@ -1393,6 +1393,7 @@ CONTAINS
   !!
   !! Available diagnostics:
   !! - height of convection base and top: hbas_con, htop_con
+  !! - pressure at convection base and top: pbas_con, ptop_con
   !! - height of the top of dry convection: htop_dc
   !! - height of 0 deg C level: hzerocl
   !! - height of snow fall limit above MSL
@@ -1509,7 +1510,7 @@ CONTAINS
 
       IF (atm_phy_nwp_config(jg)%lenabled(itconv))THEN !convection parameterization switched on
         !
-        ! height of convection base and top, hbas_con, htop_con
+        ! height of and pressure at convection base and top, hbas_con, htop_con, pbas_con, ptop_con
         !
         !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
         !$ACC LOOP GANG(STATIC: 1) VECTOR
@@ -1517,14 +1518,20 @@ CONTAINS
           IF ( prm_diag%locum(jc,jb) ) THEN
             prm_diag%hbas_con(jc,jb) = p_metrics%z_ifc( jc, prm_diag%mbas_con(jc,jb), jb)
             prm_diag%htop_con(jc,jb) = p_metrics%z_ifc( jc, prm_diag%mtop_con(jc,jb), jb)
+            prm_diag%pbas_con(jc,jb) = pt_diag%pres_ifc( jc, prm_diag%mbas_con(jc,jb), jb)
+            prm_diag%ptop_con(jc,jb) = pt_diag%pres_ifc( jc, prm_diag%mtop_con(jc,jb), jb)
 !           Do not allow diagnostic depth of convection to be thinner than 100m or one model layer
             IF ( prm_diag%htop_con(jc,jb) - prm_diag%hbas_con(jc,jb) < 100._wp ) THEN
               prm_diag%hbas_con(jc,jb) = -500._wp
               prm_diag%htop_con(jc,jb) = -500._wp
+              prm_diag%pbas_con(jc,jb) = -500._wp
+              prm_diag%ptop_con(jc,jb) = -500._wp
             END IF
           ELSE
             prm_diag%hbas_con(jc,jb) = -500._wp
             prm_diag%htop_con(jc,jb) = -500._wp
+            prm_diag%pbas_con(jc,jb) = -500._wp
+            prm_diag%ptop_con(jc,jb) = -500._wp
           END IF
         ENDDO  ! jc
 
