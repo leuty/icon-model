@@ -51,6 +51,7 @@
   - Improve the calculation of plant water stress with frozen soil
   - Minor refactoring: unification of namelist names
   - Correction of aggregation of area-dependent variables in the QUINCY model
+  - Update default PI control values for atmospheric 13CO2 and 14CO2 composition according to CMIP7 forcing (Graven, H. (2025))
 - Refactoring of anthropogenic land cover change process
 - Hydrology: Added ford inline documentation
 - Land initial files
