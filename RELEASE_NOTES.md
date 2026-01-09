@@ -50,6 +50,7 @@
   - Improve paramaterization of vegetation phosphorus (P) uptake to avoid crops and natural vegetation dying by P limitation
   - Improve the calculation of plant water stress with frozen soil
   - Minor refactoring: unification of namelist names
+  - Correction of aggregation of area-dependent variables in the QUINCY model
 - Refactoring of anthropogenic land cover change process
 - Hydrology: Added ford inline documentation
 - Land initial files
