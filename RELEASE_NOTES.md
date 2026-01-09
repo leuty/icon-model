@@ -54,6 +54,7 @@
   - Update default PI control values for atmospheric 13CO2 and 14CO2 composition according to CMIP7 forcing (Graven, H. (2025))
   - Revisit QUINCY output ensuring that all output variables required for diagnostics and global budget calculations are present
   - Update nitrogen cycle parameters
+  - Add script to generate CMIP7 based deposition data
 - Refactoring of anthropogenic land cover change process
 - Hydrology: Added ford inline documentation
 - Land initial files
