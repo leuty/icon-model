@@ -53,6 +53,7 @@
   - Correction of aggregation of area-dependent variables in the QUINCY model
   - Update default PI control values for atmospheric 13CO2 and 14CO2 composition according to CMIP7 forcing (Graven, H. (2025))
   - Revisit QUINCY output ensuring that all output variables required for diagnostics and global budget calculations are present
+  - Update nitrogen cycle parameters
 - Refactoring of anthropogenic land cover change process
 - Hydrology: Added ford inline documentation
 - Land initial files
