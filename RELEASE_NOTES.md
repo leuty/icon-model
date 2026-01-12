@@ -36,6 +36,7 @@
 #### Building
 
 - Fix building of the YAC Python interface when the Python interface of MTIME is disabled
+- Consistently install ICON and the relevant bundled packages to the specified installation prefixes and subdirectories
 
 
 # Release notes for icon-2025.10-1
