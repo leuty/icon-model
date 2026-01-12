@@ -481,7 +481,7 @@ CONTAINS
   ! Checking parallel GRIB decoding:
   ! The function "is_filetype_grib2" just checks the file extension,
   ! so it can be applied to non-expanded filename patterns as well.
-  is_fg_filetype_grib2 = is_filetype_grib2(dwdfg_filename)
+  is_fg_filetype_grib2  = is_filetype_grib2(dwdfg_filename)
   is_ana_filetype_grib2 = is_filetype_grib2(dwdana_filename)
   IF (parallel_grib_decoding .AND. (LEN_TRIM(ana_varnames_map_file) < 1)) THEN
     CALL finish(routine,'Specifying ana_varnames_map_file is mandatory for parallel_grib_decoding = .TRUE.')

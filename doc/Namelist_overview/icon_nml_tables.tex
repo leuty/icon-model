@@ -2969,6 +2969,9 @@ Parallel decoding of GRIB2 input data by Work PEs:\\
 {\textasteriskcentered} .TRUE.: Workroot PE reads the records and distributes them to all Work PEs for decoding in parallel.\\
 The second case requires input files of format GRIB2 with file extension '.grb', '.grb2', '.grib' or '.grib2'.
 In addition, a dictionary is mandatory (ana\_varnames\_map\_file).\\
+The data values packed in a GRIB file may have a bit depth up to bitsPerValue = 32.
+Note, however, that the data values are internally buffered in single precision (for reasons of efficiency)
+irrespective of the encoding accuracy, which may not deliver the maximum possible precision.\\
 (A few corresponding timers are implemented and subordinated to the init\_icon timer.
 Activating them requires run\_nml: timers\_level > 8.)
 & ICON compiled with Fortran90 interfaces of package \verb+ecCodes+;\\

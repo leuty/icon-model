@@ -1063,10 +1063,13 @@ CONTAINS
       LOGICAL :: found_match
 
       !> Flag to indicate that PE is Work Root PE
-      LOGICAL :: i_am_mpi_workroot
+      LOGICAL :: process_is_workroot
+
+      !> Flag to indicate whether a Work PE participates in decoding
+      LOGICAL :: process_does_decoding
 
       !> Flag to indicate whether it is a Work PE's turn to do something
-      LOGICAL :: is_my_turn
+      LOGICAL :: process_is_next_to_distribute
 
       !> Size of array of data values
       INTEGER(KIND=i8) :: ecc_sizeOfValues
@@ -1174,6 +1177,11 @@ CONTAINS
       !   the larger the savings, in general. (So an ICON-Global setup may potentially benefit more
       !   from this than an ICON-D2 setup.)
       !
+      ! - Regarding the precision of the data values packed in a GRIB message,
+      !   a bit depth up to bitsPerValue = 32 is allowed here.
+      !   However, the data are buffered in single precision for reasons of efficiency.
+      !   This may potentially result in a loss of precision for 32 bit data.
+      !
       ! - At many places, we have to use "warning" instead of "message" for logging,
       !   as a "message" triggered by other PEs than Workroot are not printed.
       !
@@ -1181,9 +1189,9 @@ CONTAINS
       ! The task of this subroutine is meant for Work PEs only
       IF (.NOT. my_process_is_work()) RETURN
 
-      !-----------------
-      ! Check arguments
-      !-----------------
+      !-------------
+      ! Some checks
+      !-------------
 
       IF (jg < 1) THEN
         CALL finish(routine, "Invalid patch index (jg)")
@@ -1191,6 +1199,11 @@ CONTAINS
         CALL finish(routine, "Invalid number of grid cells (ncells_global)")
       ELSEIF (nedges_global < 1_i8) THEN
         CALL finish(routine, "Invalid number of grid edges (nedges_global)")
+      ELSEIF (process_stride_pgrib > num_work_procs - 1) THEN
+        ! process_stride_pgrib has to be element of range [1, num_work_procs - 1].
+        ! The lower bound has already been checked in mo_parallel_config: check_parallel_configuration.
+        ! As the total number of Work PEs, num_work_procs, is not yet known there, the upper bound is checked here.
+        CALL finish(routine, "process_stride_pgrib > num_work_procs-1 is invalid")
       ENDIF
 
       !--------------
@@ -1201,7 +1214,7 @@ CONTAINS
       message_prefix_length = 0
 
       ! Unchanging part of message prefix
-      message_prefix = TRIM(grib_file_path)//"(GRIB message"
+      message_prefix = "[File: "//TRIM(grib_file_path)//"][GRIB message:"
 
       ! Length of unchanging part of message prefix
       message_prefix_base_length = LEN_TRIM(message_prefix)
@@ -1211,7 +1224,10 @@ CONTAINS
       my_mpi_work_id = get_my_mpi_work_id()
 
       ! Is this Work PE the Workroot PE?
-      i_am_mpi_workroot = my_process_is_mpi_workroot()
+      process_is_workroot = my_process_is_mpi_workroot()
+
+      ! Does this Work PE participate in decoding GRIB messages?
+      process_does_decoding = (.NOT. process_is_workroot) .AND. (MOD(my_mpi_work_id, process_stride_pgrib) == 0)
 
       ! Init counter of records in GRIB file
       ecc_count = 0
@@ -1248,30 +1264,38 @@ CONTAINS
       ! Translate ICON variable names into ecCodes shortNames or vice versa(???)
       CALL me%translateNames(dict)
 
+      ! Initialize content of file-inventory element with default values, just to make sure
+      IF (inventory) CALL inventory_element%reset()
+
       ! We need enough memory to hold one GRIB message (aka GRIB record):
-      !  - bitsPerValue = 24 (3 bytes) is the max. allowed precision here for the time being
+      !  - bitsPerValue = 32 (4 bytes) is the max. allowed precision here for the time being
       !  - The data vector of a GRIB message has either ncells_global or nedges_global entries
       !    (or less, if a bitmap applies)
       !  - Safety margin for the metadata header: 1000 bytes
-      !  => MAX(ncells_global, nedges_global) * 3 + 1000
+      !  => MAX(ncells_global, nedges_global) * 4 + 1000
       ! (Note: Although GRIB records may become larger and larger in the future, we cannot use type 'INTEGER(KIND=i8)'.
       ! This is because there is no corresponding MPI interface.)
-      ecc_max_record_length_in_byte = INT(MAX(ncells_global, nedges_global)) * 3 + 1000
+      ecc_max_record_length_in_byte = INT(MAX(ncells_global, nedges_global)) * 4 + 1000
       ecc_max_record_length         = ecc_max_record_length_in_byte / 4
 
       ! Max. number of status requests for MPI_ISEND and MPI_IRECV:
       !  - 5 for Workroot PE
       !  - 1 for the other Work PEs
-      max_status_requests = MERGE(5, 1, i_am_mpi_workroot)
+      max_status_requests = MERGE(5, 1, process_is_workroot)
 
       ! Allocate fields
-      ALLOCATE(ecc_record(lbound_for_record_flags:ecc_max_record_length,max_status_requests), &
-        &      status_request(max_status_requests), field(MAX(ncells_global, nedges_global)), STAT=status)
+      IF (process_is_workroot) THEN
+        ALLOCATE(ecc_record(lbound_for_record_flags:ecc_max_record_length,max_status_requests), &
+          &      status_request(max_status_requests), field(1), STAT=status)
+      ELSEIF (process_does_decoding) THEN
+        ALLOCATE(ecc_record(lbound_for_record_flags:ecc_max_record_length,max_status_requests), &
+          &      status_request(max_status_requests), field(MAX(ncells_global, nedges_global)), STAT=status)
+      ELSE
+        ! Dummy allocation
+        ALLOCATE(ecc_record(1,1), status_request(1), field(1), STAT=status)
+      ENDIF
       IF (status /= SUCCESS) &
         & CALL finish(routine, "Allocation of ecc_record, status_request and field failed")
-
-      ! Initialize content of file-inventory element with default values, just to make sure
-      IF (inventory) CALL inventory_element%reset()
 
       ecc_record(:,:)   = 0_i4
       status_request(:) = MPI_REQUEST_NULL !???
@@ -1280,7 +1304,7 @@ CONTAINS
       ! Initialize flag that indicates whether the end of a GRIB file is reached
       ecc_eof = .FALSE.
 
-      IF (i_am_mpi_workroot) THEN
+      IF (process_is_workroot) THEN
 
         IF (timing) CALL timer_start(timer_file_reading)
 
@@ -1299,7 +1323,7 @@ CONTAINS
 
         IF (timing) CALL timer_stop(timer_file_reading)
 
-      ELSE IF (MOD(my_mpi_work_id,process_stride_pgrib) == 0) THEN
+      ELSEIF (process_does_decoding) THEN
 
         IF (timing) CALL timer_start(timer_raw_data_distribution)
 
@@ -1318,7 +1342,7 @@ CONTAINS
 
         IF (timing) CALL timer_stop(timer_raw_data_distribution)
 
-      ENDIF ! IF (i_am_mpi_workroot)
+      ENDIF ! IF (process_is_workroot)
 
       !-------------------------
       ! Precessing of GRIB file
@@ -1329,7 +1353,7 @@ CONTAINS
       ! is quite different for the Workroot PE, on the one hand, and the Worker PEs, on the other hand.)
       FILE_PROCESSING_LOOP: DO
 
-        IF (i_am_mpi_workroot) THEN
+        IF (process_is_workroot) THEN
 
           !--------------
           ! Workroot PE:
@@ -1437,7 +1461,7 @@ CONTAINS
           ! of the decoded GRIB messages further below.
           IF (MOD(ecc_count, (num_work_procs - 1)/process_stride_pgrib) /= 0) CYCLE FILE_PROCESSING_LOOP
 
-        ELSE IF (MOD(my_mpi_work_id,process_stride_pgrib) == 0) THEN
+        ELSEIF (process_does_decoding) THEN
 
           !---------------------------------------------------------------------------
           ! All the other Work PEs (or a subset of them if process_stride_pgrib > 1):
@@ -1480,7 +1504,7 @@ CONTAINS
               ! Remove prefix extension from previous processing loop cycle
               message_prefix(message_prefix_base_length+1:) = " "
               ! Append extension for current loop cycle
-              message_prefix        = message_prefix(1:message_prefix_base_length)//" "//TRIM(int2string(ecc_count))//")"
+              message_prefix        = message_prefix(1:message_prefix_base_length)//" "//TRIM(int2string(ecc_count))//"]"
               message_prefix_length = message_prefix_base_length + LEN_TRIM(message_prefix(message_prefix_base_length+1:))
             ENDIF
 
@@ -1587,9 +1611,9 @@ CONTAINS
               ELSEIF (ecc_sizeOfValues /= nelems_global) THEN
                 CALL finish(routine, message_prefix(1:message_prefix_length) &
                   & //": Mismatch between grid size and size of data vector")
-              ELSEIF (ecc_bitsPerValue > 24) THEN
+              ELSEIF (ecc_bitsPerValue > 32) THEN
                 CALL finish(routine, message_prefix(1:message_prefix_length) &
-                  & //": bitsPerValue > 24 are not supported")
+                  & //": bitsPerValue > 32 are not supported")
               ENDIF
 
             ENDIF ! IF (found_match)
@@ -1613,7 +1637,7 @@ CONTAINS
 
           END SELECT ! SELECT CASE(record_flag_status)
 
-        ENDIF ! IF (i_am_mpi_workroot)
+        ENDIF ! IF (process_is_workroot)
 
         ! At this stage every decoding Work PE has to have a record or an EOF,
         ! and should have decoded and checked the metadata and payload.
@@ -1628,13 +1652,13 @@ CONTAINS
         DISTRIBUTION_LOOP: DO jproc = 1, num_work_procs - 1
 
           ! Work PE that is next in line for distributing its data
-          is_my_turn = (jproc == my_mpi_work_id .AND. MOD(my_mpi_work_id,process_stride_pgrib) == 0)
+          process_is_next_to_distribute = (jproc == my_mpi_work_id) .AND. process_does_decoding
 
           ! First, we have to distribute a number of metadata.
           ! (It seems that the type-bound procedures 'InputRequestList_sendFieldMetadata' and
           ! 'InputRequestList_receiveFieldMetadata' are intended for this purpose.
           ! However, we cannot use them, as they assume the Workroot PE as the sole sender.)
-          IF (is_my_turn) THEN
+          IF (process_is_next_to_distribute) THEN
 
             buffer_real_dp(1) = REAL(record_flag_status, KIND=dp)
             buffer_real_dp(2) = MERGE(10.0_dp, -10.0_dp, found_match)
@@ -1650,11 +1674,11 @@ CONTAINS
 
             buffer_real_dp(:) = -999.0_dp
 
-          ENDIF ! IF (is_my_turn)
+          ENDIF ! IF (process_is_next_to_distribute)
 
           CALL p_bcast(buffer_real_dp, jproc, p_comm_work)
 
-          IF (is_my_turn) THEN
+          IF (process_is_next_to_distribute) THEN
 
             ! The current distributer can just take its own values
             record_flag_status_curr = record_flag_status
@@ -1680,7 +1704,7 @@ CONTAINS
             isUniform_curr          = (buffer_real_dp(8) > 0.0_dp)
             uniformValue_curr       = buffer_real_dp(9)
 
-          ENDIF ! IF (is_my_turn)
+          ENDIF ! IF (process_is_next_to_distribute)
 
           ! The following depends on there are two status flags only:
           ! - RECORD_FLAG_STATUS_GOTDATA
@@ -1717,7 +1741,7 @@ CONTAINS
 
           ! We got the length of the variable name string,
           ! so now the distributor can broadcast the variable name string itself
-          IF (is_my_turn) THEN
+          IF (process_is_next_to_distribute) THEN
 
             variableName_curr(1:variableNameLength_curr) = variableName(1:variableNameLength)
 
@@ -1742,7 +1766,10 @@ CONTAINS
           domainData => findDomainData(listEntry, jg, opt_lcreate=.TRUE.)
 
           ! Finally, the current Work PE 'jproc' tries to distribute its data to all other Work PEs
-          IF (subGridId_curr == ECC_GRID_ELEMENT_CELL) THEN
+          IF (.NOT. process_does_decoding) THEN
+            ! See allocation of field above
+            nelems_global = 1_i8
+          ELSEIF (subGridId_curr == ECC_GRID_ELEMENT_CELL) THEN
             ! Grid cells:
             nelems_global = ncells_global
           ELSEIF (subGridId_curr == ECC_GRID_ELEMENT_EDGE) THEN
@@ -1773,7 +1800,7 @@ CONTAINS
           ! We assume that the following holds true at this point(!):
           ! - record_flag_status == RECORD_FLAG_STATUS_GOTDATA
           ! - found_match        == .TRUE.
-          IF (inventory .AND. is_my_turn) THEN
+          IF (inventory .AND. process_is_next_to_distribute) THEN
 
             IF (timing) CALL timer_start(timer_file_inventory)
 
@@ -1790,7 +1817,7 @@ CONTAINS
 
             IF (timing) CALL timer_stop(timer_file_inventory)
 
-          ENDIF ! IF (inventory .AND. is_my_turn)
+          ENDIF ! IF (inventory .AND. process_is_next_to_distribute)
 
         END DO DISTRIBUTION_LOOP
 
@@ -1821,7 +1848,7 @@ CONTAINS
           ! this is the signal to exit the file processing loop
           EXIT FILE_PROCESSING_LOOP
 
-        ELSEIF (.NOT. i_am_mpi_workroot) THEN
+        ELSEIF (.NOT. process_is_workroot) THEN
 
           IF (timing) CALL timer_start(timer_raw_data_distribution)
 
@@ -1848,7 +1875,7 @@ CONTAINS
 
       END DO FILE_PROCESSING_LOOP
 
-      IF (i_am_mpi_workroot) THEN
+      IF (process_is_workroot) THEN
 
         IF (timing) CALL timer_start(timer_file_reading)
 
@@ -1870,7 +1897,7 @@ CONTAINS
           IF (.NOT. successful_local) CALL finish(routine, "Printing the file inventory failed!")
         ENDIF
 
-      ENDIF ! IF (i_am_mpi_workroot)
+      ENDIF ! IF (process_is_workroot)
 
       ! Clean-up:
 
@@ -2158,8 +2185,8 @@ CONTAINS
 
       ! Expand message prefix by variableName
       IF (verbose) THEN
-        message_prefix        = message_prefix(1:message_prefix_length)//"(shortName: " &
-          &                   //variableName(1:variableNameLength)//")"
+        message_prefix        = message_prefix(1:message_prefix_length)//"[shortName: " &
+          &                   //variableName(1:variableNameLength)//"]"
         message_prefix_length = message_prefix_length + variableNameLength + 13
       ENDIF
 
