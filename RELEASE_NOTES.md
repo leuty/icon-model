@@ -108,6 +108,7 @@
 - Report to the relevant config.log when calling config.status of the bundled packages (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1161)
 - Fix detection of an external ComIn (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1163)
 - Fix the configuration and building order of the bundled packages (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1162)
+- Consistently install ICON and the relevant bundled packages to the specified installation prefixes and subdirectories
 
 #### Miscellaneous
 

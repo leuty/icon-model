@@ -10552,6 +10552,21 @@ fi
 
 ############################### BUNDLED PACKAGES ###############################
 
+if test "x$prefix" = xNONE; then :
+  prefix=$ac_default_prefix
+fi
+if test "x$exec_prefix" = xNONE; then :
+  exec_prefix=$prefix
+fi
+for icon_installdir in bindir includedir libdir; do
+  eval icon_tmp=\$$icon_installdir
+  eval "$icon_installdir=\"$icon_tmp\""
+done
+
+   acx_subdir_srcdirs_fn .
+icon_abs_top_srcdir=$ac_abs_top_srcdir
+icon_abs_top_builddir=$ac_abs_top_builddir
+
 ICON_BUNDLED_FCFLAGS=${ICON_BUNDLED_FCFLAGS-$ICON_FCFLAGS}
 
 ICON_BUNDLED_CFLAGS=${ICON_BUNDLED_CFLAGS-$ICON_CFLAGS}
@@ -10580,10 +10595,6 @@ BUNDLED_LIBFILES=''
 icon_pvcs_subdirs=''
 
 
-
-   acx_subdir_srcdirs_fn .
-icon_abs_top_srcdir=$ac_abs_top_srcdir
-icon_abs_top_builddir=$ac_abs_top_builddir
 
 if test "x$enable_rte_rrtmgp" = xyes && test "x$with_external_rte_rrtmgp" = xno; then :
   icon_subdir_srcdir="$srcdir/externals/rte-rrtmgp"
@@ -11359,6 +11370,8 @@ esac
      case $acx_tmp in #(
   -DCMAKE_C_FLAGS=*|-DCMAKE_Fortran_FLAGS=*|-DCMAKE_CXX_*=*) :
      ;; #(
+  -DCMAKE_INSTALL_PREFIX=*) :
+     ;; #(
   *) :
            case $acx_tmp in #(
   *\'*) :
@@ -11370,7 +11383,7 @@ esac
 esac
      shift
    done
-   set dummy -DCMAKE_AR="$AR" -DCMAKE_RANLIB="$RANLIB" -DCMAKE_C_FLAGS="$subdir_CFLAGS $ICON_MTIME_CFLAGS $subdir_CPPFLAGS" -DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_MTIME_FCFLAGS" -DCMAKE_BUILD_TYPE=None -DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH"      -DCMAKE_POSITION_INDEPENDENT_CODE="$icon_yac_python" -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF -DMTIME_ENABLE_PYTHON="$icon_mtime_python" -DPython_EXECUTABLE="$PYTHON"; shift
+   set dummy -DCMAKE_AR="$AR" -DCMAKE_RANLIB="$RANLIB" -DCMAKE_C_FLAGS="$subdir_CFLAGS $ICON_MTIME_CFLAGS $subdir_CPPFLAGS" -DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_MTIME_FCFLAGS" -DCMAKE_BUILD_TYPE=None -DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH"      -DCMAKE_POSITION_INDEPENDENT_CODE="$icon_yac_python"      -DCMAKE_INSTALL_PREFIX="$exec_prefix"      -DCMAKE_INSTALL_LIBDIR="$libdir" -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF -DMTIME_ENABLE_PYTHON="$icon_mtime_python" -DPython_EXECUTABLE="$PYTHON"; shift
    for acx_tmp; do
      case $acx_tmp in #(
   *\'*) :
@@ -11710,7 +11723,7 @@ esac
 esac
      shift
    done
-   set dummy -DCMAKE_AR="$AR" -DCMAKE_RANLIB="$RANLIB" -DCMAKE_C_FLAGS="$subdir_CFLAGS $ICON_COMIN_CFLAGS $subdir_CPPFLAGS" -DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_COMIN_FCFLAGS" -DCMAKE_CXX_FLAGS="$subdir_CXXFLAGS $ICON_COMIN_CXXFLAGS $subdir_CPPFLAGS" -DCMAKE_BUILD_TYPE=None -DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH" -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF -DCOMIN_ENABLE_EXAMPLES=OFF -DCOMIN_ENABLE_PYTHON_ADAPTER="$icon_comin_python" -DPython3_EXECUTABLE="$PYTHON"; shift
+   set dummy -DCMAKE_AR="$AR" -DCMAKE_RANLIB="$RANLIB" -DCMAKE_C_FLAGS="$subdir_CFLAGS $ICON_COMIN_CFLAGS $subdir_CPPFLAGS" -DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_COMIN_FCFLAGS" -DCMAKE_CXX_FLAGS="$subdir_CXXFLAGS $ICON_COMIN_CXXFLAGS $subdir_CPPFLAGS" -DCMAKE_BUILD_TYPE=None -DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH" -DCMAKE_INSTALL_LIBDIR="$libdir" -DCMAKE_INSTALL_INCLUDEDIR="$includedir" -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF -DCOMIN_ENABLE_EXAMPLES=OFF -DCOMIN_ENABLE_PYTHON_ADAPTER="$icon_comin_python" -DPython3_EXECUTABLE="$PYTHON"; shift
    for acx_tmp; do
      case $acx_tmp in #(
   *\'*) :
