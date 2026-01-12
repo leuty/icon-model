@@ -12,6 +12,10 @@
 - Bugfixes for restart issues with NWP sea ice
 - Added diagnostics: pressure at convective cloud top/base
 
+### ICON-Ocean
+
+- Vectorization of HAMOCC subroutines
+
 ### Soil and Surface
 
 #### Climate: ICON-Land

@@ -49,10 +49,15 @@ SUBROUTINE update_linage (local_bgc_mem, klev,start_idx,end_idx, pddpo, lacc)
   REAL(wp) :: fac001
   LOGICAL :: lzacc
 
+#ifdef __LVECTOR__
+  INTEGER :: max_klevs
+#endif
+
   CALL set_acc_host_or_device(lzacc, lacc)
 
   fac001 = dtbgc/(86400._wp*365._wp)
 
+#ifndef __LVECTOR__
   !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
   !$ACC LOOP GANG VECTOR
   DO jc = start_idx, end_idx
@@ -66,7 +71,21 @@ SUBROUTINE update_linage (local_bgc_mem, klev,start_idx,end_idx, pddpo, lacc)
      if(pddpo(jc,1) > EPSILON(0.5_wp)) local_bgc_mem%bgctra(jc,1,iagesc) = 0._wp
   ENDDO
   !$ACC END PARALLEL
+#else
+  max_klevs = MAXVAL(klev(start_idx:end_idx))
 
+  DO k=2,max_klevs
+    DO jc = start_idx, end_idx
+      IF (pddpo(jc,k) > EPSILON(0.5_wp) .AND. k<=klev(jc)) THEN
+          local_bgc_mem%bgctra(jc,k,iagesc) = local_bgc_mem%bgctra(jc,k,iagesc) + fac001
+      END IF
+    END DO
+  END DO
+
+  DO jc = start_idx, end_idx
+    if(pddpo(jc,1) > EPSILON(0.5_wp)) local_bgc_mem%bgctra(jc,1,iagesc) = 0._wp
+  END DO
+#endif
 
 END SUBROUTINE update_linage
 
@@ -224,7 +243,7 @@ SUBROUTINE gasex (local_bgc_mem, start_idx,end_idx, pddpo, za, ptho, psao,  &
 
   USE mo_bgc_constants, ONLY : cmh2ms
 
-  USE mo_carchm,    ONLY: update_hi
+  USE mo_carchm,    ONLY: update_hi, update_hi_VE
 
   IMPLICIT NONE
 
@@ -250,8 +269,17 @@ SUBROUTINE gasex (local_bgc_mem, start_idx,end_idx, pddpo, za, ptho, psao,  &
   REAL(wp) :: kwco2,kwo2, kwdms, kwn2o
   REAL(wp) :: scco2,sco2, scdms, scn2o
   REAL(wp) :: oxflux,niflux,nlaughflux, dmsflux
-  REAL(wp) :: ato2, atn2, atco2,pco2
-  REAL(wp) :: thickness
+  REAL(wp) :: ato2, atn2, pco2
+#ifndef __LVECTOR__
+  REAL(wp) :: atco2, thickness
+#define ATCO2VAR atco2
+#define THICKNESSVAR thickness
+#else
+  REAL(wp) :: atco2(start_idx:end_idx), thickness(start_idx:end_idx)
+  LOGICAL  :: vmask(start_idx:end_idx)
+#define ATCO2VAR atco2(j)
+#define THICKNESSVAR thickness(j)
+#endif
   LOGICAL :: lzacc
 
   ! for extended N-cycle
@@ -265,7 +293,19 @@ SUBROUTINE gasex (local_bgc_mem, start_idx,end_idx, pddpo, za, ptho, psao,  &
   !---------------------------------------------------------------------
   !
 
+#ifdef __LVECTOR__
+  !NEC$ nomove
+  DO j = start_idx, end_idx
+    IF( pddpo(j, 1) .GT. EPSILON(0.5_wp) ) THEN
+        vmask(j) = .TRUE.
+    ELSE
+        vmask(j) = .FALSE.
+    END IF
+  END DO
+#endif
+
   k = 1      ! surface layer
+
   !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
   !$ACC LOOP GANG VECTOR
   DO j = start_idx, end_idx
@@ -313,10 +353,11 @@ SUBROUTINE gasex (local_bgc_mem, start_idx,end_idx, pddpo, za, ptho, psao,  &
                 &           * (660._wp / scn2o)**0.5_wp
 
            if(l_cpl_co2)then
-            atco2 = local_bgc_mem%atm(j,iatmco2)
+            ATCO2VAR = local_bgc_mem%atm(j,iatmco2)
            else
-            atco2 = atm_co2
+            ATCO2VAR = atm_co2
            endif
+
            ato2  = atm_o2
            atn2  = atm_n2
 
@@ -373,6 +414,11 @@ SUBROUTINE gasex (local_bgc_mem, start_idx,end_idx, pddpo, za, ptho, psao,  &
 
            local_bgc_mem%bgcflux(j,kdmsflux) = dmsflux/dtbgc
 
+#ifdef __LVECTOR__
+        END IF
+    END DO
+#endif
+
         !*********************************************************************
         !
         ! Calculate air sea exchange for CO2
@@ -380,12 +426,24 @@ SUBROUTINE gasex (local_bgc_mem, start_idx,end_idx, pddpo, za, ptho, psao,  &
         !*********************************************************************
 
          ! Update local_bgc_mem%hi
-
+#ifndef __LVECTOR__
            local_bgc_mem%hi(j,k) = update_hi(local_bgc_mem%hi(j,k), local_bgc_mem%bgctra(j,k,isco212), local_bgc_mem%aksurf(j,1) , &
     &          local_bgc_mem%aksurf(j,2),  local_bgc_mem%aksurf(j,4), local_bgc_mem%aksurf(j,7), local_bgc_mem%aksurf(j,6), local_bgc_mem%aksurf(j,5),&
     &          local_bgc_mem%aksurf(j,8), local_bgc_mem%aksurf(j,9),local_bgc_mem%aksurf(j,10), psao(j,k) , local_bgc_mem%aksurf(j,3), &
     &          local_bgc_mem%bgctra(j,k,isilica), local_bgc_mem%bgctra(j,k,iphosph),local_bgc_mem%bgctra(j,k,ialkali) )
+#else
+           CALL update_hi_VE(local_bgc_mem%hi(start_idx:end_idx,1), local_bgc_mem%bgctra(start_idx:end_idx,1,isco212), &
+           &  local_bgc_mem%aksurf(start_idx:end_idx,1), local_bgc_mem%aksurf(start_idx:end_idx,2), local_bgc_mem%aksurf(start_idx:end_idx,4), &
+           &  local_bgc_mem%aksurf(start_idx:end_idx,7), local_bgc_mem%aksurf(start_idx:end_idx,6), local_bgc_mem%aksurf(start_idx:end_idx,5), &
+           &  local_bgc_mem%aksurf(start_idx:end_idx,8), local_bgc_mem%aksurf(start_idx:end_idx,9), local_bgc_mem%aksurf(start_idx:end_idx,10), &
+           &  psao(start_idx:end_idx,1) , local_bgc_mem%aksurf(start_idx:end_idx,3), local_bgc_mem%bgctra(start_idx:end_idx,1,isilica), &
+           &  local_bgc_mem%bgctra(start_idx:end_idx,1,iphosph), local_bgc_mem%bgctra(start_idx:end_idx,1,ialkali), &
+          &  local_bgc_mem%hi(start_idx:end_idx,1), start_idx, end_idx, vmask(start_idx:end_idx))
 
+    !NEC$ nomove
+    DO j = start_idx, end_idx
+        IF( vmask(j) ) THEN
+#endif
 
          !
          ! Calculate pCO2 [ppmv] from total dissolved inorganic carbon (DIC: SCO212)
@@ -394,23 +452,30 @@ SUBROUTINE gasex (local_bgc_mem, start_idx,end_idx, pddpo, za, ptho, psao,  &
            pco2=  local_bgc_mem%bgctra(j,k,isco212)  /((1._wp + local_bgc_mem%aksurf(j,1) * (1._wp + &
              & local_bgc_mem%aksurf(j,2)/local_bgc_mem%hi(j,k))/local_bgc_mem%hi(j,k)) * local_bgc_mem%solco2(j))
 
-           fluxd=atco2*kwco2*dtbgc*local_bgc_mem%solco2(j) !
+           fluxd=ATCO2VAR*kwco2*dtbgc*local_bgc_mem%solco2(j) !
            fluxu=pco2 *kwco2*dtbgc*local_bgc_mem%solco2(j) !
 
 !         ! new concentrations ocean (kmol/m3 -->ppm)
-           thickness = pddpo(j,1) + za(j)
-           local_bgc_mem%bgctra(j,1,isco212) = local_bgc_mem%bgctra(j,1,isco212)+ (1._wp - psicomo(j)) * (fluxd-fluxu)/thickness
+           THICKNESSVAR = pddpo(j,1) + za(j)
+           local_bgc_mem%bgctra(j,1,isco212) = local_bgc_mem%bgctra(j,1,isco212)+ (1._wp - psicomo(j)) * (fluxd-fluxu)/THICKNESSVAR
            local_bgc_mem%bgcflux(j,kcflux) = (1._wp - psicomo(j)) * (fluxu-fluxd)/dtbgc
            local_bgc_mem%bgcflux(j,kcflux_cpl) = (fluxu-fluxd)/dtbgc
            local_bgc_mem%bgcflux(j,kpco2) = pco2
 
-
-
+#ifdef __LVECTOR__
+        END IF
+    END DO
+#endif
 
            if (l_N_cycle) then
               ! Surface flux of ammonia  ! taken from Johnson et al, GBC,2008
               ! with atm. NH3 set to zero F = kgammo*KH_nh3 * NH3_seawater
               ! with NH3_seatwater = NH4* Ka/(Ka+hi) (Ka dissociation coef.)
+#ifdef __LVECTOR__
+              !NEC$ nomove
+              DO j = start_idx, end_idx
+                IF( vmask(j) ) THEN
+#endif
 
               ! gas phase tranfer velocity
               kgammo = (1._wp - psicomo(j))*pfu10(j)/kg_denom
@@ -428,7 +493,7 @@ SUBROUTINE gasex (local_bgc_mem, start_idx,end_idx, pddpo, za, ptho, psao,  &
               nh3sw = local_bgc_mem%bgctra(j,1,iammo)*ka_nh3/(ka_nh3+local_bgc_mem%hi(j,1))
 
               ammoflux = max(0._wp, dtbgc*kgammo*kh_nh3*nh3sw)
-              local_bgc_mem%bgctra(j,1,iammo) = local_bgc_mem%bgctra(j,1,iammo) - ammoflux/thickness
+              local_bgc_mem%bgctra(j,1,iammo) = local_bgc_mem%bgctra(j,1,iammo) - ammoflux/THICKNESSVAR
 
               ! LR: from mpiom, do not know what this is for ?!
               ! atm(i,j,iatmn2) = atm(i,j,iatmn2) + ammoflux*contppm/2._wp   !closing mass balance
@@ -437,12 +502,17 @@ SUBROUTINE gasex (local_bgc_mem, start_idx,end_idx, pddpo, za, ptho, psao,  &
               ! nh3flux(j) = nh3flux(i,j) + ammoflux  ! LR: from mpiom
 
               local_bgc_mem%bgcflux(j,knh3flux) = ammoflux/dtbgc
+#ifdef __LVECTOR__
+                END IF
+            END DO
+#endif
            endif
 
-
+#ifndef __LVECTOR__
         ENDIF ! wet cell
      END DO
      !$ACC END PARALLEL
+#endif
 
 END SUBROUTINE
 END MODULE mo_bgc_surface

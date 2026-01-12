@@ -60,12 +60,16 @@ SUBROUTINE CHEMCON (local_bgc_mem, start_idx, end_idx, klevs, psao, ptho,  &
 
   !! Local variables
 
-  INTEGER ::  jc, k, kldtday, kpke, js
+  INTEGER ::  jc, k, kldtday, kpke, js, max_klevs
   REAL(wp) :: t, q, s, log_t, log_q, sqrt_s, ti, qi, q2
   REAL(wp) :: cek0, ckb, ck1, ck2, ckw, oxy, ani
   REAL(wp) :: ak1, ak2, akb, akw, ak0, aksp0, log10ksp
   REAL(wp) :: p, cp, tc,tt,ts,ts2,ts3,ts4,ts5
+#ifndef __LVECTOR__
   REAL(wp) :: pis, pis2, rs,s2,deltav,deltak,lnkpk0(11)
+#else
+  REAL(wp) :: pis, pis2, rs,s2,deltav,deltak,lnkpk0(start_idx:end_idx,11)
+#endif
   REAL(wp) :: aksi, cksi, aks, cks, akf, ckf, free2sws,total2sws
   REAL(wp) :: ck1p,ck2p,ck3p, ak1p,ak2p,ak3p, total2free
   REAL(wp) :: sti, fti, total2free_0p, free2SWS_0p, total2SWS_0p,SWS2total
@@ -332,6 +336,15 @@ SUBROUTINE CHEMCON (local_bgc_mem, start_idx, end_idx, klevs, psao, ptho,  &
      !*     22.1 APPROX. SEAWATER PRESSURE AT U-POINT DEPTH (BAR)
      !  ----------------------------------------------------------------
 
+#ifdef __LVECTOR__
+  max_klevs = MAXVAL(klevs(start_idx:end_idx))
+  !NEC$ nomove
+  DO k = 1, max_klevs
+    !NEC$ nomove
+    DO jc = start_idx, end_idx
+        IF( (klevs(jc) .NE. 0) .AND. (k <= klevs(jc)) .AND. (pddpo(jc, k) > EPSILON(0.5_wp)) ) THEN           ! wet cell
+        p = 1.025e-1_wp * ptiestu(jc,k)   ! pressure
+#else
   !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
   !$ACC LOOP GANG VECTOR PRIVATE(lnkpk0)
   DO jc = start_idx, end_idx
@@ -344,6 +357,7 @@ SUBROUTINE CHEMCON (local_bgc_mem, start_idx, end_idx, klevs, psao, ptho,  &
            !
            !*    22.1 SET ABSOLUTE TEMPERATURE
            ! ----------------------------------------------------------------
+#endif
 
            t = ptho(jc,k) + tmelt
            ti = 1.0_wp / t
@@ -517,6 +531,7 @@ SUBROUTINE CHEMCON (local_bgc_mem, start_idx, end_idx, klevs, psao, ptho,  &
           !   5) ak3p 6) aksi  7) ak1 8) ak2
           !   9) akb 10) akw 11) aksp
 
+#ifndef __LVECTOR__
            DO js = 1,11
 
             deltav      = pa0(js) + pa1(js) * tc + pa2(js) * tc * tc
@@ -524,6 +539,41 @@ SUBROUTINE CHEMCON (local_bgc_mem, start_idx, end_idx, klevs, psao, ptho,  &
             lnkpk0(js) = - ( deltav * cp + 0.5_wp * deltak * cp * p )
 
            ENDDO
+#else
+           deltav      = pa0( 1) + pa1( 1) * tc + pa2( 1) * tc * tc
+           deltak      = pb0( 1) + pb1( 1) * tc + pb2( 1) * tc * tc
+           lnkpk0(jc,  1) = - ( deltav * cp + 0.5_wp * deltak * cp * p )
+           deltav      = pa0( 2) + pa1( 2) * tc + pa2( 2) * tc * tc
+           deltak      = pb0( 2) + pb1( 2) * tc + pb2( 2) * tc * tc
+           lnkpk0(jc,  2) = - ( deltav * cp + 0.5_wp * deltak * cp * p )
+           deltav      = pa0( 3) + pa1( 3) * tc + pa2( 3) * tc * tc
+           deltak      = pb0( 3) + pb1( 3) * tc + pb2( 3) * tc * tc
+           lnkpk0(jc,  3) = - ( deltav * cp + 0.5_wp * deltak * cp * p )
+           deltav      = pa0( 4) + pa1( 4) * tc + pa2( 4) * tc * tc
+           deltak      = pb0( 4) + pb1( 4) * tc + pb2( 4) * tc * tc
+           lnkpk0(jc,  4) = - ( deltav * cp + 0.5_wp * deltak * cp * p )
+           deltav      = pa0( 5) + pa1( 5) * tc + pa2( 5) * tc * tc
+           deltak      = pb0( 5) + pb1( 5) * tc + pb2( 5) * tc * tc
+           lnkpk0(jc,  5) = - ( deltav * cp + 0.5_wp * deltak * cp * p )
+           deltav      = pa0( 6) + pa1( 6) * tc + pa2( 6) * tc * tc
+           deltak      = pb0( 6) + pb1( 6) * tc + pb2( 6) * tc * tc
+           lnkpk0(jc,  6) = - ( deltav * cp + 0.5_wp * deltak * cp * p )
+           deltav      = pa0( 7) + pa1( 7) * tc + pa2( 7) * tc * tc
+           deltak      = pb0( 7) + pb1( 7) * tc + pb2( 7) * tc * tc
+           lnkpk0(jc,  7) = - ( deltav * cp + 0.5_wp * deltak * cp * p )
+           deltav      = pa0( 8) + pa1( 8) * tc + pa2( 8) * tc * tc
+           deltak      = pb0( 8) + pb1( 8) * tc + pb2( 8) * tc * tc
+           lnkpk0(jc,  8) = - ( deltav * cp + 0.5_wp * deltak * cp * p )
+           deltav      = pa0( 9) + pa1( 9) * tc + pa2( 9) * tc * tc
+           deltak      = pb0( 9) + pb1( 9) * tc + pb2( 9) * tc * tc
+           lnkpk0(jc,  9) = - ( deltav * cp + 0.5_wp * deltak * cp * p )
+           deltav      = pa0(10) + pa1(10) * tc + pa2(10) * tc * tc
+           deltak      = pb0(10) + pb1(10) * tc + pb2(10) * tc * tc
+           lnkpk0(jc, 10) = - ( deltav * cp + 0.5_wp * deltak * cp * p )
+           deltav      = pa0(11) + pa1(11) * tc + pa2(11) * tc * tc
+           deltak      = pb0(11) + pb1(11) * tc + pb2(11) * tc * tc
+           lnkpk0(jc, 11) = - ( deltav * cp + 0.5_wp * deltak * cp * p )
+#endif
 
            ! sulfate Morris & Riley (1966)
            sti   = 0.14_wp *  s*1.025_wp/1.80655_wp  / 96.062_wp
@@ -542,14 +592,22 @@ SUBROUTINE CHEMCON (local_bgc_mem, start_idx, end_idx, klevs, psao, ptho,  &
           total2SWS_0p = total2free_0p * free2SWS_0p             ! KSWS =Ktotal*total2SWS
 
           ! Pressure correction on Ks (free scale)
+#ifndef __LVECTOR__
            AKS  = AKS  * EXP(lnkpk0(1))
+#else
+           AKS  = AKS  * EXP(lnkpk0(jc,1))
+#endif
 
          ! conversion factor total to free scale
            total2free = 1._wp/(1._wp + sti/AKS)
 
 
           ! Pressure correction on Kf (free scale)
+#ifndef __LVECTOR__
            AKF  = AKF  * EXP(lnkpk0(2))
+#else
+           AKF  = AKF  * EXP(lnkpk0(jc,2))
+#endif
 
           ! convert to total scale
            AKF  = AKF / total2free
@@ -568,6 +626,7 @@ SUBROUTINE CHEMCON (local_bgc_mem, start_idx, end_idx, klevs, psao, ptho,  &
 
         ! Pressure correction
 
+#ifndef __LVECTOR__
            AK1  = AK1 * EXP(lnkpk0(7))
            AK2  = AK2 * EXP(lnkpk0(8))
            AKB = AKB * EXP(lnkpk0(9))
@@ -577,6 +636,17 @@ SUBROUTINE CHEMCON (local_bgc_mem, start_idx, end_idx, klevs, psao, ptho,  &
            AK2P = AK2P * EXP(lnkpk0(4))
            AK3P = AK3P * EXP(lnkpk0(5))
            AKSI = AKSI * EXP(lnkpk0(6))
+#else
+           AK1  = AK1 * EXP(lnkpk0(jc, 7))
+           AK2  = AK2 * EXP(lnkpk0(jc, 8))
+           AKB = AKB * EXP(lnkpk0(jc, 9))
+           AKW = AKW * EXP(lnkpk0(jc, 10))
+           AKSP0 = ARACAL* AKSP0 * EXP(lnkpk0(jc, 11))
+           AK1P = AK1P * EXP(lnkpk0(jc, 3))
+           AK2P = AK2P * EXP(lnkpk0(jc, 4))
+           AK3P = AK3P * EXP(lnkpk0(jc, 5))
+           AKSI = AKSI * EXP(lnkpk0(jc, 6))
+#endif
 
           ! Conversion to total scale and move to 3D var
 
@@ -592,8 +662,9 @@ SUBROUTINE CHEMCON (local_bgc_mem, start_idx, end_idx, klevs, psao, ptho,  &
            local_bgc_mem%akw3(jc,k) = akw  * sws2total
            local_bgc_mem%aksp(jc,k) = aksp0  ! independent
 
-
+#ifndef __LVECTOR__
           END IF
+#endif
           END IF
         END DO
   END DO

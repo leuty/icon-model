@@ -953,6 +953,8 @@ CONTAINS
     REAL(wp) :: z_adv_low (nproma, n_zlev, patch_3d%p_patch_2d(1)%nblks_e)
     REAL(wp) :: z_adv_high(nproma, n_zlev, patch_3d%p_patch_2d(1)%nblks_e)
 
+    INTEGER :: max_klevs
+
 
     ! CHARACTER(len=max_char_length), PARAMETER :: &
     !        & routine = ('mo_tracer_advection:advect_diffuse_tracer')
@@ -1078,8 +1080,17 @@ CONTAINS
         div_adv_flux_vert(jc, :, jb) = stretch_c(jc, jb)*div_adv_flux_vert(jc, :, jb)
         div_diff_flx_vert(jc, :, jb) = stretch_c(jc, jb)*div_diff_flx_vert(jc, :, jb)
 
+#ifdef __LVECTOR__
+      END DO
+
+      level = 1
+      DO jc = start_cell_index, end_cell_index
+        IF(1 <= patch_3d%p_patch_1d(1)%dolic_c(jc,jb)) THEN
+#else
         !! Apply boundary conditions
         DO level = 1, MIN(patch_3d%p_patch_1d(1)%dolic_c(jc,jb),1)  ! this at most should be 1
+#endif
+
           delta_z     = patch_3d%p_patch_1D(1)%prism_thick_flat_sfc_c(jc,level,jb)*stretch_c(jc, jb)
           delta_z_new = patch_3d%p_patch_1D(1)%prism_thick_flat_sfc_c(jc,level,jb)*stretch_c_new(jc, jb)
 
@@ -1104,9 +1115,17 @@ CONTAINS
           ENDIF
           ! end by_nils ts_budget
 
-        END DO
-
+#ifdef __LVECTOR__
+        ENDIF
+      END DO ! jc
+      max_klevs = MAXVAL(patch_3d%p_patch_1d(1)%dolic_c(start_cell_index:end_cell_index,jb))
+      DO level = 2, max_klevs
+        DO jc = start_cell_index, end_cell_index
+            IF(level <= patch_3d%p_patch_1d(1)%dolic_c(jc,jb)) THEN
+#else
+        END DO ! level
         DO level = 2, patch_3d%p_patch_1d(1)%dolic_c(jc,jb)
+#endif
 
           new_tracer%concentration(jc,level,jb) =                          &
             &  old_tracer%concentration(jc,level,jb)*(stretch_c(jc, jb)/stretch_c_new(jc, jb)) -         &
@@ -1123,11 +1142,20 @@ CONTAINS
           ENDIF
           ! end by_nils ts_budget
 
+#ifdef __LVECTOR__
+            END IF
 
-        ENDDO
+        END DO ! level
 
-      END DO
-    END DO
+      END DO ! jc
+
+    END DO ! jb
+#else
+        ENDDO ! level
+
+      END DO ! jc
+    END DO ! jb
+#endif
 !ICON_OMP_END_PARALLEL_DO
 
 
@@ -1204,13 +1232,23 @@ CONTAINS
 !ICON_OMP level ) ICON_OMP_DEFAULT_SCHEDULE
         DO jb = cells_in_domain%start_block, cells_in_domain%end_block
           CALL get_index_range(cells_in_domain, jb, start_cell_index, end_cell_index)
+#ifdef __LVECTOR__
+          max_klevs = MAXVAL(patch_3d%p_patch_1d(1)%dolic_c(start_cell_index:end_cell_index,jb))
+          DO level = 1, max_klevs
+            DO jc = start_cell_index, end_cell_index
+                IF(level <= patch_3d%p_patch_1d(1)%dolic_c(jc,jb)) THEN
+#else
           DO jc = start_cell_index, end_cell_index
 
             DO level = 1, patch_3d%p_patch_1d(1)%dolic_c(jc,jb)
+#endif
 
               p_os%p_diag%osalttend(jc,level,jb)&
               &=(new_tracer%concentration(jc,level,jb)&
               &- old_tracer%concentration(jc,level,jb))/dtime
+#ifdef __LVECTOR__
+                END IF
+#endif
             END DO
           END DO
         ENDDO
