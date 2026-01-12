@@ -100,8 +100,10 @@ MODULE mo_vdf_sfc_memory
     TYPE(t_tmx_var) :: &
       & co2          , & !< Atmospheric CO2 concentration [ppmv]
       & co2flx_ant   , & !< CO2 flux from anthropogenic sources [kg/(m2 s)]
-      & u_oce_current, & !< U component of ocean current [m/s]
-      & v_oce_current, & !< V component of ocean current [m/s]
+      & ocean_u,       & !< U component of ocean current [m/s]
+      & ocean_v,       & !< V component of ocean current [m/s]
+      & ice_u,         & !< U component of sea ice velocity [m/s]
+      & ice_v,         & !< V component of sea ice velocity [m/s]
       & ice_thickness    !< Thickness of sea ice [m]
 
     ! Tile-based fields
@@ -122,7 +124,7 @@ MODULE mo_vdf_sfc_memory
 
     ! Basic atmospheric and surface properties
     TYPE(t_tmx_var) :: &
-      & wind        , & !< Atmospheric wind speed at lowest level [m/s]
+      & wind_rel_tile, & !< Atmospheric wind speed at lowest level rel. to surface [m/s]
       & theta_atm   , & !< Atmospheric potential temperature at lowest level [K]
       & thetav_atm      !< Atmospheric virtual potential temperature at lowest level [K]
 
@@ -332,8 +334,10 @@ MODULE mo_vdf_sfc_memory
 
     ! Other atmospheric and surface properties
     CALL this%co2%Init('atm CO2 concentration', 'double', dims=shape_2d, patch_id=patch_id)
-    CALL this%u_oce_current%Init('u-component of ocean current', 'double', dims=shape_2d, patch_id=patch_id)
-    CALL this%v_oce_current%Init('v-component of ocean current', 'double', dims=shape_2d, patch_id=patch_id)
+    CALL this%ocean_u%Init('u-component of ocean current', 'double', dims=shape_2d, patch_id=patch_id)
+    CALL this%ocean_v%Init('v-component of ocean current', 'double', dims=shape_2d, patch_id=patch_id)
+    CALL this%ice_u%Init('u-component of sea ice velocity', 'double', dims=shape_2d, patch_id=patch_id)
+    CALL this%ice_v%Init('v-component of sea ice velocity', 'double', dims=shape_2d, patch_id=patch_id)
     CALL this%ice_thickness%Init('thickness of sea ice', 'double', dims=shape_2d, patch_id=patch_id)
     CALL this%dz%Init('reference height in surface layer times 2', 'mixed', dims=shape_2d, patch_id=patch_id)
 
@@ -371,7 +375,6 @@ MODULE mo_vdf_sfc_memory
     shape_2d = [nproma, nblks_c]
 
     ! Basic atmospheric and surface properties
-    CALL this%wind%Init('atm wind speed', 'double', dims=shape_2d, patch_id=patch_id)
     CALL this%theta_atm%Init('atm potential temperature', 'double', dims=shape_2d, patch_id=patch_id)
     CALL this%thetav_atm%Init('atm virtual potential temperature', 'double', dims=shape_2d, patch_id=patch_id)
 
@@ -427,6 +430,7 @@ MODULE mo_vdf_sfc_memory
     shape_3d = [nproma, nblks_c, ntiles]
 
     ! Surface properties per tile
+    CALL this%wind_rel_tile%Init('atm rel. wind speed, tile', 'double', dims=shape_3d, patch_id=patch_id)
     CALL this%rough_h_tile%Init('roughness length heat, tile', 'double', dims=shape_3d, patch_id=patch_id)
     CALL this%rough_m_tile%Init('roughness length momentum, tile', 'double', dims=shape_3d, patch_id=patch_id)
     CALL this%qsat_tile%Init('sfc saturation specific humidity, tile', 'double', dims=shape_3d, patch_id=patch_id)

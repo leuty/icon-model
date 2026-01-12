@@ -528,7 +528,7 @@ CONTAINS
     & domain,                  &
     & isfc,                    &
     & nvalid, indices,         &
-    & rough_min, rough_oce, rough_ice, wind, km,  &
+    & rough_min, rough_oce, rough_ice, wind_rel, km,  &
     & rough_h, rough_m,        &
     & opt_acc_async_queue      &
     & )
@@ -547,8 +547,8 @@ CONTAINS
       & indices(:,:)
     REAL(wp), INTENT(in) :: rough_min, rough_oce, rough_ice
     REAL(wp), DIMENSION(:,:), INTENT(in) :: &
-      km ,     &
-      wind
+      & wind_rel,            &
+      & km
     !
     ! Output variables
     !
@@ -584,8 +584,8 @@ CONTAINS
           IF (linit) THEN
             rough_tmp = rough_oce
           ELSE
-            rough_tmp =   (wind(js,jb)**2 * km(js,jb) * cchar * rgrav) &
-                        + (viscous_coeff * MIN(0.01_wp, nu / (km(js,jb)**0.5_wp * wind(js,jb) ) ))
+            rough_tmp = (wind_rel(js,jb)**2 * km(js,jb) * cchar * rgrav) &
+                        + (viscous_coeff * MIN(0.01_wp, nu / (km(js,jb)**0.5_wp * wind_rel(js,jb)) ))
           END IF
           rough_tmp = MAX(rough_min, rough_tmp)
           rough_m(js,jb) = rough_tmp
@@ -719,7 +719,7 @@ CONTAINS
     & wind_g,                  &
     & cvd,                     &
     ! & ua, va, thetam1, qm1, wind, rho, qsat_sfc, theta_sfc, kh, km,  &
-    & ua, va, ta, qm1, wind, u_sfc_oce, v_sfc_oce, rho, qsat_sfc, t_sfc, kh, km,  &
+    & ua, va, ta, qm1, wind_rel, oce_u, oce_v, ice_u, ice_v, rho, qsat_sfc, t_sfc, kh, km,  &
     & evapotrans, latent_hflx, sensible_hflx, ustress, vstress,  &
     & opt_acc_async_queue      &
     & )
@@ -746,9 +746,11 @@ CONTAINS
       & qsat_sfc, &
       ! & theta_sfc, &
       & t_sfc, &
-      & wind, &
-      & u_sfc_oce, &
-      & v_sfc_oce
+      & wind_rel, &
+      & oce_u, &
+      & oce_v, &
+      & ice_u, &
+      & ice_v
     !
     ! Output variables
     !
@@ -816,24 +818,27 @@ CONTAINS
         js = indices(jls,jb)
         ! TODO: is the treatment of surface ocean current correct (cf. vdiff code)
         IF (isfc == isfc_oce) THEN
-          evapotrans(js,jb) = rho(js,jb) * kh(js,jb) * (SQRT(wind_g**2._wp + wind(js,jb)**2._wp)) * (qm1(js,jb) - qsat_sfc(js,jb))
+          ! FIXME: correct to use wind_g with relative wind speed?
+          evapotrans(js,jb) = &
+            & rho(js,jb) * kh(js,jb) * (SQRT(wind_g**2._wp + wind_rel(js,jb)**2._wp)) * (qm1(js,jb) - qsat_sfc(js,jb))
           latent_hflx(js,jb) = evapotrans(js,jb) * (lvc+(cvv-clw)*t_sfc(js,jb))
-          sensible_hflx(js,jb) = cvd * rho(js,jb) * kh(js,jb) * (SQRT(wind_g**2._wp + wind(js,jb)**2._wp))* (ta(js,jb) - t_sfc(js,jb))
-          ustress(js,jb) = rho(js,jb) * km(js,jb) * wind(js,jb) * (ua(js,jb) - u_sfc_oce(js,jb))
-          vstress(js,jb) = rho(js,jb) * km(js,jb) * wind(js,jb) * (va(js,jb) - v_sfc_oce(js,jb))
+          sensible_hflx(js,jb) = cvd * rho(js,jb) * kh(js,jb) * &
+            & (SQRT(wind_g**2._wp + wind_rel(js,jb)**2._wp))* (ta(js,jb) - t_sfc(js,jb))
+          ustress(js,jb) = rho(js,jb) * km(js,jb) * wind_rel(js,jb) * (ua(js,jb) - oce_u(js,jb))
+          vstress(js,jb) = rho(js,jb) * km(js,jb) * wind_rel(js,jb) * (va(js,jb) - oce_v(js,jb))
         ELSE IF (isfc == isfc_ice) THEN
-          evapotrans(js,jb) = rho(js,jb) * wind(js,jb) * kh(js,jb) * (qm1(js,jb) - qsat_sfc(js,jb))
+          evapotrans(js,jb) = rho(js,jb) * wind_rel(js,jb) * kh(js,jb) * (qm1(js,jb) - qsat_sfc(js,jb))
           latent_hflx(js,jb) = evapotrans(js,jb) * (lsc+(cvv-ci)*t_sfc(js,jb))
-          sensible_hflx(js,jb) = cvd * rho(js,jb) * wind(js,jb) * kh(js,jb) * (ta(js,jb) - t_sfc(js,jb))
-          ustress(js,jb) = rho(js,jb) * km(js,jb) * wind(js,jb) * ua(js,jb)
-          vstress(js,jb) = rho(js,jb) * km(js,jb) * wind(js,jb) * va(js,jb)
+          sensible_hflx(js,jb) = cvd * rho(js,jb) * wind_rel(js,jb) * kh(js,jb) * (ta(js,jb) - t_sfc(js,jb))
+          ustress(js,jb) = rho(js,jb) * km(js,jb) * wind_rel(js,jb) * (ua(js,jb) - ice_u(js,jb))
+          vstress(js,jb) = rho(js,jb) * km(js,jb) * wind_rel(js,jb) * (va(js,jb) - ice_v(js,jb))
         ELSE IF (isfc == isfc_lnd) THEN
 #ifndef __NO_JSBACH__
           evapotrans(js,jb) = jsb_evapotrans_ptr(js,jb)
           latent_hflx(js,jb) = jsb_latent_hflx_ptr(js,jb)
           sensible_hflx(js,jb) = jsb_sensible_hflx_ptr(js,jb)
-          ustress(js,jb) = rho(js,jb) * km(js,jb) * wind(js,jb) * ua(js,jb)
-          vstress(js,jb) = rho(js,jb) * km(js,jb) * wind(js,jb) * va(js,jb)
+          ustress(js,jb) = rho(js,jb) * km(js,jb) * wind_rel(js,jb) * ua(js,jb)
+          vstress(js,jb) = rho(js,jb) * km(js,jb) * wind_rel(js,jb) * va(js,jb)
 #endif
         END IF
       END DO !jls
@@ -995,9 +1000,9 @@ CONTAINS
   !=================================================================
   !
   SUBROUTINE compute_10m_wind( &
-    & domain, isfc,               &
+    & domain,                     &
     & nvalid, indices, zf, zh,    &
-    & ua, va, u_oce, v_oce,       &
+    & ua, va,                     &
     & moist_rich, km, km_neutral, &
     & u10m, v10m, wind10m,        &
     & opt_acc_async_queue)
@@ -1009,11 +1014,10 @@ CONTAINS
     !
     INTEGER,  INTENT(in)  :: &
       & nvalid(:),           &
-      & indices(:,:),        &
-      & isfc
+      & indices(:,:)
     REAL(wp), DIMENSION(:,:), INTENT(in) :: &
       & zf, zh, &
-      & ua, va, u_oce, v_oce, moist_rich, km, km_neutral
+      & ua, va, moist_rich, km, km_neutral
     REAL(wp), DIMENSION(:,:), INTENT(out) :: &
       & u10m, v10m, wind10m
     !
@@ -1054,11 +1058,7 @@ CONTAINS
         zred   = (zcbn + zmerge) / zbm
         u10m(js,jb) = zred * ua(js,jb)
         v10m(js,jb) = zred * va(js,jb)
-        IF (isfc == isfc_oce) THEN
-          wind10m(js,jb) = zred * SQRT((ua(js,jb) - u_oce(js,jb))**2._wp + (va(js,jb) - v_oce(js,jb))**2._wp)
-        ELSE
-          wind10m(js,jb) = SQRT(u10m(js,jb)**2._wp + (v10m(js,jb)**2._wp))
-        END IF
+        wind10m(js,jb) = SQRT(u10m(js,jb)**2._wp + (v10m(js,jb)**2._wp))
       END DO
     !$ACC END PARALLEL LOOP
     ENDDO

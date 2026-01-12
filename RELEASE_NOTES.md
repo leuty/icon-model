@@ -9,6 +9,7 @@
 #### AES Physics
 
 - Correction of the roughness length computation over ocean in TMX
+- Use tile-specific relative wind speed for surface roughness, exchange coefficients and fluxes in TMX
 - Use memory manager library for data management in TMX
 
 #### NWP Physics
