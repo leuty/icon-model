@@ -104,7 +104,6 @@ CONTAINS
     REAL(wp) :: zqrsflux (SIZE(dz,1),SIZE(dz,2))
     !
     REAL(wp) :: zdtr ! reciprocal of timestep
-    REAL(wp), PARAMETER :: cloud_num = 200.00e+06_wp
 
     !$ACC DATA PRESENT(dz, rho, pf, ta, qv, qc, qi, qr, qs, qg) &
     !$ACC   PRESENT(tend_ta, tend_qv, tend_qc, tend_qi, tend_qr, tend_qs, tend_qg) &
