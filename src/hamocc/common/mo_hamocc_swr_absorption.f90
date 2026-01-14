@@ -17,7 +17,7 @@ MODULE mo_hamocc_swr_absorption
   USE mo_control_bgc, ONLY: bgc_zlevs, bgc_nproma
   USE mo_bgc_memory_types, ONLY  : t_bgc_memory
   USE mo_fortran_tools, ONLY     : set_acc_host_or_device
-
+  USE mo_exception, ONLY      : finish
 
   IMPLICIT NONE
 
@@ -67,6 +67,10 @@ SUBROUTINE swr_absorption(local_bgc_mem, start_idx,end_idx, klevs, pfswr, psicom
     LOGICAL :: lzacc
 
     CALL set_acc_host_or_device(lzacc, lacc)
+
+#if defined(__LVECTOR__) && defined(_OPENACC)
+    IF (lzacc) CALL finish("", "LVECTOR variant after reworking not properly ported/tested on GPUs")
+#endif
 
     ! if prognostic cyanobacteria are calculated
     ! use them in absorption (rcyano=1)

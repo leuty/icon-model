@@ -52,6 +52,7 @@ MODULE mo_ocprod
        &                          l_doc_q10, doc_remin_q10, doc_remin_tref, &
        &                          l_poc_q10, poc_remin_q10, poc_remin_tref
     USE mo_fortran_tools, ONLY : set_acc_host_or_device
+    USE mo_exception, ONLY     : finish
   PUBLIC :: ocprod
 
 
@@ -118,8 +119,12 @@ SUBROUTINE ocprod (local_bgc_mem, klev,start_idx, end_idx, ptho, pddpo, za, ptie
 
   CALL set_acc_host_or_device(lzacc, lacc)
 
- !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
- !$ACC LOOP GANG VECTOR COLLAPSE(2)
+#if defined(__LVECTOR__) && defined(_OPENACC)
+  IF (lzacc) CALL finish("", "LVECTOR variant after reworking not properly ported/tested on GPUs")
+#endif
+
+!  !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+!  !$ACC LOOP GANG VECTOR COLLAPSE(2)
  DO k = 1, max_klevs
    DO j = start_idx, end_idx
 
@@ -838,7 +843,7 @@ SUBROUTINE ocprod (local_bgc_mem, klev,start_idx, end_idx, ptho, pddpo, za, ptie
       ENDIF ! wet cells
      ENDDO ! k=1,kpke
  ENDDO ! j=start_idx,end_idx
- !$ACC END PARALLEL
+!  !$ACC END PARALLEL
 
 #undef NFRACVAR
 

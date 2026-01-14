@@ -28,6 +28,7 @@ MODULE mo_chemcon
   USE mo_bgc_constants
   USE mo_bgc_memory_types, ONLY  : t_bgc_memory
   USE mo_fortran_tools, ONLY     : set_acc_host_or_device
+  USE mo_exception, ONLY         : finish
 
   IMPLICIT NONE
 
@@ -76,6 +77,10 @@ SUBROUTINE CHEMCON (local_bgc_mem, start_idx, end_idx, klevs, psao, ptho,  &
   LOGICAL :: lzacc
 
   CALL set_acc_host_or_device(lzacc, lacc)
+
+#if defined(__LVECTOR__) && defined(_OPENACC)
+  IF (lzacc) CALL finish("", "LVECTOR variant after reworking not properly ported/tested on GPUs")
+#endif
 
   !     -----------------------------------------------------------------
   !*            SET MEAN TOTAL [CA++] IN SEAWATER (MOLES/KG)
@@ -345,11 +350,11 @@ SUBROUTINE CHEMCON (local_bgc_mem, start_idx, end_idx, klevs, psao, ptho,  &
         IF( (klevs(jc) .NE. 0) .AND. (k <= klevs(jc)) .AND. (pddpo(jc, k) > EPSILON(0.5_wp)) ) THEN           ! wet cell
         p = 1.025e-1_wp * ptiestu(jc,k)   ! pressure
 #else
-  !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-  !$ACC LOOP GANG VECTOR PRIVATE(lnkpk0)
+!   !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+!   !$ACC LOOP GANG VECTOR PRIVATE(lnkpk0)
   DO jc = start_idx, end_idx
      kpke=klevs(jc)
-     !$ACC LOOP SEQ
+!      !$ACC LOOP SEQ
       DO k = 1, kpke
         p = 1.025e-1_wp * ptiestu(jc,k)   ! pressure
            IF(kpke.ne.0)THEN
@@ -668,7 +673,7 @@ SUBROUTINE CHEMCON (local_bgc_mem, start_idx, end_idx, klevs, psao, ptho,  &
           END IF
         END DO
   END DO
-  !$ACC END PARALLEL
+!   !$ACC END PARALLEL
 
 
 

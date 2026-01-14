@@ -20,6 +20,7 @@ MODULE mo_cyano
   USE mo_control_bgc, ONLY    : dtb, dtbgc, bgc_nproma, bgc_zlevs
   USE mo_bgc_memory_types, ONLY  : t_bgc_memory
   USE mo_fortran_tools, ONLY  : set_acc_host_or_device
+  USE mo_exception, ONLY      : finish
 
   IMPLICIT NONE
 
@@ -166,6 +167,10 @@ SUBROUTINE cyadyn(local_bgc_mem, klevs, start_idx, end_idx, pddpo, za, ptho, pti
       REAL(wp) :: xn_fe, xn_p
 
       CALL set_acc_host_or_device(lzacc, lacc)
+
+#if defined(__LVECTOR__) && defined(_OPENACC)
+      IF (lzacc) CALL finish("", "LVECTOR variant after reworking not properly ported/tested on GPUs")
+#endif
 
   !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
   !$ACC LOOP GANG VECTOR COLLAPSE(2)
@@ -343,8 +348,8 @@ SUBROUTINE cyadyn(local_bgc_mem, klevs, start_idx, end_idx, pddpo, za, ptho, pti
   ! C(k,T+dt)=(ddpo(k)*C(k,T)+w*dt*C(k-1,T+dt))/(ddpo(k)+w*dt)
   ! sedimentation=w*dt*C(ks,T+dt)
   !
- !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
- !$ACC LOOP GANG VECTOR
+!  !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+!  !$ACC LOOP GANG VECTOR
  DO j=start_idx,end_idx
     kpke=klevs(j)
     IF (kpke > 0)THEN
@@ -359,7 +364,7 @@ SUBROUTINE cyadyn(local_bgc_mem, klevs, start_idx, end_idx, pddpo, za, ptho, pti
 #endif
 
 #ifndef __LVECTOR__
-    !$ACC LOOP SEQ
+!     !$ACC LOOP SEQ
     do k=(kpke-1),2,-1
 #else
     DO k = (max_klevs-1), 2, -1
@@ -394,7 +399,7 @@ SUBROUTINE cyadyn(local_bgc_mem, klevs, start_idx, end_idx, pddpo, za, ptho, pti
     endif
    ENDIF
  ENDDO
- !$ACC END PARALLEL
+!  !$ACC END PARALLEL
 
 
 END SUBROUTINE  cyadyn

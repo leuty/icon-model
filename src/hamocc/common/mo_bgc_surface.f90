@@ -18,6 +18,7 @@ MODULE mo_bgc_surface
   USE mo_control_bgc, ONLY    : dtbgc, bgc_nproma, bgc_zlevs
   USE mo_bgc_memory_types, ONLY  : t_bgc_memory
   USE mo_fortran_tools, ONLY  : set_acc_host_or_device
+  USE mo_exception, ONLY      : finish
 
   IMPLICIT NONE
 
@@ -54,6 +55,10 @@ SUBROUTINE update_linage (local_bgc_mem, klev,start_idx,end_idx, pddpo, lacc)
 #endif
 
   CALL set_acc_host_or_device(lzacc, lacc)
+
+#if defined(__LVECTOR__) && defined(_OPENACC)
+  IF (lzacc) CALL finish("", "LVECTOR variant after reworking not properly ported/tested on GPUs")
+#endif
 
   fac001 = dtbgc/(86400._wp*365._wp)
 
@@ -288,6 +293,9 @@ SUBROUTINE gasex (local_bgc_mem, start_idx,end_idx, pddpo, za, ptho, psao,  &
 
   CALL set_acc_host_or_device(lzacc, lacc)
 
+#if defined(__LVECTOR__) && defined(_OPENACC)
+  IF (lzacc) CALL finish("", "LVECTOR variant after reworking not properly ported/tested on GPUs")
+#endif
 
   !
   !---------------------------------------------------------------------
@@ -306,8 +314,8 @@ SUBROUTINE gasex (local_bgc_mem, start_idx,end_idx, pddpo, za, ptho, psao,  &
 
   k = 1      ! surface layer
 
-  !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-  !$ACC LOOP GANG VECTOR
+!   !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+!   !$ACC LOOP GANG VECTOR
   DO j = start_idx, end_idx
 
 
@@ -511,7 +519,7 @@ SUBROUTINE gasex (local_bgc_mem, start_idx,end_idx, pddpo, za, ptho, psao,  &
 #ifndef __LVECTOR__
         ENDIF ! wet cell
      END DO
-     !$ACC END PARALLEL
+!      !$ACC END PARALLEL
 #endif
 
 END SUBROUTINE
