@@ -12,6 +12,7 @@
 - Use tile-specific relative wind speed for surface roughness, exchange coefficients and fluxes in TMX
 - Use memory manager library for data management in TMX
 - Fix for double definition of cloud_num in microphysics
+- Correction to rain microphysics (evap and accretion)
 
 #### NWP Physics
 

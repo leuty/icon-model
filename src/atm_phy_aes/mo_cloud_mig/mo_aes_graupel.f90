@@ -61,11 +61,10 @@ INTEGER, PARAMETER ::                          &
 ! code, but are documented here for possible diagnostic use, or to allow the extension
 ! of the code to faciliate the output of these variables in the future.
 !
-REAL(wp), PARAMETER, DIMENSION(5) :: &
- rain_re = [ &
-  2.17470e+07_wp,  8.47148e+06_wp,  1.19189e+06_wp,  7.18530e+04_wp,  1.56936e+03_wp], &
- rain_vd = [ &
- -6.81479e+00_wp, -7.53619e+00_wp, -1.20634e+00_wp, -7.05880e-02_wp, -1.42711e-03_wp]
+!!$ rain_re = [ &
+!!$  2.17470e+07_wp,  8.47148e+06_wp,  1.19189e+06_wp,  7.18530e+04_wp,  1.56936e+03_wp], &
+!!$ rain_vd = [ &
+!!$ -6.81479e+00_wp, -7.53619e+00_wp, -1.20634e+00_wp, -7.05880e-02_wp, -1.42711e-03_wp]
 
 REAL(wp), PARAMETER :: &
    rho_00 = 1.225_wp        , & ! reference air density
@@ -153,8 +152,8 @@ CONTAINS
                         ind_i(nvec*ke), & ! iv index of gathered point
                         kmin(nvec,np)     ! first level with condensate
 
-  REAL(KIND=wp)  :: cv, vc, eta, zeta, qvsi, qice, qliq,  qtot, dvsw, dvsw0, dvsi ,&
-                    n_ice, m_ice, x_ice,n_snow,l_snow, ice_dep, e_int, stot, xrho
+  REAL(KIND=wp)  :: cv, eta, zeta, qvsi, qice, qliq,  qtot, dvsw, dvsw0, dvsi ,&
+                    n_ice, m_ice, x_ice,n_snow,l_snow, ice_dep, e_int, stot
 
   REAL(KIND=wp) ::   &
     update(3)       ,& !> scratch array with output from precipitation step
@@ -321,7 +320,7 @@ CONTAINS
   !$ACC LOOP SEQ
   DO  k = kstart, MERGE(ke,kstart-1,lrain)
     !$ACC LOOP GANG VECTOR &
-    !$ACC   PRIVATE(kp1, qliq, qice, e_int, zeta, xrho, vc) &
+    !$ACC   PRIVATE(kp1, qliq, qice, e_int, zeta) &
     !$ACC   PRIVATE(ix, iqx, update)
     DO iv = ivstart, ivend
       IF (k==kstart) THEN
@@ -336,7 +335,6 @@ CONTAINS
         e_int = internal_energy(t(iv,k),qv(iv,k),qliq,qice,rho(iv,k),dz(iv,k) ) + eflx(iv)
 
         zeta  = dt/(2.0_wp*dz(iv,k))
-        xrho  = SQRT(rho_00/rho(iv,k))
 
         !$ACC LOOP SEQ
         DO ix=1,np
@@ -445,6 +443,8 @@ PURE FUNCTION vm(iqx,rho_x,rho,t)
     vm = a_s(1)*(x ** a_s(2)) * SQRT(rho_00/rho) * snow_number(t, x)**b_s
   CASE (lqg)
     vm = a_g(1)*(x ** a_g(2)) * SQRT(rho_00/rho)
+  CASE DEFAULT
+    vm = 0.0_wp
   END SELECT
 
 END FUNCTION vm
@@ -614,9 +614,8 @@ PURE FUNCTION cloud_to_rain(t,rho,qc,qr,nc)
           au_kernel  = x1 / (20.0_wp*x2) * (x3+2.0_wp)*(x3+4.0_wp)/(x3+1.0_wp)**2.0_wp
 
   REAL(KIND=wp), PARAMETER :: rho_mx = 6.97604e-03_wp, rho_mn = 3.26216e-08_wp
-  REAL(KIND=wp), PARAMETER, DIMENSION(5) :: a_ac =  [ &
-  -1.51715e+00_wp, -8.00600e-01_wp,  2.92153e-02_wp,  6.09625e-03_wp,  1.40900e-04_wp]
-
+  REAL(KIND=wp), PARAMETER, DIMENSION(5) :: a_ac = &
+    [-2.155543e+00_wp, -1.148491e+00_wp, -1.882563e-02_wp, 2.941391e-03_wp, 5.575598e-05_wp]
   REAL(KIND=wp) :: tau, & ! time-scale
                    phi, & ! similarity function for autoconversion
                    xau, & ! autoconversion rate
@@ -721,10 +720,9 @@ PURE FUNCTION rain_to_vapor(t,rho,qc,qr,dvsw,dt)
     c2    = -0.0163_wp          , & !
     c3    =  1.111e-4_wp
 
-    REAL(KIND=wp), PARAMETER :: rho_mx = 6.97604e-03_wp, rho_mn = 3.26216e-08_wp
-    REAL(KIND=wp), PARAMETER, DIMENSION(5) :: a_ev =  [ &
-    -4.33830e+00_wp, -6.61703e-01_wp, -2.13661e-01_wp, -1.18937e-02_wp, -2.01522e-04_wp]
-
+  REAL(KIND=wp), PARAMETER :: rho_mx = 6.97604e-03_wp, rho_mn = 3.26216e-08_wp
+  REAL(KIND=wp), PARAMETER, DIMENSION(5) :: a_ev = &
+    [-5.532194e+00_wp, 2.432848e-01_wp, -4.145391e-02_wp, -1.798439e-03_wp, -1.405764e-05_wp]
   REAL(KIND=wp) :: tc, evap_max, evap, x
 
   !$ACC ROUTINE SEQ
@@ -734,7 +732,7 @@ PURE FUNCTION rain_to_vapor(t,rho,qc,qr,dvsw,dt)
     evap_max      = (c1 + tc*(c2 + c3*tc)) * (-dvsw)/dt
     x             = LOG(MIN(rho_mx, MAX(rho_mn, qr*rho)))
     evap          =-EXP(a_ev(1) + x*(a_ev(2) + x*(a_ev(3) + x*(a_ev(4) + x*a_ev(5))))) * dvsw
-    rain_to_vapor = MIN(EXP(evap), evap_max)
+    rain_to_vapor = MIN(evap, evap_max)
   ENDIF
 
 END FUNCTION rain_to_vapor
@@ -757,7 +755,6 @@ PURE FUNCTION rain_to_graupel(t,rho,qc,qr,qi,qs,mi,dvsw,dt)
       tfrz_rain = tmelt-2.0_wp, &
       a1 = 9.95e-5_wp         , & !FR: 1. coefficient for immersion raindrop freezing: alpha_if
       b1 = 7.0_wp/4.0_wp      , & !FR: 2. coefficient for immersion raindrop freezing: a_if
-      c1 = 1.68_wp            , & ! coefficient for raindrop freezing
       c2 = 0.66_wp            , & !FR: 2. coefficient for immersion raindrop freezing: a_if
       c3 = 1.0_wp             , & !FR: 2. coefficient for immersion raindrop freezing: a_if
       c4 = 0.1_wp             , & !FR: 2. coefficient for immersion raindrop freezing: a_if
