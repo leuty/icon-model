@@ -15,7 +15,7 @@ MODULE mo_settling
       USE mo_kind,    ONLY        : wp
       USE mo_bgc_memory_types, ONLY  : t_bgc_memory, t_sediment_memory
       USE mo_fortran_tools, ONLY  : set_acc_host_or_device
-
+      USE mo_exception, ONLY      : finish
 
       IMPLICIT NONE
 
@@ -78,6 +78,9 @@ CONTAINS
 
       CALL set_acc_host_or_device(lzacc, lacc)
 
+#if defined(__LVECTOR__) && defined(_OPENACC)
+      IF (lzacc) CALL finish("", "LVECTOR variant after reworking not properly ported/tested on GPUs")
+#endif
 
      ! implicit method:
      ! C(k,T+dt)=C(k,T) + (w*dt/ddpo(k))*(C(k-1,T+1)-C(k,T+1))
@@ -88,8 +91,8 @@ CONTAINS
 #ifndef __LVECTOR__
      kbo => local_bgc_mem%kbo
 
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-      !$ACC LOOP GANG VECTOR
+!       !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+!       !$ACC LOOP GANG VECTOR
       DO j=start_idx,end_idx
         kpke=klev(j)
 
@@ -167,7 +170,7 @@ CONTAINS
 #endif
 
 #ifndef __LVECTOR__
-         !$ACC LOOP SEQ
+!          !$ACC LOOP SEQ
          DO k=2,kpke
           IF(pddpo(j,k) > EPSILON(0.5_wp))THEN
 #else
@@ -232,7 +235,7 @@ CONTAINS
           ENDIF
          ENDIF
       END DO
-      !$ACC END PARALLEL
+!       !$ACC END PARALLEL
 
       END SUBROUTINE settling
 

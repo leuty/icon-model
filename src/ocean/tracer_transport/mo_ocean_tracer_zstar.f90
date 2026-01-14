@@ -795,12 +795,12 @@ CONTAINS
       !$ACC END KERNELS
 
 #ifndef __LVECTOR__
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-      !$ACC LOOP GANG VECTOR
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
       DO edge_index = start_index, end_index
         DO level = start_level, MIN(patch_3d%p_patch_1d(1)%dolic_e(edge_index,blockNo), end_level)
 #else
       max_end_level = MAXVAL(patch_3d%p_patch_1d(1)%dolic_e(start_index:end_index,blockNo))
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
       DO level = start_level, max_end_level
         DO edge_index = start_index, end_index
           IF (level <= patch_3d%p_patch_1d(1)%dolic_e(edge_index,blockNo)) THEN
