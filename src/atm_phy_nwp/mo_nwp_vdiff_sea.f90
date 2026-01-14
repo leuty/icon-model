@@ -412,7 +412,8 @@ CONTAINS
         & t_seasfc=diag_lnd%t_seasfc(:, iblk), &
         & delta_t_cool_skin=p_sst_cold_skin, &
         & delta_t_warm_layer=p_sst_warm_layer, &
-        & t_wtr=t_wtr(:) &
+        & t_wtr=t_wtr(:),  &
+        & fr_seaice=diag_lnd%fr_seaice(:, iblk) &
       )
 
     ! We need a parallel region around these orphaned routines because we are in a parallel region
@@ -1216,7 +1217,7 @@ CONTAINS
   SUBROUTINE calc_ocean_skin_temp ( &
         & iblk, dtime, list_sea, sea_state, flx_rad, flx_heat_latent_wtr, flx_heat_sensible_wtr, &
         & flx_mom_u_wtr, flx_mom_v_wtr, wind_10m, t_seasfc, delta_t_cool_skin, delta_t_warm_layer, &
-        & t_wtr &
+        & t_wtr, fr_seaice &
       )
 
     INTEGER, INTENT(IN) :: iblk !< Block number.
@@ -1239,6 +1240,8 @@ CONTAINS
     REAL(wp), OPTIONAL, INTENT(INOUT) :: delta_t_warm_layer(:)!< Temperature increment due to warm layer [K].
 
     REAL(wp), INTENT(INOUT) :: t_wtr(:) !< Sea water skin temperature [K].
+
+    REAL(wp), INTENT(IN) :: fr_seaice(:) !< Sea ice fraction
 
     ! Compressed arrays.
     REAL(wp) :: flx_rad_sw(nproma)
@@ -1333,12 +1336,19 @@ CONTAINS
         DO ic = 1, list_sea%ncount(iblk)
           jc = list_sea%idx(ic, iblk)
 
-          IF (itype_oskin_warm > 0) delta_t_warm_layer(jc) = dt_warm(ic)
-          IF (itype_oskin_cold > 0) delta_t_cool_skin(jc) = dt_cool(ic)
+          IF (fr_seaice(jc) <= 1._wp - frsi_min) THEN
+            IF (itype_oskin_warm > 0) delta_t_warm_layer(jc) = dt_warm(ic)
+            IF (itype_oskin_cold > 0) delta_t_cool_skin(jc) = dt_cool(ic)
+          ELSE
+            IF (itype_oskin_warm > 0) delta_t_warm_layer(jc) = 0._wp
+            IF (itype_oskin_cold > 0) delta_t_cool_skin(jc)  = 0._wp
+          END IF
 
           t_wtr(jc) = MAX(t_seasfc(jc), tf_salt)
+
           IF (itype_oskin_cold > 0) t_wtr(jc) = t_wtr(jc) + dt_cool(ic)
           IF (itype_oskin_warm > 0) t_wtr(jc) = t_wtr(jc) + dt_warm(ic)
+
         END DO
       !$ACC END PARALLEL
       !$ACC END DATA
@@ -1350,6 +1360,7 @@ CONTAINS
           jc = list_sea%idx(ic,iblk)
 
           t_wtr(jc) = MAX(t_seasfc(jc), tf_salt)
+
         END DO
       !$ACC END PARALLEL
     END IF
