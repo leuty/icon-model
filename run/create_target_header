@@ -1411,7 +1411,7 @@ set_run_target_alps_mch_cpu()
                 limit="01:00:00"
             ;;
             *)
-                limit="00:15:00"
+                limit="00:40:00"
             ;;
         esac
         limit_time_bb "${limit}" "${limit}"
@@ -2164,8 +2164,13 @@ create_target_header()
                 ;;
             esac
             ;;
-        *mch_kenda-ch1.run)
+        *mch_kenda-ch1.run|*mch_kenda-ch1_member_id*.run)
             case $use_target in
+                alps_mch_cpu*)
+                    use_nodes=2
+                    use_mpi_procs_pernode=128
+                    partition="pp-short"
+                ;;
                 alps_mch_gpu*)
                     use_nodes=1
                     use_mpi_procs_pernode=6

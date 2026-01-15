@@ -62,56 +62,61 @@ for exp in "${sorted_experiments[@]}"; do
     export TEST_FILE_TYPES
     export FOF_TYPES=$("${basedir}/scripts/experiments/get_param_for_exp_by_machine" --experiment "$exp" --param fof_types)
     IFS=',' read -r -a FOF_TYPES_ARRAY <<< "$FOF_TYPES"
-    reference_file_name="${basedir}/${exp}_reference.csv"
-    tolerance_file_name="${basedir}/${exp}_tolerance.csv"
-
-    if [ -f "$tolerance_file_name" ]; then
-   experiment_hash=$(
+    if [[ "${TEST_FILE_TYPES[*]}" =~ stats ]]; then
+        reference_file_name="${basedir}/${exp}_reference.csv"
+        tolerance_file_name="${basedir}/${exp}_tolerance.csv"
+    fi
+    experiment_hash=$(
     {
-      cat "$reference_file_name"
-      cat "$tolerance_file_name"
-      if [[ " ${TEST_FILE_TYPES[@]} " =~ "fof" ]]; then
-        for fof_type in "${FOF_TYPES_ARRAY[@]}"; do
-            fof_file="${basedir}/${exp}_fof${fof_type}_reference.nc"
-            if [[ -f "$fof_file" ]]; then
-                cat "$fof_file"
-            else
-                echo "WARNING: missing file $fof_file" >&2
+        if [[ "${TEST_FILE_TYPES[*]}" =~ stats ]]; then
+            if [[ -f "$tolerance_file_name" ]]; then
+                cat "$reference_file_name"
+                cat "$tolerance_file_name"
             fi
-        done
-      fi
-     } | sha256sum | cut -b -40
-    )
+        fi
 
-        reference_dir=${reference_root}/${experiment_hash}
-        experiment_hashes[$exp]=$experiment_hash
-
-        mkdir -p "$reference_dir"
-        mv -v "$reference_file_name" "${reference_dir}/${exp}_reference.csv"
-        mv -v "$tolerance_file_name" "${reference_dir}/${exp}_tolerance.csv"
-
-        if [[ " ${TEST_FILE_TYPES[@]} " =~ "fof" ]]; then
-
+        if [[ " ${TEST_FILE_TYPES[*]} " =~ fof ]]; then
             for fof_type in "${FOF_TYPES_ARRAY[@]}"; do
                 reference_file_name_fof="${basedir}/${exp}_fof${fof_type}_reference.nc"
                 tolerance_file_name_fof="${basedir}/${exp}_tolerance_fof${fof_type}.csv"
-
-                if [ -f "$tolerance_file_name_fof" ]; then
-
-                    mv -v "$reference_file_name_fof" "${reference_dir}/${exp}_fof${fof_type}_reference.nc"
-                    mv -v "$tolerance_file_name_fof" "${reference_dir}/${exp}_tolerance_fof${fof_type}.csv"
-
+                if [[ -f "$tolerance_file_name_fof" ]]; then
+                    cat "$tolerance_file_name_fof"
+                    cat "$reference_file_name_fof"
+                else
+                    echo "WARNING: missing file $tolerance_file_name_fof" >&2
                 fi
             done
         fi
 
-        # leave a log message
-        echo "${builder} ${date_str} ${origin} ${git_commit}" >> "${reference_dir}/sources.log"
-        all_failed=false
-    else
-        experiment_hashes[$exp]="NO TOLERANCE FILE WAS CREATED. RETRY FOR THIS EXPERIMENT AND UPDATE LINE"
-        echo "WARNING: Tolerance generation failed for ${exp}"
+    } | sha256sum | cut -b -40
+    )
+    reference_dir=${reference_root}/${experiment_hash}
+    experiment_hashes[$exp]=$experiment_hash
+    mkdir -p "$reference_dir"
+    if [[ " ${TEST_FILE_TYPES[*]} " =~ stats ]]; then
+        if [[ -v tolerance_file_name && -f "$tolerance_file_name" ]]; then
+            mv -v "$reference_file_name" "${reference_dir}/${exp}_reference.csv"
+            mv -v "$tolerance_file_name" "${reference_dir}/${exp}_tolerance.csv"
+        fi
     fi
+    if [[ " ${TEST_FILE_TYPES[*]} " =~ "fof" ]]; then
+
+        for fof_type in "${FOF_TYPES_ARRAY[@]}"; do
+            reference_file_name_fof="${basedir}/${exp}_fof${fof_type}_reference.nc"
+            tolerance_file_name_fof="${basedir}/${exp}_tolerance_fof${fof_type}.csv"
+
+            if [[ -f "$tolerance_file_name_fof" && -f "$reference_file_name_fof" ]]; then
+                mv -v "$reference_file_name_fof" "${reference_dir}/${exp}_fof${fof_type}_reference.nc"
+                mv -v "$tolerance_file_name_fof" "${reference_dir}/${exp}_tolerance_fof${fof_type}.csv"
+
+            fi
+        done
+    fi
+
+    # leave a log message
+    echo "${builder} ${date_str} ${origin} ${git_commit}" >> "${reference_dir}/sources.log"
+    all_failed=false
+
 done
 
 $all_failed && { echo "ERROR: The member selection failed for all experiments."; exit 1; }
