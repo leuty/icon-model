@@ -1,7 +1,7 @@
 # ICON
 #
 # ---------------------------------------------------------------
-# Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+# Copyright (C) 2004-2026, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 # Contact information: icon-model.org
 # See AUTHORS.TXT for a list of authors
 # See LICENSES/ for license information
@@ -34,12 +34,32 @@ ColumnLimit:     132
 
 CommentDirectivePrefixes: []
 
-DisabledDirectivePrefixes: []
+DisabledDirectivePrefixes: [
+  "$OMP",
+  "$ACC",
+  "ICON_OMP_PARALLEL",
+  "ICON_OMP_END_PARALLEL",
+  "ICON_OMP_DO",
+  "ICON_OMP_END_DO",
+  "ICON_OMP_END_DO_NOWAIT",
+  "ICON_OMP",
+  "ICON_OMP_PARALLEL_DO",
+  "ICON_OMP_END_PARALLEL_DO",
+  "ICON_OMP_BARRIER",
+  "ICON_OMP_SINGLE",
+  "ICON_OMP_END_SINGLE",
+  "ICON_OMP_MASTER",
+  "ICON_OMP_END_MASTER",
+  "ICON_OMP_WORKSHARE",
+  "ICON_OMP_END_WORKSHARE"
+]
+
+IgnoredPreprocessorDirectives: []
 
 IndentSize:      2
 
 IndentExceptions:
-  ModuleContains:  IndentBeforeAndAfter
+  Contains:  IndentBeforeAndAfter
   Comments:        Indent
 
 FixedFormLabelAlignment: Preserve
