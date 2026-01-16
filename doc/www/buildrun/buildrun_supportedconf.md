@@ -39,8 +39,10 @@ These configurations are supported by the Max Planck Institute for Meteorology. 
 The OES (Ocean in the Earth System) configurations are supported by the Max Planck Institute for Meteorology.
 
 [OMIP](ref_buildrun_omip):
-: This is a close-to-production configuration for ICON's ocean model componed used for code development. It can be regarded as the main ocean configuration that enables all major available features as far as they can be activated simultaneously.
+: This is a close-to-production configuration for ICON's ocean model componed used for code development. In this ocean configuration all major available features can be enabled, as far as they can be activated simultaneously.
 
+[Shallow Water](ref_buildrun_shallow_water):
+: This is a shallow water configuration for ICON's ocean component running on a hex grid. It follows Williamson et al., 1992 (Test 2) and can be regarded as a test of the ocean dynamical core.
 
 ## NWP Use Cases
 

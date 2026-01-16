@@ -41,4 +41,4 @@ Analysis/postprocessing:
 
 ## Description
 
-This is a coarse configuration (r2b4 l40 which corresponds to 160km horizontal resolution) of the ICON ocean model component which is not coupled to the atmosphere component but it includes sea ice. The configuration is driven with OMIP (Ocean Model Intercomparison Project) forcing data and it uses a realistic bathymetry. It applies the so-called `zstar` vertical coordinate.
+This is a coarse resolution configuration (r2b4 l40 which corresponds to 160km horizontal resolution) of the ICON ocean model component including sea ice. The configuration is driven with OMIP (Ocean Model Intercomparison Project) forcing data and uses a realistic bathymetry. It applies the `zstar` vertical coordinate.
