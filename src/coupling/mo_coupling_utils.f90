@@ -101,6 +101,8 @@ MODULE mo_coupling_utils
   PUBLIC :: cpl_get_field_datetime
   PUBLIC :: cpl_get_field_is_source
   PUBLIC :: cpl_put_field
+  PUBLIC :: cpl_get_field_action
+  PUBLIC :: cpl_update_field
   PUBLIC :: cpl_sync_def
   PUBLIC :: cpl_enddef
   PUBLIC :: cpl_write_config_info
@@ -2242,6 +2244,53 @@ CONTAINS
 #endif
 
   END SUBROUTINE cpl_put_field_n_collection
+
+  ! determines the action that will be performed on the next put/get
+  SUBROUTINE cpl_get_field_action( &
+    caller, field_id, will_received_data, will_be_restart)
+
+    CHARACTER(LEN=*), INTENT(IN) :: caller
+    INTEGER, INTENT(IN) :: field_id
+    LOGICAL, OPTIONAL, INTENT(OUT) :: will_received_data
+    LOGICAL, OPTIONAL, INTENT(OUT) :: will_be_restart
+
+    INTEGER :: info, ierr
+
+#ifndef YAC_coupling
+    CALL finish( &
+      TRIM(caller) // ':cpl_get_field_action', &
+      'built without coupling support.')
+#else
+
+    ! determine the action that will be performed on the next put/get
+    CALL yac_fget_action(field_id, info)
+
+    IF (PRESENT(will_received_data)) &
+      will_received_data = &
+        (info == YAC_ACTION_COUPLING) .OR. (info == YAC_ACTION_GET_FOR_RESTART)
+    IF (PRESENT(will_be_restart)) &
+      will_be_restart = (info == YAC_ACTION_GET_FOR_RESTART)
+
+! YAC_coupling
+#endif
+
+  END SUBROUTINE cpl_get_field_action
+
+  ! updates the internal clock of a coupled field (used instead of put/get)
+  ! (only valid if cpl_get_field_action returned .FALSE. in will_received_data)
+  SUBROUTINE cpl_update_field(caller, field_id)
+
+    CHARACTER(LEN=*), INTENT(IN) :: caller
+    INTEGER, INTENT(IN) :: field_id
+
+#ifndef YAC_coupling
+    CALL finish( &
+      TRIM(caller) // ':cpl_update_field', &
+      'built without coupling support.')
+#else
+    CALL yac_fupdate(field_id)
+#endif
+  END SUBROUTINE cpl_update_field
 
 #ifdef YAC_coupling
 

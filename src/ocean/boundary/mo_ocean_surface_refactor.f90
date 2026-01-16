@@ -28,7 +28,7 @@ MODULE mo_ocean_surface_refactor
 !
   USE mo_kind,                ONLY: wp
   USE mo_parallel_config,     ONLY: nproma
-  USE mo_run_config,          ONLY: dtime
+  USE mo_run_config,          ONLY: dtime, ltimer
   USE mo_dynamics_config,     ONLY: nold
   USE mo_exception,           ONLY: finish, message
   USE mo_util_dbg_prnt,       ONLY: dbg_print
@@ -37,7 +37,7 @@ MODULE mo_ocean_surface_refactor
   USE mo_grid_subset,         ONLY: t_subset_range, get_index_range
 
   USE mo_ocean_nml,           ONLY: iforc_oce, no_tracer, type_surfRelax_Temp, type_surfRelax_Salt, &
-    &  No_Forcing, Analytical_Forcing, OMIP_FluxFromFile, Coupled_FluxFromAtmo,                     &
+    &  No_Forcing, Analytical_Forcing, OMIP_FluxFromFile, Coupled_FluxFromAtmo,era5_provider,        &
     &  i_sea_ice, zero_freshwater_flux, atmos_flux_analytical_type, atmos_precip_const, &  ! atmos_evap_constant
     &  limit_elevation, lhamocc, lswr_jerlov, lhamocc, lfb_bgc_oce, lcheck_salt_content, &
     &  lfix_salt_content, ice_flux_type, heatflux_forcing_on_sst, &
@@ -76,6 +76,7 @@ MODULE mo_ocean_surface_refactor
 
   USE mo_mpi, only: get_my_mpi_work_id
   USE mo_fortran_tools,       ONLY: set_acc_host_or_device
+  USE mo_timer,               ONLY: timer_start, timer_stop, timer_coupling
 
   IMPLICIT NONE
 
@@ -950,6 +951,9 @@ CONTAINS
 !<Optimize_Used>
   SUBROUTINE update_atmos_fluxes(p_patch_3D, p_as, atmos_fluxes, p_oce_sfc, p_os, p_ice, this_datetime, lacc)
 
+    USE mo_ocean_era5_provider_coupling, ONLY : couple_ocean_to_era5_provider
+    USE mo_coupling_config, only : is_coupled_to_era5
+
     TYPE(t_patch_3D ),TARGET,  INTENT(IN)       :: p_patch_3D
     TYPE(t_atmos_for_ocean)                     :: p_as
     TYPE(t_atmos_fluxes)                        :: atmos_fluxes
@@ -980,10 +984,23 @@ CONTAINS
 
       CALL update_atmos_fluxes_analytical(p_patch_3D, p_os, p_ice, atmos_fluxes, p_oce_sfc, lacc=lzacc)
 
-    CASE (OMIP_FluxFromFile)         !  12      !  Driving the ocean with OMIP fluxes
+    CASE (OMIP_FluxFromFile, era5_provider)         !  12,13      !  Driving the ocean with OMIP fluxes
 
       !   a) read OMIP data into p_as
-      CALL update_flux_fromFile(p_patch_3D, p_as, this_datetime, lacc=lzacc)
+
+      ! read eradata into p_as
+      IF ( is_coupled_to_era5() ) THEN
+        IF (ltimer) CALL timer_start(timer_coupling)
+        CALL couple_ocean_to_era5_provider(p_patch_3D, p_as%tafo, &
+             p_as%ftdew, p_as%fu10, &
+             p_as%topBoundCond_windStress_u, p_as%topBoundCond_windStress_v, &
+             p_as%flwr, p_as%fswr, &
+             p_as%FrshFlux_Precipitation, p_as%FrshFlux_Runoff, &
+             p_as%pao, p_as%fclou, p_as%u, p_as%v, lacc=lzacc)
+        IF (ltimer) CALL timer_stop(timer_coupling)
+      ELSE
+        CALL update_flux_fromFile(p_patch_3D, p_as, this_datetime, lacc=lzacc)
+      END IF
 
       !   b) calculate heat fluxes from p_as
       CALL calc_omip_budgets_oce(p_patch_3d, p_as, p_os, p_ice, atmos_fluxes, lacc=lzacc)

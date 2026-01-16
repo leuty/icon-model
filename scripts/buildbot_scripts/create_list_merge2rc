@@ -168,6 +168,12 @@ $addexp "checksuite.ocean_internal/hamocc/exp.test_concurrent_hamocc_omip_10days
 $addexp "checksuite.ocean_internal/technical/exp.test_multioutput_model_40km" \
 	--machines levante --without-configureflags "--without-mpi --with-openmp --enable-mixed" --runflags "cpu_time=00:30:00 no_of_nodes=2 queue=compute" --list $listname
 
+# add python provider test
+$addexp "checksuite.ocean_internal/era5/exp.test-ocean_era5" \
+         --machines levante --without-configureflags "--without-mpi --enable-mixed" --runflags "cpu_time=00:10:00 queue=shared,compute memory=32G ntasks=32 openmp_threads=2" --list $listname
+#rm nag builder because of python enviroment
+./rmexp checksuite.ocean_internal/era5/exp.test-ocean_era5 --builders "levante_nag" --list $listname
+
 # add experiments relevant for C2SM from yml-config
 ./../experiments/addexp_from_yml --tag $listname
 

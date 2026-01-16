@@ -94,7 +94,6 @@ MODULE mo_ocean_surface_types
   ! The fluxes are then used to set the oceans surface boundary conditions.
 
   TYPE t_atmos_for_ocean
-
     ! on cell-centers, dimension: (nproma, nblks_c)
     REAL(wp), POINTER :: &
       & tafo                     (:,:), & ! 2 m air temperature                              [C]
@@ -102,6 +101,7 @@ MODULE mo_ocean_surface_types
       & fclou                    (:,:), & ! Fractional cloud cover
       & fu10                     (:,:), & ! 10 m wind speed                                  [m/s]
       & fswr                     (:,:), & ! Incoming surface solar radiation                 [W/m]
+      & flwr                     (:,:), & ! Incoming surface lw radiation                 [W/m]
       & pao                      (:,:), & ! Surface atmospheric pressure                     [hPa]
       & u                        (:,:), & ! wind in reference height                         [m/s]
       & v                        (:,:), &

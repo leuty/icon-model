@@ -269,7 +269,7 @@ CONTAINS
     CALL add_var( p_ext_oce_list, 'lsm_ctr_e', p_ext_oce%lsm_ctr_e,      &
       &           GRID_UNSTRUCTURED_EDGE, ZA_SURFACE, cf_desc, grib2_desc, ldims=shape2d_e )
 
-    ! omip forcing data on cell edge
+    ! omip forcing data on cell edge (dont need this with iforc_oce == era5_provider)
     !
     IF (iforc_oce == OMIP_FluxFromFile) THEN
       cf_desc    = t_cf_var('Ocean model OMIP forcing data at cell edge', 'Pa, K', &
@@ -452,7 +452,7 @@ CONTAINS
     !  READ OMIP FORCING
 
     !-------------------------------------------------------------------------
-
+    ! dont need this with iforc_oce == era5_provider
     IF ( use_omip_forcing .AND. iforc_oce == OMIP_FluxFromFile) THEN
 
     !DO jg = 1,n_dom

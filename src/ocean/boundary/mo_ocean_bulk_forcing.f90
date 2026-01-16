@@ -42,7 +42,7 @@ MODULE mo_ocean_bulk_forcing
     &  no_tracer, para_surfRelax_Temp, type_surfRelax_Temp,             &
     &  para_surfRelax_Salt, type_surfRelax_Salt,                                &
     &  i_sea_ice, l_relaxsal_ice, forcing_enable_freshwater,                    &
-    &  forcing_set_runoff_to_zero, OMIP_FluxFromFile, OceanReferenceDensity,    &
+    &  forcing_set_runoff_to_zero,  OceanReferenceDensity,    &
     &  bulk_wind_stress_type, wind_stress_from_file, wind_stress_type_noocean,  &
     &  wind_stress_type_ocean, check_total_volume, coriolis_type, coriolis_fplane_latitude
   USE mo_sea_ice_nml,         ONLY: stress_ice_zero, Cd_ia, Cd_io
@@ -471,7 +471,7 @@ CONTAINS
     ! data set 1:  wind_u(:,:)   !  'stress_x': zonal wind stress       [Pa]
     ! data set 2:  wind_v(:,:)   !  'stress_y': meridional wind stress  [Pa]
     !  - forcing_windstress_u_type and v_type not used anymore
-    !  - full OMIP data read if iforc_oce=OMIP_FluxFromFile (=11)
+    !  - full OMIP data read if iforc_oce=OMIP_FluxFromFile (=12)
 
     ! ext_data has rank n_dom due to grid refinement in the atmosphere but not in the ocean
     !IF (forcing_windstress_u_type == 1)
@@ -502,7 +502,7 @@ CONTAINS
     !IF (iforc_type == 2 .OR. iforc_type == 5) THEN
     !IF (forcing_fluxes_type > 0 .AND. forcing_fluxes_type < 101 ) THEN
         !  - forcing_fluxes_type = 1 not used anymore,
-        !  - full OMIP data read if iforc_oce=OMIP_FluxFromFile (=11)
+        !  - full OMIP data read if iforc_oce=OMIP_FluxFromFile (=12)
 
     p_as%tafo(:,:)  = rday1*ext_data(1)%oce%flux_forc_mon_c(:,jmon1,:,4) + &
       &               rday2*ext_data(1)%oce%flux_forc_mon_c(:,jmon2,:,4)

@@ -38,7 +38,7 @@ MODULE mo_ocean_nml
   USE mo_cdi,                ONLY: cdiInqMissval
 
 
-#ifndef __NO_ICON_ATMO__
+#ifdef YAC_coupling
   USE mo_coupling_config,    ONLY: is_coupled_to_atmo
 #endif
   IMPLICIT NONE
@@ -94,6 +94,9 @@ MODULE mo_ocean_nml
   REAL(wp) :: fillvalue  = 0.0_wp
   ! switch for ocean diagnostics - 0: no diagnostics; 1: write to stderr
   INTEGER            :: diagnostics_level      = 1
+
+  ! print a simple loop
+  INTEGER            :: time_verbosity = 0
 
   ! switch for ocean stream function (not yet activated):
   !                   ! 0: no output
@@ -349,6 +352,7 @@ MODULE mo_ocean_nml
     &                 basin_center_lon             , &
     &                 basin_height_deg             , &
     &                 basin_width_deg              , &
+    &                 time_verbosity               , &
     &                 cfl_check                    , &
     &                 cfl_write                    , &
     &                 cfl_stop_on_violation        , &
@@ -737,8 +741,8 @@ MODULE mo_ocean_nml
   ! iforc_oce: parameterized forcing for ocean model:
   INTEGER, PARAMETER :: No_Forcing                = 10
   INTEGER, PARAMETER :: Analytical_Forcing        = 11
-  INTEGER, PARAMETER :: OMIP_FluxFromFile         = 12  ! OMIP or NCEP type forcing
-  INTEGER, PARAMETER :: Atmo_FluxFromFile         = 13  ! not yet
+  INTEGER, PARAMETER :: OMIP_FluxFromFile         = 12  ! OMIP or NCEP type forcing from File
+  INTEGER, PARAMETER :: ERA5_provider             = 13  ! ERA5 from python reader
   INTEGER, PARAMETER :: Coupled_FluxFromAtmo      = 14  ! parameter for a coupled atmosphere-ocean run
   INTEGER, PARAMETER :: Coupled_FluxFromFile      = 15  ! not yet
   INTEGER            :: iforc_oce                 =  0  ! index of parameterized forcing
@@ -1662,7 +1666,7 @@ MODULE mo_ocean_nml
         & 'LAM: constants in the exponential decay nudging function have to be positive')
     END IF
 
-#ifndef __NO_ICON_ATMO__
+#ifdef YAC_coupling
     IF ( is_coupled_to_atmo() .AND. iforc_oce /= Coupled_FluxFromAtmo ) THEN
       iforc_oce = Coupled_FluxFromAtmo
       CALL message(method_name,'WARNING, iforc_oce set to 14 for coupled experiment')

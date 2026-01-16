@@ -42,7 +42,7 @@ MODULE mo_hydro_ocean_run
     &  select_lhs, select_lhs_operators, select_lhs_matrix, &
     &  iau_reference_time, init_mode_oce, dt_iau_oce, MODE_IAU_OCE, &
     &  is_ocean_limited_area
-  USE mo_ocean_nml,              ONLY: iforc_oce, Coupled_FluxFromAtmo, OMIP_FluxFromFile
+  USE mo_ocean_nml,              ONLY: iforc_oce, Coupled_FluxFromAtmo, time_verbosity, OMIP_FluxFromFile
   USE mo_dynamics_config,        ONLY: nold, nnew
   USE mo_io_config,              ONLY: n_checkpoints, write_last_restart
   USE mo_run_config,             ONLY: dtime, ltimer, output_mode, debug_check_level
@@ -55,6 +55,7 @@ MODULE mo_hydro_ocean_run
     & timer_upd_flx, timer_extra20, timers_level, &
     & timer_scalar_prod_veloc, timer_extra21, timer_extra22, timer_bgc_ini, &
     & timer_bgc_inv, timer_bgc_tot, timer_coupling
+  USE mo_real_timer,             ONLY: timer_val, new_timer, timer_reset
   USE mo_ocean_ab_timestepping,    ONLY: solve_free_surface_eq_ab, &
     &                                    calc_normal_velocity_ab,  &
     &                                    calc_vert_velocity,       &
@@ -265,7 +266,7 @@ CONTAINS
     INTEGER :: jstep0 ! start counter for time loop
     REAL(wp) :: mean_height, old_mean_height
     REAL(wp) :: verticalMeanFlux(n_zlev+1)
-    INTEGER :: level,ifiles,i,j
+    INTEGER :: level,ifiles,i,j, timer_loop
     REAL(wp) :: r
 
     REAL(wp) :: stretch_e(nproma, patch_3d%p_patch_2d(1)%nblks_e)           !!
@@ -388,7 +389,15 @@ CONTAINS
       jstep_shift = 0
     ENDIF
     jstep = jstep0 + jstep_shift
-    TIME_LOOP: DO
+
+    IF (timers_level > 1 .AND. time_verbosity > 0 ) &
+      timer_loop     = new_timer("loop")
+
+      TIME_LOOP: DO
+        !add timer
+        IF (timers_level >= 1  .AND. time_verbosity > 0) THEN          !print loop timer
+          CALL timer_start(timer_loop)
+        ENDIF
 
       IF(lsediment_only) THEN
         CALL sed_only_time_step()
@@ -398,6 +407,15 @@ CONTAINS
         ELSEIF ( vert_cor_type == 1 ) THEN
           CALL ocean_time_step_zstar(lacc=lzacc)
         ENDIF
+      END IF
+
+      IF (timers_level >= 1  .AND. time_verbosity > 0) THEN          !print loop timer
+        CALL timer_stop(timer_loop)
+
+        WRITE(message_text,'(a,f10.4,a)') ' ',timer_val(timer_loop),'s'
+        CALL message ('perform_ho_stepping', message_text)
+
+        CALL timer_reset(timer_loop)
       END IF
 
       IF (isEndOfThisRun()) THEN
