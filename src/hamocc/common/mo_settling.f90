@@ -96,10 +96,29 @@ CONTAINS
       DO j=start_idx,end_idx
         kpke=klev(j)
 
+        local_bgc_mem%bgcflux(j,kcoex90) = 0._wp
+        local_bgc_mem%bgcflux(j,kcalex90) = 0._wp
+        local_bgc_mem%bgcflux(j,kopex90) = 0._wp
+        local_bgc_mem%bgcflux(j,kcoex1000) = 0._wp
+        local_bgc_mem%bgcflux(j,kcalex1000) = 0._wp
+        local_bgc_mem%bgcflux(j,kopex1000) = 0._wp
+        local_bgc_mem%bgcflux(j,kcoex2000) = 0._wp
+        local_bgc_mem%bgcflux(j,kcalex2000) = 0._wp
+        local_bgc_mem%bgcflux(j,kopex2000) = 0._wp
+
         IF(kpke > 0)THEN
         IF(pddpo(j,1) > EPSILON(0.5_wp))THEN
 #else
       DO j = start_idx, end_idx
+        local_bgc_mem%bgcflux(j,kcoex90) = 0._wp
+        local_bgc_mem%bgcflux(j,kcalex90) = 0._wp
+        local_bgc_mem%bgcflux(j,kopex90) = 0._wp
+        local_bgc_mem%bgcflux(j,kcoex1000) = 0._wp
+        local_bgc_mem%bgcflux(j,kcalex1000) = 0._wp
+        local_bgc_mem%bgcflux(j,kopex1000) = 0._wp
+        local_bgc_mem%bgcflux(j,kcoex2000) = 0._wp
+        local_bgc_mem%bgcflux(j,kcalex2000) = 0._wp
+        local_bgc_mem%bgcflux(j,kopex2000) = 0._wp
         IF(klev(j) > 0) THEN
             IF(pddpo(j,1) > EPSILON(0.5_wp)) THEN
 #endif

@@ -461,6 +461,10 @@ SUBROUTINE ocprod (local_bgc_mem, klev,start_idx, end_idx, ptho, pddpo, za, ptie
            local_bgc_mem%bgctend(j,k,kremin) = remin * inv_dtbgc
            local_bgc_mem%bgctend(j,k,kbacfra) = bacfra * inv_dtbgc
            local_bgc_mem%bgctend(j,k,kdenit) = 0._wp
+       ELSE
+           local_bgc_mem%bgctend(j,k,kremin) = 0._wp
+           local_bgc_mem%bgctend(j,k,kbacfra) = 0._wp
+           local_bgc_mem%bgctend(j,k,kdenit) = 0._wp
        ENDIF   ! O2 >= thresh_aerob
 
 
@@ -619,6 +623,8 @@ SUBROUTINE ocprod (local_bgc_mem, klev,start_idx, end_idx, ptho, pddpo, za, ptie
        ENDIF ! det > 1.e-15
 
        ELSE ! no extendend N-cycle
+
+       local_bgc_mem%bgctend(j,k,kh2ob) = 0._wp
 
        IF (local_bgc_mem%bgctra(j,k,ioxygen) <= o2den_lim) THEN
             !=====DENITRIFICATION ========================

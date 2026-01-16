@@ -139,8 +139,7 @@ SUBROUTINE BGC_ICON(p_patch_3D, hamocc_ocean_state, ssh, pddpo, ptiestu, lacc)
     ! trigger chemcon at depth only once per run cycle
     itrig_chemcon=merge(1,0,ldtrunbgc<1)
   ELSE
-    ! trigger chemcon at depth only once per day
-    itrig_chemcon=mod(ldtrunbgc,ndtdaybgc)+1
+    itrig_chemcon=1
   ENDIF
 
   !
@@ -378,7 +377,7 @@ IF (test_memory_copies /= bgc_memory_copies) &
          endif
         stop_detail_timer(timer_bgc_powach,5)
 
-        if(mod(ldtrunbgc,ndtdaybgc).eq.0) CALL sedshi(local_bgc_memory, local_sediment_memory, &
+        CALL sedshi(local_bgc_memory, local_sediment_memory, &
                                                       start_index, end_index, lacc=lzacc)
 
         start_detail_timer(timer_bgc_up_ic,5)

@@ -97,6 +97,8 @@ SUBROUTINE calc_dissol (local_bgc_mem, start_idx, end_idx, klevs, pddpo, psao, p
         k=1
         iflag = 0
 
+        local_bgc_mem%bgcflux(j,klysocl) = 0._wp
+
         IF(pddpo(j,k) > EPSILON(0.5_wp)) THEN
 
 
@@ -221,6 +223,8 @@ SUBROUTINE calc_dissol_VE (local_bgc_mem, start_idx, end_idx, klevs, pddpo, psao
 
     !NEC$ nomove
     DO j = start_idx, end_idx
+
+        local_bgc_mem%bgcflux(j,klysocl) = 0._wp
 
         IF( vmask(j) ) THEN
 
