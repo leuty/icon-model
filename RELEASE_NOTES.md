@@ -58,6 +58,7 @@
   - Revisit QUINCY output ensuring that all output variables required for diagnostics and global budget calculations are present
   - Update nitrogen cycle parameters
   - Add script to generate CMIP7 based deposition data
+  - Refactor vegetation memory structure to reduce code complexity
 - Refactoring of anthropogenic land cover change process
 - Hydrology: Added ford inline documentation
 - Land initial files
