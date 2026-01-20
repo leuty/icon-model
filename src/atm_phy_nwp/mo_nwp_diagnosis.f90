@@ -2785,6 +2785,8 @@ CONTAINS
           & pt_patch%cells%owned_no_boundary, &
           & tas_gmean, lopenacc=.TRUE.)
       prm_diag%tas_gmean = tas_gmean
+      ! Here the prm_diag%tas_gmean needs to be updated from CPU to GPU
+      !$ACC UPDATE DEVICE(prm_diag%tas_gmean)
     END IF
 
     ! global mean toa incident shortwave radiation, rsdt
@@ -2796,7 +2798,8 @@ CONTAINS
           & pt_patch%cells%owned_no_boundary, &
           & rsdt_gmean, lopenacc=.TRUE.)
       prm_diag%rsdt_gmean = rsdt_gmean
-    END IF
+    !$ACC UPDATE DEVICE(prm_diag%rsdt_gmean)
+     END IF
 
     ! global mean toa outgoing shortwave radiation, rsut
     rsut_gmean = 0.0_wp
@@ -2807,7 +2810,8 @@ CONTAINS
           & pt_patch%cells%owned_no_boundary, &
           & rsut_gmean, lopenacc=.TRUE.)
       prm_diag%rsut_gmean = rsut_gmean
-    END IF
+      !$ACC UPDATE DEVICE(prm_diag%rsut_gmean)
+     END IF
 
     ! global mean toa outgoing longwave radiation, rlut
     rlut_gmean = 0.0_wp
@@ -2817,6 +2821,7 @@ CONTAINS
           & pt_patch%cells%owned_no_boundary, &
           & rlut_gmean, lopenacc=.TRUE.)
       prm_diag%rlut_gmean = rlut_gmean
+      !$ACC UPDATE DEVICE(prm_diag%rlut_gmean)
     END IF
 
     ! global mean precipitation flux, prec
@@ -2827,6 +2832,7 @@ CONTAINS
           & pt_patch%cells%owned_no_boundary, &
           & prec_gmean, lopenacc=.TRUE.)
       prm_diag%prec_gmean = prec_gmean
+      !$ACC UPDATE DEVICE(prm_diag%prec_gmean)
     END IF
 
     ! global mean evaporation flux, evap
@@ -2837,7 +2843,8 @@ CONTAINS
           & pt_patch%cells%owned_no_boundary, &
           & evap_gmean, lopenacc=.TRUE.)
       prm_diag%evap_gmean = evap_gmean
-    END IF
+      !$ACC UPDATE DEVICE(prm_diag%evap_gmean)
+     END IF
 
     ! global mean P-E, derived from prec and evap
     IF (var_in_output%pme_gmean  .AND. &
@@ -2845,6 +2852,7 @@ CONTAINS
         var_in_output%evap_gmean) THEN
       prm_diag%pme_gmean = prm_diag%prec_gmean + &
                            prm_diag%evap_gmean
+      !$ACC UPDATE DEVICE(prm_diag%pme_gmean)
     ENDIF
 
     ! global mean toa total radiation, radtop, derived variable
@@ -2903,7 +2911,8 @@ CONTAINS
 
       NULLIFY(field)
       prm_diag%radtop_gmean = radtop_gmean
-    END IF
+      !$ACC UPDATE DEVICE(prm_diag%radtop_gmean)
+     END IF
 
   END SUBROUTINE nwp_diag_global
 

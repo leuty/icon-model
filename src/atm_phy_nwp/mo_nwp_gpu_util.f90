@@ -433,6 +433,14 @@ MODULE mo_nwp_gpu_util
     !$ACC   HOST(prm_diag%clcl) &
     !$ACC   HOST(prm_diag%clcm) &
     !$ACC   HOST(prm_diag%clch) &
+    !$ACC   HOST(prm_diag%tas_gmean) &
+    !$ACC   HOST(prm_diag%rsdt_gmean) &
+    !$ACC   HOST(prm_diag%rsut_gmean) &
+    !$ACC   HOST(prm_diag%rlut_gmean) &
+    !$ACC   HOST(prm_diag%prec_gmean) &
+    !$ACC   HOST(prm_diag%evap_gmean) &
+    !$ACC   HOST(prm_diag%pme_gmean) &
+    !$ACC   HOST(prm_diag%radtop_gmean) &
     !$ACC   ASYNC(1)
 
     !$ACC UPDATE &

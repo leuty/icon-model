@@ -6,7 +6,7 @@ builder: santis_cpu_nvhpc
 # The list below maps each experiment to its current experiment_hash
 "c2sm_clm_r13b03_seaice": 0c4ac2808f8eb6f2654df63bcac29f597e1f2108
 "dwd_run_ICON_09_R2B4N5_EPS": 3881345ebcbaf323e75a394cbd39ba6cf7a1966a
-"exclaim_ape_R02B04": d389560eac1e950d31b2cf6bd86f3842cf4a6fd8
+"exclaim_ape_R02B04": 4d199072fd1daf0d231369dc1a56a24195180bc6
 "mch_icon-ch1_small": 1da35346830ddc63f85922d0b6c1e504d5898c08
 "mch_icon-ch2_small": 628b97b6be21c10cf969b0f792cf8f656b211e17
 "mch_opr_r04b07_sstice_inst": 3861570d9260f0f7929f4d3d01d33ad0918fbf6a
