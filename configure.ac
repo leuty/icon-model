@@ -3307,6 +3307,10 @@ AS_VAR_IF([enable_art], [yes],
   [AC_SUBST([ART_ENABLED], [''])],
   [AC_SUBST([ART_ENABLED], ['#'])])
 
+AS_IF([test x"$enable_hd" != xno],
+  [AC_SUBST([HD_ENABLED], [''])],
+  [AC_SUBST([HD_ENABLED], ['#'])])
+
 AS_VAR_IF([enable_mpi], [yes],
   [AC_SUBST([MPI_ENABLED], [''])
    AC_SUBST([MPI_DISABLED], ['#'])],

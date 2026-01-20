@@ -597,6 +597,7 @@ GPU_ENABLED
 OPENMP_ENABLED
 MPI_DISABLED
 MPI_ENABLED
+HD_ENABLED
 ART_ENABLED
 EMVORADO_ENABLED
 DACE_ENABLED
@@ -12192,6 +12193,14 @@ if test "x$enable_art" = xyes; then :
 
 else
   ART_ENABLED='#'
+
+fi
+
+if test x"$enable_hd" != xno; then :
+  HD_ENABLED=''
+
+else
+  HD_ENABLED='#'
 
 fi
 

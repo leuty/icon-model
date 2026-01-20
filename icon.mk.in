@@ -550,12 +550,13 @@ distclean: clean
 # Installation rule:
 install: all
 	$(INSTALL) -d $(DESTDIR)@bindir@ && $(INSTALL) $(exec_files) $(DESTDIR)@bindir@
-	$(silent_none)for d in $(filter externals/hd externals/comin/build,$(bundled_builddirs)); do \
+	$(silent_none)for d in $(filter externals/comin/build,$(bundled_builddirs)); do \
 	  case ' $(bundled_cmake_builddirs) ' in \
 	    *" $$d "*) $(MAKE) -C "$$d" $@ VERBOSE=$(filter-out 0,$(V)) || exit $$? ;; \
-            *) $(MAKE) -C "$$d" $@ V=$(V) exec_prefix='@exec_prefix@' bindir='bin' || exit $$? ;; \
+            *) $(MAKE) -C "$$d" $@ V=$(V) prefix='@prefix@' exec_prefix='@exec_prefix@' bindir='@bindir@' libdir='@libdir@' includedir='@includedir@' || exit $$? ;; \
           esac; \
 	done
+@HD_ENABLED@	$(silent_none)$(MAKE) -C externals/hd $@ V=$(V) exec_prefix='@exec_prefix@' bindir='bin'
 @MTIME_PYTHON_ENABLED@	$(silent_none)$(MAKE) -C externals/mtime/build/python $@ VERBOSE=$(filter-out 0,$(V))
 @YAC_PYTHON_ENABLED@	$(silent_none)$(MAKE) -C externals/yac/python $@ V=$(V) prefix='@exec_prefix@'
 
