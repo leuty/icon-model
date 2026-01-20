@@ -3399,6 +3399,10 @@ AS_VAR_IF([enable_msgwam], [yes],
   [AC_SUBST([MSGWAM_ENABLED], [''])],
   [AC_SUBST([MSGWAM_ENABLED], ['#'])])
 
+AS_IF([test x"$enable_hd" != xno],
+  [AC_SUBST([HD_ENABLED], [''])],
+  [AC_SUBST([HD_ENABLED], ['#'])])
+
 AS_VAR_IF([enable_mpi], [yes],
   [AC_SUBST([MPI_ENABLED], [''])
    AC_SUBST([MPI_DISABLED], ['#'])],

@@ -597,6 +597,7 @@ GPU_ENABLED
 OPENMP_ENABLED
 MPI_DISABLED
 MPI_ENABLED
+HD_ENABLED
 MSGWAM_ENABLED
 ART_ENABLED
 EMVORADO_ENABLED
@@ -12330,6 +12331,14 @@ if test "x$enable_msgwam" = xyes; then :
 
 else
   MSGWAM_ENABLED='#'
+
+fi
+
+if test x"$enable_hd" != xno; then :
+  HD_ENABLED=''
+
+else
+  HD_ENABLED='#'
 
 fi
 
