@@ -163,7 +163,7 @@ CONTAINS
 
     TYPE(t_vdf_aggregator) :: aggregator
 
-    INTEGER :: jg, jtile, isfc, jc, jb, graph_id
+    INTEGER :: jg, jtile, isfc, jc, jcl, jb, graph_id
     REAL(wp), POINTER, DIMENSION(:,:,:) :: &
       & old_tsfc, tend_tsfc, new_tsfc, &
       & new_qsfc, &
@@ -418,16 +418,17 @@ CONTAINS
           & opt_acc_async_queue=acc_async_queues(jtile) &
           & )
 
-!$OMP PARALLEL DO PRIVATE(jc, jb) ICON_OMP_DEFAULT_SCHEDULE
-        !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR COLLAPSE(2) ASYNC(acc_async_queues(jtile))
-          DO jb = 1, this%domain%nblks_c
-            DO jc = 1, this%domain%nproma
-              new_tsfc_rad(jc,jb,jtile) = new_tsfc(jc,jb,jtile)
-              new_tsfc_eff(jc,jb,jtile) = new_tsfc(jc,jb,jtile)
-              tend_tsfc(jc,jb,jtile) = (new_tsfc(jc,jb,jtile) - old_tsfc(jc,jb,jtile)) / dtime
-            END DO
+!$OMP PARALLEL DO PRIVATE(jc, jcl, jb) ICON_OMP_DEFAULT_SCHEDULE
+        DO jb = this%domain%i_startblk_c, this%domain%i_endblk_c
+          !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR PRIVATE(jc) ASYNC(acc_async_queues(jtile))
+          DO jcl = 1, nvalid(jb,jtile)
+            jc = indices(jcl,jb,jtile)
+            new_tsfc_rad(jc,jb,jtile) = new_tsfc(jc,jb,jtile)
+            new_tsfc_eff(jc,jb,jtile) = new_tsfc(jc,jb,jtile)
+            tend_tsfc(jc,jb,jtile) = (new_tsfc(jc,jb,jtile) - old_tsfc(jc,jb,jtile)) / dtime
           END DO
           !$ACC END PARALLEL LOOP
+        END DO
 !$OMP END PARALLEL DO
 
         CALL compute_sfc_sat_spec_humidity(.FALSE., this%domain, this%domain%sfc_types(jtile), &
@@ -453,26 +454,28 @@ CONTAINS
           & co2flx_nat_tile(:,:,jtile) &
           & )
 
-!$OMP PARALLEL DO PRIVATE(jc, jb) ICON_OMP_DEFAULT_SCHEDULE
-        !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR COLLAPSE(2) ASYNC(acc_async_queues(jtile))
-        DO jb = 1, this%domain%nblks_c
-          DO jc = 1, this%domain%nproma
+!$OMP PARALLEL DO PRIVATE(jc, jcl, jb) ICON_OMP_DEFAULT_SCHEDULE
+        DO jb = this%domain%i_startblk_c, this%domain%i_endblk_c
+          !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR PRIVATE(jc) ASYNC(acc_async_queues(jtile))
+          DO jcl = 1, nvalid(jb,jtile)
+            jc = indices(jcl,jb,jtile)
             tend_tsfc(jc,jb,jtile) = (new_tsfc(jc,jb,jtile) - old_tsfc(jc,jb,jtile)) / dtime
           END DO
+          !$ACC END PARALLEL LOOP
         END DO
-        !$ACC END PARALLEL LOOP
 !$OMP END PARALLEL DO
 
       END SELECT
 
-!$OMP PARALLEL DO PRIVATE(jc, jb) ICON_OMP_DEFAULT_SCHEDULE
-      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR COLLAPSE(2) ASYNC(acc_async_queues(jtile))
-      DO jb = 1, this%domain%nblks_c
-        DO jc = 1, this%domain%nproma
+!$OMP PARALLEL DO PRIVATE(jc, jcl, jb) ICON_OMP_DEFAULT_SCHEDULE
+      DO jb = this%domain%i_startblk_c, this%domain%i_endblk_c
+        !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR PRIVATE(jc) ASYNC(acc_async_queues(jtile))
+        DO jcl = 1, nvalid(jb,jtile)
+          jc = indices(jcl,jb,jtile)
           new_tsfc_rad(jc,jb,jtile) = new_tsfc_rad(jc,jb,jtile)**4._wp
         END DO
+        !$ACC END PARALLEL LOOP
       END DO
-      !$ACC END PARALLEL LOOP
 !$OMP END PARALLEL DO
 
       ! Compute surface fluxes for heat, water vapor and momentum from new state
