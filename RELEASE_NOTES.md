@@ -36,6 +36,7 @@
 - Bugfix ocean initial state on GPU (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1133)
 - Fix for surface-level-type for Sea Ice Vars (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1098)
 - Implementation of symmetric IAU in ICON-O (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1020)
+- Use consistent freezing temperature for sea ice in coupled XPP and AES (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1156)
 
 ### Soil and Surface
 

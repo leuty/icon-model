@@ -21,7 +21,8 @@ MODULE mo_aes_phy_diag
     &                               t_aes_phy_tend,  prm_tend,      &
     &                               cdimissval
 
-  USE mo_physical_constants,  ONLY: cvd, cvv, clw, ci, Tf, tmelt
+  USE mo_physical_constants,  ONLY: cvd, cvv, clw, ci, tmelt
+  USE mo_sea_ice_nml,         ONLY: Tf
   USE mo_run_config,          ONLY: iqv, iqc, iqr, iqi, iqs, iqg
   USE mo_aes_cop_config,      ONLY: aes_cop_config
   USE mo_aes_vdf_config,      ONLY: aes_vdf_config

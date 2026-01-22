@@ -43,7 +43,7 @@ MODULE mo_ocean_surface_refactor
     &  lfix_salt_content, ice_flux_type, heatflux_forcing_on_sst, &
     &  lfwflux_enters_with_sst, vert_cor_type
 
-  USE mo_sea_ice_nml,        ONLY: sice
+  USE mo_sea_ice_nml,        ONLY: sice, Tf
 
   USE mo_ocean_nml,           ONLY: atmos_flux_analytical_type, relax_analytical_type, &
     &  n_zlev, para_surfRelax_Salt, para_surfRelax_Temp, atmos_precip_const, &  ! atmos_evap_constant
@@ -53,7 +53,7 @@ MODULE mo_ocean_surface_refactor
     &  basin_center_lat, basin_center_lon, basin_width_deg, basin_height_deg
 
   USE mo_math_constants,      ONLY: pi, deg2rad, rad2deg
-  USE mo_physical_constants,  ONLY: rhoi, rhos, rho_ref, alv, tmelt, tf, clw, stbo, zemiss_def
+  USE mo_physical_constants,  ONLY: rhoi, rhos, rho_ref, alv, tmelt, clw, stbo, zemiss_def
   USE mo_impl_constants,      ONLY: max_char_length, sea_boundary, MIN_DOLIC
 
   USE mo_ocean_types,         ONLY: t_hydro_ocean_state

@@ -21,7 +21,8 @@ MODULE mo_tmx_surface_interface
   USE mo_exception, ONLY: finish
   USE mo_fortran_tools, ONLY: init, set_acc_async_queue
   USE mtime, ONLY: datetime
-  USE mo_physical_constants, ONLY: grav, rgrav, tmelt, Tf, stbo, rhos, alf, cvv, clw, ci, vtmpc1, rd, nu
+  USE mo_physical_constants, ONLY: grav, rgrav, tmelt, stbo, rhos, alf, cvv, clw, ci, vtmpc1, rd, nu
+  USE mo_sea_ice_nml,        ONLY: Tf
   USE mo_aes_thermo, ONLY: &
     & lvc, lsc, &
     & sat_pres_water, sat_pres_ice, specific_humidity, dewpoint_temperature

@@ -20,7 +20,7 @@ MODULE mo_ocean_initial_conditions
   !-------------------------------------------------------------------------
   USE mo_kind,               ONLY: wp
   USE mo_grid_config,        ONLY: grid_sphere_radius, grid_angular_velocity, use_dummy_cell_closure
-  USE mo_physical_constants, ONLY: rgrav, tmelt, tf, earth_angular_velocity,inverse_earth_radius! , SItodBar
+  USE mo_physical_constants, ONLY: rgrav, tmelt, earth_angular_velocity,inverse_earth_radius! , SItodBar
   USE mo_math_constants,     ONLY: pi, pi_2, rad2deg, deg2rad
   USE mo_parallel_config,    ONLY: nproma
   USE mo_ocean_nml,          ONLY: iswm_oce, n_zlev,i_sea_ice,                &
@@ -48,7 +48,7 @@ MODULE mo_ocean_initial_conditions
     & sp_density_front_num_sines, sp_density_front_sine_amp, &
     & sp_press_equilibrium_depth, sp_thermal_coefficient
 
-  USE mo_sea_ice_nml,        ONLY: use_IceInitialization_fromTemperature
+  USE mo_sea_ice_nml,        ONLY: use_IceInitialization_fromTemperature, Tf
 
   USE mo_impl_constants,     ONLY: sea_boundary
   USE mo_dynamics_config,    ONLY: nold

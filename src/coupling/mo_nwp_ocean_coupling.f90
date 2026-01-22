@@ -655,7 +655,8 @@ CONTAINS
     IF (ASSOCIATED(rx%ocean_u)) THEN
       CALL cpl_get_field( &
         routine, in_field_ids(jg)%surface_velocity, 'ocean and sea ice velocity bundle', p_patch%n_patch_cells, &
-        field_1=rx%ocean_u, field_2=rx%ocean_v, field_3=rx%ice_u, field_4=rx%ice_v)
+        field_1=rx%ocean_u, field_2=rx%ocean_v, field_3=rx%ice_u, field_4=rx%ice_v, &
+        received_data=received_data)
       !$ACC UPDATE DEVICE(rx%ocean_u) ASYNC(1) IF(lzacc .AND. received_data)
       !$ACC UPDATE DEVICE(rx%ocean_v) ASYNC(1) IF(lzacc .AND. received_data)
     END IF

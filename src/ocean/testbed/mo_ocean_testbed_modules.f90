@@ -26,7 +26,7 @@ MODULE mo_ocean_testbed_modules
   USE mo_ocean_nml,              ONLY: n_zlev, GMRedi_configuration, GMRedi_combined, Cartesian_Mixing, &
     & atmos_flux_analytical_type, no_tracer, OceanReferenceDensity, ab_gam, l_with_vert_tracer_advection, &
     & tracer_update_mode, use_none, l_edge_based, vert_cor_type
-  USE mo_sea_ice_nml,            ONLY: init_analytic_conc_param, t_heat_base
+  USE mo_sea_ice_nml,            ONLY: init_analytic_conc_param, t_heat_base, Tf
   USE mo_dynamics_config,        ONLY: nold, nnew
   USE mo_run_config,             ONLY: nsteps, dtime, output_mode, test_mode !, test_param
   USE mo_exception,              ONLY: message, message_text, finish
@@ -51,7 +51,7 @@ MODULE mo_ocean_testbed_modules
   USE mo_sea_ice,                ONLY: salt_content_in_surface, energy_content_in_surface
   USE mo_sea_ice_types,          ONLY: t_atmos_fluxes, t_sea_ice
   USE mo_ice_diagnostics,        ONLY: energy_in_surface, salt_in_surface
-  USE mo_physical_constants,     ONLY: rhoi, rhos, clw, alf, Tf
+  USE mo_physical_constants,     ONLY: rhoi, rhos, clw, alf
   USE mo_ocean_physics_types,    ONLY: t_ho_params
   USE mo_master_config,          ONLY: isRestart
   USE mo_ocean_GM_Redi,          ONLY: calc_ocean_physics
