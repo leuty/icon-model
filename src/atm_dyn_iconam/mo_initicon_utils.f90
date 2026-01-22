@@ -49,14 +49,14 @@ MODULE mo_initicon_utils
   USE mo_lnd_nwp_config,      ONLY: nlev_soil, ntiles_total, lseaice, llake, lmulti_snow,         &
     &                               isub_lake, frlnd_thrhld,             &
     &                               frlake_thrhld, frsea_thrhld, nlev_snow, ntiles_lnd,           &
-    &                               l2lay_rho_snow, lprog_albsi, dzsoil, frsi_min
+    &                               l2lay_rho_snow, lprog_albsi, dzsoil, frsi_min, tf_salt
   USE mo_nwp_sfc_utils,       ONLY: init_snowtile_lists
   USE mo_atm_phy_nwp_config,  ONLY: atm_phy_nwp_config, i2daero_dust, i2daero_fire
   USE mo_aes_phy_config,      ONLY: aes_phy_config
   USE mo_nwp_phy_types,       ONLY: t_nwp_phy_diag
   USE sfc_terra_data,         ONLY: csalb_snow_min, csalb_snow_max, csalb_snow, crhosmin_ml, crhosmax_ml, &
     &                               cpwp, cfcap
-  USE mo_physical_constants,  ONLY: tf_salt, tmelt, cpd, rd, cvd_o_rd, p0ref, vtmpc1, ci, clw, cpv, cvd
+  USE mo_physical_constants,  ONLY: tmelt, cpd, rd, cvd_o_rd, p0ref, vtmpc1, ci, clw, cpv, cvd
   USE mo_hydro_adjust,        ONLY: hydro_adjust
   USE sfc_seaice,             ONLY: seaice_coldinit_nwp
   USE mo_post_op,             ONLY: perform_post_op

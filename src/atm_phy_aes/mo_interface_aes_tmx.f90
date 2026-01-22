@@ -597,7 +597,8 @@ CONTAINS
     USE mo_nonhydro_state,     ONLY: p_nh_state
     USE mo_nonhydro_types,     ONLY: t_nh_metrics, t_nh_diag, t_nh_prog
     USE mo_dynamics_config,    ONLY: nnow
-    USE mo_physical_constants, ONLY: cpd, cpv, cvd, cvv, Tf, tmelt
+    USE mo_physical_constants, ONLY: cpd, cpv, cvd, cvv, tmelt
+    USE mo_sea_ice_nml,        ONLY: Tf
 
     USE mo_master_config, ONLY: isRestart
 

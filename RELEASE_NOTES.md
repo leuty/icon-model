@@ -15,6 +15,7 @@
 ### ICON-Ocean
 
 - Vectorization of HAMOCC subroutines
+- Use consistent freezing temperature for sea ice in coupled XPP and AES
 
 ### Soil and Surface
 

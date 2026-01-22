@@ -22,7 +22,7 @@ MODULE mo_bc_sst_sic
   USE mo_model_domain,       ONLY: t_patch
   USE mo_grid_config,        ONLY: n_dom
   USE mo_parallel_config,    ONLY: nproma
-  USE mo_physical_constants, ONLY: tf_salt !, tmelt
+  USE mo_sea_ice_nml,        ONLY: Tf
   USE mo_impl_constants,     ONLY: MAX_CHAR_LENGTH, max_dom
   USE mo_cdi,                ONLY: streamOpenRead, streamInqVlist, streamClose, &
     & vlistInqTaxis, streamInqTimestep, taxisInqVdate
@@ -299,7 +299,7 @@ CONTAINS
         seaice(jc,jb) = MERGE(0.99_wp, seaice(jc,jb), seaice(jc,jb) > 0.99_wp)
         seaice(jc,jb) = MERGE(0.0_wp, seaice(jc,jb), seaice(jc,jb) <= 0.01_wp)
 
-        ztsw(jc,jb) = MERGE(tf_salt, MAX(zts(jc,jb), tf_salt), seaice(jc,jb) > 0.0_wp)
+        ztsw(jc,jb) = MERGE(Tf+273.15_wp, MAX(zts(jc,jb), Tf+273.15_wp), seaice(jc,jb) > 0.0_wp)
       END DO
     END DO
 !$omp end do nowait

@@ -30,14 +30,14 @@ MODULE mo_ice_init_thermo
   USE mo_exception,           ONLY: finish, message
   USE mo_impl_constants,      ONLY: success, max_char_length, sea_boundary
 
-  USE mo_physical_constants,  ONLY: rhoi, rhos, rho_ref, ki, ks, Tf, mu
+  USE mo_physical_constants,  ONLY: rhoi, rhos, rho_ref, ki, ks, mu
   USE mo_ocean_nml,           ONLY: no_tracer
   USE mo_sea_ice_nml,         ONLY: i_ice_dyn, i_ice_advec, &
     &                                use_IceInitialization_fromTemperature, use_constant_tfreez, &
     &                               init_analytic_conc_param, init_analytic_hi_param, &
     &                               init_analytic_hs_param, init_analytic_temp_under_ice, &
     &                               albi, albedoW_sim, initialize_seaice_fromfile, &
-    &                               i_ice_therm
+    &                               i_ice_therm, Tf
   USE mo_ocean_nml,           ONLY: limit_seaice, seaice_limit
   USE mo_ocean_types,         ONLY: t_hydro_ocean_state
   USE mo_ocean_state,         ONLY: v_base, ocean_restart_list, ocean_default_list
@@ -570,7 +570,7 @@ CONTAINS
 
       CALL add_var(ocean_restart_list, 's11', p_ice%s11 ,&
         &          GRID_UNSTRUCTURED_CELL, ZA_SURFACE, &
-        &          t_cf_var('s11', 'N m-1', 'normal stress', datatype_flt),&
+        &          t_cf_var('s11', 'N m-2', 'normal stress', datatype_flt),&
         &          grib2_var(255, 255, 255, DATATYPE_PACK16, GRID_UNSTRUCTURED, GRID_CELL),&
         &          ldims=(/nproma,alloc_cell_blocks/), in_group=groups("ice_default"),lrestart_cont=.TRUE.,&
         &          lopenacc=.TRUE., initval=0.0_wp)
@@ -578,7 +578,7 @@ CONTAINS
 
       CALL add_var(ocean_restart_list, 's12', p_ice%s12 ,&
         &          GRID_UNSTRUCTURED_CELL, ZA_SURFACE, &
-        &          t_cf_var('s12', 'N m-1', 'shear stress', datatype_flt),&
+        &          t_cf_var('s12', 'N m-2', 'shear stress', datatype_flt),&
         &          grib2_var(255, 255, 255, DATATYPE_PACK16, GRID_UNSTRUCTURED, GRID_CELL),&
         &          ldims=(/nproma,alloc_cell_blocks/), in_group=groups("ice_default"),lrestart_cont=.TRUE.,&
         &          lopenacc=.TRUE., initval=0.0_wp)
@@ -586,7 +586,7 @@ CONTAINS
 
       CALL add_var(ocean_restart_list, 's22', p_ice%s22 ,&
         &          GRID_UNSTRUCTURED_CELL, ZA_SURFACE, &
-        &          t_cf_var('s22', 'N m-1', 'normal stress', datatype_flt),&
+        &          t_cf_var('s22', 'N m-2', 'normal stress', datatype_flt),&
         &          grib2_var(255, 255, 255, DATATYPE_PACK16, GRID_UNSTRUCTURED, GRID_CELL),&
         &          ldims=(/nproma,alloc_cell_blocks/), in_group=groups("ice_default"),lrestart_cont=.TRUE.,&
         &          lopenacc=.TRUE., initval=0.0_wp)
