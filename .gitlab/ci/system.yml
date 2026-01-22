@@ -116,7 +116,7 @@ include:
       /run/dict.iconam.mpim /run/add_run_routines /data
     GIT_SUBMODULE_PATHS: utils/mkexp externals/jsbach
     MKEXP_PATH: ${CI_PROJECT_DIR}/run
-    ICON_CI_MKEXP_WORK_REL_PATH: ${CI_PIPELINE_ID}
+    ICON_CI_MKEXP_WORK_REL_PATH: ${CI_PIPELINE_ID}/${CI_JOB_ID}
     ICON_CI_MKEXP_RUN_SUBDIR: run_base
   before_script:
     - !reference [.common:dkrz:levante, before_script]
@@ -130,7 +130,7 @@ include:
         sed -i "s|@CI_PROJECT_DIR@|${CI_PROJECT_DIR}|g" run/SETUP.config
 
         ./utils/mkexp/mkexp "${ICON_CI_MKEXP_CONFIG_REL_PATH}" \
-          WORK_ROOT='$MODEL_ROOT' DATA_ROOT='$MODEL_ROOT' \
+          DATA_ROOT='$MODEL_ROOT' \
           WORK_DIR="${CI_PROJECT_DIR}/${ICON_CI_MKEXP_WORK_REL_PATH}" \
           EXP_ID="${CI_JOB_NAME_SLUG}" \
           jobs.run.nodes="${ICON_CI_COMMON_DKRZ_SLURM_NNODES}" \
@@ -149,6 +149,7 @@ include:
           icon_ci_log_info_msg 'Preparing the environment for the dependent jobs...'
           {
             echo "ICON_CI_RUN_JOB_NAME=${CI_JOB_NAME}"
+            echo "ICON_CI_MKEXP_EXP_ID=${CI_JOB_NAME_SLUG}"
             echo "ICON_CI_RUN_JOB_OUTPUT_REL_PATH=${ICON_CI_MKEXP_WORK_REL_PATH}/${ICON_CI_MKEXP_RUN_SUBDIR}"
           } >dependent.env
         } 2>/dev/null
@@ -168,6 +169,22 @@ include:
         $CI_PIPELINE_SOURCE == "schedule" &&
           $ICON_CI_TEST_SCHEDULE == "weekly"
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+.io:rbf_write:
+  variables:
+    ICON_CI_MKEXP_EXTRA_ARGS: >-
+      namelists.NAMELIST_atm.interpol_nml.lrbf_write=.TRUE.
+      namelists.NAMELIST_atm.interpol_nml.lrbf_read=.FALSE.
+  artifacts:
+    paths:
+      - ${ICON_CI_MKEXP_WORK_REL_PATH}/${ICON_CI_MKEXP_RUN_SUBDIR}/rbf_coeffs_dom01.nc
+
+.io:rbf_read:
+  variables:
+    ICON_CI_MKEXP_EXTRA_ARGS: >-
+      files.rbf_io.rbf_coeffs_dom01..nc=${CI_PROJECT_DIR}/${ICON_CI_RUN_JOB_OUTPUT_REL_PATH}/rbf_coeffs_dom01.nc
+      namelists.NAMELIST_atm.interpol_nml.lrbf_write=.FALSE.
+      namelists.NAMELIST_atm.interpol_nml.lrbf_read=.TRUE.
 
 .system:checksum:
   extends: .utils:git:ignore
@@ -199,7 +216,7 @@ include:
       icon_ci_log_section_start 'Verifying checksums of the model output' 'collapsed=false'
       (
         set -u
-        model_output_files=$(find "${ICON_CI_RUN_JOB_OUTPUT_REL_PATH}" -type f | sort)
+        model_output_files=$(find "${ICON_CI_RUN_JOB_OUTPUT_REL_PATH}" -type f -name "${ICON_CI_MKEXP_EXP_ID}*.nc" | sort)
         cdo --version
         set -x
         calculated_cksum=$(cdo -outputf,'%.17g' ${model_output_files} | sha256sum --text - | cut -d ' ' -f1)
@@ -250,7 +267,12 @@ aes:bubble:gcc:build:
 aes:bubble:gcc:run:
   extends:
     - .system:run:levante
+    - .io:rbf_write
     - .aes:bubble
+  artifacts:
+    paths:
+      - ${ICON_CI_MKEXP_WORK_REL_PATH}/${ICON_CI_MKEXP_RUN_SUBDIR}/${CI_JOB_NAME_SLUG}*.nc
+      - ${ICON_CI_MKEXP_WORK_REL_PATH}/${ICON_CI_MKEXP_RUN_SUBDIR}/rbf_coeffs_dom01.nc
   needs: [aes:bubble:gcc:build]
 
 aes:bubble:gcc:analyze:
@@ -275,6 +297,33 @@ aes:bubble:cpu:run:
 aes:bubble:cpu:analyze:
   extends: .system:analyze
   needs: [aes:bubble:cpu:run]
+
+aes:bubble:cpu_sp:build:
+  extends:
+    - .aes:bubble
+    - .system:build:levante
+  variables:
+    ICON_CI_CONFIG_REL_PATH: config/dkrz/levante.intel
+    ICON_CI_CONFIG_EXTRA_ARGS: >-
+      --enable-atmo --enable-aes --enable-rte-rrtmgp --enable-openmp --enable-single-precision
+
+aes:bubble:cpu_sp:run:
+  extends:
+    - .system:run:levante
+    - .io:rbf_read
+    - .aes:bubble
+  needs: [aes:bubble:cpu_sp:build, aes:bubble:gcc:run]
+  variables:
+    ICON_CI_MKEXP_EXTRA_ARGS: >-
+      files.rbf_io.rbf_coeffs_dom01..nc=${CI_PROJECT_DIR}/${ICON_CI_RUN_JOB_OUTPUT_REL_PATH}/rbf_coeffs_dom01.nc
+      namelists.NAMELIST_atm.interpol_nml.lrbf_write=.FALSE.
+      namelists.NAMELIST_atm.interpol_nml.lrbf_read=.TRUE.
+      jobs.run.cpus_per_node=128
+      jobs.run.use_cpu_mask=false
+
+aes:bubble:cpu_sp:analyze:
+  extends: .system:analyze
+  needs: [aes:bubble:cpu_sp:run]
 
 aes:bubble:ragnarok:cpu:build:
   extends: aes:bubble:cpu:build
@@ -308,6 +357,37 @@ aes:bubble:nag:analyze:
   extends: .system:analyze
   needs: [aes:bubble:nag:run]
 
+aes:bubble:nag_sp:build:
+  extends:
+    - .aes:bubble
+    - .system:build:levante
+  variables:
+    ICON_CI_CONFIG_REL_PATH: config/dkrz/levante.nag
+    ICON_CI_CONFIG_EXTRA_ARGS: --enable-atmo --enable-aes --enable-rte-rrtmgp --enable-single-precision
+
+aes:bubble:nag_sp:run:
+  extends:
+    - .system:run:levante
+    - .io:rbf_read
+    - .aes:bubble
+  variables:
+    ICON_CI_COMMON_DKRZ_SLURM_TIMELIMIT: "12:00"
+    # - rbf-related args are taken from [.io:rbf_read]
+    # - t0=293.15 needed for stability in single-precision
+    #   (see https://gitlab.dkrz.de/icon/icon-mpim/-/issues/418)
+    ICON_CI_MKEXP_EXTRA_ARGS: >-
+      files.rbf_io.rbf_coeffs_dom01..nc=${CI_PROJECT_DIR}/${ICON_CI_RUN_JOB_OUTPUT_REL_PATH}/rbf_coeffs_dom01.nc
+      namelists.NAMELIST_atm.interpol_nml.lrbf_write=.FALSE.
+      namelists.NAMELIST_atm.interpol_nml.lrbf_read=.TRUE.
+      jobs.run.cpus_per_node=128
+      jobs.run.use_cpu_mask=false
+      namelists.NAMELIST_atm.aes_bubble_nml.aes_bubble_config%t0=293.15
+  needs: [aes:bubble:nag_sp:build, aes:bubble:gcc:run]
+
+aes:bubble:nag_sp:analyze:
+  extends: .system:analyze
+  needs: [aes:bubble:nag_sp:run]
+
 aes:bubble:gpu:build:
   extends:
     - .aes:bubble
@@ -328,6 +408,32 @@ aes:bubble:gpu:run:
     ICON_CI_COMMON_DKRZ_SLURM_NTASKS: 4
     ICON_CI_COMMON_DKRZ_SLURM_GPUS_PER_NODE: 4
     ICON_CI_COMMON_DKRZ_SLURM_EXTRA_PARAMETERS: --exclusive
+
+aes:bubble:gpu_sp:build:
+  extends:
+    - .aes:bubble
+    - .system:build:levante
+  variables:
+    ICON_CI_CONFIG_REL_PATH: config/dkrz/levante.gpu.nvhpc
+    # Enable Large-Eddy Simulation to work around a bug
+    # (see https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/706#note_351521):
+    ICON_CI_CONFIG_EXTRA_ARGS: --enable-atmo --enable-aes --enable-rte-rrtmgp --enable-les --enable-single-precision
+
+aes:bubble:gpu_sp:run:
+  extends:
+    - .system:run:levante
+    - .io:rbf_read
+    - .aes:bubble
+  needs: [aes:bubble:gpu_sp:build, aes:bubble:gcc:run]
+  variables:
+    ICON_CI_COMMON_DKRZ_SLURM_PARTITION: gpu
+    ICON_CI_COMMON_DKRZ_SLURM_NTASKS: 4
+    ICON_CI_COMMON_DKRZ_SLURM_GPUS_PER_NODE: 4
+    ICON_CI_COMMON_DKRZ_SLURM_EXTRA_PARAMETERS: --exclusive
+    ICON_CI_MKEXP_EXTRA_ARGS: >-
+      files.rbf_io.rbf_coeffs_dom01..nc=${CI_PROJECT_DIR}/${ICON_CI_RUN_JOB_OUTPUT_REL_PATH}/rbf_coeffs_dom01.nc
+      namelists.NAMELIST_atm.interpol_nml.lrbf_write=.FALSE.
+      namelists.NAMELIST_atm.interpol_nml.lrbf_read=.TRUE.
 
 aes:bubble:ragnarok:gpu:build:
   extends: aes:bubble:gpu:build
@@ -374,8 +480,10 @@ generate-checksum-table:
   stage: system
   needs:
     - aes:bubble:cpu:analyze
+    - aes:bubble:cpu_sp:analyze
     - aes:bubble:gcc:analyze
     - aes:bubble:nag:analyze
+    - aes:bubble:nag_sp:analyze
     - aes:bubble:ragnarok:cpu:analyze
     - aes:coupled:cpu:analyze
   extends:
