@@ -764,26 +764,29 @@
 
 
   SUBROUTINE print_bgc_parameters
-  USE mo_memory_bgc, ONLY      : phytomi, grami, remido, dyphy, zinges,        &
-       &                      bkphy, bkzoo, bkopal,                      &
-       &                     sulfate_reduction,                &
+  USE mo_memory_bgc, ONLY    : phytomi, grami, remido, dyphy, zinges,        &
+       &                     bkphy, bkzoo, bkopal,                      &
        &                     n2_fixation,                             &
-       &                     ropal, perc_diron, riron, fesoly, relaxfe,         &
+       &                     ropal, fesoly, relaxfe,         &
        &                     pi_alpha_cya,                     &
        &                     Topt_cya,T1_cya,T2_cya,bkcya_N, &
        &                     buoyancyspeed_cya,                                 &
        &                     doccya_fac, thresh_aerob, thresh_sred, &
-       &                     bkno3, bkfe, bkpo4, bkno3_cya, bknh4, bknh4_cya, &
-       &                     ro2ammo, rmm, kg_denom, no2denit, anamoxra, &
-       &                     nitriox, nitrira, bkno2, rno3nh4, rno3no2
+       &                     ro2ammo, rmm, kg_denom, rno3nh4, rno3no2,  &
+       &                     bkno3_cya, bknh4_cya, bkfe
 
    USE mo_hamocc_nml, ONLY: l_cyadyn, denit_sed, disso_po, &
       &                 sinkspeed_opal, sinkspeed_calc,grazra,cycdec,l_dynamic_pi, &
       &                 drempoc,dremopal,dremcalc,denitrification, bkcya_P,bkcya_fe, &
       &                 no3nh4red, no3no2red, calmax, &
-      &                    l_opal_q10, opal_remin_q10, opal_remin_tref,&
-      &                    l_doc_q10, doc_remin_q10, doc_remin_tref,&
-      &                    l_poc_q10, poc_remin_q10, poc_remin_tref
+      &                 l_opal_q10, opal_remin_q10, opal_remin_tref,&
+      &                 l_doc_q10, doc_remin_q10, doc_remin_tref,&
+      &                 l_poc_q10, poc_remin_q10, poc_remin_tref, &
+      &                 bkno3, bknh4, bkno2, bkpo4, &
+      &                 perc_diron, riron, &
+      &                 no2denit,anamoxra,nitriox, nitrira, &
+      &                 sulfate_reduction,prodn2o,dremn2o
+
 
 
    USE mo_sedmnt, ONLY: disso_op, disso_cal,sred_sed
@@ -873,6 +876,9 @@
    CALL to_bgcout("bkno2",bkno2)
    CALL to_bgcout("rno3nh4",rno3nh4)
    CALL to_bgcout("rno3no2",rno3no2)
+   CALL to_bgcout("sulfate_reduction 1/d",sulfate_reduction*inv_dtb)
+   CALL to_bgcout("prodn2o", prodn2o)
+   CALL to_bgcout("dremn2o 1/d",dremn2o*inv_dtb)
 
    endif
 

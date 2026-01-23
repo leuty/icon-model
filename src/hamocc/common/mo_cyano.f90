@@ -116,9 +116,9 @@ SUBROUTINE cyadyn(local_bgc_mem, klevs, start_idx, end_idx, pddpo, za, ptho, pti
       USE mo_memory_bgc, ONLY      : pi_alpha_cya,          &
        &                            Topt_cya,T1_cya,T2_cya,bkcya_N,      &
        &                            fPAR, ro2ut, ro2ut_cya,ralk,      &
-       &                            doccya_fac, rnit, riron, rcar, rn2, &
+       &                            doccya_fac, rnit,  rcar, rn2, &
        &                            wcya, rnoi, cyamin, &
-       &                            ro2ammo, bknh4_cya, bkno3_cya
+       &                            ro2ammo,bknh4_cya, bkno3_cya
 
       USE mo_param1_bgc, ONLY     : iano3, iphosph, igasnit, &
            &                        ioxygen, ialkali, icya,  &
@@ -129,7 +129,8 @@ SUBROUTINE cyadyn(local_bgc_mem, klevs, start_idx, end_idx, pddpo, za, ptho, pti
            &                        iammo, kcyapro
 
       USE mo_hamocc_nml,ONLY      : cycdec, cya_growth_max, bkcya_fe, bkcya_P, &
-           &                        l_N_cycle
+           &                        l_N_cycle, riron
+
 
       IMPLICIT NONE
       TYPE(t_bgc_memory), POINTER    :: local_bgc_mem
@@ -179,7 +180,6 @@ SUBROUTINE cyadyn(local_bgc_mem, klevs, start_idx, end_idx, pddpo, za, ptho, pti
 
             IF( pddpo(j,k) .GT. EPSILON(0.5_wp) .and. k <= klevs(j)) THEN
 
-
               avcyabac = MAX(1.e-11_wp,local_bgc_mem%bgctra(j,k,icya))                !available cyanobacteria
               avanut = MAX(0._wp,local_bgc_mem%bgctra(j,k,iphosph))                   !available phosphate
               avanfe = MAX(0._wp,(local_bgc_mem%bgctra(j,k,iiron)/riron))             !available iron
@@ -214,7 +214,6 @@ SUBROUTINE cyadyn(local_bgc_mem, klevs, start_idx, end_idx, pddpo, za, ptho, pti
               xa_fe = avanfe
               l_fe = xa_fe / (bkcya_fe + xa_fe)                  !iron limitation
               local_bgc_mem%bgctend(j,k,kcFlim) = l_fe
-
 
               IF (.not. l_N_cycle) THEN
 
@@ -279,6 +278,12 @@ SUBROUTINE cyadyn(local_bgc_mem, klevs, start_idx, end_idx, pddpo, za, ptho, pti
 
                  cyapro = no3cya + nh4cya          ! cyapro in N units
 
+                 ! limitation on DIC
+                 IF (local_bgc_mem%bgctra(j,k,isco212).le.rcar*phosy_cya) then
+                     cyapro=0._wp
+                     phosy_cya=0._wp
+                 END IF
+
                  local_bgc_mem%bgctra(j,k,iano3) = local_bgc_mem%bgctra(j,k,iano3) - no3cya
                  local_bgc_mem%bgctra(j,k,iammo) = local_bgc_mem%bgctra(j,k,iammo) - nh4cya
 
@@ -297,17 +302,16 @@ SUBROUTINE cyadyn(local_bgc_mem, klevs, start_idx, end_idx, pddpo, za, ptho, pti
                  local_bgc_mem%bgctra(j,k,ioxygen)= local_bgc_mem%bgctra(j,k,ioxygen) + (phosy_cya - cyapro*rnoi)*148._wp &
                   &                       + (no3cya*ro2ut + nh4cya*ro2ammo)*rnoi
 
-
                  local_bgc_mem%bgctend(j,k,kcyapro) = cyapro/dtbgc
 
                  local_bgc_mem%bgctra(j,k,igasnit) = local_bgc_mem%bgctra(j,k,igasnit) - (phosy_cya*rnit - cyapro)*0.5_wp  ! gasnit [N2]
 
                  local_bgc_mem%bgctend(j,k,knfix) =  (phosy_cya*rnit - cyapro)/dtbgc ! output budgets [N]
 
+                 surface_height = MERGE(za(j), 0._wp, k==1)
                  local_bgc_mem%bgctend(j,k,kn2b) = local_bgc_mem%bgctend(j,k,kn2b) - (phosy_cya*rnit - cyapro)*(pddpo(j,k) +surface_height)
 
               ENDIF ! l_N_cycle
-
 
               local_bgc_mem%bgctra(j,k,iphosph) = local_bgc_mem%bgctra(j,k,iphosph) - phosy_cya
               local_bgc_mem%bgctra(j,k,iiron) = local_bgc_mem%bgctra(j,k,iiron) - phosy_cya * riron
@@ -395,7 +399,8 @@ SUBROUTINE cyadyn(local_bgc_mem, klevs, start_idx, end_idx, pddpo, za, ptho, pti
         IF (klevs(j) > 0) THEN
 #endif
     IF((pddpo(j,k).GT.EPSILON(0.5_wp)) .and. (pddpo(j,k+1).GT.EPSILON(0.5_wp)) )then ! only if next cell also wet
-         local_bgc_mem%bgctra(j,k,icya)  =  local_bgc_mem%bgctra(j,k,icya) + (wcya*local_bgc_mem%bgctra(j,k+1,icya))/(pddpo(j,k)+za(j))
+         surface_height = MERGE(za(j), 0._wp, k==1)
+         local_bgc_mem%bgctra(j,k,icya)  =  local_bgc_mem%bgctra(j,k,icya) + (wcya*local_bgc_mem%bgctra(j,k+1,icya))/(pddpo(j,k)+surface_height)
     endif
    ENDIF
  ENDDO

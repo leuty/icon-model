@@ -101,10 +101,14 @@ MODULE mo_hamocc_nml
   REAL(wp), PUBLIC :: bkcya_P, bkcya_Fe
   !LOGICAL, PUBLIC :: l_avflux         = .TRUE.   ! flux redistribution
 
+  REAL(wp), PUBLIC :: sulfate_reduction,prodn2o,dremn2o
+  REAL(wp), PUBLIC :: bkpo4,riron,perc_diron
+
   ! extended N-cycle
   LOGICAL, PUBLIC :: l_N_cycle = .FALSE.
   REAL(wp), PUBLIC :: no3nh4red, no3no2red
-
+  REAL(wp), PUBLIC :: bkno3, bknh4, bkno2
+  REAL(wp), PUBLIC :: no2denit,anamoxra,nitriox, nitrira
   REAL(wp), PUBLIC :: atm_co2, atm_o2, atm_n2
   INTEGER         :: iunit
 
@@ -160,8 +164,17 @@ MODULE mo_hamocc_nml
     &  doc_remin_q10,&
     &  l_poc_q10,&
     &  poc_remin_tref,&
-    &  poc_remin_q10,&
-    &  l_hamocc_vertint
+    &  l_hamocc_vertint, &
+    &  poc_remin_q10, &
+    &  bkno3, &
+    &  bknh4, &
+    &  bkno2, &
+    &  bkpo4, &
+    &  perc_diron, &
+    &  riron, &
+    &  no2denit,anamoxra,nitriox, nitrira, &
+    &  sulfate_reduction,prodn2o,dremn2o
+
 
 CONTAINS
   !>
@@ -245,6 +258,10 @@ CONTAINS
    drempoc = 0.026_wp
    dremopal = 0.01_wp
    dremcalc = 0.075_wp
+   dremn2o  = 0.01_wp      ! 1/d
+   sulfate_reduction = 0.005_wp
+
+
    !$ACC UPDATE DEVICE(dremcalc) ASYNC(1)
 
    ! total denitrification rate is a fraction of aerob remineralisation rate drempoc
@@ -268,6 +285,30 @@ CONTAINS
    doc_remin_tref= 10._wp
    poc_remin_q10 = 2.1_wp
    poc_remin_tref= 10._wp
+
+   ! weight percent iron in dust deposition (0.035) times Fe solubility (0.01) /55.85 g--> mol
+   perc_diron = 0.035_wp * 0.01_wp / 55.85_wp
+
+   ! the three values below are from Johnson et al., 1997 Mar. Chemistry 57, 137-161
+   ! riron   = 5.*rcar*1.e-6       ! 'Q'=5.*122.*1.e-6 = 6.1e-4   (iron to phosphate stoichiometric ratio * umol->mol)
+   ! riron   = 2.*rcar*1.e-6       ! 14.2.06: 5.->2. (2.5umol P/nmol Fe) emr: 3.*rcar*1.e-6
+   riron   = 3._wp * 122._wp*1.e-6_wp ! 06.3.06: 2.->3. coex90=12.2GTC/a before change
+
+   bkpo4 = 0.01_wp*1.E-6_wp   ! in kmolP/m3 half satur. const. for PO4
+   bkno3 = 0.16_wp*1.e-6_wp
+   bknh4 = 0.1_wp *1.e-6_wp
+   bkno2 = 0.5_wp*1.E-6_wp    ! Half saturation constant for Nitrite in kmolN/m3
+
+   ! Nitrogen cycle
+   prodn2o=1.e-3_wp
+   anamoxra = 0.05_wp         ! anammox rate  1/day
+   !NITOX : oxidation of NO2 to NO3 ; light dependent
+    nitriox = 0.25_wp          !   nitrite oxidation rate 1/day
+   ! AMMOX : oxidation of NH4 to NO2 ; light dependend
+    nitrira= 0.1_wp    ! nitrification rate per day, after Yool about 0.162 per day
+!             light dependency (coupled to abs_bgc, max at no light, in surface layer 0.
+
+    no2denit = 0.008_wp ! NRN2: NO2 to N2 (1/day)
 
 
     !------------------------------------------------------------------

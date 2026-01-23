@@ -187,7 +187,7 @@ SUBROUTINE nitrogen_deposition (local_bgc_mem, start_idx,end_idx, pddpo, za, nit
 END SUBROUTINE
 SUBROUTINE dust_deposition (local_bgc_mem, start_idx,end_idx, pddpo, za, dustinp, lacc)
 ! apply dust deposition
-  USE mo_memory_bgc, ONLY      : perc_diron
+  USE mo_hamocc_nml, ONLY      : perc_diron
   USE mo_param1_bgc, ONLY     : iiron, idust
   USE mo_control_bgc, ONLY    : dtb
 

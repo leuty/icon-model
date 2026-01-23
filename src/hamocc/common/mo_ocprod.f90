@@ -17,21 +17,18 @@ MODULE mo_ocprod
 
   USE mo_bgc_memory_types, ONLY  : t_bgc_memory
 
-  USE mo_memory_bgc, ONLY     :phytomi, grami, rnoi, riron, pi_alpha, &
+  USE mo_memory_bgc, ONLY     :phytomi, grami, rnoi, pi_alpha, &
        &                        fpar, bkphy, bkzoo, epsher,         &
        &                        zinges, ro2ut, remido, dyphy, spemor,     &
        &                        gammaz, gammap, ecan, rnit, ropal, bkopal,         &
        &                        rcar, relaxfe, fesoly,            &
-       &                        nitdem, dremn2o,         &
-       &                        n2prod, sulfate_reduction,       &
-       &                        thresh_aerob, thresh_o2, prodn2o, &
+       &                        nitdem,  n2prod,     &
+       &                        thresh_aerob, thresh_o2, &
        &                        thresh_sred, dmsp, &
        &                        ralk, bkh2sox, rh2sox,&
-       &                        docmin, &
-       &                        bkpo4, bkfe, bkno3, bknh4, ro2ammo, no2denit, &
-       &                        anamoxra, bkno2, bkrad, nitriox, nitrira, bkfe, o2thresh, rno3no2, &
-       &                        rno3nh4, rnh4no2, rno2no3, alk_nrn2, rno2n2, o2den_lim
-
+       &                        docmin,ro2ammo, &
+       &                        bkrad,o2thresh, rno3no2, &
+       &                        rno3nh4, rnh4no2, rno2no3, alk_nrn2, rno2n2, o2den_lim, bkfe
 
   USE mo_control_bgc, ONLY    : dtb, bgc_nproma, bgc_zlevs, dtbgc , inv_dtbgc
   USE mo_param1_bgc, ONLY     : icalc, iopal, ian2o, igasnit, idms, &
@@ -48,9 +45,13 @@ MODULE mo_ocprod
 
     USE mo_hamocc_nml, ONLY    : grazra, calmax, dremopal, drempoc, denitrification, &
        &                         l_N_cycle, no3nh4red, no3no2red , &
-       &                          l_opal_q10, opal_remin_q10, opal_remin_tref, &
-       &                          l_doc_q10, doc_remin_q10, doc_remin_tref, &
-       &                          l_poc_q10, poc_remin_q10, poc_remin_tref
+       &                         l_opal_q10, opal_remin_q10, opal_remin_tref, &
+       &                         l_doc_q10, doc_remin_q10, doc_remin_tref, &
+       &                         l_poc_q10, poc_remin_q10, poc_remin_tref, &
+       &                         bkno3, bknh4, bkno2,  bkpo4, &
+       &                         no2denit,anamoxra,nitriox, nitrira, &
+       &                         sulfate_reduction,prodn2o,dremn2o, riron
+
     USE mo_fortran_tools, ONLY : set_acc_host_or_device
     USE mo_exception, ONLY     : finish
   PUBLIC :: ocprod
@@ -180,12 +181,12 @@ SUBROUTINE ocprod (local_bgc_mem, klev,start_idx, end_idx, ptho, pddpo, za, ptie
 
           hib = 1._wp/(1._wp + local_bgc_mem%bgctra(j,k,iammo)/bknh4) ! sigma_inhib
 
-          xa = MAX(0._wp, (local_bgc_mem%bgctra(j,k,iano3)))
+          xa = MAX(0._wp, (local_bgc_mem%bgctra(j,k,iano3))-1.E-7_wp)  !limit avail no3 to 1e-7 to avoid neg no3
           xn = xa/(1._wp + pho*avphy*rnit*hib/(xa + bkno3))
           no3lim = MAX(0._wp, xa - xn)
           limn = xn/(xa + bkno3)
 
-          xa = MAX(0._wp, (local_bgc_mem%bgctra(j,k,iammo)))
+          xa = MAX(0._wp, (local_bgc_mem%bgctra(j,k,iammo))-1.E-9_wp)  !limit avail nh4 to 1e-9
           xn = xa/(1._wp + pho*avphy*rnit/(xa + bknh4))
           nh4lim = MAX(0._wp, xa - xn )
           ntotlim = no3lim + nh4lim
@@ -195,6 +196,8 @@ SUBROUTINE ocprod (local_bgc_mem, klev,start_idx, end_idx, ptho, pddpo, za, ptie
           NFRACVAR = 1._wp
           if(phosy .gt. 1.E-18_wp) NFRACVAR= nh4lim/ntotlim     ! fraction of photosynthesis on NH4
           limn = limn*(1._wp - NFRACVAR) + NFRACVAR*xn/( xa + bknh4)
+
+          if (((1._wp - NFRACVAR)*phosy*rnit) > (local_bgc_mem%bgctra(j,k,iano3))) phosy=0._wp !limit phosy to avoid neg no3
 
 
           IF ( limf .le. limp .and. limf .le. limn) THEN
@@ -433,30 +436,31 @@ SUBROUTINE ocprod (local_bgc_mem, klev,start_idx, end_idx, ptho, pddpo, za, ptie
 
               local_bgc_mem%bgctra(j,k,iano3)= local_bgc_mem%bgctra(j,k,iano3)            &
                         &            +(bacfra + remin)*rnit
-           ENDIF
-           !!!! N cycle !!!!!!!!
 
-           !***********************************************************************
-           !   There is about 1.e4 O2 on 1 N2O molecule (Broecker&Peng)
-           !    refra : Tim Rixen, pers. communication
-           !***********************************************************************
+              !***********************************************************************
+              !   There is about 1.e4 O2 on 1 N2O molecule (Broecker&Peng)
+              !    refra : Tim Rixen, pers. communication
+              !***********************************************************************
 
-           aou   = local_bgc_mem%satoxy(j,k) - local_bgc_mem%bgctra(j,k,ioxygen)
-           refra = 1._wp + 3._wp * (0.5_wp + SIGN(0.5_wp, aou - 1.97e-4_wp))
+              aou   = local_bgc_mem%satoxy(j,k) - local_bgc_mem%bgctra(j,k,ioxygen)
+              refra = 1._wp + 3._wp * (0.5_wp + SIGN(0.5_wp, aou - 1.97e-4_wp))
 
+              maxn2o = (remin+bacfra)*prodn2o*ro2ut*refra*0.5_wp
+              avoxy = max(0._wp, local_bgc_mem%bgctra(j,k,ioxygen)-thresh_aerob)
+              actn2o = min(avoxy,maxn2o)
 
-           maxn2o = (remin+bacfra)*prodn2o*ro2ut*refra*0.5_wp
-           avoxy = max(0._wp, local_bgc_mem%bgctra(j,k,ioxygen)-thresh_aerob)
-           actn2o = min(avoxy,maxn2o)
-
-           local_bgc_mem%bgctra(j,k,ian2o)   = local_bgc_mem%bgctra(j,k,ian2o)                  &
+              local_bgc_mem%bgctra(j,k,ian2o)   = local_bgc_mem%bgctra(j,k,ian2o)                  &
                    &    + 2._wp *actn2o
 
-           local_bgc_mem%bgctra(j,k,igasnit) = local_bgc_mem%bgctra(j,k,igasnit)                &
+              local_bgc_mem%bgctra(j,k,igasnit) = local_bgc_mem%bgctra(j,k,igasnit)                &
                    &     - 2._wp *actn2o
 
-           local_bgc_mem%bgctra(j,k,ioxygen) = local_bgc_mem%bgctra(j,k,ioxygen)               &
+              local_bgc_mem%bgctra(j,k,ioxygen) = local_bgc_mem%bgctra(j,k,ioxygen)               &
                    &     - actn2o
+
+              ENDIF
+              !!!! N cycle !!!!!!!!
+
 
            local_bgc_mem%bgctend(j,k,kremin) = remin * inv_dtbgc
            local_bgc_mem%bgctend(j,k,kbacfra) = bacfra * inv_dtbgc
@@ -591,7 +595,10 @@ SUBROUTINE ocprod (local_bgc_mem, klev,start_idx, end_idx, ptho, pddpo, za, ptie
              n2oc_max = max(0._wp, local_bgc_mem%bgctra(j,k,ian2o) - n2oa)         ! corresponding max N2O loss
              detc_max =  n2oc_max/280._wp                    ! corresponding max change in det, rno2n2 conversion to P
              n2on2 = min (local_bgc_mem%bgctra(j,k,idet), detc_max)   ! in P units
+
+             n2on2 = min(local_bgc_mem%bgctra(j,k,ian2o)/ 280._wp, n2on2) ! to avoid negative n2o
              n2on2 = max(0._wp, n2on2)
+
 
              ! change from nrn2 in other tracers excl. DIC and PO4, done later
              local_bgc_mem%bgctra(j,k,idet)  = local_bgc_mem%bgctra(j,k,idet) - n2on2              ! change in detritus
