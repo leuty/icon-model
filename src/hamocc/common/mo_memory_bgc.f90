@@ -39,17 +39,16 @@ MODULE mo_memory_bgc
   REAL(wp) :: remido, dyphy, zinges, epsher, spemor, gammap, gammaz, ecan
   REAL(wp) :: ro2ut, rcar, rnit, rnoi, rnit23, rnit13, ropal, rn2, p2gtc
   REAL(wp) :: bkphy, bkzoo, bkopal, bifr13, bifr14, plafr13, plafr14
-  REAL(wp) :: dremdoc, dremn2o
+  REAL(wp) :: dremdoc
   REAL(wp) :: thresh_aerob ! O2 threshold for aerob POC remineralization
   REAL(wp) :: thresh_sred ! O2 threshold for sulfate reduction
-  REAL(wp) :: thresh_o2, prodn2o
+  REAL(wp) :: thresh_o2
   REAL(wp) :: mc_fac, mc_eu_speed, mc_depth
   REAL(wp) :: n2_fixation
-  REAL(wp) :: sulfate_reduction
   REAL(wp) :: wcya  ! daily boyancy speed of cyanos
   REAL(wp) :: gutc
   REAL(wp) :: psedi, csedi, ssedi
-  REAL(wp) :: perc_diron, riron, fesoly, relaxfe, sinkspeed_dust,bolaymin
+  REAL(wp) :: fesoly, relaxfe, sinkspeed_dust,bolaymin
   REAL(wp) :: pi_alpha, fPAR, bkh2sox, rh2sox
   REAL(wp) :: nitdem, n2prod, ro2nitri
   REAL(wp) :: dremn3o, ro2bal
@@ -59,12 +58,13 @@ MODULE mo_memory_bgc
   REAL(wp) :: bkcya_N, doccya_fac           ! (namelist parameter)
   REAL(wp) :: buoyancyspeed_cya
   REAL(wp) :: ralk, cyamin, ro2ut_cya
+  REAL(wp) :: bkno3_cya, bknh4_cya ,bkfe
 
   ! Extended Nitrogen cycle variables
-  REAL(wp) :: bkno3_cya, bknh4_cya, ro2ammo, bkno3, bknh4
-  REAL(wp) :: rmm, kg_denom, bkpo4, o2thresh, o2den_lim
-  REAL(wp) :: no2denit, anamoxra, bkno2, bkrad, nitriox, nitrira
-  REAL(wp) :: bkfe, rno3nh4, rno3no2, rnh4no2, rno2no3, alk_nrn2
+  REAL(wp) :: ro2ammo
+  REAL(wp) :: rmm, kg_denom, o2thresh, o2den_lim
+  REAL(wp) :: bkrad
+  REAL(wp) :: rno3nh4, rno3no2, rnh4no2, rno2no3, alk_nrn2
   REAL(wp) :: rno2n2
 
 

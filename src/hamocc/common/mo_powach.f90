@@ -38,9 +38,9 @@ CONTAINS
 !
 
    USE mo_memory_bgc, ONLY  : ro2ut, rnit, nitdem, n2prod,         &
-        &                     rcar, ralk, riron,                   &
-        &                     nitrira, ro2ammo, anamoxra, bkno2, nitriox, &
-        &                     no2denit, rnh4no2, rno2no3, rno3no2,rno3nh4,&
+        &                     rcar, ralk,                   &
+        &                     ro2ammo, &
+        &                     rnh4no2, rno2no3, rno3no2,rno3nh4,&
         &                     rno2n2, ro2nitri, alk_nrn2,                 &
         &                     o2thresh, o2den_lim
 
@@ -61,7 +61,8 @@ CONTAINS
         &                     ksdnra, ksdnrn, ksnrn2, ksnitox
 
    USE mo_hamocc_nml, ONLY  : disso_po,denit_sed, &
-                              l_N_cycle, no3no2red, no3nh4red
+        &                      l_N_cycle, no3no2red, no3nh4red, riron, &
+        &                     nitrira, nitriox, anamoxra, bkno2, no2denit
 
   IMPLICIT NONE
 
@@ -94,7 +95,6 @@ CONTAINS
 
    !!!! extended N-cycle variables
    REAL(wp) :: posol_nit
-   REAL(wp) :: dissot1
    REAL(wp) :: popot
    REAL(wp) :: o2lim
    REAL(wp) :: nitrif          ! local rate of NH4 conversion to NO3 (adapted from EMR)
@@ -151,7 +151,7 @@ CONTAINS
             !!!! N-cycle !!!!!!!!
             IF (l_N_cycle) THEN
                o2lim = local_sediment_mem%powtra(j,k,ipowaox)/(o2thresh + local_sediment_mem%powtra(j,k,ipowaox)) ! o2 limitation in oxic water
-               pomax = o2lim*dissot1*local_sediment_mem%powtra(j,k,ipowaox)
+               pomax = o2lim*disso_po*local_sediment_mem%powtra(j,k,ipowaox)
                sssnew = local_sediment_mem%sedlay(j,k,issso12)/(1._wp + pomax)
                popot = local_sediment_mem%sedlay(j,k,issso12) - sssnew   ! potential change for org sed.
                posol = min(0.9_wp*local_sediment_mem%powtra(j,k,ipowaox)/(pors2w(k)*ro2ammo),popot)
@@ -307,7 +307,7 @@ CONTAINS
                !< implicit formulation to avoid neg. nitrate concentration
                no3a = local_sediment_mem%powtra(j,k,ipowno3)/(1._wp +no3rmax)   ! max change in NO3
                no3c_max = local_sediment_mem%powtra(j,k,ipowno3) - no3a         ! corresponding max NO3 loss
-               detc_max=  no3c_max*(fdnrn/rno3no2+fdnra/rno3nh4)  ! corresponding max change in det in water part
+               detc_max=  no3c_max*(1._wp/(fdnrn*rno3no2 + fdnra * rno3nh4))    ! corresponding max change in det in water part
                detc_act = min ( detn ,detc_max) ! convert solid to water part
 
                dnrn = fdnrn*detc_act             ! in P units in water part
@@ -603,9 +603,8 @@ CONTAINS
 !
 
    USE mo_memory_bgc, ONLY  : ro2ut, rnit, nitdem, n2prod,         &
-        &                     rcar, ralk, riron,                   &
-        &                     nitrira, ro2ammo, anamoxra, bkno2, nitriox, &
-        &                     no2denit, rnh4no2, rno2no3, rno3no2,rno3nh4,&
+        &                     rcar, ralk, ro2ammo,                 &
+        &                     rnh4no2, rno2no3, rno3no2,rno3nh4,&
         &                     rno2n2, alk_nrn2,                 &
         &                     o2thresh, o2den_lim
         ! ro2nitri
@@ -626,8 +625,9 @@ CONTAINS
         &                     ipownh4, ipowno2, ksammox, ksanam, &
         &                     ksdnra, ksdnrn, ksnrn2, ksnitox
 
-   USE mo_hamocc_nml, ONLY  : disso_po,denit_sed, &
-                              l_N_cycle, no3no2red, no3nh4red
+   USE mo_hamocc_nml, ONLY  : disso_po,denit_sed, riron, &
+                              l_N_cycle, no3no2red, no3nh4red, &
+                              nitrira, nitriox, anamoxra, bkno2, no2denit
 
   IMPLICIT NONE
 
@@ -660,7 +660,6 @@ CONTAINS
 
    !!!! extended N-cycle variables
    REAL(wp) :: posol_nit
-   REAL(wp) :: dissot1 ! Warning: 'dissot1' may be used uninitialized [-Wmaybe-uninitialized]
    REAL(wp) :: popot
    REAL(wp) :: o2lim
    ! REAL(wp) :: nitrif          ! local rate of NH4 conversion to NO3 (adapted from EMR)
@@ -763,7 +762,7 @@ CONTAINS
                     !!!! N-cycle !!!!!!!!
                     IF (l_N_cycle) THEN
                         o2lim = local_sediment_mem%powtra(j,k,ipowaox)/(o2thresh + local_sediment_mem%powtra(j,k,ipowaox)) ! o2 limitation in oxic water
-                        pomax = o2lim*dissot1*local_sediment_mem%powtra(j,k,ipowaox)
+                        pomax = o2lim*disso_po*local_sediment_mem%powtra(j,k,ipowaox)
                         sssnew = local_sediment_mem%sedlay(j,k,issso12)/(1._wp + pomax)
                         popot = local_sediment_mem%sedlay(j,k,issso12) - sssnew   ! potential change for org sed.
                         posol = min(0.9_wp*local_sediment_mem%powtra(j,k,ipowaox)/(pors2w(k)*ro2ammo),popot)
@@ -919,7 +918,7 @@ CONTAINS
                             !< implicit formulation to avoid neg. nitrate concentration
                             no3a = local_sediment_mem%powtra(j,k,ipowno3)/(1._wp +no3rmax)   ! max change in NO3
                             no3c_max = local_sediment_mem%powtra(j,k,ipowno3) - no3a         ! corresponding max NO3 loss
-                            detc_max=  no3c_max*(fdnrn/rno3no2+fdnra/rno3nh4)  ! corresponding max change in det in water part
+                            detc_max=  no3c_max*(1._wp/(fdnrn*rno3no2 + fdnra * rno3nh4))  ! corresponding max change in det in water part
                             detc_act = min ( detn ,detc_max) ! convert solid to water part
 
                             dnrn = fdnrn*detc_act             ! in P units in water part
@@ -1241,7 +1240,7 @@ SUBROUTINE powach_impl(local_bgc_mem, local_sediment_mem, start_idx, end_idx, ps
 
 
   USE mo_memory_bgc, ONLY   : ro2ut, rnit, nitdem, n2prod,         &
-       &                      rcar, riron, ralk
+       &                      rcar, ralk
 
   USE mo_sedmnt, ONLY      : seddw,      &
        &                     porsol, rno3, calcon,               &
@@ -1256,7 +1255,7 @@ SUBROUTINE powach_impl(local_bgc_mem, local_sediment_mem, start_idx, end_idx, ps
        &                     ipowaal, ipowaic, isssc12, ipowafe, issster,&
        &                     ipowh2s, isremins, isremino, isreminn
 
-  USE mo_hamocc_nml, ONLY  : disso_po, denit_sed
+  USE mo_hamocc_nml, ONLY  : disso_po, denit_sed, riron
 
   IMPLICIT NONE
 
