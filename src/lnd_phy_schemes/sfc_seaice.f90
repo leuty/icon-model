@@ -113,7 +113,9 @@ MODULE sfc_seaice
                                  & tf_fresh => tmelt  , &  !< fresh-water freezing point [K]
                                  &             alf    , &  !< latent heat of fusion [J/kg]
                                  &             rhoi   , &  !< density of ice [kg/m^3]
+                                 & rhos_def => rhos   , &  !< default snow density [kg/m^3]
                                  &             ci     , &  !< specific heat of ice [J/(kg K)]
+                                 &             cs     , &  !< specific heat of snow [J/(kg K)]
                                  &             ki          !< molecular heat conductivity of ice [J/(m s K)]
 
   USE mo_lnd_nwp_config,     ONLY:                      &
@@ -126,6 +128,7 @@ MODULE sfc_seaice
                                  & albsi_snow_min     , &  !< minimum albedo of snow over sea ice [-]
                                  & albsi_max          , &  !< maximum albedo of sea ice [-]
                                  & albsi_min          , &  !< minimum albedo of sea ice [-]
+                                 & lsnow_on_seaice    , &  !< consider snow on seaice
                                  & tf_salt                 !< salt-water freezing point [K]
 
   USE mo_coupling_config,    ONLY: is_coupled_to_ocean     !< TRUE for coupled ocean-atmosphere runs
@@ -167,6 +170,15 @@ MODULE sfc_seaice
                                                          !< an e-folding time scale)
     &  t_albsi_snow_max  = 272.95_wp                     !< upper bound of the temperature range over which relaxation
                                                          !< towards snow-overice albedo is applied [K]
+
+  REAL (wp), PARAMETER :: csidp_nlin_sonsi = 2.2_wp !< Phi_*i adjusted to MOSAiC data (hice < 1.4m) for hice_max = 6m [-].
+  REAL (wp), PARAMETER :: csidp_nlin_sonsi_d = (1._wp+csidp_nlin_sonsi)/12._wp !< Height-dependent part of the ice shape factor [-].
+  REAL (wp), PARAMETER :: cssdp_nlin = 1.3_wp !< Phi_*s from MOSAiC data [-].
+  REAL (wp), PARAMETER :: hsnow_max = 0.6_wp !< Limit for snow temperature profile from MOSAiC data [m].
+  REAL (wp), PARAMETER :: cssdp_nlin_d = (1._wp+cssdp_nlin)/12._wp !< Height-dependent part of the snow shape factor [-].
+  REAL (wp), PARAMETER :: snow_frac_scale = 0.05_wp !< Scaling height for full snow cover (for albedo) [m].
+  REAL (wp), PARAMETER :: r_alb_snow_si_scale = 0.5_wp !< Reciprocal scale temperature for snow albedo [K**-1].
+  REAL (wp), PARAMETER :: r_alb_seaice_scale = 0.35_wp !< Reciprocal scale temperature for ice albedo [K**-1].
 
   !>
   !! Optical characteristics of sea ice.
@@ -344,11 +356,13 @@ CONTAINS
         ! Create new ice
         IF( hice_p(isi) < (hice_min-csmall) ) THEN
           hice_p(isi) = hice_ini_min + frsi(isi) * (hice_ini_max-hice_ini_min)
+          hsnow_p(isi) = 0._wp
           tice_p(isi) = tf_salt
+          tsnow_p(isi) = tice_p(isi)
           ! Set sea-ice albedo to its equilibrium value
           ! (only required if sea-ice albedo is treated prognostically)
           IF ( lprog_albsi ) THEN
-            albsi_p(isi) = alb_seaice_equil( tice_p(isi) )
+            albsi_p(isi) = alb_seaice_equil( tsnow_p(isi), 0._wp )
           ENDIF
         ENDIF
 
@@ -372,10 +386,11 @@ CONTAINS
         ! to default values for all seaice points.
         !
         tice_p(isi) = tf_salt
+        tsnow_p(isi) = tice_p(isi)
         ! Set sea-ice albedo to its equilibrium value
         ! (only required if sea-ice albedo is treated prognostically)
         IF ( lprog_albsi ) THEN
-          albsi_p(isi) = alb_seaice_equil( tice_p(isi) )
+          albsi_p(isi) = alb_seaice_equil( tsnow_p(isi), hsnow_p(isi) )
         ENDIF
       ENDIF
 
@@ -387,16 +402,13 @@ CONTAINS
       ! and we miss the initialization of the prognostic seaice albedo. Thus,
       ! the following statement is added.
       IF ( lprog_albsi .AND. albsi_p(isi) <= 0._wp) THEN
-        albsi_p(isi) = alb_seaice_equil( tice_p(isi) )
+        albsi_p(isi) = alb_seaice_equil( tsnow_p(isi), hsnow_p(isi) )
       ENDIF
 
       ! Take security measures
       hice_p(isi) = MAX(MIN(hice_p(isi), hice_max), hice_min)
       tice_p(isi) = MIN(tice_p(isi), tf_fresh)
-
-      ! Set temperature of snow upper surface and snow thickness
-      tsnow_p(isi) = tice_p(isi)
-      hsnow_p(isi) = 0._wp
+      tsnow_p(isi) = MIN(tsnow_p(isi), tf_fresh)
 
       ! Set variables at new time level
       tice_n(isi)  = tice_p(isi)
@@ -527,6 +539,128 @@ CONTAINS
                                        &  opt_dtsnowdt, &  !< time tendency of snow surface temperature [K/s]
                                        &  opt_dhsnowdt     !< time tendency of snow thickness [m/s]
 
+    INTEGER :: isi
+    LOGICAL :: lhave_dtsnowdt
+    LOGICAL :: lhave_dhsnowdt
+
+    IF (lsnow_on_seaice) THEN
+      CALL seaice_timestep_snow_nwp ( &
+          & dtime=dtime, &
+          & nsigb=nsigb, &
+          & qsen=qsen, &
+          & qlat=qlat, &
+          & qlwrnet=qlwrnet, &
+          & qsolnet=qsolnet, &
+          & snow_rate=snow_rate, &
+          & rain_rate=rain_rate, &
+          & fac_bottom_hflx=fac_bottom_hflx, &
+          & tice_p=tice_p, &
+          & hice_p=hice_p, &
+          & tsnow_p=tsnow_p, &
+          & hsnow_p=hsnow_p, &
+          & albsi_p=albsi_p, &
+          & tice_n=tice_n, &
+          & hice_n=hice_n, &
+          & tsnow_n=tsnow_n, &
+          & hsnow_n=hsnow_n, &
+          & albsi_n=albsi_n, &
+          & condhf=condhf, &
+          & meltpot=meltpot, &
+          & opt_dticedt=opt_dticedt, &
+          & opt_dhicedt=opt_dhicedt, &
+          & opt_dtsnowdt=opt_dtsnowdt, &
+          & opt_dhsnowdt=opt_dhsnowdt &
+        )
+    ELSE
+      CALL seaice_timestep_nosnow_nwp ( &
+          & dtime=dtime, &
+          & nsigb=nsigb, &
+          & qsen=qsen, &
+          & qlat=qlat, &
+          & qlwrnet=qlwrnet, &
+          & qsolnet=qsolnet, &
+          & snow_rate=snow_rate, &
+          & rain_rate=rain_rate, &
+          & fac_bottom_hflx=fac_bottom_hflx, &
+          & tice_p=tice_p, &
+          & hice_p=hice_p, &
+          & albsi_p=albsi_p, &
+          & tice_n=tice_n, &
+          & hice_n=hice_n, &
+          & albsi_n=albsi_n, &
+          & condhf=condhf, &
+          & meltpot=meltpot, &
+          & opt_dticedt=opt_dticedt, &
+          & opt_dhicedt=opt_dhicedt &
+        )
+
+      lhave_dhsnowdt = PRESENT(opt_dhsnowdt)
+      lhave_dtsnowdt = PRESENT(opt_dtsnowdt)
+
+      !$ACC DATA ASYNC(1) NO_CREATE(opt_dhsnowdt, opt_dtsnowdt) PRESENT(nsigb)
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1)
+      DO isi = 1, nsigb
+        tsnow_n(isi) = tice_n(isi)
+        hsnow_n(isi) = 0._wp
+        IF (lhave_dhsnowdt) opt_dhsnowdt(isi) = 0._wp
+        IF (lhave_dtsnowdt) opt_dtsnowdt(isi) = (tice_n(isi) - tice_p(isi)) / dtime
+      END DO
+      !$ACC END DATA
+    END IF
+
+  END SUBROUTINE seaice_timestep_nwp
+
+  SUBROUTINE seaice_timestep_nosnow_nwp (                               &
+                              &  dtime,                                 &
+                              &  nsigb,                                 &
+                              &  qsen, qlat, qlwrnet, qsolnet,          &
+                              &  snow_rate, rain_rate, fac_bottom_hflx, &
+                              &  tice_p, hice_p, albsi_p,               &
+                              &  tice_n, hice_n, condhf, meltpot,       &
+                              &  albsi_n,                               &
+                              &  opt_dticedt, opt_dhicedt               )
+
+    IMPLICIT NONE
+
+    ! Procedure arguments
+
+    REAL(wp), INTENT(IN) ::        &
+                         &  dtime  !< model time step [s]
+
+    INTEGER, INTENT(IN) ::        &
+                        &  nsigb  !< number of grid boxes within a block
+                                  !< where the sea ice is present (<=nproma)
+
+    REAL(wp), DIMENSION(:), INTENT(IN) ::           &
+                                       &  qsen    , &  !< sensible heat flux at the surface [W/m^2]
+                                       &  qlat    , &  !< latent heat flux at the surface [W/m^2]
+                                       &  qlwrnet , &  !< net long-wave radiation flux at the surface [W/m^2]
+                                       &  qsolnet      !< net solar radiation flux at the surface [W/m^2]
+
+    REAL(wp), DIMENSION(:), INTENT(IN) ::             &
+                                       &  snow_rate , &  !< snow rate (convecive + grid-scale) [kg/(m^2 s)]
+                                       &  rain_rate      !< rain rate (convecive + grid-scale) [kg/(m^2 s)]
+
+    REAL(wp), DIMENSION(:), OPTIONAL, INTENT(IN) ::   &
+                                       &  fac_bottom_hflx  !< tuning factor for heat flux from water to ice [-]
+
+    REAL(wp), DIMENSION(:), INTENT(IN) ::           &
+                                       &  tice_p  , &  !< temperature of ice upper surface at previous time level [K]
+                                       &  hice_p  , &  !< ice thickness at previous time level [m]
+                                       &  albsi_p      !< sea-ice albedo at previous time level [-]
+
+    REAL(wp), DIMENSION(:), INTENT(OUT) ::          &
+                                       &  tice_n  , &  !< temperature of ice upper surface at new time level [K]
+                                       &  hice_n  , &  !< ice thickness at new time level [m]
+                                       &  condhf  , &  !< conductive heat flux within the sea ice
+                                                       !< just above the ice lower boundary [W/m^2]
+                                       &  meltpot , &  !< melt potential at top [W/m^2]
+                                       &  albsi_n      !< sea-ice albedo at new time level [-]
+
+    REAL(wp), DIMENSION(:), INTENT(OUT), OPTIONAL ::    &
+                                       &  opt_dticedt , &  !< time tendency of ice surface temperature [K/s]
+                                       &  opt_dhicedt      !< time tendency of ice thickness [m/s]
+
     ! Derived parameters
     ! (combinations of physical constants encountered several times in the code)
 
@@ -544,8 +678,7 @@ CONTAINS
     REAL(wp), DIMENSION(SIZE(qsen)) ::       &
                                 &  dticedt , &  !< time tendency of ice surface temperature [K/s]
                                 &  dhicedt , &  !< time tendency of ice thickness [m/s]
-                                &  dtsnowdt, &  !< time tendency of snow surface temperature [K/s]
-                                &  dhsnowdt     !< time tendency of snow thickness [m/s]
+                                &  thetaipr0    !< Deriavtive (at z=0) of ice temperature [K/m]
 
     INTEGER ::      &
             &  isi  !< DO loop index
@@ -595,7 +728,7 @@ CONTAINS
     ! for vectorisation
     lis_coupled_to_ocean = is_coupled_to_ocean()
 
-    !$ACC DATA CREATE(dticedt, dhicedt, dtsnowdt, dhsnowdt) &
+    !$ACC DATA CREATE(dticedt, dhicedt, thetaipr0) &
     !$ACC   PRESENT(nsigb) &
     !$ACC   NO_CREATE(fac_bottom_hflx) ASYNC(1)
 
@@ -712,12 +845,11 @@ CONTAINS
 
           ! Use a complete model of heat transfer through the ice
 
-          ! Use dhsnowdt as a temporary storage
-          dhsnowdt(isi) = phiipr0*(tice_p(isi)-tf_salt)/hice_p(isi)
+          thetaipr0(isi) = phiipr0*(tice_p(isi)-tf_salt)/hice_p(isi)
 
           ! Compute the time-rate-of-change of the ice surface temperature
           ! (note the sign of heat fluxes)
-          dticedt(isi) = ( (qatm+strg_1*qwat)*r_rhoici - ki_o_rhoici*dhsnowdt(isi)*strg_2 )  &
+          dticedt(isi) = ( (qatm+strg_1*qwat)*r_rhoici - ki_o_rhoici*thetaipr0(isi)*strg_2 )  &
                      & /(csice*hice_p(isi))
           ! Update the ice surface temperature
           tice_n(isi) = tice_p(isi) + dtime*dticedt(isi)
@@ -731,7 +863,7 @@ CONTAINS
             hice_n(isi) = hice_p(isi)
           ELSE
             ! Compute the time-rate-of-change of the ice thickness (note the sign of heat fluxes)
-            dhicedt(isi) = -ki_o_rhoialf*dhsnowdt(isi) + qwat*r_rhoialf
+            dhicedt(isi) = -ki_o_rhoialf*thetaipr0(isi) + qwat*r_rhoialf
             ! Update the ice thickness
             hice_n(isi) = hice_p(isi) + dtime*dhicedt(isi)
           END IF
@@ -753,17 +885,9 @@ CONTAINS
         tice_n(isi) = MIN(tice_n(isi), tf_fresh)
       END IF
 
-      ! Currently, snow over sea ice is not treated explicitly
-      ! Set the snow thickness to zero
-      hsnow_n(isi) = 0._wp
-      ! Set the snow surface temperature equal to the ice surface temperature
-      tsnow_n(isi) = tice_n(isi)
-
       ! Compute tendencies (for eventual use outside the sea-ice scheme program units)
       dticedt(isi)  = (tice_n(isi)-tice_p(isi))*r_dtime
       dhicedt(isi)  = (hice_n(isi)-hice_p(isi))*r_dtime
-      dtsnowdt(isi) = (tsnow_n(isi)-tsnow_p(isi))*r_dtime
-      dhsnowdt(isi) = (hsnow_n(isi)-hsnow_p(isi))*r_dtime
 
     END DO GridBoxesWithSeaIce
 
@@ -775,7 +899,7 @@ CONTAINS
       DO isi=1, nsigb
 
         ! Equilibrium sea-ice albedo (function of sea-ice surface temperature)
-        albsi_e = alb_seaice_equil( tice_n(isi) )
+        albsi_e = alb_seaice_equil( tice_n(isi), 0._wp )
 
         ! Equilibrium albedo of snow over sea ice (function of sea-ice surface temperature)
         albsi_snow_e = albsi_snow_max * ( 1.0_wp - c1_albsi_snow                   &
@@ -832,24 +956,6 @@ CONTAINS
         opt_dhicedt(nsigb+1:) = 0._wp
       ENDIF
     ENDIF
-    IF (PRESENT(opt_dtsnowdt)) THEN
-#ifdef _OPENACC
-        CALL finish ('seaice_timestep_nwp', 'OpenACC version currently does not support the optional argument opt_dtsnowdt')
-#endif
-      opt_dtsnowdt(1:nsigb) = dtsnowdt(1:nsigb)
-      IF (nsigb < SIZE(opt_dtsnowdt)) THEN
-        opt_dtsnowdt(nsigb+1:)= 0._wp
-      ENDIF
-    ENDIF
-    IF (PRESENT(opt_dhsnowdt)) THEN
-#ifdef _OPENACC
-        CALL finish ('seaice_timestep_nwp', 'OpenACC version currently does not support the optional argument opt_dhsnowdt')
-#endif
-      opt_dhsnowdt(1:nsigb) = dhsnowdt(1:nsigb)
-      IF (nsigb < SIZE(opt_dhsnowdt)) THEN
-        opt_dhsnowdt(nsigb+1:)= 0._wp
-      ENDIF
-    ENDIF
 
     IF (.NOT. lcuda_graph_lnd) THEN
       !$ACC WAIT(1)
@@ -859,7 +965,308 @@ CONTAINS
     !  End calculations
     !===============================================================================================
 
-  END SUBROUTINE seaice_timestep_nwp
+  END SUBROUTINE seaice_timestep_nosnow_nwp
+
+  SUBROUTINE seaice_timestep_snow_nwp( &
+        & dtime, nsigb, qsen, qlat, qlwrnet, qsolnet, snow_rate, rain_rate, fac_bottom_hflx, &
+        & tice_p, hice_p, tsnow_p, hsnow_p, albsi_p, tice_n, hice_n, tsnow_n, hsnow_n, albsi_n, &
+        & condhf, meltpot, opt_dticedt, opt_dhicedt, opt_dtsnowdt, opt_dhsnowdt &
+      )
+
+    IMPLICIT NONE
+
+    !> model time step [s]
+    REAL(wp), INTENT(IN) :: dtime
+    !> number of grid boxes within a block where the sea ice is present (<=nproma)
+    INTEGER, INTENT(IN) :: nsigb
+
+    REAL(wp), INTENT(IN) :: qsen(:) !< sensible heat flux at the surface [W/m^2]
+    REAL(wp), INTENT(IN) :: qlat(:) !< latent heat flux at the surface [W/m^2]
+    REAL(wp), INTENT(IN) :: qlwrnet(:) !< net long-wave radiation flux at the surface [W/m^2]
+    REAL(wp), INTENT(IN) :: qsolnet(:) !< net solar radiation flux at the surface [W/m^2]
+
+    REAL(wp), INTENT(IN) :: snow_rate(:) !< snow rate (convective + grid-scale) [kg/(m^2 s)]
+    REAL(wp), INTENT(IN) :: rain_rate(:) !< rain rate (convective + grid-scale) [kg/(m^2 s)]
+
+    !> tuning factor for heat flux from water to ice [-]
+    REAL(wp), OPTIONAL, INTENT(IN) :: fac_bottom_hflx(:)
+
+    REAL(wp), INTENT(IN) :: tice_p(:) !< temperature of ice upper surface at previous time level [K]
+    REAL(wp), INTENT(IN) :: hice_p(:) !< ice thickness at previous time level [m]
+    REAL(wp), INTENT(IN) :: tsnow_p(:) !< temperature of snow upper surface at previous time level [K]
+    REAL(wp), INTENT(IN) :: hsnow_p(:) !< snow thickness at previous time level [m]
+    REAL(wp), INTENT(IN) :: albsi_p(:) !< sea-ice albedo at previous time level [-]
+
+    REAL(wp), INTENT(OUT) :: tice_n(:) !< temperature of ice upper surface at new time level [K]
+    REAL(wp), INTENT(OUT) :: hice_n(:) !< ice thickness at new time level [m]
+    REAL(wp), INTENT(OUT) :: tsnow_n(:) !< temperature of snow upper surface at new time level [K]
+    REAL(wp), INTENT(OUT) :: hsnow_n(:) !< snow thickness at new time level [m]
+    REAL(wp), INTENT(OUT) :: albsi_n(:) !< sea-ice albedo at new time level [-]
+
+    !> conductive heat flux within the sea ice just above the ice lower boundary [W/m^2]
+    REAL(wp), INTENT(OUT) :: condhf(:)
+    !> melt potential at top [W/m^2]
+    REAL(wp), INTENT(OUT) :: meltpot(:)
+
+    REAL(wp), INTENT(OUT), OPTIONAL :: opt_dticedt(:) !< time tendency of ice surface temperature [K/s]
+    REAL(wp), INTENT(OUT), OPTIONAL :: opt_dhicedt(:) !< time tendency of ice thickness [m/s]
+    REAL(wp), INTENT(OUT), OPTIONAL :: opt_dtsnowdt(:) !< time tendency of snow surface temperature [K/s]
+    REAL(wp), INTENT(OUT), OPTIONAL :: opt_dhsnowdt(:) !< time tendency of snow thickness [m/s]
+
+
+    LOGICAL :: lis_coupled_to_ocean !< Simulation is coupled to ocean
+    LOGICAL :: lpres_fac_hflux !< Heat-flux tuning factor is present
+    LOGICAL :: lpres_dticedt !< opt_dticedt is present
+    LOGICAL :: lpres_dhicedt !< opt_dhicedt is present
+    LOGICAL :: lpres_dtsnowdt !< opt_dtsnowdt is present
+    LOGICAL :: lpres_dhsnowdt !< opt_dhsnowdt is present
+
+    REAL(wp) :: r_dtime !< Reciprocal of dtime [1/s]
+
+    REAL(wp) :: qsoliw !< Solar flux at ice-water interface [W/m^2]
+    REAL(wp) :: qatm !< Total atmospheric forcing [W/m^2]
+    REAL(wp) :: qwat !< Heat flux from water to the melting/freezing zone [W/m^2]
+
+    REAL(wp) :: phiipr0 !< Phi_i'(0), derivative of ice temperature profile [-]
+    REAL(wp) :: phiipr1 !< Phi_i'(1), derivative of ice temperature profile [-]
+    REAL(wp) :: phispr0 !< Phi_s'(0), derivative of snow temperature profile [-]
+    REAL(wp) :: csice !< Ice shape factor [-]
+    REAL(wp) :: cssnow !< Snow shape factor [-]
+    REAL(wp) :: dcsicedh !< Height derivative of ice shape factor [1/m]
+    REAL(wp) :: dcssnowdh !< Height derivative of snow shape factor [1/m]
+    REAL(wp) :: dphiipr1dh !< d Phi_i'(1,h) / dh [1/m]
+    REAL(wp) :: dphispr0dh !< d Phi_s'(0,h) / dh [1/m]
+
+    REAL(wp) :: rhos !< Snow density [kg/m^3]
+    REAL(wp) :: drhosdt !< Time derivative of snow density [kg/(m^3 s)]
+    REAL(wp) :: ks !< Snow conductivity [W/(K m)]
+    REAL(wp) :: dksdt !< Time derivative of snow conductivity [W/(K m s)]
+
+    REAL(wp) :: theta_s !< Snow surface temperature [K]
+    REAL(wp) :: theta_i !< Ice surface temperature [K]
+    REAL(wp) :: a_i !< Ice temperature coefficient (theta_s) [-]
+    REAL(wp) :: b_i !< Ice temperature offset [K]
+    REAL(wp) :: denom !< Denominator of a_i [W/K]
+    REAL(wp) :: e_coeff !< Time derivative coefficient of a_i theta_s + b_i (dhsnowdt) [1/m]
+    REAL(wp) :: f_coeff !< Time derivative offset of a_i theta_s + b_i [1/s]
+
+    REAL(wp) :: c_eff !< Effective heat capacity of snow-ice slab [J/(m^2 K)]
+    REAL(wp) :: c_bnd !< Effective heat capacity of snow-ice boundary [J/(m^2 K)]
+    REAL(wp) :: heat_net !< Total heat absorbed by the snow-ice sheet in timestep [J/m^2]
+
+    REAL(wp) :: meltpot_top !< Top melt potential [W/m^2]
+    REAL(wp) :: meltpot_bot !< Bottom melt potential [W/m^2]
+    REAL(wp) :: flux_bot !< Mass flux at bottom surface [kg/(m^2 s)]
+
+    REAL(wp) :: dhicedt !< Time derivative of ice height [m/s]
+    REAL(wp) :: dhsnowdt !< Time derivative of snow height [m/s]
+    REAL(wp) :: dhicedt_pred !< Time derivative of ice height w/o corrections [m/s]
+
+    REAL(wp) :: snow_frac !< Diagnosed snow fraction for albedo [-]
+    REAL(wp) :: albsi_snow_e !< Equilibrium snow albedo [-]
+    REAL(wp) :: albsi_ice_e !< Equilibrium ice albedo [-]
+    REAL(wp) :: albsi_e !< Equilibrium albedo [-]
+    REAL(wp) :: taualbsi !< Albedo relaxation timescale [s]
+    REAL(wp) :: rtaualbsisn !< Reciprocal of snow-fall albedo timescale [1/s]
+    REAL(wp) :: albsi_e_wghtd !< Weighted equilibrium albedo after snow fall [-]
+
+    INTEGER :: isi
+
+    r_dtime = 1._wp/dtime
+    lis_coupled_to_ocean = is_coupled_to_ocean()
+
+    ! If fac_bottom_hflx is provided, adaptive tuning of the parameter(s)
+    ! of the temperature profile within the ice and of the heat flux from water to ice is used
+    lpres_fac_hflux = PRESENT(fac_bottom_hflx)
+
+    lpres_dticedt = PRESENT(opt_dticedt)
+    lpres_dhicedt = PRESENT(opt_dhicedt)
+    lpres_dtsnowdt = PRESENT(opt_dtsnowdt)
+    lpres_dhsnowdt = PRESENT(opt_dhsnowdt)
+
+    !$ACC DATA ASYNC(1) &
+    !$ACC   PRESENT(qsen, qlat, qlwrnet, qsolnet, snow_rate) &
+    !$ACC   PRESENT(tice_p, hice_p, tsnow_p, hsnow_p, albsi_p) &
+    !$ACC   PRESENT(tice_n, hice_n, tsnow_n, hsnow_n, albsi_n) &
+    !$ACC   PRESENT(condhf, meltpot) &
+    !$ACC   NO_CREATE(fac_bottom_hflx, opt_dticedt, opt_dhicedt, opt_dtsnowdt, opt_dhsnowdt)
+
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+    !$ACC LOOP GANG(STATIC: 1) VECTOR &
+    !$ACC   PRIVATE(qsoliw, qatm, qwat, phiipr0, phiipr1, phispr0, csice, cssnow) &
+    !$ACC   PRIVATE(rhos, drhosdt, ks, dksdt, theta_s, theta_i, a_i, b_i, c_eff, c_bnd) &
+    !$ACC   PRIVATE(denom, heat_net, meltpot_top, meltpot_bot, flux_bot) &
+    !$ACC   PRIVATE(dhicedt_pred, dhicedt, dhsnowdt) &
+    !$ACC   PRIVATE(dcsicedh, dcssnowdh, dphiipr1dh, dphispr0dh, e_coeff, f_coeff)
+    ! Loop over grid boxes where sea ice is present
+    GridBoxesWithSeaIce: DO isi=1, nsigb
+
+      ! Compute solar radiation flux at the ice-water interface (positive downward)
+      qsoliw = qsolnet(isi)*(                                                                 &
+             & opticpar_seaice_opaque%frac_optic(1)                                           &
+             & *EXP(-MIN(opticpar_seaice_opaque%extincoef_optic(1)*hice_p(isi), cmaxearg)) +  &
+             & opticpar_seaice_opaque%frac_optic(2)                                           &
+             & *EXP(-MIN(opticpar_seaice_opaque%extincoef_optic(2)*hice_p(isi), cmaxearg)) )
+
+      ! Compute total atmospheric heat flux for the ice slab  (positive downward)
+      qatm = qsen(isi) + qlat(isi) + qlwrnet(isi) + qsolnet(isi) - qsoliw
+
+      ! Provision is made to account for the heat flux from water to ice (upward flux is negative).
+      ! This is the ocean heat flux just below the ice,
+      ! not including the latent flux from melting and freezing.
+      ! In the case of coupled icon atmosphere-ocean runs,
+      ! this flux has to be passed from the ocean if available.
+      ! For uncoupled runs, an ad hoc formulation for the heat flux from water to ice is used
+      ! that basically serves to quench the ice growth rate
+      ! as the ice thickness approaches its maximum value.
+      IF (lbottom_hflux) THEN
+        ! Derivative (at zeta=0) of the temperature profile shape function.
+        IF (lpres_fac_hflux) THEN
+          ! Adaptive tuning of phiipr0 and of bottom heat flux
+          phiipr0 = phiipr0_lin - fac_bottom_hflx(isi)*hice_p(isi)/hice_max
+        ELSE
+          ! A constant value is used (cf. linear temperature profile).
+          phiipr0 = phiipr0_lin
+        END IF
+        ! Heat flux from water to ice is limited from above (no flux from ice to water is allowed).
+        qwat = (1._wp-hice_p(isi)/hice_max-phiipr0)*ki*(tf_salt-tice_p(isi))/MAX(hice_p(isi),hice_min)
+        qwat = MIN(qwat, 0._wp)
+      ELSE
+        ! Derivative (at zeta=0) of the temperature profile shape function
+        phiipr0 = 1._wp - MIN(hice_p(isi) / hice_max, 1._wp)
+        ! Heat flux from water to ice is set to zero.
+        qwat = 0._wp
+      END IF
+
+      csice = csi_lin - csidp_nlin_sonsi_d * MIN(hice_p(isi) / hice_max, 1._wp)
+      cssnow = csi_lin - cssdp_nlin_d * MIN(hsnow_p(isi) / hsnow_max, 0.9_wp)
+      phiipr1 = 1._wp + csidp_nlin_sonsi * MIN(hice_p(isi) / hice_max, 1._wp)
+      phispr0 = 1._wp - MIN(hsnow_p(isi) / hsnow_max, 0.9_wp)
+
+      ! Fixed snow density.
+      rhos = rhos_def
+      drhosdt = 0._wp
+
+      ! Snow conductivity parametrization from TERRA.
+      ks = 2.22_wp*EXP(1.88_wp*LOG(rhos/rhoi))
+      dksdt = 0._wp
+
+      ! Coefficients for theta_i = a_i theta_s + b_i.
+      denom = ki * hsnow_p(isi) * phiipr1 + ks * hice_p(isi) * phispr0
+      a_i = ks * hice_p(isi) * phispr0 / denom
+      b_i = (1._wp - a_i) * tf_salt
+      theta_s = MIN(tf_fresh, tsnow_p(isi))
+      theta_i = a_i * theta_s + b_i
+
+      ! Ensure that theta_i is between theta_s and tf_salt.
+      theta_i = MIN(MAX(MIN(theta_s, tf_salt), theta_i), MAX(theta_s, tf_salt))
+
+      ! effective heat capacity of the snow-ice slab.
+      c_eff = rhoi * ci * hice_p(isi) * a_i * csice + rhos * cs * hsnow_p(isi) * (cssnow + a_i * (1._wp - cssnow))
+
+      ! boundary heat capacity, associated with ice top and snow bottom
+      c_bnd = rhoi * ci * hice_p(isi) * csice + rhos * cs * hsnow_p(isi) * (1._wp - cssnow)
+
+      ! Bottom melt potential (equal to heat flux through the ice bottom)
+      meltpot_bot = ki * (theta_i - tf_salt) / hice_p(isi) * phiipr0
+      flux_bot = (meltpot_bot - qwat) / alf
+
+      dphispr0dh = -1._wp / hsnow_max
+      dcssnowdh = -cssdp_nlin_d / hsnow_max
+      dphiipr1dh = csidp_nlin_sonsi / hice_max
+      dcsicedh = -csidp_nlin_sonsi_d / hice_max
+
+      IF (hsnow_p(isi) > 0._wp) THEN
+        dhicedt_pred = -flux_bot / rhoi
+
+        ! da_idt theta_s + db_idt =: E dhsnowdt + F
+        e_coeff = ((1._wp - a_i) * hice_p(isi) * ks * dphispr0dh - a_i * ki * phiipr1) / denom
+        f_coeff = ((1._wp - a_i) * phispr0 * (dhicedt_pred * ks + hice_p(isi) * dksdt) &
+            & - a_i * hsnow_p(isi) * ki * dphiipr1dh * dhicedt_pred) / denom
+
+        ! heat absorbed during time step.
+        heat_net = dtime * (qatm - qwat &
+            & - c_bnd * (theta_s - tf_salt) * (e_coeff / rhos * (snow_rate(isi) - drhosdt * hsnow_p(isi)) + f_coeff) &
+            & + (ci * (csice + hice_p(isi) * dcsicedh) * (theta_i - tf_salt) - alf) * flux_bot &
+            & + cs * (1._wp - cssnow - hsnow_p(isi) * dcssnowdh) * (theta_s - theta_i) * snow_rate(isi) &
+            & + cs * hsnow_p(isi)**2 * (theta_s - theta_i) * dcssnowdh * drhosdt)
+
+        tsnow_n(isi) = MIN(theta_s + heat_net / c_eff, tf_fresh)
+        tice_n(isi) = a_i * tsnow_n(isi) + b_i
+
+        heat_net = heat_net - c_eff * (tsnow_n(isi) - theta_s)
+
+        meltpot_top = MAX(0._wp, heat_net) / ( &
+            & 1._wp + cs / alf * (1._wp - cssnow - hsnow_p(isi) * dcssnowdh) * ((1._wp - a_i) * tf_fresh - b_i) &
+            & - c_bnd * (tf_fresh - tf_salt) * e_coeff / (rhos * alf)) * r_dtime
+      ELSE ! no snow
+        heat_net = dtime * (qatm - qwat &
+            & + (ci * (csice + hice_p(isi) * dcsicedh) * (theta_i - tf_salt) - alf) * flux_bot &
+            & + ci * rhoi * ki / (rhos * ks) * (theta_s - tf_salt) * phiipr1 * snow_rate(isi))
+
+        tice_n(isi) = MIN(theta_s + heat_net / c_eff, tf_fresh)
+        tsnow_n(isi) = tice_n(isi)
+
+        heat_net = heat_net - c_eff * (tice_n(isi) - theta_s)
+
+        meltpot_top = MAX(0._wp, heat_net) / ( &
+            & 1._wp + ci / alf * (1._wp - csice - hice_p(isi) * dcsicedh) * (tf_fresh - tf_salt)) * r_dtime
+      END IF
+
+      IF (lis_coupled_to_ocean) THEN
+        dhicedt = 0._wp
+        dhsnowdt = 0._wp
+        hsnow_n(isi) = hsnow_p(isi)
+        hice_n(isi) = hice_p(isi)
+        meltpot(isi) = meltpot_top
+        condhf(isi) = meltpot_bot
+      ELSE
+        dhsnowdt = MAX(-hsnow_p(isi) * r_dtime, snow_rate(isi) / rhos - meltpot_top / (alf * rhos) - drhosdt / rhos * hsnow_p(isi))
+        meltpot_top = MAX(0._wp, meltpot_top - snow_rate(isi) * alf + dhsnowdt * alf * rhos + alf * drhosdt * hsnow_p(isi))
+        dhicedt = MAX(-hice_p(isi) * r_dtime, -meltpot_top / (alf * rhoi) - flux_bot / rhoi)
+
+        hsnow_n(isi) = MIN(MAX(0._wp, hsnow_p(isi) + dhsnowdt * dtime), hsnow_max)
+        hice_n(isi) = MIN(MAX(0._wp, hice_p(isi) + dhicedt * dtime), hice_max)
+      END IF
+
+      IF (lpres_dticedt) opt_dticedt(isi) = (tice_n(isi) - tice_p(isi)) * r_dtime
+      IF (lpres_dhicedt) opt_dhicedt(isi) = dhicedt
+      IF (lpres_dtsnowdt) opt_dtsnowdt(isi) = (tsnow_n(isi) - tsnow_p(isi)) * r_dtime
+      IF (lpres_dhsnowdt) opt_dhsnowdt(isi) = dhsnowdt
+
+      IF (lprog_albsi) THEN
+        snow_frac = MAX(0._wp, MIN(hsnow_n(isi)/snow_frac_scale, 1._wp))
+
+        albsi_snow_e = albsi_snow_max &
+            & - (albsi_snow_max - albsi_snow_min) * EXP(-r_alb_snow_si_scale * (tf_fresh-tsnow_n(isi)))
+        albsi_ice_e = albsi_max &
+            & - (albsi_max - albsi_min) * EXP(-r_alb_seaice_scale * (tf_fresh-tsnow_n(isi)))
+        albsi_e = (1._wp - snow_frac) * albsi_ice_e + snow_frac * albsi_snow_e
+
+        taualbsi = taualbsi_max + (taualbsi_min-taualbsi_max) &
+            & * ((tsnow_n(isi)-t_taualbsi_min) * rdelt_taualbsi)
+        taualbsi = MIN(taualbsi_max, MAX(taualbsi, taualbsi_min))
+
+        ! Use temperature-dependent relaxation time scale
+        ! if sea-ice albedo tends to decrease,
+        ! and a maximum time scale otherwise
+        taualbsi = MERGE( taualbsi, taualbsi_max, (albsi_p(isi)>albsi_e) )
+
+        rtaualbsisn = MERGE( snow_rate(isi)*c_tausi_snow, 0._wp,  &
+            &           ((albsi_p(isi)<albsi_snow_max).AND.(tsnow_n(isi)<t_albsi_snow_max)) )
+
+        albsi_e_wghtd = (albsi_e + taualbsi * rtaualbsisn * albsi_snow_max) / (1._wp + taualbsi * rtaualbsisn)
+
+        albsi_n(isi) =  albsi_e_wghtd &
+            & + (albsi_p(isi) - albsi_e_wghtd) &
+            &   * EXP( - dtime * (1._wp / taualbsi + rtaualbsisn))
+      END IF
+    END DO GridBoxesWithSeaIce
+    !$ACC END PARALLEL
+
+    !$ACC END DATA
+
+  END SUBROUTINE seaice_timestep_snow_nwp
 
 !234567890023456789002345678900234567890023456789002345678900234567890023456789002345678900234567890
 
@@ -940,7 +1347,7 @@ CONTAINS
         tsnow_p(isi) = tice_p(isi)                ! snow temperature is equal to ice temperature
         hsnow_p(isi) = 0._wp                      ! snow over ice is not treated explicitly
         IF ( lprog_albsi ) THEN                   ! set sea-ice albedo to its equilibrium value
-          albsi_p(isi) = alb_seaice_equil( tice_p(isi) )
+          albsi_p(isi) = alb_seaice_equil( tice_p(isi), hsnow_p(isi) )
         ENDIF
 
         ! Set variables at new time level
@@ -982,7 +1389,8 @@ CONTAINS
                                     &  nswgb,         &
                                     &  frice_thrhld,  &
                                     &  frsi,          &
-                                    &  tice_p,        &
+                                    &  tsnow_p,       &
+                                    &  hsnow_p,       &
                                     &  albsi_p,       &
                                     &  albsi_n        &
                                     &  )
@@ -998,7 +1406,8 @@ CONTAINS
 
     REAL(wp), DIMENSION(:), INTENT(IN)    ::           &
                                           &  frsi    , &  !< sea-ice fraction [-]
-                                          &  tice_p       !< temperature of ice upper surface at previous time level [K]
+                                          &  tsnow_p , &  !< temperature of upper surface at previous time level [K]
+                                          &  hsnow_p      !< height of snow at previous time level [m]
 
 
     REAL(wp), DIMENSION(:), INTENT(INOUT) ::           &
@@ -1021,7 +1430,7 @@ CONTAINS
       IF ( frsi(isi) >= frice_thrhld ) THEN  ! ice point
 
         ! set sea-ice albedo to its equilibrium value
-        albsi_p(isi) = alb_seaice_equil( tice_p(isi) )
+        albsi_p(isi) = alb_seaice_equil( tsnow_p(isi), hsnow_p(isi) )
 
         ! set albedo at new time level
         albsi_n(isi) = albsi_p(isi)
@@ -1043,25 +1452,38 @@ CONTAINS
   !! as function of the sea-ice surface temperature.
   !!
 
-  REAL (wp) FUNCTION alb_seaice_equil ( t_ice )
+  REAL (wp) FUNCTION alb_seaice_equil ( t_top, h_snow )
     !$ACC ROUTINE SEQ
 
     IMPLICIT NONE
 
     ! Procedure arguments
 
-    REAL(wp), INTENT(IN) :: t_ice       !< temperature of ice upper surface [K]
+    REAL(wp), INTENT(IN) :: t_top       !< temperature of ice/snow upper surface [K]
+    REAL(wp), INTENT(IN) :: h_snow      !< snow height [m]
 
+    REAL(wp) :: snow_frac
+    REAL(wp) :: albsi_snow_e
+    REAL(wp) :: albsi_ice_e
 
     !===============================================================================================
     !  Start calculations
     !-----------------------------------------------------------------------------------------------
 
-    alb_seaice_equil = albsi_max-(albsi_max-albsi_min)*EXP(-0.35_wp*(tf_fresh-t_ice))
 
     ! albsi_max and albsi_min are defined in the namelist (mo_lnd_nwp_nml).
     ! A derived constant 0.35 is equal to 95.6/tf_fresh, where tf_fresh=273.15 K,
     ! and has a dimensions of K^{-1}.
+    IF (lsnow_on_seaice) THEN
+      snow_frac = MAX(0._wp, MIN(h_snow/snow_frac_scale, 1._wp))
+      albsi_snow_e = albsi_snow_max &
+          & - (albsi_snow_max - albsi_snow_min) * EXP(-r_alb_snow_si_scale * (tf_fresh-t_top))
+      albsi_ice_e = albsi_max &
+          & - (albsi_max - albsi_min) * EXP(-r_alb_seaice_scale * (tf_fresh-t_top))
+      alb_seaice_equil = (1._wp - snow_frac) * albsi_ice_e + snow_frac * albsi_snow_e
+    ELSE
+      alb_seaice_equil = albsi_max-(albsi_max-albsi_min)*EXP(-0.35_wp*(tf_fresh-t_top))
+    END IF
 
     !-----------------------------------------------------------------------------------------------
     !  End calculations

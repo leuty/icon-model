@@ -4,6 +4,7 @@
 
 - Improved consistency of surface roughness, drag and momentum flux over ocean/sea ice in VDIFF
 - Added viscous term in computation of surface roughness over ocean in VDIFF
+- Implement a new version of the Mironov scheme that accounts for the thermal effects of snow on seaice
 
 #### NWP Physics
 

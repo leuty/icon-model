@@ -1382,6 +1382,7 @@ CONTAINS
           & t_seasfc=diag_lnd%t_seasfc(:,:), &
           & fr_seaice=diag_lnd%fr_seaice(:,:), &
           & h_ice=prog_wtr_new%h_ice(:,:), &
+          & h_snow=prog_wtr_new%h_snow_si(:,:), &
           & sea_state=mem%sea_state &
         )
     END IF

@@ -52,6 +52,7 @@ MODULE mo_lnd_nwp_config
   PUBLIC :: groups_smi
   PUBLIC :: czbot_w_so
   PUBLIC :: lcuda_graph_lnd
+  PUBLIC :: lsnow_on_seaice
 
 
   !--------------------------------------------------------------------------
@@ -126,6 +127,8 @@ MODULE mo_lnd_nwp_config
                                                             !< file from the sequence.
 
   LOGICAL :: lcuda_graph_lnd  !< activate cuda graph
+  LOGICAL :: lsnow_on_seaice  !< activate treatment of snow on seaice
+  !$ACC DECLARE CREATE(lsnow_on_seaice)
 
   ! derived variables
   INTEGER ::  ibot_w_so    !< number of hydrological active soil layers
@@ -139,7 +142,7 @@ MODULE mo_lnd_nwp_config
   REAL(wp), ALLOCATABLE :: dzsoil(:)     !< soil layer thickness
   REAL(wp), ALLOCATABLE :: depth_hl(:)   !< depths of half levels
 
-  !$ACC DECLARE CREATE(albsi_max, albsi_min)
+  !$ACC DECLARE CREATE(albsi_max, albsi_min, albsi_snow_max, albsi_snow_min)
 !  END TYPE t_nwp_lnd_config
 
   !>

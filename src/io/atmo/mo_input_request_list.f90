@@ -2335,7 +2335,7 @@ CONTAINS
           ! icon/externals/cdi/src/cdilib.c: logicalLevelValue2).
           ! In addition, CDI seems to multiply isobaric levels by the factor 1000, too(???)
           IF (ANY([100, 106] == ecc_typeOfFirstFixedSurface)) level = level * 1000.0_dp
-        CASE(2, 3, 4, 8, 9, 10, 101, 162, 163, 164, 165, 166)
+        CASE(2, 3, 4, 8, 9, 10, 101, 162, 163, 164, 165, 166, 173, 175)
           ! WMO GRIB2 code table 4.5 - Fixed surface types and units:
           !-----------------------------------------------------------
           ! 2   "Cloud base level (-)"
@@ -2350,6 +2350,8 @@ CONTAINS
           ! 164 "Bottom of thermally active sediment layer (-)"
           ! 165 "Bottom of sediment layer penetrated by thermal wave (-)"
           ! 166 "Mixing layer (-)"
+          ! 173 "Top of snow over sea ice on sea, lake or river"
+          ! 175 "Top surface of ice, under snow cover, on sea, lake or river"
           !-----------------------------------------------------------
           ! Non-parametric level types, e.g. mean sea level
           level = -REAL(ecc_typeOfFirstFixedSurface, KIND=dp)

@@ -484,6 +484,8 @@ MODULE mo_initicon_utils
             IF (spmask(jc,1) == 1._wp) THEN
               CALL ngb_search(wtr_prog%t_ice, iidx, iblk, spmask, spcount, jc, jb)
               CALL ngb_search(wtr_prog%h_ice, iidx, iblk, spmask, spcount, jc, jb)
+              CALL ngb_search(wtr_prog%t_snow_si, iidx, iblk, spmask, spcount, jc, jb)
+              CALL ngb_search(wtr_prog%h_snow_si, iidx, iblk, spmask, spcount, jc, jb)
               IF ( lprog_albsi ) THEN
                 CALL ngb_search(wtr_prog%alb_si, iidx, iblk, spmask, spcount, jc, jb)
               ENDIF

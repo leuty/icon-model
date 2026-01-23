@@ -2067,7 +2067,8 @@ CONTAINS
       !  update sea/seaice index lists
       !
       CALL process_sst_and_seaice( pt_patch, lnd_diag%fr_seaice, lnd_diag%t_seasfc, pt_diag%pres_sfc, &
-        & ext_data, lnd_prog_now, lnd_prog_new, wtr_prog_now, wtr_prog_new, lnd_diag, wtr_prog_new%h_ice )
+        & ext_data, lnd_prog_now, lnd_prog_new, wtr_prog_now, wtr_prog_new, lnd_diag, wtr_prog_new%h_ice, &
+        & wtr_prog_new%h_snow_si )
 
       IF (ltimer) CALL timer_stop(timer_coupling)
 

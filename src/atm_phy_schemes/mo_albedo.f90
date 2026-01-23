@@ -341,7 +341,8 @@ CONTAINS
               ! The ice albedo is the lower the warmer, and therefore wetter
               ! the ice is. Use ice temperature at time level nnew
               ! (2-time level scheme in sea ice model).
-              prm_diag%albdif_t(jc,jb,isub_seaice) = alb_seaice_equil( wtr_prog%t_ice(jc,jb) )
+              prm_diag%albdif_t(jc,jb,isub_seaice) = &
+                  & alb_seaice_equil( wtr_prog%t_snow_si(jc,jb), wtr_prog%h_snow_si(jc,jb) )
             ENDDO
           ENDIF PrognosticSeaIceAlbedo
 
@@ -1083,7 +1084,7 @@ CONTAINS
                   MIN(prm_diag%albdif_t(jc,jb,isub_seaice)*prm_diag%snowalb_fac(jc,jb),albsi_snow_max))
                 ! Moreover, we reset the sea ice albedo to the original value close to the melting point
                 ! in order to avoid potential unwanted impacts on sea ice melt during summer
-                t_fac = MIN(1._wp, MAX(0._wp, 0.5_wp*(tmelt - wtr_prog%t_ice(jc,jb)) ))
+                t_fac = MIN(1._wp, MAX(0._wp, 0.5_wp*(tmelt - wtr_prog%t_snow_si(jc,jb)) ))
                 prm_diag%albdif_t(jc,jb,isub_seaice) = t_fac*prm_diag%albdif_t(jc,jb,isub_seaice) + &
                   (1._wp-t_fac)*wtr_prog%alb_si(jc,jb)
               ENDIF
@@ -1097,7 +1098,8 @@ CONTAINS
             !$ACC LOOP GANG VECTOR PRIVATE(jc)
             DO ic = 1, i_count_seaice
               jc = ext_data%atm%list_seaice%idx(ic,jb)
-              prm_diag%albdif_t(jc,jb,isub_seaice) = alb_seaice_equil( wtr_prog%t_ice(jc,jb) )
+              prm_diag%albdif_t(jc,jb,isub_seaice) = &
+                  & alb_seaice_equil( wtr_prog%t_snow_si(jc,jb), wtr_prog%h_snow_si(jc,jb) )
             ENDDO
             !$ACC END PARALLEL
           ENDIF PrognosticSeaIceAlbedo_modis
