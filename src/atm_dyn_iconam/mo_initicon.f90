@@ -1888,8 +1888,12 @@ MODULE mo_initicon
         ! on mixed land-water (sea ice) points.
         IF (icpl_da_seaice >= 1) THEN
           DO jc = i_startidx, i_endidx
-            IF (p_lnd_state(jg)%prog_wtr(nnow_rcf(jg))%h_ice(jc,jb) > 0.0_wp) p_lnd_state(jg)%prog_wtr(nnow_rcf(jg))%t_ice(jc,jb) = &
-              MIN(tmelt, p_lnd_state(jg)%prog_wtr(nnow_rcf(jg))%t_ice(jc,jb) + p_diag%t_avginc(jc,jb))
+            IF (p_lnd_state(jg)%prog_wtr(nnow_rcf(jg))%h_ice(jc,jb) > 0.0_wp) THEN
+              p_lnd_state(jg)%prog_wtr(nnow_rcf(jg))%t_ice(jc,jb) = &
+                MIN(tmelt, p_lnd_state(jg)%prog_wtr(nnow_rcf(jg))%t_ice(jc,jb) + p_diag%t_avginc(jc,jb))
+              p_lnd_state(jg)%prog_wtr(nnow_rcf(jg))%t_snow_si(jc,jb) = &
+                MIN(tmelt, p_lnd_state(jg)%prog_wtr(nnow_rcf(jg))%t_snow_si(jc,jb) + p_diag%t_avginc(jc,jb))
+            ENDIF
           ENDDO
         ENDIF
 
@@ -2562,6 +2566,12 @@ MODULE mo_initicon
           ENDIF
           IF (p_lnd_state(jg)%prog_wtr(nnow_rcf(jg))%t_ice(jc,jb) == missval) THEN
             p_lnd_state(jg)%prog_wtr(nnow_rcf(jg))%t_ice(jc,jb) = tf_salt
+          ENDIF
+          IF (p_lnd_state(jg)%prog_wtr(nnow_rcf(jg))%h_snow_si(jc,jb) == missval) THEN
+            p_lnd_state(jg)%prog_wtr(nnow_rcf(jg))%h_snow_si(jc,jb) = 0._wp
+          ENDIF
+          IF (p_lnd_state(jg)%prog_wtr(nnow_rcf(jg))%t_snow_si(jc,jb) == missval) THEN
+            p_lnd_state(jg)%prog_wtr(nnow_rcf(jg))%t_snow_si(jc,jb) = tf_salt
           ENDIF
         ENDDO  ! jc
 

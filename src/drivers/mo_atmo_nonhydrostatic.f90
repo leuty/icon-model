@@ -708,6 +708,11 @@ CONTAINS
                                     amplitude=pinit_amplitude, &
                                     field=p_lnd_state(jg)%prog_wtr(nnow_rcf(jg))%t_ice, &
                                     seed_in=pinit_seed+257)
+            CALL add_random_noise_2d(subset=p_patch(jg)%cells%all, &
+                                    coordinates=p_patch(jg)%cells%center, &
+                                    amplitude=pinit_amplitude, &
+                                    field=p_lnd_state(jg)%prog_wtr(nnow_rcf(jg))%t_snow_si, &
+                                    seed_in=pinit_seed+257)
           ENDIF
 
           IF (.NOT. ltestcase .OR. nh_test_name == 'dcmip_pa_12') THEN

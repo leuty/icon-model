@@ -220,7 +220,7 @@ CONTAINS
     !> Mixed-time saturation specific humidity over ice [kg/kg].
     REAL(wp) :: qsat_hat_ice(SIZE(t_acoef_wtr))
 
-    REAL(wp) :: t_ice_old(SIZE(t_acoef_wtr)) !< Old ice temperature, sanitized [K].
+    REAL(wp) :: t_ice_old(SIZE(t_acoef_wtr)) !< Old surface (snow or ice) temperature, sanitized [K].
     REAL(wp) :: qsat_ice_now !< Saturation specific humidity at time `t`.
 
     REAL(wp) :: wc_frac !< Whitecap fraction.
@@ -284,7 +284,7 @@ CONTAINS
         ! Someone is messing with the old ice temperatures, setting them to zero for ice-free
         ! cells.
         t_ice_old(ic) = MERGE( &
-            & tf_fresh, prog_wtr_now%t_ice(ic,iblk), prog_wtr_now%t_ice(ic,iblk) < 100._wp)
+            & tf_fresh, prog_wtr_now%t_snow_si(ic,iblk), prog_wtr_now%t_snow_si(ic,iblk) < 100._wp)
       END DO
     !$ACC END PARALLEL
 
@@ -303,7 +303,7 @@ CONTAINS
           qsen(ic) = sensible_hflx_sft_old(jc, SFT_SICE)
           qlat(ic) = als / alv * latent_hflx_sft_old(jc, SFT_SICE)
           qlwrnet(ic) = sea_state%lw_emissivity(jc,iblk,SFT_SICE) &
-              & * (flx_rad%flx_lw_down(jc,iblk) - stbo * prog_wtr_now%t_ice(jc,iblk)**4)
+              & * (flx_rad%flx_lw_down(jc,iblk) - stbo * prog_wtr_now%t_snow_si(jc,iblk)**4)
           qsolnet(ic) = &
               & ((1._wp - alb_nir_dir) &
               &   + (alb_nir_dir - alb_nir_dif) * flx_rad%fr_nir_diffuse(jc,iblk) &
@@ -372,14 +372,17 @@ CONTAINS
           jc = ext_data%atm%list_seaice%idx(ic,iblk)
 
           IF (hice_n(ic) >= hice_min) THEN
-            t_ice(jc) = tice_n(ic)
+            ! t_ice refers to the surface temperature of vdiff's ice surface type.
+            ! tsnow_n is the surface temperature of the sea-ice sheet ( = tice_n
+            ! if there is no snow).
+            t_ice(jc) = tsnow_n(ic)
 
             IF (have_conductive_hflx_ice) &
                 & conductive_hflx_ice(jc) = condhf(ic)
             IF (have_melt_potential_ice) &
                 & melt_potential_ice(jc) = meltpot(ic)
 
-            prog_wtr_new%t_ice(jc,iblk) = t_ice(jc)
+            prog_wtr_new%t_ice(jc,iblk) = tice_n(ic)
             prog_wtr_new%h_ice(jc,iblk) = hice_n(ic)
             prog_wtr_new%t_snow_si(jc,iblk) = tsnow_n(ic)
             prog_wtr_new%h_snow_si(jc,iblk) = hsnow_n(ic)
@@ -436,7 +439,8 @@ CONTAINS
       !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
         !$ACC LOOP GANG VECTOR
         DO ic = ics, ice
-          alb%alb_vis_dif(ic,iblk,SFT_SICE) = alb_seaice_equil(prog_wtr_new%t_ice(ic,iblk))
+          alb%alb_vis_dif(ic,iblk,SFT_SICE) = &
+              & alb_seaice_equil(prog_wtr_new%t_snow_si(ic,iblk), prog_wtr_new%h_snow_si(ic,iblk))
         END DO
       !$ACC END PARALLEL
     END IF
@@ -713,7 +717,7 @@ CONTAINS
   SUBROUTINE sea_model_couple_ocean ( &
         & patch, list_sea, fr_sft, alb, flx_rad, pres_sfc, t_eff_sft, evapo_sft, flx_heat_latent_sft, &
         & flx_heat_sensible_sft, condhf_ice, meltpot_ice, co2_concentration_srf, rain_srf, snow_srf, &
-        & umfl_sft, vmfl_sft, sp_10m, t_seasfc, fr_seaice, h_ice, sea_state, lacc &
+        & umfl_sft, vmfl_sft, sp_10m, t_seasfc, fr_seaice, h_ice, h_snow, sea_state, lacc &
       )
 
     TYPE(t_patch), INTENT(IN) :: patch !< Current patch.
@@ -760,6 +764,8 @@ CONTAINS
     REAL(wp), CONTIGUOUS, TARGET, INTENT(INOUT) :: fr_seaice(:,:)
     !> Sea-ice height [m] (nproma, nblks_c).
     REAL(wp), CONTIGUOUS, TARGET, INTENT(INOUT) :: h_ice(:,:)
+    !> Snow-on-sea-ice height [m] (nproma, nblks_c).
+    REAL(wp), CONTIGUOUS, TARGET, INTENT(INOUT) :: h_snow(:,:)
     !> Sea state.
     TYPE(t_nwp_vdiff_sea_state), INTENT(INOUT) :: sea_state
     !> OpenACC flag.
@@ -851,6 +857,7 @@ CONTAINS
 
     rx%fr_seaice => fr_seaice(:,:)
     rx%h_ice => h_ice(:,:)
+    rx%h_snow => h_snow(:,:)
     rx%ocean_u => sea_state%ocean_u(:,:)
     rx%ocean_v => sea_state%ocean_v(:,:)
     rx%ice_u => sea_state%ice_u(:,:)
@@ -1004,6 +1011,7 @@ CONTAINS
 
               IF (fr_seaice(jc,iblk) < frsi_min) THEN
                 prog_wtr%h_ice(jc,iblk) = 0._wp
+                prog_wtr%h_snow_si(jc,iblk) = 0._wp
               END IF
             END DO
           END IF

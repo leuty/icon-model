@@ -2013,9 +2013,9 @@ CONTAINS
           p_lnd_diag%condhf_ice(jc,jb)  = condhf_i(ic)
           p_lnd_diag%meltpot_ice(jc,jb) = meltpot_i(ic)
         ENDIF
-        lnd_prog_new%t_g_t(jc,jb,isub_seaice) = tice_new(ic)
+        lnd_prog_new%t_g_t(jc,jb,isub_seaice) = tsnow_new(ic)
         ! surface saturation specific humidity (uses saturation water vapor pressure over ice)
-        p_lnd_diag%qv_s_t(jc,jb,isub_seaice)  = spec_humi(sat_pres_ice(tice_new(ic)), &
+        p_lnd_diag%qv_s_t(jc,jb,isub_seaice)  = spec_humi(sat_pres_ice(tsnow_new(ic)), &
           &                                     p_diag%pres_sfc(jc,jb) )
       ENDDO  ! ic
       !$ACC END PARALLEL
