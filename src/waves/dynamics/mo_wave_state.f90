@@ -1010,7 +1010,7 @@ CONTAINS
     grib2_desc = grib2_var(10, 0, 32, ibits, GRID_UNSTRUCTURED, GRID_CELL)
     CALL add_var(p_diag_list, 'ds_sea', p_diag%ds_sea,              &
          & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
-         & lrestart=.FALSE., loutput=.FALSE.,                        &
+         & lrestart=.FALSE., loutput=.TRUE.,                        &
          & ldims=shape2d_c, in_group=groups("wave_short"))
 
      ! swell
