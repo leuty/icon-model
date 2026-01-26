@@ -361,7 +361,7 @@ CONTAINS
 
     ! Local pointers for ocean currents
     REAL(wp), POINTER, DIMENSION(:,:) :: &
-      & u_oce, v_oce
+      & oce_u, oce_v, ice_u, ice_v
 
     ! Local pointers to surface pressure and height variables
     REAL(wp), POINTER, DIMENSION(:,:) :: &
@@ -433,8 +433,10 @@ CONTAINS
     zf => ins_sfc%zf%Get_ptr_r2d()
     pa => ins_sfc%pa%Get_ptr_r2d()
     psfc => ins_sfc%psfc%Get_ptr_r2d()
-    u_oce => ins_sfc%u_oce_current%Get_ptr_r2d()
-    v_oce => ins_sfc%v_oce_current%Get_ptr_r2d()
+    oce_u => ins_sfc%ocean_u%Get_ptr_r2d()
+    oce_v => ins_sfc%ocean_v%Get_ptr_r2d()
+    ice_u => ins_sfc%ice_u%Get_ptr_r2d()
+    ice_v => ins_sfc%ice_v%Get_ptr_r2d()
 
     ! Get pointers to surface tile diagnostics
     km_tile => diags_sfc%km_tile%Get_ptr_r3d()
@@ -469,9 +471,9 @@ CONTAINS
     DO jtile = 1, domain_sfc%ntiles
 
       CALL compute_10m_wind( &
-        & domain_sfc, domain_sfc%sfc_types(jtile), nvalid(:,jtile), indices(:,:,jtile), &
+        & domain_sfc, nvalid(:,jtile), indices(:,:,jtile), &
         & zf(:,:), zh(:,:), &
-        & new_ua(:,nlev,:), new_va(:,nlev,:), u_oce(:,:), v_oce(:,:), &
+        & new_ua(:,nlev,:), new_va(:,nlev,:), &
         & moist_rich_tile(:,:,jtile), km_tile(:,:,jtile), km_neutral_tile(:,:,jtile), &
         & u10m_tile(:,:,jtile), v10m_tile(:,:,jtile), wind10m_tile(:,:,jtile) &
         & )

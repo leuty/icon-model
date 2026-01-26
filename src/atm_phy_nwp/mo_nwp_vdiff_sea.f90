@@ -25,7 +25,7 @@ MODULE mo_nwp_vdiff_sea
   USE mo_impl_constants, ONLY: SSTICE_ANA_CLINC, end_prog_cells, start_prog_cells
   USE mo_kind, ONLY: wp
   USE mo_lnd_nwp_config, ONLY: frsi_min, hice_min, hice_max, lprog_albsi, lseaice, sstice_mode, &
-      & loskin, itype_oskin_warm, itype_oskin_cold
+      & loskin, itype_oskin_warm, itype_oskin_cold, tf_salt
   USE mo_loopindices, ONLY: get_indices_c
   USE mo_master_config, ONLY: isRestart
   USE mo_model_domain, ONLY: t_patch
@@ -34,8 +34,7 @@ MODULE mo_nwp_vdiff_sea
   USE mo_nwp_vdiff_radfluxes, ONLY: t_nwp_vdiff_surface_rad_fluxes
   USE mo_nwp_vdiff_types, ONLY: t_nwp_vdiff_albedos, t_nwp_vdiff_sea_state, SFT_SICE, SFT_SWTR
   USE mo_parallel_config, ONLY: nproma
-  USE mo_physical_constants, ONLY: als, alv, cpd, salinity_fac, stbo, tf_fresh => tmelt, tf_salt, &
-      & zemiss_def
+  USE mo_physical_constants, ONLY: als, alv, cpd, salinity_fac, stbo, tf_fresh => tmelt, zemiss_def
   USE mo_radiation_config, ONLY: albedo_whitecap, direct_albedo_water
   USE mo_run_config, ONLY: msg_level
   USE mo_thdyn_functions, ONLY: sat_pres_ice, sat_pres_water, spec_humi

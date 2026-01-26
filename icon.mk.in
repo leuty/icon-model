@@ -31,24 +31,20 @@ bundled_cmake_builddirs= @icon_bundled_cmake_builddirs@
 bundled_config_builddirs= $(filter-out $(bundled_cmake_builddirs),$(bundled_builddirs))
 
 # Relative path to the directory with the Fortran module files:
-moddir:= mod
+mod_builddir:= mod
 
 # When the two-step compilation is enabled, Fortran module files that are
 # generated together with the object file become an unwanted side effect. More
 # often than not, Fortran compilers do not have special flags to suppress the
 # generation of the module files. Therefore, we use the following directory as
 # a trash bin:
-@SEPARATE_MODS_ENABLED@moddir_null:= $(moddir)/null
+@SEPARATE_MODS_ENABLED@mod_builddir_null:= $(mod_builddir)/null
 
 # Relative path to the directory with the generated executables:
-bindir:= bin
+bin_builddir:= bin
 
 # Relative path to the directory with the generated archives:
-libdir:= lib
-
-# Paths to the installation directories:
-prefix:= @prefix@
-exec_prefix:= @exec_prefix@
+lib_builddir:= lib
 
 ########################### BUILDING TOOLS AND FLAGS ###########################
 
@@ -76,7 +72,7 @@ MPI_LAUNCH= @MPI_LAUNCH@
 
 # Fortran compiler flags:
 FCFLAGS= @FCFLAGS@
-make_FCFLAGS= @FC_MOD_IN@$(moddir)
+make_FCFLAGS= @FC_MOD_IN@$(mod_builddir)
 ICON_FCFLAGS= @ICON_FCFLAGS@
 @ICON_FCGROUP_FLAGS@
 DEPGEN_FCFLAGS= @DEPGEN_FCFLAGS@
@@ -225,7 +221,7 @@ common_prog_obj_files:=
 exec_files:=
 
 # ICON executable:
-ICON_exec_file:= $(bindir)/icon@EXEEXT@
+ICON_exec_file:= $(bin_builddir)/icon@EXEEXT@
 ICON_prog_obj_files:= $(call get_obj_names,src/drivers/icon.f90) $(common_prog_obj_files) version.@OBJEXT@
 exec_files+= $(ICON_exec_file)
 
@@ -261,7 +257,7 @@ get_prereq_objs= $(filter-out $(1),$(filter %.@OBJEXT@, \
 
 # Common convenience library (holds prerequisite objects of the generated
 # executables):
-common_lib_file:= $(libdir)/libicon.a
+common_lib_file:= $(lib_builddir)/libicon.a
 common_lib_prog_obj_files:= $(ICON_prog_obj_files)
 common_lib_obj_files:= $(call get_prereq_objs,$(common_lib_prog_obj_files))
 lib_files+= $(common_lib_file)
@@ -276,12 +272,12 @@ lib_files+= $(test_lib_file)
 # (this finalizes the list of generated files):
 dir_files:= $(filter-out ./.dirstamp, \
                 $(addsuffix .dirstamp, \
-                    $(sort $(dir $(dep_files) $(pp_files) $(exec_files) $(test_exec_files) $(lib_files))) $(moddir)/))
+                    $(sort $(dir $(dep_files) $(pp_files) $(exec_files) $(test_exec_files) $(lib_files))) $(mod_builddir)/))
 
 ########################## PGI/NVIDIA INLINE LIBRARY ###########################
 
 # Name of the inline library (a directory):
-@PGI_INLIB_ENABLED@pgi_inlib_name:= $(libdir)/icon.il
+@PGI_INLIB_ENABLED@pgi_inlib_name:= $(lib_builddir)/icon.il
 
 # List of procedures to be inlined:
 @PGI_INLIB_ENABLED@pgi_inlib_procedures:=
@@ -305,9 +301,9 @@ join_comma= $(subst $() ,$(join_comma_symbol),$(strip $(1)))
 # generation and usage:
 @PGI_INLIB_ENABLED@pgi_inlib_common_arg:= lib:$(pgi_inlib_name),name:$(call join_comma,$(pgi_inlib_procedures))
 @PGI_INLIB_ENABLED@pgi_inlib_ex_FCFLAGS= -Mextract=$(pgi_inlib_common_arg)
-@PGI_INLIB_ENABLED@@SEPARATE_MODS_ENABLED@dir_files+= $(moddir_null)/icon.il/.dirstamp
-@PGI_INLIB_ENABLED@@SEPARATE_MODS_ENABLED@pgi_inlib_ex_FCFLAGS+= @FC_MOD_OUT@$(moddir_null)/icon.il
-@PGI_INLIB_ENABLED@@SEPARATE_MODS_DISABLED@pgi_inlib_ex_FCFLAGS+= @FC_MOD_OUT@$(moddir)
+@PGI_INLIB_ENABLED@@SEPARATE_MODS_ENABLED@dir_files+= $(mod_builddir_null)/icon.il/.dirstamp
+@PGI_INLIB_ENABLED@@SEPARATE_MODS_ENABLED@pgi_inlib_ex_FCFLAGS+= @FC_MOD_OUT@$(mod_builddir_null)/icon.il
+@PGI_INLIB_ENABLED@@SEPARATE_MODS_DISABLED@pgi_inlib_ex_FCFLAGS+= @FC_MOD_OUT@$(mod_builddir)
 @PGI_INLIB_ENABLED@pgi_inlib_in_FCFLAGS= -Minline=$(pgi_inlib_common_arg),reshape
 
 # Additional flag limiting the GPU register usage (valid only if the inline
@@ -363,6 +359,13 @@ join_comma= $(subst $() ,$(join_comma_symbol),$(strip $(1)))
 @PGI_INLIB_ENABLED@      $(shell $(DEPLIST) --no-hints -t $(pgi_inlib_obj_files) $(pgi_inlib_obj_files:.@OBJEXT@=$(pp_infix)modstamp.f90) -f $(pgi_inlib_dep_files))))
 
 ############################### MAKEFILE TWEAKS ################################
+
+# Issue warnings that command-line overrides of the installation prefixes are
+# not supported:
+$(foreach v,prefix exec_prefix bindir includedir libdir, \
+  $(if $(filter $(origin $(v)),command line), \
+    $(warning command-line override of the '$(v)' variable is not supported; \
+        the provided value '$($(v))' will be ignored)))
 
 # Silent rule prefixes:
 V= @DEFAULT_VERBOSITY@
@@ -491,10 +494,10 @@ check: all check-bundled check-icon
 mostlyclean: $(bundled_builddirs)
 	rm -f $(exec_files) $(test_exec_files) $(lib_files)
 	rm -f $(addsuffix .@OBJEXT@,$(basename $(f90_files) $(c_files) $(cu_files) $(hip_files))) version.@OBJEXT@
-	rm -f $(moddir)/*.@FC_MOD_FILE_EXT@ $(moddir)/*.@FC_MOD_FILE_EXT@.proxy
-	rm -f $(moddir)/*.@FC_SMOD_FILE_EXT@ $(moddir)/*.@FC_SMOD_FILE_EXT@.sproxy
+	rm -f $(mod_builddir)/*.@FC_MOD_FILE_EXT@ $(mod_builddir)/*.@FC_MOD_FILE_EXT@.proxy
+	rm -f $(mod_builddir)/*.@FC_SMOD_FILE_EXT@ $(mod_builddir)/*.@FC_SMOD_FILE_EXT@.sproxy
 	rm -f $(patsubst %,$(test_subdir)/%.log,$(TESTS)) $(test_subdir)/test-suite.log
-@SEPARATE_MODS_ENABLED@	rm -rf $(moddir_null) $(f90_files:.f90=$(pp_infix)modstamp.f90)
+@SEPARATE_MODS_ENABLED@	rm -rf $(mod_builddir_null) $(f90_files:.f90=$(pp_infix)modstamp.f90)
 @PGI_INLIB_ENABLED@	rm -rf $(pgi_inlib_name)
 
 # Delete files generated at the building stage (strictly speaking, we should
@@ -533,7 +536,7 @@ distclean: clean
 	rm -f $(dep_files)
 	rm -f $(dir_files)
 	test -z "$(bundled_cmake_builddirs)" || rm -rf $(bundled_cmake_builddirs)
-	@for dir in $(bindir) $(libdir) $(moddir); do \
+	@for dir in $(bin_builddir) $(lib_builddir) $(mod_builddir); do \
           if test -d "$$dir"; then \
             echo "find '$$dir' -type d -empty -delete"; \
             find "$$dir" -type d -empty -delete; \
@@ -552,11 +555,15 @@ distclean: clean
 # Installation rule:
 install: all
 	$(INSTALL) -d $(DESTDIR)@bindir@ && $(INSTALL) $(exec_files) $(DESTDIR)@bindir@
-	$(silent_none)for d in $(filter externals/hd externals/comin/build,$(bundled_subdirs)); do \
-	  $(MAKE) -C "$$d" $@ V=$(V); \
+	$(silent_none)for d in $(filter externals/comin/build,$(bundled_builddirs)); do \
+	  case ' $(bundled_cmake_builddirs) ' in \
+	    *" $$d "*) $(MAKE) -C "$$d" $@ VERBOSE=$(filter-out 0,$(V)) || exit $$? ;; \
+            *) $(MAKE) -C "$$d" $@ V=$(V) prefix='@prefix@' exec_prefix='@exec_prefix@' bindir='@bindir@' libdir='@libdir@' includedir='@includedir@' || exit $$? ;; \
+          esac; \
 	done
-@MTIME_PYTHON_ENABLED@	$(silent_none)$(MAKE) -C externals/mtime/build/python $@ V=$(V)
-@YAC_PYTHON_ENABLED@	$(silent_none)$(MAKE) -C externals/yac/python $@ V=$(V)
+@HD_ENABLED@	$(silent_none)$(MAKE) -C externals/hd $@ V=$(V) exec_prefix='@exec_prefix@' bindir='bin'
+@MTIME_PYTHON_ENABLED@	$(silent_none)$(MAKE) -C externals/mtime/build/python $@ VERBOSE=$(filter-out 0,$(V))
+@YAC_PYTHON_ENABLED@	$(silent_none)$(MAKE) -C externals/yac/python $@ V=$(V) prefix='@exec_prefix@'
 
 # Explicit configuration rule for the bundled packages:
 config-bundled: $(bundled_makefiles)
@@ -574,7 +581,7 @@ check-bundled: $(bundled_makefiles) $(bundled_cmake_builddirs) $(if $(filter che
 	  case ' $(bundled_cmake_builddirs) ' in \
 	    *" $$d "*) MAKEFLAGS='$(filter-out --jobserver-fds=% --jobserver-auth=%,$(MAKEFLAGS))' $(MAKE) -j1 -C "$$d" test VERBOSE=$(filter-out 0,$(V)) || fail="$$fail$$d " ;; \
 	    *) $(MAKE) -C "$$d" check V=$(V) AM_COLOR_TESTS='$(AM_COLOR_TESTS)' VERBOSE='$(VERBOSE)' TESTSUITEFLAGS='$(TESTSUITEFLAGS)' || fail="$$fail$$d " ;; \
-	  esac \
+	  esac; \
 	done; \
 	{ \
 	  test x"$(ICON_COLOR_TESTS)" = xalways || { \
@@ -641,17 +648,17 @@ $(lib_files): | $(dir_files)
 
 # Fortran compilation rule:
 @SEPARATE_MODS_ENABLED@%.@OBJEXT@: %.f90 | $(dir_files) $(bundled_builddirs) sanitize-mod-proxies
-@SEPARATE_MODS_ENABLED@	$(silent_FC)@MKDIR_P@ $(moddir_null)/$@ && $(FC) -o $@ -c @FC_MOD_OUT@$(moddir_null)/$@ $(make_FCFLAGS) $(FCFLAGS) $(ICON_FCFLAGS) @FCFLAGS_f90@ $<
+@SEPARATE_MODS_ENABLED@	$(silent_FC)@MKDIR_P@ $(mod_builddir_null)/$@ && $(FC) -o $@ -c @FC_MOD_OUT@$(mod_builddir_null)/$@ $(make_FCFLAGS) $(FCFLAGS) $(ICON_FCFLAGS) @FCFLAGS_f90@ $<
 
 @SEPARATE_MODS_DISABLED@%.@OBJEXT@: %.f90 | $(dir_files) $(bundled_builddirs) sanitize-mod-proxies
-@SEPARATE_MODS_DISABLED@	$(silent_FC)$(FC) -o $@ -c @FC_MOD_OUT@$(moddir) $(make_FCFLAGS) $(FCFLAGS) $(ICON_FCFLAGS) @FCFLAGS_f90@ $<
+@SEPARATE_MODS_DISABLED@	$(silent_FC)$(FC) -o $@ -c @FC_MOD_OUT@$(mod_builddir) $(make_FCFLAGS) $(FCFLAGS) $(ICON_FCFLAGS) @FCFLAGS_f90@ $<
 
 # Fortran module file generation rule:
 @SEPARATE_MODS_ENABLED@%$(pp_infix)modstamp.f90: %.f90 | $(dir_files) $(bundled_builddirs) sanitize-mod-proxies
-@SEPARATE_MODS_ENABLED@	$(silent_MOD)$(FC) -c @FC_MOD_OUT@$(moddir) $(make_FCFLAGS) $(FCFLAGS) $(ICON_FCFLAGS) @FC_MOD_ONLY@ @FCFLAGS_f90@ $< && touch $@
+@SEPARATE_MODS_ENABLED@	$(silent_MOD)$(FC) -c @FC_MOD_OUT@$(mod_builddir) $(make_FCFLAGS) $(FCFLAGS) $(ICON_FCFLAGS) @FC_MOD_ONLY@ @FCFLAGS_f90@ $< && touch $@
 
 # Fortran module file tracking and recovery rule:
-$(moddir)/%.@FC_MOD_FILE_EXT@.proxy:| sanitize-mod-proxies
+$(mod_builddir)/%.@FC_MOD_FILE_EXT@.proxy:| sanitize-mod-proxies
 	@if test -n '$<'; then \
 	  if test ! -f '$(@:.proxy=)'; then rm -f '$<'; $(MAKE) -f icon.mk '$<'; fi; \
 	  if cmp '$@' '$(@:.proxy=)' >/dev/null 2>&1 || $(MODCMP) '$@' '$(@:.proxy=)' @FC_VENDOR@ 2>/dev/null; then :; \
@@ -659,7 +666,7 @@ $(moddir)/%.@FC_MOD_FILE_EXT@.proxy:| sanitize-mod-proxies
 	fi
 
 # Fortran submodule file tracking and recovery rule:
-$(moddir)/%.@FC_SMOD_FILE_EXT@.sproxy:| sanitize-mod-proxies
+$(mod_builddir)/%.@FC_SMOD_FILE_EXT@.sproxy:| sanitize-mod-proxies
 	@if test -z '$<'; then \
 	  echo "Cannot find Fortran source file providing submodule '$(basename $(@F:.sproxy=))'." >&2; \
 	else \
@@ -672,7 +679,7 @@ $(moddir)/%.@FC_SMOD_FILE_EXT@.sproxy:| sanitize-mod-proxies
 # (sub)module to be a proxy of, i.e. if <filename>.proxy exists but <filename>
 # does not, delete <filename>.proxy:
 sanitize-mod-proxies:
-	@rm -f $(filter-out $(addsuffix .proxy,$(wildcard $(moddir)/*.@FC_MOD_FILE_EXT@)),$(wildcard $(moddir)/*.@FC_MOD_FILE_EXT@.proxy)) $(filter-out $(addsuffix .sproxy,$(wildcard $(moddir)/*.@FC_SMOD_FILE_EXT@)),$(wildcard $(moddir)/*.@FC_SMOD_FILE_EXT@.sproxy))
+	@rm -f $(filter-out $(addsuffix .proxy,$(wildcard $(mod_builddir)/*.@FC_MOD_FILE_EXT@)),$(wildcard $(mod_builddir)/*.@FC_MOD_FILE_EXT@.proxy)) $(filter-out $(addsuffix .sproxy,$(wildcard $(mod_builddir)/*.@FC_SMOD_FILE_EXT@)),$(wildcard $(mod_builddir)/*.@FC_SMOD_FILE_EXT@.sproxy))
 
 # C compilation rule:
 %.@OBJEXT@: %.c | $(dir_files)
@@ -714,7 +721,7 @@ nomakefile_bundled_targets:= distclean
 # Make Autoconf-based bundled packages:
 $(bundled_config_builddirs):
 	@if test -f '$@/Makefile'; then \
-	  $(MAKE) -C $@ $(filter all mostlyclean clean distclean,$(MAKECMDGOALS)) V=$(V); \
+	  $(MAKE) -C $@ $(filter all mostlyclean clean distclean,$(MAKECMDGOALS)) V=$(V) bindir='bin'; \
 	else \
 	  test -z '$(filter-out $(nomakefile_bundled_targets),$(or $(MAKECMDGOALS),all))'; \
 	fi
@@ -752,7 +759,7 @@ version.c: force-create-version
 
 # Fortran dependency generation rule:
 %.f90.d: %.f90 icon.mk depgen.f90.config | $(dir_files)
-	$(silent_DEPGEN)$(DEPGEN) @depgen.f90.config -o $@ --obj-name $(@:.f90.d=.@OBJEXT@) $(if @SEPARATE_MODS_DISABLED@,--fc-mod-stamp-name $(@:.f90.d=$(pp_infix)modstamp.f90)) -i $< -- $(DEPGEN_FCFLAGS) @FC_MOD_OUT@$(moddir) $(make_FCFLAGS) $(FCFLAGS) $(ICON_FCFLAGS)
+	$(silent_DEPGEN)$(DEPGEN) @depgen.f90.config -o $@ --obj-name $(@:.f90.d=.@OBJEXT@) $(if @SEPARATE_MODS_DISABLED@,--fc-mod-stamp-name $(@:.f90.d=$(pp_infix)modstamp.f90)) -i $< -- $(DEPGEN_FCFLAGS) @FC_MOD_OUT@$(mod_builddir) $(make_FCFLAGS) $(FCFLAGS) $(ICON_FCFLAGS)
 
 # C dependency generation rule:
 %.c.d: %.c icon.mk depgen.c.config | $(dir_files)

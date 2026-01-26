@@ -9,7 +9,10 @@
 #### AES Physics
 
 - Correction of the roughness length computation over ocean in TMX
+- Use tile-specific relative wind speed for surface roughness, exchange coefficients and fluxes in TMX
 - Use memory manager library for data management in TMX
+- Fix for double definition of cloud_num in microphysics
+- Correction to rain microphysics (evap and accretion)
 
 #### NWP Physics
 
@@ -29,6 +32,7 @@
 - Fix variable assignment of some vars for write_initial_state (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/993)
 - Bugfix ocean initial state on GPU (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1133)
 - Implementation of symmetric IAU in ICON-O (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1020)
+- Use consistent freezing temperature for sea ice in coupled XPP and AES (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1156)
 
 ### Soil and Surface
 
@@ -44,13 +48,24 @@
 - QUINCY development
   - Updated the Jena-Soil-Model for use with QUINCY as an alternative to the simple soil-biogeochemistry model
   - Improve paramaterization of vegetation phosphorus (P) uptake to avoid crops and natural vegetation dying by P limitation
+  - Improve the calculation of plant water stress with frozen soil
+  - Minor refactoring: unification of namelist names
+  - Correction of aggregation of area-dependent variables in the QUINCY model
+  - Update default PI control values for atmospheric 13CO2 and 14CO2 composition according to CMIP7 forcing (Graven, H. (2025))
+  - Revisit QUINCY output ensuring that all output variables required for diagnostics and global budget calculations are present
+  - Update nitrogen cycle parameters
+  - Add script to generate CMIP7 based deposition data
+  - Refactor vegetation memory structure to reduce code complexity
 - Refactoring of anthropogenic land cover change process
 - Hydrology: Added ford inline documentation
-- Land initial files: Major update: 12 and 13 tile setups for jsbach and quincy
-- Land initial files: Fix for the skin layer conductivity
+- Land initial files
+  - Major update: 12 and 13 tile setups for jsbach and quincy
+  - Fix for the skin layer conductivity
+  - Estimation of initial soil moisture from vegetation fraction
 - Land initialization: Initial soil moisture is turned to ice at temperatures below zero degrees.
 - Revised 'basic' output list
 - Anthropogenic emission files: Created anthropogenic emission data including aviation sources from the CMIP7 dataset
+- Update BSD-3C licence year to 2026
 
 ### Externals
 
@@ -92,6 +107,7 @@
 - Report to the relevant config.log when calling config.status of the bundled packages (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1161)
 - Fix detection of an external ComIn (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1163)
 - Fix the configuration and building order of the bundled packages (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1162)
+- Consistently install ICON and the relevant bundled packages to the specified installation prefixes and subdirectories
 
 #### Miscellaneous
 

@@ -163,7 +163,7 @@ CONTAINS
 
     TYPE(t_vdf_aggregator) :: aggregator
 
-    INTEGER :: jg, jtile, isfc, jc, jb, graph_id
+    INTEGER :: jg, jtile, isfc, jc, jcl, jb, graph_id
     REAL(wp), POINTER, DIMENSION(:,:,:) :: &
       & old_tsfc, tend_tsfc, new_tsfc, &
       & new_qsfc, &
@@ -182,7 +182,8 @@ CONTAINS
       & emissivity, cosmu0, &
       & ta, qa, pa, ua, va, rho_atm, &
       & rsfl, ssfl, co2, co2flx_ant, &
-      & ice_thickness, u_oce_current, v_oce_current
+      & ice_thickness, &
+      & ocean_u, ocean_v, ice_u, ice_v
     REAL(vp), POINTER, DIMENSION(:,:) :: &
       & dz
 
@@ -192,7 +193,7 @@ CONTAINS
       & evapotrans, lhfl, shfl, &
       & ustress, vstress, &
       & ufts, ufvs, lwfl_up, swfl_up, &
-      & wind, q_snocpymlt_lnd, &
+      & q_snocpymlt_lnd, &
       & albvisdir, albvisdif, &
       & albnirdir, albnirdif, albedo, &
       & co2flx_nat, co2flx, &
@@ -203,6 +204,7 @@ CONTAINS
       & albnirdir_tile, albnirdif_tile, &
       & kh_tile, km_tile, &
       & kh_neutral_tile, km_neutral_tile, &
+      & wind_rel_tile, &
       & lhfl_tile, shfl_tile, &
       & ustress_tile, vstress_tile, &
       & evapotrans_tile, &
@@ -268,15 +270,16 @@ CONTAINS
     co2flx_nat => diags%co2flx_nat%Get_ptr_r2d()
     co2flx     => diags%co2flx%Get_ptr_r2d()
     ice_thickness => ins%ice_thickness%Get_ptr_r2d()
-    u_oce_current => ins%u_oce_current%Get_ptr_r2d()
-    v_oce_current => ins%v_oce_current%Get_ptr_r2d()
+    ocean_u => ins%ocean_u%Get_ptr_r2d()
+    ocean_v => ins%ocean_v%Get_ptr_r2d()
+    ice_u => ins%ice_u%Get_ptr_r2d()
+    ice_v => ins%ice_v%Get_ptr_r2d()
 
     ! Get pointers to tile-based inputs
     fract_tile => ins%fract_tile%Get_ptr_r3d()
     tsfc_tile => ins%tsfc_tile%Get_ptr_r3d()
 
     ! Get pointers to diagnostic variables
-    wind => diags%wind%Get_ptr_r2d()
     tsfc => diags%tsfc%Get_ptr_r2d()
     tsfc_rad => diags%tsfc_rad%Get_ptr_r2d()
     evapotrans => diags%evapotrans%Get_ptr_r2d()
@@ -310,6 +313,7 @@ CONTAINS
     km_neutral_tile => diags%km_neutral_tile%Get_ptr_r3d()
     lhfl_tile => diags%lhfl_tile%Get_ptr_r3d()
     shfl_tile => diags%shfl_tile%Get_ptr_r3d()
+    wind_rel_tile => diags%wind_rel_tile%Get_ptr_r3d()
     ustress_tile => diags%ustress_tile%Get_ptr_r3d()
     vstress_tile => diags%vstress_tile%Get_ptr_r3d()
     evapotrans_tile => diags%evapotrans_tile%Get_ptr_r3d()
@@ -414,16 +418,17 @@ CONTAINS
           & opt_acc_async_queue=acc_async_queues(jtile) &
           & )
 
-!$OMP PARALLEL DO PRIVATE(jc, jb) ICON_OMP_DEFAULT_SCHEDULE
-        !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR COLLAPSE(2) ASYNC(acc_async_queues(jtile))
-          DO jb = 1, this%domain%nblks_c
-            DO jc = 1, this%domain%nproma
-              new_tsfc_rad(jc,jb,jtile) = new_tsfc(jc,jb,jtile)
-              new_tsfc_eff(jc,jb,jtile) = new_tsfc(jc,jb,jtile)
-              tend_tsfc(jc,jb,jtile) = (new_tsfc(jc,jb,jtile) - old_tsfc(jc,jb,jtile)) / dtime
-            END DO
+!$OMP PARALLEL DO PRIVATE(jc, jcl, jb) ICON_OMP_DEFAULT_SCHEDULE
+        DO jb = this%domain%i_startblk_c, this%domain%i_endblk_c
+          !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR PRIVATE(jc) ASYNC(acc_async_queues(jtile))
+          DO jcl = 1, nvalid(jb,jtile)
+            jc = indices(jcl,jb,jtile)
+            new_tsfc_rad(jc,jb,jtile) = new_tsfc(jc,jb,jtile)
+            new_tsfc_eff(jc,jb,jtile) = new_tsfc(jc,jb,jtile)
+            tend_tsfc(jc,jb,jtile) = (new_tsfc(jc,jb,jtile) - old_tsfc(jc,jb,jtile)) / dtime
           END DO
           !$ACC END PARALLEL LOOP
+        END DO
 !$OMP END PARALLEL DO
 
         CALL compute_sfc_sat_spec_humidity(.FALSE., this%domain, this%domain%sfc_types(jtile), &
@@ -438,7 +443,7 @@ CONTAINS
           & rvds_dir, rnds_dir, rpds_dir, &
           & rvds_dif, rnds_dif, rpds_dif, &
           & cosmu0, &
-          & wind, wind10m_tile(:,:,jtile), rho_tile(:,:,jtile), co2, &
+          & wind_rel_tile(:,:,jtile), wind10m_tile(:,:,jtile), rho_tile(:,:,jtile), co2, &
           ! out
           & new_tsfc(:,:,jtile), new_tsfc_rad(:,:,jtile), new_tsfc_eff(:,:,jtile), q_snocpymlt_lnd, &
           & new_qsfc(:,:,jtile), &
@@ -449,26 +454,28 @@ CONTAINS
           & co2flx_nat_tile(:,:,jtile) &
           & )
 
-!$OMP PARALLEL DO PRIVATE(jc, jb) ICON_OMP_DEFAULT_SCHEDULE
-        !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR COLLAPSE(2) ASYNC(acc_async_queues(jtile))
-        DO jb = 1, this%domain%nblks_c
-          DO jc = 1, this%domain%nproma
+!$OMP PARALLEL DO PRIVATE(jc, jcl, jb) ICON_OMP_DEFAULT_SCHEDULE
+        DO jb = this%domain%i_startblk_c, this%domain%i_endblk_c
+          !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR PRIVATE(jc) ASYNC(acc_async_queues(jtile))
+          DO jcl = 1, nvalid(jb,jtile)
+            jc = indices(jcl,jb,jtile)
             tend_tsfc(jc,jb,jtile) = (new_tsfc(jc,jb,jtile) - old_tsfc(jc,jb,jtile)) / dtime
           END DO
+          !$ACC END PARALLEL LOOP
         END DO
-        !$ACC END PARALLEL LOOP
 !$OMP END PARALLEL DO
 
       END SELECT
 
-!$OMP PARALLEL DO PRIVATE(jc, jb) ICON_OMP_DEFAULT_SCHEDULE
-      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR COLLAPSE(2) ASYNC(acc_async_queues(jtile))
-      DO jb = 1, this%domain%nblks_c
-        DO jc = 1, this%domain%nproma
+!$OMP PARALLEL DO PRIVATE(jc, jcl, jb) ICON_OMP_DEFAULT_SCHEDULE
+      DO jb = this%domain%i_startblk_c, this%domain%i_endblk_c
+        !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR PRIVATE(jc) ASYNC(acc_async_queues(jtile))
+        DO jcl = 1, nvalid(jb,jtile)
+          jc = indices(jcl,jb,jtile)
           new_tsfc_rad(jc,jb,jtile) = new_tsfc_rad(jc,jb,jtile)**4._wp
         END DO
+        !$ACC END PARALLEL LOOP
       END DO
-      !$ACC END PARALLEL LOOP
 !$OMP END PARALLEL DO
 
       ! Compute surface fluxes for heat, water vapor and momentum from new state
@@ -480,7 +487,8 @@ CONTAINS
         & wind_gustiness, &
         & cvd, &
         & ua, va, &
-        & ta, qa, wind, u_oce_current, v_oce_current, &
+        & ta, qa, wind_rel_tile(:,:,jtile), &
+        & ocean_u, ocean_v, ice_u, ice_v, &
         & rho_tile(:,:,jtile), &
         & new_qsfc(:,:,jtile), new_tsfc(:,:,jtile), &
         & kh_tile(:,:,jtile), km_tile(:,:,jtile), &
@@ -617,7 +625,7 @@ CONTAINS
       & rlds, rsds, rvds_dir, rnds_dir, rpds_dir, &
       & rvds_dif, rnds_dif, rpds_dif, &
       & emissivity, cosmu0, rsfl, ssfl, co2, &
-      & u_oce_current, v_oce_current
+      & ocean_u, ocean_v, ice_u, ice_v
     REAL(vp), POINTER, DIMENSION(:,:) :: &
       & dz
 
@@ -626,14 +634,14 @@ CONTAINS
 
     ! Local pointers to diagnostic variables
     REAL(wp), POINTER, DIMENSION(:,:) :: &
-      & wind, theta_atm, thetav_atm, rough_m, rough_h
+      & theta_atm, thetav_atm, rough_m, rough_h
 
     REAL(wp), POINTER, DIMENSION(:,:,:) :: &
       & qsat_tile, rho_tile, theta_tile, thetav_tile, &
       & moist_rich_tile, rough_h_tile, rough_m_tile, &
       & km_tile, kh_tile, km_neutral_tile, kh_neutral_tile, &
       & evapotrans_tile, lhfl_tile, shfl_tile, &
-      & ustress_tile, vstress_tile, &
+      & wind_rel_tile, ustress_tile, vstress_tile, &
       & u10m_tile, v10m_tile, wind10m_tile, &
       & albvisdir_tile, albvisdif_tile, &
       & albnirdir_tile, albnirdif_tile, &
@@ -693,15 +701,16 @@ CONTAINS
     rsfl => ins%rsfl%Get_ptr_r2d()
     ssfl => ins%ssfl%Get_ptr_r2d()
     co2 => ins%co2%Get_ptr_r2d()
-    u_oce_current => ins%u_oce_current%Get_ptr_r2d()
-    v_oce_current => ins%v_oce_current%Get_ptr_r2d()
+    ocean_u => ins%ocean_u%Get_ptr_r2d()
+    ocean_v => ins%ocean_v%Get_ptr_r2d()
+    ice_u => ins%ice_u%Get_ptr_r2d()
+    ice_v => ins%ice_v%Get_ptr_r2d()
 
     ! Get pointers to tile-based inputs
     fract_tile => ins%fract_tile%Get_ptr_r3d()
     tsfc_tile => ins%tsfc_tile%Get_ptr_r3d()
 
     ! Get pointers to diagnostic variables
-    wind => diags%wind%Get_ptr_r2d()
     theta_atm => diags%theta_atm%Get_ptr_r2d()
     thetav_atm => diags%thetav_atm%Get_ptr_r2d()
     rough_m => diags%rough_m%Get_ptr_r2d()
@@ -722,6 +731,7 @@ CONTAINS
     evapotrans_tile => diags%evapotrans_tile%Get_ptr_r3d()
     lhfl_tile => diags%lhfl_tile%Get_ptr_r3d()
     shfl_tile => diags%shfl_tile%Get_ptr_r3d()
+    wind_rel_tile => diags%wind_rel_tile%Get_ptr_r3d()
     ustress_tile => diags%ustress_tile%Get_ptr_r3d()
     vstress_tile => diags%vstress_tile%Get_ptr_r3d()
     u10m_tile => diags%u10m_tile%Get_ptr_r3d()
@@ -765,8 +775,6 @@ CONTAINS
 
     CALL compute_valid_indices(this%domain, fract_tile, nvalid, indices)
 
-    CALL compute_wind_speed(this%domain, min_sfc_wind, ua, va, wind)
-
     CALL compute_valid_indices(this%domain, fract_tile, nvalid, indices)
 
     CALL compute_atm_potential_temperature(this%domain, ta, tv, pa, &
@@ -780,6 +788,12 @@ CONTAINS
     END DO
 
     DO jtile=1,this%domain%ntiles
+
+      ! relative wind speed
+      CALL compute_wind_speed(this%domain, nvalid(:,jtile), indices(:,:,jtile), &
+        & min_sfc_wind, this%domain%sfc_types(jtile), &
+        & ua, va, ocean_u, ocean_v, ice_u, ice_v, wind_rel_tile(:,:,jtile), &
+        & opt_acc_async_queue=jtile)
 
       ! Surface saturated humidity
       CALL compute_sfc_sat_spec_humidity(this%is_initial_time .AND. .NOT. isrestart(), this%domain, this%domain%sfc_types(jtile), &
@@ -804,24 +818,25 @@ CONTAINS
             & psfc, tsfc_tile(:,:,jtile), qsat_tile(:,:,jtile), &
             & theta_tile(:,:,jtile), thetav_tile(:,:,jtile))
           CALL compute_moist_richardson(this%domain, nvalid(:,jtile), indices(:,:,jtile), &
-            & fsl, zf, thetav_atm, thetav_tile(:,:,jtile), wind, &
+            & fsl, zf, thetav_atm, thetav_tile(:,:,jtile), wind_rel_tile(:,:,jtile), &
             & moist_rich_tile(:,:,jtile))
           CALL compute_sfc_roughness(.TRUE., this%domain, this%domain%sfc_types(jtile), &
             & nvalid(:,jtile), indices(:,:,jtile), min_rough, rough_m_oce, rough_m_ice, &
-            & wind, km_tile(:,:,jtile), rough_h_tile(:,:,jtile), rough_m_tile(:,:,jtile))
+            & wind_rel_tile(:,:,jtile), km_tile(:,:,jtile), &
+            & rough_h_tile(:,:,jtile), rough_m_tile(:,:,jtile))
           CALL compute_sfc_exchange_coefficients( &
             ! Input
             & this%domain, nvalid(:,jtile), indices(:,:,jtile), dz, &
             & qa, &
-            & theta_atm, wind, rough_m_tile(:,:,jtile), &
+            & theta_atm, wind_rel_tile(:,:,jtile), rough_m_tile(:,:,jtile), &
             & theta_tile(:,:,jtile), qsat_tile(:,:,jtile), &
             ! Output
             & km_tile(:,:,jtile), kh_tile(:,:,jtile), &
             & km_neutral_tile(:,:,jtile), kh_neutral_tile(:,:,jtile))
           CALL compute_10m_wind( &
-            & this%domain, this%domain%sfc_types(jtile), nvalid(:,jtile), indices(:,:,jtile), &
+            & this%domain, nvalid(:,jtile), indices(:,:,jtile), &
             & zf, zh, &
-            & ua, va, u_oce_current, v_oce_current, &
+            & ua, va, &
             & moist_rich_tile(:,:,jtile), km_tile(:,:,jtile), km_neutral_tile(:,:,jtile), &
             & u10m_tile(:,:,jtile), v10m_tile(:,:,jtile), wind10m_tile(:,:,jtile) &
             & )
@@ -834,7 +849,7 @@ CONTAINS
             & rvds_dir, rnds_dir, rpds_dir, &
             & rvds_dif, rnds_dif, rpds_dif, &
             & cosmu0, &
-            & wind, wind10m_tile(:,:,jtile), rho_tile(:,:,jtile), co2, &
+            & wind_rel_tile(:,:,jtile), wind10m_tile(:,:,jtile), rho_tile(:,:,jtile), co2, &
             ! out
             & tsfc=tsfc_tile(:,:,jtile), &
             & qsat=qsat_tile(:,:,jtile) &
@@ -852,7 +867,7 @@ CONTAINS
 
       ! Moist Richardson number
       CALL compute_moist_richardson(this%domain, nvalid(:,jtile), indices(:,:,jtile), &
-        & fsl, zf(:,:), thetav_atm(:,:), thetav_tile(:,:,jtile), wind(:,:), &
+        & fsl, zf(:,:), thetav_atm(:,:), thetav_tile(:,:,jtile), wind_rel_tile(:,:,jtile), &
         & moist_rich_tile(:,:,jtile), &
         & opt_acc_async_queue=jtile)
 
@@ -865,7 +880,8 @@ CONTAINS
       ! Uses old value of km_tile before computation of new exchange coefficients (only in case of ocean)
       CALL compute_sfc_roughness(this%is_initial_time .AND. .NOT. isrestart(), this%domain, this%domain%sfc_types(jtile), &
         & nvalid(:,jtile), indices(:,:,jtile), rough_min, rough_m_oce, rough_m_ice, &
-        & wind(:,:), km_tile(:,:,jtile), rough_h_tile(:,:,jtile), rough_m_tile(:,:,jtile), &
+        & wind_rel_tile(:,:,jtile), km_tile(:,:,jtile), &
+        & rough_h_tile(:,:,jtile), rough_m_tile(:,:,jtile), &
         & opt_acc_async_queue=jtile)
 
       ! Surface exchange coefficients
@@ -875,7 +891,7 @@ CONTAINS
             ! Input
           & this%domain, nvalid(:,jtile), indices(:,:,jtile), dz, &
           & qa, &
-          & theta_atm, wind, rough_m_tile(:,:,jtile), &
+          & theta_atm, wind_rel_tile(:,:,jtile), rough_m_tile(:,:,jtile), &
           & theta_tile(:,:,jtile), qsat_tile(:,:,jtile), &
             ! Output
           & km_tile(:,:,jtile), kh_tile(:,:,jtile), &
@@ -891,7 +907,8 @@ CONTAINS
           & wind_gustiness, &
           & cvd, &
           & ua, va, &
-          & ta, qa, wind, u_oce_current, v_oce_current, &
+          & ta, qa, wind_rel_tile(:,:,jtile), &
+          & ocean_u, ocean_v, ice_u, ice_v, &
           & rho_tile(:,:,jtile), &
           & qsat_tile(:,:,jtile), tsfc_tile(:,:,jtile), &
           & kh_tile(:,:,jtile), km_tile(:,:,jtile), &

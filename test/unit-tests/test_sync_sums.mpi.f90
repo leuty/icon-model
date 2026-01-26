@@ -99,6 +99,7 @@ CONTAINS
 
   END SUBROUTINE check_global_sum_array
 
+
   ! Total sum (global reduction, no local reduction)
   SUBROUTINE check_global_sum(wp_data_3d, ref_wp_sum, nsize)
     INTEGER, INTENT(IN) :: nsize
@@ -161,6 +162,7 @@ CONTAINS
 
     DEALLOCATE(wp_min)
   END SUBROUTINE check_global_min
+
 
   ! global max
   SUBROUTINE check_global_max(wp_data_1d, ref_wp_max)

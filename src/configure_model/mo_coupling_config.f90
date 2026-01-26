@@ -19,6 +19,7 @@ MODULE mo_coupling_config
   !! note that default is potentially overwritten in corresponding Namelist routine(s)
   !!
   LOGICAL :: config_coupled_to_ocean     = .FALSE.
+  LOGICAL :: config_coupled_to_era5      = .FALSE.
   LOGICAL :: config_coupled_to_waves     = .FALSE.
   LOGICAL :: config_coupled_to_cleo     = .FALSE.
   LOGICAL :: config_coupled_to_atmo      = .FALSE.
@@ -30,6 +31,7 @@ MODULE mo_coupling_config
 
   ! variables
   PUBLIC :: config_coupled_to_ocean
+  PUBLIC :: config_coupled_to_era5
   PUBLIC :: config_coupled_to_waves
   PUBLIC :: config_coupled_to_cleo
   PUBLIC :: config_coupled_to_atmo
@@ -41,6 +43,7 @@ MODULE mo_coupling_config
   ! functions
   PUBLIC :: is_coupled_run
   PUBLIC :: is_coupled_to_ocean
+  PUBLIC :: is_coupled_to_era5
   PUBLIC :: is_coupled_to_waves
   PUBLIC :: is_coupled_to_cleo
   PUBLIC :: is_coupled_to_atmo
@@ -55,6 +58,7 @@ CONTAINS
   LOGICAL FUNCTION is_coupled_run()
 
     is_coupled_run = config_coupled_to_ocean .OR.     &
+      &              config_coupled_to_era5  .OR.     &
       &              config_coupled_to_waves .OR.     &
       &              config_coupled_to_cleo .OR.     &
       &              config_coupled_to_atmo  .OR.     &
@@ -71,6 +75,13 @@ CONTAINS
     is_coupled_to_ocean = config_coupled_to_ocean
 
   END FUNCTION is_coupled_to_ocean
+
+  !------------------------------------------------------------------------
+  LOGICAL FUNCTION is_coupled_to_era5()
+
+    is_coupled_to_era5 = config_coupled_to_era5
+
+  END FUNCTION is_coupled_to_era5
 
   !------------------------------------------------------------------------
   LOGICAL FUNCTION is_coupled_to_waves()

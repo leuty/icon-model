@@ -50,7 +50,7 @@ TYPED_TEST_P(ThermoTest, CheckInternalEnergy) {
   this->validate(result, reference);
 }
 
-TYPED_TEST_P(ThermoTest, CheckT_InternalEnergy) {
+TYPED_TEST_P(ThermoTest, CheckTInternalEnergy) {
   TypeParam u         = TypeParam{38265357.270336017};
   TypeParam qv        = TypeParam{0.00122576};
   TypeParam qliq      = TypeParam{1.63837e-20};
@@ -109,7 +109,7 @@ TYPED_TEST_P(ThermoTest, CheckQSatIceRho) {
   this->validate(result, reference_float, reference_double);
 }
 
-TYPED_TEST_P(ThermoTest, CheckdQSatdT_Rho) {
+TYPED_TEST_P(ThermoTest, CheckdQSatdTRho) {
   TypeParam tk               = TypeParam{273.909};
   TypeParam qx               = TypeParam{0.00448941};
   TypeParam reference_float  = TypeParam{0.00030825072};
@@ -250,9 +250,9 @@ TYPED_TEST_P(ThermoTest, CheckSaturationAdjustment2D) {
   this->validate(h_qc(0, 1), static_cast<TypeParam>(0), static_cast<TypeParam>(0.));
 }
 
-REGISTER_TYPED_TEST_SUITE_P(ThermoTest, CheckInternalEnergy, CheckT_InternalEnergy, CheckSpecificHumidity,
+REGISTER_TYPED_TEST_SUITE_P(ThermoTest, CheckInternalEnergy, CheckTInternalEnergy, CheckSpecificHumidity,
                             CheckSatPresWater, CheckSatPresIce, CheckQSatRho, CheckQSatIceRho, CheckdQSatdT,
-                            CheckdQSatdT_Rho, CheckdQSatdTIce, CheckVaporizationEnergy, CheckSublimationEnergy,
+                            CheckdQSatdTRho, CheckdQSatdTIce, CheckVaporizationEnergy, CheckSublimationEnergy,
                             CheckPotentialTemperature, CheckDewpointTemperature, CheckDewpointTemperatureMelt,
                             CheckSaturationAdjustment, CheckSaturationAdjustment2D);
 using MyTypes = ::testing::Types<float, double>;

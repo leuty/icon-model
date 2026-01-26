@@ -46,13 +46,14 @@ MODULE mo_ocean_ab_timestepping_zstar
     & PPscheme_type, PPscheme_ICON_Edge_vnPredict_type, &
     & solver_FirstGuess, MassMatrix_solver_tolerance,     &
     & createSolverMatrix, l_solver_compare, solver_comp_nsteps, &
-    & press_grad_type, use_fillvalue, fillValue
+    & press_grad_type, use_fillvalue, fillValue, &
+    & ocean_latbc_bnd_intp_width, is_ocean_limited_area, ssh_fatal_level
   USE mo_run_config,                ONLY: dtime, debug_check_level, nsteps, output_mode
   USE mo_timer, ONLY: timer_start, timer_stop, timers_level, timer_extra1, &
     & timer_extra2, timer_extra3, timer_extra4, timer_ab_expl, timer_ab_rhs4sfc, timer_total
 
   USE mo_dynamics_config,           ONLY: nold, nnew
-  USE mo_physical_constants,        ONLY: grav, clw, rho_ref, Tf
+  USE mo_physical_constants,        ONLY: grav, clw, rho_ref
   USE mo_ocean_initialization,      ONLY: is_initial_timestep
   USE mo_ocean_types, ONLY: t_hydro_ocean_state
   USE mo_ocean_time_events,   ONLY: ocean_time_nextStep, isCheckpoint, isEndOfThisRun, newNullDatetime
@@ -553,12 +554,37 @@ CONTAINS
 
       ! Step 2) Calculate the new velocity from the predicted one and the new surface height
 
+      IF (.NOT. is_ocean_limited_area) THEN
+        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+        DO je = start_edge_index, end_edge_index
+          DO jk = 1, patch_3d%p_patch_1d(1)%dolic_e(je,blockNo)
+             vn_new(je,jk,blockNo) = (vn_pred(je,jk,blockNo) &
+               & - gdt_x_ab_beta * z_grad_h_block(je))
+          END DO
+        END DO
+        !$ACC END PARALLEL LOOP
+      ELSE ! If LAM don't update the boundary
+
+        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+        DO je = start_edge_index, end_edge_index
+          IF (patch%edges%refin_ctrl(je,blockNo) == 0 .OR. &
+            & patch%edges%refin_ctrl(je,blockNo) > 2*ocean_latbc_bnd_intp_width) THEN
+            DO jk = 1, patch_3d%p_patch_1d(1)%dolic_e(je,blockNo)
+               vn_new(je,jk,blockNo) = (vn_pred(je,jk,blockNo) &
+                 & - gdt_x_ab_beta * z_grad_h_block(je))
+            END DO
+          ELSE
+            DO jk = 1, patch_3d%p_patch_1d(1)%dolic_e(je,blockNo)
+               vn_new(je,jk,blockNo) = vn_old(je,jk,blockNo)
+            END DO
+          ENDIF
+        END DO
+        !$ACC END PARALLEL LOOP
+      ENDIF ! is_ocean_limited_area
+
       !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
       DO je = start_edge_index, end_edge_index
         DO jk = 1, patch_3d%p_patch_1d(1)%dolic_e(je,blockNo)
-          vn_new(je,jk,blockNo) = (vn_pred(je,jk,blockNo) &
-            & - gdt_x_ab_beta * z_grad_h_block(je))
-
           vn_time_weighted(je,jk,blockNo) = ab_gam * vn_new(je,jk,blockNo) &
             & + one_minus_ab_gam * vn_old(je,jk,blockNo)
         END DO
@@ -1266,14 +1292,30 @@ CONTAINS
       ocean_state%p_aux%p_rhs_sfc_eq(:,blockNo) = 0.0_wp
       !$ACC END KERNELS
 
-      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-      DO jc = start_cell_index, end_cell_index
-        IF (patch_3d%p_patch_1d(1)%dolic_c(jc,blockNo) > 0) THEN
-          ocean_state%p_aux%p_rhs_sfc_eq(jc,blockNo) = ( ( eta(jc,blockNo) &
-            & - dtime * div_z_depth_int_c(jc)) * inv_gdt2)
-        ENDIF
-      END DO
-      !$ACC END PARALLEL LOOP
+      IF (.NOT. is_ocean_limited_area) THEN
+        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+        DO jc = start_cell_index, end_cell_index
+          IF (patch_3d%p_patch_1d(1)%dolic_c(jc,blockNo) > 0) THEN
+            ocean_state%p_aux%p_rhs_sfc_eq(jc,blockNo) = ( ( eta(jc,blockNo) &
+              & - dtime * div_z_depth_int_c(jc)) * inv_gdt2)
+          ENDIF
+        END DO
+        !$ACC END PARALLEL LOOP
+      ELSE ! If LAM don't update the boundary
+        !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+        DO jc = start_cell_index, end_cell_index
+          IF (patch_3d%p_patch_1d(1)%dolic_c(jc,blockNo) > 0) THEN
+            IF (patch_2D%cells%refin_ctrl(jc,blockNo) == 0 .OR. &
+              & patch_2D%cells%refin_ctrl(jc,blockNo) > ocean_latbc_bnd_intp_width) THEN
+              ocean_state%p_aux%p_rhs_sfc_eq(jc,blockNo) = ( ( eta(jc,blockNo) &
+                & - dtime * div_z_depth_int_c(jc)) * inv_gdt2)
+            ELSE
+              ocean_state%p_aux%p_rhs_sfc_eq(jc,blockNo) = eta(jc,blockNo) * inv_gdt2
+            ENDIF
+          ENDIF
+        END DO
+        !$ACC END PARALLEL LOOP
+      ENDIF ! is_ocean_limited_area
     END DO
     !$ACC WAIT(1)
 !ICON_OMP_END_PARALLEL_DO
@@ -1411,7 +1453,7 @@ CONTAINS
       !$ACC UPDATE SELF(eta_c_new) IF(lzacc)
       minmaxmean(:) = global_minmaxmean(values=eta_c_new, in_subset=owned_cells)
 
-      IF ( abs(minmaxmean(1)) >  300 ) THEN
+      IF ( abs(minmaxmean(1)) > ssh_fatal_level ) THEN
         CALL print_value_location(eta_c_new, minmaxmean(1), owned_cells)
         CALL work_mpi_barrier()
         CALL finish("Surface height too large!!")

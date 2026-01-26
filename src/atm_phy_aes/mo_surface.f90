@@ -22,7 +22,8 @@ MODULE mo_surface
   USE mo_exception,         ONLY: finish
 !#endif
 
-  USE mo_physical_constants,ONLY: grav, Tf, alf, albedoW, stbo, tmelt, rhos!!$, rhoi
+  USE mo_physical_constants,ONLY: grav, alf, albedoW, stbo, tmelt, rhos!!$, rhoi
+  USE mo_sea_ice_nml,       ONLY: Tf
   USE mo_physical_constants,ONLY: cvd, cpd
   USE mo_coupling_config,   ONLY: is_coupled_to_ocean
   USE mo_aes_phy_config,    ONLY: aes_phy_config

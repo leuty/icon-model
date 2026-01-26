@@ -33,13 +33,13 @@ MODULE mo_albedo
   USE mo_lnd_nwp_config,       ONLY: ntiles_total, ntiles_water, ntiles_lnd, lterra_urb, lurbalb,  &
     &                                lseaice, lprog_albsi, llake, isub_water, isub_lake,           &
     &                                albsi_min, albsi_snow_max,               &
-    &                                isub_seaice
+    &                                isub_seaice, tf_salt
   USE mo_nwp_tuning_config,    ONLY: tune_albedo_wso
   USE mo_extpar_config,        ONLY: itype_vegetation_cycle
   USE sfc_terra_data,          ONLY: csalb, csalb_snow_fe, csalb_snow_fd,     &
     &                                csalb_snow_min, csalb_snow_max, csalb_p, csalb_snow, &
     &                                ist_seawtr, ist_seaice
-  USE mo_physical_constants,   ONLY: tmelt, tf_salt
+  USE mo_physical_constants,   ONLY: tmelt
   USE sfc_flake_data,          ONLY: tpl_T_f, h_Ice_min_flk
   USE sfc_flake,               ONLY: alb_lakeice_equil
   USE mo_impl_constants_grf,   ONLY: grf_bdywidth_c

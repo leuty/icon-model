@@ -26,6 +26,7 @@ MODULE mo_lnd_nwp_nml
   USE mo_restart_nml_and_att, ONLY: open_tmpfile, store_and_close_namelist,  &
     &                               open_and_restore_namelist, close_tmpfile
   USE mo_nml_annotate,        ONLY: temp_defaults, temp_settings
+  USE mo_physical_constants,  ONLY: tf_salt_const
   USE mtime,                  ONLY: max_timedelta_str_len
 
   USE mo_lnd_nwp_config,      ONLY: config_nlev_snow          => nlev_snow         , &
@@ -36,6 +37,7 @@ MODULE mo_lnd_nwp_nml
     &                               config_frsea_thrhld       => frsea_thrhld      , &
     &                               config_hice_min           => hice_min          , &
     &                               config_hice_max           => hice_max          , &
+    &                               config_tf_salt            => tf_salt           , &
     &                               config_albsi_snow_max     => albsi_snow_max    , &
     &                               config_albsi_snow_min     => albsi_snow_min    , &
     &                               config_albsi_max          => albsi_max         , &
@@ -129,6 +131,7 @@ CONTAINS
     REAL(wp)::  frsea_thrhld      !< fraction threshold for creating a sea grid point
     REAL(wp)::  hice_min          !< minimum sea-ice thickness [m]
     REAL(wp)::  hice_max          !< maximum sea-ice thickness [m]
+    REAL(wp)::  tf_salt           !< freezing temperature of seawater [K]
     REAL(wp)::  albsi_snow_max    !< maximum albedo of snow over sea ice [-]
     REAL(wp)::  albsi_snow_min    !< minimum albedo of snow over sea ice [-]
     REAL(wp)::  albsi_max         !< maximum albedo of sea ice [-]
@@ -187,7 +190,7 @@ CONTAINS
          &               itype_oskin_warm, itype_oskin_cold                   , &
          &               frlnd_thrhld, frlndtile_thrhld, frlake_thrhld        , &
          &               frsea_thrhld, lmelt_var, lmulti_snow                 , &
-         &               hice_min, hice_max, lbottom_hflux                    , &
+         &               hice_min, hice_max, tf_salt, lbottom_hflux           , &
          &               albsi_snow_max, albsi_snow_min, albsi_max, albsi_min , &
          &               itype_trvg, idiag_snowfrac, max_toplaydepth          , &
          &               itype_evsl                                           , &
@@ -239,6 +242,7 @@ CONTAINS
                              ! tile for a grid point
     hice_min       = 0.05_wp ! minimum sea-ice thickness [m]
     hice_max       = 3.0_wp  ! maximum sea-ice thickness [m]
+    tf_salt        = tf_salt_const ! freezing temperature of seawater [K]
     albsi_snow_max = 0.80_wp ! Maximum albedo of snow over sea ice
     albsi_snow_min = 0.50_wp ! Minimum albedo of snow over sea ice
     albsi_max      = 0.70_wp ! Maximum albedo of sea ice
@@ -450,6 +454,7 @@ CONTAINS
     config_albsi_max          = albsi_max
     config_lbottom_hflux      = lbottom_hflux
     config_lseaice            = lseaice
+    config_tf_salt            = tf_salt
     config_lprog_albsi        = lprog_albsi
     config_llake              = llake
     config_itype_oskin_warm   = itype_oskin_warm

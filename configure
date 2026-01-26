@@ -597,6 +597,7 @@ GPU_ENABLED
 OPENMP_ENABLED
 MPI_DISABLED
 MPI_ENABLED
+HD_ENABLED
 MSGWAM_ENABLED
 ART_ENABLED
 EMVORADO_ENABLED
@@ -2514,9 +2515,9 @@ fi
 acx_subdir_extra_run_0 ()
 {
 icon_try="${MAKE-make} -C '${icon_abs_top_builddir}/externals/yaxt/inst_headers'"
-         { $as_echo "$as_me:${as_lineno-$LINENO}: running $icon_try" >&5
+            { $as_echo "$as_me:${as_lineno-$LINENO}: running $icon_try" >&5
 $as_echo "$as_me: running $icon_try" >&6;}
-         { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$icon_try\""; } >&5
+            { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$icon_try\""; } >&5
   (eval $icon_try) 2>&5
   ac_status=$?
   $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
@@ -4140,7 +4141,6 @@ fi
 
 ############################## ENVIRONMENT CHECKS ##############################
 
-
    if test -n "$BUILD_ENV"; then :
   if $as_echo "$BUILD_ENV" | grep ';[ ]*$' >/dev/null 2>&1; then :
 
@@ -4153,7 +4153,13 @@ fi
   *) :
      ;;
 esac
-      BUILD_ENV_MAKE=`echo "$BUILD_ENV" | sed 's/\\$/$$/g'`
+      BUILD_ENV_MAKE=$BUILD_ENV
+      case $BUILD_ENV_MAKE in #(
+  *\$*) :
+    BUILD_ENV_MAKE=`$as_echo "$BUILD_ENV_MAKE" | sed 's/\\$/$$/g'` ;; #(
+  *) :
+     ;;
+esac
       { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether \$BUILD_ENV is accepted by '$SHELL -c'" >&5
 $as_echo_n "checking whether \$BUILD_ENV is accepted by '$SHELL -c'... " >&6; }
       acx_build_env_quoted=$BUILD_ENV
@@ -10552,6 +10558,21 @@ fi
 
 ############################### BUNDLED PACKAGES ###############################
 
+if test "x$prefix" = xNONE; then :
+  prefix=$ac_default_prefix
+fi
+if test "x$exec_prefix" = xNONE; then :
+  exec_prefix=$prefix
+fi
+for icon_installdir in bindir includedir libdir; do
+  eval icon_tmp=\$$icon_installdir
+  eval "$icon_installdir=\"$icon_tmp\""
+done
+
+   acx_subdir_srcdirs_fn .
+icon_abs_top_srcdir=$ac_abs_top_srcdir
+icon_abs_top_builddir=$ac_abs_top_builddir
+
 ICON_BUNDLED_FCFLAGS=${ICON_BUNDLED_FCFLAGS-$ICON_FCFLAGS}
 
 ICON_BUNDLED_CFLAGS=${ICON_BUNDLED_CFLAGS-$ICON_CFLAGS}
@@ -10580,10 +10601,6 @@ BUNDLED_LIBFILES=''
 icon_pvcs_subdirs=''
 
 
-
-   acx_subdir_srcdirs_fn .
-icon_abs_top_srcdir=$ac_abs_top_srcdir
-icon_abs_top_builddir=$ac_abs_top_builddir
 
 if test "x$enable_rte_rrtmgp" = xyes && test "x$with_external_rte_rrtmgp" = xno; then :
   icon_subdir_srcdir="$srcdir/externals/rte-rrtmgp"
@@ -11359,6 +11376,8 @@ esac
      case $acx_tmp in #(
   -DCMAKE_C_FLAGS=*|-DCMAKE_Fortran_FLAGS=*|-DCMAKE_CXX_*=*) :
      ;; #(
+  -DCMAKE_INSTALL_PREFIX=*) :
+     ;; #(
   *) :
            case $acx_tmp in #(
   *\'*) :
@@ -11370,7 +11389,7 @@ esac
 esac
      shift
    done
-   set dummy -DCMAKE_AR="$AR" -DCMAKE_RANLIB="$RANLIB" -DCMAKE_C_FLAGS="$subdir_CFLAGS $ICON_MTIME_CFLAGS $subdir_CPPFLAGS" -DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_MTIME_FCFLAGS" -DCMAKE_BUILD_TYPE=None -DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH" -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF -DMTIME_ENABLE_PYTHON="$icon_mtime_python" -DPython_EXECUTABLE="$PYTHON"; shift
+   set dummy -DCMAKE_AR="$AR" -DCMAKE_RANLIB="$RANLIB" -DCMAKE_C_FLAGS="$subdir_CFLAGS $ICON_MTIME_CFLAGS $subdir_CPPFLAGS" -DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_MTIME_FCFLAGS" -DCMAKE_BUILD_TYPE=None -DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH"      -DCMAKE_POSITION_INDEPENDENT_CODE="$icon_yac_python"      -DCMAKE_INSTALL_PREFIX="$exec_prefix"      -DCMAKE_INSTALL_LIBDIR="$libdir" -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF -DMTIME_ENABLE_PYTHON="$icon_mtime_python" -DPython_EXECUTABLE="$PYTHON"; shift
    for acx_tmp; do
      case $acx_tmp in #(
   *\'*) :
@@ -11515,8 +11534,7 @@ esac
      as_fn_append acx_subdir_run_args_externals_yac " '$acx_tmp'"
    done
 else
-                 as_fn_append acx_subdir_run_before_externals_yac ' acx_subdir_extra_run_0'
-      set dummy YAXT_CFLAGS="-I${icon_abs_top_builddir}/externals/yaxt/inst_headers" acx_cv_c_lib_func_xt_initialized="${icon_abs_top_builddir}/externals/yaxt/src/.libs/libyaxt_c.a"; shift
+  set dummy YAXT_CFLAGS="-I${icon_abs_top_builddir}/externals/yaxt/inst_headers" ac_cv_header_yaxt_h=yes acx_cv_c_lib_func_xt_initialized="${icon_abs_top_builddir}/externals/yaxt/src/.libs/libyaxt_c.a"; shift
    for acx_tmp; do
      case $acx_tmp in #(
   *\'*) :
@@ -11549,10 +11567,15 @@ esac
      as_fn_append acx_subdir_run_args_externals_yac " '$acx_tmp'"
    done
 fi
-      if test "x$enable_delayed_config" = xyes; then :
+      if test "x$enable_mpi_checks" = xyes; then :
+                 as_fn_append acx_subdir_run_before_externals_yac ' acx_subdir_extra_run_0'
+         if test "x$enable_delayed_config" = xyes; then :
   as_fn_append BUNDLED_RULES "externals/yac/Makefile:| externals/yaxt$as_nl"
 fi
    as_fn_append BUNDLED_RULES "externals/yac: externals/yaxt$as_nl"
+else
+  as_fn_append BUNDLED_RULES "externals/yac: externals/yaxt$as_nl"
+fi
 fi
    if test "x$with_external_mtime" = xyes; then :
   set dummy MTIME_CFLAGS=; shift
@@ -11706,7 +11729,7 @@ esac
 esac
      shift
    done
-   set dummy -DCMAKE_AR="$AR" -DCMAKE_RANLIB="$RANLIB" -DCMAKE_C_FLAGS="$subdir_CFLAGS $ICON_COMIN_CFLAGS $subdir_CPPFLAGS" -DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_COMIN_FCFLAGS" -DCMAKE_CXX_FLAGS="$subdir_CXXFLAGS $ICON_COMIN_CXXFLAGS $subdir_CPPFLAGS" -DCMAKE_BUILD_TYPE=None -DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH" -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF -DCOMIN_ENABLE_EXAMPLES=OFF -DCOMIN_ENABLE_PYTHON_ADAPTER="$icon_comin_python" -DPython3_EXECUTABLE="$PYTHON"; shift
+   set dummy -DCMAKE_AR="$AR" -DCMAKE_RANLIB="$RANLIB" -DCMAKE_C_FLAGS="$subdir_CFLAGS $ICON_COMIN_CFLAGS $subdir_CPPFLAGS" -DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_COMIN_FCFLAGS" -DCMAKE_CXX_FLAGS="$subdir_CXXFLAGS $ICON_COMIN_CXXFLAGS $subdir_CPPFLAGS" -DCMAKE_BUILD_TYPE=None -DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH" -DCMAKE_INSTALL_LIBDIR="$libdir" -DCMAKE_INSTALL_INCLUDEDIR="$includedir" -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF -DCOMIN_ENABLE_EXAMPLES=OFF -DCOMIN_ENABLE_PYTHON_ADAPTER="$icon_comin_python" -DPython3_EXECUTABLE="$PYTHON"; shift
    for acx_tmp; do
      case $acx_tmp in #(
   *\'*) :
@@ -12308,6 +12331,14 @@ if test "x$enable_msgwam" = xyes; then :
 
 else
   MSGWAM_ENABLED='#'
+
+fi
+
+if test x"$enable_hd" != xno; then :
+  HD_ENABLED=''
+
+else
+  HD_ENABLED='#'
 
 fi
 

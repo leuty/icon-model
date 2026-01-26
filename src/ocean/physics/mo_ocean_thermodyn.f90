@@ -23,7 +23,7 @@ MODULE mo_ocean_thermodyn
   USE mo_kind,                ONLY: wp
   USE mo_ocean_nml,           ONLY: n_zlev, eos_type, no_tracer, fast_performance_level,l_partial_cells, &
     & LinearThermoExpansionCoefficient, LinearHalineContractionCoefficient,OceanReferenceDensity, &
-   &  ReferencePressureIndbars, OceanReferenceDensity_inv
+   &  ReferencePressureIndbars, OceanReferenceDensity_inv, sp_thermal_coefficient
   USE mo_model_domain,        ONLY: t_patch, t_patch_3d
   USE mo_impl_constants,      ONLY: sea_boundary, sea_boundary, min_dolic !, &
   USE mo_exception,           ONLY: finish, warning
@@ -879,6 +879,8 @@ CONTAINS
     CASE(3)
       CALL calculate_density_jmdwfg06(patch_3d, tracer, rho)
       !CALL calculate_density_JM_EOS(patch_2D, tracer, rho)
+    CASE(4) ! simplistic state-of-equation from Stuhne and Peltier
+      CALL calculate_density_linear_Stuhne_Peltier(patch_3d, tracer, rho)
     CASE(5)
       CALL calculate_density_lin(patch_3d, tracer, rho)
     CASE(10)
@@ -924,6 +926,8 @@ CONTAINS
     CASE(3)
       CALL calculate_density_jmdwfg06(patch_3d, tracer, rho)
       !CALL calculate_density_JM_EOS(patch_2D, tracer, rho)k
+    CASE(4) ! simplistic state-of-equation from Stuhne and Peltier
+      CALL calculate_density_linear_Stuhne_Peltier(patch_3d, tracer, rho)
     CASE(5)
       CALL calculate_density_lin(patch_3d, tracer, rho)
     CASE(10)
@@ -957,6 +961,9 @@ CONTAINS
     CASE(3)
       rho(1:levels) = calculate_density_jmdwfg06_onColumn( &
         & temperature(1:levels),  salinity(1:levels), p(1:levels))
+    CASE(4) ! simplistic state-of-equation from Stuhne and Peltier
+      rho(1:levels) = calculate_density_linear_Stuhne_Peltier_onColumn( &
+        & temperature(1:levels))
     CASE(10)
       rho(1:levels) = calculate_density_EOS10_onColumn( &
         & temperature(1:levels),  salinity(1:levels), p(1:levels))
@@ -983,6 +990,8 @@ CONTAINS
       rho = calculate_density_mpiom_onColumn(temperature, salinity, p*0.1_wp)
     CASE(3)
       rho = calculate_density_jmdwfg06_onColumn(temperature, salinity, p)
+    CASE(4) ! simplistic state-of-equation from Stuhne and Peltier
+      rho = calculate_density_linear_Stuhne_Peltier_onColumn(temperature)
     CASE(10)
       rho = calculate_density_EOS10_onColumn(temperature, salinity, p)
     CASE default
@@ -1119,16 +1128,11 @@ CONTAINS
 !ICON_OMP_DO PRIVATE(start_index, end_index, jc, jk) ICON_OMP_DEFAULT_SCHEDULE
       DO jb = all_cells%start_block, all_cells%end_block
         CALL get_index_range(all_cells, jb, start_index, end_index)
-        rho(:,:,jb) = OceanReferenceDensity   !  plotting purpose
+        rho(:,:,jb) = OceanReferenceDensity
         DO jc = start_index, end_index
           DO jk=1, patch_3d%p_patch_1d(1)%dolic_c(jc,jb)
-!            IF(patch_3d%lsm_c(jc,jk,jb) <= sea_boundary ) THEN
               rho(jc,jk,jb) = OceanReferenceDensity - LinearThermoExpansionCoefficient * tracer(jc,jk,jb,1) &
               &+ LinearHalineContractionCoefficient * sal_ref
-              !write(123,*)'density',jk,jc,jb,rho(jc,jk,jb), tracer(jc,jk,jb,1),a_T
-!            ELSE
-!              rho(jc,jk,jb) = OceanReferenceDensity   !  plotting purpose
-!            ENDIF
           END DO
         END DO
       END DO
@@ -1138,6 +1142,45 @@ CONTAINS
     ENDIF
 
   END SUBROUTINE calculate_density_linear
+  !-------------------------------------------------------------------------
+
+  !-------------------------------------------------------------------------
+  !>
+  !!Calculates the density via a salinity-invariant, temperature-linear eq.
+  !!
+  SUBROUTINE calculate_density_linear_Stuhne_Peltier(patch_3d, tracer, rho)
+    !
+    TYPE(t_patch_3d ),TARGET, INTENT(in)   :: patch_3d
+    REAL(wp),    INTENT(in)       :: tracer(:,:,:,:)     !< input of S and T
+    REAL(wp), INTENT(inout)       :: rho   (:,:,:)       !< density
+
+    INTEGER :: jc, jk, jb
+    INTEGER :: start_index, end_index
+    TYPE(t_subset_range), POINTER :: all_cells
+    TYPE(t_patch), POINTER :: patch_2D
+    !-----------------------------------------------------------------------
+    patch_2D   => patch_3d%p_patch_2d(1)
+    !-------------------------------------------------------------------------
+    all_cells => patch_2D%cells%ALL
+
+    IF(no_tracer < 1) CALL finish('calculate_density_linear_Stuhne_Peltier', 'no_tracer must be >=1')
+
+!ICON_OMP_PARALLEL
+!ICON_OMP_DO PRIVATE(start_index, end_index, jc, jk) ICON_OMP_DEFAULT_SCHEDULE
+    DO jb = all_cells%start_block, all_cells%end_block
+      CALL get_index_range(all_cells, jb, start_index, end_index)
+      !  tracer 1: potential temperature
+      rho(:,:,jb) = OceanReferenceDensity
+      DO jc = start_index, end_index
+        DO jk=1, patch_3d%p_patch_1d(1)%dolic_c(jc,jb)
+            rho(jc,jk,jb) = OceanReferenceDensity * (1 - tracer(jc,jk,jb,1) * sp_thermal_coefficient)
+        END DO
+      END DO
+    END DO
+!ICON_OMP_END_DO NOWAIT
+!ICON_OMP_END_PARALLEL
+
+  END SUBROUTINE calculate_density_linear_Stuhne_Peltier
   !-------------------------------------------------------------------------
 
   !---------------------------------------------------------------------------
@@ -1582,6 +1625,19 @@ CONTAINS
       & + LinearHalineContractionCoefficient * s
 
   END FUNCTION calculate_density_linear_onColumn
+
+  !-------------------------------------------------------------------------
+  !>
+  !!Calculates the density via a salinity-invariant, temperature-linear eq.
+  !!
+  ELEMENTAL FUNCTION calculate_density_linear_Stuhne_Peltier_onColumn(t) result(rho)
+    !$ACC ROUTINE SEQ
+    REAL(wp),INTENT(in)  :: t
+    REAL(wp)             :: rho
+
+    rho = OceanReferenceDensity * (1.0_wp - t * sp_thermal_coefficient)
+
+  END FUNCTION calculate_density_linear_Stuhne_Peltier_onColumn
 
   !----------------------------------------------------------------
   !>
