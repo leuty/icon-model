@@ -66,7 +66,7 @@ Now, choose the type of grid (`R<n>B<k>`) to use. To begin with, we use a small 
 EXP_TYPE = amip-aes-R2B4
 ```
 
-Change the `ACCOUNT` field to the account of the slurm project you are member of. These accounts are composed of two letters and four numbers, e.g.:
+Add a new `ACCOUNT = ...` line for the account of the slurm project you are member of. `ACCOUNT` is a basic setting, so make sure this line is _above_ any `[...]` section. Accounts are composed of two letters and four numbers, e.g.:
 
 ```
 ACCOUNT = mh0000
@@ -77,7 +77,7 @@ Adjust the number of nodes (R2B4 grids can run with a single node):
 nodes = 1
 ```
 
-Adjust the initial and last day of simulation as well as the interval for the restart file (here you will run three hours and print one restart file at the end of the simulation). Note that the timestamp format follows the [ISO 8601 for date- and time-related data](https://en.wikipedia.org/wiki/ISO_8601). Make sure that the following three lines are the next following the `ACCOUNT` line:
+Adjust the initial and last day of simulation as well as the interval for the restart file (here you will run three hours and print one restart file at the end of the simulation). Note that the timestamp format follows the [ISO 8601 for date- and time-related data](https://en.wikipedia.org/wiki/ISO_8601). Again, make sure that the following three lines are above any `[...]` section:
 
 ```
 INITIAL_DATE = 2020-01-01T00:00:00
