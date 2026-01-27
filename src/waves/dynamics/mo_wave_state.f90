@@ -1011,7 +1011,7 @@ CONTAINS
     CALL add_var(p_diag_list, 'ds_sea', p_diag%ds_sea,              &
          & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
          & lrestart=.FALSE., loutput=.TRUE.,                        &
-         & ldims=shape2d_c, in_group=groups("wave_short"))
+         & ldims=shape2d_c)   !, in_group=groups("wave_short"))
 
      ! swell
     cf_desc    = t_cf_var('emean_swell', 'm^2', 'Swell wave energy', datatype_flt)
