@@ -22,7 +22,7 @@ MODULE mo_initicon_nml
   USE mo_exception,          ONLY: finish, message, message_text
   USE mo_impl_constants,     ONLY: max_dom, vname_len,                       &
     &                              max_var_ml, MODE_IFSANA, MODE_DWDANA,     &
-    &                              MODE_IAU, MODE_IAU_OLD, MODE_COMBINED,    &
+    &                              MODE_IAU, MODE_COMBINED,                  &
     &                              MODE_COSMO, MODE_ICONVREMAP, ivexpol
   USE mo_io_units,           ONLY: nnml, nnml_output, filename_max
   USE mo_namelist,           ONLY: position_nml, positioned, open_nml, close_nml
@@ -99,7 +99,6 @@ CONTAINS
 
   !local variable
   INTEGER :: i_status
-  INTEGER :: z_go_init(7)   ! for consistency check
   INTEGER :: iunit
   INTEGER :: jg
   LOGICAL :: is_fg_filetype_grib2, is_ana_filetype_grib2
@@ -176,7 +175,7 @@ CONTAINS
   INTEGER  :: filetype      ! One of CDI's FILETYPE\_XXX constants. Possible values: 2 (=FILETYPE\_GRB2), 4 (=FILETYPE\_NC2)
 
   REAL(wp) :: dt_iau        ! Time interval during which incremental analysis update (IAU) is performed [s].
-                            ! Only required for init_mode=MODE_IAU, MODE_IAU_OLD
+                            ! Only required for init_mode=MODE_IAU
 
   !> Allows IAU runs to start earlier than the nominal simulation start
   ! date without showing up in the output metadata:
@@ -185,7 +184,7 @@ CONTAINS
   INTEGER  :: type_iau_wgt  ! Type of weighting function for IAU.
                             ! 1: Top-hat
                             ! 2: SIN2
-                            ! Only required for init_mode=MODE_IAU, MODE_IAU_OLD
+                            ! Only required for init_mode=MODE_IAU
   LOGICAL  :: iterate_iau   ! if .TRUE., iterate IAU phase with halved dt_iau in first iteration
 
   INTEGER  :: niter_divdamp ! number of divergence damping iterations on wind increment from DA
@@ -405,28 +404,19 @@ CONTAINS
   ! 4.0 check the consistency of the parameters
   !------------------------------------------------------------
   !
-  z_go_init = (/MODE_IFSANA,MODE_DWDANA,MODE_IAU,MODE_IAU_OLD,MODE_COMBINED,MODE_COSMO,MODE_ICONVREMAP/)
-  IF (ALL(z_go_init /= init_mode)) THEN
-    CALL finish( TRIM(routine),                         &
-      &  'Invalid initialization mode. init_mode must be between 1 and 7')
-  ENDIF
+  IF (ALL([MODE_IFSANA,MODE_DWDANA,MODE_IAU,MODE_COMBINED,MODE_COSMO,MODE_ICONVREMAP] /= init_mode)) &
+    & CALL finish(routine, 'Invalid init_mode, must be one of 1, 2, 3, 4, 5 or 7')
 
   ! Check whether init_mode and lread_ana are consistent
   IF (ANY((/MODE_COMBINED,MODE_COSMO,MODE_ICONVREMAP/)==init_mode) .AND. lread_ana) THEN
     lread_ana = .FALSE.
     WRITE(message_text,'(a,i2,a)') 'init_mode=', init_mode, &
       '. no analysis required => lread_ana re-set to .FALSE.'
-    CALL message(TRIM(routine),message_text)
+    CALL message(routine, message_text)
   ENDIF
 
   ! Check whether an analysis file is provided, if lread_ana=.TRUE.
-  IF (lread_ana) THEN
-    IF (dwdana_filename ==' ') THEN
-    CALL finish( TRIM(routine),                         &
-      &  'dwdana_filename required, but missing.')
-    ENDIF
-  ENDIF
-
+  IF (lread_ana .AND. (LEN_TRIM(dwdana_filename) < 1)) CALL finish(routine, 'lread_ana=.TRUE. requires dwdana_filename')
 
   ! Setting the first entry of lp2cintp_incr / lp2cintp_sfcana to true activates parent-to-child interpolation
   ! of DA increments / surface analysis for all domains

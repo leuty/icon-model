@@ -44,9 +44,8 @@ MODULE mo_initicon
   USE mo_advection_config,    ONLY: advection_config
   USE mo_nwp_tuning_config,   ONLY: max_freshsnow_inc
   USE mo_impl_constants,      ONLY: SUCCESS, MODE_DWDANA, max_dom,   &
-    &                               MODE_IAU, MODE_IAU_OLD, MODE_IFSANA,              &
-    &                               MODE_ICONVREMAP, MODE_COMBINED, MODE_COSMO,       &
-    &                               min_rlcell, INWP, iaes, min_rledge_int, grf_bdywidth_c, &
+    &                               MODE_IAU, MODE_IFSANA, MODE_ICONVREMAP, MODE_COMBINED, MODE_COSMO, &
+    &                               min_rlcell, INWP, iaes, min_rledge_int, grf_bdywidth_c,            &
     &                               min_rlcell_int, vname_len
   USE mo_physical_constants,  ONLY: rd, cpd, cvd, p0ref, vtmpc1, rd_o_cpd, tmelt, tf_salt
   USE mo_exception,           ONLY: message, finish
@@ -231,9 +230,6 @@ MODULE mo_initicon
             CALL message(modname,'MODE_DWD: perform initialization with DWD analysis')
         CASE(MODE_ICONVREMAP)
             CALL message(modname,'MODE_VREMAP: read ICON data and perform vertical remapping')
-        CASE (MODE_IAU_OLD)
-            CALL message(modname,'MODE_IAU_OLD: perform initialization with incremental analysis update &
-                                 &(retained for backward compatibility)')
         CASE (MODE_IAU)
             CALL message(modname,'MODE_IAU: perform initialization with incremental analysis update, including snow increments')
         CASE(MODE_IFSANA)
@@ -271,13 +267,8 @@ MODULE mo_initicon
     INTEGER :: fname_len, ist
 
     !The input file paths & types are NOT initialized IN all modes, so we need to avoid creating InputRequestLists IN these cases.
-    SELECT CASE(init_mode)
-        CASE(MODE_IFSANA)    !MODE_IFSANA uses the read_extana_*() routines, which directly use NetCDF input.
-            RETURN
-        CASE(MODE_DWDANA, MODE_IAU_OLD, MODE_IAU, MODE_ICONVREMAP, MODE_COMBINED, MODE_COSMO)
-        CASE DEFAULT
-            CALL finish(routine, "assertion failed: unknown init_mode")
-    END SELECT
+    ! MODE_IFSANA uses the read_extana_*() routines, which directly use NetCDF input.
+    IF (init_mode == MODE_IFSANA) RETURN
 
     ! Create a request list for all the relevant variable names.
     requestList => InputRequestList_create()
@@ -379,7 +370,7 @@ MODULE mo_initicon
 
     ! Fetch the input DATA from the request list.
     SELECT CASE(init_mode)
-        CASE(MODE_DWDANA, MODE_IAU_OLD, MODE_IAU)
+        CASE(MODE_DWDANA, MODE_IAU)
             CALL fetch_dwdfg_atm(requestList, p_patch, p_nh_state, initicon, inputInstructions)
             CALL fetch_dwdfg_sfc(requestList, p_patch, prm_diag, prm_nwp_stochconv, p_nh_state, p_lnd_state, inputInstructions)
         CASE(MODE_ICONVREMAP)
@@ -413,8 +404,8 @@ MODULE mo_initicon
 
     SELECT CASE(init_mode)
         CASE(MODE_ICONVREMAP)
-            if (iforcing /= iaes) CALL process_input_dwdfg_sfc (p_patch, inputInstructions, p_lnd_state, ext_data)
-        CASE(MODE_DWDANA, MODE_IAU_OLD, MODE_IAU, MODE_COMBINED, MODE_COSMO)
+            IF (iforcing /= iaes) CALL process_input_dwdfg_sfc (p_patch, inputInstructions, p_lnd_state, ext_data)
+        CASE(MODE_DWDANA, MODE_IAU, MODE_COMBINED, MODE_COSMO)
             IF (lvert_remap_fg) THEN ! apply vertical remapping of FG input (requires that the number of model levels
                                      ! does not change; otherwise, init_mode = 7 must be used based on a full analysis)
                 CALL copy_fg2initicon(p_patch, initicon, p_nh_state)
@@ -422,7 +413,7 @@ MODULE mo_initicon
                 CALL copy_initicon2prog_atm(p_patch, initicon, p_nh_state)
             END IF
             CALL process_input_dwdfg_sfc (p_patch, inputInstructions, p_lnd_state, ext_data)
-            IF(ANY((/MODE_IAU_OLD, MODE_IAU/) == init_mode)) THEN
+            IF (init_mode == MODE_IAU) THEN
                 ! In case of tile coldstart, fill sub-grid scale land
                 ! and water points with reasonable data from
                 ! neighboring grid points where possible; In case of
@@ -455,18 +446,14 @@ MODULE mo_initicon
     INTEGER :: fname_len, ana_incr_list_size, ist
 
     !The input file paths & types are NOT initialized IN all modes, so we need to avoid creating InputRequestLists IN these cases.
-    SELECT CASE(init_mode)
-        CASE(MODE_IFSANA)
-            CALL read_extana_atm(p_patch, initicon)
-            ! Perform vertical interpolation from intermediate
-            ! IFS2ICON grid to ICON grid and convert variables to the
-            ! NH set of prognostic variables
-            IF (iforcing == inwp) CALL read_extana_sfc(p_patch, initicon)
-            RETURN
-        CASE(MODE_DWDANA, MODE_IAU_OLD, MODE_IAU, MODE_ICONVREMAP, MODE_COMBINED, MODE_COSMO)
-        CASE DEFAULT
-            CALL finish(routine, "assertion failed: unknown init_mode")
-    END SELECT
+    IF (init_mode == MODE_IFSANA) THEN
+      CALL read_extana_atm(p_patch, initicon)
+      ! Perform vertical interpolation from intermediate
+      ! IFS2ICON grid to ICON grid and convert variables to the
+      ! NH set of prognostic variables
+      IF (iforcing == inwp) CALL read_extana_sfc(p_patch, initicon)
+      RETURN
+    ENDIF
 
     ! Create a request list for all the relevant variable names.
     requestList => InputRequestList_create()
@@ -557,31 +544,24 @@ MODULE mo_initicon
     IF(my_process_is_stdio() .AND. (.NOT. parallel_grib_decoding)) THEN
         CALL requestList%printInventory()
         IF(lconsistency_checks) THEN
-            SELECT CASE(init_mode)
-                CASE(MODE_IAU)
-                    incrementsList = [CHARACTER(LEN=9) :: 'u', 'v', 'pres', 'temp', 'qv', 'qc', 'qi', 'qr', 'qs', 'qg', &
-                                                          'qh', 'qnc', 'qni', 'qnr', 'qns', 'qng', 'qnh', &
-                                                        & 'w_so', 'h_snow', 'freshsnow', 't_2m']
-                CASE(MODE_IAU_OLD)
-                    incrementsList = [CHARACTER(LEN=4) :: 'u', 'v', 'pres', 'temp', 'qv', 'w_so']
-                CASE DEFAULT
-                    incrementsList = [CHARACTER(LEN=1) :: ]
-            END SELECT
+            IF (init_mode == MODE_IAU) THEN
+              incrementsList = [CHARACTER(LEN=9) :: 'u', 'v', 'pres', 'temp', 'qv', 'qc', 'qi', 'qr', 'qs', 'qg', &
+                &              'qh', 'qnc', 'qni', 'qnr', 'qns', 'qng', 'qnh', 'w_so', 'h_snow', 'freshsnow', 't_2m']
+            ELSE
+              incrementsList = [CHARACTER(LEN=1) :: ]
+            ENDIF
             CALL requestList%checkRuntypeAndUuids(incrementsList, gridUuids(p_patch), lIsFg = .FALSE., &
-              lHardCheckUuids = .NOT.check_uuid_gracefully)
+              &                                   lHardCheckUuids = .NOT.check_uuid_gracefully)
         END IF
     END IF
 
     ! Fetch the input DATA from the request list.
-    SELECT CASE(init_mode)
-        CASE(MODE_DWDANA, MODE_IAU_OLD, MODE_IAU)
-            IF(lread_ana) CALL fetch_dwdana_atm(requestList, p_patch, p_nh_state, initicon, inputInstructions)
-            IF(lread_ana) CALL fetch_dwdana_sfc(requestList, p_patch, p_lnd_state, initicon, inputInstructions)
-        CASE(MODE_COMBINED, MODE_COSMO)
-            IF(lread_ana) CALL fetch_dwdana_sfc(requestList, p_patch, p_lnd_state, initicon, inputInstructions)
-        CASE(MODE_ICONVREMAP)
-            IF(lread_ana) CALL fetch_dwdana_sfc(requestList, p_patch, p_lnd_state, initicon, inputInstructions)
-    END SELECT
+    IF (lread_ana) THEN
+      IF (ANY([MODE_DWDANA, MODE_IAU, MODE_COMBINED, MODE_COSMO, MODE_ICONVREMAP] == init_mode)) &
+        & CALL fetch_dwdana_sfc(requestList, p_patch, p_lnd_state, initicon, inputInstructions)
+      IF (ANY([MODE_DWDANA, MODE_IAU] == init_mode)) &
+        & CALL fetch_dwdana_atm(requestList, p_patch, p_nh_state, initicon, inputInstructions)
+    ENDIF ! IF (lread_ana)
 
     ! Cleanup.
     CALL requestList%destruct()
@@ -618,7 +598,7 @@ MODULE mo_initicon
             ! merge first guess with DA analysis and
             ! convert variables to the NH set of prognostic variables
             CALL create_dwdana_atm(p_patch, p_nh_state, p_int_state)
-        CASE(MODE_IAU_OLD, MODE_IAU)
+        CASE(MODE_IAU)
             ! process DWD atmosphere analysis increments
             IF(lread_ana) CALL process_input_dwdana_atm(p_patch, initicon)
             ! Compute DA increments in terms of the NH set of
@@ -641,24 +621,21 @@ MODULE mo_initicon
     END SELECT
 
     SELECT CASE(init_mode)
-        CASE(MODE_DWDANA, MODE_ICONVREMAP, MODE_IAU_OLD, MODE_IAU, MODE_COMBINED, MODE_COSMO)
+        CASE(MODE_DWDANA, MODE_ICONVREMAP, MODE_IAU, MODE_COMBINED, MODE_COSMO)
             ! process DWD land/surface analysis data / increments
             IF(lread_ana) CALL process_input_dwdana_sfc(p_patch, p_lnd_state, initicon, inputInstructions)
             ! Add increments to time-shifted first guess in one go.
             ! The following CALL must not be moved after create_dwdana_sfc()!
-            IF(ANY((/MODE_IAU_OLD, MODE_IAU/) == init_mode)) THEN
-                CALL create_iau_sfc (p_patch, p_nh_state, p_lnd_state, ext_data)
-            END IF
+            IF (init_mode == MODE_IAU) CALL create_iau_sfc (p_patch, p_nh_state, p_lnd_state, ext_data)
             ! get SST from first soil level t_so or t_seasfc
             ! perform consistency checks
-            if (iforcing /= iaes) CALL create_dwdana_sfc(p_patch, p_lnd_state, ext_data, inputInstructions)
-            IF (ANY((/MODE_IAU_OLD, MODE_IAU/) == init_mode) .AND. ntiles_total > 1) THEN
-                ! Call neighbor-filling routine for a second time in
-                ! order to ensure that fr_seaice is filled with
-                ! meaningful data near coastlines if this field is
-                ! read from the analysis
-                CALL fill_tile_points(p_patch, p_lnd_state, ext_data, process_ana_vars=.TRUE.)
-            END IF
+            IF (iforcing /= iaes) CALL create_dwdana_sfc(p_patch, p_lnd_state, ext_data, inputInstructions)
+            ! Call neighbor-filling routine for a second time in
+            ! order to ensure that fr_seaice is filled with
+            ! meaningful data near coastlines if this field is
+            ! read from the analysis
+            IF (init_mode == MODE_IAU .AND. ntiles_total > 1) &
+              & CALL fill_tile_points(p_patch, p_lnd_state, ext_data, process_ana_vars=.TRUE.)
         CASE(MODE_IFSANA)
             IF (iforcing == inwp) THEN
                 ! Perform vertical interpolation from intermediate

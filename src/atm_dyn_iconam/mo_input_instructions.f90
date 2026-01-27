@@ -15,7 +15,7 @@
 MODULE mo_input_instructions
 
     USE mo_exception,          ONLY: message, finish, message_text
-    USE mo_impl_constants,     ONLY: SUCCESS, MODE_DWDANA, MODE_ICONVREMAP, MODE_IAU, MODE_IAU_OLD, &
+    USE mo_impl_constants,     ONLY: SUCCESS, MODE_DWDANA, MODE_ICONVREMAP, MODE_IAU,          &
       &                              MODE_COMBINED, MODE_COSMO, MODE_DWDANA_OCE, MODE_IAU_OCE, &
       &                              vname_len
     USE mo_initicon_config,    ONLY: initicon_config, lread_ana, ltile_coldstart, lp2cintp_incr,    &
@@ -185,8 +185,6 @@ CONTAINS
                 ! fgGroup += tracerGroup
                 CALL add_to_list(outGroup, outGroupSize, tracerGroup, tracerGroupSize)
                 CALL add_to_list(outGroup, outGroupSize, jsbGroup, jsbGroupSize)
-            CASE(MODE_IAU_OLD)
-                CALL vlr_group('mode_iau_old_fg_in', outGroup, outGroupSize, loutputvars_only=.FALSE., lremap_lonlat=.FALSE.)
             CASE(MODE_COMBINED)
                 CALL vlr_group('mode_combined_in', outGroup, outGroupSize, loutputvars_only=.FALSE., lremap_lonlat=.FALSE.)
             CASE(MODE_COSMO)
@@ -231,8 +229,6 @@ CONTAINS
                 CALL vlr_group('mode_dwd_ana_in', outGroup, outGroupSize, loutputvars_only=.FALSE., lremap_lonlat=.FALSE.)
             CASE(MODE_IAU)
                 CALL vlr_group('mode_iau_ana_in', outGroup, outGroupSize, loutputvars_only=.FALSE., lremap_lonlat=.FALSE.)
-            CASE(MODE_IAU_OLD)
-                CALL vlr_group('mode_iau_old_ana_in', outGroup, outGroupSize, loutputvars_only=.FALSE., lremap_lonlat=.FALSE.)
             CASE DEFAULT
                 CALL new_list(outGroup, outGroupSize)
         END SELECT
@@ -244,7 +240,7 @@ CONTAINS
         INTEGER, INTENT(IN) :: init_mode
 
         SELECT CASE(init_mode)
-            CASE(MODE_IAU, MODE_IAU_OLD)
+            CASE(MODE_IAU)
                 CALL vlr_group('mode_iau_anaatm_in', outGroup, outGroupSize, loutputvars_only=.FALSE., lremap_lonlat=.FALSE.)
             CASE DEFAULT
                 CALL new_list(outGroup, outGroupSize)
@@ -306,7 +302,6 @@ CONTAINS
         CHARACTER(LEN = *), PARAMETER :: routine = modname//':collectGroups'
         CHARACTER(LEN=vname_len), ALLOCATABLE, DIMENSION(:) :: anaAtmGroup
         INTEGER :: anaAtmGroupSize, jg
-        LOGICAL :: lRemoveSnowfrac
 
         ! get the raw DATA
         CALL collectGroupFg(fgGroup, fgGroupSize, init_mode)
@@ -328,12 +323,10 @@ CONTAINS
                 IF (init_mode == MODE_ICONVREMAP) CALL add_to_list(fgGroup, fgGroupSize, 'clw')
                 IF (init_mode == MODE_ICONVREMAP) CALL add_to_list(fgGroup, fgGroupSize, 'cli')
 
-            CASE(MODE_IAU, MODE_IAU_OLD)
+            CASE(MODE_IAU)
                 ! in case of tile coldstart, we can omit snowfrac_lc
                 ! Remove field 'snowfrac_lc' from FG list
-                lRemoveSnowfrac = ltile_coldstart
-                IF(init_mode == MODE_IAU .AND. .NOT. lsnowtile) lRemoveSnowfrac = .TRUE.
-                IF(lRemoveSnowfrac) CALL difference(fgGroup, fgGroupSize, (/'snowfrac_lc'/), 1)
+                IF (ltile_coldstart .OR. .NOT. lsnowtile) CALL difference(fgGroup, fgGroupSize, (/'snowfrac_lc'/), 1)
 
                 IF (.NOT. lp2cintp_incr(jg) .AND. .NOT. lp2cintp_sfcana(jg) ) THEN
                     ! full ANA read
@@ -514,7 +507,6 @@ CONTAINS
     !!     MODE_DWDANA    : mode_dwd_fg_in + mode_dwd_ana_in
     !!     MODE_ICONVREMAP: mode_dwd_fg_in + mode_dwd_ana_in
     !!     MODE_IAU       : mode_iau_fg_in + mode_iau_ana_in - mode_iau_anaatm_in
-    !!     MODE_IAU_OLD   : mode_iau_old_fg_in + mode_iau_old_ana_in - mode_iau_anaatm_in
     !!     MODE_COMBINED  : mode_combined_in
     !!     MODE_COSMO     : mode_cosmo_in
     !!     MODE_IFSANA    : <NONE>

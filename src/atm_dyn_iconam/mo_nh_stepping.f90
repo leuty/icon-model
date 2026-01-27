@@ -87,7 +87,7 @@ MODULE mo_nh_stepping
   USE mo_nh_feedback,              ONLY: incr_feedback, relax_feedback, lhn_feedback
   USE mo_exception,                ONLY: message, message_text, finish
   USE mo_impl_constants,           ONLY: SUCCESS, inoforcing, iheldsuarez, inwp, iaes,         &
-    &                                    MODE_IAU, MODE_IAU_OLD, SSTICE_CLIM,                  &
+    &                                    MODE_IAU, SSTICE_CLIM,                                &
     &                                    MODE_IFSANA,MODE_COMBINED,MODE_COSMO,MODE_ICONVREMAP, &
     &                                    SSTICE_AVG_MONTHLY, SSTICE_AVG_DAILY, SSTICE_INST,    &
     &                                    max_dom, min_rlcell, min_rlvert, ismag, iprog,        &
@@ -2109,7 +2109,7 @@ MODULE mo_nh_stepping
         ! step because no other filtering of the interpolated velocity field is done
         !
         IF (ldynamics .AND. .NOT.ltestcase .AND. linit_dyn(jg) .AND. diffusion_config(jg)%lhdiff_vn .AND. &
-            init_mode /= MODE_IAU .AND. init_mode /= MODE_IAU_OLD) THEN
+            init_mode /= MODE_IAU) THEN
 
           ! Use here the model time step dt_loc, for which the diffusion is computed here.
           CALL diffusion(p_nh_state(jg)%prog(nnow(jg)), p_nh_state(jg)%diag,                   &
@@ -3058,7 +3058,7 @@ MODULE mo_nh_stepping
       ! save massflux at first substep
       lsave_mflx = (p_patch%n_childdom > 0 .AND. nstep == 1 )
 
-      IF ( ANY((/MODE_IAU,MODE_IAU_OLD/)==init_mode) ) THEN ! incremental analysis mode
+      IF (init_mode == MODE_IAU) THEN ! incremental analysis mode
         time_diff  =  getTimeDeltaFromDateTime(mtime_current, time_config%tc_exp_startdate)
         cur_time = REAL(getTotalSecondsTimedelta(time_diff, mtime_current)                  &
              &         -getTotalSecondsTimedelta(time_config%timeshift%mtime_shift, mtime_current),wp)  &
@@ -3090,7 +3090,7 @@ MODULE mo_nh_stepping
 
     END DO SUBSTEPS
 
-    IF ( ANY((/MODE_IAU,MODE_IAU_OLD/)==init_mode) ) THEN
+    IF (init_mode == MODE_IAU) THEN
       IF (cur_time > dt_iau) lready_for_checkpoint = .TRUE.
     ELSE
       lready_for_checkpoint = .TRUE.

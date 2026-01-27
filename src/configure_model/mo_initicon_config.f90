@@ -17,7 +17,7 @@ MODULE mo_initicon_config
     &                              int2string
   USE mo_impl_constants,     ONLY: max_dom, vname_len, max_var_ml, MAX_CHAR_LENGTH,  &
     &                              MODE_IFSANA, MODE_COMBINED, MODE_COSMO,           &
-    &                              MODE_IAU, MODE_IAU_OLD, MODE_ICONVREMAP, nclass_aero, &
+    &                              MODE_IAU, MODE_ICONVREMAP, nclass_aero, &
     &                              ivexpol
   USE mo_io_units,           ONLY: filename_max
   USE mo_io_util,            ONLY: get_filetype
@@ -157,12 +157,12 @@ MODULE mo_initicon_config
   INTEGER  :: filetype      ! One of CDI's FILETYPE\_XXX constants. Possible values: 2 (=FILETYPE\_GRB2), 4 (=FILETYPE\_NC2)
 
   REAL(wp) :: dt_iau        ! Time interval during which incremental analysis update (IAU) is performed [s].
-                            ! Only required for init_mode=MODE_IAU, MODE_IAU_OLD
+                            ! Only required for init_mode=MODE_IAU
 
   INTEGER  :: type_iau_wgt  ! Type of weighting function for IAU.
                             ! 1: Top-hat
                             ! 2: SIN2
-                            ! Only required for init_mode=MODE_IAU, MODE_IAU_OLD
+                            ! Only required for init_mode=MODE_IAU
   LOGICAL  :: iterate_iau   ! if .TRUE., iterate IAU phase with halved dt_iau in first iteration
 
   INTEGER  :: niter_divdamp ! number of divergence damping iterations on wind increment from DA
@@ -266,7 +266,7 @@ CONTAINS
        ! i.e. w_so_ice and h_snow are re-diagnosed
     ELSE IF (l_limited_area .AND. init_mode == MODE_ICONVREMAP .AND. .NOT. lread_ana) THEN
        init_mode_soil = 1   ! same initialization for limited-area cold start
-    ELSE IF ( ANY((/MODE_IAU, MODE_IAU_OLD/) == init_mode) ) THEN
+    ELSE IF ( init_mode == MODE_IAU ) THEN
        init_mode_soil = 3  ! warmstart (within assimilation cycle) with analysis increments for h_snow
     ELSE
        init_mode_soil = 2  ! warmstart with full fields for h_snow from snow analysis

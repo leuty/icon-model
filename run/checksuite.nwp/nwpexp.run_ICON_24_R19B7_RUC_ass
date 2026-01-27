@@ -206,7 +206,7 @@ cat > ${atmo_namelist} << EOF
  start_time  = 0., 1800.,3600.,
 /
 &initicon_nml
- init_mode                    = 5 ! 1: operation mode, 5: IAU, 6: 5+sma_inc
+ init_mode                    = 5 ! 1: operation mode, 5: IAU
  dt_iau                       = 600    ! Window for incr.analysis update
  dt_shift                     = -300  ! Offset for incr.analysis update
  type_iau_wgt                 = 1           ! IAU weighting function (const.)

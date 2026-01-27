@@ -221,7 +221,7 @@ cat > ${atmo_namelist} << EOF
 ! ICON initicon_nml
 !------------------
 &initicon_nml
- init_mode                    = 5 ! 1: operation mode, 5: IAU, 6: 5+sma_inc
+ init_mode                    = 5 ! 1: operation mode, 5: IAU
  dt_iau                       = 10800    ! Window for incr.analysis update
  dt_shift                     = -5400  ! Offset for incr.analysis update
  type_iau_wgt                 = 1           ! IAU weighting function (const.)

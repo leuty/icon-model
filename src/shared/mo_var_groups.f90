@@ -52,7 +52,7 @@ MODULE mo_var_groups
   ! Note that the statically defined group list "var_groups" is
   ! non-public. Its contents are copied to a dynamically growing list
   ! "var_groups_dyn".
-  INTEGER, PARAMETER :: N_VAR_GROUPS_STATIC = 85
+  INTEGER, PARAMETER :: N_VAR_GROUPS_STATIC = 83
 
   CHARACTER(LEN=vname_len), PARAMETER :: VAR_GROUPS_STATIC(N_VAR_GROUPS_STATIC) = &
      [ "ALL                   ",  &
@@ -84,10 +84,8 @@ MODULE mo_var_groups
     &  "MODE_DWD_ANA_IN       ",  &  ! Input analysis fields for MODE_DWD
     &  "MODE_IAU_FG_IN        ",  &  ! First guess input for IAU
     &  "MODE_IAU_ANA_IN       ",  &  ! Analysis input for IAU
-    &  "MODE_IAU_ANAATM_IN    ",  &  ! Atmospheric analysis input for (old/new) IAU
+    &  "MODE_IAU_ANAATM_IN    ",  &  ! Atmospheric analysis input for IAU
     &  "DWD_FG_OCE_VARS       ",  &  ! DWD First Guess (ocean)
-    &  "MODE_IAU_OLD_FG_IN    ",  &  ! First guess input for old IAU mode
-    &  "MODE_IAU_OLD_ANA_IN   ",  &  ! Analysis input for old IAU mode
     &  "MODE_DWD_FG_OCE_IN    ",  &  ! Input first guess fields for in ocean
     &  "MODE_DWD_ANA_OCE_IN   ",  &  ! Input analysis fields for MODE_DWD in ocean
     &  "MODE_IAU_FG_OCE_IN    ",  &  ! First guess input for IAU in ocean

@@ -2555,9 +2555,7 @@ I & 2& &
 2: MODE\_IFSANA\\ \quad start from IFS analysis \\
 3: MODE\_COMBINED\\ \quad IFS atm + ICON/GME soil \\
 4: MODE\_COSMO\\ \quad start from prognostic set of variables as used by COSMO \\
-5: MODE\_IAU\\ \quad start from DWD analysis with incremental analysis update. Extension of MODE\_IAU\_OLD including snow increments\\
-6: MODE\_IAU\_OLD\\ \quad start from DWD analysis with incremental analysis update. NOTE: Extension of mode MODE\_DWDANA\_INC
-   including W\_SO increments. \\
+5: MODE\_IAU\\ \quad start from DWD analysis with incremental analysis update.\\
 7: MODE\_ICONVREMAP\\ \quad start from hor. interpolated DWD initialized analysis data with subsequent vertical remapping &
 \tabularnewline
 
@@ -2571,7 +2569,7 @@ icpl\_da\_sfcevap>= 2
 dt\_iau&
 R & 10800 & s &
 Duration of incremental analysis update (IAU) procedure. Start time for IAU is the actual model start time (see below). &
-init\_mode=5,6
+init\_mode=5
 \tabularnewline
 
 dt\_shift&
@@ -2579,7 +2577,7 @@ R & 0 & s &
 Time by which the actual model start time is shifted ahead of the nominal date.
 The latter is given by either \texttt{ini\_datetime\_string} or \texttt{experimentStartDate}.
 \texttt{dt\_shift} must be NEGATIVE, usually $- 0.5$ dt\_iau. &
-init\_mode=5,6
+init\_mode=5
 \tabularnewline
 
 iterate\_iau&
@@ -2587,25 +2585,25 @@ L & .FALSE. &  &
 If .TRUE., the IAU phase is calculated twice with halved dt\_iau in first cycle. This allows
 writing a fully initialized analysis at the nominal initialization date while using
 a centered IAU window for the forecast. &
-init\_mode=5,6 \\ and dt\_shift $<$ 0
+init\_mode=5 \\ and dt\_shift $<$ 0
 \tabularnewline
 
 rho\_incr\_filter\_wgt &
 R & 0 &  &
 Vertical filtering weight on density increments &
-init\_mode=5,6
+init\_mode=5
 \tabularnewline
 
 niter\_diffu &
 I & 10 &  &
 Number of diffusion iterations applied on wind increments &
-init\_mode=5,6
+init\_mode=5
 \tabularnewline
 
 niter\_divdamp &
 I & 25 &  &
 Number of divergence damping iterations applied on wind increments &
-init\_mode=5,6
+init\_mode=5
 \tabularnewline
 
 %\hline
@@ -2614,7 +2612,7 @@ I & 1 &  &
 Weighting function for performing IAU\\
 1: Top-Hat\\
 2: SIN2 &
-init\_mode=5,6
+init\_mode=5
 \tabularnewline
 
 %\hline
@@ -2648,7 +2646,7 @@ use\_lakeiceana&
 L & .FALSE.& &
 If .TRUE., analysis data for sea ice fraction are also used for freshwater lakes (for the time being restricted to the Great Lakes; extension to other
 lakes needs to be tested) &
-init\_mode=5,6
+init\_mode=5
 \tabularnewline
 
 %\hline
@@ -2807,7 +2805,7 @@ lconsistency\_checks&
 L & .TRUE.& &
 If .FALSE., consistency checks for Analysis and First Guess fields are skipped. On default, checks are performed for
 \emph{uuidOfHGrid} and \emph{validity time}. &
-init\_mode=1,3,4,5,6,7
+init\_mode=1,3,4,5,7
 \tabularnewline
 
 %\hline
@@ -2821,7 +2819,7 @@ lp2cintp\_incr&
 L(n\_dom) & .FALSE.& &
 If true, interpolate atmospheric data assimilation increments from parent domain. \\
 Can be specified separately for each nested domain; setting the first (global) entry to true activates
-the interpolation for all nested domains. & init\_mode=5,6
+the interpolation for all nested domains. & init\_mode=5
 \tabularnewline
 
 %\hline
@@ -2829,7 +2827,7 @@ lp2cintp\_sfcana&
 L(n\_dom) & .FALSE.& &
 If true, interpolate atmospheric surface analysis data from parent domain. \\
 Can be specified separately for each nested domain; setting the first (global) entry to true activates
-the interpolation for all nested domains. & init\_mode=5,6
+the interpolation for all nested domains. & init\_mode=5
 \tabularnewline
 
 %\hline
@@ -2837,14 +2835,14 @@ ltile\_init&
 L & .FALSE.& &
 True: initialize tiled surface fields from a first guess coming from a run without tiles. \\
 Along coastlines and lake shores, a neighbor search is executed to fill the variables on previously non-existing
-land or water points with reasonable values. Should be combined with ltile\_coldstart = .TRUE. & init\_mode=1,5,6,7
+land or water points with reasonable values. Should be combined with ltile\_coldstart = .TRUE. & init\_mode=1,5,7
 \tabularnewline
 
 %\hline
 ltile\_coldstart&
 L & .FALSE.& &
 If true, tiled surface fields are initialized with tile-averaged fields from a previous run with tiles. \\
-A neighbor search is applied to subgrid-scale ocean points for SST and sea-ice fraction. & init\_mode=1,5,6,7
+A neighbor search is applied to subgrid-scale ocean points for SST and sea-ice fraction. & init\_mode=1,5,7
 \tabularnewline
 
 %\hline
@@ -2858,7 +2856,7 @@ lvert\_remap\_fg&
 L & .FALSE.& &
 If true, vertical remapping is applied to the atmospheric first-guess fields, whereas the analysis increments
 remain unchanged. The number of model levels must be the same for input and output fields, and the z\_ifc
-(alias HHL) field pertaining to the input fields must be appended to the first-guess file. & init\_mode=5,6
+(alias HHL) field pertaining to the input fields must be appended to the first-guess file. & init\_mode=5
 \tabularnewline
 
 
@@ -2883,7 +2881,7 @@ Filename of DWD first-guess input file, default
 ''\texttt{<path>dwdFG\_R<nroot>B<jlev>\_DOM <idom>.nc}''.
 May contain the keywords \texttt{<path>} which will be substituted by
 \texttt{model\_base\_dir}, as well as \texttt{nroot}, \texttt{nroot0}, \texttt{jlev},
-and \texttt{idom} defining the current patch. & init\_mode=1,3,5,6,7
+and \texttt{idom} defining the current patch. & init\_mode=1,3,5,7
 \tabularnewline
 
 %\hline
@@ -2896,7 +2894,7 @@ Filename of DWD analysis input file, default
 <idom>.nc}''.
 May contain the keywords \texttt{<path>} which will be substituted by
 \texttt{model\_base\_dir}, as well as \texttt{nroot}, \texttt{nroot0}, \texttt{jlev},
-and \texttt{idom} defining the current patch. & init\_mode=1,3,5,6
+and \texttt{idom} defining the current patch. & init\_mode=1,3,5
 \tabularnewline
 
 %\hline
@@ -2918,7 +2916,7 @@ they become mandatory for domain \texttt{jg}, such that the model aborts if any 
 This list may include a subset of the optional first guess fields, or even the entire set of first
 guess fields. On default this list is empty, such that optional fields experience a cold-start
 initialization if they are missing and the model does not abort.
-& init\_mode=1,5,6,7
+& init\_mode=1,5,7
 \tabularnewline
 
 %\hline
@@ -2926,7 +2924,7 @@ check\_ana(jg)\%list &
 C(:)& & &
 List of mandatory analysis fields for domain \texttt{jg} that must be present in the analysis file. If these fields are not found,
 the model aborts. For all other analysis fields, the FG-fields will serve as fallback position.
-& init\_mode=1,5,6
+& init\_mode=1,5
 \tabularnewline
 
 %\hline

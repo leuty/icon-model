@@ -2922,7 +2922,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
                 & ldims=shape2d, lrestart=lrestart, opt_var_ref_pos = 2,         &
                 & var_class=CLASS_CHEM,                                          &
                 & in_group=groups("dwd_fg_sfc_vars","mode_iau_fg_in",            &
-                & "mode_iau_old_fg_in","mode_dwd_fg_in","opt_fg_vars"),          &
+                & "mode_dwd_fg_in","opt_fg_vars"),                               &
                 & hor_interp=create_hor_interp_metadata(                         &
                 &    hor_intp_type=HINTP_TYPE_LONLAT_BCTR,                       &
                 &    fallback_type=HINTP_TYPE_LONLAT_RBF )                       )
@@ -3616,7 +3616,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       & post_op=post_op(POST_OP_SCALE, arg1=1._wp/grav,                   &
       &                 new_cf=new_cf_desc),                              &
       & in_group=groups("dwd_fg_sfc_vars","mode_dwd_fg_in",               &
-      &                 "mode_iau_fg_in","mode_iau_old_fg_in",            &
+      &                 "mode_iau_fg_in",                                 &
       &                 "mode_iniana","iau_restore_vars"),                &
       & initval=0.01_wp, lopenacc=.TRUE. )
     __acc_attach(diag%gz0)

@@ -33,8 +33,7 @@ MODULE mo_initicon_utils
   USE mo_initicon_config,     ONLY: init_mode, l_sst_in, qcana_mode, qiana_mode, qrsgana_mode, &
     &                               ana_varnames_map_file, lread_vn, fire2d_filename,          &
     &                               lvert_remap_fg, aerosol_fg_present, icpl_da_sfcevap
-  USE mo_impl_constants,      ONLY: MODE_DWDANA, MODE_IAU,                              &
-                                    MODE_IAU_OLD, MODE_IFSANA, MODE_COMBINED,           &
+  USE mo_impl_constants,      ONLY: MODE_DWDANA, MODE_IAU, MODE_IFSANA, MODE_COMBINED,  &
     &                               MODE_COSMO, MODE_ICONVREMAP, MODIS, LSS_JSBACH,     &
     &                               min_rlcell_int, grf_bdywidth_c, min_rlcell,         &
     &                               iss, iorg, ibc, iso4, idu, SUCCESS, iaes
@@ -1467,87 +1466,85 @@ MODULE mo_initicon_utils
     SUBROUTINE construct_atm_inc(atm_inc)
         TYPE(t_pi_atm), INTENT(INOUT) :: atm_inc
 
-        IF ( ANY((/MODE_IAU, MODE_IAU_OLD/) == init_mode) ) THEN
-            ALLOCATE(atm_inc%temp(nproma,nlev,nblks_c), &
-            &        atm_inc%pres(nproma,nlev,nblks_c), &
-            &        atm_inc%u   (nproma,nlev,nblks_c), &
-            &        atm_inc%v   (nproma,nlev,nblks_c), &
-            &        atm_inc%vn  (nproma,nlev,nblks_e), &
-            &        atm_inc%qv  (nproma,nlev,nblks_c)  )
+        IF (init_mode == MODE_IAU) THEN
+          ALLOCATE(atm_inc%temp(nproma,nlev,nblks_c), &
+            &      atm_inc%pres(nproma,nlev,nblks_c), &
+            &      atm_inc%u   (nproma,nlev,nblks_c), &
+            &      atm_inc%v   (nproma,nlev,nblks_c), &
+            &      atm_inc%vn  (nproma,nlev,nblks_e), &
+            &      atm_inc%qv  (nproma,nlev,nblks_c)  )
 !$OMP PARALLEL
-            CALL init(atm_inc%temp(:,:,:), lacc=.FALSE.)
-            CALL init(atm_inc%pres(:,:,:), lacc=.FALSE.)
-            CALL init(atm_inc%u(:,:,:), lacc=.FALSE.)
-            CALL init(atm_inc%v(:,:,:), lacc=.FALSE.)
-            CALL init(atm_inc%vn(:,:,:), lacc=.FALSE.)
-            CALL init(atm_inc%qv(:,:,:), lacc=.FALSE.)
+          CALL init(atm_inc%temp(:,:,:), lacc=.FALSE.)
+          CALL init(atm_inc%pres(:,:,:), lacc=.FALSE.)
+          CALL init(atm_inc%u(:,:,:), lacc=.FALSE.)
+          CALL init(atm_inc%v(:,:,:), lacc=.FALSE.)
+          CALL init(atm_inc%vn(:,:,:), lacc=.FALSE.)
+          CALL init(atm_inc%qv(:,:,:), lacc=.FALSE.)
 !$OMP END PARALLEL
 
-            IF (init_mode == MODE_IAU) THEN
-              IF (qcana_mode > 0) THEN
-                ALLOCATE(atm_inc%qc(nproma,nlev,nblks_c))
+          IF (qcana_mode > 0) THEN
+            ALLOCATE(atm_inc%qc(nproma,nlev,nblks_c))
 !$OMP PARALLEL
-                CALL init(atm_inc%qc(:,:,:), lacc=.FALSE.)
+            CALL init(atm_inc%qc(:,:,:), lacc=.FALSE.)
 !$OMP END PARALLEL
-              ENDIF
-              IF (qiana_mode > 0) THEN
-                ALLOCATE(atm_inc%qi(nproma,nlev,nblks_c))
+          ENDIF
+          IF (qiana_mode > 0) THEN
+            ALLOCATE(atm_inc%qi(nproma,nlev,nblks_c))
 !$OMP PARALLEL
-                CALL init(atm_inc%qi(:,:,:), lacc=.FALSE.)
+            CALL init(atm_inc%qi(:,:,:), lacc=.FALSE.)
 !$OMP END PARALLEL
-              ENDIF
-              IF (qrsgana_mode > 0) THEN
-                ALLOCATE(atm_inc%qr(nproma,nlev,nblks_c))
-                ALLOCATE(atm_inc%qs(nproma,nlev,nblks_c))
+          ENDIF
+          IF (qrsgana_mode > 0) THEN
+            ALLOCATE(atm_inc%qr(nproma,nlev,nblks_c))
+            ALLOCATE(atm_inc%qs(nproma,nlev,nblks_c))
 !$OMP PARALLEL
-                CALL init(atm_inc%qr(:,:,:), lacc=.FALSE.)
-                CALL init(atm_inc%qs(:,:,:), lacc=.FALSE.)
+            CALL init(atm_inc%qr(:,:,:), lacc=.FALSE.)
+            CALL init(atm_inc%qs(:,:,:), lacc=.FALSE.)
 !$OMP END PARALLEL
-              ENDIF
-              IF (qrsgana_mode > 0 .AND. atm_phy_nwp_config(jg)%lhave_graupel) THEN
-                ALLOCATE(atm_inc%qg(nproma,nlev,nblks_c))
+          ENDIF
+          IF (qrsgana_mode > 0 .AND. atm_phy_nwp_config(jg)%lhave_graupel) THEN
+            ALLOCATE(atm_inc%qg(nproma,nlev,nblks_c))
 !$OMP PARALLEL
-                CALL init(atm_inc%qg(:,:,:), lacc=.FALSE.)
+            CALL init(atm_inc%qg(:,:,:), lacc=.FALSE.)
 !$OMP END PARALLEL
-              END IF
-              IF (atm_phy_nwp_config(jg)%l2moment) THEN
-                IF (qcana_mode > 0) THEN
-                  ALLOCATE(atm_inc%qnc(nproma,nlev,nblks_c))
+          END IF
+          IF (atm_phy_nwp_config(jg)%l2moment) THEN
+            IF (qcana_mode > 0) THEN
+              ALLOCATE(atm_inc%qnc(nproma,nlev,nblks_c))
 !$OMP PARALLEL
-                  CALL init(atm_inc%qnc(:,:,:), lacc=.FALSE.)
+              CALL init(atm_inc%qnc(:,:,:), lacc=.FALSE.)
 !$OMP END PARALLEL
-                END IF
-                IF (qiana_mode > 0) THEN
-                  ALLOCATE(atm_inc%qni(nproma,nlev,nblks_c))
+            END IF
+            IF (qiana_mode > 0) THEN
+              ALLOCATE(atm_inc%qni(nproma,nlev,nblks_c))
 !$OMP PARALLEL
-                  CALL init(atm_inc%qni(:,:,:), lacc=.FALSE.)
+              CALL init(atm_inc%qni(:,:,:), lacc=.FALSE.)
 !$OMP END PARALLEL
-                END IF
-                IF (qrsgana_mode > 0) THEN
-                  ALLOCATE(atm_inc%qh(nproma,nlev,nblks_c))
+            END IF
+            IF (qrsgana_mode > 0) THEN
+              ALLOCATE(atm_inc%qh(nproma,nlev,nblks_c))
 !$OMP PARALLEL
-                  CALL init(atm_inc%qh(:,:,:), lacc=.FALSE.)
+              CALL init(atm_inc%qh(:,:,:), lacc=.FALSE.)
 !$OMP END PARALLEL
-                  ALLOCATE(atm_inc%qnr(nproma,nlev,nblks_c))
-                  ALLOCATE(atm_inc%qns(nproma,nlev,nblks_c))
-                  ALLOCATE(atm_inc%qng(nproma,nlev,nblks_c))
-                  ALLOCATE(atm_inc%qnh(nproma,nlev,nblks_c))
+              ALLOCATE(atm_inc%qnr(nproma,nlev,nblks_c))
+              ALLOCATE(atm_inc%qns(nproma,nlev,nblks_c))
+              ALLOCATE(atm_inc%qng(nproma,nlev,nblks_c))
+              ALLOCATE(atm_inc%qnh(nproma,nlev,nblks_c))
 !$OMP PARALLEL
-                  CALL init(atm_inc%qnr(:,:,:), lacc=.FALSE.)
-                  CALL init(atm_inc%qns(:,:,:), lacc=.FALSE.)
-                  CALL init(atm_inc%qng(:,:,:), lacc=.FALSE.)
-                  CALL init(atm_inc%qnh(:,:,:), lacc=.FALSE.)
+              CALL init(atm_inc%qnr(:,:,:), lacc=.FALSE.)
+              CALL init(atm_inc%qns(:,:,:), lacc=.FALSE.)
+              CALL init(atm_inc%qng(:,:,:), lacc=.FALSE.)
+              CALL init(atm_inc%qnh(:,:,:), lacc=.FALSE.)
 !$OMP END PARALLEL
-                END IF
-              END IF
-            ENDIF
+            END IF ! IF (qrsgana_mode > 0)
+          END IF ! IF (atm_phy_nwp_config(jg)%l2moment)
 
-            atm_inc%nlev         = nlev
-            atm_inc%linitialized = .TRUE.
+          atm_inc%nlev         = nlev
+          atm_inc%linitialized = .TRUE.
         ELSE
-            atm_inc%nlev         = 0
-            atm_inc%linitialized = .FALSE.
-        ENDIF
+          atm_inc%nlev         = 0
+          atm_inc%linitialized = .FALSE.
+        ENDIF ! IF (init_mode == MODE_IAU)
     END SUBROUTINE construct_atm_inc
 
     ! Allocate surface output data
@@ -1602,33 +1599,30 @@ MODULE mo_initicon_utils
     SUBROUTINE construct_sfc_inc(sfc_inc)
         TYPE(t_sfc_inc), INTENT(INOUT) :: sfc_inc
 
-        IF ( (init_mode == MODE_IAU) .OR. (init_mode == MODE_IAU_OLD) ) THEN
-            ALLOCATE(sfc_inc%w_so (nproma,nlev_soil,nblks_c ) )
+        IF (init_mode == MODE_IAU) THEN
+          ALLOCATE(sfc_inc%w_so (nproma,nlev_soil,nblks_c ) )
 !$OMP PARALLEL
-            CALL init(sfc_inc%w_so(:,:,:), lacc=.FALSE.)
+          CALL init(sfc_inc%w_so(:,:,:), lacc=.FALSE.)
 !$OMP END PARALLEL
 
-            ! allocate additional fields for MODE_IAU
-            IF (init_mode == MODE_IAU) THEN
-                ALLOCATE(sfc_inc%h_snow   (nproma,nblks_c), &
-                &        sfc_inc%freshsnow(nproma,nblks_c) )
-                IF (icpl_da_sfcevap == 1 .OR. icpl_da_sfcevap == 2) ALLOCATE(sfc_inc%t_2m(nproma,nblks_c))
+          ALLOCATE(sfc_inc%h_snow   (nproma,nblks_c), &
+            &      sfc_inc%freshsnow(nproma,nblks_c) )
+          IF (icpl_da_sfcevap == 1 .OR. icpl_da_sfcevap == 2) ALLOCATE(sfc_inc%t_2m(nproma,nblks_c))
 
-                ! initialize with 0, since some increments are only read
-                ! for specific times
+          ! initialize with 0, since some increments are only read
+          ! for specific times
 !$OMP PARALLEL
-                CALL init(sfc_inc%h_snow   (:,:), lacc=.FALSE.)
-                CALL init(sfc_inc%freshsnow(:,:), lacc=.FALSE.)
-                IF (icpl_da_sfcevap == 1 .OR. icpl_da_sfcevap == 2) CALL init(sfc_inc%t_2m(:,:), lacc=.FALSE.)
+          CALL init(sfc_inc%h_snow   (:,:), lacc=.FALSE.)
+          CALL init(sfc_inc%freshsnow(:,:), lacc=.FALSE.)
+          IF (icpl_da_sfcevap == 1 .OR. icpl_da_sfcevap == 2) CALL init(sfc_inc%t_2m(:,:), lacc=.FALSE.)
 !$OMP END PARALLEL
-            ENDIF  ! MODE_IAU
 
-            sfc_inc%nlevsoil     = nlev_soil
-            sfc_inc%linitialized = .TRUE.
+          sfc_inc%nlevsoil     = nlev_soil
+          sfc_inc%linitialized = .TRUE.
         ELSE
-            sfc_inc%nlevsoil     = 0
-            sfc_inc%linitialized = .FALSE.
-        ENDIF
+          sfc_inc%nlevsoil     = 0
+          sfc_inc%linitialized = .FALSE.
+        ENDIF ! IF (init_mode == MODE_IAU)
     END SUBROUTINE construct_sfc_inc
 
   END SUBROUTINE construct_initicon

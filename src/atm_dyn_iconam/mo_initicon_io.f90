@@ -40,9 +40,8 @@ MODULE mo_initicon_io
     &                               qnxana_2mom_mode, icpl_da_sfcevap, icpl_da_skinc, icpl_da_snowalb, icpl_da_sfcfric
   USE mo_nh_init_nest_utils,  ONLY: interpolate_scal_increments, interpolate_sfcana
   USE mo_nh_init_utils,       ONLY: convert_omega2w, compute_input_pressure_and_height
-  USE mo_impl_constants,      ONLY: max_dom, MODE_ICONVREMAP,          &
-    &                               MODE_IAU, MODE_IAU_OLD, MODE_IFSANA, MODE_COMBINED, &
-    &                               MODE_COSMO, iss, iorg, ibc, iso4, idu, SUCCESS
+  USE mo_impl_constants,      ONLY: max_dom, MODE_ICONVREMAP, MODE_IAU, MODE_IFSANA, MODE_COMBINED, MODE_COSMO, &
+    &                               iss, iorg, ibc, iso4, idu, SUCCESS
   USE mo_exception,           ONLY: message, finish, message_text, warning
   USE mo_grid_config,         ONLY: n_dom, nroot, l_limited_area
   USE mo_mpi,                 ONLY: p_io, p_bcast, p_comm_work,    &
@@ -1248,24 +1247,22 @@ MODULE mo_initicon_io
                 DEALLOCATE(z_ifc_in)
 
                 ! fetch additional tracers in first guess
-                IF ( init_mode /= MODE_IAU_OLD ) &
-                  &  CALL fetch_tracer_fg('tracer_fg_in', params, jg,     &
-                  &                        atm_in  = initicon(jg)%atm_in, &
-                  &                        nblks_c = p_patch(jg)%nblks_c, &
-                  &                        nlev_in = p_patch(jg)%nlev)
+                CALL fetch_tracer_fg('tracer_fg_in', params, jg,     &
+                  &                   atm_in  = initicon(jg)%atm_in, &
+                  &                   nblks_c = p_patch(jg)%nblks_c, &
+                  &                   nlev_in = p_patch(jg)%nlev)
 
             ELSE
 
                 ! fetch additional tracers in first guess
-                IF ( init_mode /= MODE_IAU_OLD ) &
-                  &  CALL fetch_tracer_fg('tracer_fg_in', params, jg,        &
-                  &                        tracer = prognosticFields%tracer)
+                CALL fetch_tracer_fg('tracer_fg_in', params, jg, &
+                  &                   tracer = prognosticFields%tracer)
 
-            END IF
+            END IF ! IF (lvert_remap_fg)
 
             CALL fetchRequired3d(params, 'vn', jg, prognosticFields%vn)
-        END IF
-    END DO
+        END IF ! IF(p_patch(jg)%ldom_active)
+    END DO ! jg
 
   END SUBROUTINE fetch_dwdfg_atm
 
@@ -1454,7 +1451,7 @@ MODULE mo_initicon_io
         IF(p_patch(jg)%ldom_active) THEN  ! Skip reading the atmospheric input data if a model domain is not active at initial time
             ! Depending on the initialization mode chosen (incremental vs. non-incremental)
             ! input fields are stored in different locations.
-            IF ( ANY((/MODE_IAU,MODE_IAU_OLD/) == init_mode) ) THEN
+            IF (init_mode == MODE_IAU) THEN
                 ! Skip this domain if its interpolated from its parent in process_input_dwdana_atm()
                 IF (lp2cintp_incr(jg)) CYCLE
                 my_ptr => initicon(jg)%atm_inc
@@ -1472,143 +1469,122 @@ MODULE mo_initicon_io
             CALL fetch3d(params, 'u', jg, my_ptr%u)
             CALL fetch3d(params, 'v', jg, my_ptr%v)
 
-            IF ( ANY((/MODE_IAU,MODE_IAU_OLD/) == init_mode) ) THEN
-                lHaveFg = inputInstructions(jg)%ptr%sourceOfVar('qv') == kInputSourceFg
-                CALL fetch3d(params, 'qv', jg, my_ptr%qv)
-                ! check whether we are using DATA from both FG and ANA input, so that it's correctly listed in the input source table
-                IF(lHaveFg.AND.inputInstructions(jg)%ptr%sourceOfVar('qv') == kInputSourceAna) THEN
-                    CALL inputInstructions(jg)%ptr%setSource('qv', kInputSourceBoth)
+            IF (init_mode == MODE_IAU) THEN
+
+              lHaveFg = inputInstructions(jg)%ptr%sourceOfVar('qv') == kInputSourceFg
+              CALL fetch3d(params, 'qv', jg, my_ptr%qv)
+              ! check whether we are using DATA from both FG and ANA input, so that it's correctly listed in the input source table
+              IF(lHaveFg.AND.inputInstructions(jg)%ptr%sourceOfVar('qv') == kInputSourceAna) &
+                & CALL inputInstructions(jg)%ptr%setSource('qv', kInputSourceBoth)
+
+              IF (qcana_mode > 0) THEN
+                lHaveFg = inputInstructions(jg)%ptr%sourceOfVar('qc') == kInputSourceFg
+                CALL fetch3d_with_status (routine, 'dwdana file', params, 'qc', jg, my_ptr%qc, &
+                  & atm_phy_nwp_config(jg)%lhydrom_read_from_ana(iqc))
+                IF(lHaveFg.AND.inputInstructions(jg)%ptr%sourceOfVar('qc') == kInputSourceAna) &
+                  & CALL inputInstructions(jg)%ptr%setSource('qc', kInputSourceBoth)
+              END IF
+
+              IF (qiana_mode > 0) THEN
+                lHaveFg = inputInstructions(jg)%ptr%sourceOfVar('qi') == kInputSourceFg
+                CALL fetch3d_with_status (routine, 'dwdana file', params, 'qi', jg, my_ptr%qi, &
+                  & atm_phy_nwp_config(jg)%lhydrom_read_from_ana(iqi))
+                IF(lHaveFg.AND.inputInstructions(jg)%ptr%sourceOfVar('qi') == kInputSourceAna) &
+                  & CALL inputInstructions(jg)%ptr%setSource('qi', kInputSourceBoth)
+              END IF
+
+              IF (qrsgana_mode > 0) THEN
+                IF ( iqr /= 0 ) THEN
+                  lHaveFg = inputInstructions(jg)%ptr%sourceOfVar('qr') == kInputSourceFg
+                  CALL fetch3d_with_status (routine, 'dwdana file', params, 'qr', jg, my_ptr%qr, &
+                    & atm_phy_nwp_config(jg)%lhydrom_read_from_ana(iqr))
+                  IF(lHaveFg.AND.inputInstructions(jg)%ptr%sourceOfVar('qr') == kInputSourceAna) &
+                    & CALL inputInstructions(jg)%ptr%setSource('qr', kInputSourceBoth)
                 END IF
-            ELSE
-                my_ptr3d => p_nh_state(jg)%prog(nnow(jg))%tracer(:,:,:,iqv)
-                CALL fetch3d(params, 'qv', jg, my_ptr3d)
-            ENDIF
-
-            IF (init_mode == MODE_IAU .AND. qcana_mode > 0) THEN
-              lHaveFg = inputInstructions(jg)%ptr%sourceOfVar('qc') == kInputSourceFg
-              CALL fetch3d_with_status (routine, 'dwdana file', params, 'qc', jg, my_ptr%qc, &
-                   atm_phy_nwp_config(jg)%lhydrom_read_from_ana(iqc))
-              IF(lHaveFg.AND.inputInstructions(jg)%ptr%sourceOfVar('qc') == kInputSourceAna) THEN
-                  CALL inputInstructions(jg)%ptr%setSource('qc', kInputSourceBoth)
-              END IF
-            ENDIF
-
-            IF (init_mode == MODE_IAU .AND. qiana_mode > 0) THEN
-              lHaveFg = inputInstructions(jg)%ptr%sourceOfVar('qi') == kInputSourceFg
-              CALL fetch3d_with_status (routine, 'dwdana file', params, 'qi', jg, my_ptr%qi, &
-                   atm_phy_nwp_config(jg)%lhydrom_read_from_ana(iqi))
-              IF(lHaveFg.AND.inputInstructions(jg)%ptr%sourceOfVar('qi') == kInputSourceAna) THEN
-                  CALL inputInstructions(jg)%ptr%setSource('qi', kInputSourceBoth)
-              END IF
-            ENDIF
-
-            IF (init_mode == MODE_IAU .AND. qrsgana_mode > 0) THEN
-              IF ( iqr /= 0 ) THEN
-                lHaveFg = inputInstructions(jg)%ptr%sourceOfVar('qr') == kInputSourceFg
-                CALL fetch3d_with_status (routine, 'dwdana file', params, 'qr', jg, my_ptr%qr, &
-                     atm_phy_nwp_config(jg)%lhydrom_read_from_ana(iqr))
-                IF(lHaveFg.AND.inputInstructions(jg)%ptr%sourceOfVar('qr') == kInputSourceAna) THEN
-                  CALL inputInstructions(jg)%ptr%setSource('qr', kInputSourceBoth)
+                IF ( iqs /= 0 ) THEN
+                  lHaveFg = inputInstructions(jg)%ptr%sourceOfVar('qs') == kInputSourceFg
+                  CALL fetch3d_with_status (routine, 'dwdana file', params, 'qs', jg, my_ptr%qs, &
+                    & atm_phy_nwp_config(jg)%lhydrom_read_from_ana(iqs))
+                  IF(lHaveFg.AND.inputInstructions(jg)%ptr%sourceOfVar('qs') == kInputSourceAna) &
+                    & CALL inputInstructions(jg)%ptr%setSource('qs', kInputSourceBoth)
                 END IF
-              END IF
-              IF ( iqs /= 0 ) THEN
-                lHaveFg = inputInstructions(jg)%ptr%sourceOfVar('qs') == kInputSourceFg
-                CALL fetch3d_with_status (routine, 'dwdana file', params, 'qs', jg, my_ptr%qs, &
-                     atm_phy_nwp_config(jg)%lhydrom_read_from_ana(iqs))
-                IF(lHaveFg.AND.inputInstructions(jg)%ptr%sourceOfVar('qs') == kInputSourceAna) THEN
-                  CALL inputInstructions(jg)%ptr%setSource('qs', kInputSourceBoth)
+                IF ( atm_phy_nwp_config(jg)%lhave_graupel ) THEN
+                  lHaveFg = inputInstructions(jg)%ptr%sourceOfVar('qg') == kInputSourceFg
+                  CALL fetch3d_with_status (routine, 'dwdana file', params, 'qg', jg, my_ptr%qg, &
+                    & atm_phy_nwp_config(jg)%lhydrom_read_from_ana(iqg))
+                  IF(lHaveFg.AND.inputInstructions(jg)%ptr%sourceOfVar('qg') == kInputSourceAna) &
+                    & CALL inputInstructions(jg)%ptr%setSource('qg', kInputSourceBoth)
                 END IF
-              END IF
-              IF ( atm_phy_nwp_config(jg)%lhave_graupel ) THEN
-                lHaveFg = inputInstructions(jg)%ptr%sourceOfVar('qg') == kInputSourceFg
-                CALL fetch3d_with_status (routine, 'dwdana file', params, 'qg', jg, my_ptr%qg, &
-                     atm_phy_nwp_config(jg)%lhydrom_read_from_ana(iqg))
-                IF(lHaveFg.AND.inputInstructions(jg)%ptr%sourceOfVar('qg') == kInputSourceAna) THEN
-                  CALL inputInstructions(jg)%ptr%setSource('qg', kInputSourceBoth)
+                IF ( atm_phy_nwp_config(jg)%l2moment ) THEN
+                  lHaveFg = inputInstructions(jg)%ptr%sourceOfVar('qh') == kInputSourceFg
+                  CALL fetch3d_with_status (routine, 'dwdana file', params, 'qh', jg, my_ptr%qh, &
+                    & atm_phy_nwp_config(jg)%lhydrom_read_from_ana(iqh))
+                  IF(lHaveFg.AND.inputInstructions(jg)%ptr%sourceOfVar('qh') == kInputSourceAna) &
+                    & CALL inputInstructions(jg)%ptr%setSource('qh', kInputSourceBoth)
                 END IF
-              END IF
+              END IF ! IF (qrsgana_mode > 0)
 
-              IF ( atm_phy_nwp_config(jg)%l2moment ) THEN
-
-                lHaveFg = inputInstructions(jg)%ptr%sourceOfVar('qh') == kInputSourceFg
-                CALL fetch3d_with_status (routine, 'dwdana file', params, 'qh', jg, my_ptr%qh, &
-                     atm_phy_nwp_config(jg)%lhydrom_read_from_ana(iqh))
-                IF(lHaveFg.AND.inputInstructions(jg)%ptr%sourceOfVar('qh') == kInputSourceAna) THEN
-                  CALL inputInstructions(jg)%ptr%setSource('qh', kInputSourceBoth)
-                END IF
-
-              END IF
-            END IF
-
-            IF (init_mode == MODE_IAU .AND. atm_phy_nwp_config(jg)%l2moment) THEN
-
-              IF (qnxana_2mom_mode > 0) THEN
+              IF (atm_phy_nwp_config(jg)%l2moment .AND. (qnxana_2mom_mode > 0)) THEN
 
                 lHaveFg = inputInstructions(jg)%ptr%sourceOfVar('qnc') == kInputSourceFg
                 CALL fetch3d_with_status (routine, 'dwdana file', params, 'qnc', jg, my_ptr%qnc, &
-                     atm_phy_nwp_config(jg)%lhydrom_read_from_ana(iqnc))
-                IF(lHaveFg.AND.inputInstructions(jg)%ptr%sourceOfVar('qnc') == kInputSourceAna) THEN
-                  CALL inputInstructions(jg)%ptr%setSource('qnc', kInputSourceBoth)
-                END IF
+                  & atm_phy_nwp_config(jg)%lhydrom_read_from_ana(iqnc))
+                IF(lHaveFg.AND.inputInstructions(jg)%ptr%sourceOfVar('qnc') == kInputSourceAna) &
+                  & CALL inputInstructions(jg)%ptr%setSource('qnc', kInputSourceBoth)
 
                 lHaveFg = inputInstructions(jg)%ptr%sourceOfVar('qni') == kInputSourceFg
                 CALL fetch3d_with_status (routine, 'dwdana file', params, 'qni', jg, my_ptr%qni, &
-                     atm_phy_nwp_config(jg)%lhydrom_read_from_ana(iqni))
-                IF(lHaveFg.AND.inputInstructions(jg)%ptr%sourceOfVar('qni') == kInputSourceAna) THEN
-                  CALL inputInstructions(jg)%ptr%setSource('qni', kInputSourceBoth)
-                END IF
+                  & atm_phy_nwp_config(jg)%lhydrom_read_from_ana(iqni))
+                IF(lHaveFg.AND.inputInstructions(jg)%ptr%sourceOfVar('qni') == kInputSourceAna) &
+                  & CALL inputInstructions(jg)%ptr%setSource('qni', kInputSourceBoth)
 
                 lHaveFg = inputInstructions(jg)%ptr%sourceOfVar('qnr') == kInputSourceFg
                 CALL fetch3d_with_status (routine, 'dwdana file', params, 'qnr', jg, my_ptr%qnr, &
-                     atm_phy_nwp_config(jg)%lhydrom_read_from_ana(iqnr))
-                IF(lHaveFg.AND.inputInstructions(jg)%ptr%sourceOfVar('qnr') == kInputSourceAna) THEN
-                  CALL inputInstructions(jg)%ptr%setSource('qnr', kInputSourceBoth)
-                END IF
+                  & atm_phy_nwp_config(jg)%lhydrom_read_from_ana(iqnr))
+                IF(lHaveFg.AND.inputInstructions(jg)%ptr%sourceOfVar('qnr') == kInputSourceAna) &
+                  & CALL inputInstructions(jg)%ptr%setSource('qnr', kInputSourceBoth)
 
                 lHaveFg = inputInstructions(jg)%ptr%sourceOfVar('qns') == kInputSourceFg
                 CALL fetch3d_with_status (routine, 'dwdana file', params, 'qns', jg, my_ptr%qns, &
-                     atm_phy_nwp_config(jg)%lhydrom_read_from_ana(iqns))
-                IF(lHaveFg.AND.inputInstructions(jg)%ptr%sourceOfVar('qns') == kInputSourceAna) THEN
-                  CALL inputInstructions(jg)%ptr%setSource('qns', kInputSourceBoth)
-                END IF
+                  & atm_phy_nwp_config(jg)%lhydrom_read_from_ana(iqns))
+                IF(lHaveFg.AND.inputInstructions(jg)%ptr%sourceOfVar('qns') == kInputSourceAna) &
+                  & CALL inputInstructions(jg)%ptr%setSource('qns', kInputSourceBoth)
 
                 lHaveFg = inputInstructions(jg)%ptr%sourceOfVar('qng') == kInputSourceFg
                 CALL fetch3d_with_status (routine, 'dwdana file', params, 'qng', jg, my_ptr%qng, &
-                     atm_phy_nwp_config(jg)%lhydrom_read_from_ana(iqng))
-                IF(lHaveFg.AND.inputInstructions(jg)%ptr%sourceOfVar('qng') == kInputSourceAna) THEN
-                  CALL inputInstructions(jg)%ptr%setSource('qng', kInputSourceBoth)
-                END IF
+                  & atm_phy_nwp_config(jg)%lhydrom_read_from_ana(iqng))
+                IF(lHaveFg.AND.inputInstructions(jg)%ptr%sourceOfVar('qng') == kInputSourceAna) &
+                  & CALL inputInstructions(jg)%ptr%setSource('qng', kInputSourceBoth)
 
                 lHaveFg = inputInstructions(jg)%ptr%sourceOfVar('qnh') == kInputSourceFg
                 CALL fetch3d_with_status (routine, 'dwdana file', params, 'qnh', jg, my_ptr%qnh, &
-                     atm_phy_nwp_config(jg)%lhydrom_read_from_ana(iqnh))
-                IF(lHaveFg.AND.inputInstructions(jg)%ptr%sourceOfVar('qnh') == kInputSourceAna) THEN
-                  CALL inputInstructions(jg)%ptr%setSource('qnh', kInputSourceBoth)
-                END IF
+                  & atm_phy_nwp_config(jg)%lhydrom_read_from_ana(iqnh))
+                IF(lHaveFg.AND.inputInstructions(jg)%ptr%sourceOfVar('qnh') == kInputSourceAna) &
+                  & CALL inputInstructions(jg)%ptr%setSource('qnh', kInputSourceBoth)
 
                 ! QNX increments which were not available from dwdana file are diagnosed based on the QX from fg and ana increments:
-                CALL init_qnxinc_from_qxinc_twomom ( routine, p_patch(jg), p_nh_state(jg)%prog(nnow(jg)), &
-                                                     initicon(jg), &
-                                                     atm_phy_nwp_config(jg)%lhydrom_read_from_fg(:), &
-                                                     atm_phy_nwp_config(jg)%lhydrom_read_from_ana(:), &
-                                                     .NOT. atm_phy_nwp_config(jg)%lhydrom_read_from_ana(:) )
-              ELSE
+                CALL init_qnxinc_from_qxinc_twomom ( routine, p_patch(jg), p_nh_state(jg)%prog(nnow(jg)), initicon(jg), &
+                  &                                  atm_phy_nwp_config(jg)%lhydrom_read_from_fg(:),                    &
+                  &                                  atm_phy_nwp_config(jg)%lhydrom_read_from_ana(:),                   &
+                  &                                  .NOT. atm_phy_nwp_config(jg)%lhydrom_read_from_ana(:) )
+
+              ELSEIF (atm_phy_nwp_config(jg)%l2moment) THEN
 
                 ! QNX increments not read from dwdana file, but diagnosed based on the QX from fg and ana increments:
-                CALL init_qnxinc_from_qxinc_twomom ( routine, p_patch(jg), p_nh_state(jg)%prog(nnow(jg)), &
-                                                     initicon(jg), &
-                                                     atm_phy_nwp_config(jg)%lhydrom_read_from_fg(:), &
-                                                     atm_phy_nwp_config(jg)%lhydrom_read_from_ana(:), &
-                                                     atm_phy_nwp_config(jg)%lhydrom_read_from_ana(:) .OR. .TRUE. )
+                CALL init_qnxinc_from_qxinc_twomom ( routine, p_patch(jg), p_nh_state(jg)%prog(nnow(jg)), initicon(jg), &
+                  &                                  atm_phy_nwp_config(jg)%lhydrom_read_from_fg(:),                    &
+                  &                                  atm_phy_nwp_config(jg)%lhydrom_read_from_ana(:),                   &
+                  &                                  atm_phy_nwp_config(jg)%lhydrom_read_from_ana(:) .OR. .TRUE. )
 
               END IF
 
-            END IF
+            ELSE ! init_mode /= MODE_IAU
 
-            ! In initialization modes other than IAU, analyses are usually read only in the special operation
-            ! mode for interpolating uninitialized analyses. These currently do not contain cloud and precip variables,
-            ! but processing them would be enabled here
-            IF ( .NOT. ANY((/MODE_IAU,MODE_IAU_OLD/) == init_mode) ) THEN
+              ! In initialization modes other than IAU, analyses are usually read only in the special operation
+              ! mode for interpolating uninitialized analyses. These currently do not contain cloud and precip variables,
+              ! but processing them would be enabled here
+              my_ptr3d => p_nh_state(jg)%prog(nnow(jg))%tracer(:,:,:,iqv)
+              CALL fetch3d(params, 'qv', jg, my_ptr3d)
               my_ptr3d => p_nh_state(jg)%prog(nnow(jg))%tracer(:,:,:,iqc)
               CALL fetch3d(params, 'qc', jg, my_ptr3d)
               my_ptr3d => p_nh_state(jg)%prog(nnow(jg))%tracer(:,:,:,iqi)
@@ -1642,9 +1618,10 @@ MODULE mo_initicon_io
                 my_ptr3d => p_nh_state(jg)%prog(nnow(jg))%tracer(:,:,:,iqnh)
                 CALL fetch3d(params, 'qnh', jg, my_ptr3d)
               END IF
-            ENDIF
 
-        END IF
+            END IF ! IF (init_mode == MODE_IAU)
+
+        END IF ! IF(p_patch(jg)%ldom_active)
     ENDDO ! loop over model domains
 
   END SUBROUTINE fetch_dwdana_atm
@@ -1707,15 +1684,11 @@ MODULE mo_initicon_io
 
     INTEGER :: jg
 
+    IF (init_mode /= MODE_IAU) RETURN
     DO jg = 1, n_dom
-      IF(p_patch(jg)%ldom_active) THEN
-        IF (ANY((/MODE_IAU,MODE_IAU_OLD/) == init_mode)) THEN
-          IF (lp2cintp_incr(jg)) THEN
-            ! Perform parent-to-child interpolation of atmospheric DA increments
-            CALL interpolate_scal_increments(initicon, p_patch(jg)%parent_id, jg)
-          END IF
-        END IF
-      END IF
+      ! Perform parent-to-child interpolation of atmospheric DA increments
+      IF (p_patch(jg)%ldom_active .AND. lp2cintp_incr(jg)) &
+        & CALL interpolate_scal_increments(initicon, p_patch(jg)%parent_id, jg)
     END DO
   END SUBROUTINE process_input_dwdana_atm
 
@@ -2128,7 +2101,8 @@ MODULE mo_initicon_io
 
     DO jg = 1, n_dom
         IF(p_patch(jg)%ldom_active) THEN
-            IF (ANY((/MODE_IAU, MODE_IAU_OLD /) == init_mode) .AND. lp2cintp_sfcana(jg)) CYCLE  ! Skip this domain if it will be interpolated from its parent domain in process_input_dwdana_sfc()
+            ! Skip this domain if it will be interpolated from its parent domain in process_input_dwdana_sfc()
+            IF ((init_mode == MODE_IAU) .AND. lp2cintp_sfcana(jg)) CYCLE
 
             lnd_prog => p_lnd_state(jg)%prog_lnd(nnow_rcf(jg))
             lnd_diag => p_lnd_state(jg)%diag_lnd
@@ -2212,7 +2186,7 @@ MODULE mo_initicon_io
             ENDIF
 
             ! w_so
-            IF ( (init_mode == MODE_IAU) .OR. (init_mode == MODE_IAU_OLD) ) THEN
+            IF ( init_mode == MODE_IAU ) THEN
                 lHaveFg = inputInstructions(jg)%ptr%sourceOfVar('w_so') == kInputSourceFg
                 my_ptr3d => initicon(jg)%sfc_inc%w_so(:,:,:)
                 CALL fetch3d(params, 'w_so', jg, my_ptr3d)
@@ -2249,37 +2223,12 @@ MODULE mo_initicon_io
     TYPE(t_lnd_prog), POINTER :: lnd_prog
     TYPE(t_lnd_diag), POINTER :: lnd_diag
 
+    IF (init_mode /= MODE_IAU) RETURN
     jt = 1
     DO jg = 1, n_dom
-      IF(p_patch(jg)%ldom_active .AND. ANY((/MODE_IAU, MODE_IAU_OLD /) == init_mode)) THEN
-        IF (lp2cintp_sfcana(jg)) THEN
-          ! Perform parent-to-child interpolation of surface fields read from the analysis
-          CALL interpolate_sfcana(initicon, inputInstructions, p_patch(jg)%parent_id, jg, p_lnd_state(:))
-
-        ELSE IF (ntiles_total>1 .AND. init_mode == MODE_IAU_OLD) THEN
-          ! MODE_IAU_OLD: H_SNOW, FRESHSNOW, W_SNOW and RHO_SNOW are read from analysis (full fields)
-          ! Since only the first tile index is filled (see above), we fill (here) the remaining tiles
-          ! if tile approach is used. Note that for MODE_IAU this copy is skipped on purpose,
-          ! since for ltile_coldstart=.FALSE. tile information would be overwritten.
-          lnd_prog => p_lnd_state(jg)%prog_lnd(nnow_rcf(jg))
-          lnd_diag => p_lnd_state(jg)%diag_lnd
-
-!$OMP PARALLEL DO PRIVATE(jb,jc,jt,i_endidx)
-          DO jb = 1, p_patch(jg)%nblks_c
-            i_endidx = MERGE(nproma, p_patch(jg)%npromz_c, &
-              &              jb /= p_patch(jg)%nblks_c)
-            DO jt = 2, ntiles_total
-              DO jc = 1, i_endidx
-                lnd_diag%freshsnow_t(jc,jb,jt) = lnd_diag%freshsnow_t(jc,jb,1)
-                lnd_diag%h_snow_t(jc,jb,jt)    = lnd_diag%h_snow_t(jc,jb,1)
-                lnd_prog%w_snow_t(jc,jb,jt)    = lnd_prog%w_snow_t(jc,jb,1)
-                lnd_prog%rho_snow_t(jc,jb,jt)  = lnd_prog%rho_snow_t(jc,jb,1)
-              END DO
-            END DO
-          END DO
-!$OMP END PARALLEL DO
-        END IF
-      END IF
+      ! Perform parent-to-child interpolation of surface fields read from the analysis
+      IF (p_patch(jg)%ldom_active .AND. lp2cintp_sfcana(jg)) &
+        & CALL interpolate_sfcana(initicon, inputInstructions, p_patch(jg)%parent_id, jg, p_lnd_state(:))
     END DO ! loop over model domains
   END SUBROUTINE process_input_dwdana_sfc
 
