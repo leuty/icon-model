@@ -62,6 +62,7 @@
   - Major update: 12 and 13 tile setups for jsbach and quincy
   - Fix for the skin layer conductivity
   - Estimation of initial soil moisture from vegetation fraction
+  - Automized HD parameter file generation also for high resolution grids (internal HD)
 - Land initialization: Initial soil moisture is turned to ice at temperatures below zero degrees.
 - Revised 'basic' output list
 - Anthropogenic emission files: Created anthropogenic emission data including aviation sources from the CMIP7 dataset
