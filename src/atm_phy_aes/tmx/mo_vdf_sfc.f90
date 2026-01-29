@@ -525,17 +525,7 @@ CONTAINS
     CALL aggregator%BeginAggregate()
 
     CALL aggregator%Aggregate(this%domain, fract_tile, nvalid, indices, new_tsfc(:,:,:), tsfc, 'tsfc')
-
     CALL aggregator%Aggregate(this%domain, fract_tile, nvalid, indices, new_tsfc_rad(:,:,:), tsfc_rad, 'tsfc_rad4')
-!$OMP PARALLEL DO PRIVATE(jc, jb) ICON_OMP_DEFAULT_SCHEDULE
-    DO jb = this%domain%i_startblk_c, this%domain%i_endblk_c
-      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(aggregator%aggregation_queue)
-      DO jc = this%domain%i_startidx_c(jb), this%domain%i_endidx_c(jb)
-        tsfc_rad(jc,jb) = tsfc_rad(jc,jb)**0.25_wp
-      END DO
-      !$ACC END PARALLEL LOOP
-    END DO
-!$OMP END PARALLEL DO
 
     ! Aggregate surface fluxes
     CALL aggregator%Aggregate(this%domain, fract_tile, nvalid, indices, evapotrans_tile, evapotrans,'evapotrans')
@@ -556,10 +546,14 @@ CONTAINS
     !
     CALL aggregator%Aggregate(this%domain, fract_tile, nvalid, indices, lwfl_net_tile,   lwfl_net, 'lwfl_net')
     CALL aggregator%Aggregate(this%domain, fract_tile, nvalid, indices, swfl_net_tile,   swfl_net, 'swfl_net')
+
+    CALL aggregator%EndAggregate()
+
 !$OMP PARALLEL DO PRIVATE(jc, jb) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = this%domain%i_startblk_c, this%domain%i_endblk_c
-      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(aggregator%aggregation_queue) COPYIN(l_co2)
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(1) COPYIN(l_co2)
       DO jc = this%domain%i_startidx_c(jb), this%domain%i_endidx_c(jb)
+        tsfc_rad(jc,jb) = tsfc_rad(jc,jb)**0.25_wp
         lwfl_up(jc,jb) = rlds(jc,jb) - lwfl_net(jc,jb)
         swfl_up(jc,jb) = rsds(jc,jb) - swfl_net(jc,jb)
         IF (l_co2) THEN
@@ -569,8 +563,6 @@ CONTAINS
       !$ACC END PARALLEL LOOP
     END DO
 !$OMP END PARALLEL DO
-
-    CALL aggregator%EndAggregate()
 
     CALL compute_energy_fluxes( &
       & this%domain, cvv, cvd, &
