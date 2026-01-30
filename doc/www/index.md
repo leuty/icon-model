@@ -90,6 +90,7 @@ Information on the changes are available in the {{ '[**Release Notes**]({}/RELEA
 [](ref_infrastructure_parallelization)  
 [](ref_infrastructure_io)  
 [](ref_infrastructure_testing)  
+[](ref_output_coupling)  
 :::
 
 :::{grid-item-card}

@@ -12,6 +12,13 @@ A more detailed description of the parallelization is provided in the **{term}`I
 ## Input & Output (I/O)
 Detail information to Input and Output can be found in the **{term}`ICON Tutorial`** in respectively section 2 and 7.
 
+## Output Coupling
+
+```{button-ref} ref_output_coupling
+:color: primary
+:outline:
+```
+
 (ref_infrastructure_testing)=
 ## Testing
 
