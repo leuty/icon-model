@@ -2151,13 +2151,35 @@ ecCodes version >= 2.32.0
 
 %\hline
 model\_components&
-C(3)& '' '', '' '', '' '' & &
-Model components. Currently, the following options are available:\\
-{\textasteriskcentered} ''icon-nwp''\\
-{\textasteriskcentered} ''icon-nwp'', ''art-nwp''\\
-{\textasteriskcentered} ''icon-nwp'', ''ocean-nwp''\\
-{\textasteriskcentered} ''icon-nwp'', ''art-nwp'', ''ocean-nwp''\\
-Note that it is the responsibility of the user, to choose a setting that is in line with the actual model composition! &
+C(4)& '' '' & &
+Model components. Currently, the following options:\\
+{\textasteriskcentered} ''icon-nwp'' \textsuperscript{\textbf{1}}\\
+{\textasteriskcentered} ''art-nwp''\\
+{\textasteriskcentered} ''ocean-nwp''\\
+{\textasteriskcentered} ''waves-nwp''\\
+can be combined (without repetition) to represent a model configuration with max. 4 components.
+For example, use:\\
+{\textbullet} ''ocean-nwp''\\
+for a stand-alone ocean-model application, or use:\\
+{\textbullet}  ''icon-nwp'', ''art-nwp''\\
+for an ICON-ART application (lart = .TRUE.).\\
+Note that it is the responsibility of the user, to choose a setting that is in line with the actual model composition!\\
+(\textsuperscript{\textbf{1}} This stands for the model component: atmosphere + land \& water surface (as these are no indpendent
+components in the NWP configuration). This is the original basic component for NWP applications
+and therefore habitually associated with the term ''icon-nwp'' by users. The other model components were introduced later.) &
+filetype=2\\
+generatingCenter=78/80/215\\
+localDefinitionNumber=230\\
+ecCodes version >= 2.31.0
+\tabularnewline
+
+%\hline
+local\-Production\-Context&
+I(n\_dom)& -1 & &
+Local production context: \\
+- GRIB2 code table 2.233.table (local DWD definitions)\\
+This key encodes supplementary information to the generating\-Process\-Identifier
+(if required). &
 filetype=2\\
 generatingCenter=78/80/215\\
 localDefinitionNumber=230\\
@@ -7482,7 +7504,7 @@ filename\_extn &
 C&"default"& &
 User-specified filename extension (empty string also possible).
 If this namelist parameter is chosen as "default", then we have
-".nc" for NetCDF output files, and ".grb" for GRIB1/2.
+".nc" for NetCDF output files, and ".grb" for GRIB2.
 &
 \tabularnewline
 

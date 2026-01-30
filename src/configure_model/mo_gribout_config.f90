@@ -43,7 +43,7 @@ MODULE mo_gribout_config
 
   INTEGER, PARAMETER :: GRIB_LIB_COMPAT_ECC_2_31_0 = 1
 
-  INTEGER, PARAMETER :: GRIB_MAX_NUM_MOD_COMP     = 3
+  INTEGER, PARAMETER :: GRIB_MAX_NUM_MOD_COMP     = 4
   INTEGER, PARAMETER :: GRIB_MAX_STR_LEN_MOD_COMP = 9
 
   !!--------------------------------------------------------------------------
@@ -149,6 +149,13 @@ MODULE mo_gribout_config
                                                        !< 1000: "icon-nwp"
                                                        !< 2000: "art-nwp"
                                                        !< 3000: "ocean-nwp"
+                                                       !< 4000: "waves-nwp"
+
+    INTEGER :: localProductionContext !< This GRIB key is part of Local-Use-Section-2 template:
+                                      !< 230 "Model composition"
+                                      !< It encodes supplementary information to the generatingProcessIdentifier.
+                                      !< Its range of values can be found in table 2.233
+                                      !< of the local DWD ecCodes definitions.
 
     ! derived variables
     !
