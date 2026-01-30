@@ -301,10 +301,12 @@ EOF
 if [ ${run_jsbach} = yes ]; then
 #
 jsbach_namelist=NAMELIST_${EXPNAME}_lnd # also used in exec.iconrun
+npft=11
 #
 cat > ${basedir}/run/${jsbach_namelist} << EOF
 &jsb_model_nml
   usecase                 = 'jsbach_pfts'
+  npft                    = ${npft}
   use_lakes               = .TRUE.
   fract_filename          = 'bc_land_frac.nc'
   enforce_water_budget    = 'error'     ! Error: stop in case of water conservation problem
@@ -392,7 +394,7 @@ add_link_file $grid_dir/sst_and_seaice/SST_CMIP_PCMDI-AMIP-1-1-7_197801-202012_d
 jsb_dir="${grid_dir}/land/r0101/"
 add_link_file $jsb_dir/ic_land_soil.nc              ic_land_soil.nc
 add_link_file $jsb_dir/bc_land_sso.nc               bc_land_sso.nc
-add_link_file $jsb_dir/bc_land_frac_11pfts_1976.nc  bc_land_frac.nc
+add_link_file $jsb_dir/bc_land_frac_${npft}pfts_1976.nc  bc_land_frac.nc
 add_link_file $jsb_dir/bc_land_phys.nc              bc_land_phys.nc
 add_link_file $jsb_dir/bc_land_soil.nc              bc_land_soil.nc
 

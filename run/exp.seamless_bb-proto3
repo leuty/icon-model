@@ -362,7 +362,7 @@ add_link_file  ${basedir}/externals/jsbach/data/lctlib_nlct21.def ./
 JSBACH_YEAR=1850
 #JSBACH_SOIL_SPINUP=""
 JSBACH_SOIL_SPINUP="_slo1623"
-jsbach_lnd_frac="bc_land_frac_11pfts_${JSBACH_YEAR}.nc"
+jsbach_lnd_frac="bc_land_frac_${npft}pfts_${JSBACH_YEAR}.nc"
 jsbach_bc_phys="bc_land_phys_${JSBACH_YEAR}.nc"
 jsbach_bc_soil="bc_land_soil_${JSBACH_YEAR}.nc"
 jsbach_ic_soil="ic_land_soil_${JSBACH_YEAR}${JSBACH_SOIL_SPINUP}.nc"
@@ -415,6 +415,7 @@ jsbach_namelist=$lnd_namelist  # creates jsb_model_nml automatically ???
 cat > $lnd_namelist << EOF
 &jsb_model_nml
   usecase              = 'jsbach_pfts'
+  npft                 = 11
   use_lakes            = .TRUE.
   enforce_water_budget = 'logging'          ! Error: stop in case of water conservation problem
   fract_filename       = '${jsbach_lnd_frac}'

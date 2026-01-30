@@ -627,11 +627,13 @@ EOF
 # ---------------------
 if [ ${run_jsbach} = yes ]; then
 #
+npft=11
 jsbach_namelist=NAMELIST_jsbach_${EXPNAME} # also used in exec.iconrun
 #
 cat > ${basedir}/run/${jsbach_namelist} << EOF
 &jsb_model_nml
   usecase              = 'jsbach_pfts'
+  npft                 = ${npft}
   use_lakes            = .true.
   fract_filename       = 'bc_land_frac.nc'
   init_from_ifs        = .false.
@@ -731,7 +733,7 @@ add_link_file ${basedir}/externals/jsbach/data/lctlib_nlct21.def lctlib_nlct21.d
 
 datadir=${icon_data_rootFolder}/grids/public/mpim/0049/land/r0101
 
-add_link_file ${datadir}/bc_land_frac_11pfts_1976.nc     bc_land_frac.nc
+add_link_file ${datadir}/bc_land_frac_${npft}pfts_1976.nc  bc_land_frac.nc
 add_link_file ${datadir}/ic_land_soil.nc                 ic_land_soil.nc
 add_link_file ${datadir}/bc_land_phys.nc	         bc_land_phys.nc
 add_link_file ${datadir}/bc_land_soil.nc	         bc_land_soil.nc
