@@ -14,21 +14,25 @@
 srcdir:= @srcdir@
 
 # Relative paths to the directories with the ICON source code:
-subdirs:= src support test
+subdirs:= src support
 
 # Relative path to the directory with the source code of the test suite:
 test_subdir:= test/unit-tests
 
+# Relative paths to directories with source code that is irrelevant to ICON and
+# its test suite:
+ignored_subdirs:=
+
 # Relative paths to the root build directories of all bundled packages:
-bundled_builddirs= @icon_bundled_builddirs@
+bundled_builddirs:= @icon_bundled_builddirs@
 
 # Relative paths to the root build directories of the CMake-based bundled
 # packages:
-bundled_cmake_builddirs= @icon_bundled_cmake_builddirs@
+bundled_cmake_builddirs:= @icon_bundled_cmake_builddirs@
 
 # Relative paths to the root build directories of the Autoconf-based bundled
 # packages:
-bundled_config_builddirs= $(filter-out $(bundled_cmake_builddirs),$(bundled_builddirs))
+bundled_config_builddirs:= $(filter-out $(bundled_cmake_builddirs),$(bundled_builddirs))
 
 # Relative path to the directory with the Fortran module files:
 mod_builddir:= mod
@@ -49,66 +53,61 @@ lib_builddir:= lib
 ########################### BUILDING TOOLS AND FLAGS ###########################
 
 # Compilers and utilities:
-SHELL= @SHELL@
-AR= @AR@
-ARFLAGS= @ARFLAGS@
-RANLIB= @RANLIB@
-CC= @CC@
-FC= @FC@
-CXX= @CXX@
-CUDACXX= @CUDACXX@
-HIPCXX= @HIPCXX@
-PYTHON= @PYTHON@
-PVCS= ${PYTHON} $(srcdir)/utils/pvcs.py
-DEPLIST= ${PYTHON} $(srcdir)/utils/mkhelper/deplist.py
-DEPGEN= ${PYTHON} $(srcdir)/utils/mkhelper/depgen.py
-MODCMP= ${PYTHON} $(srcdir)/utils/mkhelper/fortmodcmp.py
-DSL4JSB= ${PYTHON} $(srcdir)/externals/jsbach/scripts/dsl4jsb/dsl4jsb.py
-SB2PP= @SB2PP@
-FPP= @FPP@
-INSTALL= @INSTALL@
-MKDIR_P= @MKDIR_P@
-MPI_LAUNCH= @MPI_LAUNCH@
+SHELL:= @SHELL@
+AR:= @AR@
+ARFLAGS:= @ARFLAGS@
+RANLIB:= @RANLIB@
+CC:= @CC@
+FC:= @FC@
+CXX:= @CXX@
+CUDACXX:= @CUDACXX@
+HIPCXX:= @HIPCXX@
+PYTHON:= @PYTHON@
+PVCS:= $(PYTHON) $(srcdir)/utils/pvcs.py
+DEPLIST:= $(PYTHON) $(srcdir)/utils/mkhelper/deplist.py
+DEPGEN:= $(PYTHON) $(srcdir)/utils/mkhelper/depgen.py
+MODCMP:= $(PYTHON) $(srcdir)/utils/mkhelper/fortmodcmp.py
+DSL4JSB:= $(PYTHON) $(srcdir)/externals/jsbach/scripts/dsl4jsb/dsl4jsb.py
+SB2PP:= @SB2PP@
+FPP:= @FPP@
+INSTALL:= @INSTALL@
+MKDIR_P:= @MKDIR_P@
+MPI_LAUNCH:= @MPI_LAUNCH@
 
 # Fortran compiler flags:
-FCFLAGS= @FCFLAGS@
-make_FCFLAGS= @FC_MOD_IN@$(mod_builddir)
-ICON_FCFLAGS= @ICON_FCFLAGS@
+FCFLAGS:= @FCFLAGS@
+make_FCFLAGS:= @FC_MOD_IN@$(mod_builddir)
+ICON_FCFLAGS:= @ICON_FCFLAGS@
 @ICON_FCGROUP_FLAGS@
-DEPGEN_FCFLAGS= @DEPGEN_FCFLAGS@
+DEPGEN_FCFLAGS:= @DEPGEN_FCFLAGS@
 
 # C compiler and preprocessor flags:
-CFLAGS= @CFLAGS@
-CPPFLAGS= -I. @DEFS@ @CPPFLAGS@
+CFLAGS:= @CFLAGS@
+CPPFLAGS:= -I. @DEFS@ @CPPFLAGS@
 
 # Secondary GPU compiler flags:
-CUDAFLAGS= @CUDAFLAGS@
-HIPFLAGS= @HIPFLAGS@
+CUDAFLAGS:= @CUDAFLAGS@
+HIPFLAGS:= @HIPFLAGS@
 
 # Linker flags and libraries:
-LDFLAGS= @LDFLAGS@ @ICON_LDFLAGS@
-BUNDLED_LIBFILES= @BUNDLED_LIBFILES@
-BUNDLED_EXTRA_LIBS= $(shell $(SHELL) ./collect.extra-libs)
-LIBS= @LIBS@
+LDFLAGS:= @LDFLAGS@ @ICON_LDFLAGS@
+BUNDLED_LIBFILES:= @BUNDLED_LIBFILES@
+LIBS:= @LIBS@
 
 ############################ SOURCE FILE COLLECTION ############################
 
 # Common infix for all preprocessed files:
 pp_infix:= .pp-
 
-# Relative paths to directories that must be ignored when collecting the ICON
-# source files:
-ignored_subdirs:= test
-
 # Auxiliary function. Receives a space-separated list of subdirectories inside
-# $(srcdir), a space-separated list of shell-like wildcards and a
-# space-separated ignore list of subdirectories inside $(srcdir). Returns a
-# space-separated list of relative (with respect to $(srcdir)) paths to files
-# residing in the given subdirectories and matching at least one of the given
-# patterns. Files residing in subdirectories from the ignore list (i.e. the
-# third argument) are ignored. Files, as well as the second and higher order
-# subdirectories, with names starting with a dot are ignored. Files containing
-# the preprocessor infix '*$(pp_infix)*' are ignored. Duplicates are eliminated.
+# $(srcdir), a space-separated list of shell patterns and a space-separated
+# ignore list of subdirectories inside $(srcdir). Returns a space-separated list
+# of relative (with respect to $(srcdir)) paths to files residing in the given
+# subdirectories and matching at least one of the given patterns. Files residing
+# in subdirectories from the ignore list (i.e. the third argument) are ignored.
+# Files, as well as the second and higher order subdirectories, with names
+# starting with a dot are ignored. Files containing the preprocessor infix
+# '*$(pp_infix)*' are ignored. Duplicates are eliminated.
 find_files= $(sort $(patsubst $(srcdir)/%,%, \
                 $(shell find $(addprefix $(srcdir)/,$(1)) \
                     \( $(foreach p,$(3),-path '$(srcdir)/$(p)' -o) \
@@ -118,13 +117,23 @@ find_files= $(sort $(patsubst $(srcdir)/%,%, \
                         \( $(foreach p,$(2),-name $(p) -o) -false \) \) \
                     -print )))
 
+# Auxiliary function. Receives a space-separated list of make patterns and a
+# space-separated list of paths. Returns a space-separated list of all paths
+# for which the non-directory part matches any of the patterns.
+filter_notdir_patterns= $(foreach v,$(2),$(if $(filter $(1),$(notdir $(v))),$(v)))
+
+# Auxiliary function. Receives a string and a space-separated list of paths.
+# Returns a space-separated list of all paths for which the non-directory part
+# contains the string as a substring.
+filter_notdir_substring= $(foreach v,$(2),$(if $(findstring $(1),$(notdir $(v))),$(v)))
+
 # All source files:
 all_files:= $(call find_files,$(subdirs) $(test_subdir), \
                 '*.f90' '*.inc' '*.incf' '*.c' '*.cu' '*.hip.cc',$(ignored_subdirs))
 
 # Relative (to $(srcdir)) paths to the root source directories of all extra
 # packages to be passed to the version provenance collection tool:
-PVCS_subdirs= @icon_pvcs_subdirs@
+PVCS_subdirs:= @icon_pvcs_subdirs@
 
 # JSBACH sources (must be preprocessed with DSL4JSB):
 @JSBACH_ENABLED@JSBACH_subdir:= externals/jsbach/src
@@ -165,6 +174,15 @@ inc_subdirs:= $(patsubst %/,%,$(sort $(dir $(filter %.inc %.incf,$(all_files))))
 
 # Extend Fortran compiler flags enabling the location of include files:
 make_FCFLAGS+= $(foreach d,$(inc_subdirs),@FC_INC_FLAG@$(srcdir)/$(d) @FC_INC_FLAG_PP_f90@$(srcdir)/$(d))
+
+# Source files implementing test programs:
+test_prog_f90_files:= $(call filter_notdir_patterns,test_%,$(filter $(test_subdir)/%,$(f90_files)))
+
+# Source files implementing test programs that cannot be built in the current
+# configuration:
+test_skip_prog_f90_files:=
+@MPI_ENABLED@test_skip_prog_f90_files+= $(call filter_notdir_substring,.nompi.,$(test_prog_f90_files))
+@MPI_DISABLED@test_skip_prog_f90_files+= $(call filter_notdir_substring,.mpi.,$(test_prog_f90_files))
 
 ############################# PREPROCESSING CHAIN ##############################
 
@@ -209,10 +227,10 @@ dep_files:= $(addsuffix .d,$(f90_files) $(c_files) $(cu_files) $(hip_files)) c_b
 get_obj_names= $(patsubst %.f90,%.@OBJEXT@, \
                    $(filter $(foreach f,$(1),$(f) $(f:.f90=$(pp_infix)%.f90)),$(f90_files)))
 
-# Auxiliary function. Receives a string and a space-separated list. Returns
-# a space-separated list of all elements on the list that do contain the
-# string as a substring.
-filter_substring= $(foreach v,$(2),$(if $(findstring $(1),$(v)),$(v)))
+# Auxiliary function. Receives a space-separated list of relative paths to the
+# original Fortran '.f90' files implementing the test programs and returns a
+# space-separated list of the respective test names.
+get_test_names= $(patsubst $(test_subdir)/%.f90,%,$(1))
 
 # Object files that must be injected into all executables:
 common_prog_obj_files:=
@@ -221,28 +239,16 @@ common_prog_obj_files:=
 exec_files:=
 
 # ICON executable:
-ICON_exec_file:= $(bin_builddir)/icon@EXEEXT@
-ICON_prog_obj_files:= $(call get_obj_names,src/drivers/icon.f90) $(common_prog_obj_files) version.@OBJEXT@
-exec_files+= $(ICON_exec_file)
+icon_exec_file:= $(bin_builddir)/icon@EXEEXT@
+icon_prog_obj_files:= $(call get_obj_names,src/drivers/icon.f90) version.@OBJEXT@
+exec_files+= $(icon_exec_file)
 
 # Test executable files:
-test_exec_files:=
+test_exec_files:= $(patsubst %.f90,%.x@EXEEXT@,$(filter-out $(test_skip_prog_f90_files),$(test_prog_f90_files)))
+test_prog_obj_files:= $(call get_obj_names,$(test_exec_files:.x@EXEEXT@=.f90))
 
-# Source files containing test programs:
-test_prog_f90_files:= $(call find_files,$(test_subdir),'test_*.f90')
-
-# Source files containing test programs that cannot be built in the current
-# configuration:
-test_skip_prog_f90_files:=
-@MPI_ENABLED@test_skip_prog_f90_files+= $(call filter_substring,.nompi.,$(test_prog_f90_files))
-@MPI_DISABLED@test_skip_prog_f90_files+= $(call filter_substring,.mpi.,$(test_prog_f90_files))
-
-# Default list of all unit tests:
-TESTS:= $(patsubst $(test_subdir)/%.f90,%,$(test_prog_f90_files))
-
-test_prog_f90_files:= $(filter-out $(test_skip_prog_f90_files),$(test_prog_f90_files))
-test_prog_obj_files:= $(call get_obj_names,$(test_prog_f90_files)) $(common_prog_obj_files)
-test_exec_files:= $(test_prog_f90_files:.f90=.x@EXEEXT@)
+# List of tests to run by default in the current configuration:
+TESTS:= $(call get_test_names,$(test_prog_f90_files))
 
 ############################## GENERATED ARCHIVES ##############################
 
@@ -258,14 +264,15 @@ get_prereq_objs= $(filter-out $(1),$(filter %.@OBJEXT@, \
 # Common convenience library (holds prerequisite objects of the generated
 # executables):
 common_lib_file:= $(lib_builddir)/libicon.a
-common_lib_prog_obj_files:= $(ICON_prog_obj_files)
+common_lib_prog_obj_files:= $(icon_prog_obj_files) $(common_prog_obj_files)
 common_lib_obj_files:= $(call get_prereq_objs,$(common_lib_prog_obj_files))
 lib_files+= $(common_lib_file)
 
 # Convenience library for the tests (holds prerequisite objects of the test
 # executables):
 test_lib_file:= $(test_subdir)/libicontest.a
-test_lib_obj_files:= $(call get_prereq_objs,$(test_prog_obj_files))
+test_lib_prog_obj_files:= $(test_prog_obj_files) $(common_prog_obj_files)
+test_lib_obj_files:= $(call get_prereq_objs,$(test_lib_prog_obj_files))
 lib_files+= $(test_lib_file)
 
 # Stamp files of the building subdirectories
@@ -300,15 +307,15 @@ join_comma= $(subst $() ,$(join_comma_symbol),$(strip $(1)))
 # Additional PGI/NVIDIA Fortran compiler flags enabling the inline library
 # generation and usage:
 @PGI_INLIB_ENABLED@pgi_inlib_common_arg:= lib:$(pgi_inlib_name),name:$(call join_comma,$(pgi_inlib_procedures))
-@PGI_INLIB_ENABLED@pgi_inlib_ex_FCFLAGS= -Mextract=$(pgi_inlib_common_arg)
+@PGI_INLIB_ENABLED@pgi_inlib_ex_FCFLAGS:= -Mextract=$(pgi_inlib_common_arg)
 @PGI_INLIB_ENABLED@@SEPARATE_MODS_ENABLED@dir_files+= $(mod_builddir_null)/icon.il/.dirstamp
 @PGI_INLIB_ENABLED@@SEPARATE_MODS_ENABLED@pgi_inlib_ex_FCFLAGS+= @FC_MOD_OUT@$(mod_builddir_null)/icon.il
 @PGI_INLIB_ENABLED@@SEPARATE_MODS_DISABLED@pgi_inlib_ex_FCFLAGS+= @FC_MOD_OUT@$(mod_builddir)
-@PGI_INLIB_ENABLED@pgi_inlib_in_FCFLAGS= -Minline=$(pgi_inlib_common_arg),reshape
+@PGI_INLIB_ENABLED@pgi_inlib_in_FCFLAGS:= -Minline=$(pgi_inlib_common_arg),reshape
 
 # Additional flag limiting the GPU register usage (valid only if the inline
 # library is enabled):
-@PGI_INLIB_ENABLED@@GPU_ENABLED@pgi_inlib_reglim_FCFLAGS= -gpu=maxregcount:96
+@PGI_INLIB_ENABLED@@GPU_ENABLED@pgi_inlib_reglim_FCFLAGS:= -gpu=maxregcount:96
 
 ########################################
 
@@ -368,7 +375,7 @@ $(foreach v,prefix exec_prefix bindir includedir libdir, \
         the provided value '$($(v))' will be ignored)))
 
 # Silent rule prefixes:
-V= @DEFAULT_VERBOSITY@
+V:= @DEFAULT_VERBOSITY@
 ifeq ($(V),0)
 silent_AR=      @echo "  AR      " $@;
 silent_CC=      @echo "  CC      " $@;
@@ -394,15 +401,15 @@ endif
 ifeq ($(ICON_COLOR_TESTS),always)
 else ifeq ($(ICON_COLOR_TESTS),no)
 else
-override ICON_COLOR_TESTS=
+override ICON_COLOR_TESTS:=
 endif
 
 # Test colorization of the Automake- and Autotest-based packages:
-AM_COLOR_TESTS= $(ICON_COLOR_TESTS)
-TESTSUITEFLAGS= $(if $(ICON_COLOR_TESTS),--color=$(ICON_COLOR_TESTS))
+AM_COLOR_TESTS:= $(ICON_COLOR_TESTS)
+TESTSUITEFLAGS:= $(if $(ICON_COLOR_TESTS),--color=$(ICON_COLOR_TESTS))
 
 # Test verbosity of the Automake- and Autotest-based packages:
-VERBOSE= $(ICON_VERBOSE_TESTS)
+VERBOSE:= $(ICON_VERBOSE_TESTS)
 TESTSUITEFLAGS+= $(if $(ICON_VERBOSE_TESTS),--verbose)
 
 # Skip running the Autotest-based tests if requested:
@@ -418,13 +425,13 @@ TESTSUITEFLAGS+= $(if $(TESTS),,--keywords=_run_nothing_)
         $(bundled_builddirs) force-create-version sanitize-mod-proxies
 
 # Makefiles of the bundled packages:
-bundled_makefiles= $(addsuffix /Makefile,$(bundled_builddirs))
+bundled_makefiles:= $(addsuffix /Makefile,$(bundled_builddirs))
 
 # Targets that do not need the dependency files:
 nodep_targets:= preprocess depend mostlyclean clean distclean config-bundled \
                 bundled check-bundled dummy-depend $(bundled_builddirs) \
                 $(bundled_makefiles) version.c version.@OBJEXT@ $(dep_files) \
-                $(pp_files)
+                $(pp_files) $(BUNDLED_LIBFILES)
 
 # Selective search paths:
 vpath %.f90 $(srcdir)
@@ -480,7 +487,7 @@ depend: $(dep_files)
 # Generate a list of files that are going to be compiled in the current
 # configuration:
 srclist: $(dep_files)
-	$(silent_GEN)$(DEPLIST) -t $(ICON_prog_obj_files) -f $^ 2>/dev/null | sed '/\.@OBJEXT@$$/d;/\.@FC_MOD_FILE_EXT@\.proxy$$/d;/\.@FC_SMOD_FILE_EXT@\.sproxy$$/d' | sort > $@
+	$(silent_GEN)$(DEPLIST) -t $(common_lib_prog_obj_files) -f $^ 2>/dev/null | sed '/\.@OBJEXT@$$/d;/\.@FC_MOD_FILE_EXT@\.proxy$$/d;/\.@FC_SMOD_FILE_EXT@\.sproxy$$/d' | sort > $@
 
 # Check rule:
 check: all check-bundled check-icon
@@ -504,7 +511,7 @@ mostlyclean: $(bundled_builddirs)
 # also translate 'clean' into 'distclean' for the bundled packages when the
 # delayed configuration is enabled but that would be counterproductive,
 # therefore, we do not do that):
-clean_files= srclist version.c $(pp_files)
+clean_files:= srclist version.c $(pp_files)
 
 # With all components and all preprocessing steps enabled, the list above
 # contains ~3k filenames, which might result into the following error if we
@@ -543,7 +550,7 @@ distclean: clean
           fi; \
 	done
 	@if test '.' != '$(srcdir)'; then \
-	  for dir in $(subdirs) externals run; do \
+	  for dir in $(subdirs) externals run test; do \
 	    if test -d "$$dir"; then \
 	      echo "find '$$dir' -type d -empty -delete"; \
 	      find "$$dir" -type d -empty -delete; \
@@ -554,7 +561,6 @@ distclean: clean
 
 # Installation rule:
 install: all
-	$(INSTALL) -d $(DESTDIR)@bindir@ && $(INSTALL) $(exec_files) $(DESTDIR)@bindir@
 	$(silent_none)for d in $(filter externals/comin/build,$(bundled_builddirs)); do \
 	  case ' $(bundled_cmake_builddirs) ' in \
 	    *" $$d "*) $(MAKE) -C "$$d" $@ VERBOSE=$(filter-out 0,$(V)) || exit $$? ;; \
@@ -564,6 +570,7 @@ install: all
 @HD_ENABLED@	$(silent_none)$(MAKE) -C externals/hd $@ V=$(V) exec_prefix='@exec_prefix@' bindir='bin'
 @MTIME_PYTHON_ENABLED@	$(silent_none)$(MAKE) -C externals/mtime/build/python $@ VERBOSE=$(filter-out 0,$(V))
 @YAC_PYTHON_ENABLED@	$(silent_none)$(MAKE) -C externals/yac/python $@ V=$(V) prefix='@exec_prefix@'
+	$(INSTALL) -d $(DESTDIR)@bindir@ && $(INSTALL) $(exec_files) $(DESTDIR)@bindir@
 
 # Explicit configuration rule for the bundled packages:
 config-bundled: $(bundled_makefiles)
@@ -600,7 +607,7 @@ check-bundled: $(bundled_makefiles) $(bundled_cmake_builddirs) $(if $(filter che
 check-icon: $(test_exec_files) | $(if $(filter check,$(MAKECMDGOALS)),check-bundled)
 	$(silent_none)$(PYTHON) $(srcdir)/utils/test_driver.py \
 	--tests $(TESTS) \
-	--skip-tests $(patsubst $(test_subdir)/%.f90,%,$(test_skip_prog_f90_files)) \
+	--skip-tests $(call get_test_names,$(test_skip_prog_f90_files)) \
 	--src-dir='$(srcdir)' \
 	--test-subdir='$(test_subdir)' \
 	--test-exec-ext='.x@EXEEXT@' \
@@ -611,14 +618,14 @@ check-icon: $(test_exec_files) | $(if $(filter check,$(MAKECMDGOALS)),check-bund
 ######################## COMPILATION AND LINKING RULES #########################
 
 # Dependencies of the ICON executable:
-$(ICON_exec_file): $(ICON_prog_obj_files) $(common_lib_file) $(BUNDLED_LIBFILES)
+$(icon_exec_file): $(icon_prog_obj_files) $(common_prog_obj_files) $(common_lib_file) $(BUNDLED_LIBFILES)
 
 # Dependencies of the test executables:
 $(foreach f,$(test_exec_files),$(eval $(f): $$(call get_obj_names,$(f:.x@EXEEXT@=.f90)) $$(common_prog_obj_files) $$(test_lib_file) $$(BUNDLED_LIBFILES)))
 
 # Common linking rule for the executables:
 $(exec_files) $(test_exec_files): | $(dir_files)
-	$(silent_FCLD)$(FC) -o $@ $(make_FCFLAGS) $(FCFLAGS) $(ICON_FCFLAGS) $(LDFLAGS) $+ $(BUNDLED_EXTRA_LIBS) $(LIBS)
+	$(silent_FCLD)$(FC) -o $@ $(make_FCFLAGS) $(FCFLAGS) $(ICON_FCFLAGS) $(LDFLAGS) $+ $(shell . ./collect.extra-libs) $(LIBS)
 
 # Dependencies of the common convenience library:
 $(common_lib_file): $(common_lib_obj_files)
@@ -736,10 +743,6 @@ $(bundled_cmake_builddirs):
 
 # The configuration and build order of the bundled packages:
 @BUNDLED_RULES@
-
-# Relink executables if any of the bundled libraries is updated (the semicolon
-# is required to support parallel rebuild):
-$(BUNDLED_LIBFILES): $(bundled_builddirs);
 
 ############################### AUXILIARY RULES ################################
 
