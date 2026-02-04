@@ -108,7 +108,6 @@ $addexp "checksuite.icon-dev/check.atm_sma"                --builders "${LEVANTE
 ./rmexp "checksuite.icon-dev/check.atm_sma"                --builders "levante_intel_hybrid_mixed" --list $listname
 #
 $addexp "checksuite.icon-dev/check.atm_bubble_test"        --builders "${LEVANTE_CPU_BUILDERS} ${LEVANTE_SERIAL_BUILDERS}" --list $listname --runflags "ntasks=16 queue=shared"
-$addexp "checksuite.atm/bubble.config"                     --builders "levante_intel_hybrid" --list $listname --runflags "EXP_OPTIONS=buildbot"
 $addexp "checksuite.icon-dev/check.atm_bubble_land_test"   --builders "${LEVANTE_CPU_BUILDERS} ${LEVANTE_SERIAL_BUILDERS}" --list $listname --runflags "ntasks=16 queue=shared"
 #
 #---------------------------------------------------------------------------------------------------------

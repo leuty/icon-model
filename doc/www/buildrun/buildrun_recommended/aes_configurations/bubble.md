@@ -24,7 +24,7 @@ Estimated runtime (for resources indicated above):
 : Tens of seconds
 
 Scripting:
-: {{ '[Bubble mkexp config]({}/run/checksuite.atm/bubble.config)'.format(base_url) }} (note the initialization is performed {{ '[here]({}/src/testcases/mo_aes_bubble.f90)'.format(base_url) }}, using {{ '[default parameter settings]({}/src/configure_model/mo_aes_bubble_config.f90)'.format(base_url) }}, which, along with model parameters, can be modified within Namelists) (add your slurm account `ACCOUNT` in the mkexp script to run in Levante).
+: {{ '[Bubble mkexp config]({}/run/examples/bubble.config)'.format(base_url) }} (note the initialization is performed {{ '[here]({}/src/testcases/mo_aes_bubble.f90)'.format(base_url) }}, using {{ '[default parameter settings]({}/src/configure_model/mo_aes_bubble_config.f90)'.format(base_url) }}, which, along with model parameters, can be modified within Namelists) (add your slurm account `ACCOUNT` in the mkexp script to run in Levante).
 
 Analysis/postprocessing:
 : Checkout the examples on [easyGEMS](https://easy.gems.dkrz.de/simulations/ICON/bubble.html).
