@@ -88,7 +88,7 @@ $addexp "checksuite.icon-dev/check.atm_qubicc_onlyfor"     --builders "${LEVANTE
 $addexp "checksuite.icon-dev/check.atm_qubicc_pfts"        --builders "${LEVANTE_NVHPC_GPU_BUILDERS}" --list $listname --runflags "mpi_procs_pernode=4"
 $addexp "checksuite.icon-dev/check.atm_qubicc_tmx"         --builders "${LEVANTE_NVHPC_GPU_BUILDERS}" --list $listname --runflags "mpi_procs_pernode=4"
 $addexp "checksuite.icon-dev/check.atm_qubicc_test_aero"   --builders "${LEVANTE_NVHPC_GPU_BUILDERS}" --list $listname --runflags "mpi_procs_pernode=4"
-$addexp "checksuite.atm/gpu/test_amip-aes_R2B6_gpu.config" --builders "${LEVANTE_NVHPC_GPU_BUILDERS}" --list $listname --runflags "ACCOUNT=mh0156"
+$addexp "checksuite.atm/gpu/test_amip-aes_R2B6_gpu.config" --builders "${LEVANTE_NVHPC_GPU_BUILDERS}" --list $listname
 #
 #---------------------------------------------------------------------------------------------------------
 #
@@ -108,7 +108,7 @@ $addexp "checksuite.icon-dev/check.atm_sma"                --builders "${LEVANTE
 ./rmexp "checksuite.icon-dev/check.atm_sma"                --builders "levante_intel_hybrid_mixed" --list $listname
 #
 $addexp "checksuite.icon-dev/check.atm_bubble_test"        --builders "${LEVANTE_CPU_BUILDERS} ${LEVANTE_SERIAL_BUILDERS}" --list $listname --runflags "ntasks=16 queue=shared"
-$addexp "checksuite.atm/bubble.config"                     --builders "levante_intel_hybrid" --list $listname --runflags "EXP_OPTIONS=buildbot ACCOUNT=mh0156"
+$addexp "checksuite.atm/bubble.config"                     --builders "levante_intel_hybrid" --list $listname --runflags "EXP_OPTIONS=buildbot"
 $addexp "checksuite.icon-dev/check.atm_bubble_land_test"   --builders "${LEVANTE_CPU_BUILDERS} ${LEVANTE_SERIAL_BUILDERS}" --list $listname --runflags "ntasks=16 queue=shared"
 #
 #---------------------------------------------------------------------------------------------------------
@@ -145,7 +145,7 @@ $addexp "checksuite.ocean_internal/technical/exp.test_ocean_omip_technical" \
 
 # add shallow water test
 $addexp "checksuite.ocean_internal/test_ocean_WilliamsonTestCase2_Hex.config" \
-        --builders "${LEVANTE_CPU_BUILDERS}" --without-configureflags "--enable-mixed" --runflags "cpu_time=00:30:00 queue=shared,compute ntasks=16 EXP_OPTIONS=buildbot ACCOUNT=mh0156" --list $listname
+        --builders "${LEVANTE_CPU_BUILDERS}" --without-configureflags "--enable-mixed" --runflags "cpu_time=00:30:00 queue=shared,compute ntasks=16 EXP_OPTIONS=buildbot" --list $listname
 #for levante_nag_serial we use the old test
 ./rmexp checksuite.ocean_internal/test_ocean_WilliamsonTestCase2_Hex.config                   --builders levante_nag_serial --list $listname
 $addexp "checksuite.ocean_internal/ShallowWater/exp.ocean_WilliamsonTestCase2_Hex" \
@@ -289,10 +289,10 @@ $addexp exp.seamless_bb-ecradmin --builders "levante_intel_hybrid levante_gcc_hy
 
 
 # nextGEMS test setup (!) ALPHA
-$addexp test_nextGEMS.config --builders levante_intel_hybrid --runflags "ACCOUNT=mh0156" --list $listname
+$addexp test_nextGEMS.config --builders levante_intel_hybrid --list $listname
 $addexp checksuite.infrastructure/mkexpLogMonitoring/exp.mkexp_log_monitoring.run --builders levante_intel_hybrid --list $listname
 ./adddep --from-experiment "checksuite.infrastructure/mkexpLogMonitoring/exp.mkexp_log_monitoring.run" --to-experiment "test_nextGEMS.config" --builders "levante_intel_hybrid" --list $listname
-$addexp test_yaxt_xchange.config --builders levante_intel_hybrid --runflags "ACCOUNT=mh0156" --list $listname
+$addexp test_yaxt_xchange.config --builders levante_intel_hybrid --list $listname
 
 # test memory loggin in amip setup
 #   input data for the following two tests have been removed, therefore, we
