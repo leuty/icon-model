@@ -14,6 +14,7 @@
 - Fix for double definition of cloud_num in microphysics
 - Correction to rain microphysics (evap and accretion)
 - Fix GPU async queues in TMX surface module
+- Simplification of the rte-rrtmgp radiation interface (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1087)
 
 #### NWP Physics
 
