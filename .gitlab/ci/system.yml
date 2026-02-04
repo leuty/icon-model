@@ -10,12 +10,15 @@
 
 include:
   - local: .gitlab/ci/utils/git.yml
+  - local: .gitlab/ci/utils/icon.yml
   - local: .gitlab/ci/common/dkrz.yml
   - local: .gitlab/ci/common/any-image.yml
   - local: .gitlab/ci/common/alpine.yml
 
 .system:build:levante:
-  extends: .common:dkrz:levante
+  extends:
+    - .common:dkrz:levante
+    - .utils:icon:build
   stage: system
   needs: []
   variables:
@@ -24,72 +27,23 @@ include:
     ICON_CI_UTILS_GIT_CLONE_PATH: ${ICON_CI_COMMON_DKRZ_SHMEM_PATH}/icon
     ICON_CI_UTILS_GIT_SPARSE_PATTERNS: >-
       /configure /utils/ /*.in /run/*.in /src/ /support/ /ragnarok/ /config/
-    GIT_SUBMODULE_PATHS: >-
-      externals/cdi externals/fortran-support externals/iconmath externals/mtime
-      ${ICON_CI_CONFIG_EXTRA_SUBMODULE_PATHS}
-    ICON_CI_CONFIG_REL_PATH: configure
-    MAKEFLAGS: >-
-      --jobs=${ICON_CI_COMMON_DKRZ_SLURM_NTASKS}
-      --no-print-directory
-      --output-sync=target
-      V=1
+    ICON_CI_UTILS_ICON_SOURCE_PATH: ${ICON_CI_UTILS_GIT_CLONE_PATH}
+    ICON_CI_UTILS_ICON_BUILD_JOB_COUNT: ${ICON_CI_COMMON_DKRZ_SLURM_NTASKS}
+  before_script:
+    - !reference [.common:dkrz:levante, before_script]
+    - !reference [.utils:icon:build, before_script]
   script:
-    # We put the entire script into a single subshell to trap the EXIT
-    # pseudo-signal, which we need to copy the job artifacts to $CI_PROJECT_DIR
-    # (where GitLab can find them), regardless of whether the job succeeds.
+    - !reference [.utils:icon:build, script]
     - |
       # !reference [.system:build:levante, script]
-      icon_ci_log_section_start 'Configuring and building ICON' 'collapsed=false'
-      time (
-        finalize ()
-        {
-          rsync "${ICON_CI_UTILS_GIT_CLONE_PATH}/" \
-            --include='/bin/icon' \
-            --include='/externals/mtime/build/python/mtime/**' \
-            --include='/run/SETUP.config' \
-            --include='*/' \
-            --include='CMakeCache.txt' \
-            --include='config.log' \
-            --exclude='*' \
-            "${CI_PROJECT_DIR}" \
-            --archive \
-            --compress \
-            --copy-unsafe-links \
-            --human-readable \
-            --prune-empty-dirs \
-            --verbose
-        }
-        trap finalize EXIT
-
-        set -ux
-
-        cd "${ICON_CI_UTILS_GIT_CLONE_PATH}"
-
-        "${ICON_CI_UTILS_GIT_CLONE_PATH}/${ICON_CI_CONFIG_REL_PATH}" \
-          --disable-acm-license --disable-aes --disable-art --disable-art-gpl \
-          --disable-atmo --disable-comin --disable-coupling --disable-dace \
-          --disable-ecrad --disable-emvorado --disable-hd --disable-jsbach \
-          --disable-jsbach-hd --disable-les --disable-nwp --disable-ocean \
-          --disable-openmp --disable-quincy --disable-ragnarok \
-          --disable-rte-rrtmgp --disable-rttov --disable-upatmo \
-          --disable-waves --disable-yaxt --enable-bundled-python=mtime \
-          --enable-mpi --enable-separate-mods ${ICON_CI_CONFIG_EXTRA_ARGS-}
-
-        make
-
-        sed -i "s|${ICON_CI_UTILS_GIT_CLONE_PATH}|@CI_PROJECT_DIR@|g" \
-          "${ICON_CI_UTILS_GIT_CLONE_PATH}/run/SETUP.config"
+      # We have to do it due to the hard-coded BUNDLED_PYTHONPATH:
+      icon_ci_log_info_msg 'Preparing SETUP.config for the dependent jobs...'
+      (
+        set -x
+        sed -i~ \
+          -e "s|${ICON_CI_UTILS_ICON_BUILD_PATH}|@ICON_CI_UTILS_ICON_BUILD_PATH@|g" \
+          "${CI_PROJECT_DIR}/run/SETUP.config"
       ) 2>&1
-      icon_ci_log_section_end
-  artifacts:
-    paths:
-      - "**/CMakeCache.txt"
-      - "**/config.log"
-      - bin/icon
-      - externals/mtime/build/python/mtime
-      - run/SETUP.config
-    when: always
-    expire_in: 1 day
   rules:
     - if: $CI_PIPELINE_SOURCE == "web"
       when: manual
@@ -105,64 +59,32 @@ include:
       when: manual
 
 .system:run:levante:
-  extends: .common:dkrz:levante
+  extends:
+    - .common:dkrz:levante
+    - .utils:icon:run
   stage: system
   needs: []
   variables:
     ICON_CI_COMMON_DKRZ_SLURM_PARTITION: compute
     ICON_CI_COMMON_DKRZ_SLURM_NTASKS: 256
     ICON_CI_UTILS_GIT_SPARSE_PATTERNS: >-
-      /utils/ /run/mkexp/ /${ICON_CI_MKEXP_CONFIG_REL_PATH}
+      /utils/ /run/mkexp/ /${ICON_CI_UTILS_ICON_MKEXP_CONFIG_REL_PATH}
       /run/dict.iconam.mpim /run/add_run_routines /data
-    GIT_SUBMODULE_PATHS: utils/mkexp externals/jsbach
-    MKEXP_PATH: ${CI_PROJECT_DIR}/run
-    ICON_CI_MKEXP_WORK_REL_PATH: ${CI_PIPELINE_ID}/${CI_JOB_ID}
-    ICON_CI_MKEXP_RUN_SUBDIR: run_base
+    ICON_CI_UTILS_ICON_MKEXP_ACCOUNT: ${ICON_CI_COMMON_DKRZ_SLURM_ACCOUNT}
   before_script:
     - !reference [.common:dkrz:levante, before_script]
+    - module load python3
     - |
       # !reference [.system:run:levante, before_script]
-      module --verbose load python3
-      icon_ci_log_section_start "Preparing experiment '${CI_JOB_NAME}'"
+      icon_ci_log_info_msg 'Preparing SETUP.config...'
       (
-        set -ux
-
-        sed -i "s|@CI_PROJECT_DIR@|${CI_PROJECT_DIR}|g" run/SETUP.config
-
-        ./utils/mkexp/mkexp "${ICON_CI_MKEXP_CONFIG_REL_PATH}" \
-          DATA_ROOT='$MODEL_ROOT' \
-          ACCOUNT=fixme_required_by_levante_config \
-          WORK_DIR="${CI_PROJECT_DIR}/${ICON_CI_MKEXP_WORK_REL_PATH}" \
-          EXP_ID="${CI_JOB_NAME_SLUG}" \
-          jobs.run.nodes="${ICON_CI_COMMON_DKRZ_SLURM_NNODES}" \
-          jobs.run.subdir="${ICON_CI_MKEXP_RUN_SUBDIR}" \
-          ${ICON_CI_MKEXP_EXTRA_ARGS-}
+        set -x
+        sed -i~ \
+          -e "s|@ICON_CI_UTILS_ICON_BUILD_PATH@|${CI_PROJECT_DIR}|g" \
+          "${CI_PROJECT_DIR}/run/SETUP.config"
+        rm -f "${CI_PROJECT_DIR}/run/SETUP.config~"
       ) 2>&1
-      icon_ci_log_section_end
-  script:
-    - |
-      # !reference [.system:run:levante, script]
-      icon_ci_log_section_start "Running experiment '${CI_JOB_NAME}'" 'collapsed=false'
-      (
-        set -ux
-        ./experiments/${CI_JOB_NAME_SLUG}/scripts/${CI_JOB_NAME_SLUG}.run_start
-        {
-          icon_ci_log_info_msg 'Preparing the environment for the dependent jobs...'
-          {
-            echo "ICON_CI_RUN_JOB_NAME=${CI_JOB_NAME}"
-            echo "ICON_CI_MKEXP_EXP_ID=${CI_JOB_NAME_SLUG}"
-            echo "ICON_CI_RUN_JOB_OUTPUT_REL_PATH=${ICON_CI_MKEXP_WORK_REL_PATH}/${ICON_CI_MKEXP_RUN_SUBDIR}"
-          } >dependent.env
-        } 2>/dev/null
-      ) 2>&1
-      icon_ci_log_section_end
-  artifacts:
-    name: ${CI_PIPELINE_ID}-${CI_JOB_NAME_SLUG}
-    paths:
-      - ${ICON_CI_MKEXP_WORK_REL_PATH}/${ICON_CI_MKEXP_RUN_SUBDIR}/${CI_JOB_NAME_SLUG}*.nc
-    reports:
-      dotenv: dependent.env
-    expire_in: 30 mins
+    - !reference [.utils:icon:run, before_script]
   rules:
     - if: $CI_PIPELINE_SOURCE == "web"
     - !reference [.common:dkrz:levante, rules]
@@ -173,17 +95,17 @@ include:
 
 .io:rbf_write:
   variables:
-    ICON_CI_MKEXP_EXTRA_ARGS: >-
+    ICON_CI_UTILS_ICON_MKEXP_EXTRA_ARGS: >-
       namelists.NAMELIST_atm.interpol_nml.lrbf_write=.TRUE.
       namelists.NAMELIST_atm.interpol_nml.lrbf_read=.FALSE.
   artifacts:
     paths:
-      - ${ICON_CI_MKEXP_WORK_REL_PATH}/${ICON_CI_MKEXP_RUN_SUBDIR}/rbf_coeffs_dom01.nc
+      - ${ICON_CI_UTILS_ICON_MKEXP_WORK_REL_PATH}/${ICON_CI_UTILS_ICON_MKEXP_RUN_SUBDIR}/rbf_coeffs_dom01.nc
 
 .io:rbf_read:
   variables:
-    ICON_CI_MKEXP_EXTRA_ARGS: >-
-      files.rbf_io.rbf_coeffs_dom01..nc=${CI_PROJECT_DIR}/${ICON_CI_RUN_JOB_OUTPUT_REL_PATH}/rbf_coeffs_dom01.nc
+    ICON_CI_UTILS_ICON_MKEXP_EXTRA_ARGS: >-
+      files.rbf_io.rbf_coeffs_dom01..nc=${ICON_CI_UTILS_ICON_OUTPUT_PATH}/rbf_coeffs_dom01.nc
       namelists.NAMELIST_atm.interpol_nml.lrbf_write=.FALSE.
       namelists.NAMELIST_atm.interpol_nml.lrbf_read=.TRUE.
 
@@ -209,7 +131,7 @@ include:
         # have the required information to report the error:
         echo "ICON_CI_FAILED_ANALYZE_JOB_NAME=${CI_JOB_NAME}"
         echo "ICON_CI_FAILED_ANALYZE_JOB_URL=${CI_JOB_URL}"
-      } >dependent.env
+      } >"${CI_PROJECT_DIR}/dependent.env"
     - !reference [.common:any-image, before_script]
   script:
     - |
@@ -217,24 +139,24 @@ include:
       icon_ci_log_section_start 'Verifying checksums of the model output' 'collapsed=false'
       (
         set -u
-        model_output_files=$(find "${ICON_CI_RUN_JOB_OUTPUT_REL_PATH}" -type f -name "${ICON_CI_MKEXP_EXP_ID}*.nc" | sort)
+        model_output_files=$(find "${ICON_CI_UTILS_ICON_OUTPUT_PATH}" -type f -name "${ICON_CI_UTILS_ICON_OUTPUT_FILENAME_PREFIX}*.nc" | sort)
         cdo --version
         set -x
         calculated_cksum=$(cdo -outputf,'%.17g' ${model_output_files} | sha256sum --text - | cut -d ' ' -f1)
-        expected_cksum=$(python3 -c 'import sys, yaml; print(yaml.safe_load(open(sys.argv[1], "r"))[sys.argv[2]])' "${ICON_CI_CHECKSUM_TABLE_PATH}" "${ICON_CI_RUN_JOB_NAME}") || expected_cksum=unknown
+        expected_cksum=$(python3 -c 'import sys, yaml; print(yaml.safe_load(open(sys.argv[1], "r"))[sys.argv[2]])' "${ICON_CI_CHECKSUM_TABLE_PATH}" "${ICON_CI_UTILS_ICON_OUTPUT_ID}") || expected_cksum=unknown
         mkdir -p "${ICON_CI_CHECKSUM_TMP_PATH}"
-        python3 -c 'import os, sys, yaml; yaml.safe_dump({sys.argv[2]: sys.argv[3]}, open(sys.argv[1], "w"))' "${ICON_CI_CHECKSUM_TMP_PATH}/${CI_JOB_NAME_SLUG}.yml" "${ICON_CI_RUN_JOB_NAME}" "${calculated_cksum}"
+        python3 -c 'import os, sys, yaml; yaml.safe_dump({sys.argv[2]: sys.argv[3]}, open(sys.argv[1], "w"))' "${ICON_CI_CHECKSUM_TMP_PATH}/${CI_JOB_NAME_SLUG}.yml" "${ICON_CI_UTILS_ICON_OUTPUT_ID}" "${calculated_cksum}"
         # We assume that the only reason for the job to fail after this line is
         # the checksum mismatch, which is an "expected failure" handled by the
         # dependent jobs. We also want to disable the shell trace with no extra
         # messages in the log:
-        { set +x; } >dependent.env 2>/dev/null
+        { set +x; } >"${CI_PROJECT_DIR}/dependent.env" 2>/dev/null
         test "${calculated_cksum}" = "${expected_cksum}" && {
           icon_ci_log_info_msg "The calculated output checksum for \
-      '${ICON_CI_RUN_JOB_NAME}' matches the expected value '${expected_cksum}'"
+      '${ICON_CI_UTILS_ICON_OUTPUT_ID}' matches the expected value '${expected_cksum}'"
         } || {
           icon_ci_log_error_msg "ERROR: the expected output checksum for \
-      '${ICON_CI_RUN_JOB_NAME}' is '${expected_cksum}', \
+      '${ICON_CI_UTILS_ICON_OUTPUT_ID}' is '${expected_cksum}', \
       got '${calculated_cksum}'"
           exit 1
         }
@@ -251,19 +173,19 @@ include:
 
 .aes:bubble:
   variables:
-    ICON_CI_CONFIG_EXTRA_ARGS: --enable-atmo --enable-aes --enable-rte-rrtmgp
-    ICON_CI_CONFIG_EXTRA_SUBMODULE_PATHS: externals/memman externals/rte-rrtmgp
-    ICON_CI_MKEXP_CONFIG_REL_PATH: run/examples/bubble.config
-    ICON_CI_MKEXP_EXTRA_ARGS: >-
+    ICON_CI_UTILS_ICON_CONFIG_EXTRA_ARGS: --enable-atmo --enable-aes --enable-rte-rrtmgp
+    ICON_CI_UTILS_ICON_BUILD_EXTRA_SUBMODULE_PATHS: externals/memman externals/rte-rrtmgp
+    ICON_CI_UTILS_ICON_MKEXP_CONFIG_REL_PATH: run/examples/bubble.config
+    ICON_CI_UTILS_ICON_MKEXP_EXTRA_ARGS: >-
       jobs.run.cpus_per_node=128
       jobs.run.use_cpu_mask=false
 
 aes:bubble:gcc:build:
   extends:
-    - .aes:bubble
     - .system:build:levante
+    - .aes:bubble
   variables:
-    ICON_CI_CONFIG_REL_PATH: config/dkrz/levante.gcc
+    ICON_CI_UTILS_ICON_CONFIG_REL_PATH: config/dkrz/levante.gcc
 
 aes:bubble:gcc:run:
   extends:
@@ -272,8 +194,8 @@ aes:bubble:gcc:run:
     - .aes:bubble
   artifacts:
     paths:
-      - ${ICON_CI_MKEXP_WORK_REL_PATH}/${ICON_CI_MKEXP_RUN_SUBDIR}/${CI_JOB_NAME_SLUG}*.nc
-      - ${ICON_CI_MKEXP_WORK_REL_PATH}/${ICON_CI_MKEXP_RUN_SUBDIR}/rbf_coeffs_dom01.nc
+      - ${ICON_CI_UTILS_ICON_MKEXP_WORK_REL_PATH}/${ICON_CI_UTILS_ICON_MKEXP_RUN_SUBDIR}/${ICON_CI_UTILS_ICON_MKEXP_EXP_ID}*.nc
+      - ${ICON_CI_UTILS_ICON_MKEXP_WORK_REL_PATH}/${ICON_CI_UTILS_ICON_MKEXP_RUN_SUBDIR}/rbf_coeffs_dom01.nc
   needs: [aes:bubble:gcc:build]
 
 aes:bubble:gcc:analyze:
@@ -282,11 +204,11 @@ aes:bubble:gcc:analyze:
 
 aes:bubble:cpu:build:
   extends:
-    - .aes:bubble
     - .system:build:levante
+    - .aes:bubble
   variables:
-    ICON_CI_CONFIG_REL_PATH: config/dkrz/levante.intel
-    ICON_CI_CONFIG_EXTRA_ARGS: >-
+    ICON_CI_UTILS_ICON_CONFIG_REL_PATH: config/dkrz/levante.intel
+    ICON_CI_UTILS_ICON_CONFIG_EXTRA_ARGS: >-
       --enable-atmo --enable-aes --enable-rte-rrtmgp --enable-openmp
 
 aes:bubble:cpu:run:
@@ -301,11 +223,11 @@ aes:bubble:cpu:analyze:
 
 aes:bubble:cpu_sp:build:
   extends:
-    - .aes:bubble
     - .system:build:levante
+    - .aes:bubble
   variables:
-    ICON_CI_CONFIG_REL_PATH: config/dkrz/levante.intel
-    ICON_CI_CONFIG_EXTRA_ARGS: >-
+    ICON_CI_UTILS_ICON_CONFIG_REL_PATH: config/dkrz/levante.intel
+    ICON_CI_UTILS_ICON_CONFIG_EXTRA_ARGS: >-
       --enable-atmo --enable-aes --enable-rte-rrtmgp --enable-openmp --enable-single-precision
 
 aes:bubble:cpu_sp:run:
@@ -315,8 +237,8 @@ aes:bubble:cpu_sp:run:
     - .aes:bubble
   needs: [aes:bubble:cpu_sp:build, aes:bubble:gcc:run]
   variables:
-    ICON_CI_MKEXP_EXTRA_ARGS: >-
-      files.rbf_io.rbf_coeffs_dom01..nc=${CI_PROJECT_DIR}/${ICON_CI_RUN_JOB_OUTPUT_REL_PATH}/rbf_coeffs_dom01.nc
+    ICON_CI_UTILS_ICON_MKEXP_EXTRA_ARGS: >-
+      files.rbf_io.rbf_coeffs_dom01..nc=${ICON_CI_UTILS_ICON_OUTPUT_PATH}/rbf_coeffs_dom01.nc
       namelists.NAMELIST_atm.interpol_nml.lrbf_write=.FALSE.
       namelists.NAMELIST_atm.interpol_nml.lrbf_read=.TRUE.
       jobs.run.cpus_per_node=128
@@ -329,9 +251,9 @@ aes:bubble:cpu_sp:analyze:
 aes:bubble:ragnarok:cpu:build:
   extends: aes:bubble:cpu:build
   variables:
-    ICON_CI_CONFIG_EXTRA_ARGS: >-
+    ICON_CI_UTILS_ICON_CONFIG_EXTRA_ARGS: >-
       --enable-atmo --enable-aes --enable-rte-rrtmgp --enable-openmp --enable-ragnarok
-    ICON_CI_CONFIG_EXTRA_SUBMODULE_PATHS: externals/kokkos externals/rte-rrtmgp externals/memman
+    ICON_CI_UTILS_ICON_BUILD_EXTRA_SUBMODULE_PATHS: externals/kokkos externals/rte-rrtmgp externals/memman
 
 aes:bubble:ragnarok:cpu:run:
   extends: aes:bubble:cpu:run
@@ -343,10 +265,10 @@ aes:bubble:ragnarok:cpu:analyze:
 
 aes:bubble:nag:build:
   extends:
-    - .aes:bubble
     - .system:build:levante
+    - .aes:bubble
   variables:
-    ICON_CI_CONFIG_REL_PATH: config/dkrz/levante.nag
+    ICON_CI_UTILS_ICON_CONFIG_REL_PATH: config/dkrz/levante.nag
 
 aes:bubble:nag:run:
   extends:
@@ -360,11 +282,12 @@ aes:bubble:nag:analyze:
 
 aes:bubble:nag_sp:build:
   extends:
-    - .aes:bubble
     - .system:build:levante
+    - .aes:bubble
   variables:
-    ICON_CI_CONFIG_REL_PATH: config/dkrz/levante.nag
-    ICON_CI_CONFIG_EXTRA_ARGS: --enable-atmo --enable-aes --enable-rte-rrtmgp --enable-single-precision
+    ICON_CI_UTILS_ICON_CONFIG_REL_PATH: config/dkrz/levante.nag
+    ICON_CI_UTILS_ICON_CONFIG_EXTRA_ARGS: >-
+      --enable-atmo --enable-aes --enable-rte-rrtmgp --enable-single-precision
 
 aes:bubble:nag_sp:run:
   extends:
@@ -376,8 +299,8 @@ aes:bubble:nag_sp:run:
     # - rbf-related args are taken from [.io:rbf_read]
     # - t0=293.15 needed for stability in single-precision
     #   (see https://gitlab.dkrz.de/icon/icon-mpim/-/issues/418)
-    ICON_CI_MKEXP_EXTRA_ARGS: >-
-      files.rbf_io.rbf_coeffs_dom01..nc=${CI_PROJECT_DIR}/${ICON_CI_RUN_JOB_OUTPUT_REL_PATH}/rbf_coeffs_dom01.nc
+    ICON_CI_UTILS_ICON_MKEXP_EXTRA_ARGS: >-
+      files.rbf_io.rbf_coeffs_dom01..nc=${ICON_CI_UTILS_ICON_OUTPUT_PATH}/rbf_coeffs_dom01.nc
       namelists.NAMELIST_atm.interpol_nml.lrbf_write=.FALSE.
       namelists.NAMELIST_atm.interpol_nml.lrbf_read=.TRUE.
       jobs.run.cpus_per_node=128
@@ -391,13 +314,14 @@ aes:bubble:nag_sp:analyze:
 
 aes:bubble:gpu:build:
   extends:
-    - .aes:bubble
     - .system:build:levante
+    - .aes:bubble
   variables:
-    ICON_CI_CONFIG_REL_PATH: config/dkrz/levante.gpu.nvhpc
+    ICON_CI_UTILS_ICON_CONFIG_REL_PATH: config/dkrz/levante.gpu.nvhpc
     # Enable Large-Eddy Simulation to work around a bug
     # (see https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/706#note_351521):
-    ICON_CI_CONFIG_EXTRA_ARGS: --enable-atmo --enable-aes --enable-rte-rrtmgp --enable-les
+    ICON_CI_UTILS_ICON_CONFIG_EXTRA_ARGS: >-
+      --enable-atmo --enable-aes --enable-rte-rrtmgp --enable-les
 
 aes:bubble:gpu:run:
   extends:
@@ -412,13 +336,14 @@ aes:bubble:gpu:run:
 
 aes:bubble:gpu_sp:build:
   extends:
-    - .aes:bubble
     - .system:build:levante
+    - .aes:bubble
   variables:
-    ICON_CI_CONFIG_REL_PATH: config/dkrz/levante.gpu.nvhpc
+    ICON_CI_UTILS_ICON_CONFIG_REL_PATH: config/dkrz/levante.gpu.nvhpc
     # Enable Large-Eddy Simulation to work around a bug
     # (see https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/706#note_351521):
-    ICON_CI_CONFIG_EXTRA_ARGS: --enable-atmo --enable-aes --enable-rte-rrtmgp --enable-les --enable-single-precision
+    ICON_CI_UTILS_ICON_CONFIG_EXTRA_ARGS: >-
+      --enable-atmo --enable-aes --enable-rte-rrtmgp --enable-les --enable-single-precision
 
 aes:bubble:gpu_sp:run:
   extends:
@@ -431,8 +356,8 @@ aes:bubble:gpu_sp:run:
     ICON_CI_COMMON_DKRZ_SLURM_NTASKS: 4
     ICON_CI_COMMON_DKRZ_SLURM_GPUS_PER_NODE: 4
     ICON_CI_COMMON_DKRZ_SLURM_EXTRA_PARAMETERS: --exclusive
-    ICON_CI_MKEXP_EXTRA_ARGS: >-
-      files.rbf_io.rbf_coeffs_dom01..nc=${CI_PROJECT_DIR}/${ICON_CI_RUN_JOB_OUTPUT_REL_PATH}/rbf_coeffs_dom01.nc
+    ICON_CI_UTILS_ICON_MKEXP_EXTRA_ARGS: >-
+      files.rbf_io.rbf_coeffs_dom01..nc=${ICON_CI_UTILS_ICON_OUTPUT_PATH}/rbf_coeffs_dom01.nc
       namelists.NAMELIST_atm.interpol_nml.lrbf_write=.FALSE.
       namelists.NAMELIST_atm.interpol_nml.lrbf_read=.TRUE.
 
@@ -441,9 +366,9 @@ aes:bubble:ragnarok:gpu:build:
   variables:
     # Enable Large-Eddy Simulation to work around a bug
     # (see https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/706#note_351521):
-    ICON_CI_CONFIG_EXTRA_ARGS: >-
+    ICON_CI_UTILS_ICON_CONFIG_EXTRA_ARGS: >-
       --enable-atmo --enable-aes --enable-rte-rrtmgp --enable-les --enable-ragnarok
-    ICON_CI_CONFIG_EXTRA_SUBMODULE_PATHS: externals/kokkos externals/rte-rrtmgp externals/memman
+    ICON_CI_UTILS_ICON_BUILD_EXTRA_SUBMODULE_PATHS: externals/kokkos externals/rte-rrtmgp externals/memman
 
 aes:bubble:ragnarok:gpu:run:
   extends: aes:bubble:gpu:run
@@ -452,12 +377,12 @@ aes:bubble:ragnarok:gpu:run:
 aes:coupled:cpu:build:
   extends: .system:build:levante
   variables:
-    ICON_CI_CONFIG_REL_PATH: config/dkrz/levante.intel
-    ICON_CI_CONFIG_EXTRA_ARGS: >-
+    ICON_CI_UTILS_ICON_CONFIG_REL_PATH: config/dkrz/levante.intel
+    ICON_CI_UTILS_ICON_CONFIG_EXTRA_ARGS: >-
       --enable-atmo --enable-aes --enable-rte-rrtmgp
       --enable-ocean --enable-jsbach --enable-jsbach-hd
       --enable-coupling --enable-openmp
-    ICON_CI_CONFIG_EXTRA_SUBMODULE_PATHS: >-
+    ICON_CI_UTILS_ICON_BUILD_EXTRA_SUBMODULE_PATHS: >-
       externals/jsbach externals/memman externals/rte-rrtmgp
       externals/yac externals/yaxt
 
@@ -467,11 +392,13 @@ aes:coupled:cpu:run:
   variables:
     ICON_CI_COMMON_DKRZ_SLURM_NNODES: 4
     ICON_CI_COMMON_DKRZ_SLURM_NTASKS: 1024
-    ICON_CI_MKEXP_CONFIG_REL_PATH: run/checksuite.icon-dev/test_aes_coupled.config
+    ICON_CI_UTILS_ICON_MKEXP_CONFIG_REL_PATH: run/checksuite.icon-dev/test_aes_coupled.config
     # TODO: re-enable restart test when fixed
-    ICON_CI_MKEXP_EXTRA_ARGS: >-
+    ICON_CI_UTILS_ICON_MKEXP_EXTRA_ARGS: >-
       EXP_OPTIONS=output/coupled_test,serial,test/suite
+      jobs.run.nodes=${ICON_CI_COMMON_DKRZ_SLURM_NNODES}
       jobs.run_restart_start...hide=true
+    ICON_CI_UTILS_ICON_RUN_EXTRA_SUBMODULE_PATHS: externals/jsbach
 
 aes:coupled:cpu:analyze:
   extends: .system:analyze
