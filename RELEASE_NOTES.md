@@ -48,6 +48,7 @@
 #### Climate: ICON-Land
 
 - QUINCY development
+  - Enable anthropogenic land cover change with QUINCY biogeochemistry
   - Updated the Jena-Soil-Model for use with QUINCY as an alternative to the simple soil-biogeochemistry model
   - Improve paramaterization of vegetation phosphorus (P) uptake to avoid crops and natural vegetation dying by P limitation
   - Improve the calculation of plant water stress with frozen soil
