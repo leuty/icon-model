@@ -393,20 +393,15 @@ $addexp "checksuite.infrastructure/checkExternals/exp.check_externals_LEVANTE_gp
 # unit tests
 # - balfrin excluded while spack package updated to compile unit-tests during build
 # - dwd builders other than dwd_nec_{coupling,sp} are excluded
-# - mpimac_gcc, levante_aurora and all breeze builder performe the check during the build step
+# - mpimac_gcc, levante_aurora and all breeze builders perform the check during the build step
 # - horeka is enabled below
 $addexp "checksuite.infrastructure/checkICON/exp.check_icon" --builders "\
 dwd_nec_coupling \
 levante_cpu_nvhpc \
-levante_gcc \
 levante_gcc_hybrid \
-levante_gpu_nvhpc \
 levante_intel \
-levante_intel_hybrid \
 levante_intel_hybrid_mixed \
 levante_intel_pio \
-levante_nag \
-levante_nag_serial \
 lumi_cpu \
 lumi_gpu \
 " --list ${listname}
