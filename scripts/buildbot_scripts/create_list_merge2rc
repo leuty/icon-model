@@ -407,6 +407,12 @@ $addexp "checksuite.infrastructure/aurora/exp.host_and_vector_only_tests.run" --
 $addexp "exp.dwd_run_ICON_09_R2B4N5_EPS" --builders "horeka_gcc horeka_intel" --list $listname
 $addexp "checksuite.icon-dev/check.dwd_art_dustrad_R2B4N5" --builders "horeka_gcc horeka_intel horeka_cpu_nvhpc" --list $listname
 $addexp "checksuite.infrastructure/checkICON/exp.check_icon" --builders "horeka_gpu_nvhpc horeka_cpu_nvhpc horeka_gcc horeka_intel" --list ${listname}
+$addexp "checksuite.art/exp_art_horeka_allaero_norad" --builders 'horeka_gcc horeka_intel' --list $listname
+$addexp "checksuite.art/exp_art_horeka_dust_rad" --builders 'horeka_gcc horeka_intel' --list $listname
+$addexp "checksuite.art/exp_art_horeka_gasphase" --builders 'horeka_gcc horeka_intel' --list $listname
+$addexp "checksuite.art/exp_art_horeka_lam_oem" --builders 'horeka_gcc horeka_intel' --list $listname
+$addexp "checksuite.art/exp_art_horeka_lifetime" --builders 'horeka_gcc horeka_intel' --list $listname
+$addexp "checksuite.art/exp_art_horeka_oh_chemistry" --builders 'horeka_gcc horeka_intel' --list $listname
 
 # LUMI at CSC
 ## Tests for both CPU and GPU
