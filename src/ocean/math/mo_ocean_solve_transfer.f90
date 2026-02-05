@@ -306,10 +306,8 @@ CONTAINS
 #endif
     CALL set_acc_host_or_device(lzacc, lacc)
 
-    !$ACC UPDATE SELF(data_in1) ASYNC(1) IF(lzacc)
-    !$ACC WAIT(1)
     data_in_ptr(1)%p => data_in1
-    CALL this%global_sum_internal(1, data_in_ptr, sums)
+    CALL this%global_sum_internal(1, data_in_ptr, sums, lacc=lzacc)
     summa1 = sums(1)
   END SUBROUTINE ocean_solve_transfer_global_sum_2d_dp_1
 
@@ -428,11 +426,12 @@ CONTAINS
 
 ! explicite internal interface for N global sums of double precision
 ! uses order insensitive or 'fast' implementation depending on l_fast_sum
-  SUBROUTINE ocean_solve_transfer_global_sum_2d_dp(this, n, xp, gbl_sum)
+  SUBROUTINE ocean_solve_transfer_global_sum_2d_dp(this, n, xp, gbl_sum, lacc)
     CLASS(t_transfer), INTENT(IN) :: this
     INTEGER, INTENT(IN) :: n
     TYPE(t_ptr_2d_dp), INTENT(IN) :: xp(n)
     REAL(dp), INTENT(OUT) :: gbl_sum(n)
+    LOGICAL, OPTIONAL, INTENT(IN) :: lacc
     REAL(dp) :: loc_sum(n), abs_max_l(n), abs_max(n)
     INTEGER(KIND=i8) :: isum_loc(2*n), isum(2*n), tisum(2)
     INTEGER :: i
@@ -449,17 +448,19 @@ CONTAINS
 #ifdef _CRAYFTN
 !DIR$ NOINLINE
 #endif
-        loc_sum(i) = simple_sum_local(xp(i)%p)
+        loc_sum(i) = simple_sum_local(xp(i)%p, lacc=lacc)
       END DO
       gbl_sum(:) = p_sum(loc_sum(:), comm=this%comm)
     ELSE
+
       DO i = 1, n
-        abs_max_l(i) = abs_max_loc(xp(i)%p)
+        abs_max_l(i) = abs_max_loc(xp(i)%p, lacc=lacc)
       END DO
       abs_max(:) = p_max(abs_max_l(:), comm=this%comm)
+
       DO i = 1, n
         tisum(:) = order_insensit_ieee64_sum_frst( &
-          & xp(i)%p, abs_max(i))
+          & xp(i)%p, abs_max(i), lacc=lacc)
         isum_loc((i-1)*2+1:i*2) = tisum(:)
       END DO
       isum(:) = p_sum(isum_loc(:), comm=this%comm)
@@ -519,22 +520,36 @@ CONTAINS
   END SUBROUTINE ocean_solve_transfer_global_sum_2d_sp
 
 ! performs local sum -- 'fast' implementation - dp variant
-  PURE_OR_OMP FUNCTION simple_sum_loc_dp_2d(vals) RESULT(local_sum)
+  PURE_OR_OMP FUNCTION simple_sum_loc_dp_2d(vals, lacc) RESULT(local_sum)
 #if defined(_OPENACC) || defined(__NO_CONT_SOLV_OCE__)
     REAL(dp), INTENT(IN) :: vals(:,:)
 #else
     REAL(dp), INTENT(IN), CONTIGUOUS :: vals(:,:)
 #endif
+    LOGICAL,OPTIONAL, INTENT(IN) :: lacc
+    REAL(dp) :: cpt
     REAL(dp) :: local_sum, aux_sum(SIZE(vals, 2))
-    INTEGER :: j
+    INTEGER :: j, i
 #ifdef __INTEL_COMPILER
 !DIR$ ATTRIBUTES ALIGN : 64 :: aux_sum
 #endif
 
+#ifndef _OPENACC
 !ICON_OMP PARALLEL DO SCHEDULE(STATIC)
     DO j = 1, SIZE(vals, 2)
       aux_sum(j) = SUM(vals(:,j))
     END DO
+#else
+    DO j = 1, SIZE(vals, 2)
+      cpt=0.
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) REDUCTION(+: cpt) IF(lacc) ASYNC(1)
+      DO i = LBOUND(vals,1), UBOUND(vals,1)
+        cpt = cpt + vals(i,j)
+      END DO
+      !$ACC WAIT(1)
+      aux_sum(j) = cpt
+    END DO
+#endif
     local_sum = SUM(aux_sum(:))
   END FUNCTION simple_sum_loc_dp_2d
 
@@ -559,23 +574,41 @@ CONTAINS
   END FUNCTION simple_sum_loc_sp_2d
 
 ! finds local MAXVAL(ABS(x(:,:)) implementation - dp variant
-  PURE_OR_OMP FUNCTION abs_max_loc_dp_2d(vals) RESULT(abs_max)
+  PURE_OR_OMP FUNCTION abs_max_loc_dp_2d(vals, lacc) RESULT(abs_max)
 #if defined(_OPENACC) || defined(__NO_CONT_SOLV_OCE__)
     REAL(dp), INTENT(IN) :: vals(:,:)
 #else
     REAL(dp), INTENT(IN), CONTIGUOUS :: vals(:,:)
 #endif
+    LOGICAL, INTENT(IN), OPTIONAL :: lacc
+    REAL(dp) :: cpt
     REAL(dp) :: abs_max, aux_max(SIZE(vals, 2))
-    INTEGER :: j
+    INTEGER :: j, i
 #ifdef __INTEL_COMPILER
 !DIR$ ATTRIBUTES ALIGN : 64 :: aux_max
 #endif
 
+#ifndef _OPENACC
 !ICON_OMP PARALLEL DO SCHEDULE(STATIC)
     DO j = 1, SIZE(vals, 2)
       aux_max(j) = MAXVAL(ABS(vals(:,j)))
     END DO
     abs_max = MAXVAL(aux_max(:))
+#else
+    DO j = 1, SIZE(vals, 2)
+       cpt=-1.
+       !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) REDUCTION(MAX: cpt) IF(lacc) ASYNC(1)
+       DO i = LBOUND(vals,1), UBOUND(vals,1)
+          cpt = MAX(cpt, ABS(vals(i,j)))
+       END DO
+       !$ACC WAIT(1)
+       aux_max(j) = cpt
+    END DO
+
+    DO j = 1, SIZE(vals, 2)
+       abs_max = MAX(abs_max, aux_max(j))
+    END DO
+#endif
   END FUNCTION abs_max_loc_dp_2d
 
 ! finds local MAXVAL(ABS(x(:,:)) implementation - dp variant
@@ -600,7 +633,7 @@ END FUNCTION abs_max_loc_sp_2d
 
 ! first local part of order insensitive summation -- dp-variant
 ! convert to scaled integers and locally sum those
-  PURE_OR_OMP FUNCTION order_insensit_ieee64_sum_frst_dp_2d(vals, abs_max) &
+  PURE_OR_OMP FUNCTION order_insensit_ieee64_sum_frst_dp_2d(vals, abs_max, lacc) &
     & RESULT(isum)
 #if defined(_OPENACC) || defined(__NO_CONT_SOLV_OCE__)
     REAL(dp), INTENT(IN) :: vals(:,:)
@@ -609,12 +642,31 @@ END FUNCTION abs_max_loc_sp_2d
 #endif
     REAL(dp), INTENT(IN) :: abs_max
     INTEGER(KIND=i8) :: isum(2), isum1(SIZE(vals, 2)), &
-      & isum2(SIZE(vals, 2)), ival(SIZE(vals, 1))
-    INTEGER :: j, iexp
-    REAL(KIND=dp) :: fact, rval(SIZE(vals, 1))
+      & isum2(SIZE(vals, 2))
+    LOGICAL, INTENT(IN), OPTIONAL :: lacc
+#ifdef _OPENACC
+    INTEGER(KIND=i8), ALLOCATABLE, SAVE :: ival(:)
+    REAL(KIND=dp), ALLOCATABLE, SAVE :: rval(:)
+    LOGICAL, SAVE :: first = .true.
+#else
+    INTEGER(KIND=i8) :: ival(SIZE(vals, 1))
+    REAL(KIND=dp) :: rval(SIZE(vals, 1))
+#endif
+    REAL(KIND=dp) :: cpt1, cpt2
+    INTEGER :: j, i, iexp
+    REAL(KIND=dp) :: fact
     REAL(dp), PARAMETER :: two_30 = 1073741824._dp
 #ifdef __INTEL_COMPILER
 !DIR$ ATTRIBUTES ALIGN : 64 :: rval, ival, isum1, isum2
+#endif
+
+#ifdef _OPENACC
+    IF (first) then
+       first = .false.
+       allocate(ival(SIZE(vals, 1)))
+       allocate(rval(SIZE(vals, 1)))
+       !$ACC ENTER DATA CREATE(ival, rval) IF(lacc)
+    END IF
 #endif
 
     iexp = EXPONENT(abs_max)
@@ -625,6 +677,7 @@ END FUNCTION abs_max_loc_sp_2d
     fact = SCALE(1._dp,30-iexp)
     isum1(:) = 0_i8
     isum2(:) = 0_i8
+#ifndef _OPENACC
 !ICON_OMP PARALLEL DO SCHEDULE(STATIC) PRIVATE(ival, rval)
     DO j = 1, SIZE(vals, 2)
       rval(:) = vals(:,j) * fact
@@ -632,6 +685,22 @@ END FUNCTION abs_max_loc_sp_2d
       isum1(j) = isum1(j) + SUM(ival(:))
       isum2(j) = isum2(j) + SUM(INT((rval(:) - REAL(ival(:),dp))*two_30,i8))
     END DO
+#else
+    DO j = 1, SIZE(vals, 2)
+      cpt1 = 0.
+      cpt2 = 0.
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) REDUCTION(+: cpt1, cpt2) IF(lacc) ASYNC(1)
+      DO i = LBOUND(vals,1), UBOUND(vals,1)
+         rval(i) = vals(i,j) * fact
+         ival(i) = INT(rval(i), i8)
+         cpt1 = cpt1 + ival(i)
+         cpt2 = cpt2 + INT((rval(i) - REAL(ival(i),dp))*two_30,i8)
+      END DO
+      !$ACC WAIT(1)
+      isum1(j) = isum1(j) + cpt1
+      isum2(j) = isum2(j) + cpt2
+    END DO
+#endif
     isum(1) = SUM(isum1(:))
     isum(2) = SUM(isum2(:))
   END FUNCTION order_insensit_ieee64_sum_frst_dp_2d
