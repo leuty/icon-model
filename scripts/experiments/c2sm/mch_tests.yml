@@ -43,6 +43,10 @@ tests:
       - balfrin_cpu_nvidia_mixed: [1,2,37,44,49,60]
     tolerance_factor:
       - balfrin: 5
+    test_file_types:
+      - balfrin: ['stats', 'fof']
+    fof_types:
+      - balfrin: AIREP,PILOT,TEMP
   - name: mch_pollen_test
     tags: ['atm','merge2rc','probtest']
     machines:
@@ -102,13 +106,25 @@ tests:
     tolerance_factor:
       - balfrin: 5
   - name: mch_kenda-ch1
-    tags: ['mch-opr']
+    tags: ['mch-opr', 'probtest']
     machines:
       - name: balfrin
-        include_only: ['balfrin_gpu_nvidia_mixed', 'alps_mch_test_gpu']
-        runflags: ['cpu_time=00:20:00']
+        include_only: ['balfrin_cpu_nvidia_mixed', 'balfrin_gpu_nvidia_mixed', 'alps_mch_test_gpu']
+        runflags: ['cpu_time=01:00:00']
+    refgen: ['balfrin_cpu_nvidia_mixed']
     checksuite_modes:
-      - balfrin: 'p'
+      - balfrin: 'pt'
+    ensemble_num:
+      - balfrin_cpu_nvidia_mixed: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+          11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+          21, 22, 23, 24, 25, 26, 27, 28
+        ]
+    tolerance_factor:
+      - balfrin: 30
+    test_file_types:
+      - balfrin: ['fof']
+    fof_types:
+      - balfrin: AIREP,PILOT,SYNOP
   - name: mch_opr_r04b07
     tags: ['atm','merge2rc','probtest']
     machines:

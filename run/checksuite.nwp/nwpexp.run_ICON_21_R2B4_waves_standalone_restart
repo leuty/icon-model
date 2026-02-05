@@ -250,7 +250,7 @@ cat > ${wave_namelist} << EOF
  include_last            =                      .TRUE.        ! flag whether to include the last time step
  output_filename         =             '${ofile_prfx}'        ! file name base
  output_grid             =                      .TRUE.        ! flag whether grid information is added to output.
- ml_varlist              = 'group:wave_short', 'group:wave_spectrum', 'group:wave_phy', 'group:wave_debug'
+ ml_varlist              = 'group:wave_short', 'group:wave_spectrum', 'group:wave_phy', 'group:wave_debug', 'group:wave_extreme'
 /
 &output_nml
  filetype                =                          4         ! output format: 2=GRIB2, 4=NETCDFv2

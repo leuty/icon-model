@@ -47,6 +47,7 @@ CONTAINS
     INTEGER  :: ndirs    ! NUMBER OF DIRECTIONS.
     INTEGER  :: nfreqs   ! NUMBER OF FREQUENCIES.
     INTEGER  :: iref     ! FREQUENCY BIN NUMBER OF REFERENCE FREQUENCY
+    INTEGER  :: Tlength  ! Duration of sample time series
 
     REAL(wp) :: fr1      ! FIRST FREQUENCY [HZ].
     REAL(wp) :: CO       ! FREQUENCY RATIO
@@ -120,7 +121,7 @@ CONTAINS
 
     NAMELIST /wave_nml/ &
          forc_file_prefix,          &
-         ndirs, nfreqs, fr1, CO, iref, &
+         ndirs, nfreqs, fr1, CO, iref, Tlength, &
          ALPHA, FM, GAMMA_wave, SIGMA_A, SIGMA_B, fetch, fetch_min_energy, &
          roair, RNUAIR, RNUAIRM, ROWATER, XEPS, XINVEPS, &
          XKAPPA, XNLEV, BETAMAX, ZALP, jtot_tauhf, ALPHA_CH, &
@@ -138,6 +139,8 @@ CONTAINS
     fr1        = 0.04177248_wp  !! FIRST FREQUENCY [HZ].
     CO         = 1.1_wp         !! FREQUENCY RATIO
     iref       = 1              !! FREQUENCY BIN NUMBER OF REFERENCE FREQUENCY
+
+    Tlength    = 10800          !! DEFAULT TIME SERIES DURATION FOR HMAX CALCULATION [S].
 
     ALPHA      = 0.018_wp       !! PHILLIPS PARAMETER.
     FM         = 0.2_wp         !! PEAK FREQUENCY (HZ) AND/OR MAXIMUM FREQUENCY.
@@ -255,6 +258,7 @@ CONTAINS
       wave_config(jg)%fr1               = fr1
       wave_config(jg)%CO                = CO
       wave_config(jg)%iref              = iref
+      wave_config(jg)%Tlength           = Tlength
       wave_config(jg)%jmax              = jmax
       wave_config(jg)%flmin             = flmin
       wave_config(jg)%umax              = umax

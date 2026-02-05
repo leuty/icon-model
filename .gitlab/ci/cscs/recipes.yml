@@ -29,10 +29,14 @@ include:
   script:
     - uenv run ${UENV_VERSION} -- ./config/cscs/${CONFIG}
 
-.check_with_uenv:
+.setup_py_env:
   script:
     - export SQFS_PATH=/capstor/store/cscs/userlab/cws01/ci/ci-python-image/py_icon_ci.squashfs
     - mkdir -p .venv
+
+.check_with_uenv:
+  script:
+    - !reference [.setup_py_env, script]
     - uenv run ${UENV_VERSION},${SQFS_PATH}:$(pwd)/.venv --view modules,default -- bash -c '
         source $(pwd)/.venv/bin/activate &&
         module load nvhpc cdo &&
@@ -42,8 +46,7 @@ include:
 
 .run_probtest:
   script:
-    - export SQFS_PATH=/capstor/store/cscs/userlab/cws01/ci/ci-python-image/py_icon_ci.squashfs
-    - mkdir -p .venv
+    - !reference [.setup_py_env, script]
     - uenv run ${UENV_VERSION},${SQFS_PATH}:$(pwd)/.venv --view modules,default -- bash -c '
         source $(pwd)/.venv/bin/activate &&
         module load nvhpc cdo &&
@@ -216,11 +219,16 @@ include:
   extends: .baremetal-runner-santis-gh200
   timeout: 1h
   stage: post
+  before_script:
+    - !reference [.setup_uenv, script]
+    - !reference [.setup_py_env, script]
   script:
     - echo use_builddir=$(pwd) >> run/set-up.info
-    - script=pp.collect_tolerance_hashes
+    - export script=pp.collect_tolerance_hashes
     - ./run/make_target_runscript in_script=tolerance/$script out_script=$script.run
-    - ./run/$script.run
+    - uenv run ${UENV_VERSION},${SQFS_PATH}:$(pwd)/.venv --view modules,default -- bash -c '
+        source $(pwd)/.venv/bin/activate &&
+        ./run/$script.run'
     - cp run/tolerance/hashes/new/santis_cpu_nvhpc .
   when: always
   variables:

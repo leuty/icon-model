@@ -83,7 +83,8 @@ MODULE mo_lnd_nwp_nml
     &                               config_zml_soil           => zml_soil          , &
     &                               config_nlev_soil          => nlev_soil         , &
     &                               config_czbot_w_so         => czbot_w_so        , &
-    &                               config_lcuda_graph_lnd    => lcuda_graph_lnd
+    &                               config_lcuda_graph_lnd    => lcuda_graph_lnd   , &
+    &                               config_lsnow_on_seaice    => lsnow_on_seaice
 
   IMPLICIT NONE
 
@@ -177,7 +178,8 @@ CONTAINS
          l2tls      ,    & !> forecast with 2-TL integration scheme
          lana_rho_snow,  & !> if .TRUE., take rho_snow-values from analysis file
          lsnowtile,      & !> if .TRUE., snow is considered as a separate tile
-         lcuda_graph_lnd   !> activate cuda graph
+         lcuda_graph_lnd,& !> activate cuda graph
+         lsnow_on_seaice
     !--------------------------------------------------------------------
     ! nwp forcing (right hand side)
     !--------------------------------------------------------------------
@@ -207,7 +209,7 @@ CONTAINS
          &               sst_td_filename                                      , &
          &               ci_td_filename, cwimax_ml, c_soil, c_soil_urb        , &
          &               czbot_w_so, cr_bsmin, lcuda_graph_lnd                , &
-         &               rsmin_fac
+         &               rsmin_fac, lsnow_on_seaice
 
     CHARACTER(len=*), PARAMETER ::  &
       &  routine = 'mo_lnd_nwp_nml:read_nwp_lnd_namelist'
@@ -312,6 +314,7 @@ CONTAINS
     lana_rho_snow  = .TRUE.  ! if .TRUE., take rho_snow-values from analysis file
 
     lseaice        = .TRUE.  ! .TRUE.: sea-ice model is used
+    lsnow_on_seaice= .FALSE. ! .TRUE.: snow is considered on seaice
     lprog_albsi    = .FALSE. ! .TRUE.: sea-ice albedo is computed prognostically
                              ! (only takes effect if "lseaice=.TRUE.")
     llake          = .TRUE.  ! .TRUE.: lake model is used
@@ -491,8 +494,9 @@ CONTAINS
     config_nlev_soil          = nlev_soil
     config_czbot_w_so         = czbot_w_so
     config_lcuda_graph_lnd    = lcuda_graph_lnd
-
-    !$ACC UPDATE DEVICE(config_albsi_min, config_albsi_max)
+    config_lsnow_on_seaice    = lsnow_on_seaice
+    !$ACC UPDATE ASYNC(1) DEVICE(config_lsnow_on_seaice, config_albsi_min, config_albsi_max) &
+    !$ACC   DEVICE(config_albsi_snow_min, config_albsi_snow_max)
 
     !-----------------------------------------------------
     ! 6. Store the namelist for restart

@@ -32,6 +32,7 @@ MODULE mo_wave_timer
   PUBLIC :: timer_wave_grid_refraction
   PUBLIC :: timer_wave_time_integration
   PUBLIC :: timer_wave_diagnostics
+  PUBLIC :: timer_wave_exch
 
 
   INTEGER :: timer_wave_total, &
@@ -41,7 +42,8 @@ MODULE mo_wave_timer
     &        timer_wave_propagation, &
     &        timer_wave_energy_propagation, timer_wave_grid_refraction, &
     &        timer_wave_time_integration, &
-    &        timer_wave_diagnostics
+    &        timer_wave_diagnostics, &
+    &        timer_wave_exch
 
 CONTAINS
 
@@ -65,6 +67,7 @@ CONTAINS
     timer_wave_src_nonlinear      = new_timer("wave_source_non_linear")
     timer_wave_time_integration   = new_timer("wave_time_integration")
     timer_wave_diagnostics        = new_timer("wave_diagnostics")
+    timer_wave_exch               = new_timer("wave_exch")
 
   END SUBROUTINE init_wave_timer
 

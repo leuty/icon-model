@@ -73,11 +73,13 @@ restart_interval="P1D"
 #steps_per_file=6
 
 atm_file_interval="PT2S"
+atm_file_interval_1d="PT2S"
 atm_file_interval_2d="PT2S"
 atm_file_interval_3d="PT2S"
 atm_file_interval_pl="PT2S"
 
 atm_output_interval="PT2S"
+atm_output_interval_1d="PT2S"
 atm_output_interval_2d="PT2S"
 atm_output_interval_3d="PT2S"
 atm_output_interval_pl="PT2S"
@@ -259,6 +261,27 @@ izenith                     =                          3         ! zenith angle 
  pinit_seed                  =                               -1  ! seed for perturbation of initial model state. no perturbation by default
  pinit_amplitude             =                               0.  ! amplitude of perturbation
 /
+
+
+! output namelist: specify output of 1D fields  ------------------------------
+&output_nml
+ output_filename             =              '${EXPNAME}_atm_1d'  ! file name base
+ filetype                    =                               5   ! output format 5:NetCDFv4
+ filename_format             = "<output_filename>_<datetime2>"   ! Output filename format
+ output_start                =               "${start_output}"
+ output_end                  =                   "${end_date}"
+ output_interval             =     "${atm_output_interval_1d}"
+ file_interval               =      "${atm_file_interval_1d}"
+ include_last                =                          .TRUE.   ! flag whether to include the last time step
+ operation                   = 'mean' ! mean over output interval
+ mode                        = 1
+ remap                       =                               0   ! 0: no remapping 1: lat-lon grid
+ reg_lat_def                 =                    -90,0.5,90.0
+ reg_lon_def                 =                  -180,0.5,179.5
+ output_grid                 =                          .TRUE.
+ ml_varlist                  = 'tas_gmean','rsdt_gmean','rsut_gmean','rlut_gmean','prec_gmean','evap_gmean','pme_gmean','radtop_gmean'
+/
+
 
 ! output namelist: specify output of 2D fields  ------------------------------
 &output_nml

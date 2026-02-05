@@ -186,7 +186,7 @@ cat > ${wave_namelist} << EOF
  ml_varlist              = 'sp10m', 'dir10m',
                            'sea_ice_c', 'sp_soce_c', 'dir_soce_c',
                            'ustar',
-                           'hs_max',
+                           'hmax',
                            'hs', 'hs_dir', 'tpp', 'tmp', 'tm1', 'tm2', 'ds',
                            'hs_sea', 'hs_sea_dir', 'pp_sea', 'mp_sea',
                            'hs_swell', 'hs_swell_dir', 'pp_swell', 'mp_swell'
@@ -219,7 +219,7 @@ FR_ICE           sea_ice_c
 CURS             sp_soce_c
 CURD             dir_soce_c
 USTR             ustar
-MXWH             hs_max
+MXWH             hmax
 SWH              hs
 MWD              hs_dir
 PP1D             tpp

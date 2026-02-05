@@ -155,8 +155,7 @@ CONTAINS
       &                   f1meanws = p_diag%f1mean_sea,  & ! OUT
       &                    f1means = p_diag%f1mean_swell)  ! OUT
 
-
-    ! calculate peak wave period and peak wavenumber
+    ! calculate peak wave period and wavenumber
     !
     CALL peak_wave_period_wavenumber(p_patch = p_patch, &
       &               wave_config = wave_config,        &
@@ -668,7 +667,6 @@ CONTAINS
 
   END SUBROUTINE mean_wave_period
 
-
   !>
   !! Calculation of peak wave period and peak wavenumber
   !! based on WAM 4.5 formulation
@@ -676,19 +674,24 @@ CONTAINS
   SUBROUTINE peak_wave_period_wavenumber(p_patch, wave_config, wesd, wave_num_c, pp, kp)
     CHARACTER(len=*), PARAMETER ::  &
       &  routine = modname//':peak_wave_period_wavenumber'
+
     TYPE(t_patch),       INTENT(IN)         :: p_patch
     TYPE(t_wave_config), TARGET, INTENT(IN) :: wave_config
-    TYPE(t_wesd),                INTENT(IN) :: wesd(:)           !energy spectral bins
+    TYPE(t_wesd),        INTENT(IN)         :: wesd(:)           !energy spectral bins
     REAL(wp),            INTENT(IN)         :: wave_num_c(:,:,:) !wavenumber (1/m)
     REAL(wp),            INTENT(INOUT)      :: pp(:,:)           !peak period
     REAL(wp),            INTENT(INOUT)      :: kp(:,:)           !peak wavenumber
+
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
     INTEGER :: i_startidx, i_endidx
     INTEGER :: jc,jb,jf,jd
     INTEGER :: peak_ind(nproma)
+
     REAL(wp):: temp(nproma,wave_config%nfreqs)
     REAL(wp):: temp_max(nproma)        !< maximum of temp over all frequencies
+
     TYPE(t_wave_config), POINTER :: wc => NULL()
+
     i_rlstart  = 1
     i_rlend    = min_rlcell
     i_startblk = p_patch%cells%start_block(i_rlstart)
@@ -696,25 +699,32 @@ CONTAINS
 
     ! save some paperwork
     wc => wave_config
+
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jb,jc,jf,jd,i_startidx,i_endidx,temp,temp_max,peak_ind) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = i_startblk, i_endblk
       CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,           &
         &                 i_startidx, i_endidx, i_rlstart, i_rlend)
+
       DO jf = 1,wc%nfreqs
+
         DO jc = i_startidx, i_endidx
           temp(jc,jf)   = 0._wp
         END DO
+
         DO jd = 1,wc%ndirs
           DO jc = i_startidx, i_endidx
             temp(jc,jf) = temp(jc,jf) + wesd(jf)%ptr(jc,jd,jb)
           END DO
         END DO  ! jd
+
       END DO  ! jf
+
       DO jc = i_startidx, i_endidx
         temp_max(jc) = 0._wp
         peak_ind(jc) = 1
       ENDDO
+
       ! get frequency index with maximum energy
       !
       DO jf = 1,wc%nfreqs
@@ -725,13 +735,16 @@ CONTAINS
           ENDIF
         ENDDO
       ENDDO
+
       DO jc = i_startidx, i_endidx
-        pp(jc,jb) = MERGE(1.0_wp, 1.0_wp / wc%freqs(peak_ind(jc)), peak_ind(jc) == 1)
-        kp(jc,jb) = MERGE(0.01_wp, wave_num_c(jc,peak_ind(jc),jb), peak_ind(jc) == 1)
+        pp(jc,jb) = MERGE(1.0_wp, 1.0_wp /wc%freqs(peak_ind(jc)), peak_ind(jc) == 1)
+        kp(jc,jb) = MERGE(1.0_wp, wave_num_c(jc,peak_ind(jc),jb), peak_ind(jc) == 1)
       END DO
+
     END DO
 !$OMP ENDDO NOWAIT
 !$OMP END PARALLEL
+
   END SUBROUTINE peak_wave_period_wavenumber
 
 
@@ -742,6 +755,7 @@ CONTAINS
   SUBROUTINE peak_wave_period_wavenumber_sep(p_patch, wave_config, wesd, wave_num_c, mask, pp_sea, pp_swell, kp_sea, kp_swell)
     CHARACTER(len=*), PARAMETER ::  &
       &  routine = modname//':peak_wave_period_wavenumber_sep'
+
     TYPE(t_patch),       INTENT(IN)         :: p_patch
     TYPE(t_wave_config), TARGET, INTENT(IN) :: wave_config
     TYPE(t_wesd),        INTENT(IN)         :: wesd(:)           !< energy spectral bins
@@ -751,16 +765,21 @@ CONTAINS
     REAL(wp),            INTENT(INOUT)      :: pp_swell(:,:)     !< swell peak wave period
     REAL(wp),            INTENT(INOUT)      :: kp_sea(:,:)       !< wind sea peak wavenumber
     REAL(wp),            INTENT(INOUT)      :: kp_swell(:,:)     !< swell peak wavenumber
+
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
     INTEGER :: i_startidx, i_endidx
+
     INTEGER :: jc,jb,jf,jd
     INTEGER :: peak_ind1(nproma)
     INTEGER :: peak_ind2(nproma)
+
     REAL(wp):: temp1(nproma,wave_config%nfreqs)
     REAL(wp):: temp2(nproma,wave_config%nfreqs)
     REAL(wp):: temp1_max(nproma)        !< maximum of temp1 over all frequencies
     REAL(wp):: temp2_max(nproma)        !< maximum of temp2 over all frequencies
+
     TYPE(t_wave_config), POINTER :: wc => NULL()
+
     i_rlstart  = 1
     i_rlend    = min_rlcell
     i_startblk = p_patch%cells%start_block(i_rlstart)
@@ -811,14 +830,16 @@ CONTAINS
       ENDDO
 
       DO jc = i_startidx, i_endidx
-        pp_swell(jc,jb) = MERGE(1.0_wp, 1.0_wp / wc%freqs(peak_ind1(jc)), peak_ind1(jc) == 1)
-        kp_swell(jc,jb) = MERGE(0.01_wp, wave_num_c(jc,peak_ind1(jc),jb), peak_ind1(jc) == 1)
-        pp_sea(jc,jb)   = MERGE(1.0_wp, 1.0_wp / wc%freqs(peak_ind2(jc)), peak_ind2(jc) == 1)
-        kp_sea(jc,jb)   = MERGE(0.01_wp, wave_num_c(jc,peak_ind2(jc),jb), peak_ind2(jc) == 1)
+        pp_swell(jc,jb) = MERGE(1.0_wp, 1.0_wp/wc%freqs(peak_ind1(jc)), peak_ind1(jc) == 1)
+        pp_sea(jc,jb)   = MERGE(1.0_wp, 1.0_wp/wc%freqs(peak_ind2(jc)), peak_ind2(jc) == 1)
+        kp_swell(jc,jb) = MERGE(1.0_wp, wave_num_c(jc,peak_ind1(jc),jb), peak_ind1(jc) == 1)
+        kp_sea(jc,jb)   = MERGE(1.0_wp, wave_num_c(jc,peak_ind2(jc),jb), peak_ind2(jc) == 1)
       END DO
+
     END DO
 !$OMP ENDDO NOWAIT
 !$OMP END PARALLEL
+
   END SUBROUTINE peak_wave_period_wavenumber_sep
 
   !>

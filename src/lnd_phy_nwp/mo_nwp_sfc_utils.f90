@@ -910,9 +910,9 @@ CONTAINS
             p_prog_wtr_new%alb_si(jc,jb)   = albsi_new(ic)
           ENDIF
 
-          p_prog_lnd_now%t_g_t(jc,jb,isub_seaice) =  tice_now(ic)
-          p_prog_lnd_new%t_g_t(jc,jb,isub_seaice) =  tice_new(ic) ! == tice_now(ic)
-          p_lnd_diag%qv_s_t(jc,jb,isub_seaice)    = spec_humi(sat_pres_ice(tice_now(ic)),&
+          p_prog_lnd_now%t_g_t(jc,jb,isub_seaice) =  tsnow_now(ic)
+          p_prog_lnd_new%t_g_t(jc,jb,isub_seaice) =  tsnow_new(ic) ! == tice_now(ic)
+          p_lnd_diag%qv_s_t(jc,jb,isub_seaice)    = spec_humi(sat_pres_ice(tsnow_now(ic)),&
           &                                   p_diag%pres_sfc(jc,jb) )
         ENDDO  ! ic
 
@@ -2824,7 +2824,7 @@ CONTAINS
   !!
   SUBROUTINE process_sst_and_seaice (p_patch, fr_seaice, t_seasfc, pres_sfc, ext_data,&
     &                               prog_lnd_now, prog_lnd_new, prog_wtr_now, prog_wtr_new, &
-    &                               diag_lnd, optin_h_ice, lacc)
+    &                               diag_lnd, optin_h_ice, optin_h_snow, lacc)
 
     TYPE(t_patch),           INTENT(IN)    :: p_patch
     REAL(wp),                INTENT(INOUT) :: fr_seaice(:,:)    !< sea ice fraction from
@@ -2839,6 +2839,8 @@ CONTAINS
     TYPE(t_wtr_prog),        INTENT(INOUT) :: prog_wtr_new
     TYPE(t_lnd_diag),        INTENT(INOUT) :: diag_lnd          !< diag vars for sfc
     REAL(wp), OPTIONAL,      INTENT(IN)    :: optin_h_ice(:,:)  !< ice thickness from
+                                                                !  external sources
+    REAL(wp), OPTIONAL,      INTENT(IN)    :: optin_h_snow(:,:) !< snow thickness from
                                                                 !  external sources
     LOGICAL,  OPTIONAL,      INTENT(IN)    :: lacc
 
@@ -2888,6 +2890,9 @@ CONTAINS
     i_endblk   = p_patch%cells%end_block(rl_end)
 
     lpresent_h_ice = PRESENT(optin_h_ice)
+
+    IF (PRESENT(optin_h_ice) .NEQV. PRESENT(optin_h_snow)) &
+      & CALL finish(routine, 'Either both optin_h_ice and optin_h_snow or neither must be given.')
 
     IF (lseaice) THEN
 
@@ -3022,6 +3027,8 @@ CONTAINS
           DO jc = i_startidx, i_endidx
             prog_wtr_now%h_ice(jc,jb) = optin_h_ice(jc,jb)
             prog_wtr_new%h_ice(jc,jb) = optin_h_ice(jc,jb)
+            prog_wtr_now%h_snow_si(jc,jb) = optin_h_snow(jc,jb)
+            prog_wtr_new%h_snow_si(jc,jb) = optin_h_snow(jc,jb)
           ENDDO
         ENDIF
 
@@ -3095,13 +3102,13 @@ CONTAINS
             prog_wtr_new%alb_si(jc,jb) = albsi_new(ic)
           ENDIF
 
-          prog_lnd_now%t_g_t (jc,jb,isub_seaice) = tice_now(ic)
-          prog_lnd_new%t_g_t (jc,jb,isub_seaice) = tice_new(ic) ! == tice_now(ic)
+          prog_lnd_now%t_g_t (jc,jb,isub_seaice) = tsnow_now(ic)
+          prog_lnd_new%t_g_t (jc,jb,isub_seaice) = tsnow_new(ic) ! == tice_now(ic)
           prog_lnd_now%t_s_t (jc,jb,isub_seaice) = tf_salt
           prog_lnd_new%t_s_t (jc,jb,isub_seaice) = tf_salt
           prog_lnd_now%t_sk_t(jc,jb,isub_seaice) = tf_salt
           prog_lnd_new%t_sk_t(jc,jb,isub_seaice) = tf_salt
-          diag_lnd%qv_s_t(jc,jb,isub_seaice)     = spec_humi(sat_pres_ice(tice_now(ic)),&
+          diag_lnd%qv_s_t(jc,jb,isub_seaice)     = spec_humi(sat_pres_ice(tsnow_now(ic)),&
             &                                                pres_sfc(jc,jb) )
         ENDDO  ! ic
         !$ACC END PARALLEL
@@ -3718,7 +3725,7 @@ CONTAINS
     !
     REAL(wp):: zfrice_thrhld
     REAL(wp):: frsi(nproma)
-    REAL(wp):: t_ice_now(nproma)
+    REAL(wp):: t_snow_now(nproma), h_snow_now(nproma)
     REAL(wp):: alb_si_now(nproma), alb_si_new(nproma)
     !
     TYPE(t_lnd_diag),  POINTER :: lnd_diag
@@ -3747,14 +3754,15 @@ CONTAINS
     i_endblk   = p_patch%cells%end_block(i_rlend)
 
 !$OMP PARALLEL
-!$OMP DO PRIVATE(jb,jc,ic,frsi,t_ice_now,alb_si_now,alb_si_new)
+!$OMP DO PRIVATE(jb,jc,ic,frsi,t_snow_now,h_snow_now,alb_si_now,alb_si_new)
     DO jb = i_startblk, i_endblk
 
       DO ic = 1, ext_data%atm%list_sea%ncount(jb)
         jc = ext_data%atm%list_sea%idx(ic,jb)
         !
         frsi(ic)      = lnd_diag%fr_seaice(jc,jb)
-        t_ice_now(ic) = wtr_prog_now%t_ice(jc,jb)
+        t_snow_now(ic) = wtr_prog_now%t_snow_si(jc,jb)
+        h_snow_now(ic) = wtr_prog_now%h_snow_si(jc,jb)
         ! the following 2 lines are required, because
         ! only a subset of points in alb_si_now(1:list_sea%ncount)
         ! are filled by the following initialization routine
@@ -3767,7 +3775,8 @@ CONTAINS
         &                    nswgb        = ext_data%atm%list_sea%ncount(jb), & !in
         &                    frice_thrhld = zfrice_thrhld,                    & !in
         &                    frsi         = frsi(:),                          & !in
-        &                    tice_p       = t_ice_now(:),                     & !in
+        &                    tsnow_p      = t_snow_now(:),                    & !in
+        &                    hsnow_p      = h_snow_now(:),                    & !in
         &                    albsi_p      = alb_si_now(:),                    & !inout
         &                    albsi_n      = alb_si_new(:)                     & !inout
         &  )

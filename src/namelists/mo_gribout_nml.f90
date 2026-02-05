@@ -148,6 +148,13 @@ MODULE mo_gribout_nml
                                                  ! "icon-nwp"
                                                  ! "art-nwp"
                                                  ! "ocean-nwp"
+                                                 ! "waves-nwp"
+
+  INTEGER :: localProductionContext(1:max_dom)   ! This GRIB key is part of Local-Use-Section-2 template:
+                                                 ! 230 "Model composition"
+                                                 ! It encodes supplementary information to the generatingProcessIdentifier.
+                                                 ! Its range of values can be found in table 2.233
+                                                 ! of the local DWD ecCodes definitions.
 
   NAMELIST/gribout_nml/  &
     &                    preset, tablesVersion,           &
@@ -172,7 +179,8 @@ MODULE mo_gribout_nml
     &                    lgribout_compress_ccsds,         &
     &                    typeOfGrib2TileTemplate,         &
     &                    grib_lib_compat,                 &
-    &                    model_components
+    &                    model_components,                &
+    &                    localProductionContext
 
 
 CONTAINS
@@ -239,6 +247,8 @@ CONTAINS
     grib_lib_compat                      = 'current'      ! i.e. switched off
 
     model_components(:)                  = ' '
+
+    localProductionContext(:)            = GRIB_UNDEFVAL
 
     !------------------------------------------------------------------
     ! 2. If this is a resumed integration, overwrite the defaults above
@@ -327,13 +337,14 @@ CONTAINS
 
     ! Check namelist settings for Local-Use-Section (Section 2) template: 230: "Model composition"
     ! (as this is relatively extensive, it is moved to a separate subroutine)
-    CALL evaluate_model_composition(generatingCenter        = generatingCenter,        & ! in
-      &                             localDefinitionNumber   = localDefinitionNumber,   & ! in
-      &                             typeOfGeneratingProcess = typeOfGeneratingProcess, & ! in
-      &                             preset                  = preset,                  & ! in
-      &                             model_components_char   = model_components(:),     & ! in
-      &                             model_components_int    = model_components_int(:), & ! out
-      &                             localProductionSystem   = localProductionSystem    ) ! out
+    CALL evaluate_model_composition(generatingCenter        = generatingCenter,          & ! in
+      &                             localDefinitionNumber   = localDefinitionNumber,     & ! in
+      &                             typeOfGeneratingProcess = typeOfGeneratingProcess,   & ! in
+      &                             localProductionContext  = localProductionContext(:), & ! in
+      &                             preset                  = preset,                    & ! in
+      &                             model_components_char   = model_components(:),       & ! in
+      &                             model_components_int    = model_components_int(:),   & ! out
+      &                             localProductionSystem   = localProductionSystem      ) ! out
 
     !----------------------------------------------------
     ! 5. Fill the configuration state
@@ -388,6 +399,8 @@ CONTAINS
         &                localProductionSystem
       gribout_config(jg)%model_components                  = &
         &                model_components_int
+      gribout_config(jg)%localProductionContext            = &
+        &                localProductionContext(jg)
     ENDDO
 
 
@@ -565,21 +578,22 @@ CONTAINS
 
   !> Evaluate possible namelist input for the model composition
   !
-  SUBROUTINE evaluate_model_composition(generatingCenter, localDefinitionNumber, typeOfGeneratingProcess, preset, &
-    &                                   model_components_char, model_components_int, localProductionSystem)
+  SUBROUTINE evaluate_model_composition(generatingCenter, localDefinitionNumber, typeOfGeneratingProcess, &
+    &                                   localProductionContext, preset, model_components_char,            &
+    &                                   model_components_int, localProductionSystem)
 
     ! Arguments
     INTEGER,                                  INTENT(IN)  :: generatingCenter
     INTEGER,                                  INTENT(IN)  :: localDefinitionNumber
     INTEGER,                                  INTENT(IN)  :: typeOfGeneratingProcess
+    INTEGER,                                  INTENT(IN)  :: localProductionContext(:)
     CHARACTER(LEN=*),                         INTENT(IN)  :: preset
     CHARACTER(LEN=GRIB_MAX_STR_LEN_MOD_COMP), INTENT(IN)  :: model_components_char(GRIB_MAX_NUM_MOD_COMP)
     INTEGER,                                  INTENT(OUT) :: model_components_int(GRIB_MAX_NUM_MOD_COMP)
     INTEGER,                                  INTENT(OUT) :: localProductionSystem
 
     ! Local variables
-    INTEGER :: jmc, counter
-    LOGICAL :: found_icon_nwp, found_art_nwp, found_ocean_nwp
+    INTEGER :: jg, jmc, counter_icon_nwp, counter_art_nwp, counter_ocean_nwp, counter_waves_nwp, length
     CHARACTER(LEN=GRIB_MAX_STR_LEN_MOD_COMP) :: component
 
     CHARACTER(LEN=*), PARAMETER :: routine = modname//"::evaluate_model_composition"
@@ -595,7 +609,7 @@ CONTAINS
     localProductionSystem = GRIB_NOTINUSEVAL
 
     ! The following is necessary only for
-    ! Local-Use-Section (Section 2) template: 230: "Model composition"
+    ! Local-Use-Section (Section 2) template: 230 "Model composition"
     IF (localDefinitionNumber == 230) THEN
 
       ! Some checks
@@ -624,92 +638,93 @@ CONTAINS
         localProductionSystem = 253
       ENDIF
 
+      !--------------------------
+      ! Local production context
+      !--------------------------
+
+      ! This GRIB key encodes supplementary information
+      ! to the generatingProcessIdentifier.
+      ! As a 2-byte key its values cover a range of [0; 65535].
+      DO jg= 1,max_dom
+        IF (localProductionContext(jg) /= GRIB_UNDEFVAL .AND. &
+          & (localProductionContext(jg) < 0 .OR. localProductionContext(jg) > 65535)) &
+          & CALL finish(routine, "Values for localProductionContext have to be from range: [0; 65535]")
+      ENDDO
+
       !-------------------
       ! Model composition
       !-------------------
 
-      ! Template 230 allows for 8 model components in total.
-      ! Currently, we allow for 3 components at most:
-      ! * localDrivingModelComponent   = 1000: "ICON-NWP" (local table 2.231.1)
-      ! * local(2nd/3rd)ModelComponent = 2000: "ART-NWP"
-      ! * local(2nd/3rd)ModelComponent = 3000: "OCEAN-NWP"
+      !
+      ! - Template 230 allows for 8 model components in total.
+      !   Currently, 4 components at most are allowed:
+      !   - 1000 "ICON-NWP" (local table 2.231.1) *
+      !   - 2000 "ART-NWP"
+      !   - 3000 "OCEAN-NWP"
+      !   - 4000 "WAVES-NWP"
+      !
+      ! [* "ICON-NWP" stands for the model component that incorporates the atmosphere
+      ! and the land and water surface (as these are no independent components
+      ! in the numerical-weather-prediction configuration of ICON).
+      ! This component is the original basic component for NWP applications
+      ! and is therefore habitually associated with the term "icon-nwp" by users.
+      ! The other model components were introduced later.]
+      !
+      ! - It is up to the user to choose a suitable order for the model components in use.
+      !   For example:
+      !
+      !      model_components = "icon-nwp", "art-nwp", "ocean-nwp"
+      !
+      !   would be transferred into the following GRIB key/value pairs:
+      !
+      !      localDrivingModelComponent = 1000
+      !      local2ndModelComponent     = 2000
+      !      local3rdModelComponent     = 3000
+      !
+      ! - It is the user's responsibility that the namelist setting for 'model_components'
+      !   and the actual model composition correspond with each other!
+      !   This is not checked here.
+      !
+      ! - Leaving 'model_components' empty in case of 'localDefinitionNumber == 230' is permitted.
+      !
+      ! - Here, we just check for doublets, just as, e.g.:
+      !
+      !      model_components = "ocean-nwp", "ocean-nwp"
+      !
 
-      ! Note: "art-nwp" (2000) and "ocean-nwp" (3000) require "icon-nwp" (1000) as the driving model.
-      ! The following handful of examples shall demonstrate what the few code lines after effectively try to do:
-      !
-      !  - model_components = "icon-nwp", "art-nwp"              ==> model_components = "icon-nwp", "art-nwp"
-      !
-      !  - model_components = "ocean-nwp"                        ==> model_components = "icon-nwp", "ocean-nwp"
-      !
-      !  - model_components = "art-nwp", "icon-nwp", "ocean-nwp" ==> model_components = "icon-nwp", "art-nwp", "ocean-nwp"
-      !
-      !  - model_components = "ocean-nwp", "icon-nwp", "art-nwp" ==> model_components = "icon-nwp", "ocean-nwp", "art-nwp"
-      !
-      !  - model_components = "art-nwp", "ocean-nwp", "art-nwp"  ==> model_components = "icon-nwp", "art-nwp", "ocean-nwp"
-      !
-      !  - model_components = "bla"                              ==> error
-      !
-      !  - model_components = " "                                ==> error
-
-      component       = " "
-      counter         = 1
-      found_icon_nwp  = .FALSE.
-      found_art_nwp   = .FALSE.
-      found_ocean_nwp = .FALSE.
+      component         = " "
+      counter_icon_nwp  = 0
+      counter_art_nwp   = 0
+      counter_ocean_nwp = 0
+      counter_waves_nwp = 0
 
       DO jmc = 1, GRIB_MAX_NUM_MOD_COMP
-        IF (LEN_TRIM(model_components_char(jmc)) > 0) THEN
-          ! lowercase namelist entry
+        length = LEN_TRIM(model_components_char(jmc))
+        IF (length > 0) THEN
+          ! Lowercase namelist entry
           component = tolower(model_components_char(jmc))
-          IF (TRIM(component) == "icon-nwp") THEN
-            IF ((.NOT. found_icon_nwp) .AND. (counter == 1)) THEN
-              ! found model component: "icon-nwp"
-              ! (if counter > 1, as the case may be,
-              ! this is covered by the following elseif-branches)
-              model_components_int(counter) = 1000
-              found_icon_nwp                = .TRUE.
-              counter                       = counter + 1
-            ENDIF
-          ELSEIF (TRIM(component) == "art-nwp") THEN
-            IF (.NOT. found_art_nwp) THEN
-              ! found model component: "art-nwp"
-              IF (counter == 1) THEN
-                ! it needs "icon-nwp"
-                model_components_int(counter) = 1000
-                ! we have to shift the counter by 1 in this case
-                counter        = counter + 1
-                found_icon_nwp = .TRUE.
-              ENDIF
-              model_components_int(counter) = 2000
-              found_art_nwp                 = .TRUE.
-              counter                       = counter + 1
-            ENDIF
-          ELSEIF (TRIM(component) == "ocean-nwp") THEN
-            IF (.NOT. found_ocean_nwp) THEN
-              ! found model component: "ocean-nwp"
-              IF (counter == 1) THEN
-                model_components_int(counter) = 1000
-                counter                       = counter + 1
-                found_icon_nwp                = .TRUE.
-              ENDIF
-              model_components_int(counter) = 3000
-              found_ocean_nwp               = .TRUE.
-              counter                       = counter + 1
-            ENDIF
-          ELSE
-            ! invalid string
+          SELECT CASE(component(1:length))
+          CASE("icon-nwp")
+            model_components_int(jmc) = 1000
+            counter_icon_nwp          = counter_icon_nwp + 1
+          CASE("art-nwp")
+            model_components_int(jmc) = 2000
+            counter_art_nwp           = counter_art_nwp + 1
+          CASE("ocean-nwp")
+            model_components_int(jmc) = 3000
+            counter_ocean_nwp         = counter_ocean_nwp + 1
+          CASE("waves-nwp")
+            model_components_int(jmc) = 4000
+            counter_waves_nwp         = counter_waves_nwp + 1
+          CASE default
+            ! Invalid string
             CALL finish(routine, "Invalid setting for model_components: "//TRIM(model_components_char(jmc)))
-          ENDIF ! IF (valid component)
-        ENDIF ! IF (LEN_TRIM(model_components_char(jmc)) > 0)
+          END SELECT
+          ! Check for doublets
+          IF (ANY([counter_icon_nwp, counter_art_nwp, counter_ocean_nwp, counter_waves_nwp] > 1)) &
+            & CALL finish(routine, "Invalid setting for model_components: '"//component(1:length)//"' occurs more than once")
+        ENDIF ! IF (length > 0)
       ENDDO ! jmc
-
-      IF (counter == 0) THEN
-        CALL finish(routine, "Local template 230 requires to specify model_components")
-      ELSE
-        ! Inform the user about her/his responsibility
-        CALL message(routine, "Please note: it is the user's responsibility that the namelist setting 'model_components'" &
-          &                 //" and the actual model composition correspond with each other!")
-      ENDIF
 
     ENDIF ! IF (localDefinitionNumber == 230)
 

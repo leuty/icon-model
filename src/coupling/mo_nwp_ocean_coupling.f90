@@ -143,6 +143,9 @@ MODULE mo_nwp_ocean_coupling
     !> Sea-ice thickness [m].
     REAL(wp), CONTIGUOUS, POINTER :: h_ice(:,:) => NULL()
 
+    !> Snow-on-sea-ice thickness [m].
+    REAL(wp), CONTIGUOUS, POINTER :: h_snow(:,:) => NULL()
+
     !> Zonal ocean surface velocity (optional) [m/s].
     REAL(wp), CONTIGUOUS, POINTER :: ocean_u(:,:) => NULL()
 
@@ -289,10 +292,12 @@ CONTAINS
     ! 1. lnd_diag%t_seasfc (:,:)   SST [K]
     ! 2. lnd_diag%fr_seaice(:,:)   Sea-ice fraction [m2(ice)/m2(ocean)]
     ! 3. wtr_prog_new%h_ice(:,:)   Sea-ice height [m]
+    ! 3. wtr_prog_new%h_snow_si(:,:) Snow-on-Sea-ice height [m]
 
     rx%t_seasfc => lnd_diag%t_seasfc(:,:)
     rx%fr_seaice => lnd_diag%fr_seaice(:,:)
     rx%h_ice => wtr_prog_new%h_ice(:,:)
+    rx%h_snow => wtr_prog_new%h_snow_si(:,:)
     rx%ocean_u => NULL()
     rx%ocean_v => NULL()
     rx%ice_u => NULL()
@@ -623,7 +628,7 @@ CONTAINS
 
     CALL cpl_get_field( &
       routine, in_field_ids(jg)%seaice_oce, 'sea ice', p_patch%n_patch_cells, &
-      field_1=rx%h_ice, field_2=buf, field_3=rx%fr_seaice, &
+      field_1=rx%h_ice, field_2=rx%h_snow, field_3=rx%fr_seaice, &
       received_data=received_data)
 
     IF (received_data) THEN

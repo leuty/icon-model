@@ -50,6 +50,8 @@ MODULE mo_wave_config
     INTEGER  :: ndirs    ! number of directions.
     INTEGER  :: nfreqs   ! number of frequencies.
 
+    INTEGER  :: Tlength  ! duration of sample time series
+
     REAL(wp) :: fr1      ! first frequency [hz].
     REAL(wp) :: co       ! frequency ratio
     INTEGER  :: iref     ! frequency bin number of reference frequency

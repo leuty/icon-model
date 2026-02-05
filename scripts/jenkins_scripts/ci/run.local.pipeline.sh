@@ -15,6 +15,9 @@ set -euo pipefail
 
 [[ $(git rev-parse --show-toplevel 2>/dev/null) = $(pwd) ]] || error "$0 not launched from toplevel of repository"
 
+echo "==> Load module eth_proxy"
+module load eth_proxy
+
 echo "==> Setting environment"
 export ENV_NAME="euler_cpu_gcc"
 

@@ -1556,14 +1556,10 @@ CONTAINS
     !
     ! Note that the scale factor can be signed according to its ecCodes implementation.
 
-    IF (ecc_scaleFactor >= 0_ECC_kindOfInt) THEN
-
-      ecc_referenceValue = REAL(ecc_scaledValue, KIND=dp) * REAL(ecc_downscale_factor(INT(ecc_scaleFactor)), KIND=dp)
-
+    IF (ecc_scaleFactor == 0_ECC_kindOfInt) THEN
+      ecc_referenceValue = REAL(ecc_scaledValue, KIND=dp)
     ELSE
-
-      ecc_referenceValue = REAL(ecc_scaledValue, KIND=dp) * REAL(ecc_upscale_factor(ABS(INT(ecc_scaleFactor))), KIND=dp)
-
+      ecc_referenceValue = REAL(ecc_scaledValue, KIND=dp) * 10.0_dp**(-INT(ecc_scaleFactor))
     ENDIF
 
     ! The number of coded values is an integral part of data representation section 5:

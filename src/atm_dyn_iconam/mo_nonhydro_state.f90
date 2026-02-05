@@ -26,8 +26,7 @@ MODULE mo_nonhydro_state
     &                                VINTP_METHOD_QV, VINTP_METHOD_PRES,             &
     &                                VINTP_METHOD_LIN,                               &
     &                                VINTP_METHOD_LIN_NLEVP1,                        &
-    &                                TASK_INTP_MSL, HINTP_TYPE_NONE,                 &
-    &                                MODE_IAU, MODE_IAU_OLD,                         &
+    &                                TASK_INTP_MSL, HINTP_TYPE_NONE, MODE_IAU,       &
     &                                TASK_COMPUTE_OMEGA, TLEV_NNOW_RCF,              &
     &                                MODE_ICONVREMAP,HINTP_TYPE_LONLAT_RBF,          &
     &                                HINTP_TYPE_LONLAT_BCTR,                         &
@@ -514,7 +513,7 @@ MODULE mo_nonhydro_state
       &           ldims=shape3d_e,                                              &
       &           in_group=groups("nh_prog_vars","dwd_fg_atm_vars",             &
       &                           "mode_dwd_fg_in","mode_iau_fg_in",            &
-      &                           "mode_iau_old_fg_in","LATBC_PREFETCH_VARS",   &
+      &                           "LATBC_PREFETCH_VARS",                        &
       &                           "iau_restore_vars","TLEV_UPDATE_ADVECTION"),  &
       &           lmemman=lmemman,                                              &
       &           lopenacc = .TRUE. )
@@ -531,8 +530,7 @@ MODULE mo_nonhydro_state
       &             vert_intp_method=VINTP_METHOD_LIN_NLEVP1 ),                &
       &          in_group=groups("atmo_ml_vars","atmo_pl_vars","atmo_zl_vars", &
       &                          "dwd_fg_atm_vars","mode_dwd_fg_in",           &
-      &                          "mode_iau_fg_in","mode_iau_old_fg_in",        &
-      &                          "LATBC_PREFETCH_VARS",                        &
+      &                          "mode_iau_fg_in","LATBC_PREFETCH_VARS",       &
       &                          "mode_iniana","icon_lbc_vars",                &
       &                          "iau_restore_vars","TLEV_UPDATE_ADVECTION"),  &
       &          lmemman=lmemman,                                              &
@@ -550,7 +548,7 @@ MODULE mo_nonhydro_state
       &              vert_intp_method=VINTP_METHOD_LIN ),                      &
       &           in_group=groups("nh_prog_vars","dwd_fg_atm_vars",            &
       &                           "mode_dwd_fg_in","mode_iau_fg_in",           &
-      &                           "mode_iau_old_fg_in","LATBC_PREFETCH_VARS",  &
+      &                           "LATBC_PREFETCH_VARS",                       &
       &                           "iau_restore_vars","TLEV_UPDATE_ADVECTION"), &
       &           lmemman=lmemman,                                             &
       &           lopenacc = .TRUE. )
@@ -564,8 +562,7 @@ MODULE mo_nonhydro_state
       &           GRID_UNSTRUCTURED_CELL, ZA_REFERENCE, cf_desc, grib2_desc,          &
       &           ldims=shape3d_c,                                                    &
       &           in_group=groups("nh_prog_vars","dwd_fg_atm_vars",                   &
-      &           "mode_dwd_fg_in","mode_iau_fg_in","mode_iau_old_fg_in",             &
-      &           "LATBC_PREFETCH_VARS",                                              &
+      &           "mode_dwd_fg_in","mode_iau_fg_in","LATBC_PREFETCH_VARS",            &
       &           "iau_restore_vars","TLEV_UPDATE_ADVECTION"),                        &
       &           lmemman=lmemman,                                                    &
       &           lopenacc = .TRUE. )
@@ -659,9 +656,7 @@ MODULE mo_nonhydro_state
             &           in_group=groups("atmo_ml_vars","atmo_pl_vars","atmo_zl_vars",  &
             &                           "dwd_fg_atm_vars","mode_dwd_ana_in",           &
             &                           "LATBC_PREFETCH_VARS","mode_iau_fg_in",        &
-            &                           "mode_iau_old_fg_in","mode_iau_ana_in",        &
-            &                           "mode_iau_anaatm_in",                          &
-            &                           "mode_iau_old_ana_in",                         &
+            &                           "mode_iau_ana_in","mode_iau_anaatm_in",        &
             &                           "mode_iniana","icon_lbc_vars","ana_increment", &
             &                           "TLEV_UPDATE_ADVECTION") )
           __acc_attach(p_prog%tracer_ptr(iqv)%p_3d)
@@ -671,15 +666,14 @@ MODULE mo_nonhydro_state
           ingroup=groups("atmo_ml_vars","atmo_pl_vars","atmo_zl_vars",               &
             &                           "dwd_fg_atm_vars","mode_dwd_fg_in",          &
             &                           "mode_iau_ana_in", "mode_iau_anaatm_in",     &
-            &                           "mode_iau_fg_in","mode_iau_old_fg_in",       &
-            &                           "LATBC_PREFETCH_VARS",                       &
+            &                           "mode_iau_fg_in","LATBC_PREFETCH_VARS",      &
             &                           "mode_iniana","icon_lbc_vars","ana_increment", &
             &                           "TLEV_UPDATE_ADVECTION")
         ELSE
           ingroup=groups("atmo_ml_vars","atmo_pl_vars","atmo_zl_vars",               &
             &                           "dwd_fg_atm_vars","mode_dwd_fg_in",          &
             &                           "mode_iau_ana_in", "mode_iau_anaatm_in",     &
-            &                           "mode_iau_fg_in","mode_iau_old_fg_in",       &
+            &                           "mode_iau_fg_in",                            &
             &                           "mode_iniana","icon_lbc_vars","ana_increment",&
             &                           "TLEV_UPDATE_ADVECTION")
         ENDIF
@@ -766,8 +760,7 @@ MODULE mo_nonhydro_state
             &           in_group=groups("atmo_ml_vars","atmo_pl_vars","atmo_zl_vars",  &
             &                           "dwd_fg_atm_vars","mode_dwd_fg_in",            &
             &                           "mode_iau_ana_in", "mode_iau_anaatm_in",       &
-            &                           "mode_iau_fg_in","mode_iau_old_fg_in",         &
-            &                           "LATBC_PREFETCH_VARS",                         &
+            &                           "mode_iau_fg_in","LATBC_PREFETCH_VARS",        &
             &                           "mode_iniana","icon_lbc_vars","ana_increment", &
             &                           "TLEV_UPDATE_ADVECTION") )
           __acc_attach(p_prog%tracer_ptr(iqr)%p_3d)
@@ -799,8 +792,7 @@ MODULE mo_nonhydro_state
             &           in_group=groups("atmo_ml_vars","atmo_pl_vars","atmo_zl_vars",  &
             &                           "dwd_fg_atm_vars","mode_dwd_fg_in",            &
             &                           "mode_iau_ana_in", "mode_iau_anaatm_in",       &
-            &                           "mode_iau_fg_in","mode_iau_old_fg_in",         &
-            &                           "LATBC_PREFETCH_VARS",                         &
+            &                           "mode_iau_fg_in","LATBC_PREFETCH_VARS",        &
             &                           "mode_iniana","icon_lbc_vars","ana_increment", &
             &                           "TLEV_UPDATE_ADVECTION") )
           __acc_attach(p_prog%tracer_ptr(iqs)%p_3d)
@@ -832,7 +824,7 @@ MODULE mo_nonhydro_state
             &           in_group=groups("atmo_ml_vars","atmo_pl_vars","atmo_zl_vars",  &
             &                           "dwd_fg_atm_vars","mode_dwd_fg_in",            &
             &                           "mode_iau_ana_in", "mode_iau_anaatm_in",       &
-            &                           "mode_iau_fg_in","mode_iau_old_fg_in",         &
+            &                           "mode_iau_fg_in",                              &
             &                           "LATBC_PREFETCH_VARS","opt_fg_vars",           &
             &                           "mode_iniana","icon_lbc_vars","ana_increment", &
             &                           "TLEV_UPDATE_ADVECTION") )
@@ -1496,7 +1488,7 @@ MODULE mo_nonhydro_state
           &                       vert_intp_method=VINTP_METHOD_LIN_NLEVP1 ),     &
           &           in_group=groups("atmo_ml_vars", "atmo_pl_vars",             &
           &           "atmo_zl_vars", "dwd_fg_atm_vars", "mode_dwd_fg_in",        &
-          &           "mode_iau_fg_in","mode_iau_old_fg_in",                      &
+          &           "mode_iau_fg_in",                                           &
           &           "mode_iniana","icon_lbc_vars","iau_restore_vars",           &
           &           "TLEV_UPDATE_ADVECTION"),                                   &
           &           lopenacc = .TRUE.  )
@@ -1819,7 +1811,7 @@ MODULE mo_nonhydro_state
                 &             vert_intp_type=vintp_types("P","Z","I") ),        &
                 & in_group=groups("atmo_ml_vars","atmo_pl_vars","atmo_zl_vars", &
                 &                 "dwd_fg_atm_vars","mode_dwd_ana_in",          &
-                &                 "mode_iau_ana_in","mode_iau_old_ana_in",      &
+                &                 "mode_iau_ana_in",                            &
                 &                 "mode_iau_anaatm_in","LATBC_PREFETCH_VARS",   &
                 &                 "mode_iniana","icon_lbc_vars",                &
                 &                 "ana_increment"),                             &
@@ -1840,7 +1832,7 @@ MODULE mo_nonhydro_state
                 &             vert_intp_type=vintp_types("P","Z","I") ),        &
                 & in_group=groups("atmo_ml_vars","atmo_pl_vars","atmo_zl_vars", &
                 &                 "dwd_fg_atm_vars","mode_dwd_ana_in",          &
-                &                 "mode_iau_ana_in","mode_iau_old_ana_in",      &
+                &                 "mode_iau_ana_in",                            &
                 &                 "mode_iau_anaatm_in","LATBC_PREFETCH_VARS",   &
                 &                 "mode_iniana","icon_lbc_vars",                &
                 &                 "ana_increment"),                             &
@@ -2524,7 +2516,7 @@ MODULE mo_nonhydro_state
                 &             vert_intp_method=VINTP_METHOD_LIN ),              &
                 & in_group=groups("atmo_ml_vars","atmo_pl_vars","atmo_zl_vars", &
                 &                 "dwd_fg_atm_vars","mode_dwd_ana_in",          &
-                &                 "mode_iau_ana_in","mode_iau_old_ana_in",      &
+                &                 "mode_iau_ana_in",                            &
                 &                 "mode_iau_anaatm_in","LATBC_PREFETCH_VARS",   &
                 &                 "mode_iniana","icon_lbc_vars",                &
                 &                 "ana_increment"),                             &
@@ -2573,8 +2565,7 @@ MODULE mo_nonhydro_state
                 &             vert_intp_method=VINTP_METHOD_PRES ),             &
                 & in_group=groups("atmo_ml_vars","atmo_zl_vars",                &
                 & "dwd_fg_atm_vars","mode_dwd_ana_in",                          &
-                & "mode_iau_ana_in","mode_iau_old_ana_in",                      &
-                & "mode_iau_anaatm_in","LATBC_PREFETCH_VARS",                   &
+                & "mode_iau_ana_in","mode_iau_anaatm_in","LATBC_PREFETCH_VARS", &
                 & "mode_iniana","icon_lbc_vars","ana_increment"),               &
                 & lmemman=lmemman,                                              &
                 & lopenacc = .TRUE. )
@@ -3315,7 +3306,7 @@ MODULE mo_nonhydro_state
     !
     ! (Transformed) Analysis increments
     !
-    IF ( ANY((/MODE_IAU,MODE_IAU_OLD/) == init_mode) ) THEN
+    IF (init_mode == MODE_IAU) THEN
       ! vn_incr   p_diag%vn_incr(nproma,nlev,nblks_e)
       !
       cf_desc    = t_cf_var('vn_incr', ' ',                   &
@@ -3527,7 +3518,7 @@ MODULE mo_nonhydro_state
 
         END IF
       END IF
-    ENDIF  ! init_mode = MODE_IAU, MODE_IAU_OLD
+    ENDIF  ! init_mode = MODE_IAU
 
     ! From a logical point of view, the following two fields make sense only in combination with an IAU cycle,
     ! but allocating them anyway allows using the analysis interpolation mode without changing the namelists

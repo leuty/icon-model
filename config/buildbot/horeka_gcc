@@ -21,6 +21,6 @@ makeflags="--jobs=${SLURM_NTASKS:-8} --no-print-directory --output-sync=target V
 
 set -x
 
-${icon_dir}/config/kit/hk.cpu.gcc
+${icon_dir}/config/kit/hk.cpu.gcc --enable-art-gpl
 
 make ${makeflags}

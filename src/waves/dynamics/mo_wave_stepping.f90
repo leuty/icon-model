@@ -38,6 +38,7 @@ MODULE mo_wave_stepping
   USE mo_wave_ext_data_state,      ONLY: wave_ext_data
   USE mo_wave_forcing_state,       ONLY: wave_forcing_state
   USE mo_wave_diagnostics,         ONLY: calculate_output_diagnostics
+  USE mo_wave_extreme_diagnostics, ONLY: calculate_extreme_diagnostics
   USE mo_wave_source,              ONLY: src_wind_input, src_dissipation, src_bottom_friction, &
     &                                    src_nonlinear_transfer, integrate_in_time_src, &
     &                                    src_wave_breaking
@@ -226,7 +227,14 @@ CONTAINS
             &                      wave_config = wave_config(jg),                        & ! IN
             &                            sp10m = wave_forcing_state(jg)%sp10m,           & ! IN
             &                           dir10m = wave_forcing_state(jg)%dir10m,          & ! IN
-            &                           depth  = wave_ext_data(jg)%depth_c,              & ! IN
+            &                            depth = wave_ext_data(jg)%depth_c,              & ! IN
+            &                             wesd = p_wave_state(jg)%prog(nnow(jg))%wesd,   & ! IN
+            &                           p_diag = p_wave_state(jg)%diag)                    ! INOUT
+
+          ! Calculation of extreme diagnostic output parameters
+          CALL calculate_extreme_diagnostics(p_patch = p_patch(jg),                      & ! IN
+            &                      wave_config = wave_config(jg),                        & ! IN
+            &                            depth = wave_ext_data(jg)%depth_c,              & ! IN
             &                             wesd = p_wave_state(jg)%prog(nnow(jg))%wesd,   & ! IN
             &                           p_diag = p_wave_state(jg)%diag)                    ! INOUT
         ENDIF
@@ -655,7 +663,14 @@ CONTAINS
             &                      wave_config = wave_config(jg),                        & ! IN
             &                            sp10m = wave_forcing_state(jg)%sp10m,           & ! IN
             &                           dir10m = wave_forcing_state(jg)%dir10m,          & ! IN
-            &                           depth  = wave_ext_data(jg)%depth_c,              & ! IN
+            &                            depth = wave_ext_data(jg)%depth_c,              & ! IN
+            &                             wesd = p_wave_state(jg)%prog(nnow(jg))%wesd,   & ! IN
+            &                           p_diag = p_wave_state(jg)%diag)                    ! INOUT
+
+          ! Calculation of extreme diagnostic output parameters
+          CALL calculate_extreme_diagnostics(p_patch = p_patch(jg),                      & ! IN
+            &                      wave_config = wave_config(jg),                        & ! IN
+            &                            depth = wave_ext_data(jg)%depth_c,              & ! IN
             &                             wesd = p_wave_state(jg)%prog(nnow(jg))%wesd,   & ! IN
             &                           p_diag = p_wave_state(jg)%diag)                    ! INOUT
         ENDIF

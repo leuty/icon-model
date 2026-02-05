@@ -20,9 +20,8 @@ MODULE mo_nml_crosscheck
   USE mo_exception,                ONLY: message, message_text, finish
   USE mo_impl_constants,           ONLY: inwp, tracer_only,                                &
     &                                    iaes, ildf_echam, RAYLEIGH_CLASSIC, INOFORCING,   &
-    &                                    icosmo, MODE_IAU, MODE_IAU_OLD,                   &
-    &                                    max_echotop, max_wshear, max_srh,                 &
-    &                                    LSS_JSBACH, ivdiff, IHELDSUAREZ, ILDF_DRY
+    &                                    icosmo, MODE_IAU, max_echotop, max_wshear,        &
+    &                                    max_srh, LSS_JSBACH, ivdiff, IHELDSUAREZ, ILDF_DRY
   USE mo_time_config,              ONLY: time_config, dt_restart
   USE mo_extpar_config,            ONLY: itopo
   USE mo_io_config,                ONLY: dt_checkpoint, lnetcdf_flt64_output, echotop_meta,&
@@ -46,7 +45,7 @@ MODULE mo_nml_crosscheck
     &                                    i2daero_seas, i2daero_anthro, i2daero_fire,       &
     &                                    icpl_aero_ice, itype_dissip_heat,                 &
     &                                    itype_stoch_phys, spg_num, itype_icecloud_diag
-  USE mo_lnd_nwp_config,           ONLY: ntiles_lnd, lsnowtile, sstice_mode, llake
+  USE mo_lnd_nwp_config,           ONLY: ntiles_lnd, sstice_mode, llake
 #ifndef __NO_AES__
   USE mo_aes_phy_config,           ONLY: aes_phy_config
   USE mo_aes_vdf_config,           ONLY: aes_vdf_config
@@ -69,8 +68,7 @@ MODULE mo_nml_crosscheck
     &                                    ecrad_use_general_cloud_optics
   USE mo_turbdiff_config,          ONLY: turbdiff_config
   USE mo_diffusion_config,         ONLY: diffusion_config
-  USE mo_initicon_config,          ONLY: init_mode, dt_iau, ltile_coldstart, iterate_iau,  &
-    &                                    itype_vert_expol
+  USE mo_initicon_config,          ONLY: init_mode, dt_iau, iterate_iau, itype_vert_expol
   USE mo_nh_testcases_nml,         ONLY: nh_test_name, layer_thickness
   USE mo_meteogram_config,         ONLY: meteogram_output_config, check_meteogram_configuration
   USE mo_grid_config,              ONLY: lplane, n_dom, l_limited_area, start_time,        &
@@ -888,7 +886,7 @@ CONTAINS
     ! Realcase runs
     !--------------------------------------------------------------------
 
-    IF ( ANY((/MODE_IAU,MODE_IAU_OLD/) == init_mode) ) THEN  ! start from dwd analysis with incremental update
+    IF ( init_mode == MODE_IAU ) THEN  ! start from dwd analysis with incremental update
 
       ! check if the appropriate physics package has been selected
       IF (iforcing /= inwp) THEN
@@ -938,16 +936,7 @@ CONTAINS
         ENDIF
       ENDDO
 
-      ! IAU modes MODE_IAU_OLD cannot be combined with snowtiles
-      ! when performing snowtile warmstart.
-      IF ((ntiles_lnd > 1) .AND. (.NOT. ltile_coldstart) .AND. (lsnowtile)) THEN
-        IF ( init_mode == MODE_IAU_OLD ) THEN
-          WRITE (message_text,'(a,i2)') "lsnowtile=.TRUE. not allowed for IAU-Mode ", init_mode
-          CALL finish(routine, message_text)
-        ENDIF
-      ENDIF
-
-    ENDIF
+    ENDIF ! IF ( init_mode == MODE_IAU )
 
     IF (itune_gust_diag == 3 .AND. ntiles_lnd == 1) THEN
       WRITE (message_text,'(a)') "itune_gust_diag = 3 requires ntiles > 1"

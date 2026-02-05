@@ -184,7 +184,7 @@ cat > NAMELIST_nwptest << EOF
  end_time                     = 0, 21600. ! nest stops after 6h
 /
 &initicon_nml
- init_mode                    = 5 ! 1: operation, 5: IAU, 6: 5+sma_inc
+ init_mode                    = 5 ! 1: operation, 5: IAU
  dt_iau                       = 5400    ! Window for incr.analysis update
  dt_shift                     = -5400  ! Offset for incr.analysis update
  type_iau_wgt                 = 1           ! IAU weighting function (const.)

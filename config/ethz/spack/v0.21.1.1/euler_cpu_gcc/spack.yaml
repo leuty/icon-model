@@ -10,12 +10,12 @@
 
 spack:
   specs:
-  - icon@develop%gcc +ecrad +rte-rrtmgp +grib2 ~coupling
+  - icon@develop%gcc +ecrad +rte-rrtmgp +grib2 ~coupling ldlibs="-lstdc++"
   - cosmo-eccodes-definitions@2.25.0.2
   view: false
   concretizer:
     unify: true
   develop:
     icon:
-      spec: icon@develop%gcc +ecrad +rte-rrtmgp +grib2 ~coupling
+      spec: icon@develop%gcc +ecrad +rte-rrtmgp +grib2 ~coupling ldlibs="-lstdc++"
       path: ../../../../../

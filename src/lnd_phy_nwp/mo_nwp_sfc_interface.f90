@@ -19,7 +19,7 @@
 
 MODULE mo_nwp_sfc_interface
 
-  USE mo_kind,                ONLY: wp
+  USE mo_kind,                ONLY: dp, wp
   USE mo_exception,           ONLY: message, message_text, finish
   USE mo_model_domain,        ONLY: t_patch
   USE mo_impl_constants,      ONLY: min_rlcell_int, icosmo, max_dom
@@ -595,6 +595,7 @@ CONTAINS
                tmp1 = MAX(1._wp,tmp3/MAX(lnd_diag%snowfrac_lc_t(jc,jb,isubs),0.01_wp))
                ! factor for snow-free tile to ensure that no water gets lost
                tmp2 = (1._wp-tmp1*lnd_diag%snowfrac_lc_t(jc,jb,isubs))/(1._wp-lnd_diag%snowfrac_lc_t(jc,jb,isubs))
+               tmp2 = MAX(0.0_wp, tmp2) ! avoid potential negative values arising from rounding errors in the calculations
 
                rain_gsp_rate(jc,isubs)    = rain_gsp_rate(jc,isubs)*tmp2
                snow_gsp_rate(jc,isubs)    = snow_gsp_rate(jc,isubs)*tmp2
@@ -1114,7 +1115,7 @@ CONTAINS
               tmp1 = MAX(0._wp,0.02_wp*(50._wp-prm_diag%swflxsfc_t(jc,jb,isubs-ntiles_lnd)))
               tmp2 = MIN(1._wp,MAX(0._wp,tmelt+1._wp-lnd_prog_new%t_s_t(jc,jb,isubs-ntiles_lnd)))
               snowfrac_t(ic) = MIN(snowfrac_t(ic),lnd_diag%snowfrac_lc_t(jc,jb,isubs)+MAX(tmp1,tmp2)*tcall_sfc_jg/10800._wp)
-            ELSE IF (prs_gsp_t(ic) + pri_gsp_t(ic) + prs_con_t(ic) + prg_gsp_t(ic) == 0._wp) THEN
+            ELSE IF ( ABS(prs_gsp_t(ic) + pri_gsp_t(ic) + prs_con_t(ic) + prg_gsp_t(ic)) < REAL(EPSILON(1._dp), wp) ) THEN
               snowfrac_t(ic) = MIN(snowfrac_t(ic),lnd_diag%snowfrac_lc_t(jc,jb,isubs)+tcall_sfc_jg/7200._wp)
             ELSE
               snowfrac_t(ic) = MIN(snowfrac_t(ic),lnd_diag%snowfrac_lc_t(jc,jb,isubs)+tcall_sfc_jg/1800._wp)
@@ -2012,9 +2013,9 @@ CONTAINS
           p_lnd_diag%condhf_ice(jc,jb)  = condhf_i(ic)
           p_lnd_diag%meltpot_ice(jc,jb) = meltpot_i(ic)
         ENDIF
-        lnd_prog_new%t_g_t(jc,jb,isub_seaice) = tice_new(ic)
+        lnd_prog_new%t_g_t(jc,jb,isub_seaice) = tsnow_new(ic)
         ! surface saturation specific humidity (uses saturation water vapor pressure over ice)
-        p_lnd_diag%qv_s_t(jc,jb,isub_seaice)  = spec_humi(sat_pres_ice(tice_new(ic)), &
+        p_lnd_diag%qv_s_t(jc,jb,isub_seaice)  = spec_humi(sat_pres_ice(tsnow_new(ic)), &
           &                                     p_diag%pres_sfc(jc,jb) )
       ENDDO  ! ic
       !$ACC END PARALLEL

@@ -24,11 +24,11 @@ include:
     ICON_CI_MICROPHYSICS_PYVENV: ${ICON_CI_COMMON_DKRZ_SHMEM_PATH}/venv
     ICON_CI_UTILS_PIP_PYTHON: ${ICON_CI_MICROPHYSICS_PYVENV}/bin/python3
     ICON_CI_UTILS_PIP_UPGRADE: true
-    ICON_CI_UTILS_PIP_PACKAGES: >-
-      Jinja2==3.0.3 click==8.0.4 matplotlib==3.3.4 netCDF4==1.6.1
-      numpy==1.19.5 pandas==1.1.5 xarray==0.16.2
+    ICON_CI_UTILS_PIP_REQUIREMENT: ${ICON_CI_UTILS_GIT_CLONE_PATH}/externals/probtest/requirements.txt
     ICON_CI_UTILS_PIP_CACHE_PATH: null
-    ICON_CI_MICROPHYSICS_EXTRA_MODULES: gcc/11.2.0-gcc-11.2.0
+    ICON_CI_MICROPHYSICS_EXTRA_MODULES: >-
+      gcc/11.2.0-gcc-11.2.0
+      python3/2023.01-gcc-11.2.0
     ICON_CI_MICROPHYSICS_BUILD_PATH: ${ICON_CI_COMMON_DKRZ_SHMEM_PATH}/build
     ICON_CI_MICROPHYSICS_TARGET: all
     CLICOLOR_FORCE: 1
@@ -41,8 +41,10 @@ include:
     - !reference [.common:dkrz:levante, before_script]
     - |
       # !reference [.nwp:muphys:common, before_script]
+      module --verbose load ${ICON_CI_MICROPHYSICS_EXTRA_MODULES-}
       icon_ci_log_section_start 'Initializing Python environment'
       (
+        python3 --version
         set -x
         python3 -m venv "${ICON_CI_MICROPHYSICS_PYVENV}"
       )
@@ -53,7 +55,6 @@ include:
       icon_ci_log_section_start "Configuring 'test/microphysics_1mom_schemes'"
       (
         set -u
-        module --verbose load ${ICON_CI_MICROPHYSICS_EXTRA_MODULES-}
         cmake --version
         set -x
         cmake \
@@ -105,6 +106,7 @@ nwp:muphys:intel:
     ICON_CI_MICROPHYSICS_EXTRA_MODULES: >-
       gcc/11.2.0-gcc-11.2.0
       intel-oneapi-compilers/2022.0.1-gcc-11.2.0
+      python3/2023.01-gcc-11.2.0
     CC: icc
     FC: ifort
     CXX: icpc

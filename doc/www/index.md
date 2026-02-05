@@ -58,6 +58,12 @@ including references to dig deeper.
 To the getting started guide
 ```
 
+
+[](ref_tools_mkexp)  
+[EXTPAR Web Interface (Zonda)](ref_tools_gridextpargui)  
+[](ref_tools_cdo)  
+[](ref_tools_comin)
+[Forward Operators](ref_tools_fwo)
 :::
 
 :::{grid-item-card}
