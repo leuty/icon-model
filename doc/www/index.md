@@ -1,112 +1,106 @@
-# Welcome to the ICON Model documentation
-
-:::topic
-_It's the job that's never started as takes longest to finish - J.R.R. Tolkien_
-:::
-
-This website contains a collection of ICON documentation including references to documentation available at other places. We do not claim that this documentation is complete, but we hope you will still find it helpful.
+# ICON Model Documentation
 
 ```{toctree}
 :hidden:
-buildrun/buildrun_gettingstarted.md
-tools/tools.md
-atmosphere/atmosphere.md
-ocean/ocean.md
-waves/waves.md
-land/land.md
-infrastructure/infrastructure.md
-literature/literature.md
-
-howto/overview.md
-howto/contributing.md
-howto/reviewing.md
-howto/gatekeeping.md
+release/release.md
+getting_started/getting_started.md
+documentation/documentation.md
+contribute/development_guidelines.md
 ```
 
-:::{admonition} Release Information
-:class: admonition-icontheme
-ICON {{ '{}'.format(release) }} has been published and is available for download.
-Information on the changes are available in the {{ '[**Release Notes**]({}/RELEASE_NOTES.md)'.format(base_url) }}.
-:::
+ICON is a flexible, scalable, high-performance modelling framework for weather, climate and environmental prediction that provides actionable information for society and advances our understanding of the Earth's climate system.
 
-::::{grid} 1 2 2 3
-:gutter: 1 1 1 2
+**Useful links:**
+{{ '[Namelist Overview]({}/doc/Namelist_overview/Namelist_overview.pdf)'.format(base_url) }},
+Deprecated Features,
+[FAQ](ref_buildrun_faq),
+[Community Newsletter](https://www.icon-model.org/news/community-newsletter)
 
-:::{grid-item-card}
-[**Getting Started**](ref_buildrun_gettingstarted)
-^^^
-[](ref_buildrun_building_intro)  
-[](ref_buildrun_running)  
-[](ref_buildrun_environments)  
-[](ref_buildrun_input_data)  
-[](ref_buildrun_supportedconf)  
-[](ref_buildrun_faq)
-:::
+::::{grid} 1 1 2 2
+:gutter: 2 3 4 4
 
 :::{grid-item-card}
-[**Interfaces & Tools**](ref_tools)
+:text-align: center
+{material-outlined}`download;4em;pst-color-primary`\
+**Release**
 ^^^
-[](ref_tools_mkexp)  
-[Zonda](ref_tools_gridextpargui)  
-[](ref_tools_yac)  
-[](ref_tools_cdo)  
-[](ref_tools_comin)
-[Forward Operators](ref_tools_fwo)
-:::
 
-:::{grid-item-card}
-[**Atmosphere**](ref_atmosphere)
-^^^
-[](ref_atmosphere_dycore)  
-[](ref_atmosphere_physics)  
-[](ref_atmosphere_art)
+Get the latest release and information
+on changes to previous ICON versions.
+
++++
+
+```{button-ref} ref_release
+:color: primary
+:expand:
+:click-parent:
+To the ICON release
+```
+
 :::
 
 :::{grid-item-card}
-[**Ocean**](ref_ocean_overview)
+:text-align: center
+{material-outlined}`rocket_launch;4em;pst-color-primary`\
+**Getting Started**
 ^^^
-[Sea-ice Model](ref_ocean_seaice)  
-[Ocean Biogeochemistry](ref_ocean_biogeochem)  
+
+Don't know where to start?
+Find a short description for beginners here,
+including references to dig deeper.
+
++++
+
+```{button-ref} ref_gettingstarted
+:color: primary
+:expand:
+:click-parent:
+To the getting started guide
+```
+
 :::
 
 :::{grid-item-card}
-[**Waves**](ref_waves_overview)
+:text-align: center
+{material-outlined}`menu_book;4em;pst-color-primary`\
+**Documentation**
 ^^^
-[Configuration](ref_waves_config)  
-[Output Parameters](ref_waves_output)
+
+Collection of everything there is to know about ICON.
+**Chapters:**
+[User Manual](ref_buildrun_usermanual),
+[Interfaces & Tools](ref_tools),
+[Atmosphere](ref_atmosphere),
+[Ocean](ref_ocean_overview),
+[Waves](ref_waves_overview),
+[Land](ref_land),
+[Infrastructure](ref_infrastructure),
+[Literature](ref_literature)
+
++++
+```{button-ref} ref_documentation
+:color: primary
+:expand:
+To the ICON documentation
+```
 :::
 
 :::{grid-item-card}
-[**Land**](ref_land)
+:text-align: center
+{material-outlined}`group_add;4em;pst-color-primary`\
+**Contribute**
 ^^^
-[](ref_land_schemes)  
-[](ref_land_cover_change)  
-[](ref_land_biogeochem)  
-:::
 
-:::{grid-item-card}
-[**Infrastructure**](ref_infrastructure)
-^^^
-[](ref_infrastructure_parallelization)  
-[](ref_infrastructure_io)  
-[](ref_infrastructure_testing)  
-[](ref_output_coupling)  
-:::
+Want to contribute to the ICON development or find out
+how the ICON partners guarantee the high standards of the ICON framework?
 
-:::{grid-item-card}
-[**Literature**](ref_literature)
-^^^
-[](ref_literature_tutorials)  
-[](ref_literature_technical)  
-[](ref_literature_science)  
-:::
-
-:::{grid-item-card}
-[**Development Workflow**](ref_dev_overview)
-^^^
-[](ref_contribute)  
-[](ref_review)  
-[](ref_gate_keeping)  
++++
+```{button-ref} ref_development_guidelines
+:color: primary
+:expand:
+:click-parent:
+To the development guidelines
+```
 :::
 
 ::::

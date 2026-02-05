@@ -112,7 +112,7 @@ for midx in data_ci["machines"]:
 ci_test_list_table = to_html_table(data, base_url)
 
 # Read documentation file
-doc_path = "doc/www/infrastructure/testing/system_tests.md"
+doc_path = "doc/www/documentation/infrastructure/testing/system_tests.md"
 if not os.path.exists(doc_path):
     print(f"Documentation file not found: {doc_path}")
     sys.exit(1)

@@ -45,10 +45,12 @@ include:
         # Generate Buildbot test tables:
         BB_NAME=all ./scripts/buildbot_scripts/create_list_merge2rc
         python3 scripts/ci_scripts/generate_test_list.py
+        # Append release notes to existing docs page
+        python3 scripts/ci_scripts/collect_release_info.py
         # Generate ICON dependency graph:
         dot -Gconcentrate=true -Tsvg \
-          -o"${CI_PROJECT_DIR}/doc/www/buildrun/icon-depgraph.svg" \
-          "${CI_PROJECT_DIR}/doc/www/buildrun/icon-depgraph.dot"
+          -o"${CI_PROJECT_DIR}/doc/www/documentation/buildrun/icon-depgraph.svg" \
+          "${CI_PROJECT_DIR}/doc/www/documentation/buildrun/icon-depgraph.dot"
         # Generate HTML docs (do not tolerate warnings):
         #  1) --fail-on-warning ensures a non-zero exit status of the command
         #     if any warnings are encountered;
