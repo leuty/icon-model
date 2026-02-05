@@ -59,6 +59,7 @@
   - Update nitrogen cycle parameters
   - Add script to generate CMIP7 based deposition data
   - Refactor vegetation memory structure to reduce code complexity
+  - Assure restart identity
 - Refactoring of anthropogenic land cover change process
 - Hydrology: Added ford inline documentation
 - Land initial files
