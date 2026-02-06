@@ -185,6 +185,7 @@ jsb_output_tiles="'veg','glac','land','lake','box'"
 #
 if [ ${jsb_case} = "'jsbach_lite'" ]
 then
+npft=0
 fract_filename="'bc_land_frac.nc'"
 use_alb_veg_simple=.TRUE.
 jsb_assimi_active=.FALSE.
@@ -193,7 +194,8 @@ fi # ${jsb_case}
 #
 if [ ${jsb_case} = "'jsbach_pfts'" ]
 then
-fract_filename="'bc_land_frac_11pfts.nc'"
+npft=11
+fract_filename="'bc_land_frac_${npft}pfts.nc'"
 use_alb_veg_simple=.FALSE.
 jsb_assimi_active=.TRUE.
 jsb_pheno_scheme="'logrop'"
@@ -404,6 +406,7 @@ jsbach_namelist=NAMELIST_${EXPNAME}_lnd # also used in exec.iconrun
 cat > ${jsbach_namelist} << EOF
 &jsb_model_nml
   usecase                 = ${jsb_case}
+  npft                    = ${npft}
   fract_filename          = ${fract_filename}
   output_tiles            = ${jsb_output_tiles}
   enforce_water_budget    = 'error'     ! Error: stop in case of water conservation problem

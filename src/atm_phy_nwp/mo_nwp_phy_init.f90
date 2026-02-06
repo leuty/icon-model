@@ -20,7 +20,7 @@ MODULE mo_nwp_phy_init
   USE mo_kind,                ONLY: wp
   USE mo_math_constants,      ONLY: rad2deg
   USE mo_physical_constants,  ONLY: grav, rd_o_cpd, cpd, p0ref, rd, p0sl_bg,         &
-    &                               dtdz_standardatm, lh_v=>alv, o3mr2gg, tf_salt
+    &                               dtdz_standardatm, lh_v=>alv, o3mr2gg
   USE mo_nwp_phy_types,       ONLY: t_nwp_phy_diag,t_nwp_phy_tend
   USE mo_nwp_lnd_types,       ONLY: t_lnd_prog, t_wtr_prog, t_lnd_diag
   USE mo_ext_data_types,      ONLY: t_external_data
@@ -100,7 +100,7 @@ MODULE mo_nwp_phy_init
   USE mo_nwp_sfc_utils,       ONLY: nwp_surface_init, init_snowtile_lists, init_sea_lists, &
     &                               aggregate_tg_qvs, copy_lnd_prog_now2new, reset_ocean_skin
   USE mo_lnd_nwp_config,      ONLY: ntiles_total, lsnowtile, ntiles_water, llake, loskin, &
-    &                               lseaice, zml_soil, nlev_soil, dzsoil_icon => dzsoil
+    &                               lseaice, zml_soil, nlev_soil, dzsoil_icon => dzsoil, tf_salt
   USE sfc_flake_data,         ONLY: h_Ice_min_flk, tpl_T_f
   USE sfc_terra_data,         ONLY: csalbw, cpwp, cfcap
   USE mo_thdyn_functions,     ONLY: sat_pres_water, &  !! saturation vapor pressure w.r.t. water

@@ -22,6 +22,7 @@ MODULE mo_sea_ice_nml
   USE mo_exception,           ONLY: finish, message
   USE mo_mpi,                 ONLY: my_process_is_stdio
   USE mo_nml_annotate,        ONLY: temp_defaults, temp_settings
+  USE mo_physical_constants,  ONLY: Tf_const
 !  USE mo_run_config,          ONLY: dtime
 
   IMPLICIT NONE
@@ -67,7 +68,8 @@ MODULE mo_sea_ice_nml
   REAL(wp),PUBLIC :: albim              !< Albedo of ice (melting)
 
 
-  REAL(wp),PUBLIC :: sice = 5.0_wp              !< bulk salinity of sea ice
+  REAL(wp),PUBLIC :: sice = 5.0_wp      !< bulk salinity of sea ice
+  REAL(wp),PUBLIC :: Tf = Tf_const      !< freezing temperature of sea ice (deg C)
   ! some analytic initialization parameters
   REAL(wp),PUBLIC :: init_analytic_temp_under_ice= -1.6_wp
   REAL(wp),PUBLIC :: init_analytic_conc_param    = 0.9_wp
@@ -132,6 +134,7 @@ MODULE mo_sea_ice_nml
     &  albi, &
     &  albim, &
     &  sice, &
+    &  Tf, &
     &  pstar, &
     &  n_ice_iter, &
     &  ellipse, &

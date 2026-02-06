@@ -27,7 +27,8 @@ MODULE mo_coupling_nml
   USE mo_coupling_config, ONLY: config_coupled_to_ocean, config_coupled_to_waves,    &
     &                           config_coupled_to_hydrodisc, config_coupled_to_atmo, &
     &                           config_coupled_to_output, config_coupled_to_aero,    &
-    &                           config_coupled_to_o3, config_coupled_to_cleo
+    &                           config_coupled_to_o3, config_coupled_to_era5,        &
+    &                           config_coupled_to_cleo
   USE mo_coupling_utils,  ONLY: cpl_config_file_exists
   USE mo_master_control,  ONLY: get_my_process_type, get_my_process_name,           &
     &                           atmo_process, ocean_process, ps_radiation_process,  &
@@ -59,6 +60,7 @@ CONTAINS
     LOGICAL :: coupled_to_ocean, can_couple_to_ocean, &
                coupled_to_waves, can_couple_to_waves, &
                coupled_to_atmo, can_couple_to_atmo, &
+               coupled_to_era5, can_couple_to_era5, &
                coupled_to_hydrodisc, can_couple_to_hydrodisc, &
                coupled_to_output, can_couple_to_output, &
                coupled_to_aero, can_couple_to_aero, &
@@ -75,7 +77,7 @@ CONTAINS
 
     NAMELIST /coupling_mode_nml/ coupled_to_ocean, coupled_to_waves, &
          coupled_to_atmo, coupled_to_hydrodisc, coupled_to_output, &
-         coupled_to_aero, coupled_to_o3, coupled_to_cleo
+         coupled_to_aero, coupled_to_o3, coupled_to_era5, coupled_to_cleo
 
     !--------------------------------------------------------------------
     ! 1. Set default values
@@ -88,6 +90,7 @@ CONTAINS
     coupled_to_output       = .FALSE.
     coupled_to_aero         = .FALSE.
     coupled_to_o3           = .FALSE.
+    coupled_to_era5         = .FALSE.
     coupled_to_cleo         = .FALSE.
 
     can_couple_to_ocean        = .FALSE.
@@ -97,6 +100,7 @@ CONTAINS
     can_couple_to_output       = .FALSE.
     can_couple_to_aero         = .FALSE.
     can_couple_to_o3           = .FALSE.
+    can_couple_to_era5         = .FALSE.
     can_couple_to_cleo         = .FALSE.
 
     !--------------------------------------------------------------------
@@ -123,10 +127,12 @@ CONTAINS
     config_coupled_to_output       = coupled_to_output
     config_coupled_to_aero         = coupled_to_aero
     config_coupled_to_o3           = coupled_to_o3
+    config_coupled_to_era5         = coupled_to_era5
     config_coupled_to_cleo         = coupled_to_cleo
 
     coupled_mode = ANY((/coupled_to_ocean,     &
                          coupled_to_waves,     &
+                         coupled_to_era5,      &
                          coupled_to_atmo,      &
                          coupled_to_hydrodisc, &
                          coupled_to_output,    &
@@ -161,6 +167,7 @@ CONTAINS
         can_couple_to_cleo = .TRUE.
       CASE (ocean_process)
         can_couple_to_atmo = .TRUE.
+        can_couple_to_era5 = .TRUE.
         can_couple_to_waves = .TRUE.
         can_couple_to_hydrodisc = .TRUE.
         can_couple_to_output = .TRUE.
@@ -188,6 +195,12 @@ CONTAINS
       CALL finish( &
         routine, 'Component ' // TRIM(get_my_process_name()) // &
         ' does not support coupling to waves')
+    ENDIF
+
+    IF (coupled_to_era5 .AND. .NOT. can_couple_to_era5) THEN
+      CALL finish( &
+        routine, 'Component ' // TRIM(get_my_process_name()) // &
+        ' does not support coupling to era5')
     ENDIF
 
     IF (coupled_to_atmo .AND. .NOT. can_couple_to_atmo) THEN

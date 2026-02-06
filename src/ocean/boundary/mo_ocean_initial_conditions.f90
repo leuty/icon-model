@@ -19,8 +19,8 @@
 MODULE mo_ocean_initial_conditions
   !-------------------------------------------------------------------------
   USE mo_kind,               ONLY: wp
-  USE mo_grid_config,        ONLY: grid_sphere_radius, grid_angular_velocity
-  USE mo_physical_constants, ONLY: rgrav, tmelt, tf, earth_angular_velocity,inverse_earth_radius! , SItodBar
+  USE mo_grid_config,        ONLY: grid_sphere_radius, grid_angular_velocity, use_dummy_cell_closure
+  USE mo_physical_constants, ONLY: rgrav, tmelt, earth_angular_velocity,inverse_earth_radius! , SItodBar
   USE mo_math_constants,     ONLY: pi, pi_2, rad2deg, deg2rad
   USE mo_parallel_config,    ONLY: nproma
   USE mo_ocean_nml,          ONLY: iswm_oce, n_zlev,i_sea_ice,                &
@@ -44,17 +44,19 @@ MODULE mo_ocean_initial_conditions
     & OceanReferenceDensity, LinearThermoExpansionCoefficient,                  &
     & smooth_initial_velocity_iterations, smooth_initial_velocity_weights,      &
     & vert_cor_type, check_ana_oce, check_fg_oce, fg_filename, ana_filename,    &
-    ana_varnames_map_file_oce, fillValue, use_initicono
+    & ana_varnames_map_file_oce, fillValue, use_initicono, evaluation_point,    &
+    & sp_density_front_num_sines, sp_density_front_sine_amp, &
+    & sp_press_equilibrium_depth, sp_thermal_coefficient
 
-  USE mo_sea_ice_nml,        ONLY: use_IceInitialization_fromTemperature
+  USE mo_sea_ice_nml,        ONLY: use_IceInitialization_fromTemperature, Tf
 
   USE mo_impl_constants,     ONLY: sea_boundary
   USE mo_dynamics_config,    ONLY: nold
   USE mo_math_types,         ONLY: t_cartesian_coordinates, t_geographical_coordinates
-  USE mo_math_utilities,     ONLY: gvec2cvec
+  USE mo_math_utilities,     ONLY: gvec2cvec, gc2cc, arc_length, cc2gc
   USE mo_exception,          ONLY: finish, message, message_text
   USE mo_util_dbg_prnt,      ONLY: dbg_print
-  USE mo_model_domain,       ONLY: t_patch, t_patch_3d, t_grid_cells
+  USE mo_model_domain,       ONLY: t_patch, t_patch_3d, t_grid_cells, t_grid_vertices
   USE mo_ext_data_types,     ONLY: t_external_data
   USE mo_ocean_types,        ONLY: t_hydro_ocean_state
   USE mo_ocean_physics_types,ONLY: t_ho_params
@@ -77,6 +79,7 @@ MODULE mo_ocean_initial_conditions
   USE mo_initicon_config,    ONLY: initicon_config, dwdana_filename, dwdfg_filename, &
     & ana_varnames_map_file
   USE mo_grid_config,        ONLY: n_dom
+  USE mo_mpi,                ONLY: get_my_mpi_work_id
   IMPLICIT NONE
   PRIVATE
 
@@ -256,6 +259,9 @@ CONTAINS
         ENDIF
       ENDDO
     ENDDO
+
+    IF (use_dummy_cell_closure) &
+      & variable(patch_2d%cells%dummy_cell_index:, patch_2d%cells%dummy_cell_block) = 0.0_wp
 
     CALL sync_patch_array(sync_c, patch_2D, variable, lacc=.FALSE.)
 
@@ -770,6 +776,9 @@ CONTAINS
     CASE (235)
       ocean_temperature(:,:,:) = 10.0_wp
 
+    CASE (251)
+      CALL temperature_CollapsingDensityFront_StuhnePeltier_sin(patch_3d, ocean_temperature)
+
     !------------------------------
     !! Test cases for zstar
     !------------------------------
@@ -1126,6 +1135,15 @@ CONTAINS
 
     CASE (235)
       ocean_height(:,:) = 10.0_wp
+
+    CASE (250) ! tsunami mid-pacific test
+      CALL height_gaussian_wave(patch_3d, ocean_height, -150._wp, 0._wp)
+
+    CASE (251) ! tsunami southern ocean test
+      CALL height_gaussian_wave(patch_3d, ocean_height, -90._wp, -30._wp)
+
+    CASE (300) ! hydrostatic balance with stuhne-peltier temperature
+      CALL height_hydro_balance_sp_temp(patch_3d, ocean_height)
 
     CASE default
       CALL finish(method_name, "unknown sea_surface_height_type")
@@ -3726,7 +3744,7 @@ END DO
 
     INTEGER :: block, idx, level
     INTEGER :: start_cell_index, end_cell_index
-    REAL(wp):: lat_deg, lon_deg, z_tmp
+    REAL(wp):: lat_deg, lon_deg, z_tmp, sine_wave
     REAL(wp),POINTER :: density(:,:,:)
     REAL(wp):: slope_parameter =0_wp
     real(wp):: centerline
@@ -3910,6 +3928,127 @@ END DO
     END DO
 
   END SUBROUTINE height_quads_checkerboard
+  !-------------------------------------------------------------------------------
+
+  !-------------------------------------------------------------------------------
+  ! CASE (250) and (251)
+  ! Gaussian wave form
+  SUBROUTINE height_gaussian_wave(patch_3d, ocean_height, lon_in, lat_in)
+    TYPE(t_patch_3d), TARGET, INTENT(inout) :: patch_3d
+    REAL(wp), TARGET :: ocean_height(:,:)
+    REAL(wp), INTENT(in) :: lon_in, lat_in ! wave peak longitude and latitude
+
+    TYPE(t_patch), POINTER :: patch_2d
+    TYPE(t_subset_range), POINTER :: all_cells
+    TYPE(t_grid_cells), POINTER :: cells
+    TYPE(t_grid_vertices), POINTER :: vertices
+
+    INTEGER :: blockNo, idx, blockv, idxv, iv
+    INTEGER :: start_cell_index, end_cell_index
+
+    INTEGER :: my_pe
+    TYPE(t_cartesian_coordinates) :: cell_point               ! cartesian coordinates of current cell
+    !INTEGER, PARAMETER            :: evaluation_point = 1    ! where to evaluate cell_point
+    INTEGER, PARAMETER            :: barycenter       = 1     ! at the triangle barycenter
+    INTEGER, PARAMETER            :: centroid         = 2     ! at the triangle centroid
+    REAL(wp), PARAMETER :: peak_height =   10.0_wp            ! wave height
+    REAL(wp), PARAMETER :: peak_dev    =    1e6_wp ! 1000km   ! wave deviation (in Gaussian equation)
+    REAL(wp), PARAMETER :: horizontal_scaling_factor = 1._wp  ! a parameter to modify normal distribution
+    REAL(wp)            :: arc_dist                           ! current point arc distance from peak
+    TYPE(t_geographical_coordinates) :: peak_gc               ! geographical coordinates of wave peak
+    TYPE(t_cartesian_coordinates)    :: peak_cc               ! cartesian coordinates of wave peak
+    TYPE(t_geographical_coordinates) :: cell_gc               ! geographical coordinates of wave peak
+
+    CHARACTER(LEN=*), PARAMETER :: method_name = module_name//':height_gaussian_wave'
+    !-------------------------------------------------------------------------
+    patch_2d => patch_3d%p_patch_2d(1)
+    cells => patch_2d%cells
+    all_cells => patch_2d%cells%ALL
+    vertices => patch_2d%verts
+    !-----------------------------------------------------------------------
+    ! preparation
+    peak_gc%lon = lon_in/180._wp*pi
+    peak_gc%lat = lat_in/180._wp*pi
+    peak_cc = gc2cc(peak_gc)
+
+    my_pe = get_my_mpi_work_id()
+    ! local point heights
+    DO blockNo = all_cells%start_block, all_cells%end_block
+      CALL get_index_range(all_cells, blockNo, start_cell_index, end_cell_index)
+      DO idx = start_cell_index, end_cell_index
+        SELECT CASE (evaluation_point)
+        CASE (barycenter)
+          cell_point = cells%cartesian_center(idx, blockNo)
+        CASE (centroid)
+          cell_point%x = .0_wp
+          DO iv = 1, 3
+            blockv = cells%vertex_blk(idx,blockNo,iv)
+            idxv = cells%vertex_idx(idx,blockNo,iv)
+            cell_point%x = cell_point%x + vertices%cartesian(idxv,blockv)%x / 3._wp
+          END DO
+        CASE DEFAULT
+          CALL finish(method_name, "unknown type of evaluation")
+        END SELECT
+        cell_gc = cc2gc(cell_point)
+        arc_dist = grid_sphere_radius * arc_length(cell_point, peak_cc)
+        ocean_height(idx,blockNo) = peak_height * exp( - arc_dist**2 / (2*peak_dev**2) )
+        WRITE(0,*) my_pe, "cell(",idx,",",blockNo,")%latlon = ",cell_gc
+        WRITE(0,*) my_pe, "arc_length(",idx,",",blockNo,") = ",arc_length(cell_point, peak_cc)
+        WRITE(0,*) my_pe, "arc_dist(",idx,",",blockNo,") = ",arc_dist
+        WRITE(0,*) my_pe, "ocean_height(",idx,",",blockNo,") = ",ocean_height(idx,blockNo)
+      END DO
+    END DO
+  END SUBROUTINE height_gaussian_wave
+  !-------------------------------------------------------------------------------
+
+  !-------------------------------------------------------------------------------
+  ! CASE (300)
+  ! Hydrostatic balance with Stuhne-Peltier initial temperature and ssh field.
+
+  SUBROUTINE height_hydro_balance_sp_temp(patch_3d, ocean_height)
+    TYPE(t_patch_3d), TARGET, INTENT(inout) :: patch_3d
+    REAL(wp), TARGET :: ocean_height(:,:)
+
+    TYPE(t_patch), POINTER :: patch_2d
+    TYPE(t_geographical_coordinates), POINTER :: cell_center(:,:)
+    TYPE(t_subset_range), POINTER :: all_cells
+
+    INTEGER :: blockNo, idx
+    INTEGER :: start_cell_index, end_cell_index
+    REAL(wp):: lat_deg, z_tmp, temperature
+    REAL(wp):: density_ratio
+
+    CHARACTER(LEN=*), PARAMETER :: method_name = module_name//':height_hydro_balance_sp_temp'
+    !-------------------------------------------------------------------------
+
+    patch_2d => patch_3d%p_patch_2d(1)
+    all_cells => patch_2d%cells%ALL
+    cell_center => patch_2d%cells%center
+    !-------------------------------------------------------------------------
+
+    DO blockNo = all_cells%start_block, all_cells%end_block
+      CALL get_index_range(all_cells, blockNo, start_cell_index, end_cell_index)
+      DO idx = start_cell_index, end_cell_index
+
+        ! transer to latitude in degrees
+        lat_deg = cell_center(idx,blockNo)%lat * rad2deg
+        ! Temperature profile depends on latitude only and is uniform vertically
+        IF (ABS(lat_deg) >= 40.0_wp) THEN
+          temperature = 5.0_wp
+        ELSEIF (ABS(lat_deg) <= 20.0_wp) THEN
+          temperature =  30.0_wp
+        ELSE ! IF (ABS(lat_deg) < 40.0_wp .AND. ABS(lat_deg) > 20.0_wp)THEN
+          z_tmp = pi*((ABS(lat_deg) -20.0_wp)/20.0_wp)
+          temperature = 5.0_wp + 0.5_wp * 25.0_wp * (1.0_wp + COS(z_tmp))
+        ENDIF
+
+        density_ratio = 1.0_wp-sp_thermal_coefficient*temperature
+        ocean_height(idx,blockNo) = sp_press_equilibrium_depth * (1.0_wp / density_ratio - 1.0_wp) ! bias relative to normal sea level
+
+      END DO
+    END DO
+
+  END SUBROUTINE height_hydro_balance_sp_temp
   !-------------------------------------------------------------------------------
 
   !-------------------------------------------------------------------------------
@@ -4705,6 +4844,71 @@ END DO
    END SUBROUTINE temperature_CollapsingDensityFront_StuhnePeltier
   !-------------------------------------------------------------------------------
 
+  !-------------------------------------------------------------------------------
+  ! A modified version of previous test where front has a sine form
+  !-------------------------------------------------------------------------------
+  SUBROUTINE temperature_CollapsingDensityFront_StuhnePeltier_sin(patch_3d, ocean_temperature)
+    TYPE(t_patch_3d ),TARGET, INTENT(inout) :: patch_3d
+    REAL(wp), TARGET :: ocean_temperature(:,:,:)
+
+    TYPE(t_patch),POINTER   :: patch_2d
+    TYPE(t_geographical_coordinates), POINTER :: cell_center(:,:)
+    TYPE(t_subset_range), POINTER :: all_cells
+
+    INTEGER :: block, idx!, level
+    INTEGER :: start_cell_index, end_cell_index
+    INTEGER :: end_level
+    REAL(wp):: lat_deg, lon_deg, z_tmp, sine_N
+    REAL(wp):: sine_amp, sine_wave
+
+    CHARACTER(LEN=*), PARAMETER :: method_name = module_name//':temperature_CollapsingDensityFront_StuhnePeltier_sin'
+    !-------------------------------------------------------------------------
+
+    patch_2d => patch_3d%p_patch_2d(1)
+    all_cells => patch_2d%cells%ALL
+    cell_center => patch_2d%cells%center
+
+    sine_N = sp_density_front_num_sines
+    sine_amp = sp_density_front_sine_amp
+
+    CALL message(method_name, ': Collapsing density front, Stuhne-Peltier - sine wave variation')
+
+    DO block = all_cells%start_block, all_cells%end_block
+      CALL get_index_range(all_cells, block, start_cell_index, end_cell_index)
+      DO idx = start_cell_index, end_cell_index
+
+        end_level = patch_3d%p_patch_1d(1)%dolic_c(idx,block)
+
+        ! Transer to lat/lon in degrees
+        lat_deg = cell_center(idx,block)%lat * rad2deg
+        !lon_deg = cell_center(idx,block)%lon * rad2deg
+        sine_wave = sine_amp * SIN(cell_center(idx,block)%lon * sine_N)
+
+        ! Impose temperature profile. Profile depends on latitude and longitude
+        ! and is uniform across all vertical layers
+        IF (lat_deg >= 40.0_wp+sine_wave .OR. lat_deg <= -40.0_wp+sine_wave) THEN
+
+          ocean_temperature(idx,1:end_level,block) = 5.0_wp
+
+        ELSEIF (lat_deg <= 20.0_wp+sine_wave .AND. lat_deg >= -20.0_wp+sine_wave) THEN
+
+          ocean_temperature(idx,1:end_level,block) =  30.0_wp
+
+        ELSEIF (lat_deg > 20.0_wp+sine_wave) THEN
+
+          z_tmp = pi*(lat_deg-(20.0_wp+sine_wave))/20.0_wp
+          ocean_temperature(idx,1:end_level,block) = 17.5_wp + 12.5_wp * COS(z_tmp)
+
+        ELSE ! (lat_deg < -20.0_wp+sine_wave) THEN
+
+          z_tmp = pi*(lat_deg-(-20.0_wp+sine_wave))/20.0_wp
+          ocean_temperature(idx,1:end_level,block) = 17.5_wp + 12.5_wp * COS(z_tmp)
+
+        ENDIF
+      END DO
+    END DO
+
+   END SUBROUTINE temperature_CollapsingDensityFront_StuhnePeltier_sin
 
 
   !-------------------------------------------------------------------------------

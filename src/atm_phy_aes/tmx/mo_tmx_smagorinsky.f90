@@ -390,13 +390,12 @@ MODULE mo_tmx_smagorinsky
 #endif
             Ri  = 2._wp * bruvais(jc,jk,jb) / MAX(eps, mech_prod(jc,jk,jb))
 
-            stability_function(jc,jk,jb) =  MAX(  1.0_wp - Ri * rturb_prandtl,                       &
-                                                  MIN(1._wp,                                         &
-                                                      1._wp / (1._wp + louis_constant_b              &
-                                                                       * scaling_factor_louis(jc,jb) &
-                                                                       * ABS(Ri)                     &
-                                                              )**4._wp                               &
-                                                     ))
+            stability_function(jc,jk,jb) = MAX( 1.0_wp - Ri * rturb_prandtl,                        &
+                                                MIN(1._wp, (1._wp / (1._wp + louis_constant_b       &
+                                                                      * scaling_factor_louis(jc,jb) &
+                                                                      * ABS(Ri)                     &
+                                                            ))**4._wp                               &
+                                              ))
 
             stability_term = SQRT( 0.5_wp * mech_prod(jc,jk,jb) * stability_function(jc,jk,jb) )
 

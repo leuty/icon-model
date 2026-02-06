@@ -17,7 +17,7 @@ MODULE mo_hamocc_swr_absorption
   USE mo_control_bgc, ONLY: bgc_zlevs, bgc_nproma
   USE mo_bgc_memory_types, ONLY  : t_bgc_memory
   USE mo_fortran_tools, ONLY     : set_acc_host_or_device
-
+  USE mo_exception, ONLY      : finish
 
   IMPLICIT NONE
 
@@ -53,18 +53,30 @@ SUBROUTINE swr_absorption(local_bgc_mem, start_idx,end_idx, klevs, pfswr, psicom
     REAL(wp), PARAMETER :: atten_c=0.04_wp !< attenuation of blue/green light
                                            !! by chlorophyll [m-1]
 
+#ifndef __LVECTOR__
     REAL(wp) :: swr_r
     REAL(wp) :: swr_b
+#else
+    REAL(wp) :: swr_r(start_idx:end_idx)
+    REAL(wp) :: swr_b(start_idx:end_idx)
+#endif
+
     REAL(wp) :: rcyano
 
-    INTEGER :: k, kpke, j
+    INTEGER :: k, kpke, j, max_klevs
     LOGICAL :: lzacc
 
     CALL set_acc_host_or_device(lzacc, lacc)
 
+#if defined(__LVECTOR__) && defined(_OPENACC)
+    IF (lzacc) CALL finish("", "LVECTOR variant after reworking not properly ported/tested on GPUs")
+#endif
+
     ! if prognostic cyanobacteria are calculated
     ! use them in absorption (rcyano=1)
     rcyano=merge(1._wp,0._wp,l_cyadyn)
+
+#ifndef __LVECTOR__
 
     !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
     !$ACC LOOP GANG VECTOR
@@ -100,6 +112,57 @@ SUBROUTINE swr_absorption(local_bgc_mem, start_idx,end_idx, klevs, pfswr, psicom
     ENDDO
     !$ACC END PARALLEL
 
+#else
+
+    max_klevs = MAXVAL(klevs(start_idx:end_idx))
+
+    !NEC$ nomove
+    DO j = start_idx, end_idx
+        local_bgc_mem%strahl(j) = pfswr(j) * (1._wp - psicomo(j))
+        local_bgc_mem%swr_frac(j,1) = 1.0_wp
+
+        IF(klevs(j) > 0) THEN
+            swr_r(j) = redfrac
+            swr_b(j) = (1._wp-redfrac)
+        END IF
+    END DO
+
+    DO k = 2, max_klevs
+        !NEC$ nomove
+        DO j = start_idx, end_idx
+
+            IF(k <= klevs(j)) THEN
+                swr_r(j) = swr_r(j) * EXP(-dzw(j,k-1) * &
+                       &   atten_r)
+
+                swr_b(j) = swr_b(j) * EXP(-dzw(j,k-1) * &
+                       &  (atten_w + atten_c * pho_to_chl * MAX(0.0_wp,(local_bgc_mem%bgctra(j,k-1,iphy) + rcyano * local_bgc_mem%bgctra(j,k-1,icya)))))
+
+                local_bgc_mem%swr_frac(j,k) = swr_r(j) + swr_b(j)
+            END IF
+
+        END DO
+    END DO
+
+    DO k = 1, max_klevs - 1
+        !NEC$ nomove
+        DO j = start_idx, end_idx
+
+            IF(k <= klevs(j) - 1) THEN
+                local_bgc_mem%meanswr(j,k) = (local_bgc_mem%swr_frac(j,k) + local_bgc_mem%swr_frac(j,k+1))/2._wp
+            END IF
+
+        END DO
+    END DO
+
+    !NEC$ nomove
+    DO j = start_idx, end_idx
+        IF(klevs(j) > 0) THEN
+            local_bgc_mem%meanswr(j,klevs(j)) = local_bgc_mem%swr_frac(j,klevs(j))
+        END IF
+    END DO
+
+#endif
 
 END SUBROUTINE swr_absorption
 END MODULE

@@ -20,7 +20,8 @@ MODULE mo_surface_height_lhs_zstar
     USE mo_ocean_types, ONLY: t_solverCoeff_singlePrecision, t_operator_coeff
     USE mo_grid_subset, ONLY: t_subset_range, get_index_range
     USE mo_ocean_nml, ONLY: select_lhs, select_lhs_matrix, ab_gam, ab_beta, &
-      & l_edge_based, l_lhs_direct
+      & l_edge_based, l_lhs_direct, ocean_latbc_bnd_intp_width, &
+      & is_ocean_limited_area
     USE mo_communication, ONLY: exchange_data
     USE mo_parallel_config, ONLY: nproma
     USE mo_impl_constants, ONLY: sea_boundary
@@ -329,11 +330,24 @@ MODULE mo_surface_height_lhs_zstar
               & blockNo=blkNo, start_index=start_index, end_index=end_index, lacc=lzacc)
           END IF
           !Step 4) Finalize LHS calculations
-          !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-          DO jc = start_index, end_index
-            lhs(jc,blkNo) = x(jc,blkNo) * gdt2_inv - gam_times_beta * lhs(jc,blkNo)
-          END DO
-          !$ACC END PARALLEL LOOP
+          IF (.NOT. is_ocean_limited_area) THEN
+            !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+            DO jc = start_index, end_index
+              lhs(jc,blkNo) = x(jc,blkNo) * gdt2_inv - gam_times_beta * lhs(jc,blkNo)
+            END DO
+            !$ACC END PARALLEL LOOP
+          ELSE ! LAM modification - cells in the boundary interpolation zone have custom lhs values
+            !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+            DO jc = start_index, end_index
+              IF (this%patch_2d%cells%refin_ctrl(jc,blkNo) == 0 .OR. &
+                & this%patch_2d%cells%refin_ctrl(jc,blkNo) > ocean_latbc_bnd_intp_width) THEN
+                lhs(jc,blkNo) = x(jc,blkNo) * gdt2_inv - gam_times_beta * lhs(jc,blkNo)
+              ELSE
+                lhs(jc,blkNo) = x(jc,blkNo) * gdt2_inv
+              END IF
+            END DO
+            !$ACC END PARALLEL LOOP
+          ENDIF
           !$ACC WAIT(1)
         END DO ! blkNo
     !ICON_OMP_END_PARALLEL_DO

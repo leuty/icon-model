@@ -33,7 +33,7 @@ MODULE mo_nwp_turbtrans_interface
   USE mo_impl_constants,       ONLY: min_rlcell_int, icosmo, igme, ismag, iprog, max_dom
   USE mo_impl_constants_grf,   ONLY: grf_bdywidth_c
   USE mo_loopindices,          ONLY: get_indices_c
-  USE mo_physical_constants,   ONLY: rd_o_cpd, grav, lh_v=>alv, lh_s=>als, rd, cpd, tf_salt
+  USE mo_physical_constants,   ONLY: rd_o_cpd, grav, lh_v=>alv, lh_s=>als, rd, cpd
   USE mo_ext_data_types,       ONLY: t_external_data
   USE mo_nwp_tuning_config,    ONLY: itune_gust_diag, tune_gustlim_agl
   USE mo_nonhydro_types,       ONLY: t_nh_prog, t_nh_diag, t_nh_metrics
@@ -56,7 +56,7 @@ MODULE mo_nwp_turbtrans_interface
   USE mo_util_phys,            ONLY: nwp_dyn_gust
   USE mo_run_config,           ONLY: ltestcase
   USE mo_lnd_nwp_config,       ONLY: ntiles_total, ntiles_lnd, ntiles_water, llake, frlnd_thrhld, &
-    &                                isub_seaice, isub_lake, isub_water, lseaice, lsnowtile
+    &                                isub_seaice, isub_lake, isub_water, lseaice, lsnowtile, tf_salt
   USE mo_nh_testcases_nml,     ONLY: nh_test_name
   USE mo_grid_config,          ONLY: l_scm_mode
   USE mo_scm_nml,              ONLY: scm_sfc_mom, scm_sfc_temp ,scm_sfc_qv

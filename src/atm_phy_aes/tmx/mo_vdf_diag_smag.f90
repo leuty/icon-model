@@ -128,9 +128,13 @@ CONTAINS
 !
   SUBROUTINE compute_wind_speed( &
     & domain,                  &
-    & min_sfc_wind,            &
+    & nvalid, indices,         &
+    & min_sfc_wind, isfc,      &
     & pum1, pvm1,              &
-    & mwind                    &
+    & oce_u, oce_v,            &
+    & ice_u, ice_v,            &
+    & wind_rel,                &
+    & opt_acc_async_queue      &
     )
 
     ! Domain information
@@ -138,29 +142,49 @@ CONTAINS
     !
     ! Input variables
     !
+    INTEGER,  INTENT(in)  :: &
+      & nvalid(:),           &
+      & indices(:,:)
     REAL(wp), INTENT(in) :: min_sfc_wind
+    INTEGER, INTENT(IN) :: isfc
     REAL(wp), DIMENSION(:,:), INTENT(in) :: &
       pum1 ,     &
-      pvm1
+      pvm1 ,     &
+      oce_u,     &
+      oce_v,     &
+      ice_u,     &
+      ice_v
+    INTEGER, INTENT(IN), OPTIONAL :: opt_acc_async_queue
     !
     ! Output variables
     !
-    REAL(wp), DIMENSION(:,:), INTENT(out) :: mwind
+    REAL(wp), DIMENSION(:,:), INTENT(out) :: wind_rel
 
     CHARACTER(len=*), PARAMETER :: routine = modname//':compute_wind_speed'
 
-    INTEGER  :: jb, jc
+    INTEGER :: jb, jls, js
+    INTEGER :: acc_async_queue
+
+    CALL set_acc_async_queue(acc_async_queue, opt_acc_async_queue)
 
 !$OMP PARALLEL
-    CALL init(mwind, lacc=.TRUE.)
+    ! Initialize with min_sfc_wind to prevent division by zero later (from jsbach)
+    CALL init(wind_rel, min_sfc_wind, lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
 !$OMP END PARALLEL
 
-!$OMP PARALLEL DO PRIVATE(jb, jc) ICON_OMP_DEFAULT_SCHEDULE
+!$OMP PARALLEL DO PRIVATE(jb, jls, js) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = domain%i_startblk_c, domain%i_endblk_c
-      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(1)
-      DO jc = domain%i_startidx_c(jb), domain%i_endidx_c(jb)
-        mwind(jc,jb) = MAX( min_sfc_wind, SQRT(pum1(jc,jb)**2._wp + pvm1(jc,jb)**2._wp) )
-      END DO !jc
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(acc_async_queue) PRIVATE(js)
+      DO jls = 1, nvalid(jb)
+        js = indices(jls,jb)
+        IF (isfc == isfc_oce) THEN ! open ocean
+          wind_rel(js,jb) = MAX( min_sfc_wind, SQRT( (pum1(js,jb) - oce_u(js,jb))**2._wp + (pvm1(js,jb) - oce_v(js,jb))**2._wp ) )
+        ELSEIF (isfc == isfc_ice) THEN ! sea ice
+          wind_rel(js,jb) = MAX( min_sfc_wind, SQRT( (pum1(js,jb) - ice_u(js,jb))**2._wp + (pvm1(js,jb) - ice_v(js,jb))**2._wp ) )
+        ELSE ! land
+          wind_rel(js,jb) = MAX( min_sfc_wind, SQRT(pum1(js,jb)**2._wp + pvm1(js,jb)**2._wp) )
+        END IF
+      END DO !jls
       !$ACC END PARALLEL LOOP
     END DO !jb
 !$OMP END PARALLEL DO

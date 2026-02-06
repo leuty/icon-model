@@ -22,7 +22,7 @@ MODULE mo_nwp_sfc_utils
   USE mo_kind,                ONLY: wp
   USE mo_exception,           ONLY: message, message_text, finish
   USE mo_model_domain,        ONLY: t_patch
-  USE mo_physical_constants,  ONLY: tmelt, tf_salt, grav, salinity_fac, rhoh2o
+  USE mo_physical_constants,  ONLY: tmelt, grav, salinity_fac, rhoh2o
   USE mo_math_constants,      ONLY: dbl_eps, rad2deg
   USE mo_impl_constants,      ONLY: min_rlcell_int, min_rlcell, LSS_JSBACH, &
     &                               MODE_IAU, ALB_SI_MISSVAL, MAX_CHAR_LENGTH
@@ -42,7 +42,7 @@ MODULE mo_nwp_sfc_utils
     &                               lsnowtile, isub_water, isub_seaice, isub_lake, &
     &                               lterra_urb, l2lay_rho_snow, lprog_albsi, itype_trvg, &
     &                               itype_snowevap, zml_soil, dzsoil, frsi_min, hice_min, &
-    &                               lcuda_graph_lnd, itype_oskin_cold, itype_oskin_warm
+    &                               lcuda_graph_lnd, itype_oskin_cold, itype_oskin_warm, tf_salt
   USE mo_atm_phy_nwp_config,  ONLY: atm_phy_nwp_config
   USE mo_nwp_tuning_config,   ONLY: tune_minsnowfrac, tune_urbahf
   USE mo_initicon_config,     ONLY: init_mode_soil, ltile_coldstart, init_mode, lanaread_tseasfc, use_lakeiceana, &

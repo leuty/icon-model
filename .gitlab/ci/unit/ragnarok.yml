@@ -10,7 +10,7 @@
 
 include:
   - local: .gitlab/ci/common/dkrz.yml
-  - local: .gitlab/ci/common/any-image.yml
+  - local: .gitlab/ci/common/ubuntu.yml
 
 .ragnarok:common:
   stage: unit
@@ -52,12 +52,17 @@ include:
 
 .ragnarok:docker:
   extends:
-    - .common:any-image
+    - .common:ubuntu
     - .ragnarok:common
   variables:
+    ICON_CI_UTILS_APT_PACKAGES: clang-tidy-20
     CMAKE_BUILD_PARALLEL_LEVEL: 8
     CTEST_PARALLEL_LEVEL: 8
   image: registry.gitlab.dkrz.de/icon/containers/icon-ci-build:f6633645
+  cache:
+    - key: apt-ragnarok-${CI_JOB_IMAGE}
+      paths:
+        - ${ICON_CI_UTILS_APT_CACHE_PATH}
   rules:
     - if: $CI_PIPELINE_SOURCE == "web"
       when: manual
@@ -87,6 +92,7 @@ ragnarok:cpu:serial:
   extends: .ragnarok:docker
   variables:
     ICON_CI_RAGNAROK_CMAKE_EXTRA_ARGS: >-
+      -DCMAKE_CXX_CLANG_TIDY='clang-tidy-20;--use-color'
       -DKokkos_ENABLE_OPENMP=OFF
       -DKokkos_ENABLE_SERIAL=ON
       -DRGK_ENABLE_STANDALONE=ON
@@ -95,6 +101,7 @@ ragnarok:icon-bridge:
   extends: .ragnarok:docker
   variables:
     ICON_CI_RAGNAROK_CMAKE_EXTRA_ARGS: >-
+      -DCMAKE_CXX_CLANG_TIDY='clang-tidy-20;--use-color'
       -DBUILD_SHARED_LIBS=OFF
       -DRGK_ENABLE_STANDALONE=OFF
   script:

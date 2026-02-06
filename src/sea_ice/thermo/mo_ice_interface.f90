@@ -34,8 +34,8 @@ MODULE mo_ice_interface
     &                               timers_level, timer_extra40, timer_ice_advection
   USE mtime,                  ONLY: datetime, getDayOfYearFromDateTime
 
-  USE mo_physical_constants,  ONLY: rhoi, ki, Tf, ci
-  USE mo_sea_ice_nml,         ONLY: i_ice_therm, i_ice_dyn, i_ice_advec, hci_layer
+  USE mo_physical_constants,  ONLY: rhoi, ki, ci
+  USE mo_sea_ice_nml,         ONLY: i_ice_therm, i_ice_dyn, i_ice_advec, hci_layer, Tf
   USE mo_ocean_nml,           ONLY: atmos_flux_analytical_type, atmos_SWnet_const, atmos_sens_const
   USE mo_ocean_types,         ONLY: t_hydro_ocean_state
   USE mo_ocean_surface_types, ONLY: t_ocean_surface, t_atmos_for_ocean

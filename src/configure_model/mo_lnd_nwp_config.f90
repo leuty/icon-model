@@ -38,7 +38,7 @@ MODULE mo_lnd_nwp_config
   PUBLIC :: frlnd_thrhld, frlndtile_thrhld, frlake_thrhld, frsea_thrhld, frsi_min, hice_min, hice_max
   PUBLIC :: albsi_snow_min, albsi_snow_max, albsi_min, albsi_max
   PUBLIC :: lseaice, lprog_albsi, lbottom_hflux, llake, loskin, itype_oskin_warm, itype_oskin_cold
-  PUBLIC :: lmulti_snow, lsnowtile, max_toplaydepth, lmelt, lmelt_var
+  PUBLIC :: lmulti_snow, lsnowtile, max_toplaydepth, lmelt, lmelt_var, tf_salt
   PUBLIC :: itype_trvg, itype_evsl, itype_lndtbl, l2lay_rho_snow
   PUBLIC :: itype_root, itype_heatcond, &
             itype_hydbound, idiag_snowfrac, itype_snowevap, cwimax_ml, c_soil, c_soil_urb, cr_bsmin
@@ -72,6 +72,7 @@ MODULE mo_lnd_nwp_config
   REAL(wp)::  frsi_min           !< minimum sea-ice fraction  [-]
   REAL(wp)::  hice_min           !< minimum sea-ice thickness [m]
   REAL(wp)::  hice_max           !< maximum sea-ice thickness [m]
+  REAL(wp)::  tf_salt            !< freezing temperature of seawater [K]
   REAL(wp)::  albsi_snow_max     !< maximum albedo of snow over sea ice [-]
   REAL(wp)::  albsi_snow_min     !< minimum albedo of snow over sea ice [-]
   REAL(wp)::  albsi_max          !< maximum albedo of sea ice [-]

@@ -18,6 +18,7 @@ MODULE mo_ocean_coupling_frame
   USE mo_exception,           ONLY: message, finish
   USE mo_grid_config,         ONLY: n_dom
   USE mo_run_config,          ONLY: ltimer
+  USE mo_ocean_era5_provider_coupling, ONLY:  construct_ocean_era5_provider_coupling_post_sync
   USE mo_timer,               ONLY: timer_start, timer_stop, &
        &                            timer_coupling_init
   USE mo_model_domain,        ONLY: t_patch, t_patch_3d
@@ -28,7 +29,7 @@ MODULE mo_ocean_coupling_frame
   !
   USE mo_coupling_utils,      ONLY: cpl_def_main, cpl_enddef
   USE mo_coupling_config,     ONLY: is_coupled_run, is_coupled_to_atmo, is_coupled_to_waves, &
-    &                               is_coupled_to_output
+    &                               is_coupled_to_output, is_coupled_to_era5
   USE mo_output_coupling,     ONLY: construct_output_coupling, &
     &                               construct_output_coupling_finalize
   USE mo_ocean_atmo_coupling, ONLY: construct_ocean_atmo_coupling, construct_ocean_atmo_coupling_finalize
@@ -118,6 +119,16 @@ CONTAINS
 
       CALL construct_ocean_atmo_coupling( &
         patch_3d, comp_id, grid_id(1), cell_point_id(1), timestepstring)
+
+    END IF
+
+!provide era5 forcing
+    IF ( is_coupled_to_era5() ) THEN
+
+      ! Construct coupling frame for ocean-era5_provider
+      CALL message(str_module, 'Constructing the coupling frame ocean-era5_provider')
+
+      CALL construct_ocean_era5_provider_coupling_post_sync(patch_3d, comp_id, grid_id(1), cell_point_id(1), timestepstring)
 
     END IF
 

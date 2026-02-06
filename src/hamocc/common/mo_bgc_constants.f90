@@ -178,7 +178,7 @@ MODULE mo_bgc_constants
        an3 = -21.7120_wp, an4 = -0.049781_wp, an5 = 0.025018_wp, an6 = -0.0034861_wp
   !      Constants for laughing gas solubility
   !      (WEISS, 1974, MARINE CHEMISTRY)
-  REAL, PARAMETER:: a1 = -165.8806_wp, a2 =  222.8743_wp, a3 = 92.0792_wp,&
+  REAL(wp), PARAMETER:: a1 = -165.8806_wp, a2 =  222.8743_wp, a3 = 92.0792_wp,&
       a4 = -1.48425_wp,  b1 = -0.056235_wp,  b2 = 0.031619_wp, b3 = -0.0048472_wp
 
   REAL(wp), PARAMETER :: atn2o = 3.e-7_wp

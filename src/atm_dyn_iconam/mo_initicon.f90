@@ -47,7 +47,7 @@ MODULE mo_initicon
     &                               MODE_IAU, MODE_IFSANA, MODE_ICONVREMAP, MODE_COMBINED, MODE_COSMO, &
     &                               min_rlcell, INWP, iaes, min_rledge_int, grf_bdywidth_c,            &
     &                               min_rlcell_int, vname_len
-  USE mo_physical_constants,  ONLY: rd, cpd, cvd, p0ref, vtmpc1, rd_o_cpd, tmelt, tf_salt
+  USE mo_physical_constants,  ONLY: rd, cpd, cvd, p0ref, vtmpc1, rd_o_cpd, tmelt
   USE mo_exception,           ONLY: message, finish
   USE mo_grid_config,         ONLY: n_dom, l_limited_area
   USE mo_nh_init_utils,       ONLY: convert_thdvars, init_w
@@ -58,7 +58,7 @@ MODULE mo_initicon
   USE mo_lnd_nwp_config,      ONLY: nlev_soil, ntiles_total, ntiles_lnd, llake, loskin, &
     &                               isub_lake, isub_water, lsnowtile, frlnd_thrhld, &
     &                               frlake_thrhld, lprog_albsi, dzsoil_icon => dzsoil, &
-    &                               frsi_min
+    &                               frsi_min, tf_salt
   USE mo_atm_phy_nwp_config,  ONLY: i2daero_dust, i2daero_seas, i2daero_anthro, atm_phy_nwp_config
   USE sfc_terra_data,         ONLY: cporv, cadp, cpwp, cfcap, crhosmaxf, crhosmin_ml, crhosmax_ml
   USE sfc_terra_init,         ONLY: get_wsnow

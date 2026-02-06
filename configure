@@ -597,6 +597,7 @@ GPU_ENABLED
 OPENMP_ENABLED
 MPI_DISABLED
 MPI_ENABLED
+HD_ENABLED
 MSGWAM_ENABLED
 ART_ENABLED
 EMVORADO_ENABLED
@@ -2514,9 +2515,9 @@ fi
 acx_subdir_extra_run_0 ()
 {
 icon_try="${MAKE-make} -C '${icon_abs_top_builddir}/externals/yaxt/inst_headers'"
-         { $as_echo "$as_me:${as_lineno-$LINENO}: running $icon_try" >&5
+            { $as_echo "$as_me:${as_lineno-$LINENO}: running $icon_try" >&5
 $as_echo "$as_me: running $icon_try" >&6;}
-         { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$icon_try\""; } >&5
+            { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$icon_try\""; } >&5
   (eval $icon_try) 2>&5
   ac_status=$?
   $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
@@ -4140,7 +4141,6 @@ fi
 
 ############################## ENVIRONMENT CHECKS ##############################
 
-
    if test -n "$BUILD_ENV"; then :
   if $as_echo "$BUILD_ENV" | grep ';[ ]*$' >/dev/null 2>&1; then :
 
@@ -4153,7 +4153,13 @@ fi
   *) :
      ;;
 esac
-      BUILD_ENV_MAKE=`echo "$BUILD_ENV" | sed 's/\\$/$$/g'`
+      BUILD_ENV_MAKE=$BUILD_ENV
+      case $BUILD_ENV_MAKE in #(
+  *\$*) :
+    BUILD_ENV_MAKE=`$as_echo "$BUILD_ENV_MAKE" | sed 's/\\$/$$/g'` ;; #(
+  *) :
+     ;;
+esac
       { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether \$BUILD_ENV is accepted by '$SHELL -c'" >&5
 $as_echo_n "checking whether \$BUILD_ENV is accepted by '$SHELL -c'... " >&6; }
       acx_build_env_quoted=$BUILD_ENV
@@ -4749,7 +4755,7 @@ for icon_fcgroup in $icon_fcgroups_unique; do
   as_fn_append ICON_FCGROUP_FLAGS "
 "
 fi
-  as_fn_append ICON_FCGROUP_FLAGS "ICON_${icon_fcgroup}_FCFLAGS= ${icon_fcgroup_flags}"
+  as_fn_append ICON_FCGROUP_FLAGS "ICON_${icon_fcgroup}_FCFLAGS:= ${icon_fcgroup_flags}"
 done
 
 
@@ -10552,6 +10558,21 @@ fi
 
 ############################### BUNDLED PACKAGES ###############################
 
+if test "x$prefix" = xNONE; then :
+  prefix=$ac_default_prefix
+fi
+if test "x$exec_prefix" = xNONE; then :
+  exec_prefix=$prefix
+fi
+for icon_installdir in bindir includedir libdir; do
+  eval icon_tmp=\$$icon_installdir
+  eval "$icon_installdir=\"$icon_tmp\""
+done
+
+   acx_subdir_srcdirs_fn .
+icon_abs_top_srcdir=$ac_abs_top_srcdir
+icon_abs_top_builddir=$ac_abs_top_builddir
+
 ICON_BUNDLED_FCFLAGS=${ICON_BUNDLED_FCFLAGS-$ICON_FCFLAGS}
 
 ICON_BUNDLED_CFLAGS=${ICON_BUNDLED_CFLAGS-$ICON_CFLAGS}
@@ -10577,13 +10598,10 @@ bundled_includes=
 BUNDLED_LIBFILES=''
 
 
+
 icon_pvcs_subdirs=''
 
 
-
-   acx_subdir_srcdirs_fn .
-icon_abs_top_srcdir=$ac_abs_top_srcdir
-icon_abs_top_builddir=$ac_abs_top_builddir
 
 if test "x$enable_rte_rrtmgp" = xyes && test "x$with_external_rte_rrtmgp" = xno; then :
   icon_subdir_srcdir="$srcdir/externals/rte-rrtmgp"
@@ -10689,8 +10707,8 @@ esac
    done
 fi
    as_fn_append bundled_includes "${FC_MOD_IN}externals/rte-rrtmgp "
-   BUNDLED_LIBFILES="externals/rte-rrtmgp/librte.a $BUNDLED_LIBFILES"
-   BUNDLED_LIBFILES="externals/rte-rrtmgp/librrtmgp.a $BUNDLED_LIBFILES"
+   BUNDLED_LIBFILES="externals/rte-rrtmgp/librrtmgp.a externals/rte-rrtmgp/librte.a $BUNDLED_LIBFILES"
+   as_fn_append BUNDLED_RULES "externals/rte-rrtmgp/librrtmgp.a externals/rte-rrtmgp/librte.a: externals/rte-rrtmgp;$as_nl"
    as_fn_append icon_pvcs_subdirs ' externals/rte-rrtmgp'
 fi
 
@@ -10773,10 +10791,8 @@ esac
      as_fn_append acx_subdir_run_args_externals_ecrad " '$acx_tmp'"
    done
    as_fn_append bundled_includes "${FC_MOD_IN}externals/ecrad/mod "
-   BUNDLED_LIBFILES="externals/ecrad/libifsaux.a $BUNDLED_LIBFILES"
-   BUNDLED_LIBFILES="externals/ecrad/libutilities.a $BUNDLED_LIBFILES"
-   BUNDLED_LIBFILES="externals/ecrad/libifsrrtm.a $BUNDLED_LIBFILES"
-   BUNDLED_LIBFILES="externals/ecrad/libradiation.a $BUNDLED_LIBFILES"
+   BUNDLED_LIBFILES="externals/ecrad/libradiation.a externals/ecrad/libifsrrtm.a externals/ecrad/libutilities.a externals/ecrad/libifsaux.a $BUNDLED_LIBFILES"
+   as_fn_append BUNDLED_RULES "externals/ecrad/libradiation.a externals/ecrad/libifsrrtm.a externals/ecrad/libutilities.a externals/ecrad/libifsaux.a: externals/ecrad;$as_nl"
    as_fn_append icon_pvcs_subdirs ' externals/ecrad'
 fi
 
@@ -10872,6 +10888,7 @@ esac
    done
    as_fn_append bundled_includes "${FC_MOD_IN}externals/sct/src "
    BUNDLED_LIBFILES="externals/sct/src/.libs/libsct.a $BUNDLED_LIBFILES"
+   as_fn_append BUNDLED_RULES "externals/sct/src/.libs/libsct.a: externals/sct;$as_nl"
    as_fn_append icon_pvcs_subdirs ' externals/sct'
 fi
 
@@ -10991,18 +11008,22 @@ esac
    done
       case $icon_bundled_yaxt_c in #(
   direct) :
-             BUNDLED_LIBFILES="externals/yaxt/src/.libs/libyaxt_c.a $BUNDLED_LIBFILES" ;; #(
+             BUNDLED_LIBFILES="externals/yaxt/src/.libs/libyaxt_c.a $BUNDLED_LIBFILES"
+   as_fn_append BUNDLED_RULES "externals/yaxt/src/.libs/libyaxt_c.a: externals/yaxt;$as_nl" ;; #(
   transitive) :
-    BUNDLED_LIBFILES="externals/yaxt/src/.libs/libyaxt_c.a $BUNDLED_LIBFILES" ;; #(
+    BUNDLED_LIBFILES="externals/yaxt/src/.libs/libyaxt_c.a $BUNDLED_LIBFILES"
+   as_fn_append BUNDLED_RULES "externals/yaxt/src/.libs/libyaxt_c.a: externals/yaxt;$as_nl" ;; #(
   *) :
      ;;
 esac
       case $icon_bundled_yaxt_fc in #(
   direct) :
     as_fn_append bundled_includes "${FC_MOD_IN}externals/yaxt/inst_headers/f90 "
-         BUNDLED_LIBFILES="externals/yaxt/src/.libs/libyaxt.a $BUNDLED_LIBFILES" ;; #(
+         BUNDLED_LIBFILES="externals/yaxt/src/.libs/libyaxt.a $BUNDLED_LIBFILES"
+   as_fn_append BUNDLED_RULES "externals/yaxt/src/.libs/libyaxt.a: externals/yaxt;$as_nl" ;; #(
   transitive) :
-    BUNDLED_LIBFILES="externals/yaxt/src/.libs/libyaxt.a $BUNDLED_LIBFILES" ;; #(
+    BUNDLED_LIBFILES="externals/yaxt/src/.libs/libyaxt.a $BUNDLED_LIBFILES"
+   as_fn_append BUNDLED_RULES "externals/yaxt/src/.libs/libyaxt.a: externals/yaxt;$as_nl" ;; #(
   no) :
     set dummy FC=no; shift
    for acx_tmp; do
@@ -11145,6 +11166,7 @@ esac
      as_fn_append acx_subdir_run_args_externals_ppm " '$acx_tmp'"
    done
       BUNDLED_LIBFILES="externals/ppm/src/.libs/libscalesppmcore.a $BUNDLED_LIBFILES"
+   as_fn_append BUNDLED_RULES "externals/ppm/src/.libs/libscalesppmcore.a: externals/ppm;$as_nl"
       as_fn_append icon_pvcs_subdirs ' externals/ppm'
 fi
 fi
@@ -11294,6 +11316,7 @@ esac
      as_fn_append acx_subdir_run_args_externals_cdi " '$acx_tmp'"
    done
    BUNDLED_LIBFILES="externals/cdi/src/.libs/libcdi.a $BUNDLED_LIBFILES"
+   as_fn_append BUNDLED_RULES "externals/cdi/src/.libs/libcdi.a: externals/cdi;$as_nl"
    if test "x$enable_cdi_pio" = xyes; then :
        if test "x$with_external_yaxt" = xno; then :
   set dummy acx_cv_c_include_yaxt_h="-I${icon_abs_top_builddir}/externals/yaxt/inst_headers" acx_cv_option_search_xt_initialized_c="${icon_abs_top_builddir}/externals/yaxt/src/libyaxt_c.la" acx_cv_fortran_mod_yaxt="${FC_MOD_IN}${icon_abs_top_builddir}/externals/yaxt/inst_headers/f90" acx_cv_option_search_xt_initialized_fc="${icon_abs_top_builddir}/externals/yaxt/src/libyaxt.la ${icon_abs_top_builddir}/externals/yaxt/src/libyaxt_c.la"; shift
@@ -11323,9 +11346,11 @@ esac
 fi
       as_fn_append bundled_includes "${FC_INC_FLAG}${srcdir}/externals/cdi/src "
       BUNDLED_LIBFILES="externals/cdi/src/.libs/libcdipio.a $BUNDLED_LIBFILES"
+   as_fn_append BUNDLED_RULES "externals/cdi/src/.libs/libcdipio.a: externals/cdi;$as_nl"
 fi
    as_fn_append bundled_includes "${FC_MOD_IN}externals/cdi/src "
    BUNDLED_LIBFILES="externals/cdi/src/.libs/libcdi_f2003.a $BUNDLED_LIBFILES"
+   as_fn_append BUNDLED_RULES "externals/cdi/src/.libs/libcdi_f2003.a: externals/cdi;$as_nl"
    as_fn_append icon_pvcs_subdirs ' externals/cdi'
 fi
 
@@ -11359,6 +11384,8 @@ esac
      case $acx_tmp in #(
   -DCMAKE_C_FLAGS=*|-DCMAKE_Fortran_FLAGS=*|-DCMAKE_CXX_*=*) :
      ;; #(
+  -DCMAKE_INSTALL_PREFIX=*) :
+     ;; #(
   *) :
            case $acx_tmp in #(
   *\'*) :
@@ -11370,7 +11397,7 @@ esac
 esac
      shift
    done
-   set dummy -DCMAKE_AR="$AR" -DCMAKE_RANLIB="$RANLIB" -DCMAKE_C_FLAGS="$subdir_CFLAGS $ICON_MTIME_CFLAGS $subdir_CPPFLAGS" -DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_MTIME_FCFLAGS" -DCMAKE_BUILD_TYPE=None -DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH" -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF -DMTIME_ENABLE_PYTHON="$icon_mtime_python" -DPython_EXECUTABLE="$PYTHON"; shift
+   set dummy -DCMAKE_AR="$AR" -DCMAKE_RANLIB="$RANLIB" -DCMAKE_C_FLAGS="$subdir_CFLAGS $ICON_MTIME_CFLAGS $subdir_CPPFLAGS" -DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_MTIME_FCFLAGS" -DCMAKE_BUILD_TYPE=None -DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH"      -DCMAKE_POSITION_INDEPENDENT_CODE="$icon_yac_python"      -DCMAKE_INSTALL_PREFIX="$exec_prefix"      -DCMAKE_INSTALL_LIBDIR="$libdir" -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF -DMTIME_ENABLE_PYTHON="$icon_mtime_python" -DPython_EXECUTABLE="$PYTHON"; shift
    for acx_tmp; do
      case $acx_tmp in #(
   *\'*) :
@@ -11386,6 +11413,7 @@ esac
 fi
    as_fn_append bundled_includes "${FC_MOD_IN}externals/mtime/build/src/mod "
    BUNDLED_LIBFILES="externals/mtime/build/src/libmtime.a $BUNDLED_LIBFILES"
+   as_fn_append BUNDLED_RULES "externals/mtime/build/src/libmtime.a: externals/mtime/build;$as_nl"
    as_fn_append icon_pvcs_subdirs ' externals/mtime'
 fi
 
@@ -11515,8 +11543,7 @@ esac
      as_fn_append acx_subdir_run_args_externals_yac " '$acx_tmp'"
    done
 else
-                 as_fn_append acx_subdir_run_before_externals_yac ' acx_subdir_extra_run_0'
-      set dummy YAXT_CFLAGS="-I${icon_abs_top_builddir}/externals/yaxt/inst_headers" acx_cv_c_lib_func_xt_initialized="${icon_abs_top_builddir}/externals/yaxt/src/.libs/libyaxt_c.a"; shift
+  set dummy YAXT_CFLAGS="-I${icon_abs_top_builddir}/externals/yaxt/inst_headers" ac_cv_header_yaxt_h=yes acx_cv_c_lib_func_xt_initialized="${icon_abs_top_builddir}/externals/yaxt/src/.libs/libyaxt_c.a"; shift
    for acx_tmp; do
      case $acx_tmp in #(
   *\'*) :
@@ -11549,10 +11576,15 @@ esac
      as_fn_append acx_subdir_run_args_externals_yac " '$acx_tmp'"
    done
 fi
-      if test "x$enable_delayed_config" = xyes; then :
+      if test "x$enable_mpi_checks" = xyes; then :
+                 as_fn_append acx_subdir_run_before_externals_yac ' acx_subdir_extra_run_0'
+         if test "x$enable_delayed_config" = xyes; then :
   as_fn_append BUNDLED_RULES "externals/yac/Makefile:| externals/yaxt$as_nl"
 fi
    as_fn_append BUNDLED_RULES "externals/yac: externals/yaxt$as_nl"
+else
+  as_fn_append BUNDLED_RULES "externals/yac: externals/yaxt$as_nl"
+fi
 fi
    if test "x$with_external_mtime" = xyes; then :
   set dummy MTIME_CFLAGS=; shift
@@ -11584,8 +11616,8 @@ fi
   as_fn_append BUNDLED_PYTHONPATH "${BUNDLED_PYTHONPATH:+"${PATH_SEPARATOR}"}${icon_abs_top_builddir}/externals/yac/python"
 fi
    as_fn_append bundled_includes "${FC_MOD_IN}externals/yac/src/mci "
-   BUNDLED_LIBFILES="externals/yac/src/core/libyac_core.a $BUNDLED_LIBFILES"
-   BUNDLED_LIBFILES="externals/yac/src/mci/libyac_mci.a $BUNDLED_LIBFILES"
+   BUNDLED_LIBFILES="externals/yac/src/mci/libyac_mci.a externals/yac/src/core/libyac_core.a $BUNDLED_LIBFILES"
+   as_fn_append BUNDLED_RULES "externals/yac/src/mci/libyac_mci.a externals/yac/src/core/libyac_core.a: externals/yac;$as_nl"
    as_fn_append icon_pvcs_subdirs ' externals/yac'
 fi
 
@@ -11661,6 +11693,7 @@ esac
    done
    as_fn_append bundled_includes "${FC_MOD_IN}externals/tixi/src "
    BUNDLED_LIBFILES="externals/tixi/src/libicon_tixi.a $BUNDLED_LIBFILES"
+   as_fn_append BUNDLED_RULES "externals/tixi/src/libicon_tixi.a: externals/tixi;$as_nl"
    as_fn_append icon_pvcs_subdirs ' externals/tixi'
 fi
 
@@ -11706,7 +11739,7 @@ esac
 esac
      shift
    done
-   set dummy -DCMAKE_AR="$AR" -DCMAKE_RANLIB="$RANLIB" -DCMAKE_C_FLAGS="$subdir_CFLAGS $ICON_COMIN_CFLAGS $subdir_CPPFLAGS" -DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_COMIN_FCFLAGS" -DCMAKE_CXX_FLAGS="$subdir_CXXFLAGS $ICON_COMIN_CXXFLAGS $subdir_CPPFLAGS" -DCMAKE_BUILD_TYPE=None -DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH" -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF -DCOMIN_ENABLE_EXAMPLES=OFF -DCOMIN_ENABLE_PYTHON_ADAPTER="$icon_comin_python" -DPython3_EXECUTABLE="$PYTHON"; shift
+   set dummy -DCMAKE_AR="$AR" -DCMAKE_RANLIB="$RANLIB" -DCMAKE_C_FLAGS="$subdir_CFLAGS $ICON_COMIN_CFLAGS $subdir_CPPFLAGS" -DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_COMIN_FCFLAGS" -DCMAKE_CXX_FLAGS="$subdir_CXXFLAGS $ICON_COMIN_CXXFLAGS $subdir_CPPFLAGS" -DCMAKE_BUILD_TYPE=None -DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH" -DCMAKE_INSTALL_LIBDIR="$libdir" -DCMAKE_INSTALL_INCLUDEDIR="$includedir" -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF -DCOMIN_ENABLE_EXAMPLES=OFF -DCOMIN_ENABLE_PYTHON_ADAPTER="$icon_comin_python" -DPython3_EXECUTABLE="$PYTHON"; shift
    for acx_tmp; do
      case $acx_tmp in #(
   *\'*) :
@@ -11719,6 +11752,7 @@ esac
    as_fn_append bundled_CMAKE_PREFIX_PATH "${bundled_CMAKE_PREFIX_PATH:+";"}${icon_abs_top_builddir}/externals/comin/build"
    as_fn_append bundled_includes "${FC_MOD_IN}externals/comin/build/mod "
    BUNDLED_LIBFILES="externals/comin/build/libcomin.a $BUNDLED_LIBFILES"
+   as_fn_append BUNDLED_RULES "externals/comin/build/libcomin.a: externals/comin/build;$as_nl"
    as_fn_append icon_pvcs_subdirs ' externals/comin'
 fi
 
@@ -11781,6 +11815,7 @@ esac
    as_fn_append bundled_CMAKE_PREFIX_PATH "${bundled_CMAKE_PREFIX_PATH:+";"}${icon_abs_top_builddir}/externals/fortran-support/build"
    as_fn_append bundled_includes "${FC_MOD_IN}externals/fortran-support/build/src/mod "
    BUNDLED_LIBFILES="externals/fortran-support/build/src/libfortran-support.a $BUNDLED_LIBFILES"
+   as_fn_append BUNDLED_RULES "externals/fortran-support/build/src/libfortran-support.a: externals/fortran-support/build;$as_nl"
    as_fn_append icon_pvcs_subdirs ' externals/fortran-support'
 fi
 
@@ -11886,9 +11921,8 @@ esac
      as_fn_append acx_subdir_run_args_externals_kokkos_build " '$acx_tmp'"
    done
    as_fn_append bundled_CMAKE_PREFIX_PATH "${bundled_CMAKE_PREFIX_PATH:+";"}${icon_abs_top_builddir}/externals/kokkos/build/_icon"
-   BUNDLED_LIBFILES="externals/kokkos/build/_icon/simd/src/libkokkossimd.a $BUNDLED_LIBFILES"
-   BUNDLED_LIBFILES="externals/kokkos/build/_icon/containers/src/libkokkoscontainers.a $BUNDLED_LIBFILES"
-   BUNDLED_LIBFILES="externals/kokkos/build/_icon/core/src/libkokkoscore.a $BUNDLED_LIBFILES"
+   BUNDLED_LIBFILES="externals/kokkos/build/_icon/core/src/libkokkoscore.a externals/kokkos/build/_icon/containers/src/libkokkoscontainers.a externals/kokkos/build/_icon/simd/src/libkokkossimd.a $BUNDLED_LIBFILES"
+   as_fn_append BUNDLED_RULES "externals/kokkos/build/_icon/core/src/libkokkoscore.a externals/kokkos/build/_icon/containers/src/libkokkoscontainers.a externals/kokkos/build/_icon/simd/src/libkokkossimd.a: externals/kokkos/build;$as_nl"
    as_fn_append icon_pvcs_subdirs ' externals/kokkos'
 fi
 
@@ -11955,10 +11989,8 @@ esac
    done
    as_fn_append bundled_CMAKE_PREFIX_PATH "${bundled_CMAKE_PREFIX_PATH:+";"}${icon_abs_top_builddir}/externals/memman/build/_icon"
    as_fn_append bundled_includes "${FC_MOD_IN}externals/memman/build/_icon/src/bindings/fortran/mod "
-   BUNDLED_LIBFILES="externals/memman/build/_icon/src/core/libmemman.a $BUNDLED_LIBFILES"
-   BUNDLED_LIBFILES="externals/memman/build/_icon/src/bindings/cpp/libmemmancpp.a $BUNDLED_LIBFILES"
-   BUNDLED_LIBFILES="externals/memman/build/_icon/src/bindings/c/libmemmanc.a $BUNDLED_LIBFILES"
-   BUNDLED_LIBFILES="externals/memman/build/_icon/src/bindings/fortran/libmemmanf.a $BUNDLED_LIBFILES"
+   BUNDLED_LIBFILES="externals/memman/build/_icon/src/bindings/fortran/libmemmanf.a externals/memman/build/_icon/src/bindings/c/libmemmanc.a externals/memman/build/_icon/src/bindings/cpp/libmemmancpp.a externals/memman/build/_icon/src/core/libmemman.a $BUNDLED_LIBFILES"
+   as_fn_append BUNDLED_RULES "externals/memman/build/_icon/src/bindings/fortran/libmemmanf.a externals/memman/build/_icon/src/bindings/c/libmemmanc.a externals/memman/build/_icon/src/bindings/cpp/libmemmancpp.a externals/memman/build/_icon/src/core/libmemman.a: externals/memman/build;$as_nl"
    as_fn_append icon_pvcs_subdirs ' externals/memman'
 fi
 
@@ -12024,11 +12056,10 @@ fi
    as_fn_append BUNDLED_RULES "externals/iconmath/build: externals/fortran-support/build$as_nl"
 fi
 as_fn_append bundled_includes "${FC_MOD_IN}externals/iconmath/build/src/support/mod "
-BUNDLED_LIBFILES="externals/iconmath/build/src/support/libiconmath-support.a $BUNDLED_LIBFILES"
 as_fn_append bundled_includes "${FC_MOD_IN}externals/iconmath/build/src/horizontal/mod "
-BUNDLED_LIBFILES="externals/iconmath/build/src/horizontal/libiconmath-horizontal.a $BUNDLED_LIBFILES"
 as_fn_append bundled_includes "${FC_MOD_IN}externals/iconmath/build/src/interpolation/mod "
-BUNDLED_LIBFILES="externals/iconmath/build/src/interpolation/libiconmath-interpolation.a $BUNDLED_LIBFILES"
+BUNDLED_LIBFILES="externals/iconmath/build/src/interpolation/libiconmath-interpolation.a externals/iconmath/build/src/horizontal/libiconmath-horizontal.a externals/iconmath/build/src/support/libiconmath-support.a $BUNDLED_LIBFILES"
+   as_fn_append BUNDLED_RULES "externals/iconmath/build/src/interpolation/libiconmath-interpolation.a externals/iconmath/build/src/horizontal/libiconmath-horizontal.a externals/iconmath/build/src/support/libiconmath-support.a: externals/iconmath/build;$as_nl"
 as_fn_append icon_pvcs_subdirs ' externals/iconmath'
 
 if test "x$enable_ragnarok" = xyes; then :
@@ -12085,6 +12116,7 @@ fi
    as_fn_append BUNDLED_RULES "ragnarok/build: externals/kokkos/build$as_nl"
    as_fn_append bundled_includes "${FC_MOD_IN}ragnarok/build/mod "
    BUNDLED_LIBFILES="ragnarok/build/libragnarok.a $BUNDLED_LIBFILES"
+   as_fn_append BUNDLED_RULES "ragnarok/build/libragnarok.a: ragnarok/build;$as_nl"
 fi
 
 FCFLAGS="${bundled_includes}${FCFLAGS}"
@@ -12308,6 +12340,14 @@ if test "x$enable_msgwam" = xyes; then :
 
 else
   MSGWAM_ENABLED='#'
+
+fi
+
+if test x"$enable_hd" != xno; then :
+  HD_ENABLED=''
+
+else
+  HD_ENABLED='#'
 
 fi
 

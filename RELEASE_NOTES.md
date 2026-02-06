@@ -5,11 +5,16 @@
 - Improved consistency of surface roughness, drag and momentum flux over ocean/sea ice in VDIFF
 - Added viscous term in computation of surface roughness over ocean in VDIFF
 
-
 #### AES Physics
 
 - Correction of the roughness length computation over ocean in TMX
+- Use tile-specific relative wind speed for surface roughness, exchange coefficients and fluxes in TMX
 - Use memory manager library for data management in TMX
+- Fix for double definition of cloud_num in microphysics
+- Correction to rain microphysics (evap and accretion)
+- Fix GPU async queues in TMX surface module
+- Simplification of the rte-rrtmgp radiation interface (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1087)
+- Fix loop indexing in TMX surface module (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1241)
 
 #### NWP Physics
 
@@ -29,6 +34,14 @@
 - Fix variable assignment of some vars for write_initial_state (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/993)
 - Bugfix ocean initial state on GPU (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1133)
 - Implementation of symmetric IAU in ICON-O (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1020)
+- Use consistent freezing temperature for sea ice in coupled XPP and AES (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1156)
+- ICON-O-LAM: Implement the core features (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/560)
+- Vectorization of HAMOCC subroutines (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1100)
+- Fix compilation issue in master using LVECTOR and GPU (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1224)
+- Bugfix HAMOCC restart (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1225)
+- Feature ocean era5 coupling (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/728)
+- HAMOCC: bugfix for extended N-cycle (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1233)
+- Port solver global sums on GPU (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1173)
 
 ### Soil and Surface
 
@@ -42,15 +55,30 @@
 #### Climate: ICON-Land
 
 - QUINCY development
+  - Enable anthropogenic land cover change with QUINCY biogeochemistry
   - Updated the Jena-Soil-Model for use with QUINCY as an alternative to the simple soil-biogeochemistry model
   - Improve paramaterization of vegetation phosphorus (P) uptake to avoid crops and natural vegetation dying by P limitation
+  - Improve the calculation of plant water stress with frozen soil
+  - Minor refactoring: unification of namelist names
+  - Correction of aggregation of area-dependent variables in the QUINCY model
+  - Update default PI control values for atmospheric 13CO2 and 14CO2 composition according to CMIP7 forcing (Graven, H. (2025))
+  - Revisit QUINCY output ensuring that all output variables required for diagnostics and global budget calculations are present
+  - Update nitrogen cycle parameters
+  - Add script to generate CMIP7 based deposition data
+  - Refactor vegetation memory structure to reduce code complexity
+  - Assure restart identity
 - Refactoring of anthropogenic land cover change process
 - Hydrology: Added ford inline documentation
-- Land initial files: Major update: 12 and 13 tile setups for jsbach and quincy
-- Land initial files: Fix for the skin layer conductivity
+- Land initial files
+  - Major update: 12 and 13 tile setups for jsbach and quincy
+  - Fix for the skin layer conductivity
+  - Estimation of initial soil moisture from vegetation fraction
+  - Automized HD parameter file generation also for high resolution grids (internal HD)
 - Land initialization: Initial soil moisture is turned to ice at temperatures below zero degrees.
 - Revised 'basic' output list
 - Anthropogenic emission files: Created anthropogenic emission data including aviation sources from the CMIP7 dataset
+- Update BSD-3C licence year to 2026
+- More flexible handling of the number of PFTs
 
 ### Externals
 
@@ -79,6 +107,10 @@
 - Add static analysis with Codee as nightly job (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1112)
 - mkexp: Update hardware parameters of the Levante gpu partition (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1148)
 - mkexp: remove deprecated hiopy setup (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1113)
+- mkexp: use more than one thread per task only if OpenMP is enabled (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1167)
+- Add parameter changes for Sapphire-2.0 and basic settings and links for more resolutions (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1255)
+- mkexp: require account (compute project) setting on levante (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1203)
+- Disable slp coupling to work around restart differences (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1193)
 
 #### Building
 
@@ -92,6 +124,10 @@
 - Report to the relevant config.log when calling config.status of the bundled packages (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1161)
 - Fix detection of an external ComIn (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1163)
 - Fix the configuration and building order of the bundled packages (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1162)
+- Consistently install ICON and the relevant bundled packages to the specified installation prefixes and subdirectories
+- Configure YAC and YAXT in parallel when possible (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1198)
+- Fix building of the YAC Python interface (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1201)
+- Fix HD cloning and installation (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1236)
 
 #### Miscellaneous
 
@@ -100,6 +136,7 @@
 - Improve entry point of documentation and add tutorial for beginners (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1027)
 - Open mkexp section and polish supported configurations in the documentation (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1147)
 - Add contributing guidelines for Ragnarok (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1081)
+- Add shallow water example to supported configurations (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1190)
 
 
 # Release notes for icon-2025.10-1

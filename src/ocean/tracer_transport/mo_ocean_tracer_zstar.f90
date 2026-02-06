@@ -23,7 +23,8 @@ MODULE mo_ocean_tracer_zstar
   USE mo_ocean_nml,                    ONLY: n_zlev, &
     & l_with_vert_tracer_advection, l_with_vert_tracer_diffusion, &
     & GMRedi_configuration, Cartesian_Mixing, &
-    & vert_mix_type
+    & vert_mix_type, ocean_latbc_bnd_intp_width, &
+    & is_ocean_limited_area
   USE mo_parallel_config,              ONLY: nproma
   USE mo_run_config,                   ONLY: dtime
   USE mo_model_domain,                 ONLY: t_patch, t_patch_3d
@@ -750,7 +751,7 @@ CONTAINS
     ! local variables
     INTEGER, DIMENSION(:,:,:), POINTER :: iilc,iibc  ! pointer to line and block indices
     INTEGER, DIMENSION(:,:,:), POINTER :: idx, blk
-    INTEGER  :: start_level, end_level
+    INTEGER  :: start_level, end_level, max_end_level
     INTEGER  :: start_index, end_index
     INTEGER  :: edge_index, level, blockNo         !< index of edge, vert level, block
     TYPE(t_subset_range), POINTER :: edges_in_domain
@@ -793,10 +794,17 @@ CONTAINS
       edge_upwind_flux(:,:,blockNo) = 0.0_wp
       !$ACC END KERNELS
 
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-      !$ACC LOOP GANG VECTOR
+#ifndef __LVECTOR__
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
       DO edge_index = start_index, end_index
         DO level = start_level, MIN(patch_3d%p_patch_1d(1)%dolic_e(edge_index,blockNo), end_level)
+#else
+      max_end_level = MAXVAL(patch_3d%p_patch_1d(1)%dolic_e(start_index:end_index,blockNo))
+      !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
+      DO level = start_level, max_end_level
+        DO edge_index = start_index, end_index
+          IF (level <= patch_3d%p_patch_1d(1)%dolic_e(edge_index,blockNo)) THEN
+#endif
           !
           ! compute the first order upwind flux; notice
           ! that multiplication by edge length is avoided to
@@ -809,7 +817,10 @@ CONTAINS
                &   - ABS( edge_vn(edge_index,level,blockNo) ) *               &
                & ( cell_value(iilc(edge_index,blockNo,2),level,iibc(edge_index,blockNo,2)) - &
                &   cell_value(iilc(edge_index,blockNo,1),level,iibc(edge_index,blockNo,1)) ) )
-
+          !
+#ifdef __LVECTOR__
+          END IF
+#endif
         END DO  ! end loop over edges
       END DO  ! end loop over levels
       !$ACC END PARALLEL
@@ -899,15 +910,19 @@ CONTAINS
     REAL(wp) :: inv_str_c
 
     ! Pointers needed for GPU/OpenACC
-    INTEGER, POINTER :: dolic_c(:,:)
+    INTEGER, POINTER :: dolic_c_orig(:,:)
     REAL(wp), POINTER :: inv_prism_thick_c(:,:,:), inv_prism_center_dist_c(:,:,:)
+
+    ! local copy to allow dolic_c to be modified in LAM case
+    INTEGER :: dolic_c(size(patch_3d%p_patch_1d(1)%dolic_c,1), size(patch_3d%p_patch_1d(1)%dolic_c,2))
 
     !-----------------------------------------------------------------------
     patch_2d        => patch_3d%p_patch_2d(1)
     cells_in_domain => patch_2d%cells%in_domain
     field_column    => ocean_tracer%concentration
     !-----------------------------------------------------------------------
-    dolic_c => patch_3d%p_patch_1d(1)%dolic_c
+    dolic_c_orig => patch_3d%p_patch_1d(1)%dolic_c
+    dolic_c(:,:) = dolic_c_orig(:,:)
     inv_prism_thick_c => patch_3d%p_patch_1d(1)%inv_prism_thick_c
     inv_prism_center_dist_c => patch_3d%p_patch_1d(1)%inv_prism_center_dist_c
     !-----------------------------------------------------------------------
@@ -919,6 +934,16 @@ CONTAINS
     inv_prism_thickness(:,:) = 0.0_wp
     inv_prisms_center_distance(:,:) = 0.0_wp
 #endif
+
+    !  Limited area : Mark boundary cells in LAM that should be skipped
+    IF (is_ocean_limited_area) THEN
+      DO cell_index = start_index, end_index
+        IF (patch_2D%cells%refin_ctrl(cell_index,blockNo) > 0 .AND. &
+          & patch_2D%cells%refin_ctrl(cell_index,blockNo) <= ocean_latbc_bnd_intp_width) THEN
+          dolic_c(cell_index,blockNo) = 1
+        ENDIF
+      END DO
+    ENDIF
 
 #ifdef __LVECTOR__
     maxcell = MAXVAL(dolic_c(start_index:end_index,blockNo))
@@ -1281,6 +1306,14 @@ CONTAINS
       !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
       !$ACC LOOP GANG VECTOR PRIVATE(delta_z, delta_z_new)
       DO jc = start_cell_index, end_cell_index
+        IF (is_ocean_limited_area) THEN
+          ! Skip boundary interpolation zone in LAM
+          IF (patch_2D%cells%refin_ctrl(jc,jb) > 0 .AND. &
+            & patch_2D%cells%refin_ctrl(jc,jb) <= ocean_latbc_bnd_intp_width) THEN
+            CYCLE
+          END IF
+        END IF
+
         !! d_z*(coeff*w*C) = coeff*d_z(w*C) since coeff is constant for each column
         div_adv_flux_vert(jc, :, jb) = stretch_c(jc, jb)*div_adv_flux_vert(jc, :, jb)
 

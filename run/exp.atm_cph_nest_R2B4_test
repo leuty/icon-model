@@ -82,8 +82,10 @@ lcarbon=$([ "${jsbach_with_carbon:=yes}" == yes ] && echo .TRUE. || echo .FALSE.
 #
 if [[ $jsbach_usecase == *pfts* ]]
 then
-  pft_file_tag="11pfts_"
+  npft=11
+  pft_file_tag="${npft}pfts_"
 else
+  npft=0
   pft_file_tag=""
 fi
 
@@ -432,6 +434,7 @@ EOF
 cat > ${jsbach_namelist}_d1 << EOF
 &jsb_model_nml
  usecase             = "${jsbach_usecase}"
+ npft                = ${npft}
  use_lakes           = .TRUE.
  use_tmx             = .TRUE.
  fract_filename      = 'bc_land_frac_DOM01.nc'
@@ -511,6 +514,7 @@ EOF
 cat > ${jsbach_namelist}_d2 << EOF
 &jsb_model_nml
  usecase             = "${jsbach_usecase}"
+ npft                = ${npft}
  use_lakes           = .TRUE.
  use_tmx             = .TRUE.
  fract_filename      = 'bc_land_frac_DOM02.nc'
@@ -591,6 +595,7 @@ EOF
 cat > ${jsbach_namelist}_d3 << EOF
 &jsb_model_nml
  usecase             = "${jsbach_usecase}"
+ npft                = ${npft}
  use_lakes           = .TRUE.
  use_tmx             = .TRUE.
  fract_filename      = 'bc_land_frac_DOM03.nc'
@@ -671,6 +676,7 @@ EOF
 cat > ${jsbach_namelist}_d4 << EOF
 &jsb_model_nml
  usecase             = "${jsbach_usecase}"
+ npft                = ${npft}
  use_lakes           = .TRUE.
  use_tmx             = .TRUE.
  fract_filename      = 'bc_land_frac_DOM04.nc'

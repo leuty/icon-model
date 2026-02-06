@@ -11,7 +11,8 @@
 # -------------------------------------------------------------
 # Atmosphere standalone script template
 #   Sapphire 2.0 namelist, R02B08 for production,
-#   R02B04  for testing purposes only
+#   untuned R02B09, R02B10 settings,
+#   R02B04, R02B06, R02B07  for testing purposes only
 # -------------------------------------------------------------
 #
 author_list='Monika Esch, MPIM'
@@ -59,15 +60,64 @@ if [ ${grid_refinement} == R02B08 ] ; then
    atmTimeStep="PT60S"
 
    # restart intervals
-   checkpoint_interval="P3M"
-   restart_interval="P3M"
+   checkpoint_interval="P1M"
+   restart_interval="P1M"
 
    # namelist variables
    #
    num_restart_procs=10
-   cinhoml_cfl=0.3
+   cinhoml_cfl=0.7
    cinhoml_cfo=0.3
    l_soil_texture=.TRUE.
+
+elif [ ${grid_refinement} == R02B09 ] ; then
+
+   grid_id=0055
+   # start and end date+time
+   start_date=${start_date:="1979-01-01T00:00:00Z"}
+       end_date=${end_date:="1979-02-01T00:00:00Z"}
+
+   # time steps
+   radTimeStep="PT20M"
+   atmTimeStep="PT40S"
+
+   # restart intervals
+   checkpoint_interval="P10D"
+   restart_interval="P10D"
+
+   #
+   # namelist variables
+   #
+   num_restart_procs=992
+   # guess, untuned
+   cinhoml_cfl=0.7
+   cinhoml_cfo=0.3
+   #
+   l_soil_texture=.FALSE.
+
+elif [ ${grid_refinement} == R02B10 ] ; then
+
+   grid_id=0056
+   # start and end date+time
+   start_date=${start_date:="1979-01-01T00:00:00Z"}
+       end_date=${end_date:="1979-03-01T00:00:00Z"}
+
+   # time steps
+   radTimeStep="PT10M"
+   atmTimeStep="PT20S"
+
+   # restart intervals
+   checkpoint_interval="P4D"
+   restart_interval="P4D"
+
+   # namelist variables
+   #
+   num_restart_procs=992
+   # guess, untuned
+   cinhoml_cfl=0.7
+   cinhoml_cfo=0.3
+   #
+   l_soil_texture=.FALSE.
 
 elif [ ${grid_refinement} == R02B04 ] ; then
 
@@ -87,8 +137,59 @@ elif [ ${grid_refinement} == R02B04 ] ; then
    # namelist variables
    #
    num_restart_procs=1
+   # untuned
    cinhoml_cfl=0.4
    cinhoml_cfo=0.4
+   #
+   l_soil_texture=.TRUE.
+
+elif [ ${grid_refinement} == R02B06 ] ; then
+
+   grid_id=0052
+   # start and end date+time
+   start_date=${start_date:="1979-01-01T00:00:00Z"}
+       end_date=${end_date:="1979-01-24T00:00:00Z"}
+
+   # time steps
+   radTimeStep="PT30M"
+   atmTimeStep="PT2M"
+
+   # restart intervals
+   checkpoint_interval="P1M"
+   restart_interval="P1M"
+
+   # namelist variables
+   #
+   num_restart_procs=1
+   # untuned
+   cinhoml_cfl=0.4
+   cinhoml_cfo=0.4
+   #
+   l_soil_texture=.TRUE.
+
+elif [ ${grid_refinement} == R02B07 ] ; then
+
+   grid_id=0053
+   # start and end date+time
+   start_date=${start_date:="1979-01-01T00:00:00Z"}
+       end_date=${end_date:="1979-06-15T00:00:00Z"}
+
+   # time steps
+   radTimeStep="PT30M"
+   atmTimeStep="PT90S"
+
+   # restart intervals
+   checkpoint_interval="P2M"
+   restart_interval="P2M"
+
+   #
+   # namelist variables
+   #
+   num_restart_procs=1
+   # untuned
+   cinhoml_cfl=0.4
+   cinhoml_cfo=0.4
+#
    l_soil_texture=.TRUE.
 
 fi
@@ -123,8 +224,10 @@ lcarbon=$([ "${jsbach_with_carbon:=yes}" == yes ] && echo .TRUE. || echo .FALSE.
 #
 if [[ $jsbach_usecase == *pfts* ]]
 then
-  pft_file_tag="11pfts_"
+  npft=11
+  pft_file_tag="${npft}pfts_"
 else
+  npft=0
   pft_file_tag=""
 fi
 
@@ -144,19 +247,18 @@ atm_file_interval="P1M"
 # ---------------------
 
 # output_<xyz>=yes : yes --> output files for <xyz>, any other value --> no files for <xyz>
+# set output_atm_2/3d_hiopy=yes if you want to generate data as in coupled runs and 3D data on 26 levels only
 
 output_atm_vgrid=no              # produces 1 file, but only once
 output_atm_gmean=no               # produces 2 files
 output_atm_qp=yes                 # produces 2 file,  for quickplots, daily means
-
-#
 
 # asynchronous diagnostic output processes
 # ----------------------------------------
 
 # Note that "mpi_atm_io_procs" should match the number of output files
 
-mpi_atm_io_procs=2                # total number of output files
+mpi_atm_io_procs=4                # total number of output files
 
 
 # atmospheric dynamics and physics
@@ -233,9 +335,6 @@ cat > ${atmo_namelist} << EOF
  flat_height          = 22500. ! [m]
  htop_thcknlimit      = 14000.
 /
-&dynamics_nml
- lmoist_thdyn   = .TRUE.
-/
 &diffusion_nml
 /
 &transport_nml
@@ -293,11 +392,11 @@ cat > ${atmo_namelist} << EOF
  aes_cop_config(1)%cinhomi    = 0.6
  aes_cop_config(1)%cinhoml_cfl= ${cinhoml_cfl}
  aes_cop_config(1)%cinhoml_cfo= ${cinhoml_cfo}
- aes_cop_config(1)%cinhoml_sf = 0.725
- aes_cop_config(1)%cn1lnd   = 50.0
- aes_cop_config(1)%cn1sea   = 50.0
- aes_cop_config(1)%cn2lnd   = 220.0
- aes_cop_config(1)%cn2sea   = 100.0
+ aes_cop_config(1)%cinhoml_sf = 0.7
+ aes_cop_config(1)%cn1lnd     = 50.0
+ aes_cop_config(1)%cn1sea     = 50.0
+ aes_cop_config(1)%cn2lnd     = 220.0
+ aes_cop_config(1)%cn2sea     = 100.0
 /
 &cloud_mig_nml
 /
@@ -324,6 +423,7 @@ EOF
 cat > ${jsbach_namelist} << EOF
 &jsb_model_nml
  usecase             = "${jsbach_usecase}"
+ npft                = ${npft}
  use_lakes           = .TRUE.
  use_tmx             = .TRUE.
  fract_filename      = 'bc_land_frac.nc'
@@ -420,15 +520,35 @@ add_required_file ${basedir}/run/${dict_file}                             ./
 datadir=${icon_data_poolFolder}/${grid_id}/initial_conditions/r0100
 if [ ${grid_refinement} == R02B08 ] ; then
    add_link_file $datadir/ifs2icon_2020010100_0054_R02B08_G.nc               ./ifs2icon.nc
+elif [ ${grid_refinement} == R02B09 ] ; then
+   add_link_file $datadir/ifs2icon_1979010100_0055_R02B09_G.nc               ./ifs2icon.nc
+elif [ ${grid_refinement} == R02B10 ] ; then
+   add_link_file $datadir/ifs2icon_1979010100_0056_R02B10_G.nc               ./ifs2icon.nc
 elif [ ${grid_refinement} == R02B04 ] ; then
    add_link_file $datadir/ifs2icon_2020010100_0049_R02B04_G.nc               ./ifs2icon.nc
+elif [ ${grid_refinement} == R02B06 ] ; then
+   add_link_file $datadir/ifs2icon_1979010100_0052_R02B06_G.nc               ./ifs2icon.nc
+elif [ ${grid_refinement} == R02B07 ] ; then
+   add_link_file $datadir/ifs2icon_1979010100_0053_R02B07_G.nc               ./ifs2icon.nc
 fi
 
 datadir=${icon_data_poolFolder}/${grid_id}/sst_and_seaice/r0100
 if [ ${grid_refinement} == R02B08 ] ; then
    add_link_file $datadir/bc_sst_2019-2021.nc                                ./bc_sst.nc
    add_link_file $datadir/bc_sic_2019-2021.nc                                ./bc_sic.nc
+elif [ ${grid_refinement} == R02B09 ] ; then
+   add_link_file $datadir/bc_sst_1978-1980.nc                                ./bc_sst.nc
+   add_link_file $datadir/bc_sic_1978-1980.nc                                ./bc_sic.nc
+elif [ ${grid_refinement} == R02B10 ] ; then
+   add_link_file $datadir/bc_sst_1978-1980.nc                                ./bc_sst.nc
+   add_link_file $datadir/bc_sic_1978-1980.nc                                ./bc_sic.nc
 elif [ ${grid_refinement} == R02B04 ] ; then
+   add_link_file $datadir/bc_sst_1978-2021.nc                                ./bc_sst.nc
+   add_link_file $datadir/bc_sic_1978-2021.nc                                ./bc_sic.nc
+elif [ ${grid_refinement} == R02B06 ] ; then
+   add_link_file $datadir/bc_sst_1978-2021.nc                                ./bc_sst.nc
+   add_link_file $datadir/bc_sic_1978-2021.nc                                ./bc_sic.nc
+elif [ ${grid_refinement} == R02B07 ] ; then
    add_link_file $datadir/bc_sst_1978-2021.nc                                ./bc_sst.nc
    add_link_file $datadir/bc_sic_1978-2021.nc                                ./bc_sic.nc
 fi
@@ -466,7 +586,7 @@ add_link_file $datadir/swflux_14band_cmip6_1850-2299-v3.2.nc              ./bc_s
 datadir=${icon_data_poolFolder}/${grid_id}/land/r0101
 #
 add_link_file $datadir/ic_land_soil.nc                                    ./ic_land_soil.nc
-add_link_file $datadir/bc_land_frac_11pfts_2015.nc                        ./bc_land_frac.nc
+add_link_file $datadir/bc_land_frac_${pft_file_tag}2015.nc                ./bc_land_frac.nc
 add_link_file $datadir/bc_land_phys.nc                                    ./bc_land_phys.nc
 add_link_file $datadir/bc_land_soil.nc                                    ./bc_land_soil.nc
 add_link_file $datadir/bc_land_sso.nc                                     ./bc_land_sso.nc
@@ -512,22 +632,47 @@ if [[ "$output_atm_vgrid" == "yes" ]]; then
 EOF
 fi
 #
+#
 # output for quickplots
 #
 if [[ "$output_atm_qp" == "yes" ]]; then
   #
   cat >> ${atmo_namelist} << EOF
 &output_nml
- output_filename  = "${EXPNAME}_atm_3d_qp_ml"
+ output_filename  = "${EXPNAME}_atm_3d_1_qp_ml"
  filename_format  = "<output_filename>_<datetime2>"
  filetype         = 5
  mode             = 1
  output_start     = "${start_date}"
  output_end       = "${end_date}"
  operation        = 'mean'
- output_interval  = "${atm_output_interval_3d}" !     the output interval and
+ output_interval  = "P1D"                     !     the output interval and
  file_interval    = "${atm_file_interval}"    !     the file interval
- ml_varlist       = 'ta', 'ua', 'va', 'hus'
+ ml_varlist       = 'ta', 'ua', 'va', 'hus', 'pfull'
+/
+&output_nml
+ output_filename  = "${EXPNAME}_atm_3d_2_qp_ml"
+ filename_format  = "<output_filename>_<datetime2>"
+ filetype         = 5
+ mode             = 1
+ output_start     = "${start_date}"
+ output_end       = "${end_date}"
+ operation        = 'mean'
+ output_interval  = "P1D"                     !     the output interval and
+ file_interval    = "${atm_file_interval}"    !     the file interval
+ ml_varlist       = 'clw', 'cli', 'qr', 'qs', 'qg'
+/
+&output_nml
+ output_filename  = "${EXPNAME}_atm_3d_3_qp_ml"
+ filename_format  = "<output_filename>_<datetime2>"
+ filetype         = 5
+ mode             = 1
+ output_start     = "${start_date}"
+ output_end       = "${end_date}"
+ operation        = 'mean'
+ output_interval  = "P1D"                     !     the output interval and
+ file_interval    = "${atm_file_interval}"    !     the file interval
+ ml_varlist       = 'wa'
 /
 &output_nml
  output_filename  = "${EXPNAME}_atm_2d_P1D_ml"
@@ -550,7 +695,7 @@ if [[ "$output_atm_qp" == "yes" ]]; then
                     'tauu'    , 'tauv'    , 'evspsbl' ,
                     'uas'     , 'vas'     , 'ps'      , 'ts'      ,
                     'psl'     , 'clt'     , 'qv2m'    ,
-                    'pres_msl', 'pres_sfc',
+                    'pres_msl', 'pres_sfc', 'cinhoml'
 /
 EOF
 # end quickplot-output

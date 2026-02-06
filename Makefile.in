@@ -10,10 +10,10 @@
 
 # This makefile sets up the building environment and calls icon.mk.
 
-SHELL= @SHELL@
-BUILD_ENV= @BUILD_ENV_MAKE@
+SHELL:= @SHELL@
+BUILD_ENV:= @BUILD_ENV_MAKE@
 
-DELEGATEE_FILE= icon.mk
+delegatee_file:= icon.mk
 
 .SUFFIXES:
 .NOTPARALLEL:
@@ -21,23 +21,23 @@ DELEGATEE_FILE= icon.mk
 
 # Default target:
 all:
-	@$(BUILD_ENV) $(MAKE) -f $(DELEGATEE_FILE) $@
+	@$(BUILD_ENV) $(MAKE) -f $(delegatee_file) $@
 
 # A rule for targets that are unknown to this makefile. The dependency on a
-# phony target 'force-delegate' enforces running make with $(DELEGATEE_FILE)
+# phony target 'force-delegate' enforces running make with $(delegatee_file)
 # even if the requested target already exists. The fact that the rule is
 # terminal (i.e. declared with double colon) allows for building targets that
 # are normally not matched by "match-anything" pattern rules (e.g. generated
 # source files like version.c):
 %:: force-delegate
-	@$(BUILD_ENV) $(MAKE) -f $(DELEGATEE_FILE) $@
+	@$(BUILD_ENV) $(MAKE) -f $(delegatee_file) $@
 
 # Disable attempts to build this makefile with the previous
 # "match-anything" pattern rule:
 Makefile:;
 
 distclean:
-	@$(BUILD_ENV) $(MAKE) -f $(DELEGATEE_FILE) $@
+	@$(BUILD_ENV) $(MAKE) -f $(delegatee_file) $@
 	rm -f Makefile
 
 env:

@@ -29,6 +29,22 @@ default:
 
 include:
   - local: .gitlab/ci/basic.yml
+  - local: .gitlab/ci/unit/icon.yml
+    rules:
+      - if: $CI_PROJECT_PATH == "icon/icon-model"
+        when: never
+      - if: $CI_PIPELINE_SOURCE == "web"
+      - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+        changes:
+          - "*.in"
+          - .gitlab/ci/unit/icon.yml
+          - config/dkrz/*
+          - configure
+          - externals/**/*
+          - src/**/*
+          - support/**/*
+          - test/unit-tests/**/*
+          - utils/**/*
   - local: .gitlab/ci/unit/ragnarok.yml
     rules:
       - if: $CI_PROJECT_PATH == "icon/icon-model"

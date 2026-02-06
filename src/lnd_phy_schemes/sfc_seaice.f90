@@ -111,7 +111,6 @@ MODULE sfc_seaice
 !_cdm<
   USE mo_physical_constants, ONLY:                      &
                                  & tf_fresh => tmelt  , &  !< fresh-water freezing point [K]
-                                 &             tf_salt, &  !< salt-water freezing point [K]
                                  &             alf    , &  !< latent heat of fusion [J/kg]
                                  &             rhoi   , &  !< density of ice [kg/m^3]
                                  & rhos_def => rhos   , &  !< default snow density [kg/m^3]
@@ -129,7 +128,8 @@ MODULE sfc_seaice
                                  & albsi_snow_min     , &  !< minimum albedo of snow over sea ice [-]
                                  & albsi_max          , &  !< maximum albedo of sea ice [-]
                                  & albsi_min          , &  !< minimum albedo of sea ice [-]
-                                 & lsnow_on_seaice         !< consider snow on seaice
+                                 & lsnow_on_seaice    , &  !< consider snow on seaice
+                                 & tf_salt                 !< salt-water freezing point [K]
 
   USE mo_coupling_config,    ONLY: is_coupled_to_ocean     !< TRUE for coupled ocean-atmosphere runs
 

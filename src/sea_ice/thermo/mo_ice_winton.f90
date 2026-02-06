@@ -21,7 +21,7 @@ MODULE mo_ice_winton
   USE mo_run_config,          ONLY: dtime
   USE mo_model_domain,        ONLY: t_patch
   USE mo_physical_constants,  ONLY: rhoi, rhos, rho_ref,ki,ks,&
-    &                               mu ,ci, alf, I_0!,Tf
+    &                               mu ,ci, alf, I_0
   USE mo_sea_ice_nml,         ONLY: hci_layer, sice
   USE mo_sea_ice_types,       ONLY: t_sea_ice
   USE mo_grid_subset,         ONLY: t_subset_range, get_index_range

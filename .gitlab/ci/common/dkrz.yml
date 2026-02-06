@@ -68,6 +68,9 @@ include:
       ${ICON_CI_COMMON_DKRZ_SLURM_EXTRA_PARAMETERS}
   before_script:
     - !reference [.utils:log, before_script]
+    - |
+      # !reference [.common:dkrz:levante, before_script]
+      icon_ci_log_info_msg "Running on SLURM partition '${SLURM_JOB_PARTITION:-unknown}'"
     - module purge
     - module load git
     - !reference [.utils:git:clone_any_path, before_script]

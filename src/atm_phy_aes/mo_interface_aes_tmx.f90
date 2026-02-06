@@ -497,7 +497,8 @@ CONTAINS
     USE mo_nonhydro_state,     ONLY: p_nh_state
     USE mo_nonhydro_types,     ONLY: t_nh_metrics, t_nh_diag
     USE mo_dynamics_config,    ONLY: nnow, nnow_rcf
-    USE mo_physical_constants, ONLY: cpd, cpv, cvd, cvv, Tf, tmelt
+    USE mo_physical_constants, ONLY: cpd, cpv, cvd, cvv, tmelt
+    USE mo_sea_ice_nml,        ONLY: Tf
 
     USE mo_master_config, ONLY: isRestart
     USE mo_run_config,    ONLY: lmemman
@@ -705,8 +706,12 @@ CONTAINS
     !
     ! TODO: lw surface emissivity should be tile-specific and, for land, should be returned from land model
     CALL vdf%sfc%inputs%emissivity%Update('emissivity', patch_id=jg)
-    CALL vdf%sfc%inputs%u_oce_current%Update('ocean_u', patch_id=jg)
-    CALL vdf%sfc%inputs%v_oce_current%Update('ocean_v', patch_id=jg)
+
+    CALL vdf%sfc%inputs%ocean_u%Update('ocean_u', patch_id=jg)
+    CALL vdf%sfc%inputs%ocean_v%Update('ocean_v', patch_id=jg)
+    CALL vdf%sfc%inputs%ice_u%Update('ice_u', patch_id=jg)
+    CALL vdf%sfc%inputs%ice_v%Update('ice_v', patch_id=jg)
+
     !
     CALL vdf%sfc%inputs%ice_thickness%Update('sit_icecl', patch_id=jg, ref_pos=2, ref=1)
     !

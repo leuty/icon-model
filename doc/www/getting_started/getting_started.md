@@ -75,7 +75,7 @@ cd <src-dir>/run
 cp examples/bubble.config .
 ```
 
-If running in HPC resources, add the slurm account number in the `bubble.config` file by introducing the `ACCOUNT = <slurm-account>` line (or simply add `<slurm-account>` if the line already exists in the config).
+If running in HPC resources, add the slurm account number in the `bubble.config` file by introducing the `ACCOUNT = <slurm-account>` line. Make sure this line is _above_ any `[...]` section.
 Then, call `mkexp`:
 
 ```
