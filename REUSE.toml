@@ -1,7 +1,7 @@
 # ICON
 #
 # ---------------------------------------------------------------
-# Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+# Copyright (C) 2004-2026, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 # Contact information: icon-model.org
 # See AUTHORS.TXT for a list of authors
 # See LICENSES/ for license information
@@ -41,7 +41,7 @@ path = [
   "utils/plotems/doc/CHANGES.txt",
   "vertical_coord_tables/README",
 ]
-SPDX-FileCopyrightText = "2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss"
+SPDX-FileCopyrightText = "2004-2026, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss"
 SPDX-License-Identifier = "CC-BY-4.0"
 
 [[annotations]]
@@ -51,7 +51,7 @@ path = [
   "data/microphysics/SBM_input_33/*",
   "scripts/scm/init_create/LANFEX_create/*.txt",
 ]
-SPDX-FileCopyrightText = "2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss"
+SPDX-FileCopyrightText = "2004-2026, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss"
 SPDX-License-Identifier = "CC-BY-4.0"
 
 [[annotations]]
@@ -75,7 +75,7 @@ path = [
   "scripts/postprocessing/tools/iconplot_ncl/*.list",
   "test/microphysics_1mom_schemes/input-data.nc.md5",
 ]
-SPDX-FileCopyrightText = "2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss"
+SPDX-FileCopyrightText = "2004-2026, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss"
 SPDX-License-Identifier = "CC0-1.0"
 
 [[annotations]]
@@ -90,7 +90,7 @@ path = [
   "utils/plotems/doc/*.pdf",
   "vertical_coord_tables/atm_hyb_sz_*",
 ]
-SPDX-FileCopyrightText = "2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss"
+SPDX-FileCopyrightText = "2004-2026, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss"
 SPDX-License-Identifier = "BSD-3-Clause"
 
 # External files:

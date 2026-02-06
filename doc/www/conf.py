@@ -1,7 +1,7 @@
 # ICON
 #
 # ---------------------------------------------------------------
-# Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+# Copyright (C) 2004-2026, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 # Contact information: icon-model.org
 #
 # See AUTHORS.TXT for a list of authors
@@ -22,7 +22,7 @@ import pydata_sphinx_theme
 # -- Project information -----------------------------------------------------
 
 project = "ICON"
-copyright = "2025, The ICON Partners"
+copyright = "2026, The ICON Partners"
 author = "ICON"
 html_favicon = "_static/faviconICON.ico"
 
