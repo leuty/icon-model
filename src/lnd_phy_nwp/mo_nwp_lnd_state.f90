@@ -1056,13 +1056,9 @@ MODULE mo_nwp_lnd_state
 
     ! & p_prog_wtr%t_snow_si(nproma,nblks_c)
     cf_desc    = t_cf_var('t_snow_si', 'K', 'temperature of snow on sea ice', datatype_flt)
-    grib2_desc = grib2_var(10, 2, 13, ibits, GRID_UNSTRUCTURED, GRID_CELL) &
+    grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL) & ! should be 10.2.13
       & + t_grib2_int_key('typeOfFirstFixedSurface', 173) &
-      & + t_grib2_int_key('scaledValueOfFirstFixedSurface', HUGE(0)) &
-      & + t_grib2_int_key('scaleFactorOfFirstFixedSurface', 255) &
-      & + t_grib2_int_key('typeOfSecondFixedSurface', 175) &
-      & + t_grib2_int_key('scaledValueOfSecondFixedSurface', HUGE(0)) &
-      & + t_grib2_int_key('scaleFactorOfSecondFixedSurface', 255)
+      & + t_grib2_int_key('typeOfSecondFixedSurface', 175)
     CALL add_var( prog_list, vname_prefix//'t_snow_si'//suffix, p_prog_wtr%t_snow_si,  &
          & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, ldims=shape2d,     &
          & tlev_source=TLEV_NNOW_RCF,                                                  &
@@ -1076,13 +1072,9 @@ MODULE mo_nwp_lnd_state
 
     ! & p_prog_wtr%h_snow_si(nproma,nblks_c)
     cf_desc    = t_cf_var('h_snow_si', 'm', 'depth of snow on sea ice', datatype_flt)
-    grib2_desc = grib2_var(10, 2, 16, ibits, GRID_UNSTRUCTURED, GRID_CELL) &
+    grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL) & ! should be 10.2.16
       & + t_grib2_int_key('typeOfFirstFixedSurface', 173) &
-      & + t_grib2_int_key('scaledValueOfFirstFixedSurface', HUGE(0)) &
-      & + t_grib2_int_key('scaleFactorOfFirstFixedSurface', 255) &
-      & + t_grib2_int_key('typeOfSecondFixedSurface', 175) &
-      & + t_grib2_int_key('scaledValueOfSecondFixedSurface', HUGE(0)) &
-      & + t_grib2_int_key('scaleFactorOfSecondFixedSurface', 255)
+      & + t_grib2_int_key('typeOfSecondFixedSurface', 175)
     CALL add_var( prog_list, vname_prefix//'h_snow_si'//suffix, p_prog_wtr%h_snow_si,  &
          & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, ldims=shape2d,     &
          & tlev_source=TLEV_NNOW_RCF,                                                  &
