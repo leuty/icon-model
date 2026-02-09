@@ -7521,6 +7521,46 @@ Possible values:\\
 \tabularnewline
 
 %\hline
+filter\_spec &
+C&None& &
+ Compression algorithm for all NetCDF-4 output fields. The required
+ filter is defined via a unique identifier and parameters for
+ controlling the action of the compression filter
+ (\href{https://github.com/HDFGroup/hdf5_plugins/blob/master/docs/RegisteredFilterPlugins.md#list-of-filters-registered-with-the-hdf-group}{List
+   of registered filters}). Here are two examples: \\
+ zstd with compression level 6: \texttt{filter\_spec='32015,6'} \\
+ blosc with lz4 filter, compression level 5 and bitshuffle:
+ \texttt{filter\_spec='32001,0,0,0,0,5,2,1'} \\
+ Filters are available via HDF5 plugins. To be able to use them,
+ the environment variable HDF5\_PLUGIN\_PATH must refer to a directory
+ with an installation of these filters. Only filters installed in this
+ directory are available. \href{https://docs.unidata.ucar.edu/netcdf/NUG/md_filters.html}{More information about HDF5 filters}.
+& \texttt{filetype=5}
+\tabularnewline
+
+%\hline
+chunk\_size &
+I& CDI default & &
+ Chunk size for all NetCDF-4 output fields.
+ chunk\_size defines the number of data elements for a chunk.
+ A chunk is a data block that is used for a compression unit.
+ The size of a chunk depends on the size of the horizontal grid.
+ For 32-bit floating point data, the optimum chunk size is between 32768 and 4194304.
+ The default value in CDI is a maximum of 1048576.
+ chunk\_size is only used in combination with the filter\_spec parameter.
+& \texttt{filetype=5}
+\tabularnewline
+
+%\hline
+number\_of\_bits &
+I& None& &
+ Number of significant bits for all NetCDF-4 output fields.
+ This leads to a loss of information and to higher compression rates.
+ number\_of\_bits is only useful in combination with the filter\_spec parameter.
+& \texttt{filetype=5}
+\tabularnewline
+
+%\hline
 m\_levels &
 C&None&  &
  Model level indices (optional). \\

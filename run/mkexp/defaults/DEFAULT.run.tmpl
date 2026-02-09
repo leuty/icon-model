@@ -178,10 +178,8 @@ export START="srun -l --kill-on-bad-exit=1 --propagate=STACK,CORE --cpu-bind=non
 #%  endif
 export MODEL="%{BIN_DIR}/%{MODEL_EXE}"
 
-# cdo for post-processing
-# -----------------------
-cdo="cdo"
-cdo_diff="cdo diffn"
+# Redefine cdo for input file methods
+cdo () { env %{JOB.cdo} "$@"; }
 
 #=============================================================================
 

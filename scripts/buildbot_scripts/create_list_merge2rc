@@ -315,6 +315,10 @@ for builder in levante_intel_pio; do
   $addexp checksuite.infrastructure/output/exp.hamocc_omip_10days  --builders ${builder} --runflags "no_of_nodes=4" --list $listname
 done
 
+# Testing NetCDF4 output compression features
+$addexp checksuite.infrastructure/output/netCDF4_compression.config --builders levante_intel --list $listname --runflags "EXP_OPTIONS=buildbot"
+
+
 # activate experiments for the Mac builder and breeze
 for builder in mpimac_gcc breeze_gcc breeze_nag breeze_intel; do
   $addexp checksuite.ocean_internal/omip/exp.ocean_omip_short_r2b4 --builders ${builder} --list $listname --runflags "mpi_procs_pernode=4"

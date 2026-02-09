@@ -224,8 +224,8 @@ template_dict['restart_targets'] = ' '.join(restart_targets)
 # Generate Makefile
 
 makefile_template = '''\
-CDO = cdo
-CDOFLAGS = -r -O -z zip
+CDO = %{JOB.cdo}
+CDOFLAGS = -r -O -z zstd
 
 NC_COMPRESS = nccopy -d 1 -s
 
