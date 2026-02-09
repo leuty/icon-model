@@ -111,6 +111,7 @@
 - Add parameter changes for Sapphire-2.0 and basic settings and links for more resolutions (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1255)
 - mkexp: require account (compute project) setting on levante (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1203)
 - Disable slp coupling to work around restart differences (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1193)
+- mkexp: Add support for hybrid and GPU only runs at Levante dolpung partition (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/877)
 
 #### Building
 

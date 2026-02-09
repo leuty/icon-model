@@ -55,6 +55,8 @@ The run types can be set via the `ENVIRONMENT` variable. These are:
 * `macOS`: run on macOS
 * `levante`: run on the CPU partition of Levante (DKRZ). For coupled runs, the atmosphere and ocean processes can run on the same nodes (job:run:share_nodes = true), or they can be distributed as two blocks one after the other.
 * `levante_gpu`: run on the GPU partition of Levante (DKRZ). IO processes are distributed equally among the CPUs of the GPU nodes.
+* `dolpung_gpu`: run on the GPUs of the dolpung partition of Levante (DKR). IO processes are distributed equally among the CPUs of the nodes.
+* `dolpung_hybrid`: run on the CPUs and the GPUs of the dolpung partition by using two binaries. IO processes run on the CPUs of the last node. For more than two nodes, the 1st node is dedicated to atmosphere processes only. Ocean processes are distributed among the remaining CPUs.
 
 ### Supported grids
 

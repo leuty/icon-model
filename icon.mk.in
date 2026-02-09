@@ -74,6 +74,9 @@ INSTALL:= @INSTALL@
 MKDIR_P:= @MKDIR_P@
 MPI_LAUNCH:= @MPI_LAUNCH@
 
+# Installation settings:
+TRANSFORM=@program_transform_name@
+
 # Fortran compiler flags:
 FCFLAGS:= @FCFLAGS@
 make_FCFLAGS:= @FC_MOD_IN@$(mod_builddir)
@@ -570,7 +573,12 @@ install: all
 @HD_ENABLED@	$(silent_none)$(MAKE) -C externals/hd $@ V=$(V) exec_prefix='@exec_prefix@' bindir='bin'
 @MTIME_PYTHON_ENABLED@	$(silent_none)$(MAKE) -C externals/mtime/build/python $@ VERBOSE=$(filter-out 0,$(V))
 @YAC_PYTHON_ENABLED@	$(silent_none)$(MAKE) -C externals/yac/python $@ V=$(V) prefix='@exec_prefix@'
-	$(INSTALL) -d $(DESTDIR)@bindir@ && $(INSTALL) $(exec_files) $(DESTDIR)@bindir@
+	$(INSTALL) -d $(DESTDIR)@bindir@
+	@for f in $(exec_files); do \
+          tf=`basename $$f | sed '$(TRANSFORM)'`; \
+          echo "$(INSTALL) '$$f' '$(DESTDIR)@bindir@/$$tf'"; \
+          $(INSTALL) "$$f" "$(DESTDIR)@bindir@/$$tf"; \
+        done
 
 # Explicit configuration rule for the bundled packages:
 config-bundled: $(bundled_makefiles)

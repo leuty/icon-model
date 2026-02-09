@@ -74,6 +74,8 @@ run "make distclean" there first])])
 
 ############################# OPTION DECLARATIONS ##############################
 
+AC_ARG_PROGRAM
+
 AC_ARG_ENABLE([rpaths],
   [AS_HELP_STRING([--enable-rpaths],
      [add directories specified with -L flags in LDFLAGS, ICON_LDFLAGS and LIBS
