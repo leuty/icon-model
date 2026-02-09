@@ -26,9 +26,9 @@ This website contains a collection of ICON documentation including references to
 [**Interfaces & Tools**](ref_tools)
 ^^^
 [](ref_tools_mkexp)  
-[Zonda](ref_tools_gridextpargui)  
+[EXTPAR Web Interface (Zonda)](ref_tools_gridextpargui)  
 [](ref_tools_cdo)  
-[](ref_tools_comin)
+[](ref_tools_comin)  
 [Forward Operators](ref_tools_fwo)
 :::
 
