@@ -3030,6 +3030,7 @@ CONTAINS
                         & ih_clch(jg), ih_clcm(jg),      & !in
                         & pt_patch, p_metrics,           & !in
                         & pt_prog, pt_prog_rcf,          & !in
+                        & lnd_prog_now,                  & !in
                         & pt_diag,                       & !inout
                         & prm_diag, lnd_diag,            & !inout
                         & lacc=lacc                      ) !in
