@@ -21,4 +21,5 @@
   --enable-fcgroup-OCEAN \
   --enable-comin \
   --enable-testbed \
+  --enable-bundled-python=mtime \
   "$@"

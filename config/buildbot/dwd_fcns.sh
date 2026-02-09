@@ -62,6 +62,14 @@ vector:
 	set -o pipefail; cd ${BUILD_DIR_VE} && \$(MAKE) |& tee make.log
 _EOF
 
+  # Debug info
+
+  (
+    set -x
+    readelf -d "${BUILD_DIR_VH}/bin/icon"
+    readelf -d "${BUILD_DIR_VE}/bin/icon"
+  )
+
   # Post-processing
 
   cd "${ICON_DIR}"
