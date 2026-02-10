@@ -34,13 +34,13 @@ MODULE mo_wave_physics
 
   PRIVATE
 
-
   PUBLIC :: air_sea
   PUBLIC :: last_prog_freq_ind
   PUBLIC :: impose_high_freq_tail
   PUBLIC :: tm1_tm2_periods_and_wm1_wm2_wavenumber
-  PUBLIC :: wave_stress
+  PUBLIC :: update_wind_stress, wave_stress
   PUBLIC :: mean_frequency_and_total_energy
+  PUBLIC :: wave_stress_ocean
   PUBLIC :: compute_wave_number
   PUBLIC :: compute_group_velocity, wave_group_velocity_nt
   PUBLIC :: set_energy2emin
@@ -48,10 +48,15 @@ MODULE mo_wave_physics
   PUBLIC :: sdepth_lim
   PUBLIC :: calc_last_idx_depth
 
+  ! create alias for wind_stress
+  !
+  INTERFACE update_wind_stress
+    MODULE PROCEDURE wind_stress
+  END INTERFACE update_wind_stress
+
   CHARACTER(LEN=*), PARAMETER :: modname = 'mo_wave_physics'
 
 CONTAINS
-
 
   !>
   !! Calculation of group velocity.
@@ -90,7 +95,6 @@ CONTAINS
       &  gv_e        = gv_e(:,:,:))         !out
 
   END SUBROUTINE compute_group_velocity
-
 
   !>
   !! Calculation of wave group velocity
@@ -151,7 +155,6 @@ CONTAINS
 !$OMP END PARALLEL
   END SUBROUTINE wave_group_velocity_c
 
-
   !>
   !! Calculation of wave group velocity
   !!
@@ -211,7 +214,6 @@ CONTAINS
 !$OMP END PARALLEL
 
   END SUBROUTINE wave_group_velocity_e
-
 
   !>
   !! Calculation of wave group velocity
@@ -331,6 +333,57 @@ CONTAINS
 !$OMP END PARALLEL
   END SUBROUTINE wave_group_velocity_nt
 
+  !>
+  !! Calculation of total wind-stress magnitude as proposed
+  !! in WAM 4.5 algorithm and code for calculation of total stress
+  !! and sea surface roughness for ICON-waves (P.A.E.M. Janssen, 1990).
+  !!
+  SUBROUTINE wind_stress(p_patch, wsp10m, dir10m, taua, taua_x, taua_y)
+    CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER ::  &
+         & routine =  modname//'wind_stress'
+
+    TYPE(t_patch),      INTENT(IN)  :: p_patch
+    REAL(wp),           INTENT(IN)  :: wsp10m(:,:) ! 10m wind speed (nproma,nblks_c) ( m/s )
+    REAL(wp),           INTENT(IN)  :: dir10m(:,:) ! Direction of 10m wind
+    REAL(wp),           INTENT(OUT) :: taua(:,:)   ! total wind-stress magnitude
+    REAL(wp),           INTENT(OUT) :: taua_x(:,:) ! meridional wind-stress component
+    REAL(wp),           INTENT(OUT) :: taua_y(:,:) ! zonal wind-stress component
+                                                   ! without multiplying by rho air (nproma,nblks_c) ( (m/s)^2 )
+    INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
+    INTEGER :: i_startidx, i_endidx
+    INTEGER :: jc,jb
+
+    ! acd, bcd - coefficients for simple cd(u10) relation
+    ! cd - drag coefficient
+    ! cd = acd + bcd*u10
+    REAL(wp), PARAMETER :: acd = 8.0E-4_wp
+    REAL(wp), PARAMETER :: bcd = 8.0E-5_wp
+
+    REAL(wp):: ust, cd
+
+    i_rlstart  = 1
+    i_rlend    = min_rlcell
+    i_startblk = p_patch%cells%start_block(i_rlstart)
+    i_endblk   = p_patch%cells%end_block(i_rlend)
+!$OMP PARALLEL
+!$OMP DO PRIVATE(jb,jc,i_startidx,i_endidx,cd,ust) ICON_OMP_DEFAULT_SCHEDULE
+    DO jb = i_startblk, i_endblk
+      CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,           &
+        &                 i_startidx, i_endidx, i_rlstart, i_rlend)
+      DO jc = i_startidx, i_endidx
+
+        cd = SQRT(acd + bcd * wsp10m(jc,jb))
+        ust = wsp10m(jc,jb) * cd
+        taua(jc,jb)   = ust**2
+        taua_x(jc,jb) = taua(jc,jb)*SIN(dir10m(jc,jb))
+        taua_y(jc,jb) = taua(jc,jb)*COS(dir10m(jc,jb))
+
+      END DO
+    END DO
+!$OMP ENDDO NOWAIT
+!$OMP END PARALLEL
+
+  END SUBROUTINE wind_stress
 
   !>
   !! Calculation of total stress and sea surface roughness
@@ -338,7 +391,7 @@ CONTAINS
   !! Adaptation of WAM 4.5 algorithm and code for calculation of total stress
   !! and sea surface roughness for ICON-waves (P.A.E.M. Janssen, 1990).
   !!
-  SUBROUTINE air_sea(p_patch, wave_config, wsp10m, tauw, ustar, z0)
+  SUBROUTINE air_sea(p_patch, wave_config, wsp10m, taua, tauw, ustar, z0)
 
     CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER ::  &
          & routine =  modname//'air_sea'
@@ -346,6 +399,7 @@ CONTAINS
     TYPE(t_patch),      INTENT(IN)  :: p_patch
     TYPE(t_wave_config),INTENT(IN)  :: wave_config
     REAL(wp),           INTENT(IN)  :: wsp10m(:,:)!10m wind speed (nproma,nblks_c) ( m/s )
+    REAL(wp),           INTENT(IN)  :: taua(:,:)  !wind stress (nproma,nblks_c) ( (m/s)^2 )
     REAL(wp),           INTENT(IN)  :: tauw(:,:)  !wave stress (nproma,nblks_c) ( (m/s)^2 )
     REAL(wp),           INTENT(OUT) :: ustar(:,:) !friction velocity (nproma,nblks_c) ( m/s )
     REAL(wp),           INTENT(OUT) :: z0(:,:)    !roughness length (nproma,nblks_c) ( m )
@@ -357,16 +411,11 @@ CONTAINS
     REAL(wp), PARAMETER :: TWOXMP1 = 3.0_wp
     REAL(wp), PARAMETER :: EPSUS   = 1.0E-6_wp
 
-    !     *ACD*       COEFFICIENTS FOR SIMPLE CD(U10) RELATION
-    !     *BCD*       CD = ACD + BCD*U10
-    REAL(wp), PARAMETER :: ACD = 8.0E-4_wp
-    REAL(wp), PARAMETER :: BCD = 8.0E-5_wp
-
     INTEGER, PARAMETER :: NITER = 15
 
     REAL(wp):: xkutop(nproma), tauold(nproma), ustm1(nproma), z0ch(nproma)
     REAL(wp):: xlogxl, alphaog, xologz0
-    REAL(wp):: ustold, taunew, x, f, delf
+    REAL(wp):: taunew, x, f, delf
     REAL(wp):: z0tot, z0vis, zz
     LOGICAL :: l_converged(nproma)
 
@@ -379,7 +428,7 @@ CONTAINS
     alphaog = wave_config%ALPHA_CH / grav
 
 !$OMP PARALLEL
-!$OMP DO PRIVATE(jb,jc,iter,i_startidx,i_endidx,xkutop,ustold,tauold,ustm1, &
+!$OMP DO PRIVATE(jb,jc,iter,i_startidx,i_endidx,xkutop,tauold,ustm1, &
 !$OMP            l_converged,x,z0ch,z0vis,z0tot,xologz0,f,zz,delf,taunew) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = i_startblk, i_endblk
       CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,           &
@@ -388,8 +437,7 @@ CONTAINS
       ! initialization
       DO jc = i_startidx, i_endidx
         xkutop(jc) = wave_config%XKAPPA * wsp10m(jc,jb)
-        ustold     = wsp10m(jc,jb) * SQRT(ACD + BCD * wsp10m(jc,jb))
-        tauold(jc) = MAX(ustold**2,tauw(jc,jb)+EPS1)
+        tauold(jc) = MAX(taua(jc,jb),tauw(jc,jb)+EPS1)
         ustar(jc,jb) = SQRT(tauold(jc))
         ustm1(jc) = 1.0_wp/MAX(ustar(jc,jb),EPSUS)
 
@@ -533,12 +581,12 @@ CONTAINS
   !!
   !! Adaptation of WAM 4.5 code.
   !! STRESSO
-  !!     H. GUNTHER      GKSS/ECMWF  NOVEMBER  1989 CODE MOVED FROM SINPUT
-  !!     P.A.E.M. JANSSEN      KNMI  AUGUST    1990
-  !!     J. BIDLOT             ECMWF FEBRUARY  1996-97
-  !!     H. GUENTHER   GKSS  FEBRUARY 2002       FT 90
-  !!     J. BIDLOT             ECMWF           2007  ADD MIJ
-  !!     P.A.E.M. JANSSEN     ECMWF            2011  ADD FLUX CALULATIONS
+  !!     H. GUNTHER      GKSS/ECMWF NOVEMBER  1989 CODE MOVED FROM SINPUT
+  !!     P.A.E.M. JANSSEN      KNMI AUGUST    1990
+  !!     J. BIDLOT            ECMWF FEBRUARY  1996-97
+  !!     H. GUENTHER           GKSS FEBRUARY  2002  FT 90
+  !!     J. BIDLOT            ECMWF           2007  ADD MIJ
+  !!     P.A.E.M. JANSSEN     ECMWF           2011  ADD FLUX CALULATIONS
   !!
   !! Reference
   !!       R SNYDER ET AL,1981.
@@ -776,6 +824,113 @@ CONTAINS
     END DO
 
   END SUBROUTINE high_frequency_stress
+
+  !>
+  !! Calculation of wave-to-ocean stress and energy flux
+  !!
+  !! Adaptation of WAM 4.5 code STRESSO.f90
+  !! When coupled to waves, the ocean experiences the 'wave-to-ocean' stress
+  !! \tau_oc = \tau_a - (\tau_w + \tau_ds)
+  !! i.e. atmospheric stress minus stress which contributes to wave growth, plus stress
+  !! imparted to the ocean by wave breaking. The wave-to-ocean stress is the difference
+  !! between \tau_a and the integral of sl/c, with sl the sum of all the source terms.
+  !!
+  SUBROUTINE wave_stress_ocean(p_patch, wave_config, taua_x, taua_y, sl, p_diag)
+     CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER ::  &
+          &  routine = modname//'wave_stress_ocean'
+
+    TYPE(t_patch),               INTENT(IN)    :: p_patch
+    TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
+    REAL(wp),                    INTENT(IN)    :: taua_x(:,:)
+    REAL(wp),                    INTENT(IN)    :: taua_y(:,:)
+    REAL(vp),                    INTENT(IN)    :: sl(:,:,:,:)
+    TYPE(t_wave_diag),           INTENT(INOUT) :: p_diag
+
+    INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
+    INTEGER :: i_startidx, i_endidx
+    INTEGER :: jc,jb,jf,jd
+
+    REAL(wp) :: stotplus, cmrhowgdfth_rhoa
+    REAL(wp) :: rhowgdfth(nproma,wave_config%nfreqs)
+    REAL(wp) :: cm(nproma,wave_config%nfreqs)
+    REAL(wp) :: sumt(nproma), sumx(nproma), sumy(nproma)
+    REAL(wp) :: xstress(nproma), ystress(nproma)
+    REAL(wp) :: roair    ! air density
+
+    TYPE(t_wave_config), POINTER :: wc => NULL()
+
+    i_rlstart  = 1
+    i_rlend    = min_rlcell
+    i_startblk = p_patch%cells%start_block(i_rlstart)
+    i_endblk   = p_patch%cells%end_block(i_rlend)
+
+    ! save some paperwork
+    wc => wave_config
+
+    roair = MAX(wc%roair,1._wp)
+
+
+!$OMP PARALLEL
+!$OMP DO PRIVATE(jb,jc,jf,jd,i_startidx,i_endidx,cm,sumt,sumx,sumy,   &
+!$OMP            stotplus,rhowgdfth,cmrhowgdfth_rhoa,xstress,ystress) ICON_OMP_DEFAULT_SCHEDULE
+    DO jb = i_startblk, i_endblk
+      CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,          &
+        &                 i_startidx, i_endidx, i_rlstart, i_rlend)
+
+
+      DO jf = 1,wc%nfreqs
+        DO jc = i_startidx, i_endidx
+          cm(jc,jf) = p_diag%wave_num_c(jc,jf,jb) * 1.0_wp/(pi2*wc%freqs(jf))
+          rhowgdfth(jc,jf) = MERGE(wc%rhowg_dfim(jf), 0.0_wp, jf <= p_diag%last_prog_freq_ind(jc,jb))
+        ENDDO
+      ENDDO
+
+      DO jc = i_startidx, i_endidx
+        jf = p_diag%last_prog_freq_ind(jc,jb)
+        IF (jf /= wc%nfreqs) rhowgdfth(jc,jf) = 0.5_wp * rhowgdfth(jc,jf)
+
+        !initialisation
+        xstress(jc) = taua_x(jc,jb)
+        ystress(jc) = taua_y(jc,jb)
+        p_diag%phioc(jc,jb) = p_diag%phiaw(jc,jb)
+      END DO
+
+      !sum
+      DO jf = 1, MAXVAL(p_diag%last_prog_freq_ind(i_startidx:i_endidx,jb))
+        DO jc = i_startidx, i_endidx
+          sumt(jc) = 0._wp
+          sumx(jc) = 0._wp
+          sumy(jc) = 0._wp
+        END DO
+
+        DO jd = 1, wc%ndirs
+          DO jc = i_startidx, i_endidx
+            stotplus = MAX(sl(jc,jd,jf,jb),0._wp)
+            sumt(jc) = sumt(jc) + stotplus
+            sumx(jc) = sumx(jc) + stotplus * wc%sin_dir(jd)
+            sumy(jc) = sumy(jc) + stotplus * wc%cos_dir(jd)
+          END DO
+        END DO
+
+        DO jc = i_startidx, i_endidx
+          p_diag%phioc(jc,jb) =  p_diag%phioc(jc,jb) - sumt(jc)*rhowgdfth(jc,jf)
+          cmrhowgdfth_rhoa = cm(jc,jf) * rhowgdfth(jc,jf)/roair
+          xstress(jc) = xstress(jc) - sumx(jc)*cmrhowgdfth_rhoa
+          ystress(jc) = ystress(jc) - sumy(jc)*cmrhowgdfth_rhoa
+        END DO
+      END DO  ! jf
+
+      DO jc = i_startidx, i_endidx
+        p_diag%tauoc_x(jc,jb) = xstress(jc)
+        p_diag%tauoc_y(jc,jb) = ystress(jc)
+        p_diag%tauoc(jc,jb)   = SQRT(xstress(jc)**2 + ystress(jc)**2)
+      END DO
+
+    END DO
+!$OMP ENDDO NOWAIT
+!$OMP END PARALLEL
+
+  END SUBROUTINE wave_stress_ocean
 
 
   !>

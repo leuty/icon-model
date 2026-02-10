@@ -78,12 +78,12 @@ MODULE mo_wave_types
       &  ustar(:,:),          & ! friction velocity                          (nproma,nblks_c) (m/s)
       &  z0(:,:),             & ! roughness length                           (nproma,nblks_c) (m)
       &  tauhf1(:,:),         & ! init high-frequency stress                 (nproma,nblks_c) (m/s)^2
-      &  phihf1(:,:),         & ! init high-frequency energy flux into ocean (nproma,nblks_c) (m/s)^2
+      &  phihf1(:,:),         & ! init high-frequency energy flux into ocean (nproma,nblks_c) (m^2/s)
       &  tauhf(:,:),          & ! high-frequency stress                      (nproma,nblks_c) (m/s)^2
-      &  phihf(:,:),          & ! high-frequency energy flux into ocean      (nproma,nblks_c) (m/s)^2
+      &  phihf(:,:),          & ! high-frequency energy flux into ocean      (nproma,nblks_c) (kg/s^3)
       &  xlevtail(:,:),       & ! tail level                                 (nproma,nblks_c) (-)
       &  tauw(:,:),           & ! wave stress                                (nproma,nblks_c) (m/s)^2
-      &  phiaw(:,:),          & ! energy flux from wind into waves integrated over the full frequency range  (nproma,nblks_c) (-)
+      &  phiaw(:,:),          & ! energy flux from wind into waves integrated over full frequency range  (nproma,nblks_c) (kg/s^3)
       ! total waves
       &  emean(:,:),          & ! total energy                   (nproma,nblks_c) (m^2)
       &  emeanws(:,:),        & ! total wind sea input energy    (nproma,nblks_c) (m^2)
@@ -148,7 +148,12 @@ MODULE mo_wave_types
       &  kbar(:,:),           & ! Wavenumber for Breivik parametrisation (nproma,nblks_c) (1/m)
       &  T_stokes(:,:),       & ! magnitude of Stokes transport (nproma,nblks_c)        (m^2/s)
       &  u3d_stokes(:,:,:),   & ! U-component of 3d Stokes drift (nproma,ndepths,nblks_c) (m/s)
-      &  v3d_stokes(:,:,:)      ! V-component of 3d Stokes drift (nproma,ndepths,nblks_c) (m/s)
+      &  v3d_stokes(:,:,:),   & ! V-component of 3d Stokes drift (nproma,ndepths,nblks_c) (m/s)
+      &  phioc(:,:),          & ! wave-to-ocean energy flux (nproma,nbkls_c) (kg/s^3)
+      &  tauoc_x(:,:),        & ! zonal component of wave-to-ocean stress (nproma,nblks_c) (m/s)^2
+      &  tauoc_y(:,:),        & ! meridional component of wave-to-ocean stress (nproma,nblks_c) (m/s)^2
+      &  tauoc(:,:)             ! magnitude of wave-to-ocean stress (nproma,nblks_c) (m/s)^2
+
 
     REAL(vp), POINTER, CONTIGUOUS :: &
       &  AF11(:),             & ! for discrete approximation of nonlinear transfer (nfreqs+4) (-)

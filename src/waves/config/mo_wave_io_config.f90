@@ -29,6 +29,10 @@ MODULE mo_wave_io_config
      LOGICAL :: T_stokes       = .FALSE. ! --//--
      LOGICAL :: u3d_stokes     = .FALSE. ! --//--
      LOGICAL :: v3d_stokes     = .FALSE. ! --//--
+     LOGICAL :: tauoc_x        = .FALSE. ! --//--
+     LOGICAL :: tauoc_y        = .FALSE. ! --//--
+     LOGICAL :: tauoc          = .FALSE. ! --//--
+     LOGICAL :: phioc          = .FALSE. ! --//--
 
   END type t_wave_var_in_output
 
@@ -49,13 +53,17 @@ CONTAINS
 
     ALLOCATE(wave_var_in_output(n_dom))
 
-    ! diagnostics for Stokes drift vertical profile
+    ! diagnostics for Stokes drift vertical profile and wave-to-ocean fluxes
     DO jg=1,n_dom
       wave_var_in_output(jg)%last_idx_depth = is_variable_in_output_dom(var_name="last_idx_depth", jg=jg)
       wave_var_in_output(jg)%kbar           = is_variable_in_output_dom(var_name="kbar"          , jg=jg)
       wave_var_in_output(jg)%T_stokes       = is_variable_in_output_dom(var_name="T_stokes"      , jg=jg)
       wave_var_in_output(jg)%u3d_stokes     = is_variable_in_output_dom(var_name="u3d_stokes"    , jg=jg)
       wave_var_in_output(jg)%v3d_stokes     = is_variable_in_output_dom(var_name="v3d_stokes"    , jg=jg)
+      wave_var_in_output(jg)%tauoc_x        = is_variable_in_output_dom(var_name="tauoc_x"       , jg=jg)
+      wave_var_in_output(jg)%tauoc_y        = is_variable_in_output_dom(var_name="tauoc_y"       , jg=jg)
+      wave_var_in_output(jg)%tauoc          = is_variable_in_output_dom(var_name="tauoc"         , jg=jg)
+      wave_var_in_output(jg)%phioc          = is_variable_in_output_dom(var_name="phioc"         , jg=jg)
     END DO
 
   END SUBROUTINE init_wave_var_in_output

@@ -765,10 +765,10 @@ CONTAINS
 
         CALL update_statistics(lacc=lzacc)
 
-        CALL output_ocean( patch_3d, ocean_state, &
-          &                current_time,              &
-          &                p_oce_sfc,             &
-          &                sea_ice,                 &
+        CALL output_ocean( patch_3d, ocean_state,    &
+          &                current_time,             &
+          &                p_oce_sfc,                &
+          &                sea_ice,                  &
           &                jstep, jstep0, lacc=lzacc)
 
         IF ( is_coupled_to_output() ) THEN
@@ -802,6 +802,9 @@ CONTAINS
               &                        swh        = v_params%swh,                      & ! INOUT
               &                        Tm2        = v_params%Tm2,                      & ! INOUT
               &                        kp         = v_params%kp,                       & ! INOUT
+              &                        tauoc_x    = v_params%tauoc_x,                  & ! INOUT
+              &                        tauoc_y    = v_params%tauoc_y,                  & ! INOUT
+              &                        phioc      = v_params%phioc,                    & ! INOUT
               &                        lacc       = lzacc)                               ! OPTIONAL IN
           END IF
         END IF

@@ -166,7 +166,9 @@ cat > ${basedir}/run/${wave_namelist} << EOF
  mode                   =                   1         ! 1: forecast mode (relative t-axis), 2: climate mode (absolute t-axis)
  include_last           =               .TRUE.        ! flag whether to include the last time step
  output_grid            =               .TRUE.        ! flag whether grid information is added to output.
- ml_varlist             = 'group:wave_phy','drag','tauwn','beta'
+ ml_varlist             = 'emean','emeanws','femean','wbr_frac','f1mean','femeanws','akmean','xkmean','last_prog_freq_ind',
+                          'ustar','z0','tauw','phiaw','tauhf1','phihf1','tauhf','phihf','xlevtail','emean_sea','femean_sea'
+                          'f1mean_sea','emean_swell','femean_swell','f1mean_swell','drag','tauwn','beta'
 /
 &output_nml
  output_filename        = "${EXPNAME}_wave_short"     ! file name base
@@ -178,7 +180,9 @@ cat > ${basedir}/run/${wave_namelist} << EOF
  mode                   =                   1         ! 1: forecast mode (relative t-axis), 2: climate mode (absolute t-axis)
  include_last           =               .TRUE.        ! flag whether to include the last time step
  output_grid            =               .TRUE.        ! flag whether grid information is added to output.
- ml_varlist             = 'group:wave_short'
+ ml_varlist             = 'hs','hs_dir','tpp','kp','tmp','tm1','tm2','ds','hs_sea','hs_sea_dir','pp_sea',
+                          'kp_sea','mp_sea','m1_sea','m2_sea','hs_swell','hs_swell_dir','pp_swell','kp_swell',
+                          'mp_swell','m1_swell','m2_swell','ds_swell'
 /
 EOF
 

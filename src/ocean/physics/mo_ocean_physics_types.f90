@@ -159,7 +159,10 @@ MODULE mo_ocean_physics_types
       & tau_w(:,:),                           & ! wave stress from surface waves (m^2/s^2)
       & swh(:,:),                             & ! significant wave height from surface waves (m)
       & Tm2(:,:),                             & ! m2 wave period from surface waves (s)
-      & kp(:,:)                                 ! total peak wavenumber (1/m)
+      & kp(:,:),                              & ! total peak wavenumber (1/m)
+      & tauoc_x(:,:),                         & ! zonal wave-to-ocean stress (m^2/s^2)
+      & tauoc_y(:,:),                         & ! meridional wave-to-ocean stress (m^2/s^2)
+      & phioc(:,:)                              ! wave-to-ocean energy flux (kg/s^3)
 
 !       & TracerDiffusion_coeff(:,:,:,:)  ! coefficient of horizontal tracer diffusion
     TYPE(t_onEdges_Pointer_3d_wp),ALLOCATABLE :: tracer_h_ptr(:)
@@ -533,6 +536,31 @@ CONTAINS
          & ldims=(/nproma,alloc_cell_blocks/), &
          & in_group=groups("oce_waves"), lopenacc=.TRUE.)
       __acc_attach(params_oce%kp)
+
+      CALL add_var(ocean_params_list, 'tauoc_x',params_oce%tauoc_x, &
+         & grid_unstructured_cell, za_surface, &
+         & t_cf_var('tauoc_x', 'm2 s-2', 'zonal wave-to-ocean stress', datatype_flt),&
+         & grib2_var(255, 255, 255, datatype_pack16,GRID_UNSTRUCTURED,grid_cell),&
+         & ldims=(/nproma,alloc_cell_blocks/), &
+         & in_group=groups("oce_waves"), lopenacc=.TRUE.)
+      __acc_attach(params_oce%tauoc_x)
+
+        CALL add_var(ocean_params_list, 'tauoc_y',params_oce%tauoc_y, &
+         & grid_unstructured_cell, za_surface, &
+         & t_cf_var('tauoc_y', 'm2 s-2', 'meridional wave-to-ocean stress', datatype_flt),&
+         & grib2_var(255, 255, 255, datatype_pack16,GRID_UNSTRUCTURED,grid_cell),&
+         & ldims=(/nproma,alloc_cell_blocks/), &
+         & in_group=groups("oce_waves"), lopenacc=.TRUE.)
+      __acc_attach(params_oce%tauoc_y)
+
+        CALL add_var(ocean_params_list, 'phioc',params_oce%phioc, &
+         & grid_unstructured_cell, za_surface, &
+         & t_cf_var('phioc', 'kg s-3', 'wave-to-ocean energy flux', datatype_flt),&
+         & grib2_var(255, 255, 255, datatype_pack16,GRID_UNSTRUCTURED,grid_cell),&
+         & ldims=(/nproma,alloc_cell_blocks/), &
+         & in_group=groups("oce_waves"), lopenacc=.TRUE.)
+      __acc_attach(params_oce%phioc)
+
    END IF
 
 
