@@ -6,6 +6,18 @@
 
 - Correction of the roughness length computation over ocean in TMX
 
+### Soil and Surface
+
+#### Climate: ICON-Land
+
+- QUINCY development
+  - Updated the Jena-Soil-Model for use with QUINCY as an alternative to the simple soil-biogeochemistry model
+- Hydrology: Added ford inline documentation
+- Land initial files: Major update: 12 and 13 tile setups for jsbach and quincy
+- Land initial files: Fix for the skin layer conductivity
+- Revised 'basic' output list
+- Anthropogenic emission files: Created anthropogenic emission data including aviation sources from the CMIP7 dataset
+
 
 # Release notes for icon-2025.10-1
 
