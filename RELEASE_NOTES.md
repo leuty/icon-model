@@ -24,15 +24,30 @@
 #### Climate: ICON-Land
 
 - QUINCY development
+  - Enable anthropogenic land cover change with QUINCY biogeochemistry
   - Updated the Jena-Soil-Model for use with QUINCY as an alternative to the simple soil-biogeochemistry model
   - Improve paramaterization of vegetation phosphorus (P) uptake to avoid crops and natural vegetation dying by P limitation
+  - Improve the calculation of plant water stress with frozen soil
+  - Minor refactoring: unification of namelist names
+  - Correction of aggregation of area-dependent variables in the QUINCY model
+  - Update default PI control values for atmospheric 13CO2 and 14CO2 composition according to CMIP7 forcing (Graven, H. (2025))
+  - Revisit QUINCY output ensuring that all output variables required for diagnostics and global budget calculations are present
+  - Update nitrogen cycle parameters
+  - Add script to generate CMIP7 based deposition data
+  - Refactor vegetation memory structure to reduce code complexity
+  - Assure restart identity
 - Refactoring of anthropogenic land cover change process
 - Hydrology: Added ford inline documentation
-- Land initial files: Major update: 12 and 13 tile setups for jsbach and quincy
-- Land initial files: Fix for the skin layer conductivity
+- Land initial files
+  - Major update: 12 and 13 tile setups for jsbach and quincy
+  - Fix for the skin layer conductivity
+  - Estimation of initial soil moisture from vegetation fraction
+  - Automized HD parameter file generation also for high resolution grids (internal HD)
 - Land initialization: Initial soil moisture is turned to ice at temperatures below zero degrees.
 - Revised 'basic' output list
 - Anthropogenic emission files: Created anthropogenic emission data including aviation sources from the CMIP7 dataset
+- Update BSD-3C licence year to 2026
+- More flexible handling of the number of PFTs
 
 ### Infrastructure
 

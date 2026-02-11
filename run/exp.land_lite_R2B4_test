@@ -117,13 +117,15 @@ lcarbon=$([ "${jsbach_with_carbon:=yes}" == yes ] && echo .TRUE. || echo .FALSE.
 #
 if [[ $jsbach_usecase == *pfts* ]] || [[ $jsbach_usecase == *jedi* ]]
 then
-  pft_file_tag="_11pfts_"
+  npft=11
+  pft_file_tag="_${npft}pfts_"
   year_tag="${refyear}"
   if [[ ${jsbach_use_jedi} == yes ]] || [[ ${output_lnd} == "full" ]]
   then
     output_tiles="${output_tiles}, 'pft*'"
   fi
 else
+  npft=0
   pft_file_tag=""
   year_tag=""
 fi
