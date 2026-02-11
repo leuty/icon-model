@@ -342,7 +342,7 @@ coupling:
     field: [zonal_sea_surface_current,meridional_sea_surface_current,sea_surface_height,sea_surface_water_density]
   - <<: [ *wave2oce, *hcsbb_interp_stack ]
     coupling_period: ${couplingTimeStep}
-    field: [zonal_stokes_drift,meridional_stokes_drift,wave_stress,significant_wave_height,m2_wave_period,peak_wavenumber]
+    field: [zonal_stokes_drift,meridional_stokes_drift,wave_stress,significant_wave_height,m2_wave_period,peak_wavenumber,zonal_wave_to_ocean_stress,meridional_wave_to_ocean_stress,wave_to_ocean_energy_flux]
 
 EOF
 
@@ -578,7 +578,7 @@ cat > ${oce_namelist} << EOF
   include_last     = .false.
   output_grid      = .TRUE.
   filename_format  = "<output_filename>_<datetime2>"
-  ml_varlist       = 'tau_w','u2d_stokes','v2d_stokes', 'swh', 'Tm2', 'ssh', 'kp'
+  ml_varlist       = 'phioc','tauoc_x','tauoc_y','tau_w','u2d_stokes','v2d_stokes', 'swh', 'Tm2', 'ssh', 'kp'
   !ml_varlist       = 'group:oce_default','group:oce_essentials', 'group:ice_default','group:oce_physics','tau_w','u2d_stokes','v2d_stokes'
 /
 &dbg_index_nml

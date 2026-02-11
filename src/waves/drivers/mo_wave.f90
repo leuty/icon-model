@@ -71,7 +71,8 @@ CONTAINS
     restartDescriptor => createRestartDescriptor(TRIM(get_my_process_name()))
 
     CALL perform_wave_stepping(time_config       = time_config, &
-      &                        restartDescriptor = restartDescriptor)
+      &                        restartDescriptor = restartDescriptor, &
+      &                        var_in_output     = wave_var_in_output(:))
 
     CALL deleteRestartDescriptor(restartDescriptor)
 

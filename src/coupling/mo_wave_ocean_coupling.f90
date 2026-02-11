@@ -33,6 +33,9 @@ MODULE mo_wave_ocean_coupling
   INTEGER :: field_id_h_s
   INTEGER :: field_id_tm02
   INTEGER :: field_id_kp
+  INTEGER :: field_id_tauoc_x
+  INTEGER :: field_id_tauoc_y
+  INTEGER :: field_id_phioc
   INTEGER :: field_id_cur_u
   INTEGER :: field_id_cur_v
   INTEGER :: field_id_ssh
@@ -79,6 +82,17 @@ CONTAINS
 
     CALL cpl_def_field( &
       comp_id, cell_point_id, timestepstring, &
+      "zonal_wave_to_ocean_stress", 1, field_id_tauoc_x)
+    CALL cpl_def_field( &
+      comp_id, cell_point_id, timestepstring, &
+      "meridional_wave_to_ocean_stress", 1, field_id_tauoc_y)
+
+    CALL cpl_def_field( &
+      comp_id, cell_point_id, timestepstring, &
+      "wave_to_ocean_energy_flux", 1, field_id_phioc)
+
+    CALL cpl_def_field( &
+      comp_id, cell_point_id, timestepstring, &
       "zonal_sea_surface_current", 1, field_id_cur_u)
     CALL cpl_def_field( &
       comp_id, cell_point_id, timestepstring, &
@@ -103,7 +117,10 @@ CONTAINS
   !!  "wave_stress"
   !!  "significant_wave_height"
   !!  "m2_wave_period"
-  !!  "peak wavenumber"
+  !!  "peak_wavenumber"
+  !!  "zonal_wave_to_ocean_stress"
+  !!  "meridional_wave_to_ocean_stress"
+  !!  "wave_to_ocean_energy_flux"
   !!
   !! Receive fields from ocean:
   !!  "zonal_sea_surface_current"
@@ -113,7 +130,7 @@ CONTAINS
   !!
   !! This subroutine is called from perform_wave_stepping.
   !!
-  SUBROUTINE couple_wave_to_ocean(p_patch, stokes_u, stokes_v, tau_w, h_s, tm02, kp, cur_u, cur_v, ssh, ssd, lacc)
+  SUBROUTINE couple_wave_to_ocean(p_patch, stokes_u, stokes_v, tau_w, h_s, tm02, kp, tauoc_x, tauoc_y, phioc, cur_u, cur_v, ssh, ssd, lacc)
 
     CHARACTER(len=*), PARAMETER ::  &
       &  routine = modname//':couple_wave_to_ocean'
@@ -125,6 +142,9 @@ CONTAINS
     REAL(wp), CONTIGUOUS, TARGET, INTENT(IN)    :: h_s(:,:)      ! significant wave height [m]
     REAL(wp), CONTIGUOUS, TARGET, INTENT(IN)    :: tm02(:,:)     ! m2 wave period [s]
     REAL(wp), CONTIGUOUS, TARGET, INTENT(IN)    :: kp(:,:)       ! total peak wavenumber [1/m]
+    REAL(wp), CONTIGUOUS, TARGET, INTENT(IN)    :: tauoc_x(:,:)  ! zonal wave-to-ocean stress [m2/s2]
+    REAL(wp), CONTIGUOUS, TARGET, INTENT(IN)    :: tauoc_y(:,:)  ! meridional wave-to-ocean stress [m2/s2]
+    REAL(wp), CONTIGUOUS, TARGET, INTENT(IN)    :: phioc(:,:)    ! wave-to-ocean energy flux [kg/s3]
     REAL(wp), CONTIGUOUS, TARGET, INTENT(INOUT) :: cur_u(:,:)    ! zonal sea surface current [m/s]
     REAL(wp), CONTIGUOUS, TARGET, INTENT(INOUT) :: cur_v(:,:)    ! meridional sea surface current [m/s]
     REAL(wp), CONTIGUOUS, TARGET, INTENT(INOUT) :: ssh(:,:)      ! sea surface height [m]
@@ -143,13 +163,16 @@ CONTAINS
     !  "significant_wave_height"
     !  "m2_wave_period"
     !  "peak_wavenumber"
+    !  "zonal_wave_to_ocean_stress"
+    !  "meridional_wave_to_ocean_stress"
+    !  "wave_to_ocean_energy_flux"
     !  *****  *****  *****  *****  *****  *****  *****  *****  *****  *****  *****  *****
 
-    ! --------------------------------------------
+    ! --------------------------------------------------
     !  Send Stokes drift components to the ocean
     !  'zonal_stokes_drift'
     !  'meridional_stokes_drift'
-    ! --------------------------------------------
+    ! --------------------------------------------------
     !
     CALL cpl_put_field( &
       routine, field_id_stokes_u, 'zonal_stokes_drift', p_patch%n_patch_cells, stokes_u)
@@ -157,39 +180,59 @@ CONTAINS
     CALL cpl_put_field( &
       routine, field_id_stokes_v, 'meridional_stokes_drift', p_patch%n_patch_cells, stokes_v)
 
-    ! --------------------------------------------
+    ! --------------------------------------------------
     !  Send wave stress to the ocean
     !  'wave_stress'
-    ! --------------------------------------------
+    ! --------------------------------------------------
     !
     CALL cpl_put_field( &
       routine, field_id_tau_w, 'wave_stress', p_patch%n_patch_cells, tau_w)
 
-    ! --------------------------------------------
+    ! --------------------------------------------------
     !  Send significant wave height to the ocean
     !  'significant_wave_height'
-    ! --------------------------------------------
+    ! --------------------------------------------------
     !
     CALL cpl_put_field( &
       routine, field_id_h_s, 'significant_wave_height', p_patch%n_patch_cells, h_s)
 
-    ! --------------------------------------------
+    ! --------------------------------------------------
     !  Send Tm02 period to the ocean
     !  'm2_wave_period'
-    ! --------------------------------------------
+    ! --------------------------------------------------
     !
     CALL cpl_put_field( &
       routine, field_id_tm02, 'm2_wave_period', p_patch%n_patch_cells, tm02)
-    !
-    ! --------------------------------------------
+
+    ! --------------------------------------------------
     !  Send peak wavenumber to the ocean
     !  'peak_wavenumber'
-    ! --------------------------------------------
+    ! --------------------------------------------------
     !
     CALL cpl_put_field( &
       routine, field_id_kp, 'peak_wavenumber', p_patch%n_patch_cells, kp)
+
+    ! --------------------------------------------------
+    !  Send wave-to-ocean stress components to the ocean
+    !  'zonal_wave_to_ocean_stress'
+    !  'meridional_wave_to_ocean_stress'
+    ! --------------------------------------------------
     !
+    CALL cpl_put_field( &
+      routine, field_id_tauoc_x, 'zonal_wave_to_ocean_stress', p_patch%n_patch_cells, tauoc_x)
+
+    CALL cpl_put_field( &
+      routine, field_id_tauoc_y, 'meridional_wave_to_ocean_stress', p_patch%n_patch_cells, tauoc_y)
+
+    ! --------------------------------------------------
+    !  Send wave-to-ocean energy flux to the ocean
+    !  'wave_to_ocean_energy_flux'
+    ! --------------------------------------------------
     !
+    CALL cpl_put_field( &
+      routine, field_id_phioc, 'wave_to_ocean_energy_flux', p_patch%n_patch_cells, phioc)
+
+
     !  *****  *****  *****  *****  *****  *****  *****  *****  *****  *****  *****  *****
     !   Receive fields from ocean
     !  "zonal_sea_surface_current"

@@ -134,7 +134,7 @@ CONTAINS
 
     IF ( is_coupled_to_waves() ) THEN
 
-      ! Construct coupling frame for ocean-atmosphere
+      ! Construct coupling frame for ocean-waves
       CALL message(str_module, 'Constructing the coupling frame ocean-waves.')
 
       CALL construct_ocean_wave_coupling( &
@@ -163,7 +163,7 @@ CONTAINS
 
     IF (is_coupled_run()) THEN
 
-      CALL message(str_module, 'Destructing the coean coupling frame.')
+      CALL message(str_module, 'Destructing the ocean coupling frame.')
 
     END IF
 

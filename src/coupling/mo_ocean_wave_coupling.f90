@@ -54,6 +54,9 @@ MODULE mo_ocean_wave_coupling
   INTEGER, TARGET :: field_id_h_s
   INTEGER, TARGET :: field_id_tm02
   INTEGER, TARGET :: field_id_kp
+  INTEGER, TARGET :: field_id_tauoc_x
+  INTEGER, TARGET :: field_id_tauoc_y
+  INTEGER, TARGET :: field_id_phioc
   INTEGER, TARGET :: field_id_oce_u
   INTEGER, TARGET :: field_id_oce_v
   INTEGER, TARGET :: field_id_ssh
@@ -96,7 +99,7 @@ CONTAINS
       INTEGER, POINTER :: p
     END TYPE field_id_ptr
 
-    INTEGER, PARAMETER :: no_of_fields = 10
+    INTEGER, PARAMETER :: no_of_fields = 13
     CHARACTER(LEN=max_char_length) :: field_name(no_of_fields)
     INTEGER                        :: collection_size(no_of_fields)
     TYPE(field_id_ptr)             :: field_ids(no_of_fields)
@@ -115,6 +118,9 @@ CONTAINS
     !  "significant_wave_height"
     !  "m2_wave_period"
     !  "peak_wavenumber"
+    !  "zonal_wave_to_ocean_stress"
+    !  "meridional_wave_to_ocean_stress"
+    !  "wave_to_ocean_energy_flux"
     !  *****  *****  *****  *****  *****  *****  *****  *****  *****  *****  *****  *****
 
     !  *****  *****  *****  *****  *****  *****  *****  *****  *****  *****  *****  *****
@@ -143,18 +149,27 @@ CONTAINS
     field_name(6) = "peak_wavenumber"
     collection_size(6) = 1
     field_ids(6)%p => field_id_kp
-    field_name(7) = "zonal_sea_surface_current"
+    field_name(7) = "zonal_wave_to_ocean_stress"
     collection_size(7) = 1
-    field_ids(7)%p => field_id_oce_u
-    field_name(8) = "meridional_sea_surface_current"
+    field_ids(7)%p => field_id_tauoc_x
+    field_name(8) = "meridional_wave_to_ocean_stress"
     collection_size(8) = 1
-    field_ids(8)%p => field_id_oce_v
-    field_name(9) = "sea_surface_height"
+    field_ids(8)%p => field_id_tauoc_y
+    field_name(9) = "wave_to_ocean_energy_flux"
     collection_size(9) = 1
-    field_ids(9)%p => field_id_ssh
-    field_name(10) =   "sea_surface_water_density"
+    field_ids(9)%p => field_id_phioc
+    field_name(10) = "zonal_sea_surface_current"
     collection_size(10) = 1
-    field_ids(10)%p => field_id_ssd
+    field_ids(10)%p => field_id_oce_u
+    field_name(11) = "meridional_sea_surface_current"
+    collection_size(11) = 1
+    field_ids(11)%p => field_id_oce_v
+    field_name(12) = "sea_surface_height"
+    collection_size(12) = 1
+    field_ids(12)%p => field_id_ssh
+    field_name(13) =   "sea_surface_water_density"
+    collection_size(13) = 1
+    field_ids(13)%p => field_id_ssd
 
     !
     ! mask generation : ... not yet defined ...
@@ -230,7 +245,8 @@ CONTAINS
   !>
   !! Exchange fields between ocean and waves model
   !!
-  SUBROUTINE couple_ocean_to_waves(patch_3d, ice_conc, cur_u, cur_v, ssh, ssd, u2d_stokes, v2d_stokes, tau_w, swh, Tm2, kp, lacc)
+  SUBROUTINE couple_ocean_to_waves(patch_3d, ice_conc, cur_u, cur_v, ssh, ssd, u2d_stokes, v2d_stokes, tau_w, swh, Tm2, kp, &
+                                  & tauoc_x, tauoc_y, phioc, lacc)
 
     TYPE(t_patch_3d ),TARGET, INTENT(IN)        :: patch_3d
     REAL(wp), CONTIGUOUS, TARGET, INTENT(IN)    :: ice_conc(:,:)   ! ice concentration (first ice class) (1)
@@ -238,12 +254,15 @@ CONTAINS
     REAL(wp), CONTIGUOUS, TARGET, INTENT(IN)    :: cur_v(:,:)      ! meridional sea surface current [m/s]
     REAL(wp), CONTIGUOUS, TARGET, INTENT(IN)    :: ssh(:,:)        ! sea surface height [m]
     REAL(wp), CONTIGUOUS, TARGET, INTENT(IN)    :: ssd(:,:)        ! sea surface water density [kg/m3]
-    REAL(wp), CONTIGUOUS, TARGET, INTENT(INOUT) :: u2d_stokes(:,:) ! zonal surface Stokes velocity component from surface waves (m/s)
-    REAL(wp), CONTIGUOUS, TARGET, INTENT(INOUT) :: v2d_stokes(:,:) ! meridional surface Stokes velocity component from surface waves (m/s)
-    REAL(wp), CONTIGUOUS, TARGET, INTENT(INOUT) :: tau_w(:,:)      ! wave stress (m2/s2)
-    REAL(wp), CONTIGUOUS, TARGET, INTENT(INOUT) :: swh(:,:)        ! significant wave height (m)
-    REAL(wp), CONTIGUOUS, TARGET, INTENT(INOUT) :: Tm2(:,:)        ! m2 wave period (s)
-    REAL(wp), CONTIGUOUS, TARGET, INTENT(INOUT) :: kp(:,:)         ! peak wavenumber (1/m)
+    REAL(wp), CONTIGUOUS, TARGET, INTENT(INOUT) :: u2d_stokes(:,:) ! zonal surface Stokes velocity component from surface waves [m/s]
+    REAL(wp), CONTIGUOUS, TARGET, INTENT(INOUT) :: v2d_stokes(:,:) ! meridional surface Stokes velocity component from surface waves [m/s]
+    REAL(wp), CONTIGUOUS, TARGET, INTENT(INOUT) :: tau_w(:,:)      ! wave stress [m2/s2]
+    REAL(wp), CONTIGUOUS, TARGET, INTENT(INOUT) :: swh(:,:)        ! significant wave height [m]
+    REAL(wp), CONTIGUOUS, TARGET, INTENT(INOUT) :: Tm2(:,:)        ! m2 wave period [s]
+    REAL(wp), CONTIGUOUS, TARGET, INTENT(INOUT) :: kp(:,:)         ! peak wavenumber [1/m]
+    REAL(wp), CONTIGUOUS, TARGET, INTENT(INOUT) :: tauoc_x(:,:)    ! zonal wave-to-ocean stress [m2/s2]
+    REAL(wp), CONTIGUOUS, TARGET, INTENT(INOUT) :: tauoc_y(:,:)    ! meridional wave-to-ocean stress [m2/s2]
+    REAL(wp), CONTIGUOUS, TARGET, INTENT(INOUT) :: phioc(:,:)      ! wave-to-ocean energy flux [kg/s3]
 
     LOGICAL, OPTIONAL, INTENT(IN) :: lacc ! If true, use openacc
 
@@ -281,6 +300,9 @@ CONTAINS
     !  "significant_wave_height"
     !  "m2_wave_period"
     !  "peak_wavenumber"
+    !  "zonal_wave_to_ocean_stress"
+    !  "meridional_wave_to_ocean_stress"
+    !  "wave_to_ocean_energy_flux"
     !  *****  *****  *****  *****  *****  *****  *****  *****  *****  *****  *****  *****
 
     !  *****  *****  *****  *****  *****  *****  *****  *****  *****  *****  *****  *****
@@ -333,6 +355,21 @@ CONTAINS
     CALL cpl_get_field(routine, field_id_kp, 'peak_wavenumber', &
       nbr_hor_cells, kp, first_get=.TRUE., received_data=received_data)
     IF (received_data) CALL sync_patch_array(sync_c, patch_horz, kp, lacc)
+
+    !   "zonal_wave_to_ocean_stress"
+    CALL cpl_get_field(routine, field_id_tauoc_x, 'zonal_wave_to_ocean_stress', &
+      nbr_hor_cells, tauoc_x, first_get=.TRUE., received_data=received_data)
+    IF (received_data) CALL sync_patch_array(sync_c, patch_horz, tauoc_x, lacc)
+
+    !   "meridional_wave_to_ocean_stress"
+    CALL cpl_get_field(routine, field_id_tauoc_y, 'meridional_wave_to_ocean_stress', &
+      nbr_hor_cells, tauoc_y, first_get=.TRUE., received_data=received_data)
+    IF (received_data) CALL sync_patch_array(sync_c, patch_horz, tauoc_y, lacc)
+
+    !   "wave_to_ocean_energy_flux"
+    CALL cpl_get_field(routine, field_id_phioc, 'wave_to_ocean_energy_flux', &
+      nbr_hor_cells, phioc, first_get=.TRUE., received_data=received_data)
+    IF (received_data) CALL sync_patch_array(sync_c, patch_horz, phioc, lacc)
 
 
   END SUBROUTINE couple_ocean_to_waves

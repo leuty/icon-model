@@ -106,6 +106,7 @@ MODULE mo_nml_crosscheck
 
   USE mo_sppt_config,              ONLY: sppt_config, crosscheck_sppt
   USE mo_gribout_config,           ONLY: gribout_crosscheck
+  USE mo_ccycle_config,            ONLY: ccycle_config
 
 
   IMPLICIT NONE
@@ -769,7 +770,17 @@ CONTAINS
       CALL finish( routine,message_text)
     END IF
 
-
+    IF (ccycle_config(1)% C4MIP_FLAG /= 'none') THEN
+      CALL message(routine,'Warning: C4MIP experiment, replacing user specified irad_co2')
+      SELECT CASE(ccycle_config(1)% C4MIP_FLAG)
+      CASE ('COU','RAD')
+        irad_co2   = -1
+      CASE ('BGC','cBGC')
+        irad_co2   = 2
+      CASE ('cCOU','cRAD')
+        irad_co2   = 4
+      END SELECT
+    END IF
 
 #ifdef _OPENACC
     IF (ltransport) THEN

@@ -107,6 +107,7 @@ CONTAINS
                             & ih_clch, ih_clcm,           & !in
                             & pt_patch, p_metrics,        & !in
                             & pt_prog, pt_prog_rcf,       & !in
+                            & lnd_prog_now,               & !in
                             & pt_diag,                    & !inout
                             & prm_diag, lnd_diag,         & !inout
                             & lacc                       ) !in
@@ -129,6 +130,7 @@ CONTAINS
 
     TYPE(t_nwp_phy_diag), INTENT(inout):: prm_diag
     TYPE(t_lnd_diag),     INTENT(inout):: lnd_diag      !< diag vars for sfc
+    TYPE(t_lnd_prog),     INTENT(in)   :: lnd_prog_now
 
     INTEGER,           INTENT(IN)  :: kstart_moist
     INTEGER,           INTENT(IN)  :: ih_clch, ih_clcm
@@ -145,6 +147,7 @@ CONTAINS
     INTEGER :: jt               ! tracer loop index
     LOGICAL :: lzacc             ! OpenACC flag
 
+    REAL(wp), PARAMETER :: Tm05 = tmelt - 0.5_wp
 
   !-----------------------------------------------------------------
 
@@ -347,6 +350,18 @@ CONTAINS
           ENDDO
           !$ACC END PARALLEL
         END IF
+
+        IF (var_in_output(jg)%freez_rain_prec) THEN
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+          !$ACC LOOP GANG VECTOR
+          DO jc = i_startidx, i_endidx
+            prm_diag%freez_rain_prec(jc,jb) = prm_diag%freez_rain_prec(jc,jb)  &
+                 &  + MERGE( (prm_diag%rain_gsp_rate(jc,jb) + prm_diag%rain_con_rate_corr(jc,jb)), 0.0_wp,  &
+                 &    prm_diag%t_2m(jc,jb) < Tm05 .OR. MIN(lnd_diag%t_s(jc,jb),lnd_prog_now%t_g (jc,jb)) < Tm05 &
+                 &    .OR. (prm_diag%t_2m(jc,jb) <= tmelt .AND. lnd_prog_now%t_g (jc,jb) <= tmelt ))*dt_phy_jg(itfastphy)
+          ENDDO
+          !$ACC END PARALLEL
+        ENDIF
 
         IF (lcall_phy_jg(itsfc)) THEN
           ! aggregation + accumulation for runoff. Note that these fields are not initialized with zero

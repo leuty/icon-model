@@ -314,6 +314,9 @@ MODULE mo_nwp_phy_types
                                     !!  (grid-scale plus convective)
       &  tot_prec_d       (:,:),  & !! accumulated total precipitation over a time interval [kg/m2]
                                     !!  (grid-scale plus convective; reset after "tpotprec_d_interval" seconds)
+      ! accumulated frezzing rain
+      &  freez_rain_prec  (:,:),  & !! accumlated freezing total surface rain          [kg/m2]
+                                    !!  (grid-scale plus convective)
       !
       !  Time averaged precipitation rates since model start [kg/m2/s]
       &  prec_con_rate_avg(:,:),  & !! time averaged convective precipitation rate    [kg/m2/s]

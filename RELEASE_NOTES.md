@@ -25,6 +25,16 @@
 - Modified cloud fraction for two-moment cloud ice microphysics (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1769, https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1922)
 - ecRad updates (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1869)
 - Coupling CAMS aerosols with Segal and Khain cloud droplets activation scheme (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1555)
+- New diagnostic output fields
+  - pressure at cloud top/base (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1938)
+  - accumulated freezing rain (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1989)
+- Fixes
+  - Bugfix for restart issue with NWP sea ice (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1939)
+  - fix for parallel GRIB decoding (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1947)
+  - reset of sst_warm_layer if cell is covered by sea ice (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1936)
+- cleanup:
+  - remove init mode iau old (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1962)
+  - EMVORADO: reduce memory usage of emvorado and remove MODE_IAU_OLD (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1971)
 
 ### ICON-Ocean
 
@@ -45,12 +55,18 @@
 
 ### Soil and Surface
 
+- sfc_seaice: implement snow-on-seaice scheme (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1957)
+
 ### ICON-Waves
 
 - netcdf reader for initial conditions (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1867)
 - Restructure analytic wave spectrum initialization (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1875)
 - Improve memory layout of 4D wave fields (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1904, https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1901)
 - Enable grib2 encoding of wave energy spectra (part1) (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1931)
+- ocean-wave coupling (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1902)
+- new diagnostics (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1739)
+- Fixes
+  - fix boundary condition for wave group velocity at ocean-land boundary edges (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1951)
 
 #### Climate: ICON-Land
 
@@ -79,12 +95,14 @@
 - Anthropogenic emission files: Created anthropogenic emission data including aviation sources from the CMIP7 dataset
 - Update BSD-3C licence year to 2026
 - More flexible handling of the number of PFTs
+- C-cycle flags in ICON for C4MIP (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1937)
 
 ### Externals
 
 - Added Memory Manager library 1.0.0 as external in externals/memman
 - Switch to YAC v3.12
 - Added Gravity waves parametrisation MS-GWaM as external in externals/msgwam
+- Switch to probtest v3.1
 
 ### Infrastructure
 
@@ -128,6 +146,7 @@
 - Configure YAC and YAXT in parallel when possible (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1198)
 - Fix building of the YAC Python interface (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1201)
 - Fix HD cloning and installation (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1236)
+- Avoid -static flag in the DWD VH configure wrapper (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1973)
 
 #### Miscellaneous
 
@@ -137,7 +156,7 @@
 - Open mkexp section and polish supported configurations in the documentation (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1147)
 - Add contributing guidelines for Ragnarok (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1081)
 - Add shallow water example to supported configurations (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1190)
-
+- Fixing a CPU/GPU divergence by using a comparison with an epsilon, instead of 0._wp (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1896)
 
 # Release notes for icon-2025.10-1
 

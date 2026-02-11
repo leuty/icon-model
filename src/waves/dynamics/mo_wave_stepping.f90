@@ -22,8 +22,7 @@ MODULE mo_wave_stepping
   USE mo_parallel_config,          ONLY: proc0_offloading
   USE mo_time_config,              ONLY: t_time_config
   USE mo_runtime_diag,             ONLY: print_timestep_info, print_wave_stats
-  USE mtime,                       ONLY: datetime, timedelta, &
-       &                                 OPERATOR(+), OPERATOR(>=), OPERATOR(==)
+  USE mtime,                       ONLY: datetime, timedelta, OPERATOR(+), OPERATOR(>=), OPERATOR(==)
   USE mo_util_mtime,               ONLY: is_event_active
   USE mo_model_domain,             ONLY: p_patch
   USE mo_grid_config,              ONLY: n_dom
@@ -44,10 +43,11 @@ MODULE mo_wave_stepping
     &                                    src_wave_breaking
   USE mo_wave_physics,             ONLY: tm1_tm2_periods_and_wm1_wm2_wavenumber, &
     &                                    mean_frequency_and_total_energy, air_sea, last_prog_freq_ind, &
-    &                                    impose_high_freq_tail, wave_stress, &
+    &                                    impose_high_freq_tail, wave_stress, wave_stress_ocean, &
     &                                    mask_energy, compute_wave_number, compute_group_velocity, sdepth_lim, &
-    &                                    calc_last_idx_depth
+    &                                    calc_last_idx_depth, update_wind_stress
   USE mo_wave_config,              ONLY: wave_config
+  USE mo_wave_io_config,           ONLY: t_wave_var_in_output
   USE mo_energy_propagation_config,ONLY: energy_propagation_config
   USE mo_wave_forcing,             ONLY: reader_wave_forcing
   USE mo_wave_events,              ONLY: waveCheckpointEvent, waveRestartEvent
@@ -83,15 +83,15 @@ CONTAINS
   !>
   !! Organizes wave time stepping
   !!
-  SUBROUTINE perform_wave_stepping (time_config, restartDescriptor)
+  SUBROUTINE perform_wave_stepping (time_config, restartDescriptor, var_in_output)
 
     CHARACTER(len=*), PARAMETER :: routine = modname//':perform_wave_stepping'
 
     TYPE(t_time_config),                 INTENT(IN) :: time_config  !< information for time control
     CLASS(t_RestartDescriptor), POINTER, INTENT(IN) :: restartDescriptor
 
-    TYPE(datetime),  POINTER :: mtime_current     => NULL() !< current datetime
-    TYPE(timedelta), POINTER :: model_time_step   => NULL()
+    TYPE(datetime),  POINTER :: mtime_current   => NULL() !< current datetime
+    TYPE(timedelta), POINTER :: model_time_step => NULL()
 
     INTEGER                  :: jstep                       !< time step number
     INTEGER                  :: jstep_shift                 !< number of time steps for backward shifting
@@ -108,8 +108,11 @@ CONTAINS
     INTEGER :: n_new, n_now
 
     ! Restarting
-    TYPE(t_key_value_store), POINTER :: restartAttributes
-    INTEGER, ALLOCATABLE :: output_jfile(:)
+    TYPE(t_key_value_store),       POINTER :: restartAttributes
+    TYPE(t_wave_var_in_output), INTENT(IN) :: var_in_output(:)
+
+
+    INTEGER,             ALLOCATABLE :: output_jfile(:)
     LOGICAL :: l_isStartdate, l_isExpStopdate, l_isRestart, l_isCheckpoint, l_doWriteRestart
     INTEGER :: i
 
@@ -136,8 +139,8 @@ CONTAINS
 
       ! initialisation of the nonlinear transfer computations
       ! computes time-constant index arrays and weights
-      CALL init_wave_nonlinear(wave_config = wave_config(jg),     & !in
-        &                      p_diag      = p_wave_state(jg)%diag) !inout
+      CALL init_wave_nonlinear(wave_config = wave_config(jg),      & !in
+        &                      p_diag      = p_wave_state(jg)%diag)  !inout
 
       ! compute wave number at centers and edges
       CALL compute_wave_number(                            &
@@ -146,7 +149,7 @@ CONTAINS
         &  depth_c     = wave_ext_data(jg)%depth_c,        & !in
         &  depth_e     = wave_ext_data(jg)%depth_e,        & !in
         &  wave_num_c  = p_wave_state(jg)%diag%wave_num_c, & !out
-        &  wave_num_e  = p_wave_state(jg)%diag%wave_num_e  ) !out
+        &  wave_num_e  = p_wave_state(jg)%diag%wave_num_e)   !out
 
       ! compute group velocity at centers and edges
       CALL compute_group_velocity(                          &
@@ -195,29 +198,30 @@ CONTAINS
         ! Calculate total and mean frequency energy
         CALL mean_frequency_and_total_energy(p_patch(jg), wave_config(jg), &
              p_wave_state(jg)%prog(nnow(jg))%wesd, &
-             p_wave_state(jg)%source%llws, &
-             p_wave_state(jg)%diag%emean, & ! OUT
-             p_wave_state(jg)%diag%emeanws, & ! OUT
-             p_wave_state(jg)%diag%femean, & ! OUT
-             p_wave_state(jg)%diag%femeanws) ! OUT
+             p_wave_state(jg)%source%llws,         &
+             p_wave_state(jg)%diag%emean,          & ! OUT
+             p_wave_state(jg)%diag%emeanws,        & ! OUT
+             p_wave_state(jg)%diag%femean,         & ! OUT
+             p_wave_state(jg)%diag%femeanws)         ! OUT
 
         ! Calculate roughness length and friction velocities
         CALL air_sea(p_patch(jg), wave_config(jg), &
-             wave_forcing_state(jg)%sp10m, &
-             p_wave_state(jg)%diag%tauw, &
-             p_wave_state(jg)%diag%ustar, & ! OUT
-             p_wave_state(jg)%diag%z0)      ! OUT
+             wave_forcing_state(jg)%sp10m,         &
+             wave_forcing_state(jg)%taua,          &
+             p_wave_state(jg)%diag%tauw,           &
+             p_wave_state(jg)%diag%ustar,          & ! OUT
+             p_wave_state(jg)%diag%z0)               ! OUT
 
         ! Calculate tm1 period and f1 frequency and wavenumbers
         CALL tm1_tm2_periods_and_wm1_wm2_wavenumber(p_patch(jg), wave_config(jg), &
-             p_wave_state(jg)%diag%wave_num_c, &
+             p_wave_state(jg)%diag%wave_num_c,     &
              p_wave_state(jg)%prog(nnow(jg))%wesd, &
-             p_wave_state(jg)%diag%emean, &
-             p_wave_state(jg)%diag%tm1, &  ! OUT
-             p_wave_state(jg)%diag%tm2, &  ! OUT
-             p_wave_state(jg)%diag%f1mean, & !OUT
-             p_wave_state(jg)%diag%akmean, & !OUT
-             p_wave_state(jg)%diag%xkmean) !OUT
+             p_wave_state(jg)%diag%emean,          &
+             p_wave_state(jg)%diag%tm1,            & ! OUT
+             p_wave_state(jg)%diag%tm2,            & ! OUT
+             p_wave_state(jg)%diag%f1mean,         & ! OUT
+             p_wave_state(jg)%diag%akmean,         & ! OUT
+             p_wave_state(jg)%diag%xkmean)           ! OUT
 
 
         IF (istime4name_list_output_dom(jg=jg, jstep=jstep)) THEN
@@ -243,9 +247,9 @@ CONTAINS
       !--------------------------------------------------------------------------
       ! loop over the list of internal post-processing tasks, e.g.
       ! interpolate selected fields to lat-lon
-      simulation_status = new_simulation_status(l_first_step   = .TRUE.,                  &
-        &                                       l_output_step  = .TRUE.,                  &
-        &                                       l_dom_active   = p_patch(1:)%ldom_active, &
+      simulation_status = new_simulation_status(l_first_step   = .TRUE.,                     &
+        &                                       l_output_step  = .TRUE.,                     &
+        &                                       l_dom_active   = p_patch(1:)%ldom_active,    &
         &                                       i_timelevel_dyn= nnow, i_timelevel_phy= nnow)
       CALL pp_scheduler_process(simulation_status, lacc=.TRUE.)
 
@@ -296,6 +300,9 @@ CONTAINS
             &                       h_s      = p_wave_state(jg)%diag%hs,            & ! IN
             &                       tm02     = p_wave_state(jg)%diag%tm2,           & ! IN
             &                       kp       = p_wave_state(jg)%diag%kp,            & ! IN
+            &                       tauoc_x  = p_wave_state(jg)%diag%tauoc_x,       & ! IN
+            &                       tauoc_y  = p_wave_state(jg)%diag%tauoc_y,       & ! IN
+            &                       phioc    = p_wave_state(jg)%diag%phioc,         & ! IN
             &                       cur_u    = wave_forcing_state(jg)%usoce_c,      & ! INOUT
             &                       cur_v    = wave_forcing_state(jg)%vsoce_c,      & ! INOUT
             &                       ssh      = wave_forcing_state(jg)%sea_level_c,  & ! INOUT
@@ -305,28 +312,29 @@ CONTAINS
 
           ! get new forcing data (read from file and copy to forcing state vector)
           IF (wave_config(jg)%lread_forcing) THEN
-            CALL reader_wave_forcing(jg)%update_forcing(                                &
-              &                destination_time = mtime_current,                        & !in
-              &                u10m             = wave_forcing_state(jg)%u10m,          & !out
-              &                v10m             = wave_forcing_state(jg)%v10m,          & !out
-              &                sp10m            = wave_forcing_state(jg)%sp10m,         & !out
-              &                dir10m           = wave_forcing_state(jg)%dir10m,        & !out
-              &                sic              = wave_forcing_state(jg)%sea_ice_c,     & !out
-              &                slh              = wave_forcing_state(jg)%sea_level_c,   & !out
-              &                uosc             = wave_forcing_state(jg)%usoce_c,       & !out
-              &                vosc             = wave_forcing_state(jg)%vsoce_c,       & !out
-              &                sp_osc           = wave_forcing_state(jg)%sp_soce_c,     & !out
-              &                dir_osc          = wave_forcing_state(jg)%dir_soce_c,    & !out
-              &                ice_free_mask_c  = wave_forcing_state(jg)%ice_free_mask_c) !out
+            CALL reader_wave_forcing(jg)%update_forcing(                                 &
+              &                destination_time = mtime_current,                         & ! IN
+              &                u10m             = wave_forcing_state(jg)%u10m,           & ! OUT
+              &                v10m             = wave_forcing_state(jg)%v10m,           & ! OUT
+              &                sp10m            = wave_forcing_state(jg)%sp10m,          & ! OUT
+              &                dir10m           = wave_forcing_state(jg)%dir10m,         & ! OUT
+              &                sic              = wave_forcing_state(jg)%sea_ice_c,      & ! OUT
+              &                slh              = wave_forcing_state(jg)%sea_level_c,    & ! OUT
+              &                uosc             = wave_forcing_state(jg)%usoce_c,        & ! OUT
+              &                vosc             = wave_forcing_state(jg)%vsoce_c,        & ! OUT
+              &                sp_osc           = wave_forcing_state(jg)%sp_soce_c,      & ! OUT
+              &                dir_osc          = wave_forcing_state(jg)%dir_soce_c,     & ! OUT
+              &                ice_free_mask_c  = wave_forcing_state(jg)%ice_free_mask_c)  ! OUT
 
             ! update depth and gradient
-            CALL update_water_depth_and_grad(p_patch = p_patch(jg),                        & !in
-              &                     p_int_state      = p_int_state(jg),                    & !in
-              &                     bathymetry_c     = wave_ext_data(jg)%bathymetry_c,     & !in
-              &                     sea_level_c      = wave_forcing_state(jg)%sea_level_c, & !in
-              &                     depth_c          = wave_ext_data(jg)%depth_c,          & !out
-              &                     depth_e          = wave_ext_data(jg)%depth_e,          & !out
-              &                     geo_depth_grad_c = wave_ext_data(jg)%geo_depth_grad_c)   !out
+            CALL update_water_depth_and_grad(p_patch = p_patch(jg),                        & ! IN
+              &                     p_int_state      = p_int_state(jg),                    & ! IN
+              &                     bathymetry_c     = wave_ext_data(jg)%bathymetry_c,     & ! IN
+              &                     sea_level_c      = wave_forcing_state(jg)%sea_level_c, & ! IN
+              &                     depth_c          = wave_ext_data(jg)%depth_c,          & ! OUT
+              &                     depth_e          = wave_ext_data(jg)%depth_e,          & ! OUT
+              &                     geo_depth_grad_c = wave_ext_data(jg)%geo_depth_grad_c)   ! OUT
+
           END IF
         END IF
 
@@ -338,53 +346,61 @@ CONTAINS
             &                      z0        = p_wave_state(jg)%diag%z0,        & ! IN
             &                      u10m      = wave_forcing_state(jg)%u10m,     & ! OUT
             &                      v10m      = wave_forcing_state(jg)%v10m,     & ! OUT
-            &                      sea_ice_c = wave_forcing_state(jg)%sea_ice_c ) ! OUT
+            &                      sea_ice_c = wave_forcing_state(jg)%sea_ice_c)  ! OUT
           IF (ltimer) CALL timer_stop(timer_coupling)
 
           ! update forcing state
           ! update wind speed and direction
-          CALL update_speed_and_direction(p_patch = p_patch(jg),                   & ! IN
-            &                               u     = wave_forcing_state(jg)%u10m,   & ! IN
-            &                               v     = wave_forcing_state(jg)%v10m,   & ! IN
-            &                              sp     = wave_forcing_state(jg)%sp10m,  & ! OUT
-            &                              dir    = wave_forcing_state(jg)%dir10m)   ! OUT
+          CALL update_speed_and_direction(p_patch = p_patch(jg),              & ! IN
+            &                             u   = wave_forcing_state(jg)%u10m,  & ! IN
+            &                             v   = wave_forcing_state(jg)%v10m,  & ! IN
+            &                             sp  = wave_forcing_state(jg)%sp10m, & ! OUT
+            &                             dir = wave_forcing_state(jg)%dir10m)  ! OUT
 
           ! update ice-free mask
-          CALL update_ice_free_mask(p_patch    = p_patch(jg),                          & ! IN
-            &                    sea_ice_c     = wave_forcing_state(jg)%sea_ice_c,     & ! IN
-            &                    ice_free_mask = wave_forcing_state(jg)%ice_free_mask_c) ! OUT
+          CALL update_ice_free_mask(p_patch    = p_patch(jg),                           & ! IN
+            &                    sea_ice_c     = wave_forcing_state(jg)%sea_ice_c,      & ! IN
+            &                    ice_free_mask = wave_forcing_state(jg)%ice_free_mask_c)  ! OUT
 
         ELSE
           ! get new forcing data (read from file and copy to forcing state vector)
           IF (wave_config(jg)%lread_forcing) THEN
             IF (timers_level >= 5) CALL timer_start(timer_wave_reader)
 
-            CALL reader_wave_forcing(jg)%update_forcing(                                &
-              &                destination_time = mtime_current,                        & !in
-              &                u10m             = wave_forcing_state(jg)%u10m,          & !out
-              &                v10m             = wave_forcing_state(jg)%v10m,          & !out
-              &                sp10m            = wave_forcing_state(jg)%sp10m,         & !out
-              &                dir10m           = wave_forcing_state(jg)%dir10m,        & !out
-              &                sic              = wave_forcing_state(jg)%sea_ice_c,     & !out
-              &                slh              = wave_forcing_state(jg)%sea_level_c,   & !out
-              &                uosc             = wave_forcing_state(jg)%usoce_c,       & !out
-              &                vosc             = wave_forcing_state(jg)%vsoce_c,       & !out
-              &                sp_osc           = wave_forcing_state(jg)%sp_soce_c,     & !out
-              &                dir_osc          = wave_forcing_state(jg)%dir_soce_c,    & !out
-              &                ice_free_mask_c  = wave_forcing_state(jg)%ice_free_mask_c) !out
+            CALL reader_wave_forcing(jg)%update_forcing(                                 &
+              &                destination_time = mtime_current,                         & ! IN
+              &                u10m             = wave_forcing_state(jg)%u10m,           & ! OUT
+              &                v10m             = wave_forcing_state(jg)%v10m,           & ! OUT
+              &                sp10m            = wave_forcing_state(jg)%sp10m,          & ! OUT
+              &                dir10m           = wave_forcing_state(jg)%dir10m,         & ! OUT
+              &                sic              = wave_forcing_state(jg)%sea_ice_c,      & ! OUT
+              &                slh              = wave_forcing_state(jg)%sea_level_c,    & ! OUT
+              &                uosc             = wave_forcing_state(jg)%usoce_c,        & ! OUT
+              &                vosc             = wave_forcing_state(jg)%vsoce_c,        & ! OUT
+              &                sp_osc           = wave_forcing_state(jg)%sp_soce_c,      & ! OUT
+              &                dir_osc          = wave_forcing_state(jg)%dir_soce_c,     & ! OUT
+              &                ice_free_mask_c  = wave_forcing_state(jg)%ice_free_mask_c)  ! OUT
 
             ! update depth and gradient
-            CALL update_water_depth_and_grad(p_patch = p_patch(jg),                        & !in
-              &                     p_int_state      = p_int_state(jg),                    & !in
-              &                     bathymetry_c     = wave_ext_data(jg)%bathymetry_c,     & !in
-              &                     sea_level_c      = wave_forcing_state(jg)%sea_level_c, & !in
-              &                     depth_c          = wave_ext_data(jg)%depth_c,          & !out
-              &                     depth_e          = wave_ext_data(jg)%depth_e,          & !out
-              &                     geo_depth_grad_c = wave_ext_data(jg)%geo_depth_grad_c)   !out
+            CALL update_water_depth_and_grad(p_patch = p_patch(jg),                        & ! IN
+              &                     p_int_state      = p_int_state(jg),                    & ! IN
+              &                     bathymetry_c     = wave_ext_data(jg)%bathymetry_c,     & ! IN
+              &                     sea_level_c      = wave_forcing_state(jg)%sea_level_c, & ! IN
+              &                     depth_c          = wave_ext_data(jg)%depth_c,          & ! OUT
+              &                     depth_e          = wave_ext_data(jg)%depth_e,          & ! OUT
+              &                     geo_depth_grad_c = wave_ext_data(jg)%geo_depth_grad_c)   ! OUT
 
             IF (timers_level >= 5) CALL timer_stop(timer_wave_reader)
           END IF
         END IF ! is_coupled_to_atmo()
+
+        ! update wind stress
+        CALL update_wind_stress(p_patch = p_patch(jg),                   &
+          &                     wsp10m  = wave_forcing_state(jg)%sp10m,  & ! IN
+          &                     dir10m  = wave_forcing_state(jg)%dir10m, & ! IN
+          &                     taua    = wave_forcing_state(jg)%taua,   & ! OUT
+          &                     taua_x  = wave_forcing_state(jg)%taua_x, & ! OUT
+          &                     taua_y  = wave_forcing_state(jg)%taua_y)   ! OUT
 
         ! horizontal propagation of binned wave energy
         ! Here, we integrate the spectral energy equation in time without sources and sinks,
@@ -396,18 +412,18 @@ CONTAINS
           ! get model time step in seconds
           dtime = time_config%get_model_timestep_sec(p_patch(jg)%nest_level)
           !
-          CALL wave_step_advection(p_patch                   = p_patch(jg),                           & !in
-            &                      p_int_state               = p_int_state(jg),                       & !in
-            &                      wave_config               = wave_config(jg),                       & !in
-            &                      energy_propagation_config = energy_propagation_config(jg),         & !in
-            &                      p_dtime                   = dtime,                                 & !in
-            &                      wave_num_c                = p_wave_state(jg)%diag%wave_num_c,      & !in
-            &                      gv_c                      = p_wave_state(jg)%diag%gv_c,            & !in
-            &                      gv_e                      = p_wave_state(jg)%diag%gv_e,            & !in
-            &                      depth_c                   = wave_ext_data(jg)%depth_c,             & !in
-            &                      geo_depth_grad_c          = wave_ext_data(jg)%geo_depth_grad_c,    & !in
-            &                      wesd_now                  = p_wave_state(jg)%prog(n_now)%wesd,     & !in
-            &                      wesd_new                  = p_wave_state(jg)%prog(n_new)%wesd      ) !out
+          CALL wave_step_advection(p_patch                   = p_patch(jg),                        & ! IN
+            &                      p_int_state               = p_int_state(jg),                    & ! IN
+            &                      wave_config               = wave_config(jg),                    & ! IN
+            &                      energy_propagation_config = energy_propagation_config(jg),      & ! IN
+            &                      p_dtime                   = dtime,                              & ! IN
+            &                      wave_num_c                = p_wave_state(jg)%diag%wave_num_c,   & ! IN
+            &                      gv_c                      = p_wave_state(jg)%diag%gv_c,         & ! IN
+            &                      gv_e                      = p_wave_state(jg)%diag%gv_e,         & ! IN
+            &                      depth_c                   = wave_ext_data(jg)%depth_c,          & ! IN
+            &                      geo_depth_grad_c          = wave_ext_data(jg)%geo_depth_grad_c, & ! IN
+            &                      wesd_now                  = p_wave_state(jg)%prog(n_now)%wesd,  & ! IN
+            &                      wesd_new                  = p_wave_state(jg)%prog(n_new)%wesd)    ! OUT
         ELSE
           DO jf = 1, wave_config(jg)%nfreqs
 !$OMP PARALLEL
@@ -423,11 +439,11 @@ CONTAINS
         ! Calculate total and mean frequency energy
         CALL mean_frequency_and_total_energy(p_patch(jg), wave_config(jg), &
              p_wave_state(jg)%prog(n_new)%wesd, &
-             p_wave_state(jg)%source%llws,&
-             p_wave_state(jg)%diag%emean, & ! OUT
-             p_wave_state(jg)%diag%emeanws, & ! OUT
-             p_wave_state(jg)%diag%femean, & ! OUT
-             p_wave_state(jg)%diag%femeanws) ! OUT
+             p_wave_state(jg)%source%llws,      &
+             p_wave_state(jg)%diag%emean,       & ! OUT
+             p_wave_state(jg)%diag%emeanws,     & ! OUT
+             p_wave_state(jg)%diag%femean,      & ! OUT
+             p_wave_state(jg)%diag%femeanws)      ! OUT
 
         ! The advection of wave energy is not directly limited by depth and has no control over
         ! whether the amount of energy transported may lead to an unphysically high level
@@ -444,98 +460,100 @@ CONTAINS
 
         ! Calculate tm1 period and f1 frequency and wavenumbers
         CALL tm1_tm2_periods_and_wm1_wm2_wavenumber(p_patch(jg), wave_config(jg), &
-             p_wave_state(jg)%diag%wave_num_c, &
+             p_wave_state(jg)%diag%wave_num_c,  &
              p_wave_state(jg)%prog(n_new)%wesd, &
-             p_wave_state(jg)%diag%emean, &
-             p_wave_state(jg)%diag%tm1, &  ! OUT
-             p_wave_state(jg)%diag%tm2, &  ! OUT
-             p_wave_state(jg)%diag%f1mean, & !OUT
-             p_wave_state(jg)%diag%akmean, & !OUT
-             p_wave_state(jg)%diag%xkmean) !OUT
+             p_wave_state(jg)%diag%emean,       &
+             p_wave_state(jg)%diag%tm1,         & ! OUT
+             p_wave_state(jg)%diag%tm2,         & ! OUT
+             p_wave_state(jg)%diag%f1mean,      & ! OUT
+             p_wave_state(jg)%diag%akmean,      & ! OUT
+             p_wave_state(jg)%diag%xkmean)        ! OUT
 
         ! Calculate roughness length and friction velocities
         CALL air_sea(p_patch(jg), wave_config(jg), &
              wave_forcing_state(jg)%sp10m, &
-             p_wave_state(jg)%diag%tauw, &
-             p_wave_state(jg)%diag%ustar, & ! OUT
-             p_wave_state(jg)%diag%z0)      ! OUT
+             wave_forcing_state(jg)%taua,  &
+             p_wave_state(jg)%diag%tauw,   &
+             p_wave_state(jg)%diag%ustar,  & ! OUT
+             p_wave_state(jg)%diag%z0)       ! OUT
 
         ! Calculate wind input source function
         IF (wave_config(jg)%linput_sf1) THEN
-          CALL src_wind_input(                                    &
-            &  p_patch     = p_patch(jg),                         & !in
-            &  wave_config = wave_config(jg),                     & !in
-            &  dir10m      = wave_forcing_state(jg)%dir10m,       & !in
-            &  wesd        = p_wave_state(jg)%prog(n_new)%wesd,   & !in
-            &  p_diag      = p_wave_state(jg)%diag,               & !in: ustar,z0,wave_num_c
-            &  p_source    = p_wave_state(jg)%source)               !inout: llws,fl,sl
+          CALL src_wind_input(                                  &
+            &  p_patch     = p_patch(jg),                       & ! IN
+            &  wave_config = wave_config(jg),                   & ! IN
+            &  dir10m      = wave_forcing_state(jg)%dir10m,     & ! IN
+            &  wesd        = p_wave_state(jg)%prog(n_new)%wesd, & ! IN
+            &  p_diag      = p_wave_state(jg)%diag,             & ! IN: ustar,z0,wave_num_c
+            &  p_source    = p_wave_state(jg)%source)             ! INOUT: llws,fl,sl
         END IF
 
         ! Update total and mean frequency energy
         CALL mean_frequency_and_total_energy(p_patch(jg), wave_config(jg), &
              p_wave_state(jg)%prog(n_new)%wesd, &
-             p_wave_state(jg)%source%llws,&
-             p_wave_state(jg)%diag%emean, & ! OUT
-             p_wave_state(jg)%diag%emeanws, & ! OUT
-             p_wave_state(jg)%diag%femean, & ! OUT
-             p_wave_state(jg)%diag%femeanws) ! OUT
+             p_wave_state(jg)%source%llws,      &
+             p_wave_state(jg)%diag%emean,       & ! OUT
+             p_wave_state(jg)%diag%emeanws,     & ! OUT
+             p_wave_state(jg)%diag%femean,      & ! OUT
+             p_wave_state(jg)%diag%femeanws)      ! OUT
 
         ! Calculate last frequency index of prognostic part of spectrum
-        CALL last_prog_freq_ind(                           &
-          &  p_patch     = p_patch(jg),                    & !IN
-          &  wave_config = wave_config(jg),                & !IN
-          &  femeanws    = p_wave_state(jg)%diag%femeanws, & !IN
-          &  femean      = p_wave_state(jg)%diag%femean,   & !IN
-          &  ustar       = p_wave_state(jg)%diag%ustar,    & !IN
-          &  lpfi        = p_wave_state(jg)%diag%last_prog_freq_ind) !OUT
+        CALL last_prog_freq_ind(                                     &
+          &  p_patch     = p_patch(jg),                              & ! IN
+          &  wave_config = wave_config(jg),                          & ! IN
+          &  femeanws    = p_wave_state(jg)%diag%femeanws,           & ! IN
+          &  femean      = p_wave_state(jg)%diag%femean,             & ! IN
+          &  ustar       = p_wave_state(jg)%diag%ustar,              & ! IN
+          &  lpfi        = p_wave_state(jg)%diag%last_prog_freq_ind)   ! OUT
 
         ! Calculate wave stress
         IF (wave_config(jg)%lwave_stress1) THEN
           CALL wave_stress(                                     &
-            &  p_patch     = p_patch(jg),                       & !in
-            &  wave_config = wave_config(jg),                   & !in
-            &  dir10m      = wave_forcing_state(jg)%dir10m,     & !in
-            &  sl          = p_wave_state(jg)%source%sl,        & !in
-            &  wesd        = p_wave_state(jg)%prog(n_new)%wesd, & !in
-            &  p_diag      = p_wave_state(jg)%diag              ) !IN : last_prog_freq_ind,ustar,z0
-                                                                  !OUT: phiaw,tauw,tauhf,phihf
+            &  p_patch     = p_patch(jg),                       & ! IN
+            &  wave_config = wave_config(jg),                   & ! IN
+            &  dir10m      = wave_forcing_state(jg)%dir10m,     & ! IN
+            &  sl          = p_wave_state(jg)%source%sl,        & ! IN
+            &  wesd        = p_wave_state(jg)%prog(n_new)%wesd, & ! IN
+            &  p_diag      = p_wave_state(jg)%diag)               ! IN : last_prog_freq_ind,ustar,z0
+                                                                  ! OUT: phiaw,tauw,tauhf,phihf
         END IF
 
         ! Update roughness length and friction velocities
         CALL air_sea(p_patch(jg), wave_config(jg), &
              wave_forcing_state(jg)%sp10m, &
-             p_wave_state(jg)%diag%tauw, &
-             p_wave_state(jg)%diag%ustar, & ! OUT
-             p_wave_state(jg)%diag%z0)      ! OUT
+             wave_forcing_state(jg)%taua,  &
+             p_wave_state(jg)%diag%tauw,   &
+             p_wave_state(jg)%diag%ustar,  & ! OUT
+             p_wave_state(jg)%diag%z0)       ! OUT
 
         ! Impose high frequency tail to the spectrum
         CALL impose_high_freq_tail(p_patch(jg), wave_config(jg), &
-             p_wave_state(jg)%diag%wave_num_c,         & !IN
-             wave_ext_data(jg)%depth_c,                & !IN
-             p_wave_state(jg)%diag%last_prog_freq_ind, & !IN
-             p_wave_state(jg)%prog(n_new)%wesd)          !INOUT
+             p_wave_state(jg)%diag%wave_num_c,         & ! IN
+             wave_ext_data(jg)%depth_c,                & ! IN
+             p_wave_state(jg)%diag%last_prog_freq_ind, & ! IN
+             p_wave_state(jg)%prog(n_new)%wesd)          ! INOUT
 
         ! Recompute wind input source function
         IF (wave_config(jg)%linput_sf2) THEN
-          CALL src_wind_input(                                    &
-            &  p_patch     = p_patch(jg),                         & !in
-            &  wave_config = wave_config(jg),                     & !in
-            &  dir10m      = wave_forcing_state(jg)%dir10m,       & !in
-            &  wesd        = p_wave_state(jg)%prog(n_new)%wesd,   & !in
-            &  p_diag      = p_wave_state(jg)%diag,               & !in: ustar,z0,wave_num_c
-            &  p_source    = p_wave_state(jg)%source)               !inout: llws,fl,sl
+          CALL src_wind_input(                                  &
+            &  p_patch     = p_patch(jg),                       & ! IN
+            &  wave_config = wave_config(jg),                   & ! IN
+            &  dir10m      = wave_forcing_state(jg)%dir10m,     & ! IN
+            &  wesd        = p_wave_state(jg)%prog(n_new)%wesd, & ! IN
+            &  p_diag      = p_wave_state(jg)%diag,             & ! IN: ustar,z0,wave_num_c
+            &  p_source    = p_wave_state(jg)%source)             ! INOUT: llws,fl,sl
         END IF
 
         ! Update wave stress
         IF (wave_config(jg)%lwave_stress2) THEN
           CALL wave_stress(                                     &
-            &  p_patch     = p_patch(jg),                       & !in
-            &  wave_config = wave_config(jg),                   & !in
-            &  dir10m      = wave_forcing_state(jg)%dir10m,     & !in
-            &  sl          = p_wave_state(jg)%source%sl,        & !in
-            &  wesd        = p_wave_state(jg)%prog(n_new)%wesd, & !in
-            &  p_diag      = p_wave_state(jg)%diag              ) !IN : last_prog_freq_ind,ustar,z0
-                                                                  !OUT: phiaw,tauw,tauhf,phihf
+            &  p_patch     = p_patch(jg),                       & ! IN
+            &  wave_config = wave_config(jg),                   & ! IN
+            &  dir10m      = wave_forcing_state(jg)%dir10m,     & ! IN
+            &  sl          = p_wave_state(jg)%source%sl,        & ! IN
+            &  wesd        = p_wave_state(jg)%prog(n_new)%wesd, & ! IN
+            &  p_diag      = p_wave_state(jg)%diag)               ! IN : last_prog_freq_ind,ustar,z0
+                                                                  ! OUT: phiaw,tauw,tauhf,phihf
         END IF
         IF (timers_level >= 8) CALL timer_stop(timer_wave_src_wind_input)
 
@@ -543,13 +561,13 @@ CONTAINS
         IF (wave_config(jg)%ldissip_sf) THEN
           IF (timers_level >= 8) CALL timer_start(timer_wave_src_dissipation)
 
-          CALL src_dissipation(                                   &
-            &  p_patch     = p_patch(jg),                         & !in
-            &  wave_config = wave_config(jg),                     & !in
-            &  wave_num_c  = p_wave_state(jg)%diag%wave_num_c,    & !in
-            &  wesd        = p_wave_state(jg)%prog(n_new)%wesd,   & !in
-            &  p_diag      = p_wave_state(jg)%diag,               & !in: f1mean,emean,xkmean
-            &  p_source    = p_wave_state(jg)%source)               !inout: fl,sl
+          CALL src_dissipation(                                 &
+            &  p_patch     = p_patch(jg),                       & ! IN
+            &  wave_config = wave_config(jg),                   & ! IN
+            &  wave_num_c  = p_wave_state(jg)%diag%wave_num_c,  & ! IN
+            &  wesd        = p_wave_state(jg)%prog(n_new)%wesd, & ! IN
+            &  p_diag      = p_wave_state(jg)%diag,             & ! IN: f1mean,emean,xkmean
+            &  p_source    = p_wave_state(jg)%source)             ! INOUT: fl,sl
 
           IF (timers_level >= 8) CALL timer_stop(timer_wave_src_dissipation)
         END IF
@@ -558,13 +576,13 @@ CONTAINS
         IF (wave_config(jg)%lnon_linear_sf) THEN
           IF (timers_level >= 8) CALL timer_start(timer_wave_src_nonlinear)
 
-          CALL src_nonlinear_transfer(                            &
-            &  p_patch     = p_patch(jg),                         & !in
-            &  wave_config = wave_config(jg),                     & !in
-            &  depth       = wave_ext_data(jg)%depth_c,           & !in
-            &  wesd        = p_wave_state(jg)%prog(n_new)%wesd,   & !in
-            &  p_diag      = p_wave_state(jg)%diag,               & !in
-            &  p_source    = p_wave_state(jg)%source)               !inout: fl,sl
+          CALL src_nonlinear_transfer(                          &
+            &  p_patch     = p_patch(jg),                       & ! IN
+            &  wave_config = wave_config(jg),                   & ! IN
+            &  depth       = wave_ext_data(jg)%depth_c,         & ! IN
+            &  wesd        = p_wave_state(jg)%prog(n_new)%wesd, & ! IN
+            &  p_diag      = p_wave_state(jg)%diag,             & ! IN
+            &  p_source    = p_wave_state(jg)%source)             ! INOUT: fl,sl
 
           IF (timers_level >= 8) CALL timer_stop(timer_wave_src_nonlinear)
         END IF
@@ -572,77 +590,92 @@ CONTAINS
         IF (timers_level >= 8) CALL timer_start(timer_wave_src_dissipation)
         ! Calculate dissipation due to bottom friction
         IF (wave_config(jg)%lbottom_fric_sf) THEN
-          CALL src_bottom_friction(                               &
-            &  p_patch     = p_patch(jg),                         & !in
-            &  wave_config = wave_config(jg),                     & !in
-            &  wave_num_c  = p_wave_state(jg)%diag%wave_num_c,    & !in
-            &  depth       = wave_ext_data(jg)%depth_c,           & !in
-            &  wesd        = p_wave_state(jg)%prog(n_new)%wesd,   & !in
-            &  p_source    = p_wave_state(jg)%source)               !inout: fl, sl
+          CALL src_bottom_friction(                             &
+            &  p_patch     = p_patch(jg),                       & ! IN
+            &  wave_config = wave_config(jg),                   & ! IN
+            &  wave_num_c  = p_wave_state(jg)%diag%wave_num_c,  & ! IN
+            &  depth       = wave_ext_data(jg)%depth_c,         & ! IN
+            &  wesd        = p_wave_state(jg)%prog(n_new)%wesd, & ! IN
+            &  p_source    = p_wave_state(jg)%source)             ! INOUT: fl, sl
         END IF
 
         ! Calculate dissipation due to depth-induced wave breaking
         IF (wave_config(jg)%lwave_brk_sf) THEN
-          CALL src_wave_breaking(                                 &
-            &  p_patch     = p_patch(jg),                         & !in
-            &  wave_config = wave_config(jg),                     & !in
-            &  depth_c     = wave_ext_data(jg)%depth_c,           & !in
-            &  wesd        = p_wave_state(jg)%prog(n_new)%wesd,   & !in
-            &  p_diag      = p_wave_state(jg)%diag,               & !inout, in: emean, f1mean out: hrms_frac, wbr_frac
-            &  p_source    = p_wave_state(jg)%source)               !inout: fl, sl
+          CALL src_wave_breaking(                               &
+            &  p_patch     = p_patch(jg),                       & ! IN
+            &  wave_config = wave_config(jg),                   & ! IN
+            &  depth_c     = wave_ext_data(jg)%depth_c,         & ! IN
+            &  wesd        = p_wave_state(jg)%prog(n_new)%wesd, & ! IN
+            &  p_diag      = p_wave_state(jg)%diag,             & ! INOUT, in: emean, f1mean out: hrms_frac, wbr_frac
+            &  p_source    = p_wave_state(jg)%source)             ! INOUT: fl, sl
         END IF
         IF (timers_level >= 8) CALL timer_stop(timer_wave_src_dissipation)
         !
         IF (timers_level >= 5) CALL timer_stop(timer_wave_src)
 
+        IF ( is_coupled_to_ocean() .OR. var_in_output(jg)%tauoc_x    &
+           &                       .OR. var_in_output(jg)%tauoc_y    &
+           &                       .OR. var_in_output(jg)%tauoc      &
+           &                       .OR. var_in_output(jg)%phioc)  THEN
+
+          ! Calculate wave-to-ocean stress and energy fluxes
+          CALL wave_stress_ocean(                                  &
+            &  p_patch            = p_patch(jg),                   & !  IN
+            &  wave_config        = wave_config(jg),               & !  IN
+            &  taua_x             = wave_forcing_state(jg)%taua_x, & !  IN
+            &  taua_y             = wave_forcing_state(jg)%taua_y, & !  IN
+            &  sl                 = p_wave_state(jg)%source%sl,    & !  IN: last_prog_freq_ind,ustar
+            &  p_diag             = p_wave_state(jg)%diag)           ! OUT: tauoc_x,tauoc_y,tauoc,phioc
+        END IF
+
         IF (timers_level >= 5) CALL timer_start(timer_wave_time_integration)
         ! Calculate new spectrum
         CALL integrate_in_time_src(                           &
-          &  p_patch     = p_patch(jg),                       & !in
-          &  wave_config = wave_config(jg),                   & !in
-          &  p_diag      = p_wave_state(jg)%diag,             & !in ustar, femeanws, femean
-          &  p_source    = p_wave_state(jg)%source,           & !in sl, fl
-          &  sp10m       = wave_forcing_state(jg)%sp10m,      & !in
-          &  dir10m      = wave_forcing_state(jg)%dir10m,     & !in
-          &  wesd        = p_wave_state(jg)%prog(n_new)%wesd)   !inout
+          &  p_patch     = p_patch(jg),                       & ! IN
+          &  wave_config = wave_config(jg),                   & ! IN
+          &  p_diag      = p_wave_state(jg)%diag,             & ! IN ustar, femeanws, femean
+          &  p_source    = p_wave_state(jg)%source,           & ! IN sl, fl
+          &  sp10m       = wave_forcing_state(jg)%sp10m,      & ! IN
+          &  dir10m      = wave_forcing_state(jg)%dir10m,     & ! IN
+          &  wesd        = p_wave_state(jg)%prog(n_new)%wesd)   ! INOUT
 
         ! Set energy to zero under the sea ice
         CALL mask_energy(p_patch(jg), wave_config(jg), &
-             wave_forcing_state(jg)%ice_free_mask_c, & !IN
-             p_wave_state(jg)%prog(n_new)%wesd)        !INOUT
+             wave_forcing_state(jg)%ice_free_mask_c,   & ! IN
+             p_wave_state(jg)%prog(n_new)%wesd)          ! INOUT
 
         ! Update total and mean frequency energy
         CALL mean_frequency_and_total_energy(p_patch(jg), wave_config(jg), &
              p_wave_state(jg)%prog(n_new)%wesd, &
-             p_wave_state(jg)%source%llws,&
-             p_wave_state(jg)%diag%emean, & ! OUT
-             p_wave_state(jg)%diag%emeanws, & ! OUT
-             p_wave_state(jg)%diag%femean, & ! OUT
-             p_wave_state(jg)%diag%femeanws) ! OUT
+             p_wave_state(jg)%source%llws,      &
+             p_wave_state(jg)%diag%emean,       & ! OUT
+             p_wave_state(jg)%diag%emeanws,     & ! OUT
+             p_wave_state(jg)%diag%femean,      & ! OUT
+             p_wave_state(jg)%diag%femeanws)      ! OUT
 
         ! Update high frequency tail
-        CALL last_prog_freq_ind(                           &
-          &  p_patch     = p_patch(jg),                    & !IN
-          &  wave_config = wave_config(jg),                & !IN
-          &  femeanws    = p_wave_state(jg)%diag%femeanws, & !IN
-          &  femean      = p_wave_state(jg)%diag%femean,   & !IN
-          &  ustar       = p_wave_state(jg)%diag%ustar,    & !IN
-          &  lpfi        = p_wave_state(jg)%diag%last_prog_freq_ind) !OUT
+        CALL last_prog_freq_ind(                                    &
+          &  p_patch     = p_patch(jg),                             & ! IN
+          &  wave_config = wave_config(jg),                         & ! IN
+          &  femeanws    = p_wave_state(jg)%diag%femeanws,          & ! IN
+          &  femean      = p_wave_state(jg)%diag%femean,            & ! IN
+          &  ustar       = p_wave_state(jg)%diag%ustar,             & ! IN
+          &  lpfi        = p_wave_state(jg)%diag%last_prog_freq_ind)  ! OUT
 
         CALL impose_high_freq_tail(p_patch(jg), wave_config(jg), &
-             p_wave_state(jg)%diag%wave_num_c,         & !IN
-             wave_ext_data(jg)%depth_c,                & !IN
-             p_wave_state(jg)%diag%last_prog_freq_ind, & !IN
-             p_wave_state(jg)%prog(n_new)%wesd)          !INOUT
+             p_wave_state(jg)%diag%wave_num_c,         & ! IN
+             wave_ext_data(jg)%depth_c,                & ! IN
+             p_wave_state(jg)%diag%last_prog_freq_ind, & ! IN
+             p_wave_state(jg)%prog(n_new)%wesd)          ! INOUT
 
         ! Update total and mean frequency energy
         CALL mean_frequency_and_total_energy(p_patch(jg), wave_config(jg), &
              p_wave_state(jg)%prog(n_new)%wesd, &
-             p_wave_state(jg)%source%llws,&
-             p_wave_state(jg)%diag%emean, & ! OUT
-             p_wave_state(jg)%diag%emeanws, & ! OUT
-             p_wave_state(jg)%diag%femean, & ! OUT
-             p_wave_state(jg)%diag%femeanws) ! OUT
+             p_wave_state(jg)%source%llws,      &
+             p_wave_state(jg)%diag%emean,       & ! OUT
+             p_wave_state(jg)%diag%emeanws,     & ! OUT
+             p_wave_state(jg)%diag%femean,      & ! OUT
+             p_wave_state(jg)%diag%femeanws)      ! OUT
 
         ! switch between time levels now and new for next time step
         CALL swap(nnow(jg), nnew(jg))
@@ -659,27 +692,27 @@ CONTAINS
         IF (istime4name_list_output_dom(jg=jg, jstep=jstep)) THEN
           ! Calculation of diagnostic output parameters
           ! Calculation is performed only at output times
-          CALL calculate_output_diagnostics(p_patch = p_patch(jg),                       & ! IN
-            &                      wave_config = wave_config(jg),                        & ! IN
-            &                            sp10m = wave_forcing_state(jg)%sp10m,           & ! IN
-            &                           dir10m = wave_forcing_state(jg)%dir10m,          & ! IN
-            &                            depth = wave_ext_data(jg)%depth_c,              & ! IN
-            &                             wesd = p_wave_state(jg)%prog(nnow(jg))%wesd,   & ! IN
-            &                           p_diag = p_wave_state(jg)%diag)                    ! INOUT
+          CALL calculate_output_diagnostics(p_patch = p_patch(jg),                     & ! IN
+            &                      wave_config = wave_config(jg),                      & ! IN
+            &                            sp10m = wave_forcing_state(jg)%sp10m,         & ! IN
+            &                           dir10m = wave_forcing_state(jg)%dir10m,        & ! IN
+            &                            depth = wave_ext_data(jg)%depth_c,            & ! IN
+            &                             wesd = p_wave_state(jg)%prog(nnow(jg))%wesd, & ! IN
+            &                           p_diag = p_wave_state(jg)%diag)                  ! INOUT
 
           ! Calculation of extreme diagnostic output parameters
-          CALL calculate_extreme_diagnostics(p_patch = p_patch(jg),                      & ! IN
-            &                      wave_config = wave_config(jg),                        & ! IN
-            &                            depth = wave_ext_data(jg)%depth_c,              & ! IN
-            &                             wesd = p_wave_state(jg)%prog(nnow(jg))%wesd,   & ! IN
-            &                           p_diag = p_wave_state(jg)%diag)                    ! INOUT
+          CALL calculate_extreme_diagnostics(p_patch = p_patch(jg),                    & ! IN
+            &                      wave_config = wave_config(jg),                      & ! IN
+            &                            depth = wave_ext_data(jg)%depth_c,            & ! IN
+            &                             wesd = p_wave_state(jg)%prog(nnow(jg))%wesd, & ! IN
+            &                           p_diag = p_wave_state(jg)%diag)                  ! INOUT
         ENDIF
 
         IF (lprint_wave_stats) THEN
           ! Print information on global maxima and minima to stdout
-          CALL print_wave_stats(p_patch = p_patch(jg),                      & !IN
-            &                   emean   = p_wave_state(jg)%diag%emean(:,:), & !IN
-            &                   femean  = p_wave_state(jg)%diag%femean(:,:) ) !IN
+          CALL print_wave_stats(p_patch = p_patch(jg),                       & ! IN
+            &                   emean   = p_wave_state(jg)%diag%emean(:,:),  & ! IN
+            &                   femean  = p_wave_state(jg)%diag%femean(:,:) )  ! IN
         ENDIF
 
         IF (timers_level >= 5) CALL timer_stop(timer_wave_diagnostics)

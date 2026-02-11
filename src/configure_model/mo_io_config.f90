@@ -174,6 +174,7 @@ MODULE mo_io_config
     LOGICAL :: lfc_ml       = .FALSE. !< Flag. TRUE if computation of the Level of Free Convection is desired
     LOGICAL :: lcl_ml       = .FALSE. !< Flag. TRUE if computation of the Lifted Condensation Level is desired
     LOGICAL :: ddt_temp_drag = .FALSE. !< Flag. TRUE if temp-tend. from sso+gravity-wave-drag+Rayleigh-frict. is required
+    LOGICAL :: freez_rain_prec = .FALSE. !< Flag. TRUE if computation of freezing rain is required
     LOGICAL :: t_snow_si    = .FALSE. !< Flag. TRUE if temperature of snow on seaice is requested.
 
     ! global means
@@ -363,6 +364,7 @@ CONTAINS
         var_in_output(jg)%cloudtop    = is_variable_in_output_dom(var_name="cloudtop", jg=jg_nml)
         var_in_output(jg)%hpbl        = is_variable_in_output_dom(var_name="hpbl", jg=jg_nml)
         var_in_output(jg)%aod_550nm   = is_variable_in_output_dom(var_name="aod_550nm", jg=jg_nml)
+        var_in_output(jg)%freez_rain_prec = is_variable_in_output_dom(var_name="freez_rain_prec", jg=jg_nml)
         var_in_output(jg)%t_snow_si   = is_variable_in_output_dom(var_name="t_snow_si", jg=jg_nml)
 
         ! add vars for global mean calculations

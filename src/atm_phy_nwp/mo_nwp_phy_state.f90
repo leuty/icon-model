@@ -933,6 +933,24 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
                 & lopenacc=.TRUE. )
     __acc_attach(diag%tot_prec_d)
 
+    IF (var_in_output%freez_rain_prec) THEN
+      ! &      diag%freez_rain_prec(nproma,nblks_c)
+      cf_desc    = t_cf_var('freez_rain_prec', 'kg m-2', 'freezing rain', datatype_flt)
+      grib2_desc = grib2_var(0, 1, 67, ibits, GRID_UNSTRUCTURED, GRID_CELL)  ! included from ECCODES 2.44
+      CALL add_var( diag_list, 'freez_rain_prec', diag%freez_rain_prec,           &
+                  & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,    &
+                  & ldims=shape2d,                                              &
+                  & in_group=groups("precip_vars"),                             &
+                  & isteptype=TSTEP_ACCUM ,                                     &
+                  & hor_interp=create_hor_interp_metadata(                      &
+                  &    hor_intp_type=HINTP_TYPE_LONLAT_BCTR,                    &
+                  &    fallback_type=HINTP_TYPE_LONLAT_NNB),                    &
+                  & initval=0._wp, resetval=0._wp,                              &
+                  & action_list=actions(new_action(ACTION_RESET,precip_interval(k_jg))), &
+                  & lopenacc=.TRUE. )
+      __acc_attach(diag%freez_rain_prec)
+    ENDIF
+
     ! &      diag%prec_gsp_d(nproma,nblks_c) !! have to be in restart
     cf_desc    = t_cf_var('prec_gsp_d', 'kg m-2', 'gridscale precip since end of previous full '// &
                           TRIM(totprec_d_interval(k_jg)(3:))//' interval synchronized to model start', datatype_flt)

@@ -204,7 +204,7 @@ MODULE mo_nh_init_nest_utils
                                        ! snow_age, t_avginc, t_sk, rh_avginc, t_wgt_avginc, rh_daywgt_avginc, t_daywgt_avginc, vabs_avginc,
                                        ! t_2m_filt, + aux variable for lake temp
     num_wtrvars  = 6                   ! water state fields + fr_seaice + alb_si
-    num_phdiagvars = 59                ! number of positive-definite physics diagnostic variables
+    num_phdiagvars = 60                ! number of positive-definite physics diagnostic variables
     num_phdiagvars_npd = 16+uh_max_nlayer ! number of other (non-positive-definite) physics diagnostic variables
 
     ALLOCATE(thv_pr_par  (nproma, nlev_p,      p_patch(jg)%nblks_c), &
@@ -425,6 +425,9 @@ MODULE mo_nh_init_nest_utils
           phdiag_par(jc,58,jb) = prm_diag(jg)%tmin_2m(jc,jb)
           phdiag_par(jc,59,jb) = prm_diag(jg)%gust10(jc,jb)
 
+          IF (var_in_output(jg)%freez_rain_prec) THEN
+            phdiag_par(jc,60,jb) = prm_diag(jg)%freez_rain_prec(jc,jb)
+          ENDIF
 
           ! non-positive definite fields
           phdiag_npd_par(jc,1,jb) = prm_diag(jg)%u_10m(jc,jb)
@@ -556,7 +559,11 @@ MODULE mo_nh_init_nest_utils
             wtrvars_par(jc,1,jb) = p_parent_lprog%t_g(jc,jb)
           ENDIF
           wtrvars_par(jc,2,jb) = p_parent_wprog%h_ice(jc,jb)
-          wtrvars_par(jc,3,jb) = p_parent_wprog%t_snow_si(jc,jb)
+          IF (p_parent_wprog%t_snow_si(jc,jb) > 10._wp) THEN
+            wtrvars_par(jc,3,jb) = p_parent_wprog%t_snow_si(jc,jb)
+          ELSE
+            wtrvars_par(jc,3,jb) = p_parent_lprog%t_g(jc,jb)
+          ENDIF
           wtrvars_par(jc,4,jb) = p_parent_wprog%h_snow_si(jc,jb)
           wtrvars_par(jc,5,jb) = p_parent_ldiag%fr_seaice(jc,jb)
           IF (lprog_albsi) THEN
@@ -868,6 +875,10 @@ MODULE mo_nh_init_nest_utils
           prm_diag(jgc)%tmax_2m(jc,jb)     = phdiag_chi(jc,57,jb)
           prm_diag(jgc)%tmin_2m(jc,jb)     = phdiag_chi(jc,58,jb)
           prm_diag(jgc)%gust10(jc,jb)      = phdiag_chi(jc,59,jb)
+
+          IF (var_in_output(jg)%freez_rain_prec) THEN
+            prm_diag(jgc)%freez_rain_prec(jc,jb) = MAX(0._wp,phdiag_chi(jc,60,jb))
+          ENDIF
 
           ! non-positive definite fields
           prm_diag(jgc)%u_10m(jc,jb)       = phdiag_npd_chi(jc,1,jb)

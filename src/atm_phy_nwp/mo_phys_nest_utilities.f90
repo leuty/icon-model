@@ -2081,7 +2081,7 @@ SUBROUTINE interpol_phys_grf (ext_data, prm_diag, p_lnd_state, jg, jgc, jn, lacc
   TYPE(t_wtr_prog),             POINTER :: ptr_wprogc ! child level water prog state
 
   ! Local fields
-  INTEGER, PARAMETER  :: nfields_p1=106  ! Number of positive-definite 2D physics fields for which boundary interpolation is needed
+  INTEGER, PARAMETER  :: nfields_p1=107  ! Number of positive-definite 2D physics fields for which boundary interpolation is needed
   INTEGER, PARAMETER  :: nfields_p2=31   ! Number of remaining 2D physics fields for which boundary interpolation is needed
   INTEGER, PARAMETER  :: nfields_l2=19   ! Number of 2D land state fields
 
@@ -2332,6 +2332,9 @@ SUBROUTINE interpol_phys_grf (ext_data, prm_diag, p_lnd_state, jg, jgc, jn, lacc
       ENDIF
       IF (var_in_output(jg)%lpi_max) THEN
         z_aux3dp1_p(jc,106,jb) = prm_diag(jg)%lpi_max(jc,jb)
+      ENDIF
+      IF (var_in_output(jg)%freez_rain_prec) THEN
+        z_aux3dp1_p(jc,107,jb) = prm_diag(jg)%freez_rain_prec(jc,jb)
       ENDIF
 
       ! fields that may attain both signs; no limitation is applied
@@ -2774,6 +2777,9 @@ SUBROUTINE interpol_phys_grf (ext_data, prm_diag, p_lnd_state, jg, jgc, jn, lacc
       ENDIF
       IF (var_in_output(jgc)%lpi_max) THEN
         prm_diag(jgc)%lpi_max(jc,jb) = z_aux3dp1_c(jc,106,jb)
+      ENDIF
+      IF (var_in_output(jgc)%freez_rain_prec) THEN
+        prm_diag(jgc)%freez_rain_prec(jc,jb) = z_aux3dp1_c(jc,107,jb)
       ENDIF
 
       prm_diag(jgc)%u_10m(jc,jb)          = z_aux3dp2_c(jc,1,jb)
