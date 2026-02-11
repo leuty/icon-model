@@ -57,6 +57,7 @@ MODULE mo_nwp_phy_init
     &                               ghg_filename, irad_co2, irad_cfc11, irad_cfc12,   &
     &                               irad_n2o, irad_ch4, isolrad, lcalculate_fsd,      &
     &                               fsd_gridlen
+  USE mo_ccycle_config,       ONLY: ccycle_config, update_ccycle_config
   USE mo_nwp_aerosol,         ONLY: nwp_aerosol_init
   USE mo_srtm_config,         ONLY: setup_srtm, ssi_amip, ssi_coddington
   USE mo_aerosol_util,        ONLY: init_aerosol_props_tegen_rrtm,                  &
@@ -1902,9 +1903,15 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
   CALL sugwd(nlev, pref, phy_params, jg)
   IF (linit_mode) prm_diag%ktop_envel(:,:) = nlev
 
+  ! update ccycle and ico2conc if C4MIP_FLAG
+  ! is set in user's runscript
+  IF(ccycle_config(jg)% C4MIP_FLAG /= 'none') THEN
+    WRITE(*,*) 'NEROBELOV TEST', ccycle_config(jg)% C4MIP_FLAG
+    CALL update_ccycle_config
+  ENDIF
   ! read time-dependent boundary conditions from file
   ! well mixed greenhouse gases, horizontally constant
-  IF(ANY((/irad_co2,irad_cfc11,irad_cfc12,irad_n2o,irad_ch4/) == 4)) THEN
+  IF(ANY((/irad_co2,irad_cfc11,irad_cfc12,irad_n2o,irad_ch4/) == 4) .OR. ccycle_config(jg)% ico2conc == 4 ) THEN
     ! read annual means
     CALL read_bc_greenhouse_gases(ghg_filename)
     ! interpolation to the current date and time takes place in the radiation interface
