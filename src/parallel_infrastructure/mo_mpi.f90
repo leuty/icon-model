@@ -380,6 +380,7 @@ MODULE mo_mpi
   PUBLIC :: p_allreduce_max
   PUBLIC :: p_reduce
   PUBLIC :: p_allreduce
+  PUBLIC :: p_allreduce_in_place
   PUBLIC :: p_commit_type_struct
   PUBLIC :: p_alltoall
   PUBLIC :: p_alltoallv
@@ -954,6 +955,11 @@ MODULE mo_mpi
     MODULE PROCEDURE p_allreduce_int4_0d
     MODULE PROCEDURE p_allreduce_int8_0d
   END INTERFACE p_allreduce
+
+  INTERFACE p_allreduce_in_place
+    MODULE PROCEDURE p_allreduce_in_place_int4_1d
+    MODULE PROCEDURE p_allreduce_in_place_bool_0d
+  END INTERFACE p_allreduce_in_place
 
   INTERFACE p_alltoall
     MODULE PROCEDURE p_alltoall_int
@@ -10590,6 +10596,32 @@ CONTAINS
 #endif
   END FUNCTION p_allreduce_int8_0d
 
+  SUBROUTINE p_allreduce_in_place_int4_1d(buf, reductionOp, comm)
+    INTEGER(i4), INTENT(inout) :: buf(:)
+    INTEGER, INTENT(in) :: reductionOp, comm
+
+#ifndef NOMPI
+    INTEGER :: ierror
+    CHARACTER(*), PARAMETER :: routine = modname//":p_allreduce_in_place_int4_1d"
+
+    CALL MPI_Allreduce(mpi_in_place, buf, SIZE(buf), p_int, reductionOp, &
+      & comm, ierror)
+    IF(ierror /= MPI_SUCCESS) CALL finish(routine, "error in MPI call")
+#endif
+  END SUBROUTINE p_allreduce_in_place_int4_1d
+
+  SUBROUTINE p_allreduce_in_place_bool_0d(buf, reductionOp, comm)
+    LOGICAL, INTENT(inout) :: buf
+    INTEGER, INTENT(in) :: reductionOp, comm
+
+#ifndef NOMPI
+    INTEGER :: ierror
+    CHARACTER(*), PARAMETER :: routine = modname//":p_allreduce_in_place_bool_0d"
+
+    CALL MPI_Allreduce(mpi_in_place, buf, 1, p_bool, reductionOp, comm, ierror)
+    IF(ierror /= MPI_SUCCESS) CALL finish(routine, "error in MPI call")
+#endif
+  END SUBROUTINE p_allreduce_in_place_bool_0d
 
   !---------------------------------------------------------------------------------------------------------------------------------
   !> wrapper for MPI_Scatter
