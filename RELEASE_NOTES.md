@@ -12,6 +12,7 @@
 - Add multiscale stochastic pattern generator and iSPPT
 - Bugfixes for restart issues with NWP sea ice
 - Added diagnostics: pressure at convective cloud top/base
+- Added C-cycle flags for C4MIP in XPP configuration
 
 ### ICON-Ocean
 
