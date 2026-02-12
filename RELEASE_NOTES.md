@@ -100,7 +100,7 @@
 ### Externals
 
 - Added Memory Manager library 1.0.0 as external in externals/memman
-- Switch to YAC v3.12
+- Switch to YAC v3.14
 - Added Gravity waves parametrisation MS-GWaM as external in externals/msgwam
 - Switch to probtest v3.1
 
