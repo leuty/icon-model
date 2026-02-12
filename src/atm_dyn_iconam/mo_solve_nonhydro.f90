@@ -1180,26 +1180,26 @@ MODULE mo_solve_nonhydro
                 ! horizontal gradient of Exner pressure, Taylor-expansion-based reconstruction
                 z_gradh_exner(je,jk,jb) = p_patch%edges%inv_dual_edge_length(je,jb)*          &
                   p_nh%metrics%deepatmo_gradh_mc(jk)*                                         &
-                  (z_exner_ex_pr(icidx(je,jb,2),ikidx(2,je,jk,jb),icblk(je,jb,2)) +           &
-                   p_nh%metrics%zdiff_gradp(2,je,jk,jb)*                                      &
+                  (z_exner_ex_pr(icidx(je,jb,2),ikidx(je,2,jk,jb),icblk(je,jb,2)) +           &
+                   p_nh%metrics%zdiff_gradp(je,2,jk,jb)*                                      &
 #ifdef __SWAPDIM
-                  (z_dexner_dz_c(icidx(je,jb,2),ikidx(2,je,jk,jb),icblk(je,jb,2),1) +         &
-                   p_nh%metrics%zdiff_gradp(2,je,jk,jb)*                                      &
-                   z_dexner_dz_c(icidx(je,jb,2),ikidx(2,je,jk,jb),icblk(je,jb,2),2)) -        &
-                  (z_exner_ex_pr(icidx(je,jb,1),ikidx(1,je,jk,jb),icblk(je,jb,1)) +           &
-                   p_nh%metrics%zdiff_gradp(1,je,jk,jb)*                                      &
-                  (z_dexner_dz_c(icidx(je,jb,1),ikidx(1,je,jk,jb),icblk(je,jb,1),1) +         &
-                   p_nh%metrics%zdiff_gradp(1,je,jk,jb)* &
-                   z_dexner_dz_c(icidx(je,jb,1),ikidx(1,je,jk,jb),icblk(je,jb,1),2))))
+                  (z_dexner_dz_c(icidx(je,jb,2),ikidx(je,2,jk,jb),icblk(je,jb,2),1) +         &
+                   p_nh%metrics%zdiff_gradp(je,2,jk,jb)*                                      &
+                   z_dexner_dz_c(icidx(je,jb,2),ikidx(je,2,jk,jb),icblk(je,jb,2),2)) -        &
+                  (z_exner_ex_pr(icidx(je,jb,1),ikidx(je,1,jk,jb),icblk(je,jb,1)) +           &
+                   p_nh%metrics%zdiff_gradp(je,1,jk,jb)*                                      &
+                  (z_dexner_dz_c(icidx(je,jb,1),ikidx(je,1,jk,jb),icblk(je,jb,1),1) +         &
+                   p_nh%metrics%zdiff_gradp(je,1,jk,jb)* &
+                   z_dexner_dz_c(icidx(je,jb,1),ikidx(je,1,jk,jb),icblk(je,jb,1),2))))
 #else
-                  (z_dexner_dz_c(1,icidx(je,jb,2),ikidx(2,je,jk,jb),icblk(je,jb,2)) +         &
-                   p_nh%metrics%zdiff_gradp(2,je,jk,jb)*                                      &
-                   z_dexner_dz_c(2,icidx(je,jb,2),ikidx(2,je,jk,jb),icblk(je,jb,2))) -        &
-                  (z_exner_ex_pr(icidx(je,jb,1),ikidx(1,je,jk,jb),icblk(je,jb,1)) +           &
-                   p_nh%metrics%zdiff_gradp(1,je,jk,jb)*                                      &
-                  (z_dexner_dz_c(1,icidx(je,jb,1),ikidx(1,je,jk,jb),icblk(je,jb,1)) +         &
-                   p_nh%metrics%zdiff_gradp(1,je,jk,jb)*                                      &
-                   z_dexner_dz_c(2,icidx(je,jb,1),ikidx(1,je,jk,jb),icblk(je,jb,1)))))
+                  (z_dexner_dz_c(1,icidx(je,jb,2),ikidx(je,2,jk,jb),icblk(je,jb,2)) +         &
+                   p_nh%metrics%zdiff_gradp(je,2,jk,jb)*                                      &
+                   z_dexner_dz_c(2,icidx(je,jb,2),ikidx(je,2,jk,jb),icblk(je,jb,2))) -        &
+                  (z_exner_ex_pr(icidx(je,jb,1),ikidx(je,1,jk,jb),icblk(je,jb,1)) +           &
+                   p_nh%metrics%zdiff_gradp(je,1,jk,jb)*                                      &
+                  (z_dexner_dz_c(1,icidx(je,jb,1),ikidx(je,1,jk,jb),icblk(je,jb,1)) +         &
+                   p_nh%metrics%zdiff_gradp(je,1,jk,jb)*                                      &
+                   z_dexner_dz_c(2,icidx(je,jb,1),ikidx(je,1,jk,jb),icblk(je,jb,1)))))
 #endif
               ENDDO
             ENDDO
@@ -1219,22 +1219,22 @@ MODULE mo_solve_nonhydro
                 ! horizontal gradient of Exner pressure, cubic/quadratic interpolation
                 z_gradh_exner(je,jk,jb) =  p_patch%edges%inv_dual_edge_length(je,jb)*   &
                   p_nh%metrics%deepatmo_gradh_mc(jk)*                                   &
-                  (z_exner_ex_pr(icidx(je,jb,2),ikidx(2,je,jk,jb)-1,icblk(je,jb,2)) *   &
-                   p_nh%metrics%coeff_gradp(5,je,jk,jb) +                               &
-                   z_exner_ex_pr(icidx(je,jb,2),ikidx(2,je,jk,jb)  ,icblk(je,jb,2)) *   &
-                   p_nh%metrics%coeff_gradp(6,je,jk,jb) +                               &
-                   z_exner_ex_pr(icidx(je,jb,2),ikidx(2,je,jk,jb)+1,icblk(je,jb,2)) *   &
-                   p_nh%metrics%coeff_gradp(7,je,jk,jb) +                               &
-                   z_exner_ex_pr(icidx(je,jb,2),ikidx(2,je,jk,jb)+2,icblk(je,jb,2)) *   &
-                   p_nh%metrics%coeff_gradp(8,je,jk,jb) -                               &
-                  (z_exner_ex_pr(icidx(je,jb,1),ikidx(1,je,jk,jb)-1,icblk(je,jb,1)) *   &
-                   p_nh%metrics%coeff_gradp(1,je,jk,jb) +                               &
-                   z_exner_ex_pr(icidx(je,jb,1),ikidx(1,je,jk,jb)  ,icblk(je,jb,1)) *   &
-                   p_nh%metrics%coeff_gradp(2,je,jk,jb) +                               &
-                   z_exner_ex_pr(icidx(je,jb,1),ikidx(1,je,jk,jb)+1,icblk(je,jb,1)) *   &
-                   p_nh%metrics%coeff_gradp(3,je,jk,jb) +                               &
-                   z_exner_ex_pr(icidx(je,jb,1),ikidx(1,je,jk,jb)+2,icblk(je,jb,1)) *   &
-                  p_nh%metrics%coeff_gradp(4,je,jk,jb)) )
+                  (z_exner_ex_pr(icidx(je,jb,2),ikidx(je,2,jk,jb)-1,icblk(je,jb,2)) *   &
+                   p_nh%metrics%coeff_gradp(je,5,jk,jb) +                               &
+                   z_exner_ex_pr(icidx(je,jb,2),ikidx(je,2,jk,jb)  ,icblk(je,jb,2)) *   &
+                   p_nh%metrics%coeff_gradp(je,6,jk,jb) +                            &
+                   z_exner_ex_pr(icidx(je,jb,2),ikidx(je,2,jk,jb)+1,icblk(je,jb,2)) *   &
+                   p_nh%metrics%coeff_gradp(je,7,jk,jb) +                            &
+                   z_exner_ex_pr(icidx(je,jb,2),ikidx(je,2,jk,jb)+2,icblk(je,jb,2)) *   &
+                   p_nh%metrics%coeff_gradp(je,8,jk,jb) -                            &
+                  (z_exner_ex_pr(icidx(je,jb,1),ikidx(je,1,jk,jb)-1,icblk(je,jb,1)) *   &
+                   p_nh%metrics%coeff_gradp(je,1,jk,jb) +                            &
+                   z_exner_ex_pr(icidx(je,jb,1),ikidx(je,1,jk,jb)  ,icblk(je,jb,1)) *   &
+                   p_nh%metrics%coeff_gradp(je,2,jk,jb) +                            &
+                   z_exner_ex_pr(icidx(je,jb,1),ikidx(je,1,jk,jb)+1,icblk(je,jb,1)) *   &
+                   p_nh%metrics%coeff_gradp(je,3,jk,jb) +                            &
+                   z_exner_ex_pr(icidx(je,jb,1),ikidx(je,1,jk,jb)+2,icblk(je,jb,1)) *   &
+                  p_nh%metrics%coeff_gradp(je,4,jk,jb)) )
 
               ENDDO
             ENDDO
@@ -1249,18 +1249,18 @@ MODULE mo_solve_nonhydro
             DO je = i_startidx, i_endidx
 
               z_theta1 = &
-                 p_nh%prog(nnow)%theta_v(icidx(je,jb,1),ikidx(1,je,nlev,jb),icblk(je,jb,1)) +  &
-                 p_nh%metrics%zdiff_gradp(1,je,nlev,jb)*                                       &
-                (p_nh%diag%theta_v_ic(icidx(je,jb,1),ikidx(1,je,nlev,jb),  icblk(je,jb,1)) -   &
-                 p_nh%diag%theta_v_ic(icidx(je,jb,1),ikidx(1,je,nlev,jb)+1,icblk(je,jb,1))) *  &
-                 p_nh%metrics%inv_ddqz_z_full(icidx(je,jb,1),ikidx(1,je,nlev,jb),icblk(je,jb,1))
+                 p_nh%prog(nnow)%theta_v(icidx(je,jb,1),ikidx(je,1,nlev,jb),icblk(je,jb,1)) +  &
+                 p_nh%metrics%zdiff_gradp(je,1,nlev,jb)*                                       &
+                (p_nh%diag%theta_v_ic(icidx(je,jb,1),ikidx(je,1,nlev,jb),  icblk(je,jb,1)) -   &
+                 p_nh%diag%theta_v_ic(icidx(je,jb,1),ikidx(je,1,nlev,jb)+1,icblk(je,jb,1))) *  &
+                 p_nh%metrics%inv_ddqz_z_full(icidx(je,jb,1),ikidx(je,1,nlev,jb),icblk(je,jb,1))
 
               z_theta2 = &
-                 p_nh%prog(nnow)%theta_v(icidx(je,jb,2),ikidx(2,je,nlev,jb),icblk(je,jb,2)) +  &
-                 p_nh%metrics%zdiff_gradp(2,je,nlev,jb)*                                       &
-                (p_nh%diag%theta_v_ic(icidx(je,jb,2),ikidx(2,je,nlev,jb),  icblk(je,jb,2)) -   &
-                 p_nh%diag%theta_v_ic(icidx(je,jb,2),ikidx(2,je,nlev,jb)+1,icblk(je,jb,2))) *  &
-                 p_nh%metrics%inv_ddqz_z_full(icidx(je,jb,2),ikidx(2,je,nlev,jb),icblk(je,jb,2))
+                 p_nh%prog(nnow)%theta_v(icidx(je,jb,2),ikidx(je,2,nlev,jb),icblk(je,jb,2)) +  &
+                 p_nh%metrics%zdiff_gradp(je,2,nlev,jb)*                                       &
+                (p_nh%diag%theta_v_ic(icidx(je,jb,2),ikidx(je,2,nlev,jb),  icblk(je,jb,2)) -   &
+                 p_nh%diag%theta_v_ic(icidx(je,jb,2),ikidx(je,2,nlev,jb)+1,icblk(je,jb,2))) *  &
+                 p_nh%metrics%inv_ddqz_z_full(icidx(je,jb,2),ikidx(je,2,nlev,jb),icblk(je,jb,2))
 
               z_hydro_corr(je,jb) = grav_o_cpd*p_patch%edges%inv_dual_edge_length(je,jb)*    &
                 (z_theta2-z_theta1)*4._wp/(z_theta1+z_theta2)**2
@@ -1274,28 +1274,28 @@ MODULE mo_solve_nonhydro
             !$ACC LOOP GANG VECTOR PRIVATE(ikp1, ikp2, z_theta1, z_theta2)
             DO je = i_startidx, i_endidx
 
-              ikp1 = MIN(nlev,ikidx(1,je,nlev,jb)+2)
-              ikp2 = MIN(nlev,ikidx(2,je,nlev,jb)+2)
+              ikp1 = MIN(nlev,ikidx(je,1,nlev,jb)+2)
+              ikp2 = MIN(nlev,ikidx(je,2,nlev,jb)+2)
 
               z_theta1 =                                                                       &
-                p_nh%prog(nnow)%theta_v(icidx(je,jb,1),ikidx(1,je,nlev,jb)-1,icblk(je,jb,1)) * &
-                p_nh%metrics%coeff_gradp(1,je,nlev,jb) +                                         &
-                p_nh%prog(nnow)%theta_v(icidx(je,jb,1),ikidx(1,je,nlev,jb)  ,icblk(je,jb,1)) * &
-                p_nh%metrics%coeff_gradp(2,je,nlev,jb) +                                         &
-                p_nh%prog(nnow)%theta_v(icidx(je,jb,1),ikidx(1,je,nlev,jb)+1,icblk(je,jb,1)) * &
-                p_nh%metrics%coeff_gradp(3,je,nlev,jb) +                                         &
+                p_nh%prog(nnow)%theta_v(icidx(je,jb,1),ikidx(je,1,nlev,jb)-1,icblk(je,jb,1)) * &
+                p_nh%metrics%coeff_gradp(je,1,nlev,jb) +                                         &
+                p_nh%prog(nnow)%theta_v(icidx(je,jb,1),ikidx(je,1,nlev,jb)  ,icblk(je,jb,1)) * &
+                p_nh%metrics%coeff_gradp(je,2,nlev,jb) +                                         &
+                p_nh%prog(nnow)%theta_v(icidx(je,jb,1),ikidx(je,1,nlev,jb)+1,icblk(je,jb,1)) * &
+                p_nh%metrics%coeff_gradp(je,3,nlev,jb) +                                         &
                 p_nh%prog(nnow)%theta_v(icidx(je,jb,1),ikp1                 ,icblk(je,jb,1)) * &
-                p_nh%metrics%coeff_gradp(4,je,nlev,jb)
+                p_nh%metrics%coeff_gradp(je,4,nlev,jb)
 
               z_theta2 =                                                                       &
-                p_nh%prog(nnow)%theta_v(icidx(je,jb,2),ikidx(2,je,nlev,jb)-1,icblk(je,jb,2)) * &
-                p_nh%metrics%coeff_gradp(5,je,nlev,jb) +                                         &
-                p_nh%prog(nnow)%theta_v(icidx(je,jb,2),ikidx(2,je,nlev,jb)  ,icblk(je,jb,2)) * &
-                p_nh%metrics%coeff_gradp(6,je,nlev,jb) +                                         &
-                p_nh%prog(nnow)%theta_v(icidx(je,jb,2),ikidx(2,je,nlev,jb)+1,icblk(je,jb,2)) * &
-                p_nh%metrics%coeff_gradp(7,je,nlev,jb) +                                         &
+                p_nh%prog(nnow)%theta_v(icidx(je,jb,2),ikidx(je,2,nlev,jb)-1,icblk(je,jb,2)) * &
+                p_nh%metrics%coeff_gradp(je,5,nlev,jb) +                                         &
+                p_nh%prog(nnow)%theta_v(icidx(je,jb,2),ikidx(je,2,nlev,jb)  ,icblk(je,jb,2)) * &
+                p_nh%metrics%coeff_gradp(je,6,nlev,jb) +                                         &
+                p_nh%prog(nnow)%theta_v(icidx(je,jb,2),ikidx(je,2,nlev,jb)+1,icblk(je,jb,2)) * &
+                p_nh%metrics%coeff_gradp(je,7,nlev,jb) +                                         &
                 p_nh%prog(nnow)%theta_v(icidx(je,jb,2),ikp2                 ,icblk(je,jb,2)) * &
-                p_nh%metrics%coeff_gradp(8,je,nlev,jb)
+                p_nh%metrics%coeff_gradp(je,8,nlev,jb)
 
               z_hydro_corr(je,jb) = grav_o_cpd*p_patch%edges%inv_dual_edge_length(je,jb)*    &
                 (z_theta2-z_theta1)*4._wp/(z_theta1+z_theta2)**2

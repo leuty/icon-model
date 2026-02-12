@@ -1182,10 +1182,10 @@ MODULE mo_vertical_grid
 
           DO jk = 1, nlev
             DO je = i_startidx, i_endidx
-              p_nh(jg)%metrics%vertidx_gradp(1:2,je,jk,jb) = jk
-              p_nh(jg)%metrics%zdiff_gradp(1,je,jk,jb)     =  &
+              p_nh(jg)%metrics%vertidx_gradp(je,1:2,jk,jb) = jk
+              p_nh(jg)%metrics%zdiff_gradp(je,1,jk,jb)     =  &
                 z_me(je,jk,jb) - p_nh(jg)%metrics%z_mc(iidx(je,jb,1),jk,iblk(je,jb,1))
-              p_nh(jg)%metrics%zdiff_gradp(2,je,jk,jb)     =  &
+              p_nh(jg)%metrics%zdiff_gradp(je,2,jk,jb)     =  &
                 z_me(je,jk,jb) - p_nh(jg)%metrics%z_mc(iidx(je,jb,2),jk,iblk(je,jb,2))
             ENDDO
           ENDDO
@@ -1242,8 +1242,8 @@ MODULE mo_vertical_grid
                     z_me(je,jk,jb) >=                                             &
                     p_nh(jg)%metrics%z_ifc(iidx(je,jb,1),jk1+1,iblk(je,jb,1))) THEN
 
-                  p_nh(jg)%metrics%vertidx_gradp(1,je,jk,jb) = jk1
-                  p_nh(jg)%metrics%zdiff_gradp(1,je,jk,jb)   = z_me(je,jk,jb) -   &
+                  p_nh(jg)%metrics%vertidx_gradp(je,1,jk,jb) = jk1
+                  p_nh(jg)%metrics%zdiff_gradp(je,1,jk,jb)   = z_me(je,jk,jb) -   &
                     p_nh(jg)%metrics%z_mc(iidx(je,jb,1),jk1,iblk(je,jb,1))
                   jk_start = jk1
                   EXIT
@@ -1258,8 +1258,8 @@ MODULE mo_vertical_grid
                     z_me(je,jk,jb) >=                                             &
                     p_nh(jg)%metrics%z_ifc(iidx(je,jb,2),jk1+1,iblk(je,jb,2))) THEN
 
-                  p_nh(jg)%metrics%vertidx_gradp(2,je,jk,jb) = jk1
-                  p_nh(jg)%metrics%zdiff_gradp(2,je,jk,jb)   = z_me(je,jk,jb) -   &
+                  p_nh(jg)%metrics%vertidx_gradp(je,2,jk,jb) = jk1
+                  p_nh(jg)%metrics%zdiff_gradp(je,2,jk,jb)   = z_me(je,jk,jb) -   &
                     p_nh(jg)%metrics%z_mc(iidx(je,jb,2),jk1,iblk(je,jb,2))
                   jk_start = jk1
                   EXIT
@@ -1288,7 +1288,7 @@ MODULE mo_vertical_grid
                     p_nh(jg)%metrics%z_mc(iidx(je,jb,1),jk1+1,iblk(je,jb,1))) THEN
 
                   ! cubic interpolation
-                  p_nh(jg)%metrics%vertidx_gradp(1,je,jk,jb) = jk1
+                  p_nh(jg)%metrics%vertidx_gradp(je,1,jk,jb) = jk1
 
                   z0 = p_nh(jg)%metrics%z_mc(iidx(je,jb,1),jk1-1,iblk(je,jb,1))
                   z1 = p_nh(jg)%metrics%z_mc(iidx(je,jb,1),jk1  ,iblk(je,jb,1))
@@ -1306,20 +1306,20 @@ MODULE mo_vertical_grid
                   dn5 = 1._wp/(z0-z3)
                   dn6 = 1._wp/(z1-z3)
 
-                  p_nh(jg)%metrics%coeff_gradp(1,je,jk,jb) =            &
+                  p_nh(jg)%metrics%coeff_gradp(je,1,jk,jb) =            &
                     1._wp + coef1*dn1 + coef2*dn1*dn4 + coef3*dn1*dn4*dn5
-                  p_nh(jg)%metrics%coeff_gradp(2,je,jk,jb) =                               &
+                  p_nh(jg)%metrics%coeff_gradp(je,2,jk,jb) =                               &
                     -(coef1*dn1 + coef2*dn4*(dn1+dn2) + coef3*dn5*(dn1*dn4+dn2*dn4+dn2*dn6))
-                  p_nh(jg)%metrics%coeff_gradp(3,je,jk,jb) =          &
+                  p_nh(jg)%metrics%coeff_gradp(je,3,jk,jb) =          &
                     coef2*dn2*dn4 + coef3*dn5*(dn2*dn4+dn2*dn6+dn3*dn6)
-                  p_nh(jg)%metrics%coeff_gradp(4,je,jk,jb) = -coef3*dn3*dn5*dn6
+                  p_nh(jg)%metrics%coeff_gradp(je,4,jk,jb) = -coef3*dn3*dn5*dn6
 
                   l_found(je) = .TRUE.
                 ELSE IF (z_me(je,jk,jb) <=                                        &
                     p_nh(jg)%metrics%z_mc(iidx(je,jb,1),nlev-1,iblk(je,jb,1))) THEN
 
                   ! quadratic interpolation/extrapolation
-                  p_nh(jg)%metrics%vertidx_gradp(1,je,jk,jb) = nlev - 1
+                  p_nh(jg)%metrics%vertidx_gradp(je,1,jk,jb) = nlev - 1
 
                   z0 = p_nh(jg)%metrics%z_mc(iidx(je,jb,1),nlev-2,iblk(je,jb,1))
                   z1 = p_nh(jg)%metrics%z_mc(iidx(je,jb,1),nlev-1,iblk(je,jb,1))
@@ -1332,10 +1332,10 @@ MODULE mo_vertical_grid
                   dn2 = 1._wp/(z1-z2)
                   dn4 = 1._wp/(z0-z2)
 
-                  p_nh(jg)%metrics%coeff_gradp(1,je,jk,jb) = 1._wp + coef1*dn1 + coef2*dn1*dn4
-                  p_nh(jg)%metrics%coeff_gradp(2,je,jk,jb) = -(coef1*dn1 + coef2*dn4*(dn1+dn2))
-                  p_nh(jg)%metrics%coeff_gradp(3,je,jk,jb) = coef2*dn2*dn4
-                  p_nh(jg)%metrics%coeff_gradp(4,je,jk,jb) = 0._wp
+                  p_nh(jg)%metrics%coeff_gradp(je,1,jk,jb) = 1._wp + coef1*dn1 + coef2*dn1*dn4
+                  p_nh(jg)%metrics%coeff_gradp(je,2,jk,jb) = -(coef1*dn1 + coef2*dn4*(dn1+dn2))
+                  p_nh(jg)%metrics%coeff_gradp(je,3,jk,jb) = coef2*dn2*dn4
+                  p_nh(jg)%metrics%coeff_gradp(je,4,jk,jb) = 0._wp
 
                   l_found(je) = .TRUE.
                 ENDIF
@@ -1347,7 +1347,7 @@ MODULE mo_vertical_grid
             ENDDO
             IF (lfound_all) THEN
               jk_start = MIN(nlev-2, &
-                MINVAL(p_nh(jg)%metrics%vertidx_gradp(1,i_startidx:i_endidx,jk,jb)))
+                MINVAL(p_nh(jg)%metrics%vertidx_gradp(i_startidx:i_endidx,1,jk,jb)))
             ENDIF
           ENDDO
 
@@ -1363,7 +1363,7 @@ MODULE mo_vertical_grid
                     p_nh(jg)%metrics%z_mc(iidx(je,jb,2),jk1+1,iblk(je,jb,2))) THEN
 
                   ! cubic interpolation
-                  p_nh(jg)%metrics%vertidx_gradp(2,je,jk,jb) = jk1
+                  p_nh(jg)%metrics%vertidx_gradp(je,2,jk,jb) = jk1
 
                   z0 = p_nh(jg)%metrics%z_mc(iidx(je,jb,2),jk1-1,iblk(je,jb,2))
                   z1 = p_nh(jg)%metrics%z_mc(iidx(je,jb,2),jk1  ,iblk(je,jb,2))
@@ -1381,20 +1381,20 @@ MODULE mo_vertical_grid
                   dn5 = 1._wp/(z0-z3)
                   dn6 = 1._wp/(z1-z3)
 
-                  p_nh(jg)%metrics%coeff_gradp(5,je,jk,jb) =            &
+                  p_nh(jg)%metrics%coeff_gradp(je,5,jk,jb) =            &
                     1._wp + coef1*dn1 + coef2*dn1*dn4 + coef3*dn1*dn4*dn5
-                  p_nh(jg)%metrics%coeff_gradp(6,je,jk,jb) =                               &
+                  p_nh(jg)%metrics%coeff_gradp(je,6,jk,jb) =                               &
                     -(coef1*dn1 + coef2*dn4*(dn1+dn2) + coef3*dn5*(dn1*dn4+dn2*dn4+dn2*dn6))
-                  p_nh(jg)%metrics%coeff_gradp(7,je,jk,jb) =          &
+                  p_nh(jg)%metrics%coeff_gradp(je,7,jk,jb) =          &
                     coef2*dn2*dn4 + coef3*dn5*(dn2*dn4+dn2*dn6+dn3*dn6)
-                  p_nh(jg)%metrics%coeff_gradp(8,je,jk,jb) = -coef3*dn3*dn5*dn6
+                  p_nh(jg)%metrics%coeff_gradp(je,8,jk,jb) = -coef3*dn3*dn5*dn6
 
                   l_found(je) = .TRUE.
                 ELSE IF (z_me(je,jk,jb) <=                                        &
                     p_nh(jg)%metrics%z_mc(iidx(je,jb,2),nlev-1,iblk(je,jb,2))) THEN
 
                   ! quadratic interpolation/extrapolation
-                  p_nh(jg)%metrics%vertidx_gradp(2,je,jk,jb) = nlev - 1
+                  p_nh(jg)%metrics%vertidx_gradp(je,2,jk,jb) = nlev - 1
 
                   z0 = p_nh(jg)%metrics%z_mc(iidx(je,jb,2),nlev-2,iblk(je,jb,2))
                   z1 = p_nh(jg)%metrics%z_mc(iidx(je,jb,2),nlev-1,iblk(je,jb,2))
@@ -1407,10 +1407,10 @@ MODULE mo_vertical_grid
                   dn2 = 1._wp/(z1-z2)
                   dn4 = 1._wp/(z0-z2)
 
-                  p_nh(jg)%metrics%coeff_gradp(5,je,jk,jb) = 1._wp + coef1*dn1 + coef2*dn1*dn4
-                  p_nh(jg)%metrics%coeff_gradp(6,je,jk,jb) = -(coef1*dn1 + coef2*dn4*(dn1+dn2))
-                  p_nh(jg)%metrics%coeff_gradp(7,je,jk,jb) = coef2*dn2*dn4
-                  p_nh(jg)%metrics%coeff_gradp(8,je,jk,jb) = 0._wp
+                  p_nh(jg)%metrics%coeff_gradp(je,5,jk,jb) = 1._wp + coef1*dn1 + coef2*dn1*dn4
+                  p_nh(jg)%metrics%coeff_gradp(je,6,jk,jb) = -(coef1*dn1 + coef2*dn4*(dn1+dn2))
+                  p_nh(jg)%metrics%coeff_gradp(je,7,jk,jb) = coef2*dn2*dn4
+                  p_nh(jg)%metrics%coeff_gradp(je,8,jk,jb) = 0._wp
 
                   l_found(je) = .TRUE.
                 ENDIF
@@ -1422,7 +1422,7 @@ MODULE mo_vertical_grid
             ENDDO
             IF (lfound_all) THEN
               jk_start = MIN(nlev-2, &
-                MINVAL(p_nh(jg)%metrics%vertidx_gradp(2,i_startidx:i_endidx,jk,jb)))
+                MINVAL(p_nh(jg)%metrics%vertidx_gradp(i_startidx:i_endidx,2,jk,jb)))
             ENDIF
           ENDDO
 
@@ -1483,8 +1483,8 @@ MODULE mo_vertical_grid
                       z_aux2(je) >=                                                 &
                       p_nh(jg)%metrics%z_ifc(iidx(je,jb,1),jk1+1,iblk(je,jb,1))) THEN
 
-                      p_nh(jg)%metrics%vertidx_gradp(1,je,jk,jb) = jk1
-                      p_nh(jg)%metrics%zdiff_gradp(1,je,jk,jb)   = z_aux2(je) -     &
+                      p_nh(jg)%metrics%vertidx_gradp(je,1,jk,jb) = jk1
+                      p_nh(jg)%metrics%zdiff_gradp(je,1,jk,jb)   = z_aux2(je) -     &
                         p_nh(jg)%metrics%z_mc(iidx(je,jb,1),jk1,iblk(je,jb,1))
                       jk_start = jk1
                       EXIT
@@ -1501,8 +1501,8 @@ MODULE mo_vertical_grid
                       z_aux2(je) >=                                                 &
                       p_nh(jg)%metrics%z_ifc(iidx(je,jb,2),jk1+1,iblk(je,jb,2))) THEN
 
-                      p_nh(jg)%metrics%vertidx_gradp(2,je,jk,jb) = jk1
-                      p_nh(jg)%metrics%zdiff_gradp(2,je,jk,jb)   = z_aux2(je) -     &
+                      p_nh(jg)%metrics%vertidx_gradp(je,2,jk,jb) = jk1
+                      p_nh(jg)%metrics%zdiff_gradp(je,2,jk,jb)   = z_aux2(je) -     &
                         p_nh(jg)%metrics%z_mc(iidx(je,jb,2),jk1,iblk(je,jb,2))
                       jk_start = jk1
                       EXIT
@@ -1521,7 +1521,7 @@ MODULE mo_vertical_grid
                         p_nh(jg)%metrics%z_mc(iidx(je,jb,1),jk1+1,iblk(je,jb,1))) THEN
 
                       ! cubic interpolation
-                      p_nh(jg)%metrics%vertidx_gradp(1,je,jk,jb) = jk1
+                      p_nh(jg)%metrics%vertidx_gradp(je,1,jk,jb) = jk1
 
                       z0 = p_nh(jg)%metrics%z_mc(iidx(je,jb,1),jk1-1,iblk(je,jb,1))
                       z1 = p_nh(jg)%metrics%z_mc(iidx(je,jb,1),jk1  ,iblk(je,jb,1))
@@ -1539,13 +1539,13 @@ MODULE mo_vertical_grid
                       dn5 = 1._wp/(z0-z3)
                       dn6 = 1._wp/(z1-z3)
 
-                      p_nh(jg)%metrics%coeff_gradp(1,je,jk,jb) =            &
+                      p_nh(jg)%metrics%coeff_gradp(je,1,jk,jb) =            &
                         1._wp + coef1*dn1 + coef2*dn1*dn4 + coef3*dn1*dn4*dn5
-                      p_nh(jg)%metrics%coeff_gradp(2,je,jk,jb) =                               &
+                      p_nh(jg)%metrics%coeff_gradp(je,2,jk,jb) =                               &
                         -(coef1*dn1 + coef2*dn4*(dn1+dn2) + coef3*dn5*(dn1*dn4+dn2*dn4+dn2*dn6))
-                      p_nh(jg)%metrics%coeff_gradp(3,je,jk,jb) =          &
+                      p_nh(jg)%metrics%coeff_gradp(je,3,jk,jb) =          &
                         coef2*dn2*dn4 + coef3*dn5*(dn2*dn4+dn2*dn6+dn3*dn6)
-                      p_nh(jg)%metrics%coeff_gradp(4,je,jk,jb) = -coef3*dn3*dn5*dn6
+                      p_nh(jg)%metrics%coeff_gradp(je,4,jk,jb) = -coef3*dn3*dn5*dn6
 
                       jk_start = jk1
                       EXIT
@@ -1554,7 +1554,7 @@ MODULE mo_vertical_grid
                         p_nh(jg)%metrics%z_mc(iidx(je,jb,1),nlev-1,iblk(je,jb,1))) THEN
 
                       ! quadratic interpolation/extrapolation
-                      p_nh(jg)%metrics%vertidx_gradp(1,je,jk,jb) = nlev - 1
+                      p_nh(jg)%metrics%vertidx_gradp(je,1,jk,jb) = nlev - 1
 
                       z0 = p_nh(jg)%metrics%z_mc(iidx(je,jb,1),nlev-2,iblk(je,jb,1))
                       z1 = p_nh(jg)%metrics%z_mc(iidx(je,jb,1),nlev-1,iblk(je,jb,1))
@@ -1567,12 +1567,12 @@ MODULE mo_vertical_grid
                       dn2 = 1._wp/(z1-z2)
                       dn4 = 1._wp/(z0-z2)
 
-                      p_nh(jg)%metrics%coeff_gradp(1,je,jk,jb) = &
+                      p_nh(jg)%metrics%coeff_gradp(je,1,jk,jb) = &
                         1._wp + coef1*dn1 + coef2*dn1*dn4
-                      p_nh(jg)%metrics%coeff_gradp(2,je,jk,jb) = &
+                      p_nh(jg)%metrics%coeff_gradp(je,2,jk,jb) = &
                         -(coef1*dn1 + coef2*dn4*(dn1+dn2))
-                      p_nh(jg)%metrics%coeff_gradp(3,je,jk,jb) = coef2*dn2*dn4
-                      p_nh(jg)%metrics%coeff_gradp(4,je,jk,jb) = 0._wp
+                      p_nh(jg)%metrics%coeff_gradp(je,3,jk,jb) = coef2*dn2*dn4
+                      p_nh(jg)%metrics%coeff_gradp(je,4,jk,jb) = 0._wp
 
                       jk_start = nlev - 2
                       EXIT
@@ -1591,7 +1591,7 @@ MODULE mo_vertical_grid
                         p_nh(jg)%metrics%z_mc(iidx(je,jb,2),jk1+1,iblk(je,jb,2))) THEN
 
                       ! cubic interpolation
-                      p_nh(jg)%metrics%vertidx_gradp(2,je,jk,jb) = jk1
+                      p_nh(jg)%metrics%vertidx_gradp(je,2,jk,jb) = jk1
 
                       z0 = p_nh(jg)%metrics%z_mc(iidx(je,jb,2),jk1-1,iblk(je,jb,2))
                       z1 = p_nh(jg)%metrics%z_mc(iidx(je,jb,2),jk1  ,iblk(je,jb,2))
@@ -1609,13 +1609,13 @@ MODULE mo_vertical_grid
                       dn5 = 1._wp/(z0-z3)
                       dn6 = 1._wp/(z1-z3)
 
-                      p_nh(jg)%metrics%coeff_gradp(5,je,jk,jb) =            &
+                      p_nh(jg)%metrics%coeff_gradp(je,5,jk,jb) =            &
                         1._wp + coef1*dn1 + coef2*dn1*dn4 + coef3*dn1*dn4*dn5
-                      p_nh(jg)%metrics%coeff_gradp(6,je,jk,jb) =                               &
+                      p_nh(jg)%metrics%coeff_gradp(je,6,jk,jb) =                               &
                         -(coef1*dn1 + coef2*dn4*(dn1+dn2) + coef3*dn5*(dn1*dn4+dn2*dn4+dn2*dn6))
-                      p_nh(jg)%metrics%coeff_gradp(7,je,jk,jb) =          &
+                      p_nh(jg)%metrics%coeff_gradp(je,7,jk,jb) =          &
                         coef2*dn2*dn4 + coef3*dn5*(dn2*dn4+dn2*dn6+dn3*dn6)
-                      p_nh(jg)%metrics%coeff_gradp(8,je,jk,jb) = -coef3*dn3*dn5*dn6
+                      p_nh(jg)%metrics%coeff_gradp(je,8,jk,jb) = -coef3*dn3*dn5*dn6
 
                       jk_start = jk1
                       EXIT
@@ -1624,7 +1624,7 @@ MODULE mo_vertical_grid
                         p_nh(jg)%metrics%z_mc(iidx(je,jb,2),nlev-1,iblk(je,jb,2))) THEN
 
                       ! quadratic interpolation/extrapolation
-                      p_nh(jg)%metrics%vertidx_gradp(2,je,jk,jb) = nlev - 1
+                      p_nh(jg)%metrics%vertidx_gradp(je,2,jk,jb) = nlev - 1
 
                       z0 = p_nh(jg)%metrics%z_mc(iidx(je,jb,2),nlev-2,iblk(je,jb,2))
                       z1 = p_nh(jg)%metrics%z_mc(iidx(je,jb,2),nlev-1,iblk(je,jb,2))
@@ -1637,12 +1637,12 @@ MODULE mo_vertical_grid
                       dn2 = 1._wp/(z1-z2)
                       dn4 = 1._wp/(z0-z2)
 
-                      p_nh(jg)%metrics%coeff_gradp(5,je,jk,jb) = &
+                      p_nh(jg)%metrics%coeff_gradp(je,5,jk,jb) = &
                         1._wp + coef1*dn1 + coef2*dn1*dn4
-                      p_nh(jg)%metrics%coeff_gradp(6,je,jk,jb) = &
+                      p_nh(jg)%metrics%coeff_gradp(je,6,jk,jb) = &
                         -(coef1*dn1 + coef2*dn4*(dn1+dn2))
-                      p_nh(jg)%metrics%coeff_gradp(7,je,jk,jb) = coef2*dn2*dn4
-                      p_nh(jg)%metrics%coeff_gradp(8,je,jk,jb) = 0._wp
+                      p_nh(jg)%metrics%coeff_gradp(je,7,jk,jb) = coef2*dn2*dn4
+                      p_nh(jg)%metrics%coeff_gradp(je,8,jk,jb) = 0._wp
 
                       jk_start = nlev - 2
                       EXIT
@@ -1694,11 +1694,11 @@ MODULE mo_vertical_grid
       ENDIF
 
       IF (igradp_method <= 3) THEN
-        CALL sync_patch_array(SYNC_E,p_patch(jg),p_nh(jg)%metrics%zdiff_gradp(1,:,:,:),lacc=.FALSE.)
-        CALL sync_patch_array(SYNC_E,p_patch(jg),p_nh(jg)%metrics%zdiff_gradp(2,:,:,:),lacc=.FALSE.)
+        CALL sync_patch_array(SYNC_E,p_patch(jg),p_nh(jg)%metrics%zdiff_gradp(:,1,:,:),lacc=.FALSE.)
+        CALL sync_patch_array(SYNC_E,p_patch(jg),p_nh(jg)%metrics%zdiff_gradp(:,2,:,:),lacc=.FALSE.)
       ELSE
         DO ic = 1, 8
-          CALL sync_patch_array(SYNC_E,p_patch(jg),p_nh(jg)%metrics%coeff_gradp(ic,:,:,:),lacc=.FALSE.)
+          CALL sync_patch_array(SYNC_E,p_patch(jg),p_nh(jg)%metrics%coeff_gradp(:,ic,:,:),lacc=.FALSE.)
         ENDDO
       ENDIF
       DEALLOCATE(z_me,flat_idx)
