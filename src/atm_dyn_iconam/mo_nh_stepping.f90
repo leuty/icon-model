@@ -3073,8 +3073,8 @@ MODULE mo_nh_stepping
       ! integrate dynamical core
       CALL solve_nh(p_nh_state, p_patch, p_int_state, prep_adv,     &
         &           nnow(jg), nnew(jg), linit_dyn(jg), l_recompute, &
-        &           lsave_mflx, lprep_adv, lclean_mflx,             &
-        &           nstep, ndyn_substeps_tot-1, dt_dyn, lacc=.TRUE.)
+        &           lsave_mflx, lprep_adv, lclean_mflx, nstep,      &
+        &           ndyn_substeps_tot-1, dt_dyn, lacc=.TRUE.)
 
       ! now reset linit_dyn to .FALSE.
       linit_dyn(jg) = .FALSE.
