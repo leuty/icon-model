@@ -43,8 +43,7 @@ SUBROUTINE DIPOWA (local_bgc_mem, local_sediment_mem, start_idx, end_idx, lacc)
 !! diffusion coefficient : zcoefsu/zcoeflo for upper/lower
 !! sediment layer boundary.
 
-  USE mo_sedmnt, ONLY         : sedict, seddzi, seddw, &
-       &                        porwah
+  USE mo_sedmnt, ONLY         : seddw
 
   USE mo_control_bgc, ONLY    : dtbgc
 
@@ -232,8 +231,7 @@ SUBROUTINE DIPOWA_VE (local_bgc_mem, local_sediment_mem, start_idx, end_idx, lac
 !! diffusion coefficient : zcoefsu/zcoeflo for upper/lower
 !! sediment layer boundary.
 
-  USE mo_sedmnt, ONLY         : sedict, seddzi, seddw, &
-       &                        porwah
+  USE mo_sedmnt, ONLY         : seddw
 
   USE mo_control_bgc, ONLY    : dtbgc
 

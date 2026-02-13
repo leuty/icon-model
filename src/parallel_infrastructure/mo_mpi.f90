@@ -2795,10 +2795,10 @@ CONTAINS
       global_comm, opt_comin_comm, opt_yac_comm)
 
 #if !defined __NO_ICON_COMIN__
-      USE comin_host_interface, handshake => mpi_handshake
+      USE comin_host_interface, ONLY: handshake => mpi_handshake
       INTEGER, PARAMETER :: GROUP_NAME_LENGTH = 256
 #elif defined YAC_coupling
-      USE yac, handshake => yac_fmpi_handshake
+      USE yac, ONLY: handshake => yac_fmpi_handshake
       USE yac, ONLY: YAC_MAX_CHARLEN
       INTEGER, PARAMETER :: GROUP_NAME_LENGTH = YAC_MAX_CHARLEN
 #endif

@@ -2342,7 +2342,7 @@ CONTAINS
   !> Factory method for t_ScatterPattern. Destroy with deleteScatterPattern().
   !-----------------------------------------------------------------------------
   FUNCTION makeScatterPattern(jg, loc_arr_len, glb_index, communicator, all_workers)
-    USE mo_scatter_pattern_scatter
+    USE mo_scatter_pattern_scatter, ONLY: t_ScatterPatternScatter
     IMPLICIT NONE
     CLASS(t_ScatterPattern), POINTER :: makeScatterPattern
     INTEGER, VALUE :: jg, loc_arr_len, communicator

@@ -464,6 +464,13 @@ CONTAINS
   !! atmosphere and output components.
   SUBROUTINE output_coupling (lacc, valid_mask)
 
+#ifdef YAC_coupling
+    USE mo_impl_constants,      ONLY: TLEV_NNOW, TLEV_NNEW, TLEV_NNOW_RCF, TLEV_NNEW_RCF
+    USE mo_dynamics_config,     ONLY: nnow, nnow_rcf, nnew, nnew_rcf
+    USE yac,                    ONLY: yac_fget_field_collection_size, yac_fput, yac_fget_action, &
+      &                               yac_fupdate, YAC_ACTION_NONE, yac_dble_ptr
+#endif
+
     LOGICAL, INTENT(IN) :: lacc
     REAL(wp), OPTIONAL, INTENT(IN) :: valid_mask(:,:,:)
 

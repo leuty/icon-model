@@ -490,17 +490,13 @@ CONTAINS
   SUBROUTINE init_tmx(p_patch, dtime)
 
     USE mo_vdf,      ONLY: heat_type, momentum_type
-    ! USE mo_vdf_sfc,  ONLY: t_vdf_sfc_diagnostics
     USE mo_tmx_field_class, ONLY: isfc_oce, isfc_ice, isfc_lnd
-    ! USE mo_vdf_diag_smag
 
     USE mo_nonhydro_state,     ONLY: p_nh_state
     USE mo_nonhydro_types,     ONLY: t_nh_metrics, t_nh_diag
     USE mo_dynamics_config,    ONLY: nnow, nnow_rcf
-    USE mo_physical_constants, ONLY: cpd, cpv, cvd, cvv, tmelt
-    USE mo_sea_ice_nml,        ONLY: Tf
+    USE mo_physical_constants, ONLY: cpd, cvd, cvv
 
-    USE mo_master_config, ONLY: isRestart
     USE mo_run_config,    ONLY: lmemman
 
     TYPE(t_patch), INTENT(inout), TARGET :: p_patch

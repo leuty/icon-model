@@ -84,13 +84,14 @@ CONTAINS
     USE mo_ice_fem_types,     ONLY: sigma11, sigma12, sigma22, &
                                     delta, eps11, eps12, eps22, si1, si2
     USE mo_ice_fem_evp,       ONLY: EVPdynamics
+#ifdef _OPENACC
     USE mo_ice_fem_icon_init, ONLY: c2v_wgt
     USE mo_ice_fem_types,     ONLY: m_ice, m_snow, a_ice, elevation
     USE mo_ice_fem_icon_init, ONLY: rot_mat_3D
     USE mo_ice_fem_types,     ONLY: u_w, v_w, stress_atmice_x, stress_atmice_y
     USE mo_ice_fem_mesh,      ONLY: coord_nod2D
     USE mo_ice_fem_types,     ONLY: u_ice, v_ice
-!    USE mo_ice_fem_evp_old,  ONLY: EVPdynamics_old ! non-optimized, original version of the solver
+#endif
 
     TYPE(t_patch_3D), TARGET, INTENT(IN)     :: p_patch_3D
     TYPE(t_sea_ice),          INTENT(INOUT)  :: p_ice
@@ -417,7 +418,6 @@ CONTAINS
 
     USE mo_ice_fem_icon_init, ONLY: rot_mat_3D
     USE mo_ice_fem_types,     ONLY: u_w, v_w, stress_atmice_x, stress_atmice_y!, u_ice, v_ice !, a_ice
-    USE mo_ice_fem_mesh,           ONLY: coord_nod2D
 
     TYPE(t_patch_3D), TARGET, INTENT(IN)     :: p_patch_3D
     TYPE(t_hydro_ocean_state),INTENT(IN)     :: p_os
@@ -506,7 +506,6 @@ CONTAINS
 
     USE mo_ice_fem_icon_init, ONLY: rot_mat_3D!, pollon, pollat
     USE mo_ice_fem_types,          ONLY: u_ice, v_ice
-    USE mo_ice_fem_mesh,           ONLY: coord_nod2D
 
     TYPE(t_patch_3D), TARGET, INTENT(IN)     :: p_patch_3D
     TYPE(t_sea_ice),          INTENT(INOUT)  :: p_ice

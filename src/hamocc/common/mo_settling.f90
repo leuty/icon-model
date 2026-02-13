@@ -44,7 +44,7 @@ CONTAINS
       USE mo_memory_bgc,  ONLY    : n90depth,&
       &                             n1000depth,n2000depth
 
-      USE mo_control_bgc, ONLY    : bgc_nproma, bgc_zlevs, dtbgc, inv_dtbgc
+      USE mo_control_bgc, ONLY    : bgc_nproma, bgc_zlevs, inv_dtbgc
 
       IMPLICIT NONE
 

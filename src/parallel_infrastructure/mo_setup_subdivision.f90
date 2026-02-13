@@ -4851,8 +4851,10 @@ CONTAINS
   ! Set owner list (of complete patch)
   SUBROUTINE set_owners_mpi(range_start, range_end, dist_cell_owner, &
        wrk_p_patch_pre, cell_desc, ncell_offset, num_physdom, n_onb_points)
-    USE ppm_extents
-    USE ppm_distributed_array
+    USE ppm_distributed_array, ONLY: dist_mult_array, dist_mult_array_local_ptr, &
+                                     dist_mult_array_expose, dist_mult_array_get,&
+                                     dist_mult_array_unexpose
+
     INTEGER, INTENT(in) :: range_start, range_end
      !> receives the owner PE for every cell
     TYPE(dist_mult_array), INTENT(inout) :: dist_cell_owner
