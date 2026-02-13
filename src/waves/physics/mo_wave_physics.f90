@@ -398,11 +398,12 @@ CONTAINS
 
     TYPE(t_patch),      INTENT(IN)  :: p_patch
     TYPE(t_wave_config),INTENT(IN)  :: wave_config
-    REAL(wp),           INTENT(IN)  :: wsp10m(:,:)!10m wind speed (nproma,nblks_c) ( m/s )
-    REAL(wp),           INTENT(IN)  :: taua(:,:)  !wind stress (nproma,nblks_c) ( (m/s)^2 )
-    REAL(wp),           INTENT(IN)  :: tauw(:,:)  !wave stress (nproma,nblks_c) ( (m/s)^2 )
-    REAL(wp),           INTENT(OUT) :: ustar(:,:) !friction velocity (nproma,nblks_c) ( m/s )
-    REAL(wp),           INTENT(OUT) :: z0(:,:)    !roughness length (nproma,nblks_c) ( m )
+    REAL(wp),           INTENT(IN)  :: wsp10m(:,:)! 10m wind speed (nproma,nblks_c) ( m/s )
+    REAL(wp),           INTENT(IN)  :: taua(:,:)  ! wind stress (nproma,nblks_c) ( (m/s)^2 )
+    REAL(wp),           INTENT(IN)  :: tauw(:,:)  ! wave stress (nproma,nblks_c) ( (m/s)^2 )
+                                                  ! divided by air density
+    REAL(wp),           INTENT(OUT) :: ustar(:,:) ! friction velocity (nproma,nblks_c) ( m/s )
+    REAL(wp),           INTENT(OUT) :: z0(:,:)    ! roughness length (nproma,nblks_c) ( m )
 
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
     INTEGER :: i_startidx, i_endidx
@@ -504,8 +505,8 @@ CONTAINS
     INTEGER,      INTENT(IN)    :: llws(:,:,:,:)  !=1 where wind_input is positive (nproma,ndirs,nfreqs,nblks_c)
     REAL(wp),     INTENT(INOUT) :: emean(:,:)     !total energy (nproma,nblks_c)
     REAL(wp),     INTENT(INOUT) :: emeanws(:,:)   !total windsea energy (nproma,nblks_c)
-    REAL(wp),     INTENT(INOUT) :: femean(:,:)    !mean frequency energy (nproma,nblks_c)
-    REAL(wp),     INTENT(INOUT) :: femeanws(:,:)  !mean windsea frequency energy (nproma,nblks_c)
+    REAL(wp),     INTENT(INOUT) :: femean(:,:)    !mean frequency (nproma,nblks_c)
+    REAL(wp),     INTENT(INOUT) :: femeanws(:,:)  !mean windsea frequency (nproma,nblks_c)
 
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
     INTEGER :: i_startidx, i_endidx
@@ -619,6 +620,9 @@ CONTAINS
     REAL(wp) :: temp1(nproma), temp2(nproma)
     REAL(wp) :: sumt(nproma), sumx(nproma), sumy(nproma)
     REAL(wp) :: roair    ! air density
+    REAL(wp) :: tauhf1(nproma)    ! high-frequency stress [m2 s-2]
+    REAL(wp) :: phihf1(nproma)    ! high-frequency energy flux into waves [W m-2]
+    REAL(wp) :: xlevtail(nproma)  ! tail level
 
     TYPE(t_wave_config), POINTER :: wc => NULL()
 
@@ -630,17 +634,18 @@ CONTAINS
     ! save some paperwork
     wc => wave_config
 
+    xlevtail(1:nproma) = 0._wp
+
     gm1   = 1.0_wp/grav
     const = wc%delth*(pi2)**4*gm1
     roair = MAX(wc%roair,1._wp)
-
 
 !$OMP PARALLEL
     CALL init(p_diag%phiaw, lacc=.FALSE.)
 !$OMP BARRIER
 !$OMP DO PRIVATE(jb,jc,jf,jd,jf_lp,i_startidx,i_endidx,cm,const1,const2,       &
 !$OMP            rhowgdfth,sinplus,sumt,sumx,sumy,cmrhowgdfth,xstress,ystress, &
-!$OMP            xstress_tot,ystress_tot,cosw,temp1,temp2) ICON_OMP_DEFAULT_SCHEDULE
+!$OMP            xstress_tot,ystress_tot,cosw,temp1,temp2,tauhf1,phihf1) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = i_startblk, i_endblk
       CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,           &
         &                 i_startidx, i_endidx, i_rlstart, i_rlend)
@@ -716,13 +721,13 @@ CONTAINS
         &                        last_prog_freq_ind = p_diag%last_prog_freq_ind(:,jb), & !IN
         &                        ustar              = p_diag%ustar(:,jb),              & !IN
         &                        z0                 = p_diag%z0(:,jb),                 & !IN
-        &                        xlevtail           = p_diag%xlevtail(:,jb),           & !IN
-        &                        tauhf1             = p_diag%tauhf1(:,jb),             & !INOUT
-        &                        phihf1             = p_diag%phihf1(:,jb) )              !INOUT
+        &                        xlevtail           = xlevtail(:),                     & !IN
+        &                        tauhf1             = tauhf1(:),                       & !INOUT
+        &                        phihf1             = phihf1(:) )                        !INOUT
 
       DO jc = i_startidx, i_endidx
-        p_diag%tauhf(jc,jb) = const1(jc)*temp1(jc)*p_diag%tauhf1(jc,jb)
-        p_diag%phihf(jc,jb) = const2(jc)*temp2(jc)*p_diag%phihf1(jc,jb)
+        p_diag%tauhf(jc,jb) = const1(jc)*temp1(jc)*tauhf1(jc)
+        p_diag%phihf(jc,jb) = const2(jc)*temp2(jc)*phihf1(jc)
 
         p_diag%phiaw(jc,jb) = p_diag%phiaw(jc,jb) + p_diag%phihf(jc,jb)
 
