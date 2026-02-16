@@ -146,7 +146,6 @@ $addexp "checksuite.ocean_internal/technical/exp.test_ocean_omip_technical" \
 $addexp "checksuite.ocean_internal/test_ocean_WilliamsonTestCase2_Hex.config" \
         --builders "${LEVANTE_CPU_BUILDERS}" --without-configureflags "--enable-mixed" --list $listname
 #for levante_nag_serial we use the old test
-./rmexp checksuite.ocean_internal/test_ocean_WilliamsonTestCase2_Hex.config                   --builders levante_intel_hybrid --list $listname
 ./rmexp checksuite.ocean_internal/test_ocean_WilliamsonTestCase2_Hex.config                   --builders levante_nag_serial --list $listname
 $addexp "checksuite.ocean_internal/ShallowWater/exp.ocean_WilliamsonTestCase2_Hex" \
 	--builders levante_nag_serial --without-configureflags "--enable-mixed" --list $listname
