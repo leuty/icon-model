@@ -428,7 +428,8 @@ function performance_check
         --i-table 0 \
         --measurement-uncertainty 2 \
         --tolerance-factor 1.04 \
-        --new-reference-threshold 0.96
+        --new-reference-threshold 0.96 \
+        --timer-sections "total,physics,nh_solve"
     TOL_STATUS=$?
 
     # get the relevant success check
