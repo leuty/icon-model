@@ -13,7 +13,7 @@
 # Test if a "clm-type" setup is running, i.e.
 # limited-area mode with ubc nudging, ssticemode=6,
 # different diagnostics including time-averaged output via mvstream
-# and asynchronous restart (restart test not yet implemented);
+# and asynchronous restart (restart is tested via check.ICON_CLM);
 # currently, tested builders are levante and dwd-nec
 #=======================================================================
 
@@ -83,7 +83,7 @@ ln -sf ${GRIDDIR}/greenhouse_gases/bc_greenhouse_rcp45_1765-2500.nc .
 ln -sf ${GRIDDIR}/dict.latbc .
 ln -sf ${GRIDDIR}/europe044_DOM01.nc .
 ln -sf ${GRIDDIR}/europe044_DOM01.parent.nc .
-ln -sf ${GRIDDIR}/external_parameter_icon_europe044_DOM01_tiles.nc .
+ln -sf ${GRIDDIR}/external_parameter_icon_europe044_DOM01_tiles_cdnc.nc .
 
 # initial fields file name
 ini_filename=caf1979010100_ini.nc
@@ -93,7 +93,7 @@ ini_filename=caf1979010100_ini.nc
 ghg_filename=bc_greenhouse_rcp45_1765-2500.nc
 
 # extpar filename
-ext_filename=external_parameter_icon_europe044_DOM01_tiles.nc
+ext_filename=external_parameter_icon_europe044_DOM01_tiles_cdnc.nc
 
 # grid filenames
 dynamics_grid_filename=europe044_DOM01.nc
@@ -123,7 +123,7 @@ cat > icon_master.namelist << EOF
 &master_time_control_nml
   calendar             = "proleptic gregorian"
   experimentStartDate  = "1979-01-01T00:00:00Z"
-  experimentStopDate   = "1979-01-02T00:00:00Z"
+  experimentStopDate   = "1979-01-02T01:00:00Z"
   checkpointTimeIntval = "PT12H"
 /
 EOF
@@ -232,7 +232,7 @@ cat > NAMELIST_${EXPID} << EOF
   output_filename              = '${EXPID}_out02'
   filename_format              = '<output_filename>_<datetime2>'
     operation                    = ""
-  ml_varlist                   = 'w_so','t_s','resid_wso'
+  ml_varlist                   = 'w_so','t_s','resid_wso', 'tmax_2m', 'dursun'
   output_grid                  =  .TRUE.
 !	  stream_partitions_ml         =  2
 /
@@ -249,29 +249,12 @@ cat > NAMELIST_${EXPID} << EOF
   output_filename              = '${EXPID}_out03'
   filename_format              = '<output_filename>_<datetime2>'
   operation                    = ""
-  ml_varlist                   = 'rain_con','tot_prec','t_2m','snow_melt'
+  ml_varlist                   = 'rain_con','tot_prec','t_2m','snow_melt', 'sob_s'
   output_grid                  =  .TRUE.
 !	  stream_partitions_ml 	      =  2
 /
 &output_nml
 !-----------------------------------------------------------Output Namelist 4
-  filetype                     =  4            ! output format: 2=GRIB2, 4=NETCDFv2
-  dom                          =  1            ! write all domains
-  output_bounds                =  0, 2678400, 86400.    ! start, end, increment
-  steps_per_file               =  1
-  mode                         =  1            ! 1: forecast mode (relative t-axis)
-                                               ! 2: climate mode (absolute t-axis)
-  include_last                 = .TRUE.
-  steps_per_file_inclfirst     = .FALSE.
-  output_filename              = '${EXPID}_out04'
-  filename_format              = '<output_filename>_<datetime2>'
-  operation                    = ""
-  ml_varlist                   = 'tmax_2m', 'dursun'
-  output_grid                  =  .TRUE.
-!	  stream_partitions_ml 	      =  2
-/
-&output_nml
-!-----------------------------------------------------------Output Namelist 5
   filetype                     =  4            ! output format: 2=GRIB2, 4=NETCDFv2
   dom                          =  1            ! write all domains
   output_bounds                =  0, 2678400, 21600.    ! start, end, increment
@@ -280,7 +263,7 @@ cat > NAMELIST_${EXPID} << EOF
                                                ! 2: climate mode (absolute t-axis)
   include_last                 = .TRUE.
   steps_per_file_inclfirst     = .FALSE.
-  output_filename              = '${EXPID}_out05'
+  output_filename              = '${EXPID}_out04'
   filename_format              = '<output_filename>_<datetime2>'
   operation                    = ""
   ml_varlist                   = 'tqc','cape_ml'
@@ -288,7 +271,7 @@ cat > NAMELIST_${EXPID} << EOF
 !	 stream_partitions_ml 	      =  2
 /
 &output_nml
-!-----------------------------------------------------------Output Namelist 6
+!-----------------------------------------------------------Output Namelist 5
   filetype                     =  4            ! output format: 2=GRIB2, 4=NETCDFv2
   dom                          =  1            ! write all domains
   output_bounds                =  0, 2678400, 21600.   ! start, end, increment
@@ -297,7 +280,7 @@ cat > NAMELIST_${EXPID} << EOF
                                                ! 2: climate mode (absolute t-axis)
   include_last                 = .TRUE.
   steps_per_file_inclfirst     = .FALSE.
-  output_filename              = '${EXPID}_out06'
+  output_filename              = '${EXPID}_out05'
   filename_format              = '<output_filename>_<datetime2>'
   operation                    = ""
   pl_varlist                   = 'temp'
@@ -306,7 +289,7 @@ cat > NAMELIST_${EXPID} << EOF
 !	  stream_partitions_ml         =  2
 /
 &output_nml
-!-----------------------------------------------------------Output Namelist 8
+!-----------------------------------------------------------Output Namelist 6
   filetype                     =  4            ! output format: 2=GRIB2, 4=NETCDFv2
   dom                          =  1            ! write all domains
   output_bounds                =  0, 2678400, 3600.    ! start, end, increment
@@ -315,31 +298,14 @@ cat > NAMELIST_${EXPID} << EOF
                                                ! 2: climate mode (absolute t-axis)
   include_last                 = .TRUE.
   steps_per_file_inclfirst     = .FALSE.
-  output_filename              = '${EXPID}_out08'
+  output_filename              = '${EXPID}_out06'
   filename_format              = '<output_filename>_<datetime2>'
   operation                    = "mean"
   ml_varlist                   = 'shfl_s','sob_t','sob_s'
   output_grid                  =  .TRUE.
 /
 &output_nml
-!-----------------------------------------------------------Output Namelist 9
-  filetype                     =  4            ! output format: 2=GRIB2, 4=NETCDFv2
-  dom                          =  1            ! write all domains
-  output_bounds                =  0, 2678400, 3600.    ! start, end, increment
-  steps_per_file               =  1
-  mode                         =  1            ! 1: forecast mode (relative t-axis)
-                                               ! 2: climate mode (absolute t-axis)
-  include_last                 = .TRUE.
-  steps_per_file_inclfirst     = .FALSE.
-  output_filename              = '${EXPID}_out09'
-  filename_format              = '<output_filename>_<datetime2>'
-  operation                    = ""
-  ml_varlist                   = 'sob_s'
-  output_grid                  =  .TRUE.
-!	  stream_partitions_ml 	      =  2
-/
-&output_nml
-!-----------------------------------------------------------Output Namelist 10
+!-----------------------------------------------------------Output Namelist 7
   filetype                     =  4              ! output format: 2=GRIB2, 4=NETCDFv2
   dom                          =  1              ! write all domains
   output_bounds                =  0., 0., 3600.  ! start, end, increment
@@ -389,9 +355,10 @@ cat > NAMELIST_${EXPID} << EOF
   efdt_min_raylfric = 7200.
   itype_z0         = 2
   icapdcycl        = 3
-  icpl_aero_gscp  = 0   ! 1 not possible in combination with the Kinne aerosols (alternative: 3)
+  icpl_aero_gscp  = 3   ! 1 not possible in combination with the Kinne aerosols (alternative: 3)
   icpl_aero_conv  = 0
   icpl_o3_tp       = 1
+  scale_cdnc_mode = 1
   dt_rad    = 2400
   dt_conv   = 800
   dt_sso    = 1600
@@ -556,17 +523,3 @@ EXIT_STATUS=$?
 
 echo "EXIT_STATUS: $EXIT_STATUS"
 exit $EXIT_STATUS
-
-# ----------------------------------------------------------------------------
-# restart ICON
-# ----------------------------------------------------------------------------
-# for a restart test, start on the last day of a month (e.g., Dec 31 1978) and
-# run for 2 days with # dt_restart = <24 hours>
-
-# (provide new lbc's + LOWBC ...) or make a restart after 12 hours
-# Only necessary modification is to set is_restart = .true. in the master_nml:
-#
-# if [ $EXIT_STATUS -eq 0 ] ; then
-#    sed -i '/lrestart/s/FALSE/TRUE/' icon_master.namelist
-#    $START_MODEL
-# fi
