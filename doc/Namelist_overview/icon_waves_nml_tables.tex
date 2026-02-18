@@ -146,10 +146,10 @@ Defined and used in: \verb+src/waves/config/mo_initwave_nml.f90+
                     & &     &     & forc\_file\_prefix+\_slh.nc - for sea level height & \tabularnewline
                     & &     &     & forc\_file\_prefix+\_osc.nc - for ocean surface currents & \tabularnewline
                     & &     &     & Data for all time steps in the current simulation should be prepared in a single file. Variables should be named \texttt{u\_10m}, \texttt{v\_10m}, \texttt{fr\_seaice}, \texttt{uosc}, \texttt{vosc} & \tabularnewline
-peak\_u10 & R & 9.0          & m/s & peak value of 10 m U wind component for test case & \tabularnewline
-peak\_v10 & R & 9.0          & m/s & peak value of 10 m V wind component for test case & \tabularnewline
-peak\_lat & R & -60.0        & degree & latitude of wind peak value & \tabularnewline
-peak\_lon & R & -140.0       & degree & longitude of wind peak value & \tabularnewline
+peak\_lat & R & -60.0        & degree & latitude of wind peak value & ltestcase=.TRUE. \tabularnewline
+peak\_lon & R & -140.0       & degree & longitude of wind peak value & ltestcase=.TRUE. \tabularnewline
+peak\_wsp10 & R & 25.0       & m/s    & peak value of 10m wind speed at (peak\_lat,peak\_lon) & ltestcase=.TRUE. \tabularnewline
+dir\_wsp10  & R & 45.0       & degree & wind direction measured clockwise from true north & ltestcase=.TRUE. \tabularnewline
 impl\_fac & R & 1.0          & & first order Euler backward time integration scheme for total source function & \tabularnewline
 stokes\_method & I & 1       &   & 1 - calculation of Stokes profile from the full spectrum \\
                                    2 - calculation based on Breivik (2016) & \tabularnewline

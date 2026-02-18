@@ -138,8 +138,8 @@ cat > ${basedir}/run/${wave_namelist} << EOF
  depth_max              = 999.
  fetch                  = 300000.               ! fetch in metres used for initialisation of spectrum
  !fetch_min_energy       = 25000.                ! fetch in meters used for calculation of minimum allowed energy level
- peak_u10               = 17.680452             ! peak value (m/s) of 10 m U wind component for test case
- peak_v10               = 17.680452             ! peak value (m/s) of 10 m V wind component for test case
+ peak_wsp10             = 25.0                  ! peak value of 10m wind speed for test case
+ dir_wsp10              = 45.0                  ! wind direction measured clockwise from true north (deg)
  peak_lat               = -60.0                 ! latitude (deg) of wind peak value
  peak_lon               = -140.0                ! longitude (deg) of wind peak value
  ALPHA_CH               = 6.0000001E-03
