@@ -254,6 +254,7 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
   REAL(wp) :: h650_standard, h850_standard, h950_standard  ! height of 850hPa and 950hPa level in m
 
   REAL(wp) :: N_cn0,z0_nccn,z1e_nccn,N_in0,z0_nin,z1e_nin  ! for CCN and IN in case of gscp=5
+  REAL(wp), POINTER :: edr_ptr(:,:), len_scale_ptr(:,:) ! dummy pointer, not used
 
   CHARACTER(len=*), PARAMETER ::  &
      routine = modname//':init_nwp_phy'
@@ -1601,8 +1602,11 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
     i_startblk = p_patch%cells%start_blk(rl_start,1)
     i_endblk   = p_patch%cells%end_blk(rl_end,i_nchdom)
 
+!$OMP PARALLEL PRIVATE(edr_ptr,len_scale_ptr)
+    edr_ptr => NULL()
+    len_scale_ptr => NULL()
 
-!$OMP PARALLEL DO PRIVATE(jb,jk,i_startidx,i_endidx,ic,jc,jt, &
+!$OMP DO PRIVATE(jb,jk,i_startidx,i_endidx,ic,jc,jt, &
 !$OMP            ltkeinp_loc,igz0inp_loc,nlevcm,l_hori,nzprv,zvari,zrhon, &
 !$OMP            l_lake,l_sice, &
 !$OMP            ierrstat, errormsg, eroutine) ICON_OMP_DEFAULT_SCHEDULE
@@ -1779,7 +1783,9 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
 !
         &  tketens=prm_nwp_tend%ddt_tke(:,:,jb),                    &
 !
-        &  zvari=zvari                                              & !out
+        &  zvari=zvari,                                             & !out
+        &  edr=edr_ptr,                                             & !dummy pointer, not used
+        &  tur_len_scale=len_scale_ptr                              & !dummy pointer, not used
         &                                                           ) !end of 'turbdiff' call
 
       ! preparation for concentration boundary condition. Usually inactive for standard ICON runs.
@@ -1825,6 +1831,8 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
       ENDDO
 
     ENDDO  ! jb
+!$OMP END DO
+!$OMP END PARALLEL
 
     tdc%iinit=-1 !initialization has passed
 

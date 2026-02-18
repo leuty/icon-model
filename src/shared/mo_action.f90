@@ -478,6 +478,9 @@ CONTAINS
       dom_loop: DO jg = 1, n_dom
         var => find_list_element (var_list(jg), TRIM(var_name))
 
+        res_time(jg) = -999._wp
+        IF (.NOT. ASSOCIATED(var)) CYCLE
+
         ASSOCIATE(action_list => var%info%action_list)
           ! get number of available actions of requested type
           nact_typ = action_list%getNumActions(act_typ)

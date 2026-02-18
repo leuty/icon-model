@@ -25,7 +25,8 @@ MODULE mo_nml_crosscheck
   USE mo_time_config,              ONLY: time_config, dt_restart
   USE mo_extpar_config,            ONLY: itopo
   USE mo_io_config,                ONLY: dt_checkpoint, lnetcdf_flt64_output, echotop_meta,&
-    &                                    wshear_uv_heights, n_wshear, srh_heights, n_srh
+    &                                    wshear_uv_heights, n_wshear, srh_heights, n_srh,  &
+    &                                    ldiagnose_tke
   USE mo_parallel_config,          ONLY: check_parallel_configuration,                     &
     &                                    ignore_nproma_use_nblocks_c,                      &
     &                                    ignore_nproma_use_nblocks_e,                      &
@@ -711,6 +712,10 @@ CONTAINS
 #endif
 
     END IF
+
+    IF (iforcing==iaes .and. ANY(ldiagnose_tke)) THEN
+      CALL finish(routine, 'TKE diagnostics (ldiagnose_tke=T) do not work with aes physics.')
+    ENDIF
 
     !--------------------------------------------------------------------
     ! YAC for reading Kinne aerosol data

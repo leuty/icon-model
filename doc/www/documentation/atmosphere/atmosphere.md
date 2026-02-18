@@ -138,7 +138,8 @@ More detailed descriptions of some of above options are available here:
 ^^^
 [External SST/SIC](ref_sstsic_ext)\
 [2D Aerosol](ref_miscnwp_2daero)\
-[Aerosol-Cloud coupling](ref_miscnwp_aero_cpl)
+[Aerosol-Cloud coupling](ref_miscnwp_aero_cpl)\
+[Turbulence Diagnostics](ref_atmosphere_turbdiag)
 :::
 ::::
 

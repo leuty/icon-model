@@ -125,7 +125,8 @@ USE mo_io_config,            ONLY: lflux_avg, lnetcdf_flt64_output, gust_interva
   &                                maxt_interval, precip_interval, t_var_in_output, &
   &                                totprec_d_interval, itype_hzerocl, &
   &                                uh_max_zmin, uh_max_zmax, luh_max_out, uh_max_nlayer, &
-  &                                sunshine_interval, n_wshear, n_srh, ff10m_interval
+  &                                sunshine_interval, n_wshear, n_srh, ff10m_interval,  &
+  &                                gstke_interval, ldiagnose_tke
 USE mtime,                   ONLY: max_timedelta_str_len, getPTStringFromMS
 USE mo_name_list_output_config, ONLY: is_variable_in_output
 USE mo_util_string,          ONLY: real2string
@@ -337,7 +338,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       &        shape2d_synsat(2), shape3d_aero(3), shape3dechotop(3), shape3dwshear(3),shape3d_hail(3)
     INTEGER :: shape3dkp1(3), shape3dflux(3), shape3d_uh_max(3), shape3dturb(3), shape3dsrh(3)
     INTEGER :: shape3duse(3) ! used shape for conditionally allocated 3D arrays
-    INTEGER :: shape4d_lwbands(4), shape4d_swbands(4)
+    INTEGER :: shape4d_lwbands(4), shape4d_swbands(4),shape4d_winds(4)
     INTEGER :: ibits,  kcloud
     INTEGER :: jsfc, ist
     CHARACTER(len=NF90_MAX_NAME) :: long_name
@@ -354,7 +355,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
     CHARACTER(LEN=vname_len) :: shortname
     CHARACTER(LEN=128)         :: longname, unit
     CHARACTER(len=max_timedelta_str_len) :: gust_int, celltracks_int,   &
-      &                                     echotop_int, ff10m_int
+      &                                     echotop_int, ff10m_int, gstke_int
     ! For lpi_con_max need an hourly reset for the first 48 h,
     ! a 3-hourly reset for day 3 and 4, and a 6 hourly reset thereafter.
     ! lpi_stop 3 is not needed - it is the end of the simulation
@@ -393,6 +394,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
     shape3d_spg    = (/nproma, spg_num,      kblks/)
     shape4d_lwbands= (/nproma, klev,         kblks, ecrad_nbands_lw/)
     shape4d_swbands= (/nproma, klev,         kblks, ecrad_nbands_sw/)
+    shape4d_winds  = (/nproma, klev,         kblks, 3/)
 
     !------------------------------
     ! Ensure that all pointers have a defined association status
@@ -515,7 +517,13 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       &     diag%wshear_v, &
       &     diag%aod_550nm,   &
       &     diag%z_pbl,    &
-      &     diag%cloud_fsd)
+      &     diag%cloud_fsd, &
+      &     diag%pop_mean, &
+      &     diag%pop_var, &
+      &     diag%gs_tke, &
+      &     diag%sgs_tke, &
+      &     diag%avg_edr, &
+      &     diag%tur_len_scale)
 
 
     ! Register a field list and apply default settings
@@ -4705,13 +4713,6 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       & ldims=shape3dkp1, lopenacc=.TRUE. )
     __acc_attach(diag%rcld)
 
-! SO FAR UNUSED
-!!$   ! &      diag%edr(nproma,nlevp1,nblks_c)
-!!$    cf_desc    = t_cf_var('edr', '', 'eddy dissipation rate', datatype_flt)
-!!$    grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
-!!$    CALL add_var( diag_list, 'edr', diag%edr,                               &
-!!$      & GRID_UNSTRUCTURED_CELL, ZA_REFERENCE_HALF, cf_desc, grib2_desc,        &
-!!$      & ldims=shape3dkp1, lrestart=.FALSE. )
 
 ! turbulent flux profiles
     IF (atm_phy_nwp_config(k_jg)%l_3d_turb_fluxes) THEN
@@ -6069,6 +6070,81 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
         &           ldims=shape3d ,                                             &
         &           lrestart=.FALSE., loutput=.TRUE.,lopenacc=.TRUE.)
       __acc_attach(diag%cloud_fsd)
+    ENDIF
+
+    IF (ldiagnose_tke(k_jg)) THEN
+      CALL getPTStringFromMS(NINT(1000._wp*gstke_interval(k_jg), i8), gstke_int)
+      ! accumulated wind mean, components
+      cf_desc    = t_cf_var('pop_mean', 'm s-1', 'wind mean', datatype_flt)
+      grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( diag_list, 'pop_mean', diag%pop_mean,                           &
+        &           GRID_UNSTRUCTURED_CELL, ZA_REFERENCE, cf_desc, grib2_desc,      &
+        &           ldims=shape4d_winds ,                                           &
+        &           isteptype=TSTEP_AVG,initval=0._wp, resetval=0._wp,              &
+        &           action_list=actions(new_action(ACTION_RESET, TRIM(gstke_int))), &
+        &           lrestart=.TRUE., loutput=.FALSE.,lopenacc=.TRUE.)
+      __acc_attach(diag%pop_mean)
+
+      ! accumulated wind variance, components
+      cf_desc    = t_cf_var('pop_var', 'm2 s-2', 'wind var', datatype_flt)
+      grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( diag_list, 'pop_var', diag%pop_var,                             &
+        &           GRID_UNSTRUCTURED_CELL, ZA_REFERENCE, cf_desc, grib2_desc,      &
+        &           ldims=shape4d_winds,                                            &
+        &           isteptype=TSTEP_AVG,initval=0._wp, resetval=0._wp,              &
+        &           action_list=actions(new_action(ACTION_RESET, TRIM(gstke_int))), &
+        &           lrestart=.TRUE., loutput=.FALSE.,lopenacc=.TRUE.)
+      __acc_attach(diag%pop_var)
+
+      ! grid scale TKE
+      cf_desc    = t_cf_var('gs_tke', 'm2 s-2', 'grid-scale TKE', datatype_flt)
+      grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( diag_list, 'gs_tke', diag%gs_tke,                               &
+        &           GRID_UNSTRUCTURED_CELL, ZA_REFERENCE, cf_desc, grib2_desc,      &
+        &           ldims=shape3d,                                                  &
+        &           isteptype=TSTEP_AVG,initval=0._wp, resetval=0._wp,              &
+        &           action_list=actions(new_action(ACTION_RESET, TRIM(gstke_int))), &
+        &           lrestart=.TRUE., loutput=.true.,lopenacc=.TRUE.)
+      __acc_attach(diag%gs_tke)
+
+      ! subgrid scale TKE
+      cf_desc    = t_cf_var('sgs_tke', 'm2 s-2', 'subgrid-scale TKE', datatype_flt)
+      grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( diag_list, 'sgs_tke', diag%sgs_tke,                             &
+        &           GRID_UNSTRUCTURED_CELL, ZA_REFERENCE_HALF, cf_desc, grib2_desc, &
+        &           ldims=shape3dkp1,                                               &
+        &           isteptype=TSTEP_AVG,initval=0._wp, resetval=0._wp,              &
+        &           action_list=actions(new_action(ACTION_RESET, TRIM(gstke_int))), &
+        &           lrestart=.TRUE., loutput=.true.,lopenacc=.TRUE.)
+      __acc_attach(diag%sgs_tke)
+
+      ! time-averaged derived eddy dissipation rate
+      cf_desc    = t_cf_var('avg_edr', 'm2 s-3', 'time-averaged EDR', datatype_flt)
+      grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( diag_list, 'avg_edr', diag%avg_edr,                             &
+        &           GRID_UNSTRUCTURED_CELL, ZA_REFERENCE_HALF, cf_desc, grib2_desc, &
+        &           ldims=shape3dkp1,                                               &
+        &           isteptype=TSTEP_AVG,initval=0._wp, resetval=0._wp,              &
+        &           action_list=actions(new_action(ACTION_RESET, TRIM(gstke_int))), &
+        &           lrestart=.TRUE., loutput=.true.,lopenacc=.TRUE.)
+      __acc_attach(diag%avg_edr)
+
+      ! &      diag%edr(nproma,nlevp1,nblks_c)
+      cf_desc    = t_cf_var('edr', 'm2 s-3', 'eddy dissipation rate', datatype_flt)
+      grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( diag_list, 'edr', diag%edr,                               &
+        & GRID_UNSTRUCTURED_CELL, ZA_REFERENCE_HALF, cf_desc, grib2_desc,        &
+        & ldims=shape3dkp1, lrestart=.FALSE.,loutput=.true.,lopenacc=.TRUE. )
+      __acc_attach(diag%edr)
+
+      ! &      diag%tur_len_scale(nproma,nlevp1,nblks_c)
+      cf_desc    = t_cf_var('tur_len_scale', 'm', 'turbulent length scale', datatype_flt)
+      grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( diag_list, 'tur_len_scale', diag%tur_len_scale,                               &
+        & GRID_UNSTRUCTURED_CELL, ZA_REFERENCE_HALF, cf_desc, grib2_desc,        &
+        & ldims=shape3dkp1, lrestart=.FALSE.,loutput=.true.,lopenacc=.TRUE. )
+      __acc_attach(diag%tur_len_scale)
+
     ENDIF
 
     ! Initialize JSBACH + VDIFF state.

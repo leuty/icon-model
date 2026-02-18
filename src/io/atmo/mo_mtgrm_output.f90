@@ -158,8 +158,8 @@ MODULE mo_meteogram_output
     &                                 gnat_merge_distributed_queries, gk
   USE mo_dynamics_config,       ONLY: nnow
   USE mo_io_config,             ONLY: inextra_2d, inextra_3d, var_in_output, &
-    &                                 celltracks_interval, gust_interval, echotop_meta
-  USE mo_lnd_nwp_config,        ONLY: tile_list, ntiles_total, ntiles_water, zml_soil, lsnow_on_seaice
+    &                                 celltracks_interval, gust_interval, echotop_meta,ldiagnose_tke
+  USE mo_lnd_nwp_config,        ONLY: tile_list, ntiles_total, ntiles_water, zml_soil,lsnow_on_seaice
   USE mo_run_config,            ONLY: iqv, iqc, iqi, iqr, iqs,               &
     &                                 iqm_max, iqni,                         &
     &                                 iqns, iqng, iqnh, iqnr, iqnc, ininact, &
@@ -520,6 +520,7 @@ CONTAINS
       CALL add_atmo_var(meteogram_config, var_list, VAR_GROUP_ATMO_HL, &
         &               "TKE", "m^2/s^2", "turbulent kinetic energy", &
         &               var_info, prog%tke(:,:,:))
+
 #ifndef __NO_ICON_LES__
       IF ( .NOT. atm_phy_nwp_config%is_les_phy ) THEN
 #endif
@@ -621,6 +622,20 @@ CONTAINS
       &               "PHALF", "Pa", "Pressure on the half levels", &
       &               var_info, diag%pres_ifc(:,:,:))
 
+    IF (iforcing == inwp .and. ldiagnose_tke(jg)) THEN
+      CALL add_atmo_var(meteogram_config, var_list, VAR_GROUP_ATMO_HL, &
+        &               "GSTKE", "m^2/s^2", "grid-scale TKE", &
+        &               var_info, prm_diag%gs_tke(:,:,:))
+      CALL add_atmo_var(meteogram_config, var_list, VAR_GROUP_ATMO_HL, &
+        &               "SGSTKE", "m^2/s^2", "subgrid-scale TKE, time average", &
+        &               var_info, prm_diag%sgs_tke(:,:,:))
+      CALL add_atmo_var(meteogram_config, var_list, VAR_GROUP_ATMO_HL, &
+        &               "AVGEDR", "m^2/s^3", "EDR, time average", &
+        &               var_info, prm_diag%avg_edr(:,:,:))
+      CALL add_atmo_var(meteogram_config, var_list, VAR_GROUP_ATMO_HL, &
+        &               "TURLENSCALE", "m", "turbulent length scale", &
+        &               var_info, prm_diag%tur_len_scale(:,:,:))
+   ENDIF
 
     ! generalized meteogram output
     idx_group_mtgrm = var_groups_dyn%group_id("METEOGRAM")

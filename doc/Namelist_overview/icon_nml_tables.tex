@@ -3524,6 +3524,20 @@ Set to \texttt{.TRUE.}, if interpolation zone should be masked in triangular out
 \tabularnewline
 
 %\hline
+ldiagnose\_tke &
+L(n\_dom)&  F& &
+Set to \texttt{.TRUE.} to calculate grid-scale TKE based on temporal wind variance over interval specified with \texttt{gstke\_interval}. Also calculates SGS TKE and EDR averaged over interval, and activates additional diagnostic variables for EDR and turbulent length scale.& \texttt{iforcing=3} Time-average SGS TKE, EDR and length scale output currently implemented only for \texttt{inwp\_turb=1} (Turbdiff). Fields will be zero otherwise.
+\tabularnewline
+
+%\hline
+gstke\_interval &
+R(n\_dom) &  3600. & s &
+Time interval in seconds over which to calculate temporal wind variance for grid-scale TKE. & \texttt{iforcing=3}
+
+\tabularnewline
+
+
+%\hline
 \end{longtab}
 
 

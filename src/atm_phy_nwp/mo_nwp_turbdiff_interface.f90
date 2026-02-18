@@ -65,6 +65,7 @@ MODULE mo_nwp_turbdiff_interface
   USE mo_timer
   USE mo_run_config,             ONLY: timers_level
   USE mo_fortran_tools,          ONLY: assert_acc_device_only
+  USE mo_io_config,              ONLY: ldiagnose_tke
   IMPLICIT NONE
 
   PRIVATE
@@ -172,6 +173,8 @@ CONTAINS
 
   TYPE(t_comin_tracer_info), POINTER :: this_info => NULL()
 
+  REAL(wp), POINTER, CONTIGUOUS :: edr_ptr(:,:), len_scale_ptr(:,:)
+
 !--------------------------------------------------------------
 
   IF (msg_level >= 15) CALL message('mo_nwp_turbdiff_interface:', 'turbulence')
@@ -222,11 +225,11 @@ CONTAINS
   END IF
 
   !$ACC DATA CREATE(ddt_turb_qnc, ddt_turb_qni, ddt_turb_qs, ddt_turb_qns) &
-  !$ACC   CREATE(l_hori, zvari, zrhon, z_tvs, ztmassfl_s, ut_sso, vt_sso)
+  !$ACC   CREATE(l_hori, zvari, zrhon, z_tvs, ztmassfl_s, ut_sso, vt_sso, edr_ptr, len_scale_ptr)
 
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jb,jc,jk,iqb,i_startidx,i_endidx,z_tvs,ncloud_offset,ptr,nzprv,l_hori,zvari,zrhon,ztmassfl_s,         &
-!$OMP            jt,ddt_turb_qnc, ddt_turb_qni, ddt_turb_qs, ddt_turb_qns, ut_sso, vt_sso)  ICON_OMP_GUIDED_SCHEDULE
+!$OMP            jt,ddt_turb_qnc, ddt_turb_qni, ddt_turb_qs, ddt_turb_qns, ut_sso, vt_sso, edr_ptr, len_scale_ptr)  ICON_OMP_GUIDED_SCHEDULE
 
   DO jb = i_startblk, i_endblk
 
@@ -301,6 +304,13 @@ CONTAINS
         !At the zero-level (nlevp1), there should be no transport of TVS at all!
       ENDIF
 
+      IF (ldiagnose_tke(jg)) THEN
+        edr_ptr       => prm_diag%edr(:,:,jb)
+        len_scale_ptr => prm_diag%tur_len_scale(:,:,jb)
+      ELSE
+        edr_ptr       => NULL()
+        len_scale_ptr => NULL()
+      ENDIF
 
 
       !KF tendencies  have to be set to zero
@@ -628,7 +638,9 @@ CONTAINS
         &  v_tens=prm_nwp_tend%ddt_v_turb(:,:,jb),                                    & !inout
         &  t_tens=prm_nwp_tend%ddt_temp_turb(:,:,jb),                                 & !inout
 !
-        &  zvari=zvari(:,:,:)                                                         & !out
+        &  zvari=zvari(:,:,:),                                                        & !out
+        &  edr=edr_ptr,                                                               & !out
+        &  tur_len_scale=len_scale_ptr                                                & !out
         &                                                                             ) !end of 'turbdiff' call
 
       !Notes:
