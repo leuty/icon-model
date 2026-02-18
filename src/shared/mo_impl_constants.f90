@@ -479,6 +479,7 @@ MODULE mo_impl_constants
   INTEGER, PARAMETER :: MODE_COMBINED    = 3
   INTEGER, PARAMETER :: MODE_COSMO       = 4
   INTEGER, PARAMETER :: MODE_IAU         = 5
+  INTEGER, PARAMETER :: MODE_IAU_OLD     = 6
   INTEGER, PARAMETER :: MODE_ICONVREMAP  = 7
 
   !----- Ocean init ICON operation modes (restart excluded) -----
