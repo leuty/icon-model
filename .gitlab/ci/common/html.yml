@@ -62,6 +62,16 @@ include:
       ) 2>&1
       icon_ci_log_section_end
       icon_ci_log_info_msg "${ICON_CI_COMMON_HTML_ARTIFACT_URL}"
+      cat <<_EOF >"${CI_PROJECT_DIR}/annotation.json"
+      {
+        "section": [{
+          "external_link": {
+              "label": "Documentation preview",
+              "url": "${ICON_CI_COMMON_HTML_ARTIFACT_URL}"
+          }
+        }]
+      }
+      _EOF
   tags:
     - sphinx
   cache:
@@ -72,10 +82,12 @@ include:
   artifacts:
     paths:
       - ${ICON_CI_COMMON_HTML_OUTPUT_REL_PATH}
+    reports:
+      annotations: annotation.json
     expire_in: 1 day
   rules:
     changes:
       - doc/www/**/*
-      - scripts/experiments/**/*
       - scripts/buildbot_scripts/**/*
       - scripts/ci_scripts/generate_test_list.py
+      - scripts/experiments/**/*

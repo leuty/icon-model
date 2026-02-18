@@ -354,6 +354,9 @@ doc:html:check:
         $CI_PIPELINE_SOURCE == "merge_request_event" &&
           $CI_MERGE_REQUEST_PROJECT_PATH == "icon/icon-nwp"
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - .gitlab/ci/common/html.yml
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes: !reference [.common:html, rules, changes]
 
 doc:html:publish:pages:
@@ -368,6 +371,9 @@ doc:html:publish:pages:
       when: never
     - if: $CI_PIPELINE_SOURCE == "web"
       when: manual
+    - if: $CI_PIPELINE_SOURCE == "push"
+      changes:
+        - .gitlab/ci/common/html.yml
     - if: $CI_PIPELINE_SOURCE == "push"
       changes: !reference [.common:html, rules, changes]
   manual_confirmation: This job updates the GitLab Pages of the current project
