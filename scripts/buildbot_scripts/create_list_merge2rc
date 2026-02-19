@@ -353,6 +353,13 @@ $addexp "checksuite.ocean_internal/gpu/exp.ocean_omip_R2B4_V0_GM0"  --builders "
 $addexp "checksuite.ocean_internal/gpu/exp.ocean_omip_R2B4_V1_GM0"  --builders "${LEVANTE_NVHPC_CPU_BUILDERS} ${LEVANTE_NVHPC_GPU_BUILDERS}" --list $listname --runflags "cpu_time=00:10:00"
 $addexp "checksuite.ocean_internal/gpu/exp.ocean_omip_R2B4_V0_GM0_icono"  --builders "${LEVANTE_NVHPC_CPU_BUILDERS} ${LEVANTE_NVHPC_GPU_BUILDERS}" --list $listname --runflags "cpu_time=00:10:00"
 
+
+# Since this list is also used by the MPIM nightly buildbot-CI testing and we've
+# put the gpu validation into gitlab-CI, there is no need to still run here.
+# it needs to stay for regular buildbot-ci testing like it is done in NWP at the
+# moment.
+if [[ ! "${BB_NAME-:__unknown__}" == *nightly* ]]; then
+
 # levante_gpu_validation for ocean tests (zlevel and zstar)
 $addexp "checksuite.ocean_internal/gpu/exp.ocean_omip_R2B4_V0_GM0_cpurun.run" \
    --builders "levante_gpu_validation" --runflags "cpu_time=00:10:00" --list $listname
@@ -387,7 +394,7 @@ $addexp "checksuite.ocean_internal/gpu/exp.ocean_omip_R2B4_V1_GM0_comparison.run
 "checksuite.ocean_internal/gpu/exp.ocean_omip_R2B4_V1_GM0_gpurun.run "\
 "checksuite.ocean_internal/gpu/exp.ocean_omip_R2B4_V1_GM0_gpurun_lvec.run" \
    --builders "levante_gpu_validation" --list $listname
-
+fi
 
 # check bundled externals
 $addexp "checksuite.infrastructure/checkExternals/exp.check_externals_LEVANTE.run"     --builders "${LEVANTE_NVHPC_CPU_BUILDERS}" --list ${listname}

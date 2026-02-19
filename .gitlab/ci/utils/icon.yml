@@ -95,6 +95,8 @@
 
         icon_ci_log_section_start "Configuring with '${ICON_CI_UTILS_ICON_CONFIG_REL_PATH}'"
         time (
+          eval "set dummy ${ICON_CI_UTILS_ICON_CONFIG_EXTRA_ARGS-}; shift"
+
           set -x
 
           mkdir -p "${ICON_CI_UTILS_ICON_BUILD_PATH}"
@@ -110,7 +112,7 @@
             --disable-quincy --disable-ragnarok --disable-rte-rrtmgp --disable-rttov \
             --disable-silent-rules --disable-upatmo --disable-waves --disable-yaxt \
             --enable-bundled-python=mtime --enable-mpi --enable-separate-mods \
-            ${ICON_CI_UTILS_ICON_CONFIG_EXTRA_ARGS-}
+            "$@"
         ) 2>&1
         icon_ci_log_section_end
       )
