@@ -103,10 +103,6 @@ ln -sf $EXTPARDIR/icon_extpar_0027_R03B08_N02_20150805_tiles.nc extpar_iconR3B08
  ln -sf $INDATADIR/iefff2016071021-0130R.grb fg_R03B08_DOM02.grb
 
 
-# files needed for radiation
-ln -sf ${basedir}/data/ECHAM6_CldOptProps.nc rrtm_cldopt.nc
-ln -sf ${basedir}/data/rrtmg_lw.nc .
-
 # map file for analysis variable names
 ln -sf ${basedir}/run/ana_varnames_map_file.txt .
 
@@ -218,7 +214,7 @@ cat > NAMELIST_nwptest << EOF
 &nwp_phy_nml
  inwp_gscp                    = 1
  inwp_convection              = 1
- inwp_radiation               = 1
+ inwp_radiation               = 4
  inwp_cldcover                = 1
  inwp_turb                    = 1
  inwp_satad                   = 1
@@ -235,7 +231,6 @@ cat > NAMELIST_nwptest << EOF
  dt_conv                      = 360., 180.,
  dt_sso                       = 720.,
  dt_gwd                       = 720.,
- cldopt_filename              = 'rrtm_cldopt.nc'
 /
 &nwp_tuning_nml
  itune_albedo   = 1     ! somewhat reduced albedo (w.r.t. MODIS data) over Sahara
@@ -279,6 +274,7 @@ cat > NAMELIST_nwptest << EOF
  vmr_o2                       = 0.20946
  vmr_cfc11                    = 240.e-12
  vmr_cfc12                    = 532.e-12
+ ecrad_data_path              = '${basedir}/externals/ecrad/data'
 /
 &nonhydrostatic_nml
  iadv_rhotheta                = 2

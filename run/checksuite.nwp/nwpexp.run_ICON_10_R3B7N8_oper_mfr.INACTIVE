@@ -65,11 +65,6 @@ ln -sf $EXTPDIR/icon_extpar_0027_R03B08_N02_20161124_tiles.nc extpar_iconR3B08_D
  ln -sf $INDIR/igfff2017070221-0130R.grb fg_R03B07_DOM01.grb
  ln -sf $INDIR/iefff2017070221-0130R.grb fg_R03B08_DOM02.grb
 
-# files needed for radiation
-cp $ICONDIR/data/ECHAM6_CldOptProps.nc rrtm_cldopt.nc
-cp $ICONDIR/data/rrtmg_lw.nc .
-
-
 ln -sf ${icon_data_poolFolder}/externals/rttov/const/rt12coeffs_rttov7pred54L/rtcoef_msg_2_seviri.dat .
 ln -sf ${icon_data_poolFolder}/externals/rttov/const/rt12coeffs_rttov7pred54L/sccldcoef_msg_2_seviri.dat .
 
@@ -239,7 +234,7 @@ cat > ${atmo_namelist} << EOF
 &nwp_phy_nml
  inwp_gscp         = 1
  inwp_convection   = 1
- inwp_radiation    = 1
+ inwp_radiation    = 4
  inwp_cldcover     = 1
  inwp_turb         = 1
  inwp_satad        = 1
@@ -252,8 +247,6 @@ cat > ${atmo_namelist} << EOF
  itype_z0          = 2
  icpl_aero_conv    = 1
  icpl_aero_gscp    = 1
- lrtm_filename     = 'rrtmg_lw.nc'
- cldopt_filename   = 'rrtm_cldopt.nc'
  dt_rad  = 1440
  dt_conv = 360,180
  dt_sso  = 720
@@ -305,6 +298,7 @@ cat > ${atmo_namelist} << EOF
   vmr_o2      = 0.20946
   vmr_cfc11   = 240.e-12
   vmr_cfc12   = 532.e-12
+  ecrad_data_path = '${basedir}/externals/ecrad/data'
 /
 &nonhydrostatic_nml
   iadv_rhotheta   = 2

@@ -101,7 +101,7 @@ MODULE mo_ecrad
   PUBLIC :: nweight_vis_ecrad, iband_vis_ecrad, weight_vis_ecrad
   PUBLIC :: nweight_par_ecrad, iband_par_ecrad, weight_par_ecrad
   ! Spectral Solar Insolation
-  PUBLIC :: ecrad_ssi_default, ecrad_ssi_coddington
+  PUBLIC :: ecrad_ssi_default, ecrad_ssi_coddington, ecrad_ssi_amip
   ! Generalizes hydrometor indices
   PUBLIC :: ecrad_hyd_list
   PUBLIC :: ecrad_iqc, ecrad_iqi, ecrad_iqr, ecrad_iqs, ecrad_iqg
@@ -144,6 +144,10 @@ MODULE mo_ecrad
   REAL(wp) :: ecrad_ssi_default(14) = (/ 12.045647_wp, 20.257584_wp, 23.604472_wp , 22.309308_wp , 55.332985_wp , &
     &                                   102.388219_wp, 24.165380_wp, 343.917494_wp, 217.035256_wp, 345.359642_wp, &
     &                                   128.811472_wp, 49.887519_wp, 3.063681_wp  , 12.821340_wp /)
+  ! AMIP-type CMIP5 simulation (average from 1979-1988), sum of 14 bands is: 1361.371
+  REAL(wp) :: ecrad_ssi_amip(14) =  (/ 11.95053_wp, 20.14766_wp, 23.40394_wp, 22.09458_wp, 55.41401_wp, &
+    &                                 102.5134_wp,  24.69814_wp, 347.5362_wp, 217.2925_wp, 343.4221_wp, &
+    &                                 129.403_wp ,  47.14264_wp, 3.172126_wp, 13.18075_wp /)
   ! New measurements of SSI from Coddington et al. 2016
   REAL(wp) :: ecrad_ssi_coddington(14) = (/ 12.045647_wp  , 20.257584_wp  , 23.604472_wp  , 23.37569292_wp, 57.56843759_wp, &
                                             105.6339255_wp, 24.72360028_wp, 345.7746485_wp, 213.5909065_wp, 344.8864993_wp, &

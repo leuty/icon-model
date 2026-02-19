@@ -82,8 +82,6 @@ add_required_file "${grids_folder}/${extpar_filename}" ./
 
 # files needed for radiation
 add_link_file ${basedir}/externals/ecrad/data ecrad_data
-add_required_file ${basedir}/data/ECHAM6_CldOptProps.nc rrtm_cldopt.nc
-add_required_file ${basedir}/data/rrtmg_lw.nc .
 
 # Dictionary for the mapping: DWD GRIB2 names <-> ICON internal names
 add_required_file ${basedir}/run/ana_varnames_map_file.txt map_file.ana
@@ -334,8 +332,6 @@ cat > ${basedir}/run/${atmo_namelist} << EOF
  icapdcycl                   =                          3         ! apply CAPE modification to improve diurnalcycle over tropical land
  icpl_aero_conv              =                          1         ! coupling between autoconversion and Tegen aerosol climatology
  icpl_aero_gscp              =                          0         ! coupling between autoconversion and Tegen aerosol climatology
- lrtm_filename               =                'rrtmg_lw.nc'       ! longwave absorption coefficients for RRTM_LW
- cldopt_filename             =             'rrtm_cldopt.nc'       ! RRTM cloud optical properties
  mu_rain                     =                         0.5        ! shap parameter in gamma distribution for rain
  rain_n0_factor              =                         0.1        ! tuning factor for intercept parameter of raindrop size distr.
  dt_rad                      =                         10.        ! time step for radiation in s

@@ -104,6 +104,12 @@ due to a faster Fortran module generation) @<:@default=no@:>@])],
 m4_divert_once([HELP_ENABLE], [[
 Model Features:]])
 
+AC_ARG_ENABLE([deprecated],
+  [AS_HELP_STRING([--enable-deprecated],
+     [enable usage of deprecated features @<:@default=no@:>@])],
+  [AS_IF([test x"$enableval" != xno], [enable_deprecated=yes])],
+  [enable_deprecated=no])
+
 AC_ARG_ENABLE([atmo],
   [AS_HELP_STRING([--enable-atmo],
      [enable the atmosphere component of ICON @<:@default=yes@:>@])],
@@ -1053,6 +1059,9 @@ AS_VAR_IF([icon_cv_have_quad_precision], [yes],
   [AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}__HAVE_QUAD_PRECISION"])])
 
 AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}__ICON__"])
+
+AS_VAR_IF([enable_deprecated], [yes],
+  [AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}__DEPRECATED"])])
 
 AS_VAR_IF([enable_atmo], [no],
   [AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}__NO_ICON_ATMO__"])])

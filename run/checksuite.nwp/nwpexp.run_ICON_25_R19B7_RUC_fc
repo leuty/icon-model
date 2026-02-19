@@ -311,7 +311,6 @@ synradar_meta%Tmeltbegin_g = 270.16    ! default 263.160
  timers_level          = 5                   ! can be increased up to 10 for detailed timer output
 /
 &nwp_phy_nml
- cldopt_filename    = 'rrtm_cldopt.nc'
  dt_conv   = 120.
  dt_gwd    = 120.  ! Previous Hindcast 360. Probably it does not matter because inwp_gwd  =0
  dt_rad    = 720.

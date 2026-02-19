@@ -317,7 +317,6 @@ cat > ${atmo_namelist} << EOF
  timers_level          = 5                   ! can be increased up to 10 for detailed timer output
 /
 &nwp_phy_nml
- cldopt_filename    = 'rrtm_cldopt.nc'
  dt_conv   = 120.
  dt_gwd    = 120.  ! Previous Hindcast 360. Probably it does not matter because inwp_gwd  =0
  dt_rad    = 720.
@@ -341,7 +340,6 @@ cat > ${atmo_namelist} << EOF
  itype_z0        = 2
  latm_above_top  = .true.
  ldetrain_conv_prec = .true.
- lrtm_filename      = 'rrtmg_lw.nc'
   mu_rain          = 0.5
  ithermo_water    = 1
  rain_n0_factor   = 0.1

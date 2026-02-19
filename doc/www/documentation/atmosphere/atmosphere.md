@@ -102,7 +102,7 @@ _to be added_
 
 | Parameterization                     | References    | Namelist Parameter |
 | :-----------                         | :------------ | :------------      |
-| **Radiation**                        | RRTM ({term}`Mlawer et al. 1997`, {term}`Barker et al. 2003`), ecRad ({term}`Hogan & Bozzo 2018`) | {term}`inwp_radiation` |
+| **Radiation**                        | ecRad ({term}`Hogan & Bozzo 2018`) | {term}`inwp_radiation` |
 | **Non-Orographic Gravity Wave Drag** | {term}`Orr et al. 2010` | {term}`inwp_gwd` |
 | **Sub-Grid Scale Orographic Drag**   | {term}`Lott & Miller 1997` | {term}`inwp_sso` |
 | **Cloud Cover**                      | - | {term}`inwp_cldcover` |
@@ -169,7 +169,7 @@ ldeepatmo
   (`dynamics_nml`) Switch for deep-atmosphere modification of non-hydrostatic atmosphere. Specific settings can be found in `&upatmo_nml`.
 
 inwp_radiation
-  (`&nwp_phy_nml`) Radiation parameterization. 1: RRTM radiation, 4:{material-regular}`settings;1em;pst-color-secondary` ecRad radiation
+  (`&nwp_phy_nml`) Radiation parameterization. 4:{material-regular}`settings;1em;pst-color-secondary` ecRad radiation
 
 inwp_gwd
   (`&nwp_phy_nml`) 1:{material-regular}`settings;1em;pst-color-secondary` Orr et al. scheme

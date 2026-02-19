@@ -242,7 +242,7 @@ cat > NAMELIST_${EXPNAME} << EOF
  inwp_gscp       = 4 !
  icalc_reff = 4 ! use effective radius calculation consitent between micro and cloud, use same as inwp_gscp
  inwp_convection = 0 ! 1:Tiedtke/Bechtold 0:apdf
- inwp_radiation  = 1 ! 1:RRTM radiation
+ inwp_radiation  = 4 ! 4:ecRad radiation
  inwp_cldcover   = 1 ! 3: clouds from COSMO SGS cloud scheme 0:apdf
  inwp_turb       = 1 ! 1: TKE diffusion and transfer
  inwp_satad      = 1 !

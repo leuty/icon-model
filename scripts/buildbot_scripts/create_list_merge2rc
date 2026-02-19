@@ -118,8 +118,6 @@ $addexp "checksuite.icon-dev/check.atm_bubble_land_test"   --builders "${LEVANTE
 #
 #---------------------------------------------------------------------------------------------------------
 # Other tests
-# limited area runs
-$addexp "checksuite.les/exp.ac3_les_20210211.run" --builders "levante_intel_hybrid" --list $listname
 # wave model tests, including coupled atmo-wave and ocen-wave tests
 $addexp "checksuite.nwp/nwpexp.run_ICON_18_R2B4_waves_adv_nophys"         --builders "levante_intel_hybrid levante_nag dwd_nec_hybrid"  --list $listname
 $addexp "checksuite.nwp/nwpexp.run_ICON_21_R2B4_waves_standalone_restart" --builders "levante_intel_hybrid dwd_nec_hybrid"  --list $listname
@@ -514,6 +512,13 @@ $addexp "checksuite.icon-dev/check.aes_amip_test" --builders "${LEVANTE_SP_BUILD
 # End of Single-precision section
 ###
 
+###
+# Deprecated code testing
+
+$addexp "deprecated/exp.test_deprecated_RRTM" --runflags "cpu_time=00:30:00 queue=shared,compute memory=32G ntasks=32"  --builders levante_gcc --list $listname
+
+# End of Deprecated code testing section
+###
 
 #lets see the list
 ./lslist $listname

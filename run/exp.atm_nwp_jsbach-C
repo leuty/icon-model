@@ -269,7 +269,7 @@ cat >> ${basedir}/run/${atmo_namelist} << EOF
 &nwp_phy_nml
  inwp_gscp         = 1
  inwp_convection   = 1
- inwp_radiation    = 1 ! 1 - rttov, 4 - ECRad
+ inwp_radiation    = 4 ! 4 - ECRad
  inwp_cldcover     = 1
  inwp_turb         = 6 ! 6: VDIFF
  inwp_satad        = 1
@@ -313,6 +313,7 @@ cat >> ${basedir}/run/${atmo_namelist} << EOF
  irad_o3             = 79
  irad_co2            = ${irad_co2}
  vmr_co2             = ${vmr_co2}
+ ecrad_data_path     = '${basedir}/externals/ecrad/data'
 /
 
 &ccycle_nml

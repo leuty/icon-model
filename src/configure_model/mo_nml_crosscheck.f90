@@ -398,13 +398,29 @@ CONTAINS
 
         IF ( (atm_phy_nwp_config(jg)%inwp_radiation > 0) )  THEN
 
+          IF ( atm_phy_nwp_config(jg)%inwp_radiation == 1) THEN
+#ifdef __DEPRECATED
+            CALL message(routine,'Warning: RRTM radiation (inwp_radiation=1) is deprecated!')
+#else
+            CALL finish(routine,'RRTM radiation (inwp_radiation=1) is deprecated! &
+              &                  Activate --D__DEPRECATED to use it anyways.')
+#endif
+          ENDIF
+
           SELECT CASE (irad_o3)
           CASE (-1) ! ok
             CALL message(routine,'Externally specified ozone')
           CASE (0) ! ok
             CALL message(routine,'radiation is used without ozone')
-          CASE (2,4,5,6,7,9,11,79,97) ! ok
+          CASE (2,4,5,7,9,11,79,97) ! ok
             CALL message(routine,'radiation is used with ozone')
+          CASE (6)
+#ifdef __DEPRECATED
+            CALL message(routine,'Warning: GME ozone (irad_o3=6) is deprecated!')
+#else
+            CALL finish(routine,'GME ozone (irad_o3=6) is deprecated! &
+              &                  Activate --D__DEPRECATED to use it anyways.')
+#endif
           CASE (10) ! ok
             CALL message(routine,'radiation is used with ozone calculated from ART')
             IF ( .NOT. lart ) THEN

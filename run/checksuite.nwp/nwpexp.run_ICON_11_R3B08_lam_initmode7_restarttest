@@ -74,13 +74,6 @@ ln -sf ${EXTPARDIR}/lam_test_DOM01.extpar.nc lam_test_DOM01.extpar.nc
 # init
 ln -sf $INIDIR/init_DOM02_ML_20170112T000000Z.nc init_DOM02_ML_20170112T000000Z.nc
 
-
-# files needed for radiation
-ln -sf ${ICONDIR}/data/ECHAM6_CldOptProps.nc rrtm_cldopt.nc
-ln -sf ${ICONDIR}/data/rrtmg_lw.nc .
-
-
-
 # Dictionary for the mapping: GRIB2/Netcdf input names <-> ICON internal names
 ln -s ${GRIDDIR}/map_file.latbc .
 
@@ -337,7 +330,7 @@ cat > NAMELIST_NWP << EOF
  inwp_gscp                   =                          2         ! cloud microphysics and precipitation
  inwp_convection             =                          1         ! convection
  lshallowconv_only           =                      .TRUE.        ! only shallow convection
- inwp_radiation              =                          1         ! radiation
+ inwp_radiation              =                          4         ! radiation
  inwp_cldcover               =                          1         ! cloud cover scheme for radiation
  inwp_turb                   =                          1         ! vertical diffusion and transfer
  inwp_satad                  =                          1         ! saturation adjustment
@@ -351,8 +344,6 @@ cat > NAMELIST_NWP << EOF
  icapdcycl                   =                          3         ! apply CAPE modification to improve diurnalcycle over tropical land
  icpl_aero_conv              =                          1         ! coupling between autoconversion and Tegen aerosol climatology
  icpl_aero_gscp              =                          1         ! coupling between autoconversion and Tegen aerosol climatology
- lrtm_filename               =                'rrtmg_lw.nc'       ! longwave absorption coefficients for RRTM_LW
- cldopt_filename             =             'rrtm_cldopt.nc'       ! RRTM cloud optical properties
  dt_rad                      =                         720.       ! time step for radiation in s
  dt_conv                     =                 120.,90.,90.       ! time step for convection in s (domain specific)
  dt_sso                      =               120.,360.,360.       ! time step for SSO parameterization
@@ -416,6 +407,7 @@ cat > NAMELIST_NWP << EOF
  vmr_o2                      =                     0.20946
  vmr_cfc11                   =                    240.e-12
  vmr_cfc12                   =                    532.e-12
+ ecrad_data_path             = '${basedir}/externals/ecrad/data'
 /
 
 ! sleve_nml: vertical level specification -------------------------------------

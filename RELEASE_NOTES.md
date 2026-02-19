@@ -35,6 +35,7 @@
 - cleanup:
   - remove init mode iau old (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1962)
   - EMVORADO: reduce memory usage of emvorado and remove MODE_IAU_OLD (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1971)
+  - Put RRTM radiation and associated ozone option (irad_o3 = 6) into deprecated mode (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1897)
 
 ### ICON-Ocean
 
@@ -157,6 +158,7 @@
 - Add contributing guidelines for Ragnarok (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1081)
 - Add shallow water example to supported configurations (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1190)
 - Fixing a CPU/GPU divergence by using a comparison with an epsilon, instead of 0._wp (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1896)
+- Add deprecated features section to the documentation (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1897)
 
 # Release notes for icon-2025.10-1
 
