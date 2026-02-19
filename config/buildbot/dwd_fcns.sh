@@ -1,7 +1,7 @@
 # ICON
 #
 # ---------------------------------------------------------------
-# Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+# Copyright (C) 2004-2026, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 # Contact information: icon-model.org
 #
 # See AUTHORS.TXT for a list of authors
@@ -61,6 +61,14 @@ vector:
 	cd ${BUILD_DIR_VE} && ${ICON_DIR}/config/dwd/rcl.VE.bb-${DWD_BUILDER}
 	set -o pipefail; cd ${BUILD_DIR_VE} && \$(MAKE) |& tee make.log
 _EOF
+
+  # Debug info
+
+  (
+    set -x
+    readelf -d "${BUILD_DIR_VH}/bin/icon"
+    readelf -d "${BUILD_DIR_VE}/bin/icon"
+  )
 
   # Post-processing
 

@@ -1,3 +1,63 @@
+# Release notes for icon-2025.10-2
+
+### ICON-Atmo
+
+- Improved consistency of surface roughness, drag and momentum flux over ocean/sea ice in VDIFF
+- Added viscous term in computation of surface roughness over ocean in VDIFF
+- Implement a new version of the Mironov scheme that accounts for the thermal effects of snow on seaice
+
+#### NWP Physics
+
+- Correction of the roughness length computation over ocean in TMX
+- Add multiscale stochastic pattern generator and iSPPT
+- Bugfixes for restart issues with NWP sea ice
+- Added diagnostics: pressure at convective cloud top/base
+- Added C-cycle flags for C4MIP in XPP configuration
+
+### ICON-Ocean
+
+- Vectorization of HAMOCC subroutines
+- Use consistent freezing temperature for sea ice in coupled XPP and AES
+- Bugfixes for extended N-cycle in HAMOCC
+
+### Soil and Surface
+
+#### Climate: ICON-Land
+
+- QUINCY development
+  - Enable anthropogenic land cover change with QUINCY biogeochemistry
+  - Updated the Jena-Soil-Model for use with QUINCY as an alternative to the simple soil-biogeochemistry model
+  - Improve paramaterization of vegetation phosphorus (P) uptake to avoid crops and natural vegetation dying by P limitation
+  - Improve the calculation of plant water stress with frozen soil
+  - Minor refactoring: unification of namelist names
+  - Correction of aggregation of area-dependent variables in the QUINCY model
+  - Update default PI control values for atmospheric 13CO2 and 14CO2 composition according to CMIP7 forcing (Graven, H. (2025))
+  - Revisit QUINCY output ensuring that all output variables required for diagnostics and global budget calculations are present
+  - Update nitrogen cycle parameters
+  - Add script to generate CMIP7 based deposition data
+  - Refactor vegetation memory structure to reduce code complexity
+  - Assure restart identity
+- Refactoring of anthropogenic land cover change process
+- Hydrology: Added ford inline documentation
+- Land initial files
+  - Major update: 12 and 13 tile setups for jsbach and quincy
+  - Fix for the skin layer conductivity
+  - Estimation of initial soil moisture from vegetation fraction
+  - Automized HD parameter file generation also for high resolution grids (internal HD)
+- Land initialization: Initial soil moisture is turned to ice at temperatures below zero degrees.
+- Revised 'basic' output list
+- Anthropogenic emission files: Created anthropogenic emission data including aviation sources from the CMIP7 dataset
+- Update BSD-3C licence year to 2026
+- More flexible handling of the number of PFTs
+
+### Infrastructure
+
+#### Building
+
+- Fix building of the YAC Python interface when the Python interface of MTIME is disabled
+- Consistently install ICON and the relevant bundled packages to the specified installation prefixes and subdirectories
+
+
 # Release notes for icon-2025.10-1
 
 ### ICON-Atmo

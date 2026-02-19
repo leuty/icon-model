@@ -1,7 +1,7 @@
 # ICON
 #
 # ------------------------------------------
-# Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+# Copyright (C) 2004-2026, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 # Contact information: icon-model.org
 # See AUTHORS.TXT for a list of authors
 # See LICENSES/ for license information
@@ -129,6 +129,7 @@ ldynamics=.TRUE.    # .TRUE.: on       , .FALSE.: off
 ltransport=.TRUE.   # .TRUE.: on       , .FALSE.: off
 iforcing=3          #     3 : NWP
 run_jsbach=yes      # yes,true: on, else: off
+npft=11             # number of plant functional types
 read_cpools=false   # read initial carbon pools from file (ATTENTION: needs to be set to false
                     #   manually for the next restart!)
 cpools_file=""      # with read_cpools=true: file containig the carbon pools to be read
@@ -340,6 +341,7 @@ jsbach_namelist=NAMELIST_${EXPNAME}_lnd # also used in exec.iconrun
 cat > ${basedir}/run/${jsbach_namelist} << EOF
 &jsb_model_nml
   usecase                 = 'jsbach_pfts'
+  npft                    = ${npft}
   use_lakes               = .TRUE.
   fract_filename          = 'bc_land_frac.nc'
   output_tiles            = ${output_tiles}
@@ -427,7 +429,7 @@ add_link_file $grid_dir/initial_conditions/r0100/ifs2icon_1979010100_0049_R02B04
 jsb_dir="${grid_dir}/land/r0101/"
 add_link_file $jsb_dir/ic_land_soil.nc              ic_land_soil.nc
 add_link_file $jsb_dir/bc_land_sso.nc               bc_land_sso.nc
-add_link_file $jsb_dir/bc_land_frac_11pfts_1976.nc  bc_land_frac.nc
+add_link_file $jsb_dir/bc_land_frac_${npft}pfts_1976.nc  bc_land_frac.nc
 add_link_file $jsb_dir/bc_land_phys.nc              bc_land_phys.nc
 add_link_file $jsb_dir/bc_land_soil.nc              bc_land_soil.nc
 

@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2026, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -264,14 +264,17 @@ CONTAINS
   !! Compute wind stress over each surface type
   !!
   SUBROUTINE wind_stress( kbdim, ksfc_type,                     &! in
+                        & idx_lnd, idx_wtr, idx_ice,            &! in
                         & psteplen,                             &! in
                         & loidx, is, jcs,                       &! in
                         & pfrc, pcfm_tile, pfac_sfc,            &! in
-                        & pu_rtpfac1, pv_rtpfac1,               &! in
+                        & bb_tile_u, bb_tile_v,                 &! in <- tile-specific RH
                         & pocu, pocv,                           &! in
+                        & piceu, picev,                         &! in
                         & pu_stress_gbm,  pv_stress_gbm,        &! out
                         & pu_stress_tile, pv_stress_tile        )! out
 
+    INTEGER, INTENT(IN)    :: idx_wtr, idx_ice, idx_lnd
     REAL(wp),INTENT(IN)    :: psteplen
     INTEGER, INTENT(IN)    :: kbdim, ksfc_type, jcs
 
@@ -281,10 +284,12 @@ CONTAINS
     REAL(wp),INTENT(IN)    :: pfrc            (:,:) ! (kbdim,ksfc_type)
     REAL(wp),INTENT(IN)    :: pcfm_tile       (:,:) ! (kbdim,ksfc_type)
     REAL(wp),INTENT(IN)    :: pfac_sfc        (:)   ! (kbdim)
-    REAL(wp),INTENT(IN)    :: pu_rtpfac1      (:)   ! (kbdim)
-    REAL(wp),INTENT(IN)    :: pv_rtpfac1      (:)   ! (kbdim)
+    REAL(wp),INTENT(IN)    :: bb_tile_u       (:,:) ! (kbdim,ksfc_type)
+    REAL(wp),INTENT(IN)    :: bb_tile_v       (:,:) ! (kbdim,ksfc_type)
     REAL(wp),INTENT(IN)    :: pocu            (:)   ! (kbdim)
     REAL(wp),INTENT(IN)    :: pocv            (:)   ! (kbdim)
+    REAL(wp),INTENT(IN)    :: piceu           (:)   ! (kbdim)
+    REAL(wp),INTENT(IN)    :: picev           (:)   ! (kbdim)
     REAL(wp),INTENT(OUT)   :: pu_stress_gbm   (:)   ! (kbdim)
     REAL(wp),INTENT(OUT)   :: pv_stress_gbm   (:)   ! (kbdim)
     REAL(wp),INTENT(OUT)   :: pu_stress_tile  (:,:) ! (kbdim,ksfc_type)
@@ -292,9 +297,8 @@ CONTAINS
 
     INTEGER  :: jsfc
     REAL(wp) :: zconst
+
     ! Local variables
-
-
     INTEGER  :: jls, jl, js
 
      zconst = 1._wp/psteplen
@@ -308,8 +312,8 @@ CONTAINS
 
     !$ACC DATA PRESENT(pu_stress_tile, pv_stress_tile, pfac_sfc, pfrc) &
     !$ACC   PRESENT(pocu, pocv) &
-    !$ACC   PRESENT(pu_stress_gbm, pv_stress_gbm, pcfm_tile, pu_rtpfac1) &
-    !$ACC   PRESENT(pv_rtpfac1) &
+    !$ACC   PRESENT(pu_stress_gbm, pv_stress_gbm, pcfm_tile, bb_tile_u) &
+    !$ACC   PRESENT(bb_tile_v) &
     !$ACC   PRESENT(is, loidx) ASYNC(1)
 
     !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
@@ -338,10 +342,11 @@ CONTAINS
           ! set index
           js=loidx(jls,jsfc)
 
-          ! TODO
-          ! Note: for fractional land-sea mask, this will put the ocean current into the land tile!?????
-          pu_stress_tile(js,jsfc) = zconst*pfac_sfc(js) *pcfm_tile(js,jsfc)*(pu_rtpfac1(js) - pocu(js)*tpfac2)
-          pv_stress_tile(js,jsfc) = zconst*pfac_sfc(js) *pcfm_tile(js,jsfc)*(pv_rtpfac1(js) - pocv(js)*tpfac2)
+          ! Compute tile stress (note: keep same scaling as before)
+          ! bb_tile already contains: bb - surface velocity
+          pu_stress_tile(js,jsfc) = zconst * pfac_sfc(js) * pcfm_tile(js,jsfc) * bb_tile_u(js,jsfc)
+          pv_stress_tile(js,jsfc) = zconst * pfac_sfc(js) * pcfm_tile(js,jsfc) * bb_tile_v(js,jsfc)
+
        END DO
     END DO
     !$ACC END PARALLEL
@@ -367,14 +372,15 @@ CONTAINS
   !!                      temperature in 2m, dew point temperature in 2m
   !!
   SUBROUTINE nsurf_diag( jcs, jce, kbdim, ksfc_type,   &! in
-                       & idx_lnd,                         &! in
+                       & idx_lnd, idx_wtr, idx_ice,       &! in
                        & pfrc,                            &! in
                        & pqm1,                            &! in humidity
                        & ptm1,                            &
                        & papm1,     paphm1,               &
                        & pxm1,                            &
                        & pum1,      pvm1,                 &
-                       & pocu,      pocv,                 &
+                       & pocu,      pocv,                 &! in ocean velocities
+                       & piceu,     picev,                &! in sea ice velocities
                        & pzf,                             &! in height of lowermost full level (m)
                        & pzs,                             &! in height of surface (m)
                        & pcptgz,                          &! in dry static energy
@@ -400,7 +406,7 @@ CONTAINS
                        & pvas_tile                        )! out meridional wind in 10m
 
     INTEGER, INTENT(IN) :: jcs, jce, kbdim, ksfc_type
-    INTEGER, INTENT(IN) :: idx_lnd
+    INTEGER, INTENT(IN) :: idx_lnd, idx_wtr, idx_ice
 
     REAL(wp),INTENT(IN), DIMENSION(:,:) :: &                !< DIMENSION(kbdim,ksfc_type)
                                 pfrc                        !< fraction of the grid box occupied by
@@ -417,7 +423,8 @@ CONTAINS
     REAL(wp), INTENT(in)     :: ptm1(:), papm1(:), pxm1(:)  !< (kbdim)
     REAL(wp), INTENT(in)     :: pum1(:), pvm1(:), paphm1(:) !< (kbdim) =paphm1(kbdim, klevp1)
     REAL(wp), INTENT(in)     :: pocu(:), pocv(:)            !< (kbdim)
-    REAL(wp), INTENT(out)    :: psfcWind_gbm(:)             !< (kbdim)
+    REAL(wp), INTENT(in)     :: piceu(:), picev(:)          !< (kbdim)
+    REAL(wp), INTENT(out)    :: psfcWind_gbm(:)             !< (kbdimi)
     REAL(wp), INTENT(out)    :: ptas_gbm(:)                 !< (kbdim)
     REAL(wp), INTENT(out)    :: pdew2_gbm(:)                !< (kbdim)
     REAL(wp), INTENT(out)    :: pqv2m_gbm(:)                !< (kbdim)
@@ -447,7 +454,7 @@ CONTAINS
 
     !$ACC DATA PRESENT(pfrc, pqm1, pzf, pzs, pcptgz, pcpt_tile, pbn_tile) &
     !$ACC   PRESENT(pbhn_tile, pbh_tile, pbm_tile, pri_tile, ptm1, papm1) &
-    !$ACC   PRESENT(pxm1, pum1, pvm1, paphm1, pocu, pocv, ptasmax) &
+    !$ACC   PRESENT(pxm1, pum1, pvm1, paphm1, pocu, pocv, piceu, picev, ptasmax) &
     !$ACC   PRESENT(ptasmin) &
     !$ACC   PRESENT(psfcWind_gbm, psfcWind_tile, ptas_gbm, ptas_tile) &
     !$ACC   PRESENT(pdew2_gbm, pdew2_tile, puas_gbm, puas_tile, pvas_gbm) &
@@ -528,7 +535,7 @@ CONTAINS
       ENDDO
       !$ACC END PARALLEL
 
-      CALL lookup_ua_list_spline('nsurf_diag(2)', jcs, kbdim, is(jsfc), loidx(:,jsfc), ptas_tile(:,jsfc), ua)
+      CALL lookup_ua_list_spline('nsurf_diag(2)', jcs, jce, is(jsfc), loidx(:,jsfc), ptas_tile(:,jsfc), ua)
 
       !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
       !$ACC LOOP GANG VECTOR PRIVATE(jl, zqs2, zcvm3, zcvm4)
@@ -547,22 +554,26 @@ CONTAINS
     !
     ! DA: can't collapse due to the jls bounds depending on jsfc
     !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
-    !$ACC LOOP SEQ
+    ! compute 10m wind components and speed
     DO jsfc = 1,ksfc_type
       !$ACC LOOP GANG VECTOR PRIVATE(jl, zrat, zcbn, zcbs, zcbu, zmerge, zred)
       DO jls=jcs,is(jsfc)
         jl = loidx(jls,jsfc)
+
+        ! compute height ratio and blending terms (Geleyn, 1988, doi:10.1111/j.1600-0870.1988.tb00352.x)
         zrat   = zhuv / (pzf(jl)-pzs(jl))
         zcbn   = LOG(1._wp + (EXP (pbn_tile(jl,jsfc)) - 1._wp) * zrat )
         zcbs   = -(pbn_tile(jl,jsfc) - pbm_tile(jl,jsfc)) * zrat
         zcbu   = -LOG(1._wp + (EXP (pbn_tile(jl,jsfc) - pbm_tile(jl,jsfc)) - 1._wp) * zrat)
         zmerge = MERGE(zcbs,zcbu,pri_tile(jl,jsfc) .GT. 0._wp)
         zred   = (zcbn + zmerge) / pbm_tile(jl,jsfc)
+
+        ! scale 10m wind components
         puas_tile(jl,jsfc)    = zred * pum1(jl)
         pvas_tile(jl,jsfc)    = zred * pvm1(jl)
-        psfcWind_tile(jl,jsfc)   = zred*SQRT((pum1(jl)-pocu(jl))**2+(pvm1(jl)-pocv(jl))**2)
-        ! for ice and land this is identical to
-        ! psfcWind_tile(jl,jsfc)   = SQRT(puas_tile(jl,jsfc)**2+pvas_tile(jl,jsfc)**2)
+
+        ! compute 10m wind speed for each surface type
+        psfcWind_tile(jl,jsfc)   = zred*SQRT(pum1(jl)**2+pvm1(jl)**2)
       ENDDO
     ENDDO
     !$ACC END PARALLEL

@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2026, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -38,7 +38,7 @@ MODULE mo_lnd_nwp_config
   PUBLIC :: frlnd_thrhld, frlndtile_thrhld, frlake_thrhld, frsea_thrhld, frsi_min, hice_min, hice_max
   PUBLIC :: albsi_snow_min, albsi_snow_max, albsi_min, albsi_max
   PUBLIC :: lseaice, lprog_albsi, lbottom_hflux, llake, loskin, itype_oskin_warm, itype_oskin_cold
-  PUBLIC :: lmulti_snow, lsnowtile, max_toplaydepth, lmelt, lmelt_var
+  PUBLIC :: lmulti_snow, lsnowtile, max_toplaydepth, lmelt, lmelt_var, tf_salt
   PUBLIC :: itype_trvg, itype_evsl, itype_lndtbl, l2lay_rho_snow
   PUBLIC :: itype_root, itype_heatcond, &
             itype_hydbound, idiag_snowfrac, itype_snowevap, cwimax_ml, c_soil, c_soil_urb, cr_bsmin
@@ -52,6 +52,7 @@ MODULE mo_lnd_nwp_config
   PUBLIC :: groups_smi
   PUBLIC :: czbot_w_so
   PUBLIC :: lcuda_graph_lnd
+  PUBLIC :: lsnow_on_seaice
 
 
   !--------------------------------------------------------------------------
@@ -71,6 +72,7 @@ MODULE mo_lnd_nwp_config
   REAL(wp)::  frsi_min           !< minimum sea-ice fraction  [-]
   REAL(wp)::  hice_min           !< minimum sea-ice thickness [m]
   REAL(wp)::  hice_max           !< maximum sea-ice thickness [m]
+  REAL(wp)::  tf_salt            !< freezing temperature of seawater [K]
   REAL(wp)::  albsi_snow_max     !< maximum albedo of snow over sea ice [-]
   REAL(wp)::  albsi_snow_min     !< minimum albedo of snow over sea ice [-]
   REAL(wp)::  albsi_max          !< maximum albedo of sea ice [-]
@@ -125,6 +127,8 @@ MODULE mo_lnd_nwp_config
                                                             !< file from the sequence.
 
   LOGICAL :: lcuda_graph_lnd  !< activate cuda graph
+  LOGICAL :: lsnow_on_seaice  !< activate treatment of snow on seaice
+  !$ACC DECLARE CREATE(lsnow_on_seaice)
 
   ! derived variables
   INTEGER ::  ibot_w_so    !< number of hydrological active soil layers
@@ -138,7 +142,7 @@ MODULE mo_lnd_nwp_config
   REAL(wp), ALLOCATABLE :: dzsoil(:)     !< soil layer thickness
   REAL(wp), ALLOCATABLE :: depth_hl(:)   !< depths of half levels
 
-  !$ACC DECLARE CREATE(albsi_max, albsi_min)
+  !$ACC DECLARE CREATE(albsi_max, albsi_min, albsi_snow_max, albsi_snow_min)
 !  END TYPE t_nwp_lnd_config
 
   !>

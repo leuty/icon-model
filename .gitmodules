@@ -1,4 +1,4 @@
-# Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+# Copyright (C) 2004-2026, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 # SPDX-License-Identifier: CC0-1.0
 [submodule "externals/mtime"]
 	path = externals/mtime
@@ -47,7 +47,7 @@
 	url = ../../icon-comin/comin.git
 [submodule "externals/hd"]
 	path = externals/hd
-	url = https://gitlab.dkrz.de/hd-model/hd-couple.git
+	url = ../../hd-model/hd-couple.git
 [submodule "externals/fortran-support"]
 	path = externals/fortran-support
 	url = ../../icon-libraries/libfortran-support.git

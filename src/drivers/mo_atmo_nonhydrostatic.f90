@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2026, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -707,6 +707,11 @@ CONTAINS
                                     coordinates=p_patch(jg)%cells%center, &
                                     amplitude=pinit_amplitude, &
                                     field=p_lnd_state(jg)%prog_wtr(nnow_rcf(jg))%t_ice, &
+                                    seed_in=pinit_seed+257)
+            CALL add_random_noise_2d(subset=p_patch(jg)%cells%all, &
+                                    coordinates=p_patch(jg)%cells%center, &
+                                    amplitude=pinit_amplitude, &
+                                    field=p_lnd_state(jg)%prog_wtr(nnow_rcf(jg))%t_snow_si, &
                                     seed_in=pinit_seed+257)
           ENDIF
 

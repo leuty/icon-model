@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2026, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -64,9 +64,8 @@ MODULE mo_ocean_atmo_coupling
   INTEGER, TARGET :: field_id_heatflx
   INTEGER, TARGET :: field_id_seaice_atm
   INTEGER, TARGET :: field_id_sst
-  INTEGER, TARGET :: field_id_oce_u
-  INTEGER, TARGET :: field_id_oce_v
   INTEGER, TARGET :: field_id_seaice_oce
+  INTEGER, TARGET :: field_id_surface_velocity
   INTEGER, TARGET :: field_id_sp10m
   INTEGER, TARGET :: field_id_co2_vmr
   INTEGER, TARGET :: field_id_co2_flx
@@ -105,7 +104,7 @@ CONTAINS
       INTEGER, POINTER :: p
     END TYPE field_id_ptr
 
-    INTEGER, PARAMETER :: no_of_fields = 13
+    INTEGER, PARAMETER :: no_of_fields = 12
     CHARACTER(LEN=max_char_length) :: field_name(no_of_fields)
     INTEGER                        :: collection_size(no_of_fields)
     TYPE(field_id_ptr)             :: field_ids(no_of_fields)
@@ -134,27 +133,24 @@ CONTAINS
     field_name(6) = "sea_surface_temperature"
     collection_size(6) = 1
     field_ids(6)%p => field_id_sst
-    field_name(7) = "eastward_sea_water_velocity"
-    collection_size(7) = 1
-    field_ids(7)%p => field_id_oce_u
-    field_name(8) = "northward_sea_water_velocity"
-    collection_size(8) = 1
-    field_ids(8)%p => field_id_oce_v
-    field_name(9) = "ocean_sea_ice_bundle"               ! bundled field containing three components
-    collection_size(9) = 3
-    field_ids(9)%p => field_id_seaice_oce
-    field_name(10) = "10m_wind_speed"
+    field_name(7) = "surface_velocity_bundle"            ! bundled field containing four components
+    collection_size(7) = 4
+    field_ids(7)%p => field_id_surface_velocity
+    field_name(8) = "ocean_sea_ice_bundle"               ! bundled field containing three components
+    collection_size(8) = 3
+    field_ids(8)%p => field_id_seaice_oce
+    field_name(9) = "10m_wind_speed"
+    collection_size(9) = 1
+    field_ids(9)%p => field_id_sp10m
+    field_name(10) = "co2_mixing_ratio"
     collection_size(10) = 1
-    field_ids(10)%p => field_id_sp10m
-    field_name(11) = "co2_mixing_ratio"
+    field_ids(10)%p => field_id_co2_vmr
+    field_name(11) = "co2_flux"
     collection_size(11) = 1
-    field_ids(11)%p => field_id_co2_vmr
-    field_name(12) = "co2_flux"
+    field_ids(11)%p => field_id_co2_flx
+    field_name(12) = "sea_level_pressure"
     collection_size(12) = 1
-    field_ids(12)%p => field_id_co2_flx
-    field_name(13) = "sea_level_pressure"
-    collection_size(13) = 1
-    field_ids(13)%p => field_id_pres_msl
+    field_ids(12)%p => field_id_pres_msl
 
     !
     ! mask generation : ... not yet defined ...
@@ -243,9 +239,8 @@ CONTAINS
     integer :: role
 
     TYPE(datetime), TARGET ::  curr_datetime_sst
-    TYPE(datetime), TARGET ::  curr_datetime_oce_u
-    TYPE(datetime), TARGET ::  curr_datetime_oce_v
     TYPE(datetime), TARGET ::  curr_datetime_seaice_oce
+    TYPE(datetime), TARGET ::  curr_datetime_surface_velocity
     TYPE(datetime), TARGET ::  curr_datetime_co2_flx
 
     TYPE(datetime), POINTER :: comparison
@@ -261,28 +256,6 @@ CONTAINS
       comparison => curr_datetime_sst
     ENDIF
 
-    role = yac_fget_role_from_field_id(field_id_oce_u)
-    IF( role == YAC_EXCHANGE_TYPE_SOURCE ) THEN
-      curr_datetime_oce_u = cpl_get_field_datetime(routine, field_id_oce_u)
-      IF( associated(comparison) ) THEN
-        IF( comparison /= curr_datetime_oce_u ) &
-        CALL finish(routine, "inconsistent definition of field datetime in oce-atm-coupling for oce_u")
-      ELSE
-        comparison => curr_datetime_oce_u
-      ENDIF
-    ENDIF
-
-    role = yac_fget_role_from_field_id(field_id_oce_v)
-    IF( role == YAC_EXCHANGE_TYPE_SOURCE ) THEN
-      curr_datetime_oce_v = cpl_get_field_datetime(routine, field_id_oce_v)
-      IF( associated(comparison) ) THEN
-        IF( comparison /= curr_datetime_oce_v ) &
-        CALL finish(routine, "inconsistent definition of field datetime in oce-atm-coupling for oce_v")
-      ELSE
-        comparison => curr_datetime_oce_v
-      ENDIF
-    ENDIF
-
     role = yac_fget_role_from_field_id(field_id_seaice_oce)
     IF( role == YAC_EXCHANGE_TYPE_SOURCE ) THEN
       curr_datetime_seaice_oce = cpl_get_field_datetime(routine, field_id_seaice_oce)
@@ -293,6 +266,19 @@ CONTAINS
         comparison => curr_datetime_seaice_oce
       ENDIF
     ENDIF
+
+    ! ocean and sea ice velocity bundle
+    role = yac_fget_role_from_field_id(field_id_surface_velocity)
+    IF( role == YAC_EXCHANGE_TYPE_SOURCE ) THEN
+      curr_datetime_surface_velocity = cpl_get_field_datetime(routine, field_id_surface_velocity)
+      IF( associated(comparison) ) THEN
+        IF( comparison /= curr_datetime_surface_velocity ) &
+        CALL finish(routine, "inconsistent definition of field datetime in oce-atm-coupling for ocean and seaice velocity")
+      ELSE
+        comparison => curr_datetime_surface_velocity
+      ENDIF
+    ENDIF
+
 
     IF(l_cpl_co2) THEN
       curr_datetime_co2_flx = cpl_get_field_datetime(routine, field_id_co2_flx)
@@ -373,9 +359,8 @@ CONTAINS
     !
     !  Send fields to atmosphere:
     !   "sea_surface_temperature"                  - SST
-    !   "eastward_sea_water_velocity"              - zonal velocity, u component of ocean surface current
-    !   "northward_sea_water_velocity"             - meridional velocity, v component of ocean surface current
     !   "ocean_sea_ice_bundle"                     - ice thickness, snow thickness, ice concentration
+    !   "surface_velocity_bundle"                  - u and v component of surface ocean and sea ice velocity
     !
     !  *****  *****  *****  *****  *****  *****  *****  *****  *****  *****  *****  *****
     !  Send fields from ocean to atmosphere
@@ -421,57 +406,6 @@ CONTAINS
       routine, field_id_sst, 'SST', nbr_hor_cells, &
       put_buffer(:,:,1))
 
-    !
-    ! ------------------------------
-    !  Send zonal velocity
-    !   "eastward_sea_water_velocity" - zonal velocity, u component of ocean surface current
-    !
-!ICON_OMP_PARALLEL_DO PRIVATE(blockNo, cell_index, nlen) ICON_OMP_DEFAULT_SCHEDULE
-    DO blockNo = 1, patch_horz%nblks_c
-      IF (blockNo /= patch_horz%nblks_c) THEN
-        nlen = nproma
-      ELSE
-        nlen = patch_horz%npromz_c
-      END IF
-      DO cell_index = 1, nlen
-        put_buffer(cell_index,blockNo,1) = &
-          (1.0_wp - ice%conc(cell_index,1,blockNo))*ocean_state%p_diag%u(cell_index,1,blockNo) &
-          + (ice%conc(cell_index,1,blockNo)*ice%u(cell_index,blockNo))
-      ENDDO
-    ENDDO
-!ICON_OMP_END_PARALLEL_DO
-    !
-
-    CALL cpl_put_field( &
-      routine, field_id_oce_u, 'u velocity', nbr_hor_cells, &
-      put_buffer(:,:,1))
-
-    !
-    ! ------------------------------
-    !  Send meridional velocity
-    !   "northward_sea_water_velocity" - meridional velocity, v component of ocean surface current
-    !
-!ICON_OMP_PARALLEL_DO PRIVATE(blockNo, cell_index, nlen) ICON_OMP_DEFAULT_SCHEDULE
-    DO blockNo = 1, patch_horz%nblks_c
-      IF (blockNo /= patch_horz%nblks_c) THEN
-        nlen = nproma
-      ELSE
-        nlen = patch_horz%npromz_c
-      END IF
-      DO cell_index = 1, nlen
-        put_buffer(cell_index,blockNo,1) = &
-          (1.0_wp - ice%conc(cell_index,1,blockNo))*ocean_state%p_diag%v(cell_index,1,blockNo) &
-          + (ice%conc(cell_index,1,blockNo)*ice%v(cell_index,blockNo))
-      ENDDO
-    ENDDO
-!ICON_OMP_END_PARALLEL_DO
-    !
-
-    CALL cpl_put_field( &
-      routine, field_id_oce_v, 'v velocity', nbr_hor_cells, &
-      put_buffer(:,:,1))
-
-    !
     ! ------------------------------
     !  Send sea ice bundle
     !   "ocean_sea_ice_bundle" - ice thickness, snow thickness, ice concentration
@@ -497,6 +431,18 @@ CONTAINS
       field_1=put_buffer(:,:,1), &
       field_2=put_buffer(:,:,2), &
       field_3=put_buffer(:,:,3))
+
+    !
+    ! ------------------------------
+    !  Send ocean and sea ice velocities
+    !   "surface_velocity_bundle" - u and v component of surface ocean and sea ice velocity
+    !
+    CALL cpl_put_field( &
+      routine, field_id_surface_velocity, 'ocean and sea ice velocity bundle', nbr_hor_cells, &
+      field_1=ocean_state%p_diag%u(:,1,:), &
+      field_2=ocean_state%p_diag%v(:,1,:), &
+      field_3=ice%u, &
+      field_4=ice%v)
 
 
     IF (l_cpl_co2) THEN
@@ -831,6 +777,8 @@ CONTAINS
       &                                                                         ,str_module,2,in_subset=patch_horz%cells%owned)
     CALL dbg_print('toatmo: p_diag%u         ',ocean_state%p_diag%u(:,1,:)      ,str_module,4,in_subset=patch_horz%cells%owned)
     CALL dbg_print('toatmo: p_diag%v         ',ocean_state%p_diag%v(:,1,:)      ,str_module,4,in_subset=patch_horz%cells%owned)
+    CALL dbg_print('toatmo: ice%u            ',ice%u(:,:)                       ,str_module,4,in_subset=patch_horz%cells%owned)
+    CALL dbg_print('toatmo: ice%u            ',ice%v(:,:)                       ,str_module,4,in_subset=patch_horz%cells%owned)
     CALL dbg_print('toatmo: ice%hi           ',ice%hi(:,1,:)                    ,str_module,3,in_subset=patch_horz%cells%owned)
     CALL dbg_print('toatmo: ice%hs           ',ice%hs(:,1,:)                    ,str_module,4,in_subset=patch_horz%cells%owned)
     CALL dbg_print('toatmo: ice%conc         ',ice%conc(:,1,:)                  ,str_module,4,in_subset=patch_horz%cells%owned)

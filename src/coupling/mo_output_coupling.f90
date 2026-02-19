@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2026, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -81,7 +81,8 @@ CONTAINS
     TYPE(t_exposed_var), POINTER :: exposed_var
     CHARACTER(len=:), ALLOCATABLE :: var_name, metadata, comp_name, grid_name
     CHARACTER(len=4) :: var_name_prefix
-    CHARACTER(len=5) :: grib2_discipline, grib2_category, grib2_number, grib2_bits, grib2_gridtype, grib2_subgridtype, grib2_int_val
+    CHARACTER(len=5) :: grib2_discipline, grib2_category, grib2_number, grib2_bits, grib2_gridtype, grib2_subgridtype
+    CHARACTER(len=11) :: grib2_int_val ! 10 digits to cover 2**31-1 + sign
     CHARACTER(len=28) :: grib2_dbl_val
     INTEGER :: iv, tl, collection_size, key_notl, count = 0, var_size, grpi, nblks, pos(3)
     INTEGER :: point_id, var_ref_pos, instance_id, grib_i

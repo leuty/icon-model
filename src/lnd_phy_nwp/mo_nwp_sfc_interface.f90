@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2026, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -41,7 +41,7 @@ MODULE mo_nwp_sfc_interface
     &                               isub_lake, l2lay_rho_snow, lprog_albsi,           &
     &                               itype_trvg, lterra_urb, itype_snowevap, zml_soil, &
     &                               itype_oskin_warm, itype_oskin_cold, itype_ahf,    &
-    &                               lcuda_graph_lnd
+    &                               lcuda_graph_lnd, tf_salt
   USE mo_nwp_tuning_config,   ONLY: itune_gust_diag
   USE mo_radiation_config,    ONLY: islope_rad
   USE mo_extpar_config,       ONLY: itype_vegetation_cycle
@@ -55,7 +55,7 @@ MODULE mo_nwp_sfc_interface
   USE sfc_flake_data,         ONLY: h_Ice_min_flk
   USE sfc_seaice,             ONLY: seaice_timestep_nwp
   USE sfc_terra_data                ! soil and vegetation parameters for TILES
-  USE mo_physical_constants,  ONLY: tmelt, grav, salinity_fac, rhoh2o, tf_salt
+  USE mo_physical_constants,  ONLY: tmelt, grav, salinity_fac, rhoh2o
   USE mo_nwp_oskin_interface, ONLY: nwp_oskin
   USE mo_index_list,          ONLY: generate_index_list
   USE mo_fortran_tools,       ONLY: init, set_acc_host_or_device, assert_acc_device_only
@@ -2012,9 +2012,9 @@ CONTAINS
           p_lnd_diag%condhf_ice(jc,jb)  = condhf_i(ic)
           p_lnd_diag%meltpot_ice(jc,jb) = meltpot_i(ic)
         ENDIF
-        lnd_prog_new%t_g_t(jc,jb,isub_seaice) = tice_new(ic)
+        lnd_prog_new%t_g_t(jc,jb,isub_seaice) = tsnow_new(ic)
         ! surface saturation specific humidity (uses saturation water vapor pressure over ice)
-        p_lnd_diag%qv_s_t(jc,jb,isub_seaice)  = spec_humi(sat_pres_ice(tice_new(ic)), &
+        p_lnd_diag%qv_s_t(jc,jb,isub_seaice)  = spec_humi(sat_pres_ice(tsnow_new(ic)), &
           &                                     p_diag%pres_sfc(jc,jb) )
       ENDDO  ! ic
       !$ACC END PARALLEL

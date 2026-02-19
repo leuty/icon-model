@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2026, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -24,22 +24,19 @@ MODULE mo_ini_bgc
        &                     phytomi, grami, remido, dyphy, zinges,        &
        &                     epsher,  spemor, gammap, gammaz, ecan, &
        &                     pi_alpha, fpar, bkphy, bkzoo, bkopal,         &
-       &                     dremn2o, sulfate_reduction,         &
        &                     n2_fixation, ro2ut, rcar, rnit,     &
        &                     rnoi, nitdem, n2prod, ropal,   &
-       &                     perc_diron, riron, fesoly, relaxfe,     &
-       &                     rn2,             &
-       &                     thresh_o2,   &
-       &                     pi_alpha_cya,          &
+       &                     fesoly, relaxfe,     &
+       &                     rn2, thresh_o2,pi_alpha_cya,            &
        &                     Topt_cya,T1_cya,T2_cya,bkcya_N, &
        &                     buoyancyspeed_cya, bkh2sox, rh2sox, &
        &                     doccya_fac, thresh_aerob, thresh_sred, &
-       &                     wcya, p2gtc, ro2bal, dmsp,prodn2o,docmin, &
-       &                     no2denit, anamoxra, nitriox, nitrira, ro2ammo, &
-       &                     bknh4_cya, bkno3_cya, bkno3, bknh4, rmm, kg_denom, bkpo4, &
-       &                     bkno2, bkrad, bkfe, rno3nh4, rno3no2, rno2no3, rnh4no2, &
+       &                     wcya, p2gtc, ro2bal, dmsp,docmin, &
+       &                     ro2ammo, &
+       &                     rmm, kg_denom,  &
+       &                     bkrad, rno3nh4, rno3no2, rno2no3, rnh4no2, &
        &                     alk_nrn2, rno2n2, o2thresh, o2den_lim, rrrcl,  &
-       &                     sinkspeed_dust
+       &                     sinkspeed_dust,bkno3_cya, bknh4_cya,bkfe
 
   USE mo_memory_agg, ONLY  : agg_org_dens, det_mol2mass, rho_tep, &
        &                     AJ1, AJ2, AJ3, BJ1, BJ2, BJ3, &
@@ -57,7 +54,10 @@ MODULE mo_ini_bgc
        &                     mc_fac, sinkspeed_martin_ez, mc_depth, denit_sed, disso_po, &
        &                     atm_co2, atm_o2, atm_n2, deltacalc, deltaorg, deltasil, &
        &                     drempoc, dremopal, dremcalc,  denitrification, &
-       &                     l_N_cycle, no3nh4red, no3no2red
+       &                     bkpo4, riron , &
+       &                     l_N_cycle, no3nh4red, no3no2red, bkno3, bknh4,  &
+       &                     no2denit,anamoxra,nitriox, nitrira, sulfate_reduction,dremn2o
+
 
 
   USE mo_control_bgc, ONLY : ldtbgc, dtb, dtbgc, rmasko, rmasks, &
@@ -132,7 +132,6 @@ CONTAINS
     thresh_aerob = 5.e-8_wp      ! kmol m-3,  O2 threshold for aerob remineralization
     thresh_o2 = 10.e-6_wp      ! kmol m-3,  O2 threshold for aerob remineralization
     thresh_sred = 3.e-6_wp      ! kmol m-3,  O2 threshold for sulfate reduction
-    prodn2o = 1.e-4_wp
 
 
 
@@ -156,9 +155,6 @@ CONTAINS
     bkcya_N           = 1.e-9_wp     ! kmol/m3
     doccya_fac        = 0.1_wp
 ! ------
-
-    dremn2o  = 0.01_wp      ! 1/d
-    sulfate_reduction = 0.005_wp
 
     ! nitrogen fixation
     n2_fixation = 0.005_wp
@@ -204,15 +200,7 @@ CONTAINS
     o2den_lim = 0.5E-6_wp
 
 
-    ! weight percent iron in dust deposition (0.035) times Fe solubility (0.01) /55.85 g--> mol
-    perc_diron = 0.035_wp * 0.01_wp / 55.85_wp
-
-    ! the three values below are from Johnson et al., 1997 Mar. Chemistry 57, 137-161
-    ! riron   = 5.*rcar*1.e-6       ! 'Q'=5.*122.*1.e-6 = 6.1e-4   (iron to phosphate stoichiometric ratio * umol->mol)
-    ! riron   = 2.*rcar*1.e-6       ! 14.2.06: 5.->2. (2.5umol P/nmol Fe) emr: 3.*rcar*1.e-6
-    riron   = 3._wp * rcar*1.e-6_wp ! 06.3.06: 2.->3. coex90=12.2GTC/a before change
-
-    fesoly  = 0.6_wp *1.e-9_wp      ! global mean/max (?) dissolved iron concentration in deep water (for relaxation) [mol/m3]
+      fesoly  = 0.6_wp *1.e-9_wp      ! global mean/max (?) dissolved iron concentration in deep water (for relaxation) [mol/m3]
     ! 'fesoly' stands for 'apparent solubility value' of iron
 
     relaxfe = 0.05_wp/365._wp       ! relaxation time for iron to fesoly corresponds to 20 yrs
@@ -232,8 +220,6 @@ CONTAINS
     !
     ! extended N-cycle
     !
-    bkno3 = 0.16_wp*1.e-6_wp
-    bknh4 = 0.1_wp *1.e-6_wp
     ro2ammo = ro2ut - 2._wp*rnit
    !       oxygen demand to nitrify nh4 to no2
     rnh4no2 =  24._wp /rnit
@@ -242,7 +228,6 @@ CONTAINS
     rno2no3 = 8._wp /rnit ! oxygen demand during nitrification in P-units 2*rnit,
     bkno3_cya = bkno3*1.e-1_wp
     bknh4_cya = bknh4*1e-1_wp
-    bkpo4 = 0.01_wp*1.E-6_wp   ! in kmolP/m3 half satur. const. for PO4
     bkfe = bkpo4*riron
     rno2n2 = 560._wp/3._wp
     rmm = 17.03_wp
@@ -258,20 +243,7 @@ CONTAINS
     ! DNRA : NO3 reduction to NH4
       rno3nh4  = 70._wp   ! nitrate used per P-unit org
 
-    ! NRN2   :  NO2 to N2
-      no2denit = 0.008_wp ! 1/day
-
-    !ANAMMOX
-      anamoxra = 0.05_wp         ! anammox rate  1/day
-      bkno2 = 0.5_wp*1.E-6_wp    ! Half saturation constant for Nitrite in kmolN/m3
-    !NITOX : oxidation of NO2 to NO3 ; light dependent
-      nitriox = 0.25_wp          !   nitrite oxidation rate 1/day
       bkrad = 10._wp               ! light constant
-
-! AMMOX : oxidation of NH4 to NO2 ; light dependend
-      nitrira= 0.1_wp    ! nitrification rate per day, after Yool about 0.162 per day
-!             light dependency (coupled to abs_bgc, max at no light, in surface layer 0.
-
 
   !     -----------------------------------------------------------------
   !*            SET MEAN TOTAL [CA++] IN SEAWATER (MOLES/KG)

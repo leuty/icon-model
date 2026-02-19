@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2026, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -44,7 +44,7 @@ MODULE mo_nml_crosscheck
     &                                    rayleigh_type, ivctype, iadv_rhotheta
   USE mo_atm_phy_nwp_config,       ONLY: atm_phy_nwp_config, icpl_aero_conv, i2daero_dust, &
     &                                    i2daero_seas, i2daero_anthro, i2daero_fire,       &
-    &                                    icpl_aero_ice, itype_dissip_heat
+    &                                    icpl_aero_ice, itype_dissip_heat, itype_stoch_phys, spg_num
   USE mo_lnd_nwp_config,           ONLY: ntiles_lnd, lsnowtile, sstice_mode, llake
 #ifndef __NO_AES__
   USE mo_aes_phy_config,           ONLY: aes_phy_config
@@ -106,6 +106,7 @@ MODULE mo_nml_crosscheck
 
   USE mo_sppt_config,              ONLY: sppt_config, crosscheck_sppt
   USE mo_gribout_config,           ONLY: gribout_crosscheck
+  USE mo_ccycle_config,            ONLY: ccycle_config
 
 
   IMPLICIT NONE
@@ -635,26 +636,6 @@ CONTAINS
                       'in two-moment scheme (lturb_enhc) not applicable for aes physics.')
         ENDIF
 
-#ifdef __NEC__
-#ifndef __ASL__
-        IF ( atm_phy_nwp_config(jg)%lstochastic_pattern_generator .AND. atm_phy_nwp_config(jg)%spg_use_asl) THEN
-          CALL finish( routine,'Stochastic pattern generator using Advanced Scientific Library (ASL) has to be linked with ASL')
-        ENDIF
-#endif
-#else
-#ifndef __NEC_VH__
-        IF ( atm_phy_nwp_config(jg)%lstochastic_pattern_generator .AND. atm_phy_nwp_config(jg)%spg_use_asl) THEN
-          CALL finish( routine,'Stochastic pattern generator using Advanced Scientific Library (ASL) is only available on NEC')
-        ENDIF
-#endif
-#endif
-#ifdef __NEC__
-        IF ( atm_phy_nwp_config(jg)%lstochastic_pattern_generator .AND. .not.atm_phy_nwp_config(jg)%spg_use_asl) THEN
-          CALL finish(modname, 'Stochastic pattern generator on NEC without ASL. This is inefficient, please use ASL.')
-        END IF
-#endif
-
-
         ! ltmpcor activates the calculation of dissipative heating in turbdiff;
         ! to prevent double-counting, the respective calculations in the NWP interface need to be skipped
         IF (turbdiff_config(1)%ltmpcor) THEN
@@ -754,7 +735,17 @@ CONTAINS
       CALL finish( routine,message_text)
     END IF
 
-
+    IF (ccycle_config(1)% C4MIP_FLAG /= 'none') THEN
+      CALL message(routine,'Warning: C4MIP experiment, replacing user specified irad_co2')
+      SELECT CASE(ccycle_config(1)% C4MIP_FLAG)
+      CASE ('COU','RAD')
+        irad_co2   = -1
+      CASE ('BGC','cBGC')
+        irad_co2   = 2
+      CASE ('cCOU','cRAD')
+        irad_co2   = 4
+      END SELECT
+    END IF
 
 #ifdef _OPENACC
     IF (ltransport) THEN

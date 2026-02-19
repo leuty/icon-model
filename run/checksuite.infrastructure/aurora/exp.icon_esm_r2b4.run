@@ -3,7 +3,7 @@
 # ICON
 #
 # ------------------------------------------
-# Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+# Copyright (C) 2004-2026, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 # Contact information: icon-model.org
 # See AUTHORS.TXT for a list of authors
 # See LICENSES/ for license information
@@ -175,9 +175,8 @@ author_list="Monika Esch, Rene Redler, Daniel Klocke"
 #
 # ocean -> atmosphere:
 # . sea_surface_temperature
-# . eastward_sea_water_velocity
-# . northward_sea_water_velocity
 # . ocean_sea_ice_bundle
+# . surface_velocity_bundle
 #
 # currently not activated for coupling:
 # . co2_mixing_ratio
@@ -302,8 +301,10 @@ lcarbon=$([ "${jsbach_with_carbon:=yes}" == yes ] && echo .TRUE. || echo .FALSE.
 
 if [[ $jsbach_usecase == *pfts* ]]
 then
-  pft_file_tag="11pfts_"
+  npft=11
+  pft_file_tag="${npft}pfts_"
 else
+  npft=0
   pft_file_tag=""
 fi
 
@@ -442,8 +443,7 @@ coupling:
   - <<: [ *ocn2atm, *nn1_fixed ]
     field:
       - sea_surface_temperature
-      - eastward_sea_water_velocity
-      - northward_sea_water_velocity
+      - surface_velocity_bundle
       - ocean_sea_ice_bundle
 EOF
 #
@@ -606,6 +606,7 @@ EOF
 cat > ${jsbach_namelist} << EOF
 &jsb_model_nml
   usecase              = "${jsbach_usecase}"
+  npft                 = ${npft}
   use_lakes            = ${llake}            ! TRUE if jsbach_with_lakes=yes
   fract_filename       = 'bc_land_frac.nc'
   enforce_water_budget = 'ignore'        ! Error: stop in case of water conservation problem

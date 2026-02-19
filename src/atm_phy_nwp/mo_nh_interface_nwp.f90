@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2026, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -710,7 +710,7 @@ CONTAINS
     !>  stochastic pattern generator
     !!-------------------------------------------------------------------------
 
-    IF (atm_phy_nwp_config(jg)%lstochastic_pattern_generator) THEN
+    IF (atm_phy_nwp_config(jg)%lstoch_pattern_generator) THEN
 
       IF (msg_level >= 15) CALL message('mo_nh_interface_nwp:', 'stochastic pattern')
 
@@ -735,13 +735,13 @@ CONTAINS
              & i_startidx, i_endidx, rl_start, rl_end)
 
         ! Stochastic pattern generator
-        CALL stochastic_pattern_generator(                   &
-             nproma  = nproma,                                  & ! nproma
-             istart  = i_startidx,                              & ! start index
-             iend    = i_endidx,                                & ! end index
-             spg     = prm_diag%spg(:,jb),                      & ! spatial random patter
-             clat    = pt_patch%cells%center(:,jb)%lat,         & ! latitude
-             clon    = pt_patch%cells%center(:,jb)%lon          & ! longitude
+        CALL stochastic_pattern_generator(                     &
+             nproma  = nproma,                                 & ! nproma
+             istart  = i_startidx,                             & ! start index
+             iend    = i_endidx,                               & ! end index
+             spg     = prm_diag%spg(:,:,jb),                   & ! spatial random pattern
+             clat    = pt_patch%cells%center(:,jb)%lat,        & ! latitude
+             clon    = pt_patch%cells%center(:,jb)%lon         & ! longitude
              )
       END DO
 !$OMP END DO NOWAIT
@@ -2067,7 +2067,8 @@ CONTAINS
       !  update sea/seaice index lists
       !
       CALL process_sst_and_seaice( pt_patch, lnd_diag%fr_seaice, lnd_diag%t_seasfc, pt_diag%pres_sfc, &
-        & ext_data, lnd_prog_now, lnd_prog_new, wtr_prog_now, wtr_prog_new, lnd_diag, wtr_prog_new%h_ice )
+        & ext_data, lnd_prog_now, lnd_prog_new, wtr_prog_now, wtr_prog_new, lnd_diag, wtr_prog_new%h_ice, &
+        & wtr_prog_new%h_snow_si )
 
       IF (ltimer) CALL timer_stop(timer_coupling)
 

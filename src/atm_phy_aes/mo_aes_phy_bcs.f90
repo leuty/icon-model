@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2026, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -105,7 +105,8 @@ CONTAINS
     &                     mtime_old,    &
     &                     dtadv_loc    ) ! out
 
-    USE mo_physical_constants, ONLY: tf_salt
+    USE mo_sea_ice_nml,        ONLY: Tf
+
     ! Arguments
 
     TYPE(t_patch)  , TARGET   ,INTENT(in)    :: patch          !< description of this grid
@@ -230,7 +231,7 @@ CONTAINS
                                                 & field%seaice(jc,jb) > 0.99_wp)
                 field%seaice(jc,jb) = MERGE(0.0_wp, field%seaice(jc,jb),  &
                                                 & field%seaice(jc,jb) <= 0.01_wp)
-                field%ts_tile(jc,jb,iwtr) = MERGE(tf_salt, MAX(field%ts_tile(jc,jb,iwtr), tf_salt), &
+                field%ts_tile(jc,jb,iwtr) = MERGE(Tf+273.15_wp, MAX(field%ts_tile(jc,jb,iwtr), Tf+273.15_wp), &
                                                 & field%seaice(jc,jb) > 0.0_wp)
               ELSE
                 field%seaice(jc,jb) = 0.0_wp

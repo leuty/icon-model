@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2026, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -143,11 +143,20 @@ MODULE mo_nwp_ocean_coupling
     !> Sea-ice thickness [m].
     REAL(wp), CONTIGUOUS, POINTER :: h_ice(:,:) => NULL()
 
+    !> Snow-on-sea-ice thickness [m].
+    REAL(wp), CONTIGUOUS, POINTER :: h_snow(:,:) => NULL()
+
     !> Zonal ocean surface velocity (optional) [m/s].
     REAL(wp), CONTIGUOUS, POINTER :: ocean_u(:,:) => NULL()
 
     !> Meridional ocean surface velocity (optional) [m/s].
     REAL(wp), CONTIGUOUS, POINTER :: ocean_v(:,:) => NULL()
+
+    !> Zonal sea ice velocity (optional) [m/s].
+    REAL(wp), CONTIGUOUS, POINTER :: ice_u(:,:) => NULL()
+
+    !> Meridional sea ice velocity (optional) [m/s].
+    REAL(wp), CONTIGUOUS, POINTER :: ice_v(:,:) => NULL()
 
     !> CO2 surface flux [kg/m2/s].
     REAL(wp), CONTIGUOUS, POINTER :: flx_co2(:,:) => NULL()
@@ -278,12 +287,16 @@ CONTAINS
     ! 1. lnd_diag%t_seasfc (:,:)   SST [K]
     ! 2. lnd_diag%fr_seaice(:,:)   Sea-ice fraction [m2(ice)/m2(ocean)]
     ! 3. wtr_prog_new%h_ice(:,:)   Sea-ice height [m]
+    ! 3. wtr_prog_new%h_snow_si(:,:) Snow-on-Sea-ice height [m]
 
     rx%t_seasfc => lnd_diag%t_seasfc(:,:)
     rx%fr_seaice => lnd_diag%fr_seaice(:,:)
     rx%h_ice => wtr_prog_new%h_ice(:,:)
+    rx%h_snow => wtr_prog_new%h_snow_si(:,:)
     rx%ocean_u => NULL()
     rx%ocean_v => NULL()
+    rx%ice_u => NULL()
+    rx%ice_v => NULL()
     rx%flx_co2 => NULL()
 
     CALL couple_ocean(p_patch, ext_data%atm%list_sea, tx, rx, lacc)
@@ -374,9 +387,8 @@ CONTAINS
     !
     ! Receive fields from ocean:
     !  "sea_surface_temperature"                  - SST
-    !  "eastward_sea_water_velocity"              - zonal velocity, u component of ocean surface current
-    !  "northward_sea_water_velocity"             - meridional velocity, v component of ocean surface current
     !  "ocean_sea_ice_bundle"                     - ice thickness, snow thickness, ice concentration
+    !  "surface_velocity_bundle"                  - u and v component of surface ocean and sea ice velocity
     !  "co2_flux"                                 - ocean co2 flux
     !-------------------------------------------------------------------------
 
@@ -386,9 +398,16 @@ CONTAINS
           &field size has to be at least nproma*nblocks_c')
     END IF
 
-    IF ((ASSOCIATED(rx%ocean_u) .AND. in_field_ids(jg)%oce_u < 0) .OR. &
-        (ASSOCIATED(rx%ocean_v) .AND. in_field_ids(jg)%oce_v < 0)) THEN
-      CALL finish(routine, 'ocean velocities are expected but fields &
+    ! ocean and sea ice velocity bundle
+    IF ((ASSOCIATED(rx%ocean_u) .NEQV. ASSOCIATED(rx%ocean_v)) .OR. &
+        (ASSOCIATED(rx%ocean_u) .NEQV. ASSOCIATED(rx%ice_u)) .OR. &
+        (ASSOCIATED(rx%ocean_u) .NEQV. ASSOCIATED(rx%ice_v))) THEN
+      CALL finish(routine, 'ocean and sea-ice velocities must either all be &
+          &present or absent.')
+    END IF
+
+    IF (ASSOCIATED(rx%ocean_u) .AND. in_field_ids(jg)%surface_velocity < 0) THEN
+      CALL finish(routine, 'ocean and sea ice velocities are expected but fields &
           &have not been registered with YAC')
     END IF
 
@@ -586,31 +605,6 @@ CONTAINS
     ENDIF
 
     !------------------------------------------------
-    !  Receive zonal velocity
-    !    "eastward_sea_water_velocity"
-    !    - zonal velocity, u component of ocean surface current
-    !    RR: not used in NWP so far, not activated for exchange in coupling.xml
-    !------------------------------------------------
-
-    IF (ASSOCIATED(rx%ocean_u)) &
-      CALL cpl_get_field( &
-        routine, in_field_ids(jg)%oce_u, 'u velocity', p_patch%n_patch_cells, &
-        rx%ocean_u)
-
-    !------------------------------------------------
-    !  Receive meridional velocity
-    !    "northward_sea_water_velocity"
-    !    - meridional velocity, v component of ocean surface current
-    !    RR: not used in NWP so far, not activated for exchange in
-    !        YAC configuration file
-    !------------------------------------------------
-
-    IF (ASSOCIATED(rx%ocean_v)) &
-      CALL cpl_get_field( &
-        routine, in_field_ids(jg)%oce_v, 'v velocity', p_patch%n_patch_cells, &
-        rx%ocean_v)
-
-    !------------------------------------------------
     !  Receive sea ice bundle
     !    "ocean_sea_ice_bundle"
     !    - ice thickness, snow thickness, ice concentration
@@ -618,7 +612,7 @@ CONTAINS
 
     CALL cpl_get_field( &
       routine, in_field_ids(jg)%seaice_oce, 'sea ice', p_patch%n_patch_cells, &
-      field_1=rx%h_ice, field_2=buf, field_3=rx%fr_seaice, &
+      field_1=rx%h_ice, field_2=rx%h_snow, field_3=rx%fr_seaice, &
       received_data=received_data)
 
     IF (received_data) THEN
@@ -639,6 +633,19 @@ CONTAINS
 
     END IF
 
+    !------------------------------------------------
+    !  Receive ocean and sea ice velocity bundle
+    !    "ocean and sea ice velocity bundle"
+    !    - u and v component of surface ocean velocity
+    !    - u and v component of sea ice velocity
+    !------------------------------------------------
+
+    IF (ASSOCIATED(rx%ocean_u)) THEN
+      CALL cpl_get_field( &
+        routine, in_field_ids(jg)%surface_velocity, 'ocean and sea ice velocity bundle', p_patch%n_patch_cells, &
+        field_1=rx%ocean_u, field_2=rx%ocean_v, field_3=rx%ice_u, field_4=rx%ice_v, &
+        received_data=received_data)
+    END IF
 
     !------------------------------------------------
     !  Receive co2 flux
@@ -693,8 +700,13 @@ CONTAINS
       CALL dbg_print('NWPOce: h_ice       ', rx%h_ice(:,:),      str_module, 4, in_subset=p_patch%cells%owned)
 
       IF (ASSOCIATED(rx%ocean_u) .AND. ASSOCIATED(rx%ocean_v)) THEN
-        CALL dbg_print('NWPOce: ocu         ', rx%ocean_u(:,:),  str_module, 3, in_subset=p_patch%cells%owned)
-        CALL dbg_print('NWPOce: ocv         ', rx%ocean_v(:,:),  str_module, 4, in_subset=p_patch%cells%owned)
+        CALL dbg_print('NWPOce: ocean_u     ', rx%ocean_u(:,:),  str_module, 3, in_subset=p_patch%cells%owned)
+        CALL dbg_print('NWPOce: ocean_v     ', rx%ocean_v(:,:),  str_module, 4, in_subset=p_patch%cells%owned)
+      END IF
+
+      IF (ASSOCIATED(rx%ice_u) .AND. ASSOCIATED(rx%ice_v)) THEN
+        CALL dbg_print('NWPOce: ice_u       ', rx%ice_u(:,:),  str_module, 3, in_subset=p_patch%cells%owned)
+        CALL dbg_print('NWPOce: ice_v       ', rx%ice_v(:,:),  str_module, 4, in_subset=p_patch%cells%owned)
       END IF
 
       IF (ASSOCIATED(rx%flx_co2)) THEN

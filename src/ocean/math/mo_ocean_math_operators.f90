@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2026, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -1610,18 +1610,30 @@ CONTAINS
 
     !Local variables
     INTEGER :: jk, jc!,jb
+    INTEGER :: max_klevs
     REAL(wp), POINTER ::  inv_prism_thickness(:,:)
 !     INTEGER :: end_level
     !-------------------------------------------------------------------------------
     ! prism_center_distance => patch_3D%p_patch_1D(1)%prism_center_dist_c  (:,:,blockNo)
     inv_prism_thickness => patch_3D%p_patch_1D(1)%invConstantPrismThickness(:,:,blockNo)
 
+#ifndef __LVECTOR__
     DO jc = start_index, end_index
 !       end_level  = patch_3D%p_patch_1d(1)%dolic_c(jc,blockNo)
 !      IF ( end_level >=min_dolic ) THEN
         DO jk = start_level,patch_3D%p_patch_1d(1)%dolic_c(jc,blockNo)
+#else
+    max_klevs = MAXVAL(patch_3D%p_patch_1d(1)%dolic_c(start_index:end_index, blockNo))
+    DO jk = start_level, max_klevs
+        DO jc = start_index, end_index
+            IF(jk <= patch_3D%p_patch_1d(1)%dolic_c(jc,blockNo)) THEN
+#endif
           vertDiv_scalar(jc,jk) &
             & = (scalar_in(jc,jk) - scalar_in(jc,jk+1))
+
+#ifdef __LVECTOR__
+            ENDIF
+#endif
 
         END DO
         ! vertDeriv_vec(jc,end_level)%x = 0.0_wp ! this is not needed

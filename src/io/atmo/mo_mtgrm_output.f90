@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2026, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -159,7 +159,7 @@ MODULE mo_meteogram_output
   USE mo_dynamics_config,       ONLY: nnow
   USE mo_io_config,             ONLY: inextra_2d, inextra_3d, var_in_output, &
     &                                 celltracks_interval, gust_interval, echotop_meta
-  USE mo_lnd_nwp_config,        ONLY: tile_list, ntiles_total, ntiles_water, zml_soil
+  USE mo_lnd_nwp_config,        ONLY: tile_list, ntiles_total, ntiles_water, zml_soil, lsnow_on_seaice
   USE mo_run_config,            ONLY: iqv, iqc, iqi, iqr, iqs,               &
     &                                 iqm_max, iqni,                         &
     &                                 iqns, iqng, iqnh, iqnr, iqnc, ininact, &
@@ -745,10 +745,13 @@ CONTAINS
       CALL add_sfc_var(meteogram_config, var_list, VAR_GROUP_SURFACE, &
         &              "H_SNOW", "m", "snow height", &
         &              sfc_var_info, lnd_diag%h_snow(:,:))
+    ENDIF
+
+    IF ( atm_phy_nwp_config%inwp_surface > 0 ) THEN
       CALL add_sfc_var(meteogram_config, var_list, VAR_GROUP_SURFACE, &
         &              "FR_SEAICE", "-", "fraction of sea ice", &
         &              sfc_var_info, lnd_diag%fr_seaice(:,:))
-    ENDIF
+    END IF
 
     ! -- single level variables
 
@@ -860,6 +863,21 @@ CONTAINS
       CALL add_sfc_var(meteogram_config, var_list, VAR_GROUP_SURFACE, &
         &              "H_ICE", "m", "sea ice depth", &
         &              sfc_var_info, prog_wtr%h_ice(:,:))
+
+      IF (var_in_output(jg)%t_snow_si .OR. lsnow_on_seaice) THEN
+        CALL add_sfc_var(meteogram_config, var_list, VAR_GROUP_SURFACE, &
+          &              "T_ICE", "K", "sea ice temperature", &
+          &              sfc_var_info, prog_wtr%t_ice(:,:))
+        CALL add_sfc_var(meteogram_config, var_list, VAR_GROUP_SURFACE, &
+          &              "H_SNOW_SI", "m", "sea ice snow height", &
+          &              sfc_var_info, prog_wtr%h_snow_si(:,:))
+        CALL add_sfc_var(meteogram_config, var_list, VAR_GROUP_SURFACE, &
+          &              "T_SNOW_SI", "K", "sea ice snow temperature", &
+          &              sfc_var_info, prog_wtr%t_snow_si(:,:))
+        CALL add_sfc_var(meteogram_config, var_list, VAR_GROUP_SURFACE, &
+          &              "ALB_SI", "-", "sea ice albedo", &
+          &              sfc_var_info, prog_wtr%alb_si(:,:))
+      END IF
 
       CALL add_sfc_var(meteogram_config, var_list, VAR_GROUP_SURFACE, &
         &              "CLCT", "-", "total cloud cover", &

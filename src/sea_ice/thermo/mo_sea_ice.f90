@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2026, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -35,12 +35,12 @@ MODULE mo_sea_ice
   USE mo_model_domain,        ONLY: t_patch
   USE mo_exception,           ONLY: finish
   USE mo_impl_constants,      ONLY: sea_boundary
-  USE mo_physical_constants,  ONLY: rhoi, rhos, rho_ref, Tf,        &
+  USE mo_physical_constants,  ONLY: rhoi, rhos, rho_ref,            &
     &                               mu, alf, clw
 
   USE mo_ocean_nml,           ONLY: no_tracer
   USE mo_sea_ice_nml,         ONLY: hnull, hmin,                    &
-    &                               leadclose_1, leadclose_2n,      &
+    &                               leadclose_1, leadclose_2n, Tf,      &
     &                               use_constant_tfreez, t_heat_base, sice
   USE mo_ocean_types,         ONLY: t_hydro_ocean_state
   USE mo_ocean_state,         ONLY: v_base
@@ -89,7 +89,6 @@ CONTAINS
     INTEGER                       :: k, jb, jc, i_startidx_c, i_endidx_c
  !  REAL(wp) :: sst(nproma,p_patch%alloc_cell_blocks)
  !  REAL(wp) :: sss(nproma,p_patch%alloc_cell_blocks)
-    REAL(wp) :: Tfw(nproma,p_patch%alloc_cell_blocks) ! Ocean freezing temperature [C]
     LOGICAL  :: lzacc
 
     CALL set_acc_host_or_device(lzacc, lacc)
@@ -100,14 +99,12 @@ CONTAINS
 
     CALL dbg_print('IceConcCh: IceConc beg' ,ice%conc, str_module, 4, in_subset=p_patch%cells%owned)
 
-    !$ACC DATA CREATE(Tfw) IF(lzacc)
-
     ! Calculate the sea surface freezing temperature                        [C]
     IF ( no_tracer < 2 .OR. use_constant_tfreez ) THEN
       !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
       DO jb = 1, p_patch%alloc_cell_blocks
         DO jc = 1, nproma
-          Tfw(jc,jb) = Tf
+          ice%Tfw(jc,jb) = Tf
         END DO
       END DO
       !$ACC END PARALLEL LOOP
@@ -116,7 +113,7 @@ CONTAINS
       !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(2) ASYNC(1) IF(lzacc)
       DO jb = 1, p_patch%alloc_cell_blocks
         DO jc = 1, nproma
-          Tfw(jc,jb) = -mu * p_os%p_prog(nold(1))%tracer(jc,1,jb,2)
+          ice%Tfw(jc,jb) = -mu * p_os%p_prog(nold(1))%tracer(jc,1,jb,2)
         END DO
       END DO
       !$ACC END PARALLEL LOOP
@@ -240,9 +237,9 @@ CONTAINS
       !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
       DO jc = i_startidx_c,i_endidx_c
         IF (ice%hi(jc,1,jb) <= 0._wp) THEN
-          ice%Tsurf(jc,1,jb) = Tfw(jc,jb)
-          ice%T1   (jc,1,jb) = Tfw(jc,jb)
-          ice%T2   (jc,1,jb) = Tfw(jc,jb)
+          ice%Tsurf(jc,1,jb) = ice%Tfw(jc,jb)
+          ice%T1   (jc,1,jb) = ice%Tfw(jc,jb)
+          ice%T2   (jc,1,jb) = ice%Tfw(jc,jb)
           ice%conc (jc,1,jb) = 0.0_wp
           ice%hi   (jc,1,jb) = 0.0_wp
           ice%hs   (jc,1,jb) = 0.0_wp
@@ -273,8 +270,6 @@ CONTAINS
     CALL dbg_print('IceConcCh: hs   at end' ,ice%hs  , str_module, 4, in_subset=p_patch%cells%owned)
     CALL dbg_print('IceConcCh: vol  at end' ,ice%vol , str_module, 4, in_subset=p_patch%cells%owned)
     CALL dbg_print('IceConcCh: vols at end' ,ice%vols, str_module, 4, in_subset=p_patch%cells%owned)
-
-    !$ACC END DATA
 
   END SUBROUTINE ice_conc_change
 

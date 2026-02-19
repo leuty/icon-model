@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2026, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -43,9 +43,9 @@ MODULE mo_aes_phy_init
   ! test cases
   USE mo_nh_testcases_nml,     ONLY: nh_test_name, ape_sst_case, th_cbl, tpe_temp
   USE mo_ape_params,           ONLY: ape_sst
-  USE mo_physical_constants,   ONLY: tmelt, Tf, albedoW, amd, amo3, zemiss_def
+  USE mo_physical_constants,   ONLY: tmelt, albedoW, amd, amo3, zemiss_def
 
-  USE mo_sea_ice_nml,          ONLY: albi
+  USE mo_sea_ice_nml,          ONLY: albi, Tf
 
   ! aes physics
   USE mo_aes_phy_config,       ONLY: eval_aes_phy_config, eval_aes_phy_tc, print_aes_phy_config, &
@@ -506,7 +506,7 @@ CONTAINS
 
   SUBROUTINE init_aes_phy_external( p_patch, ext_data, mtime_current)
 
-    USE mo_physical_constants, ONLY: tf_salt
+   USE mo_sea_ice_nml,        ONLY: Tf
 
     TYPE(t_patch), TARGET,   INTENT(in) :: p_patch(:)
     TYPE(t_external_data),   INTENT(in) :: ext_data(:)
@@ -751,7 +751,7 @@ CONTAINS
           prm_field(jg)%seaice(:,:) = MERGE(0.99_wp, prm_field(jg)%seaice(:,:), prm_field(jg)%seaice(:,:) > 0.99_wp)
           prm_field(jg)%seaice(:,:) = MERGE(0.0_wp, prm_field(jg)%seaice(:,:), prm_field(jg)%seaice(:,:) <= 0.01_wp)
 
-          prm_field(jg)%ts_tile(:,:,iwtr) = MERGE(tf_salt, MAX(prm_field(jg)%ts_tile(:,:,iwtr), tf_salt), &
+          prm_field(jg)%ts_tile(:,:,iwtr) = MERGE(Tf+273.15_wp, MAX(prm_field(jg)%ts_tile(:,:,iwtr), Tf+273.15_wp), &
               &                                   prm_field(jg)%seaice(:,:) > 0.0_wp)
           ! set ice thickness
           WHERE (prm_field(jg)%seaice(:,:) > 0.0_wp)

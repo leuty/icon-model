@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2026, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -21,7 +21,8 @@ MODULE mo_tmx_surface_interface
   USE mo_exception, ONLY: finish
   USE mo_fortran_tools, ONLY: init, set_acc_async_queue
   USE mtime, ONLY: datetime
-  USE mo_physical_constants, ONLY: grav, rgrav, tmelt, Tf, stbo, rhos, alf, cvv, clw, ci, vtmpc1, rd
+  USE mo_physical_constants, ONLY: grav, rgrav, tmelt, stbo, rhos, alf, cvv, clw, ci, vtmpc1, rd, nu
+  USE mo_sea_ice_nml,        ONLY: Tf
   USE mo_aes_thermo, ONLY: &
     & lvc, lsc, &
     & sat_pres_water, sat_pres_ice, specific_humidity, dewpoint_temperature
@@ -29,6 +30,8 @@ MODULE mo_tmx_surface_interface
   USE mo_coupling_config,   ONLY: is_coupled_to_ocean
   USE mo_aes_phy_config,    ONLY: aes_phy_config  ! TODO: replace USE
   USE mo_tmx_field_class, ONLY: t_domain, isfc_oce, isfc_ice, isfc_lnd
+  USE mo_turb_vdiff_params, ONLY: cchar, viscous_coeff
+  USE mo_nh_testcases_nml,  ONLY: isrfc_type, shflx, lhflx
 
   ! If land is present, JSBACH is currently the only surface scheme supported by AES physcis package
 #ifndef __NO_JSBACH__
@@ -579,19 +582,19 @@ CONTAINS
         js = indices(jls,jb)
 
         IF (isfc == isfc_oce) THEN
-          ! rough_m(js,jb) = MERGE(rough_oce, wind(js,jb) * km(js,jb) * cchar * rgrav, linit)
-          ! rough_m(js,jb) = MAX(rough_min, rough_m(js,jb))
-          rough_tmp = MERGE(rough_oce, wind(js,jb) * km(js,jb) * cchar * rgrav, linit)
+          IF (linit) THEN
+            rough_tmp = rough_oce
+          ELSE
+            rough_tmp =   (wind(js,jb)**2 * km(js,jb) * cchar * rgrav) &
+                        + (viscous_coeff * MIN(0.01_wp, nu / (km(js,jb)**0.5_wp * wind(js,jb) ) ))
+          END IF
           rough_tmp = MAX(rough_min, rough_tmp)
           rough_m(js,jb) = rough_tmp
-          ! rough_m(js,jb) = 1.E-3_wp
           rough_h(js,jb) = rough_tmp
-          ! rough_h(js,jb) = rough_m(js,jb)
         ELSE IF (isfc == isfc_ice) THEN
           ! Nothing to do
           rough_m(js,jb) = rough_ice
           rough_h(js,jb) = rough_ice
-          ! rough_h(js,jb) = rough_m(js,jb)
         END IF
 
       END DO !jls
@@ -721,9 +724,6 @@ CONTAINS
     & evapotrans, latent_hflx, sensible_hflx, ustress, vstress,  &
     & opt_acc_async_queue      &
     & )
-
-    USE mo_turb_vdiff_params, ONLY: cchar
-    USE mo_nh_testcases_nml,  ONLY: isrfc_type, shflx, lhflx
 
     ! Domain information
     TYPE(t_domain),  INTENT(in), POINTER :: domain

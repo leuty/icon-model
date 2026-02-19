@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2026, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -1056,20 +1056,40 @@ MODULE mo_nwp_lnd_state
 
     ! & p_prog_wtr%t_snow_si(nproma,nblks_c)
     cf_desc    = t_cf_var('t_snow_si', 'K', 'temperature of snow on sea ice', datatype_flt)
-    grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+    grib2_desc = grib2_var(10, 2, 13, ibits, GRID_UNSTRUCTURED, GRID_CELL) &
+      & + t_grib2_int_key('typeOfFirstFixedSurface', 173) &
+      & + t_grib2_int_key('scaledValueOfFirstFixedSurface', HUGE(0)) &
+      & + t_grib2_int_key('scaleFactorOfFirstFixedSurface', 255) &
+      & + t_grib2_int_key('typeOfSecondFixedSurface', 175) &
+      & + t_grib2_int_key('scaledValueOfSecondFixedSurface', HUGE(0)) &
+      & + t_grib2_int_key('scaleFactorOfSecondFixedSurface', 255)
     CALL add_var( prog_list, vname_prefix//'t_snow_si'//suffix, p_prog_wtr%t_snow_si,  &
          & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, ldims=shape2d,     &
-         & tlev_source=TLEV_NNOW_RCF, in_group=groups("TLEV_UPDATE_SURFACE"),          &
+         & tlev_source=TLEV_NNOW_RCF,                                                  &
+         & in_group=groups("dwd_fg_sfc_vars","mode_dwd_ana_in","mode_iau_fg_in",       &
+         &                 "mode_combined_in","mode_cosmo_in","mode_iniana",           &
+         &                 "iau_restore_vars","opt_fg_vars",                           &
+         &                 "TLEV_UPDATE_SURFACE"),                                     &
          & lopenacc=.TRUE.)
     __acc_attach(p_prog_wtr%t_snow_si)
 
 
     ! & p_prog_wtr%h_snow_si(nproma,nblks_c)
     cf_desc    = t_cf_var('h_snow_si', 'm', 'depth of snow on sea ice', datatype_flt)
-    grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+    grib2_desc = grib2_var(10, 2, 16, ibits, GRID_UNSTRUCTURED, GRID_CELL) &
+      & + t_grib2_int_key('typeOfFirstFixedSurface', 173) &
+      & + t_grib2_int_key('scaledValueOfFirstFixedSurface', HUGE(0)) &
+      & + t_grib2_int_key('scaleFactorOfFirstFixedSurface', 255) &
+      & + t_grib2_int_key('typeOfSecondFixedSurface', 175) &
+      & + t_grib2_int_key('scaledValueOfSecondFixedSurface', HUGE(0)) &
+      & + t_grib2_int_key('scaleFactorOfSecondFixedSurface', 255)
     CALL add_var( prog_list, vname_prefix//'h_snow_si'//suffix, p_prog_wtr%h_snow_si,  &
          & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, ldims=shape2d,     &
-         & tlev_source=TLEV_NNOW_RCF, in_group=groups("TLEV_UPDATE_SURFACE"),          &
+         & tlev_source=TLEV_NNOW_RCF,                                                  &
+         & in_group=groups("dwd_fg_sfc_vars","mode_dwd_ana_in","mode_iau_fg_in",       &
+         &                 "mode_combined_in","mode_cosmo_in","mode_iniana",           &
+         &                 "iau_restore_vars","opt_fg_vars",                           &
+         &                 "TLEV_UPDATE_SURFACE"),                                     &
          & lopenacc=.TRUE.)
     __acc_attach(p_prog_wtr%h_snow_si)
 

@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2026, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -95,7 +95,7 @@ MODULE mo_nwp_phy_types
     TYPE(t_ptr_2d3d),ALLOCATABLE :: uh_max_ptr(:)   !< pointer array: max. updraft helicity in time interval
 
     REAL(wp), POINTER, CONTIGUOUS :: &
-      &   spg(:,:),            & !! 2D stochastic physics pattern
+      &   spg(:,:,:),          & !! array of nspg 2D stochastic physics patterns
       &   acdnc(:,:,:),        & !! cloud droplet number concentration                   [1/m**3]
       &   cape    (:,:),       & !! convective available energy
       &   cloud_num(:,:),      & !! 2D cloud droplet number concentration for simple aerosol-cloud coupling [1/m**3]
@@ -147,6 +147,8 @@ MODULE mo_nwp_phy_types
       &  hbas_con(:,:),        & !! height of base of convection [m]
       &  htop_con(:,:),        & !! height of top of convection [m]
       &  htop_dc(:,:),         & !! height above msl of the top of dry convection [m]
+      &  pbas_con(:,:),        & !! pressure at base of convection [Pa]
+      &  ptop_con(:,:),        & !! pressure at top of convection [Pa]
       &  tot_cld(:,:,:,:),     & !! total cloud variables (qv,qc,qi)
       &  tot_cld_vi(:,:,:),    & !! vertically integrated tot_cld (qv,qc,qi), including vertical
                                  !! integrals of qr and qs

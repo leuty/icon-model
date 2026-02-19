@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2026, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -33,13 +33,14 @@ MODULE mo_nwp_gw_interface
   USE mo_nwp_phy_types,        ONLY: t_nwp_phy_diag, t_nwp_phy_tend
   USE mo_nwp_phy_state,        ONLY: phy_params
   USE mo_parallel_config,      ONLY: nproma
-  USE mo_atm_phy_nwp_config,   ONLY: atm_phy_nwp_config
+  USE mo_atm_phy_nwp_config,   ONLY: atm_phy_nwp_config, itype_stoch_phys
   USE mo_sso_cosmo,            ONLY: sso
   USE mo_sso_ifs,              ONLY: gwdrag
   USE mo_gwd_wms,              ONLY: gwdrag_wms
   USE mo_vertical_coord_table, ONLY: vct_a
-  USE mo_exception,            ONLY : finish, message
+  USE mo_exception,            ONLY : finish, message, message_text
   USE mo_fortran_tools,        ONLY: set_acc_host_or_device
+  USE mo_run_config,           ONLY: msg_level
 
   IMPLICIT NONE
 
@@ -94,9 +95,9 @@ CONTAINS
       &  ztot_prec_rate(nproma)
     REAL(wp) ::            &           !< latitude (rad)
       &  pgelat(nproma)
-    REAL(vp) :: ssolim(p_patch%nlev), zf
+    REAL(vp) :: ssolim(p_patch%nlev), zf, pertb
 
-    INTEGER :: jk,jc,jb,jg,jks             !<block indeces
+    INTEGER :: jk,jc,jb,jg,jj,jks             !<block indeces
 
     CALL set_acc_host_or_device(lzacc, lacc)
 
@@ -133,7 +134,7 @@ CONTAINS
     !$ACC END PARALLEL
 
 !$OMP PARALLEL
-!$OMP DO PRIVATE(jb,jc,i_startidx,i_endidx,ztot_prec_rate,z_fluxu,z_fluxv,pgelat) ICON_OMP_GUIDED_SCHEDULE
+!$OMP DO PRIVATE(jb,jc,i_startidx,i_endidx,ztot_prec_rate,z_fluxu,z_fluxv,pgelat,pertb,jj) ICON_OMP_GUIDED_SCHEDULE
     DO jb = i_startblk, i_endblk
 
       CALL get_indices_c(p_patch, jb, i_startblk, i_endblk, &
@@ -332,6 +333,31 @@ CONTAINS
         !$ACC END PARALLEL
 
       ENDIF
+
+      ! SPPT perturbation for SSO and non-orographic GWD
+      IF ( ANY(itype_stoch_phys == (/2,3,4/)) .AND. (lcall_sso_jg .OR. lcall_gwd_jg) ) THEN
+        jj = MERGE(2, 1, itype_stoch_phys == 4)   ! for iSPPT use 2nd SPG field else 1st
+        IF (lcall_sso_jg .AND. atm_phy_nwp_config(jg)%inwp_sso > 0) THEN
+          DO jk = 1, nlev
+            DO jc = i_startidx, i_endidx
+              pertb = prm_diag%spg(jc,jj,jb)
+              pertb = SIGN(1.0_vp, pertb) * MIN(0.5_vp, ABS(pertb))
+              prm_nwp_tend%ddt_u_sso(jc,jk,jb) = (1.0_vp+pertb)*prm_nwp_tend%ddt_u_sso(jc,jk,jb)
+              prm_nwp_tend%ddt_v_sso(jc,jk,jb) = (1.0_vp+pertb)*prm_nwp_tend%ddt_v_sso(jc,jk,jb)
+            END DO
+          END DO
+        END IF
+        IF (lcall_gwd_jg .AND. atm_phy_nwp_config(jg)%inwp_gwd == 1) THEN
+          DO jk = 1, nlev
+            DO jc = i_startidx, i_endidx
+              pertb = prm_diag%spg(jc,jj,jb)
+              pertb = SIGN(1.0_vp, pertb) * MIN(0.5_vp, ABS(pertb))
+              prm_nwp_tend%ddt_u_gwd(jc,jk,jb) = (1.0_vp+pertb)*prm_nwp_tend%ddt_u_gwd(jc,jk,jb)
+              prm_nwp_tend%ddt_v_gwd(jc,jk,jb) = (1.0_vp+pertb)*prm_nwp_tend%ddt_v_gwd(jc,jk,jb)
+            END DO
+          END DO
+        END IF
+      END IF
 
     ENDDO ! jb
 !$OMP END DO NOWAIT

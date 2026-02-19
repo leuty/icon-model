@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2026, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -27,8 +27,8 @@ MODULE mo_ice_fast
 
   USE mo_timer,               ONLY: timer_start, timer_stop, timer_ice_fast
 
-  USE mo_physical_constants,  ONLY: rhoi, ki, Tf, ci
-  USE mo_sea_ice_nml,         ONLY: i_ice_therm, hci_layer
+  USE mo_physical_constants,  ONLY: rhoi, ki, ci
+  USE mo_sea_ice_nml,         ONLY: i_ice_therm, hci_layer, Tf
 
   USE mo_ice_winton,          ONLY: set_ice_temp_winton
   USE mo_ice_zerolayer,       ONLY: set_ice_temp_zerolayer, set_ice_temp_zerolayer_analytical

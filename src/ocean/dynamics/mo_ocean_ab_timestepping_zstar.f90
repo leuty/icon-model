@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2026, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -52,7 +52,7 @@ MODULE mo_ocean_ab_timestepping_zstar
     & timer_extra2, timer_extra3, timer_extra4, timer_ab_expl, timer_ab_rhs4sfc, timer_total
 
   USE mo_dynamics_config,           ONLY: nold, nnew
-  USE mo_physical_constants,        ONLY: grav, clw, rho_ref, Tf
+  USE mo_physical_constants,        ONLY: grav, clw, rho_ref
   USE mo_ocean_initialization,      ONLY: is_initial_timestep
   USE mo_ocean_types, ONLY: t_hydro_ocean_state
   USE mo_ocean_time_events,   ONLY: ocean_time_nextStep, isCheckpoint, isEndOfThisRun, newNullDatetime

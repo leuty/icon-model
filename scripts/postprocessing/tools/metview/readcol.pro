@@ -7,7 +7,7 @@ pro readcol,name,v1,V2,v3,v4,v5,v6,v7,v8,v9,v10,v11,v12,v13,v14,v15, $
             PRESERVE_NULL = preserve_null, COUNT=ngood, NLINES=nlines, $
             STRINGSKIP = skipstart, QUICK = quick, COMPRESS = compress
 ; ---------------------------------------------------------------
-; Copyright (C) 2004-2024, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+; Copyright (C) 2004-2026, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ; Contact information: icon-model.org
 ; See AUTHORS.TXT for a list of authors
 ; See LICENSES/ for license information

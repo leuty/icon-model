@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2026, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -74,8 +74,8 @@ MODULE mo_sea_ice_types
       ! thermodynamics, fast
       & Tsurf      (:,:,:)       ,   & ! Surface temperature                                    [C]
       & Tfw        (:,:)         ,   & ! Ocean surface freezing temperature                     [C]
-      & Qtop       (:,:,:)       ,   & ! Energy flux available for surface melting              [W/m2]
-      & Qbot       (:,:,:)       ,   & ! Conductive heat flux at ice-ocean interface (fast)     [W/m2]
+      & Qtop       (:,:,:)       ,   & ! Energy flux available for surface melting              [W/m^2]
+      & Qbot       (:,:,:)       ,   & ! Conductive heat flux at ice-ocean interface (fast)     [W/m^2]
       & alb        (:,:,:)       ,   & ! Albedo of snow-ice system
       ! thermodynamics, slow
       ! Note: variables like zHeatOceI and heatOceI SHOULD NOT have kice dimension
@@ -101,7 +101,7 @@ MODULE mo_sea_ice_types
       ! thermodynamics, slow (winton scheme only -- not currently functional)
       & surfmelt   (:,:,:)       ,   & ! Surface melt water running into ocean                  [m]
       & surfmeltT  (:,:,:)       ,   & ! Mean temperature of surface melt water                 [C]
-      & evapwi     (:,:,:)             ! Amount of evaporated water if no ice left              [kg/m2]
+      & evapwi     (:,:,:)             ! Amount of evaporated water if no ice left              [kg/m^2]
 
       ! dynamics
     REAL(wp), POINTER :: &
@@ -110,16 +110,16 @@ MODULE mo_sea_ice_types
       & u          (:,:)         ,   & ! Zonal velocity on cell centre (diagnostic)             [m/s]
       & v          (:,:)         ,   & ! Meridional velocity on cell centre (diagn.)            [m/s]
       & vn_e       (:,:)         ,   &  ! Edge normal velocity(prognostic)                      [m/s]
-      & vt_e       (:,:)         ,   & ! Edge tangential velocity prognostic                     [m/s]
-      & delta      (:,:)         ,   & ! Delta                  [1/s]
-      & sigma_i    (:,:)         ,   & !
-      & sigma_ii   (:,:)         ,   & !
-      & s11        (:,:)         ,   & ! normal stress component (sigma_11) [N/m]
-      & s12        (:,:)         ,   & ! shear stress component (sigma_12)  [N/m]           [N/m]
-      & s22        (:,:)         ,   & ! normal stress component (sigma_22)
-      & e11        (:,:)         ,   & ! strain rate (eps11) [s-1]
-      & e12        (:,:)         ,   & ! strain rate (eps12)  [s-1]           [N/m]
-      & e22        (:,:)               ! strain rate (eps22) [s-1]
+      & vt_e       (:,:)         ,   & ! Edge tangential velocity prognostic                    [m/s]
+      & delta      (:,:)         ,   & ! total deformation rate                                 [1/s]
+      & sigma_i    (:,:)         ,   & ! principal stress                                       [N/m^2]
+      & sigma_ii   (:,:)         ,   & ! principal stress                                       [N/m^2]
+      & s11        (:,:)         ,   & ! normal stress component (sigma_11)                     [N/m^2]
+      & s12        (:,:)         ,   & ! shear stress component (sigma_12)                      [N/m^2]
+      & s22        (:,:)         ,   & ! normal stress component (sigma_22)                     [N/m^2]
+      & e11        (:,:)         ,   & ! strain rate (eps11)                                    [s-1]
+      & e12        (:,:)         ,   & ! strain rate (eps12)                                    [s-1]
+      & e22        (:,:)               ! strain rate (eps22)                                    [s-1]
 
 
     ! not currently used categorywise limiter

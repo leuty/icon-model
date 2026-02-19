@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2026, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -20,7 +20,7 @@ MODULE mo_nwp_phy_init
   USE mo_kind,                ONLY: wp
   USE mo_math_constants,      ONLY: rad2deg
   USE mo_physical_constants,  ONLY: grav, rd_o_cpd, cpd, p0ref, rd, p0sl_bg,         &
-    &                               dtdz_standardatm, lh_v=>alv, o3mr2gg, tf_salt
+    &                               dtdz_standardatm, lh_v=>alv, o3mr2gg
   USE mo_nwp_phy_types,       ONLY: t_nwp_phy_diag,t_nwp_phy_tend
   USE mo_nwp_lnd_types,       ONLY: t_lnd_prog, t_wtr_prog, t_lnd_diag
   USE mo_ext_data_types,      ONLY: t_external_data
@@ -42,7 +42,7 @@ MODULE mo_nwp_phy_init
   USE mo_run_config,          ONLY: ltestcase, iqv, iqc, inccn, ininpot, msg_level, dtime
   USE mo_atm_phy_nwp_config,  ONLY: atm_phy_nwp_config, lrtm_filename,               &
     &                               cldopt_filename, icpl_aero_conv, icpl_aero_ice,  &
-    &                               i2daero_dust, i2daero_seas, i2daero_anthro
+    &                               i2daero_dust, i2daero_seas, i2daero_anthro, spg_num
   USE mo_extpar_config,       ONLY: ext_o3_attr, itype_vegetation_cycle
 
   !radiation
@@ -57,6 +57,7 @@ MODULE mo_nwp_phy_init
     &                               ghg_filename, irad_co2, irad_cfc11, irad_cfc12,   &
     &                               irad_n2o, irad_ch4, isolrad, lcalculate_fsd,      &
     &                               fsd_gridlen
+  USE mo_ccycle_config,       ONLY: ccycle_config, update_ccycle_config
   USE mo_nwp_aerosol,         ONLY: nwp_aerosol_init
   USE mo_srtm_config,         ONLY: setup_srtm, ssi_amip, ssi_coddington
   USE mo_aerosol_util,        ONLY: init_aerosol_props_tegen_rrtm,                  &
@@ -101,7 +102,7 @@ MODULE mo_nwp_phy_init
   USE mo_nwp_sfc_utils,       ONLY: nwp_surface_init, init_snowtile_lists, init_sea_lists, &
     &                               aggregate_tg_qvs, copy_lnd_prog_now2new, reset_ocean_skin
   USE mo_lnd_nwp_config,      ONLY: ntiles_total, lsnowtile, ntiles_water, llake, loskin, &
-    &                               lseaice, zml_soil, nlev_soil, dzsoil_icon => dzsoil
+    &                               lseaice, zml_soil, nlev_soil, dzsoil_icon => dzsoil, tf_salt
   USE sfc_flake_data,         ONLY: h_Ice_min_flk, tpl_T_f
   USE sfc_terra_data,         ONLY: csalbw, cpwp, cfcap
   USE mo_thdyn_functions,     ONLY: sat_pres_water, &  !! saturation vapor pressure w.r.t. water
@@ -818,16 +819,16 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
   !< initialize stochastic pattern generator
   !------------------------------------------
 
-  IF (atm_phy_nwp_config(jg)%lstochastic_pattern_generator.AND.jg==1) THEN
+  IF (atm_phy_nwp_config(jg)%lstoch_pattern_generator.AND.jg==1) THEN
     CALL stochastic_pattern_boundaries(p_patch)
-    CALL stochastic_pattern_init(                           &
-          dtime=dtime, mtime_current=ini_date,              &
-          plam=atm_phy_nwp_config(jg)%spg_fourier_modes,    &
-          plength=atm_phy_nwp_config(jg)%spg_length_scale,  &
-          ptime=atm_phy_nwp_config(jg)%spg_time_scale,      &
-          pmodes=atm_phy_nwp_config(jg)%spg_spec_modes,     &
-          pasl=atm_phy_nwp_config(jg)%spg_use_asl,          &
-          pvar=atm_phy_nwp_config(jg)%spg_variance          )
+    CALL stochastic_pattern_init(                            &
+          dtime=dtime, mtime_current=ini_date, pspg=spg_num, &
+          plam=atm_phy_nwp_config(jg)%spg_fourier_modes,     &
+          plength=atm_phy_nwp_config(jg)%spg_length_scale,   &
+          ptime=atm_phy_nwp_config(jg)%spg_time_scale,       &
+          pmodes=atm_phy_nwp_config(jg)%spg_spec_modes,      &
+          pasl=atm_phy_nwp_config(jg)%spg_use_asl,           &
+          pvar=atm_phy_nwp_config(jg)%spg_variance           )
   ENDIF
 
   !------------------------------------------
@@ -1904,9 +1905,15 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
   CALL sugwd(nlev, pref, phy_params, jg)
   IF (linit_mode) prm_diag%ktop_envel(:,:) = nlev
 
+  ! update ccycle and ico2conc if C4MIP_FLAG
+  ! is set in user's runscript
+  IF(ccycle_config(jg)% C4MIP_FLAG /= 'none') THEN
+    WRITE(*,*) 'NEROBELOV TEST', ccycle_config(jg)% C4MIP_FLAG
+    CALL update_ccycle_config
+  ENDIF
   ! read time-dependent boundary conditions from file
   ! well mixed greenhouse gases, horizontally constant
-  IF(ANY((/irad_co2,irad_cfc11,irad_cfc12,irad_n2o,irad_ch4/) == 4)) THEN
+  IF(ANY((/irad_co2,irad_cfc11,irad_cfc12,irad_n2o,irad_ch4/) == 4) .OR. ccycle_config(jg)% ico2conc == 4 ) THEN
     ! read annual means
     CALL read_bc_greenhouse_gases(ghg_filename)
     ! interpolation to the current date and time takes place in the radiation interface

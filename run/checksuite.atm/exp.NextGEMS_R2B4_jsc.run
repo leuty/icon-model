@@ -109,7 +109,7 @@ cdo_diff="cdo diffn"
 # ICON
 #
 # ------------------------------------------
-# Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+# Copyright (C) 2004-2026, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 # Contact information: icon-model.org
 # See AUTHORS.TXT for a list of authors
 # See LICENSES/ for license information
@@ -188,8 +188,10 @@ lcarbon=$([ "${jsbach_with_carbon:=yes}" == yes ] && echo .TRUE. || echo .FALSE.
 #
 if [[ $jsbach_usecase == *pfts* ]]
 then
-  pft_file_tag="11pfts_"
+  npft=11
+  pft_file_tag="${npft}pfts_"
 else
+  npft=0
   pft_file_tag=""
 fi
 
@@ -388,6 +390,7 @@ EOF
 cat > ${jsbach_namelist} << EOF
 &jsb_model_nml
  usecase             = "${jsbach_usecase}"
+ npft                = ${npft}
  use_lakes           = .TRUE.
  use_tmx             = .TRUE.    ! adapted to ngc3039, does not work proper yet
  fract_filename      = 'bc_land_frac.nc'
@@ -504,7 +507,7 @@ add_link_file $datadir/swflux_14band_cmip6_1850-2299-v3.2.nc              ./bc_s
 #
 datadir=${icon_data_poolFolder}/${grid_id_land}/land/r0002
 add_link_file $datadir/ic_land_soil_1979.nc                               ./ic_land_soil.nc
-add_link_file $datadir/bc_land_frac_1979.nc                               ./bc_land_frac.nc
+add_link_file $datadir/bc_land_frac_${pft_file_tag}1979.nc                ./bc_land_frac.nc
 add_link_file $datadir/bc_land_phys_1979.nc                               ./bc_land_phys.nc
 add_link_file $datadir/bc_land_soil_1979.nc                               ./bc_land_soil.nc
 add_link_file $datadir/bc_land_sso_1979.nc                                ./bc_land_sso.nc
@@ -643,7 +646,7 @@ ldd ${MODEL}
 # ICON
 #
 # ---------------------------------------------------------------
-# Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+# Copyright (C) 2004-2026, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 # Contact information: icon-model.org
 # See AUTHORS.TXT for a list of authors
 # See LICENSES/ for license information

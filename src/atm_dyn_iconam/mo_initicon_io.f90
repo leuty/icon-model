@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2026, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -32,7 +32,7 @@ MODULE mo_initicon_io
     &                               alb_snow_var, geop_ml_var
   USE mo_input_instructions,  ONLY: t_readInstructionListPtr, kInputSourceFg, &
     &                               kInputSourceAna, kInputSourceBoth, kStateFailedFetch, &
-    &                               kInputSourceCold
+    &                               kInputSourceCold, kStateRead
   USE mo_initicon_config,     ONLY: init_mode, l_sst_in, generate_filename,             &
     &                               ifs2icon_filename, lread_vn, lread_tke,             &
     &                               lp2cintp_incr, lp2cintp_sfcana, ltile_coldstart,    &
@@ -58,7 +58,7 @@ MODULE mo_initicon_io
   USE mo_lnd_nwp_config,      ONLY: ntiles_total,  l2lay_rho_snow, &
     &                               ntiles_water, lmulti_snow, lsnowtile, &
     &                               isub_lake, isub_water, llake, itype_oskin_warm, lprog_albsi, itype_trvg, &
-    &                               itype_snowevap, itype_canopy, nlev_soil, itype_ahf
+    &                               itype_snowevap, itype_canopy, nlev_soil, itype_ahf, lsnow_on_seaice
   USE mo_master_config,       ONLY: getModelBaseDir
   USE mo_nwp_sfc_interp,      ONLY: smi_to_wsoil
   USE mo_initicon_utils,      ONLY: allocate_extana_atm, allocate_extana_sfc, &
@@ -1763,6 +1763,17 @@ MODULE mo_initicon_io
             IF ( lprog_albsi ) THEN  ! prognostic sea-ice albedo
               CALL fetchSurface(params, 'alb_si', jg, wtr_prog%alb_si)
             ENDIF
+            IF ( lsnow_on_seaice ) THEN
+              CALL fetchSurface(params, 't_snow_si', jg, wtr_prog%t_snow_si)
+              CALL fetchSurface(params, 'h_snow_si', jg, wtr_prog%h_snow_si)
+
+              IF (inputInstructions(jg)%ptr%fetchStatus('t_snow_si', lIsFg=.TRUE.) /= kStateRead) THEN
+                wtr_prog%t_snow_si = wtr_prog%t_ice
+              ENDIF
+            ELSE
+              wtr_prog%t_snow_si = wtr_prog%t_ice
+              wtr_prog%h_snow_si = 0._wp
+            ENDIF
             IF ( itype_oskin_warm > 0 ) THEN  ! prognostic SST warm layer
               CALL fetchSurface(params, 'sst_warm_layer', jg, lnd_diag%sst_warm_layer)
             ENDIF
@@ -2119,6 +2130,17 @@ MODULE mo_initicon_io
             CALL fetchSurface(params, 't_ice', jg, wtr_prog%t_ice)
             ! sea-ice height
             CALL fetchSurface(params, 'h_ice', jg, wtr_prog%h_ice)
+
+            IF ( lsnow_on_seaice ) THEN
+              CALL fetchSurface(params, 't_snow_si', jg, wtr_prog%t_snow_si)
+              CALL fetchSurface(params, 'h_snow_si', jg, wtr_prog%h_snow_si)
+
+              IF (inputInstructions(jg)%ptr%fetchStatus('t_snow_si', lIsFg=.FALSE.) /= kStateRead) THEN
+                wtr_prog%t_snow_si = wtr_prog%t_ice
+              ENDIF
+            ELSE
+              wtr_prog%t_snow_si = wtr_prog%t_ice
+            ENDIF
 
             ! sea-surface temperature: fetch T_SEA or, alternatively, T_SO(0)
             my_ptr2d => initicon(jg)%sfc%sst(:,:)

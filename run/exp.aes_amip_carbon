@@ -1,7 +1,7 @@
 # ICON
 #
 # ------------------------------------------
-# Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+# Copyright (C) 2004-2026, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 # Contact information: icon-model.org
 # See AUTHORS.TXT for a list of authors
 # See LICENSES/ for license information
@@ -181,6 +181,7 @@ jsbach_namelist=NAMELIST_${EXPNAME}_lnd
 
 # JSBACH settings
 jsbach_usecase=jsbach_pfts
+npft=11
 jsbach_with_carbon=yes        # yes needs jsbach_pfts usecase
 use_tmx=.TRUE.     # .FALSE. for vdiff code with TTE or Smagorinsky scheme, .TRUE. for tmx code with Smagorinsky scheme
 if [ ${use_tmx} = .FALSE. ]; then turb=1; max_ini_rough_m=-1.0; fi # turb=1 for TTE, turb=2 for Smagorinsky
@@ -190,7 +191,8 @@ if [ ${use_tmx} = .TRUE.  ]; then turb=2; max_ini_rough_m=1.0 ; fi
 # ----------------------------------------------
 #
 lcarbon=$([ "${jsbach_with_carbon:=yes}" == yes ] && echo .TRUE. || echo .FALSE. )
-pft_file_tag="11pfts_"
+pft_file_tag=${npft}pfts_
+
 output_tiles="'box','lake','land','glac','veg'"
 
 #--------------------------------------------------------------------------------------------------
@@ -409,6 +411,7 @@ EOF
 cat > ${jsbach_namelist} << EOF
 &jsb_model_nml
  usecase             = "${jsbach_usecase}"
+ npft                = ${npft}
  use_lakes           = .TRUE.
  use_tmx             = ${use_tmx}
  fract_filename      = 'bc_land_frac.nc'

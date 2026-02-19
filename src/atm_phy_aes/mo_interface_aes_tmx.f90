@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2026, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -597,7 +597,8 @@ CONTAINS
     USE mo_nonhydro_state,     ONLY: p_nh_state
     USE mo_nonhydro_types,     ONLY: t_nh_metrics, t_nh_diag, t_nh_prog
     USE mo_dynamics_config,    ONLY: nnow
-    USE mo_physical_constants, ONLY: cpd, cpv, cvd, cvv, Tf, tmelt
+    USE mo_physical_constants, ONLY: cpd, cpv, cvd, cvv, tmelt
+    USE mo_sea_ice_nml,        ONLY: Tf
 
     USE mo_master_config, ONLY: isRestart
 
@@ -803,8 +804,8 @@ CONTAINS
     !
     ! TODO: lw surface emissivity should be tile-specific and, for land, should be returned from land model
     CALL bind_variable(vdf%sfc%inputs%list%Search('longwave surface emissivity'), field%emissivity)
-    CALL bind_variable(vdf%sfc%inputs%list%Search('u-component of ocean current'), field%ocu)
-    CALL bind_variable(vdf%sfc%inputs%list%Search('v-component of ocean current'), field%ocv)
+    CALL bind_variable(vdf%sfc%inputs%list%Search('u-component of ocean current'), field%ocean_u)
+    CALL bind_variable(vdf%sfc%inputs%list%Search('v-component of ocean current'), field%ocean_v)
     !
     ptr_r2d => field%hi(:,1,:)
     CALL bind_variable(vdf%sfc%inputs%list%Search('thickness of sea ice'), ptr_r2d)

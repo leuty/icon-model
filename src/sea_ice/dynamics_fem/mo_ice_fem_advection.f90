@@ -10,7 +10,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2025, AWI
+! Copyright (C) 2004-2026, AWI
 !
 ! Authors: Sergey Danilov, Qiang Wang
 ! See LICENSES/ for license information

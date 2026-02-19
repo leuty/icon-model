@@ -1,7 +1,7 @@
 #%#- ICON
 #%#-
 #%#- ------------------------------------------
-#%#- Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+#%#- Copyright (C) 2004-2026, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 #%#- Contact information: icon-model.org
 #%#- See AUTHORS.TXT for a list of authors
 #%#- See LICENSES/ for license information
@@ -86,8 +86,7 @@ coupling:
             ocean_sea_ice_bundle]
   - <<: [ *oce2atm, *conserv_interp_stack ]
     mapping_side: source
-    field: [eastward_sea_water_velocity,
-            northward_sea_water_velocity]
+    field: [surface_velocity_bundle]
 #%  if include_river_runoff is set:
   - <<: [ *atm2oce, *spmap_interp_stack ]
     field: river_runoff

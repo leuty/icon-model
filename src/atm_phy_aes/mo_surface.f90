@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2026, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -22,7 +22,8 @@ MODULE mo_surface
   USE mo_exception,         ONLY: finish
 !#endif
 
-  USE mo_physical_constants,ONLY: grav, Tf, alf, albedoW, stbo, tmelt, rhos!!$, rhoi
+  USE mo_physical_constants,ONLY: grav, alf, albedoW, stbo, tmelt, rhos!!$, rhoi
+  USE mo_sea_ice_nml,       ONLY: Tf
   USE mo_physical_constants,ONLY: cvd, cpd
   USE mo_coupling_config,   ONLY: is_coupled_to_ocean
   USE mo_aes_phy_config,    ONLY: aes_phy_config
@@ -74,6 +75,7 @@ CONTAINS
                            & pfrc,                              &! in
                            & pcfh_tile, pcfm_tile,              &! in
                            & pfac_sfc, pocu, pocv,              &! in
+                           & piceu, picev,                      &! in
                            & aa, aa_btm, bb, bb_btm,            &! inout
                            & pcpt_tile, pqsat_tile,             &! inout
                            & ptsfc_tile,                        &! inout
@@ -154,6 +156,8 @@ CONTAINS
     REAL(wp),INTENT(IN) :: pfac_sfc  (:)   ! (kbdim)
     REAL(wp),INTENT(IN) :: pocu      (:)   ! (kbdim)
     REAL(wp),INTENT(IN) :: pocv      (:)   ! (kbdim)
+    REAL(wp),INTENT(IN) :: piceu     (:)   ! (kbdim)
+    REAL(wp),INTENT(IN) :: picev     (:)   ! (kbdim)
     REAL(wp),INTENT(INOUT) :: aa     (:,:,:,:)    ! (kbdim,klev,3,nmatrix)
     REAL(wp),INTENT(INOUT) :: aa_btm (:,:,:,imh:) ! (kbdim,3,ksfc_type,imh:imqv)
     REAL(wp),INTENT(INOUT) :: bb     (:,:,:)   ! (kbdim,klev,nvar_vdiff)
@@ -275,7 +279,11 @@ CONTAINS
 
     REAL(wp) :: zgrnd_hflx(kbdim,ksfc_type), zgrnd_hcap(kbdim,ksfc_type)
 
+    REAL(wp) :: surf_u, surf_v  ! surface velocites (ocean or sea ice)
+
     !REAL(wp) :: zt2s_conv(kbdim,ksfc_type)
+
+    REAL(wp) :: bb_tile(kbdim,nvar_vdiff,ksfc_type)
 
     ! Sea ice
     REAL(wp) :: Tfw(kbdim)
@@ -298,7 +306,7 @@ CONTAINS
     !$ACC   CREATE(fract_par_diffuse, zalbedo_lwtr, zalbedo_lice) &
     !$ACC   CREATE(zgrnd_hflx, zgrnd_hcap, Tfw, swflx_ice, nonsolar_ice) &
     !$ACC   CREATE(dnonsolardT, mask, delz, zwindspeed_lnd) &
-    !$ACC   CREATE(zwindspeed10m_lnd) &
+    !$ACC   CREATE(bb_tile, zwindspeed10m_lnd) &
     !$ACC   CREATE(rain_tmp, snow_tmp, drag_srf_tmp, pch_tmp, drag_wtr_tmp) &
     !$ACC   CREATE(drag_ice_tmp) ASYNC(1)
 
@@ -885,11 +893,12 @@ CONTAINS
     ! then perform the bottom level elimination to get the solution
     !-------------------------------------------------------------------
     ! Add additional terms to the r.h.s. of the velocity equations
-    ! to take into account ocean currents.
+    ! to take into account ocean currents and sea ice velocity.
     ! Note that in subroutine rhs_setup the constant tpfac2 has been
     ! multiplied to the r.h.s. array bb. Thus the additional terms here
     ! need to be scaled by the same factor.
 
+    ! Initialize and compute effective surface fraction for ocean
     !$ACC LOOP GANG(STATIC: 1) VECTOR
     DO jl = jcs,jce
       zfrc_oce(jl) = 0._wp
@@ -910,32 +919,79 @@ CONTAINS
       END DO
     ENDIF
 
-    ! Bottom level elimination
+    !-------------------------------------------------------------------
+    ! Step 1: compute bottom elimination and bb_tile per surface type
+    !-------------------------------------------------------------------
 
+    ! bottom-level elimination for the vertical tridiagonal system
     im   = imuv
     jk   = klev    ! Bottom level index
     jkm1 = jk - 1
 
+    ! update 'aa' for bottom-level elimination of the tridiagonal system
     !$ACC LOOP GANG(STATIC: 1) VECTOR
-    DO jl = jcs,jce
-      aa(jl,jk,2,im) =  aa(jl,jk,2,im) - aa(jl,jk,1,im)*aa(jl,jkm1,3,im)
-      aa(jl,jk,3,im) =  aa(jl,jk,3,im)/aa(jl,jk,2,im)
-
-      bb(jl,jk,iu) = - aa(jl,jk,3,im) * pocu(jl)*zfrc_oce(jl)*tpfac2 + (bb(jl,jk,iu) - aa(jl,jk,1,im)*bb(jl,jkm1,iu))/aa(jl,jk,2,im)
-      bb(jl,jk,iv) = - aa(jl,jk,3,im) * pocv(jl)*zfrc_oce(jl)*tpfac2 + (bb(jl,jk,iv) - aa(jl,jk,1,im)*bb(jl,jkm1,iv))/aa(jl,jk,2,im)
+    DO jl = jcs, jce
+      aa(jl,jk,2,im) = aa(jl,jk,2,im) - aa(jl,jk,1,im) * aa(jl,jkm1,3,im)
+      aa(jl,jk,3,im) = aa(jl,jk,3,im) / aa(jl,jk,2,im)
     END DO
+
+    ! compute tile-specific contribution to bottom-level RHS (bb_tile)
+    !$ACC LOOP SEQ
+    DO jsfc = 1, ksfc_type
+      !$ACC LOOP GANG(STATIC: 1) VECTOR PRIVATE(surf_u, surf_v)
+      DO jl = jcs,jce
+
+      ! --- assign surface velocity for this tile type ---
+        IF (jsfc == idx_wtr) THEN ! open water
+          surf_u = pocu(jl)
+          surf_v = pocv(jl)
+        ELSEIF (jsfc == idx_ice) THEN ! sea ice
+          surf_u = piceu(jl)
+          surf_v = picev(jl)
+        ELSE ! land
+          surf_u = 0._wp
+          surf_v = 0._wp
+        END IF
+
+        ! compute bb_tile contribution at bottom level:
+        !   - forcing term proportional to surface velocity
+        !   - plus contribution from vertical tridiagonal elimination
+        bb_tile(jl,iu,jsfc) = - aa(jl,jk,3,im) * surf_u * tpfac2 + &
+                               (bb(jl,jk,iu) - aa(jl,jk,1,im)*bb(jl,jkm1,iu)) / aa(jl,jk,2,im)
+        bb_tile(jl,iv,jsfc) = - aa(jl,jk,3,im) * surf_v * tpfac2 + &
+                               (bb(jl,jk,iv) - aa(jl,jk,1,im)*bb(jl,jkm1,iv)) / aa(jl,jk,2,im)
+      END DO
+    END DO
+
+    !-------------------------------------------------------------------
+    ! Step 2: average over surface types using surface fractions pfrc
+    !-------------------------------------------------------------------
+    !$ACC LOOP GANG(STATIC: 1) VECTOR
+    DO jl = jcs, jce
+      bb(jl,jk,iu) = 0._wp
+      bb(jl,jk,iv) = 0._wp
+      DO jsfc = 1, ksfc_type
+        bb(jl,jk,iu) = bb(jl,jk,iu) + pfrc(jl,jsfc) * bb_tile(jl,iu,jsfc)
+        bb(jl,jk,iv) = bb(jl,jk,iv) + pfrc(jl,jsfc) * bb_tile(jl,iv,jsfc)
+      END DO
+    END DO
+
     !$ACC END PARALLEL
+
 
     ! Compute wind stress
     IF (lsfc_mom_flux) THEN
        CALL wind_stress( kbdim, ksfc_type,                    &! in
+            &            idx_lnd, idx_wtr, idx_ice,           &! in
             &            pdtime,                              &! in
             &            loidx, is, jcs,                      &! in
             &            pfrc, pcfm_tile, pfac_sfc,           &! in
-            &            bb(:,klev,iu), bb(:,klev,iv),        &! in
+            &            bb_tile(:,iu,:), bb_tile(:,iv,:),    &! in: pass tile-specific RHS
             &            pocu(:), pocv(:),                    &! in
+            &            piceu(:), picev(:),                  &! in
             &            pu_stress_gbm,  pv_stress_gbm,       &! out
             &            pu_stress_tile, pv_stress_tile       )! out
+
     ELSE
        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
        !$ACC LOOP SEQ

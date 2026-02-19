@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2026, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -119,6 +119,7 @@ MODULE mo_physical_constants
   !
   !> H2O
   !! - gas
+  REAL(wp), PARAMETER :: nu    = 1.5e-5_wp        !! [m2/s] kin viscosity of air at 15 deg C temperature
   REAL(wp), PARAMETER :: rv    = 461.51_wp        !> [J/K/kg] gas constant for water vapor
   !$ACC DECLARE COPYIN(rv)
   REAL(wp), PARAMETER :: cpv   = 1869.46_wp       !! [J/K/kg] specific heat at constant pressure
@@ -212,7 +213,7 @@ MODULE mo_physical_constants
     ci           = 2106.0_wp,       & ! Heat capacity of ice       [J / (kg K)]
     cs           = 2090._wp,        &!  Heat capacity of snow      [J / (kg K)]
 
-    Tf           = -1.80_wp,        & ! Temperature ice bottom     [C]
+    Tf_const     = -1.80_wp,        & ! Temperature ice bottom     [C]
     mu           = 0.054_wp,        & ! Constant in linear freezing-
                                       ! point relationship         [C/ppt]
                                       ! (aka melting) temperature) [C]
@@ -235,10 +236,10 @@ MODULE mo_physical_constants
 !--------- parameters for NWP sea-ice model (we should agree on a single value)-----
 !_cdm>
 ! The value of the salt-water freezing point is the same as in GME and COSMO (-1.7 dgr C).
-! Note that a different value (Tf=-1.8 dgr C) is defined in "mo_physical_constants".
+! Note that a different value (Tf_const=-1.8 dgr C) is defined in "mo_physical_constants".
 !_cdm<
   REAL (wp), PARAMETER ::                             &
-    &  tf_salt      = 271.45_wp     !< salt-water freezing point [K]
-                                    !< (note that it differs from Tf)
+    &  tf_salt_const = 271.45_wp    !< salt-water freezing point [K]
+                                    !< (note that it differs from Tf_const)
 
 END MODULE mo_physical_constants

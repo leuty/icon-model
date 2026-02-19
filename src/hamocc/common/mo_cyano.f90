@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2026, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -20,6 +20,7 @@ MODULE mo_cyano
   USE mo_control_bgc, ONLY    : dtb, dtbgc, bgc_nproma, bgc_zlevs
   USE mo_bgc_memory_types, ONLY  : t_bgc_memory
   USE mo_fortran_tools, ONLY  : set_acc_host_or_device
+  USE mo_exception, ONLY      : finish
 
   IMPLICIT NONE
 
@@ -115,9 +116,9 @@ SUBROUTINE cyadyn(local_bgc_mem, klevs, start_idx, end_idx, pddpo, za, ptho, pti
       USE mo_memory_bgc, ONLY      : pi_alpha_cya,          &
        &                            Topt_cya,T1_cya,T2_cya,bkcya_N,      &
        &                            fPAR, ro2ut, ro2ut_cya,ralk,      &
-       &                            doccya_fac, rnit, riron, rcar, rn2, &
+       &                            doccya_fac, rnit,  rcar, rn2, &
        &                            wcya, rnoi, cyamin, &
-       &                            ro2ammo, bknh4_cya, bkno3_cya
+       &                            ro2ammo,bknh4_cya, bkno3_cya
 
       USE mo_param1_bgc, ONLY     : iano3, iphosph, igasnit, &
            &                        ioxygen, ialkali, icya,  &
@@ -128,7 +129,8 @@ SUBROUTINE cyadyn(local_bgc_mem, klevs, start_idx, end_idx, pddpo, za, ptho, pti
            &                        iammo, kcyapro
 
       USE mo_hamocc_nml,ONLY      : cycdec, cya_growth_max, bkcya_fe, bkcya_P, &
-           &                        l_N_cycle
+           &                        l_N_cycle, riron
+
 
       IMPLICIT NONE
       TYPE(t_bgc_memory), POINTER    :: local_bgc_mem
@@ -167,13 +169,16 @@ SUBROUTINE cyadyn(local_bgc_mem, klevs, start_idx, end_idx, pddpo, za, ptho, pti
 
       CALL set_acc_host_or_device(lzacc, lacc)
 
+#if defined(__LVECTOR__) && defined(_OPENACC)
+      IF (lzacc) CALL finish("", "LVECTOR variant after reworking not properly ported/tested on GPUs")
+#endif
+
   !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
   !$ACC LOOP GANG VECTOR COLLAPSE(2)
   DO k = 1, max_klevs
    DO j = start_idx, end_idx
 
             IF( pddpo(j,k) .GT. EPSILON(0.5_wp) .and. k <= klevs(j)) THEN
-
 
               avcyabac = MAX(1.e-11_wp,local_bgc_mem%bgctra(j,k,icya))                !available cyanobacteria
               avanut = MAX(0._wp,local_bgc_mem%bgctra(j,k,iphosph))                   !available phosphate
@@ -209,7 +214,6 @@ SUBROUTINE cyadyn(local_bgc_mem, klevs, start_idx, end_idx, pddpo, za, ptho, pti
               xa_fe = avanfe
               l_fe = xa_fe / (bkcya_fe + xa_fe)                  !iron limitation
               local_bgc_mem%bgctend(j,k,kcFlim) = l_fe
-
 
               IF (.not. l_N_cycle) THEN
 
@@ -274,6 +278,12 @@ SUBROUTINE cyadyn(local_bgc_mem, klevs, start_idx, end_idx, pddpo, za, ptho, pti
 
                  cyapro = no3cya + nh4cya          ! cyapro in N units
 
+                 ! limitation on DIC
+                 IF (local_bgc_mem%bgctra(j,k,isco212).le.rcar*phosy_cya) then
+                     cyapro=0._wp
+                     phosy_cya=0._wp
+                 END IF
+
                  local_bgc_mem%bgctra(j,k,iano3) = local_bgc_mem%bgctra(j,k,iano3) - no3cya
                  local_bgc_mem%bgctra(j,k,iammo) = local_bgc_mem%bgctra(j,k,iammo) - nh4cya
 
@@ -292,17 +302,16 @@ SUBROUTINE cyadyn(local_bgc_mem, klevs, start_idx, end_idx, pddpo, za, ptho, pti
                  local_bgc_mem%bgctra(j,k,ioxygen)= local_bgc_mem%bgctra(j,k,ioxygen) + (phosy_cya - cyapro*rnoi)*148._wp &
                   &                       + (no3cya*ro2ut + nh4cya*ro2ammo)*rnoi
 
-
                  local_bgc_mem%bgctend(j,k,kcyapro) = cyapro/dtbgc
 
                  local_bgc_mem%bgctra(j,k,igasnit) = local_bgc_mem%bgctra(j,k,igasnit) - (phosy_cya*rnit - cyapro)*0.5_wp  ! gasnit [N2]
 
                  local_bgc_mem%bgctend(j,k,knfix) =  (phosy_cya*rnit - cyapro)/dtbgc ! output budgets [N]
 
+                 surface_height = MERGE(za(j), 0._wp, k==1)
                  local_bgc_mem%bgctend(j,k,kn2b) = local_bgc_mem%bgctend(j,k,kn2b) - (phosy_cya*rnit - cyapro)*(pddpo(j,k) +surface_height)
 
               ENDIF ! l_N_cycle
-
 
               local_bgc_mem%bgctra(j,k,iphosph) = local_bgc_mem%bgctra(j,k,iphosph) - phosy_cya
               local_bgc_mem%bgctra(j,k,iiron) = local_bgc_mem%bgctra(j,k,iiron) - phosy_cya * riron
@@ -343,8 +352,8 @@ SUBROUTINE cyadyn(local_bgc_mem, klevs, start_idx, end_idx, pddpo, za, ptho, pti
   ! C(k,T+dt)=(ddpo(k)*C(k,T)+w*dt*C(k-1,T+dt))/(ddpo(k)+w*dt)
   ! sedimentation=w*dt*C(ks,T+dt)
   !
- !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
- !$ACC LOOP GANG VECTOR
+!  !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+!  !$ACC LOOP GANG VECTOR
  DO j=start_idx,end_idx
     kpke=klevs(j)
     IF (kpke > 0)THEN
@@ -353,8 +362,19 @@ SUBROUTINE cyadyn(local_bgc_mem, klevs, start_idx, end_idx, pddpo, za, ptho, pti
                    &              / (pddpo(j,kpke)+wcya)
 
     ENDIF
-    !$ACC LOOP SEQ
+#ifdef __LVECTOR__
+    ENDIF
+ ENDDO
+#endif
+
+#ifndef __LVECTOR__
+!     !$ACC LOOP SEQ
     do k=(kpke-1),2,-1
+#else
+    DO k = (max_klevs-1), 2, -1
+        DO j = start_idx, end_idx
+            IF (k < klevs(j)) THEN
+#endif
          ! water column
         if(pddpo(j,k+1).LE.EPSILON(0.5_wp))then ! last wet cell
               local_bgc_mem%bgctra(j,k,icya)  = (local_bgc_mem%bgctra(j,k,icya)*pddpo(j,k))      &
@@ -365,15 +385,26 @@ SUBROUTINE cyadyn(local_bgc_mem, klevs, start_idx, end_idx, pddpo, za, ptho, pti
                    &                +  local_bgc_mem%bgctra(j,k+1,icya)*wcya)/          &
                    &                          (pddpo(j,k)+wcya)
          endif
-
+#ifndef __LVECTOR__
    ENDDO
+#else
+            END IF
+        END DO
+    END DO
+#endif
+
     k=1
+#ifdef __LVECTOR__
+    DO j = start_idx, end_idx
+        IF (klevs(j) > 0) THEN
+#endif
     IF((pddpo(j,k).GT.EPSILON(0.5_wp)) .and. (pddpo(j,k+1).GT.EPSILON(0.5_wp)) )then ! only if next cell also wet
-         local_bgc_mem%bgctra(j,k,icya)  =  local_bgc_mem%bgctra(j,k,icya) + (wcya*local_bgc_mem%bgctra(j,k+1,icya))/(pddpo(j,k)+za(j))
+         surface_height = MERGE(za(j), 0._wp, k==1)
+         local_bgc_mem%bgctra(j,k,icya)  =  local_bgc_mem%bgctra(j,k,icya) + (wcya*local_bgc_mem%bgctra(j,k+1,icya))/(pddpo(j,k)+surface_height)
     endif
    ENDIF
  ENDDO
- !$ACC END PARALLEL
+!  !$ACC END PARALLEL
 
 
 END SUBROUTINE  cyadyn

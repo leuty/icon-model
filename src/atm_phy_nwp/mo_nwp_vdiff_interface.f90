@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2026, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -168,8 +168,13 @@ CONTAINS
     !> Temperature of each surface class [K].
     REAL(wp) :: temp_sfc(nproma, patch%nblks_c, SFC_NUM)
 
+    !> Ocean velocities [m/s]
     REAL(wp), CONTIGUOUS, POINTER :: ocean_u(:,:) !< Ocean surface velocity (zonal).
     REAL(wp), CONTIGUOUS, POINTER :: ocean_v(:,:) !< Ocean surface velocity (meridional).
+
+    !> Sea ice velocities [m/s]
+    REAL(wp), CONTIGUOUS, POINTER :: ice_u(:,:) !< Sea ice velocity (zonal).
+    REAL(wp), CONTIGUOUS, POINTER :: ice_v(:,:) !< Sea ice velocity (meridional).
 
     !> Wind speed at lowest model level [m/s].
     REAL(wp) :: wind_lowest(nproma, patch%nblks_c)
@@ -393,6 +398,8 @@ CONTAINS
         temp_sfc, \
         ocean_u, \
         ocean_v, \
+        ice_u, \
+        ice_v, \
         wind_lowest, \
         tracer_srf_emission, \
         cloud_water_total, \
@@ -568,8 +575,13 @@ CONTAINS
       END DO
     !$OMP END PARALLEL
 
+    ! Ocean velocities
     ocean_u => if_associated(mem%sea_state%ocean_u, zero2d)
     ocean_v => if_associated(mem%sea_state%ocean_v, zero2d)
+
+    ! Sea ice velocities
+    ice_u => if_associated(mem%sea_state%ice_u, zero2d)
+    ice_v => if_associated(mem%sea_state%ice_v, zero2d)
 
     p_graupel_gsp_rate => if_associated(phy_diag%graupel_gsp_rate, zero2d)
     p_ice_gsp_rate => if_associated(phy_diag%ice_gsp_rate, zero2d)
@@ -640,6 +652,8 @@ CONTAINS
         & ptsfc_tile=temp_sfc(:,:,:), &
         & pocu=ocean_u(:,:), &
         & pocv=ocean_v(:,:), &
+        & piceu=ice_u(:,:), &
+        & picev=ice_v(:,:), &
         & ppsfc=nh_diag%pres_sfc(:,:), &
         & pum1=nh_diag%u(:,:,:), &
         & pvm1=nh_diag%v(:,:,:), &
@@ -916,6 +930,8 @@ CONTAINS
             & v_bcoef=v_bcoef(:,:), &
             & ocean_u=ocean_u(:,i_blk), &
             & ocean_v=ocean_v(:,i_blk), &
+            & ice_u=ice_u(:,i_blk), &
+            & ice_v=ice_v(:,i_blk), &
             & zero=zero2d(:,1), &
             & umfl_sft=flx_mom_u_sft(:,i_blk,:), &
             & vmfl_sft=flx_mom_v_sft(:,i_blk,:) &
@@ -1024,6 +1040,7 @@ CONTAINS
             & ktrac=ktrac, &
             & ksfc_type=SFC_NUM, &
             & idx_wtr=SFC_WATER, &
+            & idx_ice=SFC_ICE, &
             & pdtime=delta_time, &
             & pfrc=fr_sfc(:,i_blk,:), &
             & pcfm_tile=mem%exchange_coeff_m_sfc(:,i_blk,:), &
@@ -1041,6 +1058,12 @@ CONTAINS
             & pztottevn=total_turbulence_energy_intermediate(:,:,i_blk), &
             & vdiff_config=vdiff_config, &
             & bb=b_rhs(:,:,:,i_blk), &
+            & ocean_u=ocean_u(:,i_blk), &
+            & ocean_v=ocean_v(:,i_blk), &
+            & ice_u=ice_u(:,i_blk), &
+            & ice_v=ice_v(:,i_blk), &
+            !& pwstar=wstar(:,:), &
+            & pwstar_tile=mem%wstar_sfc(:,i_blk,:), &
             & pzthvvar=theta_v_var_intermediate(:,:,i_blk), &
             & & ! In/outputs
             & pxvar=mem%total_water_var(:,:,i_blk), &
@@ -1359,6 +1382,7 @@ CONTAINS
           & t_seasfc=diag_lnd%t_seasfc(:,:), &
           & fr_seaice=diag_lnd%fr_seaice(:,:), &
           & h_ice=prog_wtr_new%h_ice(:,:), &
+          & h_snow=prog_wtr_new%h_snow_si(:,:), &
           & sea_state=mem%sea_state &
         )
     END IF
@@ -1617,14 +1641,25 @@ CONTAINS
     !> CO2 volume mixing ration for 1990 [mol/mol].
     REAL(wp), PARAMETER :: CO2VMR_1990 = 348.0e-06_wp
 
+    !> CO2 volume mixing ratio from ccycle_config
+    REAL(wp) :: vmr_co2
+
+    !> Temporaly CO2 volume mixing ratio used in CCYCLE_MODE_PRESCRIBED
+    REAL(wp) :: co2_concentration_srf_tmp
+
     INTEGER :: i_startblk, i_endblk
     INTEGER :: ics, ice
     INTEGER :: ic, i_blk
+    INTEGER :: nlev
+    INTEGER :: ico2conc
 
     CALL assert_acc_device_only ('get_surface_co2_concentration', lacc)
 
     i_startblk = patch%cells%start_block(start_prog_cells)
     i_endblk = patch%cells%end_block(end_prog_cells)
+    vmr_co2 = ccycle_config%vmr_co2
+    ico2conc = ccycle_config%ico2conc
+    nlev = patch%nlev
 
     SELECT CASE (ccycle_config%iccycle)
     CASE(CCYCLE_MODE_NONE)
@@ -1656,54 +1691,47 @@ CONTAINS
         CALL get_indices_c(patch, i_blk, i_startblk, i_endblk, ics, ice, start_prog_cells, &
             & end_prog_cells)
 
+          IF (ico2conc == CCYCLE_CO2CONC_CONST) THEN
           !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
-          !$ACC LOOP GANG VECTOR
-          DO ic = ics, ice
-            co2_concentration_srf(ic,i_blk) = tracer(ic,patch%nlev,i_blk,ico2)
-          END DO
+            !$ACC LOOP GANG VECTOR
+            DO ic = ics, ice
+              co2_concentration_srf(ic,i_blk) = vmr_co2 * vmr_to_mmr_co2
+            END DO
           !$ACC END PARALLEL
+          ELSE
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+            !$ACC LOOP GANG VECTOR
+            DO ic = ics, ice
+              co2_concentration_srf(ic,i_blk) = tracer(ic,nlev,i_blk,ico2)
+            END DO
+          !$ACC END PARALLEL
+          END IF
       END DO
       !$OMP END PARALLEL
 
     CASE(CCYCLE_MODE_PRESCRIBED)
-      SELECT CASE(ccycle_config%ico2conc)
-      CASE(CCYCLE_CO2CONC_CONST)
-        ! Constant concentration throughout the simulation.
-
-        !$OMP PARALLEL
-        !$OMP DO PRIVATE(i_blk, ics, ice, ic)
-        DO i_blk = i_startblk, i_endblk
-          CALL get_indices_c(patch, i_blk, i_startblk, i_endblk, ics, ice, start_prog_cells, &
-              & end_prog_cells)
-
-            !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
-            !$ACC LOOP GANG VECTOR
-            DO ic = ics, ice
-              co2_concentration_srf(ic,i_blk) = ccycle_config%vmr_co2 * vmr_to_mmr_co2
-            END DO
-            !$ACC END PARALLEL
-        END DO
-        !$OMP END PARALLEL
-
-      CASE(CCYCLE_CO2CONC_FROMFILE)
-        ! Time-dependent concentration (location independent).
+      ! Constant CO2 concentration throughout the simulation.
+      IF (ico2conc == CCYCLE_CO2CONC_CONST) THEN
+        co2_concentration_srf_tmp = vmr_co2 * vmr_to_mmr_co2
+      ! CO2 concentration prescribed from external file.
+      ELSEIF (ico2conc == CCYCLE_CO2CONC_FROMFILE) THEN
         CALL bc_greenhouse_gases_time_interpolation(datetime_now)
-        !$OMP PARALLEL
-        !$OMP DO PRIVATE(i_blk, ics, ice, ic)
-        DO i_blk = i_startblk, i_endblk
-          CALL get_indices_c(patch, i_blk, i_startblk, i_endblk, ics, ice, start_prog_cells, &
-              & end_prog_cells)
+        co2_concentration_srf_tmp = ghg_co2mmr
+      END IF
+      !$OMP PARALLEL
+      !$OMP DO PRIVATE(i_blk, ics, ice, ic)
+      DO i_blk = i_startblk, i_endblk
+        CALL get_indices_c(patch, i_blk, i_startblk, i_endblk, ics, ice, start_prog_cells, &
+            & end_prog_cells)
+        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+          !$ACC LOOP GANG VECTOR
+          DO ic = ics, ice
+            co2_concentration_srf(ic,i_blk) = co2_concentration_srf_tmp
+          END DO
+        !$ACC END PARALLEL
+      END DO
+      !$OMP END PARALLEL
 
-            !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
-            !$ACC LOOP GANG VECTOR
-            DO ic = ics, ice
-              co2_concentration_srf(ic,i_blk) = ghg_co2mmr
-            END DO
-            !$ACC END PARALLEL
-        END DO
-        !$OMP END PARALLEL
-
-      END SELECT
     END SELECT
 
   END SUBROUTINE get_surface_co2_concentration
@@ -2107,7 +2135,7 @@ CONTAINS
   !! Has to be called once for each block of cells.
   SUBROUTINE get_surface_stress ( &
         & ics, ice, delta_time, prefactor_exchange, exchange_coeff_m_sfc, uv_acoef, u_bcoef, &
-        & v_bcoef, ocean_u, ocean_v, zero, umfl_sft, vmfl_sft &
+        & v_bcoef, ocean_u, ocean_v, ice_u, ice_v, zero, umfl_sft, vmfl_sft &
       )
 
     INTEGER, INTENT(IN) :: ics !< Start cell index.
@@ -2128,6 +2156,10 @@ CONTAINS
     REAL(wp), TARGET, CONTIGUOUS, INTENT(IN) :: ocean_u(:)
     !> Meridional ocean velocity [m/s] (ics:ice).
     REAL(wp), TARGET, CONTIGUOUS, INTENT(IN) :: ocean_v(:)
+   !> Zonal sea ice velocity [m/s] (ics:ice).
+    REAL(wp), TARGET, CONTIGUOUS, INTENT(IN) :: ice_u(:)
+    !> Meridional sea ice velocity [m/s] (ics:ice).
+    REAL(wp), TARGET, CONTIGUOUS, INTENT(IN) :: ice_v(:)
     !> Zero field (for surface u and v over land, etc.) [1] (ics:ice).
     REAL(wp), TARGET, CONTIGUOUS, INTENT(IN) :: zero(:)
 
@@ -2148,6 +2180,9 @@ CONTAINS
       CASE (SFT_SWTR)
         u_sfc => ocean_u
         v_sfc => ocean_v
+      CASE (SFT_SICE)
+        u_sfc => ice_u
+        v_sfc => ice_v
       CASE DEFAULT
         u_sfc => zero
         v_sfc => zero

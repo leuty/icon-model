@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2026, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -22,8 +22,8 @@ MODULE mo_ice_diagnostics
   USE mo_grid_subset,         ONLY: t_subset_range, get_index_range
   USE mo_ocean_state,         ONLY: v_base
 
-  USE mo_physical_constants,  ONLY: rhoi, rhos, rho_ref, clw, alf, tf
-  USE mo_sea_ice_nml,         ONLY: t_heat_base, sice
+  USE mo_physical_constants,  ONLY: rhoi, rhos, rho_ref, clw, alf
+  USE mo_sea_ice_nml,         ONLY: t_heat_base, sice, Tf
   USE mo_sea_ice_types,       ONLY: t_sea_ice
 
   IMPLICIT NONE

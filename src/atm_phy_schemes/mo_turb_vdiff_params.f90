@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2026, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -31,6 +31,7 @@ MODULE mo_turb_vdiff_params
   ! Parameters
   REAL(wp),PARAMETER :: ckap    = 0.4_wp       !< karman constant.
   REAL(wp),PARAMETER :: cchar   = 0.018_wp     !< charnock constant.
+  REAL(wp),PARAMETER :: viscous_coeff = 0.11_wp !< viscous coefficient (for roughness length computation)
   REAL(wp),PARAMETER :: cb      = 5._wp        !< stability parameter near neutrality.
   REAL(wp),PARAMETER :: cc      = 5._wp        !< stability parameter for unstable cases.
 

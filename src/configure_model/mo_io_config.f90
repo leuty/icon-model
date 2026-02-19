@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2026, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -174,7 +174,9 @@ MODULE mo_io_config
     LOGICAL :: lfc_ml       = .FALSE. !< Flag. TRUE if computation of the Level of Free Convection is desired
     LOGICAL :: lcl_ml       = .FALSE. !< Flag. TRUE if computation of the Lifted Condensation Level is desired
     LOGICAL :: ddt_temp_drag = .FALSE. !< Flag. TRUE if temp-tend. from sso+gravity-wave-drag+Rayleigh-frict. is required
-    ! add vars for global mean claclulations
+    LOGICAL :: t_snow_si    = .FALSE. !< Flag. TRUE if temperature of snow on seaice is requested.
+
+    ! global means
     LOGICAL :: tas_gmean    = .FALSE. !< Flag. TRUE if computation of global mean T2m
     LOGICAL :: rsdt_gmean   = .FALSE. !< Flag. TRUE if computation of global mean toa downward short wave rad
     LOGICAL :: rsut_gmean   = .FALSE. !< Flag. TRUE if computation of global mean toa upward short wave rad
@@ -361,6 +363,7 @@ CONTAINS
         var_in_output(jg)%cloudtop    = is_variable_in_output_dom(var_name="cloudtop", jg=jg_nml)
         var_in_output(jg)%hpbl        = is_variable_in_output_dom(var_name="hpbl", jg=jg_nml)
         var_in_output(jg)%aod_550nm   = is_variable_in_output_dom(var_name="aod_550nm", jg=jg_nml)
+        var_in_output(jg)%t_snow_si   = is_variable_in_output_dom(var_name="t_snow_si", jg=jg_nml)
 
         ! add vars for global mean calculations
         var_in_output(jg)%tas_gmean   = is_variable_in_output_dom(var_name="tas_gmean", jg=jg_nml)

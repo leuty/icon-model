@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2026, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -49,8 +49,8 @@ MODULE mo_bgc_icon
 &                                   nitrogen_deposition, update_linage
   USE mo_bgc_bcond,           ONLY: ext_data_bgc
   USE mo_hamocc_diagnostics,  ONLY: get_inventories, get_omz
-  USE mo_carchm,              ONLY: calc_dissol
-  USE mo_powach,              ONLY: powach, powach_impl
+  USE mo_carchm,              ONLY: calc_dissol, calc_dissol_VE
+  USE mo_powach,              ONLY: powach, powach_ve, powach_impl
   USE mo_sedmnt, ONLY         : ini_bottom
   USE mo_timer, ONLY          : timer_bgc_up_bgc, timer_bgc_swr, timer_bgc_wea,timer_bgc_depo, &
     &                           timer_bgc_chemcon, timer_bgc_ocprod, timer_bgc_sett,timer_bgc_cya,&
@@ -347,11 +347,17 @@ IF (test_memory_copies /= bgc_memory_copies) &
         ! Calculate carbonate dissolution
 
         start_detail_timer(timer_bgc_calc,5)
+#ifndef __LVECTOR__
         CALL calc_dissol(local_bgc_memory, start_index, end_index, levels,   &
    &               pddpo(:,:,jb),& ! cell thickness
    &               ocean_to_hamocc_state%salinity(:,:,jb),         &  ! salinity
    &               ptiestu(:,:,jb), lacc=lzacc) !depths at interface
-
+#else
+        CALL calc_dissol_VE(local_bgc_memory, start_index, end_index, levels,   &
+   &               pddpo(:,:,jb),& ! cell thickness
+   &               ocean_to_hamocc_state%salinity(:,:,jb),         &  ! salinity
+   &               ptiestu(:,:,jb), lacc=lzacc) !depths at interface
+#endif
         stop_detail_timer(timer_bgc_calc,5)
        !----------------------------------------------------------------------
         ! Calculate sediment dynamics
@@ -360,10 +366,15 @@ IF (test_memory_copies /= bgc_memory_copies) &
          CALL powach_impl(local_bgc_memory, local_sediment_memory,  start_index, end_index,    &
    &               ocean_to_hamocc_state%salinity(:,:,jb))          ! salinity
          else
-
+#ifndef __LVECTOR__
         CALL powach(local_bgc_memory, local_sediment_memory, start_index, end_index, &
    &               ocean_to_hamocc_state%salinity(:,:,jb),          &! salinity
    &               pddpo(:,:,jb), lacc=lzacc)  ! cell thickness
+#else
+        CALL powach_ve(local_bgc_memory, local_sediment_memory, start_index, end_index, &
+   &                   ocean_to_hamocc_state%salinity(:,:,jb),          &! salinity
+   &                   pddpo(:,:,jb), lacc=lzacc)  ! cell thickness
+#endif
          endif
         stop_detail_timer(timer_bgc_powach,5)
 

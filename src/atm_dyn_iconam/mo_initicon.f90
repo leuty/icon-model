@@ -1,7 +1,7 @@
 ! ICON
 !
 ! ---------------------------------------------------------------
-! Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+! Copyright (C) 2004-2026, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 ! Contact information: icon-model.org
 !
 ! See AUTHORS.TXT for a list of authors
@@ -48,7 +48,7 @@ MODULE mo_initicon
     &                               MODE_ICONVREMAP, MODE_COMBINED, MODE_COSMO,       &
     &                               min_rlcell, INWP, iaes, min_rledge_int, grf_bdywidth_c, &
     &                               min_rlcell_int, vname_len
-  USE mo_physical_constants,  ONLY: rd, cpd, cvd, p0ref, vtmpc1, rd_o_cpd, tmelt, tf_salt
+  USE mo_physical_constants,  ONLY: rd, cpd, cvd, p0ref, vtmpc1, rd_o_cpd, tmelt
   USE mo_exception,           ONLY: message, finish
   USE mo_grid_config,         ONLY: n_dom, l_limited_area
   USE mo_nh_init_utils,       ONLY: convert_thdvars, init_w
@@ -59,7 +59,7 @@ MODULE mo_initicon
   USE mo_lnd_nwp_config,      ONLY: nlev_soil, ntiles_total, ntiles_lnd, llake, loskin, &
     &                               isub_lake, isub_water, lsnowtile, frlnd_thrhld, &
     &                               frlake_thrhld, lprog_albsi, dzsoil_icon => dzsoil, &
-    &                               frsi_min
+    &                               frsi_min, tf_salt
   USE mo_atm_phy_nwp_config,  ONLY: i2daero_dust, i2daero_seas, i2daero_anthro, atm_phy_nwp_config
   USE sfc_terra_data,         ONLY: cporv, cadp, cpwp, cfcap, crhosmaxf, crhosmin_ml, crhosmax_ml
   USE sfc_terra_init,         ONLY: get_wsnow
@@ -1888,8 +1888,12 @@ MODULE mo_initicon
         ! on mixed land-water (sea ice) points.
         IF (icpl_da_seaice >= 1) THEN
           DO jc = i_startidx, i_endidx
-            IF (p_lnd_state(jg)%prog_wtr(nnow_rcf(jg))%h_ice(jc,jb) > 0.0_wp) p_lnd_state(jg)%prog_wtr(nnow_rcf(jg))%t_ice(jc,jb) = &
-              MIN(tmelt, p_lnd_state(jg)%prog_wtr(nnow_rcf(jg))%t_ice(jc,jb) + p_diag%t_avginc(jc,jb))
+            IF (p_lnd_state(jg)%prog_wtr(nnow_rcf(jg))%h_ice(jc,jb) > 0.0_wp) THEN
+              p_lnd_state(jg)%prog_wtr(nnow_rcf(jg))%t_ice(jc,jb) = &
+                MIN(tmelt, p_lnd_state(jg)%prog_wtr(nnow_rcf(jg))%t_ice(jc,jb) + p_diag%t_avginc(jc,jb))
+              p_lnd_state(jg)%prog_wtr(nnow_rcf(jg))%t_snow_si(jc,jb) = &
+                MIN(tmelt, p_lnd_state(jg)%prog_wtr(nnow_rcf(jg))%t_snow_si(jc,jb) + p_diag%t_avginc(jc,jb))
+            ENDIF
           ENDDO
         ENDIF
 
@@ -2562,6 +2566,12 @@ MODULE mo_initicon
           ENDIF
           IF (p_lnd_state(jg)%prog_wtr(nnow_rcf(jg))%t_ice(jc,jb) == missval) THEN
             p_lnd_state(jg)%prog_wtr(nnow_rcf(jg))%t_ice(jc,jb) = tf_salt
+          ENDIF
+          IF (p_lnd_state(jg)%prog_wtr(nnow_rcf(jg))%h_snow_si(jc,jb) == missval) THEN
+            p_lnd_state(jg)%prog_wtr(nnow_rcf(jg))%h_snow_si(jc,jb) = 0._wp
+          ENDIF
+          IF (p_lnd_state(jg)%prog_wtr(nnow_rcf(jg))%t_snow_si(jc,jb) == missval) THEN
+            p_lnd_state(jg)%prog_wtr(nnow_rcf(jg))%t_snow_si(jc,jb) = tf_salt
           ENDIF
         ENDDO  ! jc
 
