@@ -15,6 +15,7 @@
 - Fix GPU async queues in TMX surface module
 - Simplification of the rte-rrtmgp radiation interface (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1087)
 - Fix loop indexing in TMX surface module (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1241)
+- Added options to not use Louis stability formula over land and/or sea ice
 
 #### NWP Physics
 

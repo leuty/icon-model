@@ -595,6 +595,8 @@ CONTAINS
     CALL vdf%atmo%config%rturb_prandtl%Assign_r0d(aes_vdf_config(jg)%rturb_prandtl)
     CALL vdf%atmo%config%turb_prandtl%Assign_r0d(aes_vdf_config(jg)%turb_prandtl)
     CALL vdf%atmo%config%use_louis%Assign_l0d(aes_vdf_config(jg)%use_louis)
+    CALL vdf%atmo%config%use_louis_land%Assign_l0d(aes_vdf_config(jg)%use_louis_land)
+    CALL vdf%atmo%config%use_louis_ice%Assign_l0d(aes_vdf_config(jg)%use_louis_ice)
     CALL vdf%atmo%config%louis_constant_b%Assign_r0d(aes_vdf_config(jg)%louis_constant_b)
     CALL vdf%atmo%config%use_km_const%Assign_l0d(aes_vdf_config(jg)%use_km_const)
     CALL vdf%atmo%config%km_const%Assign_r0d(aes_vdf_config(jg)%km_const)

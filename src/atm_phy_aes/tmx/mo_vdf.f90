@@ -24,7 +24,7 @@ MODULE mo_vdf
   USE mtime,                ONLY: t_datetime => datetime
   USE mo_timer,             ONLY: timer_start, timer_stop, ltimer
   USE mo_tmx_process_class, ONLY: t_tmx_process
-  USE mo_tmx_field_class,   ONLY: t_tmx_field, t_domain
+  USE mo_tmx_field_class,   ONLY: t_tmx_field, t_domain, isfc_lnd, isfc_ice
   USE mo_vdf_atmo_memory,   ONLY: t_vdf_atmo_inputs, t_vdf_atmo_diags
   USE mo_vdf_atmo,          ONLY: t_vdf_atmo, t_vdf_atmo_config, &
     &                             prepare_diffusion_matrix
@@ -109,7 +109,6 @@ CONTAINS
       CALL this%processes(iproc)%p%Init()
 
     END DO
-
 
   END SUBROUTINE Init_vdf
   !
@@ -295,7 +294,9 @@ CONTAINS
     CLASS(t_vdf), INTENT(inout), TARGET :: this
     TYPE(t_datetime), OPTIONAL, INTENT(in), POINTER :: datetime
 
-    INTEGER :: iproc
+    INTEGER :: iproc, jtile, isfc
+    LOGICAL, POINTER  :: use_louis_land, use_louis_ice
+    REAL(wp), POINTER :: fract_land(:,:), fract_ice(:,:), fract_tile(:,:,:)
 
     CHARACTER(len=*), PARAMETER :: routine = modname//':Compute_diagnostics'
 
@@ -306,6 +307,41 @@ CONTAINS
       CALL this%processes(iproc)%p%Compute_diagnostics(datetime)
 
     END DO
+
+    ! If surface module is associated and land is included, check if Louis formula should be used over land.
+    ! If not, copy the fraction of the land tile from the sfc process to the fract_land variable in the atmo process.
+    ! Since the land-sea mask doesn't change over time, this is only done at the initial time step or after restart.
+    IF (ASSOCIATED(this%sfc)) THEN
+      use_louis_land => this%atmo%config%use_louis_land%Get_ptr_l0d()
+      use_louis_ice => this%atmo%config%use_louis_ice%Get_ptr_l0d()
+      IF (.NOT. use_louis_land .OR. .NOT. use_louis_ice) THEN
+        fract_tile => this%sfc%inputs%fract_tile%Get_ptr_r3d()
+      END IF
+
+      DO jtile=1, this%sfc%domain%ntiles
+        isfc = this%sfc%domain%sfc_types(jtile)
+        SELECT CASE (isfc)
+        CASE (isfc_lnd)
+          IF (.NOT. use_louis_land .AND. this%is_initial_time) THEN
+            fract_land => this%atmo%inputs%fract_land%Get_ptr_r2d()
+!$OMP PARALLEL
+            CALL copy(fract_tile(:,:,jtile), fract_land(:,:), lacc=.TRUE.)
+!$OMP END PARALLEL
+            CALL sync_patch_array(SYNC_C, this%domain%patch, fract_land, lacc=.TRUE.)
+          END IF
+        CASE (isfc_ice)
+          IF (.NOT. use_louis_ice) THEN
+            fract_ice => this%atmo%inputs%fract_ice%Get_ptr_r2d()
+!$OMP PARALLEL
+            CALL copy(fract_tile(:,:,jtile), fract_ice(:,:), lacc=.TRUE.)
+!$OMP END PARALLEL
+            CALL sync_patch_array(SYNC_C, this%domain%patch, fract_ice, lacc=.TRUE.)
+          END IF
+        CASE DEFAULT
+          ! Do nothing for other surface types
+        END SELECT
+      END DO
+    END IF
 
     ! IF (ltimer) CALL timer_start(this%timer_diagnostics)
 
@@ -539,6 +575,8 @@ CONTAINS
     END ASSOCIATE
 
     IF (ltimer) CALL timer_stop(this%timer_diagnostics)
+
+    this%is_initial_time = .FALSE.
 
   END SUBROUTINE Update_diagnostics
   !
