@@ -2,12 +2,8 @@
 
 ### ICON-Atmo
 
-- Improved consistency of surface roughness, drag and momentum flux over ocean/sea ice in VDIFF
-- Added viscous term in computation of surface roughness over ocean in VDIFF
-
 #### AES Physics
 
-- Correction of the roughness length computation over ocean in TMX
 - Use tile-specific relative wind speed for surface roughness, exchange coefficients and fluxes in TMX
 - Use memory manager library for data management in TMX
 - Fix for double definition of cloud_num in microphysics
@@ -21,17 +17,13 @@
 - Gravity waves parametrisation MS-GWaM (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1647)
 - Revision of diagnostics for ceiling and visibility (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1881)
 - Tuning options to improve 10m-winds in mountainous regions (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1890)
-- Multiscale stochastic pattern generator and iSPPT (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1863)
 - Modified cloud fraction for two-moment cloud ice microphysics (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1769, https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1922)
 - ecRad updates (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1869)
 - Coupling CAMS aerosols with Segal and Khain cloud droplets activation scheme (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1555)
 - New diagnostic output fields
-  - pressure at cloud top/base (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1938)
   - accumulated freezing rain (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1989)
 - Fixes
-  - Bugfix for restart issue with NWP sea ice (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1939)
   - fix for parallel GRIB decoding (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1947)
-  - reset of sst_warm_layer if cell is covered by sea ice (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1936)
 - cleanup:
   - remove init mode iau old (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1962)
   - EMVORADO: reduce memory usage of emvorado and remove MODE_IAU_OLD (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1971)
@@ -44,18 +36,10 @@
 - Fix variable assignment of some vars for write_initial_state (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/993)
 - Bugfix ocean initial state on GPU (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1133)
 - Implementation of symmetric IAU in ICON-O (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1020)
-- Use consistent freezing temperature for sea ice in coupled XPP and AES (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1156)
 - ICON-O-LAM: Implement the core features (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/560)
-- Vectorization of HAMOCC subroutines (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1100)
-- Fix compilation issue in master using LVECTOR and GPU (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1224)
 - Bugfix HAMOCC restart (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1225)
 - Feature ocean era5 coupling (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/728)
-- HAMOCC: bugfix for extended N-cycle (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1233)
 - Port solver global sums on GPU (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1173)
-
-### Soil and Surface
-
-- sfc_seaice: implement snow-on-seaice scheme (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1957)
 
 ### ICON-Waves
 
@@ -68,34 +52,9 @@
 - Fixes
   - fix boundary condition for wave group velocity at ocean-land boundary edges (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1951)
 
-#### Climate: ICON-Land
+### Soil and Surface
 
-- QUINCY development
-  - Enable anthropogenic land cover change with QUINCY biogeochemistry
-  - Updated the Jena-Soil-Model for use with QUINCY as an alternative to the simple soil-biogeochemistry model
-  - Improve paramaterization of vegetation phosphorus (P) uptake to avoid crops and natural vegetation dying by P limitation
-  - Improve the calculation of plant water stress with frozen soil
-  - Minor refactoring: unification of namelist names
-  - Correction of aggregation of area-dependent variables in the QUINCY model
-  - Update default PI control values for atmospheric 13CO2 and 14CO2 composition according to CMIP7 forcing (Graven, H. (2025))
-  - Revisit QUINCY output ensuring that all output variables required for diagnostics and global budget calculations are present
-  - Update nitrogen cycle parameters
-  - Add script to generate CMIP7 based deposition data
-  - Refactor vegetation memory structure to reduce code complexity
-  - Assure restart identity
-- Refactoring of anthropogenic land cover change process
-- Hydrology: Added ford inline documentation
-- Land initial files
-  - Major update: 12 and 13 tile setups for jsbach and quincy
-  - Fix for the skin layer conductivity
-  - Estimation of initial soil moisture from vegetation fraction
-  - Automized HD parameter file generation also for high resolution grids (internal HD)
-- Land initialization: Initial soil moisture is turned to ice at temperatures below zero degrees.
-- Revised 'basic' output list
-- Anthropogenic emission files: Created anthropogenic emission data including aviation sources from the CMIP7 dataset
-- Update BSD-3C licence year to 2026
-- More flexible handling of the number of PFTs
-- C-cycle flags in ICON for C4MIP (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1937)
+#### Climate: ICON-Land
 
 ### Externals
 
@@ -142,11 +101,7 @@
 - Report to the relevant config.log when calling config.status of the bundled packages (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1161)
 - Fix detection of an external ComIn (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1163)
 - Fix the configuration and building order of the bundled packages (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1162)
-- Consistently install ICON and the relevant bundled packages to the specified installation prefixes and subdirectories
 - Configure YAC and YAXT in parallel when possible (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1198)
-- Fix building of the YAC Python interface (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1201)
-- Fix HD cloning and installation (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1236)
-- Avoid -static flag in the DWD VH configure wrapper (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1973)
 
 #### Miscellaneous
 
@@ -157,6 +112,67 @@
 - Add contributing guidelines for Ragnarok (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1081)
 - Add shallow water example to supported configurations (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1190)
 - Fixing a CPU/GPU divergence by using a comparison with an epsilon, instead of 0._wp (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1896)
+
+
+# Release notes for icon-2025.10-2
+
+### ICON-Atmo
+
+- Improved consistency of surface roughness, drag and momentum flux over ocean/sea ice in VDIFF
+- Added viscous term in computation of surface roughness over ocean in VDIFF
+- Implement a new version of the Mironov scheme that accounts for the thermal effects of snow on seaice
+
+#### NWP Physics
+
+- Correction of the roughness length computation over ocean in TMX
+- Add multiscale stochastic pattern generator and iSPPT
+- Bugfixes for restart issues with NWP sea ice
+- Added diagnostics: pressure at convective cloud top/base
+- Added C-cycle flags for C4MIP in XPP configuration
+
+### ICON-Ocean
+
+- Vectorization of HAMOCC subroutines
+- Use consistent freezing temperature for sea ice in coupled XPP and AES
+- Bugfixes for extended N-cycle in HAMOCC
+
+### Soil and Surface
+
+#### Climate: ICON-Land
+
+- QUINCY development
+  - Enable anthropogenic land cover change with QUINCY biogeochemistry
+  - Updated the Jena-Soil-Model for use with QUINCY as an alternative to the simple soil-biogeochemistry model
+  - Improve paramaterization of vegetation phosphorus (P) uptake to avoid crops and natural vegetation dying by P limitation
+  - Improve the calculation of plant water stress with frozen soil
+  - Minor refactoring: unification of namelist names
+  - Correction of aggregation of area-dependent variables in the QUINCY model
+  - Update default PI control values for atmospheric 13CO2 and 14CO2 composition according to CMIP7 forcing (Graven, H. (2025))
+  - Revisit QUINCY output ensuring that all output variables required for diagnostics and global budget calculations are present
+  - Update nitrogen cycle parameters
+  - Add script to generate CMIP7 based deposition data
+  - Refactor vegetation memory structure to reduce code complexity
+  - Assure restart identity
+- Refactoring of anthropogenic land cover change process
+- Hydrology: Added ford inline documentation
+- Land initial files
+  - Major update: 12 and 13 tile setups for jsbach and quincy
+  - Fix for the skin layer conductivity
+  - Estimation of initial soil moisture from vegetation fraction
+  - Automized HD parameter file generation also for high resolution grids (internal HD)
+- Land initialization: Initial soil moisture is turned to ice at temperatures below zero degrees.
+- Revised 'basic' output list
+- Anthropogenic emission files: Created anthropogenic emission data including aviation sources from the CMIP7 dataset
+- Update BSD-3C licence year to 2026
+- More flexible handling of the number of PFTs
+
+### Infrastructure
+
+#### Building
+
+- Fix building of the YAC Python interface when the Python interface of MTIME is disabled
+- Consistently install ICON and the relevant bundled packages to the specified installation prefixes and subdirectories
+
 
 # Release notes for icon-2025.10-1
 

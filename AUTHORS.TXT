@@ -156,8 +156,10 @@ Leonidas Linardakis
 Levi Silvers
 Lin Yu
 Linda Schlemmer
+Lisa Boland
 Lisa Muth
 Luca Bunaventura
+Luca Reissig
 Luis Kornblueh
 Lukas Jansing
 Lukas Kluft
@@ -217,6 +219,7 @@ Pinhsin Hu
 Pradipta Samanta
 Praveen Kumar Pothapakula
 Rainer Johanni
+Ralf Hand
 Ralf Mueller
 Raphael Schlarb
 Reiner Schnur
@@ -239,7 +242,9 @@ Sebastian Ortega
 Sebastian Rast
 Sergey Danilov
 Sergey Kosukhin
+Sergey Sukov
 Shweta Singh
+Siddhant Tibrewal
 Slavko Brdar
 Soenke Zaehle
 Sophia Schaefer
