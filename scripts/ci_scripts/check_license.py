@@ -53,6 +53,7 @@ ICON_DIRECTORIES = [
 
 # ICON ignored patterns:
 ICON_IGNORED_PATTERNS = [
+    "ragnarok/cmake/FindNetCDF.cmake",
     # Atmospheric and Environmental Research and Regents of the University of Colorado
     # (BSD-3-Clause):
     "src/atm_phy_rte_rrtmgp/mo_cloud_optics.f90",

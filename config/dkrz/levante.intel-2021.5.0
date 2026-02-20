@@ -71,7 +71,7 @@ ICON_BUNDLED_CFLAGS='-O2 -ftz'
 ICON_CDI_CFLAGS="${ICON_BUNDLED_CFLAGS} -DHAVE_DECL_NCAUX_H5FILTERSPEC_PARSELIST"
 
 CXX="${intel_root}/bin/icpx"
-CXXFLAGS="${arch} -g -gdwarf-4 -pc64 -fma -O2"
+CXXFLAGS="${arch} -g -gdwarf-4 -pc64 -fma -O3"
 
 CPPFLAGS="-I${hdf5_root}/include -I${netcdf_root}/include -I${eccodes_root}/include -I${fyaml_root}/include -I${xml2_root}/include/libxml2"
 

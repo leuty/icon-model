@@ -3043,9 +3043,9 @@ KOKKOS library @<:@default=$ICON_BUNDLED_HIPFLAGS@:>@])dnl
    ACX_SUBDIR_REMOVE_ARGS([ragnarok/build],
      [-DCMAKE_C_*=*|-DCMAKE_Fortran_*=*|-DCMAKE_CXX_FLAGS=*])
    icon_kokkos_extra_args=
+   AS_VAR_APPEND([icon_kokkos_extra_args], [' -DKokkos_ENABLE_SERIAL=ON'])
    AS_VAR_IF([enable_openmp], [yes],
-     [AS_VAR_APPEND([icon_kokkos_extra_args], [' -DKokkos_ENABLE_OPENMP=ON'])],
-     [AS_VAR_APPEND([icon_kokkos_extra_args], [' -DKokkos_ENABLE_SERIAL=ON'])])
+     [AS_VAR_APPEND([icon_kokkos_extra_args], [' -DKokkos_ENABLE_OPENMP=ON'])],[])
    AS_CASE([$icon_gpu_secondary],
      [cuda],
      [AS_VAR_APPEND([icon_kokkos_extra_args], [' -DKokkos_ENABLE_CUDA=ON'])],
@@ -3253,7 +3253,8 @@ RAGNAROK library @<:@default=$ICON_BUNDLED_HIPFLAGS@:>@])dnl
      [-DCMAKE_BUILD_TYPE=None],
      [-DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH"],
      [-DBUILD_SHARED_LIBS=OFF], [-DBUILD_TESTING=OFF],
-     [-DRGK_ENABLE_STANDALONE=OFF],
+     [-DRGK_ENABLE_STANDALONE=OFF],[-DRGK_ENABLE_PYTHON_BINDINGS=OFF],
+     [-DRGK_ENABLE_SINGLE_PRECISION="$enable_single_precision"],
      [-DCMAKE_CUDA_ARCHITECTURES=OFF], [-DCMAKE_HIP_ARCHITECTURES=OFF])
    icon_bundled_config_after_config([ragnarok/build], [externals/kokkos/build])
    AS_VAR_APPEND([bundled_includes],

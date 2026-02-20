@@ -24,6 +24,8 @@ project(
 option(BUILD_SHARED_LIBS "Build shared libraries" ON)
 option(BUILD_TESTING "Build tests" ON)
 option(RGK_ENABLE_STANDALONE "Enable standalone" ON)
+option(RGK_ENABLE_PYTHON_BINDINGS "Enable python bindings" OFF)
+option(RGK_ENABLE_SINGLE_PRECISION "Use single precision" OFF)
 
 include(CTest)
 
@@ -165,17 +167,13 @@ if(Kokkos_ENABLE_COMPILE_AS_CMAKE_LANGUAGE)
 endif()
 
 # Create a single library comprising all components that ICON can link to:
-if(RGK_ENABLE_STANDALONE)
-  # As long as ragnarok has no object files in this case, use a trick to avoid
-  # CMake complains:
-  add_library(ragnarok OBJECT ${CMAKE_CURRENT_LIST_FILE})
-else()
-  add_library(ragnarok)
-endif()
+add_library(ragnarok)
 
 set(Fortran_MODULE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/mod")
 set_target_properties(
-  ragnarok PROPERTIES Fortran_MODULE_DIRECTORY "${Fortran_MODULE_DIRECTORY}"
+  ragnarok
+  PROPERTIES Fortran_MODULE_DIRECTORY "${Fortran_MODULE_DIRECTORY}"
+             Fortran_PREPROCESS ON
 )
 
 target_include_directories(
@@ -186,6 +184,31 @@ target_include_directories(
 )
 
 target_link_libraries(ragnarok PUBLIC Kokkos::kokkos)
+
+if(RGK_ENABLE_SINGLE_PRECISION)
+  target_compile_definitions(ragnarok PRIVATE __SINGLE_PRECISION)
+endif()
+
+if(RGK_ENABLE_STANDALONE)
+  target_compile_definitions(ragnarok PUBLIC __STANDALONE)
+
+  list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
+  find_package(
+    NetCDF
+    COMPONENTS C CXX
+    REQUIRED
+  )
+  include_directories(${NetCDF_CXX_INCLUDE_DIR})
+endif()
+
+if(RGK_ENABLE_PYTHON_BINDINGS)
+  # Function to avoid namespace pollution:
+  function(find_pybind11)
+    set(PYBIND11_FINDPYTHON ON)
+    find_package(pybind11 REQUIRED)
+  endfunction()
+  find_pybind11()
+endif()
 
 if(BUILD_TESTING)
 
@@ -203,3 +226,4 @@ endif()
 add_subdirectory(common)
 add_subdirectory(support)
 add_subdirectory(aes_thermodynamics)
+add_subdirectory(aes_microphysics)
