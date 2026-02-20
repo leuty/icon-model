@@ -36,6 +36,8 @@ include:
     - !reference [.common:dkrz:levante, before_script]
     - !reference [.utils:icon:build, before_script]
   rules:
+    - if: $CI_PIPELINE_SOURCE == "web"
+      when: manual
     - !reference [.common:dkrz:levante, rules]
     - when: on_success
 
@@ -73,7 +75,10 @@ include:
       - run/${VAL_EXPERIMENT}.json
     when: always
     expire_in: 30 min
-  rules: !reference [.nightly:ocean:validation:build, rules]
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "web"
+    - !reference [.common:dkrz:levante, rules]
+    - when: on_success
 
 .nightly:ocean:validation:analyze:
   extends: .common:any-image
