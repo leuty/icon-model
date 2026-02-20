@@ -21,10 +21,8 @@ MODULE mo_aerosol_util
   USE mo_kind,                   ONLY: wp, rp
   USE mo_exception,              ONLY: finish
   USE mo_loopindices,            ONLY: get_indices_c
-  USE mo_lrtm_par,               ONLY: jpband => nbndlw
   USE mo_model_domain,           ONLY: t_patch
   USE mo_intp_data_strc,         ONLY: t_int_state
-  USE mo_srtm_config,            ONLY: jpsw
   USE mo_lnd_nwp_config,         ONLY: ntiles_lnd, dzsoil, isub_water
   USE mo_nwp_tuning_config,      ONLY: tune_dust_abs
   USE mo_advection_config,       ONLY: advection_config
@@ -49,6 +47,8 @@ MODULE mo_aerosol_util
   CHARACTER(LEN=*), PARAMETER :: modname = 'mo_aerosol_util'
 
   !RRTM
+  INTEGER, PARAMETER :: jpband = 16 ! This is needed with ecRad as well
+  INTEGER, PARAMETER :: jpsw = 14   ! This is needed with ecRad as well
   REAL  (wp) ::             &
   zaea_rrtm(jpsw+jpband,5), &  ! ratio of optical thickness for the absorption in spectral
                                ! interval jpspec  and total optical thickness at 0.55m*1.E-06

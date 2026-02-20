@@ -135,10 +135,10 @@ MODULE mo_nwp_phy_nml
 
   !> NetCDF file containing longwave absorption coefficients and other data
   !> for RRTMG_LW k-distribution model ('rrtmg_lw.nc')
-  CHARACTER(LEN=filename_max) :: lrtm_filename
+  CHARACTER(LEN=filename_max) :: lrtm_filename ! DEPRECATED, to be removed with RRTM
 
   !> NetCDF file with RRTM Cloud Optical Properties for ECHAM6
-  CHARACTER(LEN=filename_max) :: cldopt_filename
+  CHARACTER(LEN=filename_max) :: cldopt_filename ! DEPRECATED, to be removed with RRTM
 
   NAMELIST /nwp_phy_nml/ inwp_convection, inwp_cldcover, lsgs_cond,  &
     &                    inwp_radiation, inwp_sso, inwp_gwd,         &
@@ -193,7 +193,7 @@ CONTAINS
     INTEGER :: iunit
     CHARACTER(len=*), PARAMETER ::  &
          &  routine = 'mo_nwp_phy_nml:read_nwp_phy_namelist'
-    INTEGER  :: param_def
+    INTEGER  :: param_def, rad_def
     REAL(wp) :: dt_conv_def, dt_rad_def, dt_sso_def, dt_gwd_def
     INTEGER  :: icalc_reff_def, icpl_rad_reff_def, ithermo_water_def
 
@@ -201,7 +201,8 @@ CONTAINS
     ! 1a. default settings for domain-specific parmeters; will be rest to dummy values afterwards
     !     to determine what is actually specified in the namelist
     !-----------------------
-    param_def   = 1  ! default for all parameterizations is currently '1'
+    param_def   = 1  ! default for most parameterizations is currently '1'
+    rad_def     = 4  ! default for radiation is '4'
     dt_conv_def = 600._wp
     dt_rad_def  = 1800._wp
     dt_sso_def  = 1200._wp
@@ -215,7 +216,7 @@ CONTAINS
     inwp_gscp(:)       = param_def
     inwp_satad(:)      = param_def
     inwp_convection(:) = param_def
-    inwp_radiation(:)  = param_def
+    inwp_radiation(:)  = rad_def
     inwp_sso(:)        = param_def
     inwp_gwd(:)        = param_def
     inwp_cldcover(:)   = param_def
@@ -411,7 +412,7 @@ CONTAINS
       IF (inwp_gscp(1)       <-1) inwp_gscp(1)       = param_def  !> 1 = hydci (COSMO-EU microphysics)
       IF (inwp_satad(1)      < 0) inwp_satad(1)      = param_def  !> 1 = saturation adjustment on
       IF (inwp_convection(1) < 0) inwp_convection(1) = param_def  !> 1 = Tiedtke/Bechthold convection
-      IF (inwp_radiation(1)  < 0) inwp_radiation(1)  = param_def  !> 1 = RRTM radiation
+      IF (inwp_radiation(1)  < 0) inwp_radiation(1)  = rad_def    !> 4 = ecRad radiation
       IF (inwp_sso(1)        < 0) inwp_sso(1)        = param_def  !> 1 = Lott and Miller scheme (COSMO)
       IF (inwp_gwd(1)        < 0) inwp_gwd(1)        = param_def  !> 1 = Orr-Ern-Bechthold scheme (IFS)
       IF (inwp_cldcover(1)   < 0) inwp_cldcover(1)   = param_def  !> 1 = diagnostic cloud cover (by Martin Koehler)

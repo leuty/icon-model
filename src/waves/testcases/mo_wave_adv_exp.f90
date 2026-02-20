@@ -35,14 +35,20 @@ MODULE mo_wave_adv_exp
 CONTAINS
 
   !
-  ! Prescribe time-constant analytic wind forcing.
+  ! Prescribes a time-constant, analytically defined wind field with a
+  ! fixed direction, from which an analytic JONSWAP-type wave spectrum
+  ! is constructed.
+  ! The resulting spectral wave variance field may be used in
+  ! transport-only tests for evaluating the horizontal transport
+  ! operator.
+  !
   ! This routine initializes the following forcing fields:
   ! u10m, v10m, sp10m, dir10m, sea_ice_c, ice_free_mask
   !
   SUBROUTINE init_analytic_forcing(p_patch, wave_config, p_forcing)
 
     CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER ::  &
-         &  routine = modname//'::init_wind_adv_test'
+         &  routine = modname//'::init_analytic_forcing'
 
     TYPE(t_patch),        INTENT(IN)         :: p_patch
     TYPE(t_wave_config),  TARGET, INTENT(IN) :: wave_config
@@ -54,14 +60,17 @@ CONTAINS
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
     INTEGER :: i_startidx, i_endidx
     REAL(wp):: sin_tmp, cos_tmp, zlat, zlon, d1, r
+    REAL(wp):: theta_w  ! wind direction measured clockwise from true north in radians
 
     REAL(wp):: lambda0, phi0  ! coordinates of center point
-    REAL(wp), PARAMETER :: RR  = 1._wp/3._wp ! horizontal half width divided by 'a'
+    REAL(wp), PARAMETER :: RR = 1._wp/5._wp ! horizontal half width on a unit sphere
+
 
     wc => wave_config
 
-    lambda0 = wc%peak_lon*deg2rad
-    phi0    = wc%peak_lat*deg2rad
+    lambda0 = wc%peak_lon  * deg2rad
+    phi0    = wc%peak_lat  * deg2rad
+    theta_w = wc%dir_wsp10 * deg2rad
 
     i_rlstart  = 1
     i_rlend    = min_rlcell
@@ -76,36 +85,33 @@ CONTAINS
         &                 i_startidx, i_endidx, i_rlstart, i_rlend)
 
       DO jc = i_startidx, i_endidx
-        !test wind from NCAR_TESTCASE
+
         zlon = p_patch%cells%center(jc,jb)%lon
         zlat = p_patch%cells%center(jc,jb)%lat
 
         sin_tmp = SIN(zlat) * SIN(phi0)
         cos_tmp = COS(zlat) * COS(phi0)
-        r  = ACOS (sin_tmp + cos_tmp*COS(zlon-lambda0))       ! great circle distance without 'a'
+        r  = ACOS (sin_tmp + cos_tmp*COS(zlon-lambda0))    ! great circle distance on a unit sphere
         d1 = MIN( 1._wp, (r/RR) )
 
-        ! calculate U and V wind components and ensure nonzero values in order to
-        ! avoid division by zero in the following ATAN2 function
-        p_forcing%u10m(jc,jb)  = MAX(1._wp + COS(pi*d1) * wc%peak_u10, dbl_eps)
-        p_forcing%v10m(jc,jb)  = MAX(1._wp + COS(pi*d1) * wc%peak_v10, dbl_eps)
-        p_forcing%sp10m(jc,jb) = SQRT(p_forcing%u10m(jc,jb)**2 + p_forcing%v10m(jc,jb)**2)
-        ! 45 degree towards NE for the default case peak_u10=peak_v10
-        ! Note that o degrees points toward North.
-        p_forcing%dir10m(jc,jb)= ATAN2(p_forcing%u10m(jc,jb),p_forcing%v10m(jc,jb))
-        IF (p_forcing%dir10m(jc,jb) < 0._wp) p_forcing%dir10m(jc,jb) = p_forcing%dir10m(jc,jb) + pi2
+        ! cosine bell distribution, following Williamson (1992)
+        p_forcing%sp10m(jc,jb) = 0.5_wp * wc%peak_wsp10 * (1._wp + COS(pi*d1))
+        p_forcing%u10m(jc,jb)  = p_forcing%sp10m(jc,jb) * sin(theta_w)
+        p_forcing%v10m(jc,jb)  = p_forcing%sp10m(jc,jb) * cos(theta_w)
+        p_forcing%dir10m(jc,jb)= theta_w
+
         ! no seaice
         p_forcing%sea_ice_c = 0._wp
       END DO ! cell loop
     END DO
-!$OMP END DO NOWAIT
+!$OMP END DO
 !$OMP END PARALLEL
 
-     ! compute mask of ice-free points
-     CALL update_ice_free_mask(                       &
-       &     p_patch       = p_patch,                 & ! IN
-       &     sea_ice_c     = p_forcing%sea_ice_c,     & ! IN
-       &     ice_free_mask = p_forcing%ice_free_mask_c) ! OUT
+    ! compute mask of ice-free points
+    CALL update_ice_free_mask(                       &
+      &     p_patch       = p_patch,                 & ! IN
+      &     sea_ice_c     = p_forcing%sea_ice_c,     & ! IN
+      &     ice_free_mask = p_forcing%ice_free_mask_c) ! OUT
 
   END SUBROUTINE init_analytic_forcing
 

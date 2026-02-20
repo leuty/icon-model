@@ -262,7 +262,7 @@ cat > NAMELIST_NWP << EOF
 &nwp_phy_nml
  inwp_gscp                   =                          1         ! cloud microphysics and precipitation
  inwp_convection             =                          1         ! convection
- inwp_radiation              =                          1         ! radiation
+ inwp_radiation              =                          4         ! radiation
  inwp_cldcover               =                          1         ! cloud cover scheme for radiation
  inwp_turb                   =                          1         ! vertical diffusion and transfer
  inwp_satad                  =                          1         ! saturation adjustment
@@ -318,8 +318,9 @@ cat > NAMELIST_NWP << EOF
 
 ! radiation_nml: radiation scheme ---------------------------------------------
 &radiation_nml
- irad_o3                     =                          6         ! ozone climatology
+ irad_o3                     =                          79        ! ozone climatology
  irad_aero                   =                          0         ! aerosols
+ ecrad_data_path             = '${basedir}/externals/ecrad/data'
 /
 
 ! transport_nml: tracer transport ---------------------------------------------

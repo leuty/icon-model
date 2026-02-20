@@ -138,8 +138,8 @@ cat > ${basedir}/run/${wave_namelist} << EOF
  depth_max              = 999.
  fetch                  = 300000.               ! fetch in metres used for initialisation of spectrum
  !fetch_min_energy       = 25000.                ! fetch in meters used for calculation of minimum allowed energy level
- peak_u10               = 17.680452             ! peak value (m/s) of 10 m U wind component for test case
- peak_v10               = 17.680452             ! peak value (m/s) of 10 m V wind component for test case
+ peak_wsp10             = 25.0                  ! peak value of 10m wind speed for test case
+ dir_wsp10              = 45.0                  ! wind direction measured clockwise from true north (deg)
  peak_lat               = -60.0                 ! latitude (deg) of wind peak value
  peak_lon               = -140.0                ! longitude (deg) of wind peak value
  ALPHA_CH               = 6.0000001E-03
@@ -166,8 +166,8 @@ cat > ${basedir}/run/${wave_namelist} << EOF
  mode                   =                   1         ! 1: forecast mode (relative t-axis), 2: climate mode (absolute t-axis)
  include_last           =               .TRUE.        ! flag whether to include the last time step
  output_grid            =               .TRUE.        ! flag whether grid information is added to output.
- ml_varlist             = 'emean','emeanws','femean','wbr_frac','f1mean','femeanws','akmean','xkmean','last_prog_freq_ind',
-                          'ustar','z0','tauw','phiaw','tauhf1','phihf1','tauhf','phihf','xlevtail','emean_sea','femean_sea'
+ ml_varlist             = 'emean','emeanws','femean','wbr_frac','f1mean','femeanws','akmean','xkmean',
+                          'last_prog_freq_ind','ustar','z0','tauw','phiaw','tauhf','phihf','emean_sea','femean_sea'
                           'f1mean_sea','emean_swell','femean_swell','f1mean_swell','drag','tauwn','beta'
 /
 &output_nml

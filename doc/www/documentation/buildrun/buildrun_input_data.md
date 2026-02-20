@@ -83,3 +83,64 @@ data in a way that they can be read by ICON.
 * [Data Assimilation System]
 * [ICON forecasts]
 * [IFS analysis or forecasts](ref_buildrun_icbcifs)
+
+
+(ref_lateral_boundary_update)=
+## Lateral Boundary Update
+
+{{author}}D. Reinert and G. Zängl{{endauthor}}
+
+The lateral boundary zone update (zone 0 in Figure 6.1 of the {term}`ICON Tutorial`) follows the parent-child coupling approach for nesting, described in Section 3.9.1 of the {term}`ICON Tutorial`.
+
+Let {math}`\psi_{bc}^{k} \in \{v_{n}, w,\rho,\theta_{v},q_{k}\}` denote the set of boundary data, which is provided externally at regular time intervals {math}`\Delta t_{bc}`. The index {math}`k` denotes discrete times for which a boundary data set is available, according to the definition {math}`t^{k}=t^{0} + k\Delta t_{bc}`. Further, let
+
+```{math}
+ \frac{\delta \psi_{bc}}{\delta t}= \frac{\psi_{bc}^{k+1} - \psi_{bc}^{k}}{\Delta t_{bc}}
+```
+
+define their discrete time tendency, which is assumed constant over the interval {math}`t^{k}\leq t < t^{k+1}`. In continuous form, the model state inside the lateral boundary zone  {math}`\psi_{lbz}(t)` is derived from
+
+```{math}
+:label: eq_lam_boundary_state
+  \psi_{lbz}(t) = \psi(t^{0}) + \int\limits_{t^{0}}^{t} \frac{\partial \psi_{bc}}{\partial t} \,\mathrm{d}t
+```
+
+where {math}`\psi(t^{0})` is the initial condition originating from the first-guess or analysis. Equation {eq}`eq_lam_boundary_state` ensures that the model state {math}`\psi_{lbz}(t)` interpolates the external boundary data at times {math}`t=t^{k}` and transforms piecewise linearly between consecutive boundary data sets for intermediate times {math}`t^{k}< t < t^{k+1}`. If written in discrete form and applied repeatedly over {math}`n` dynamics time steps of size {math}`\Delta \tau` (or the fast physics time step {math}`\Delta t` in case of {math}`q_{k}`), the update formula {eq}`eq_lam_boundary_state` becomes
+
+```{math}
+:label: eq_lam_boundary_update
+ \psi_{lbz}(t^{n+1}) = \psi_{lbz}(t^{n}) + \Delta \tau\, \frac{\delta \psi_{bc}}{\delta t}
+```
+
+Hence, the lateral boundary zone is updated _incrementally_ by adding boundary data
+time tendencies, rather than applying the boundary data {math}`\psi_{bc}` directly.
+
+### Known Pitfalls
+
+Even though this approach is largely consistent with the boundary update approach for nesting, it can lead to unwanted side effects if used without care.
+
+Upon inspection of Equation {eq}`eq_lam_boundary_state` it becomes clear that this approach relies on the implicit assumption
+
+```{math}
+\psi(t^{0}) = \psi_{bc}(t^{0})\,,
+```
+
+stating that the external boundary data at model start {math}`\psi_{bc}(t^{0})` match the model's initial conditions {math}`\psi(t^{0})`. Otherwise, Equation {eq}`eq_lam_boundary_state` and its discrete counterpart {eq}`eq_lam_boundary_update` will no longer interpolate external boundary data for {math}`t=t^{k}`, resulting in {math}`\psi_{lbz}(t^{k}) \neq \psi_{bc}(t^{k})`. Values in the boundary zone will deviate by a constant mismatch  {math}`\Delta \psi=\psi(t^{0}) - \psi_{bc}(t^{0})`, such that
+
+```{math}
+ \psi_{lbz}(t^{k}) = \psi_{bc}(t^{k}) + \Delta \psi\,, \quad \text{for } k\geq 1\,.
+```
+
+This error is persistent. It will not decay during the course of the simulation, and it will also be present at intermediate times {math}`t^{k}< t < t^{k+1}`. Several studies have shown that this error can introduce significant pressure biases throughout the entire model domain, thereby leading to a notable degradation of the overall forecast quality.
+
+Significant mismatches will occur whenever initial conditions and boundary conditions originate
+from different model runs or models. For example, mismatches occur when initial conditions are taken from ICON, while lateral boundary conditions are taken from IFS (or vice versa), or when ICON initial and boundary conditions from different resolutions or domains are mixed.
+
+The recommended way to avoid these mismatches is to set the Namelist parameter `init_latbc_from_fg=.TRUE. (limarea_nml)` unconditionally. This ensures that the first boundary data set at {math}`t=t^{0}` is copied from the initial conditions file, thereby ensuring {math}`\psi(t^{0}) = \psi_{bc}(t^{0})`.
+
+:::{admonition} Important note on lateral boundary conditions
+:class: admonition-icontheme
+Any deviations of the boundary data at the model start date from the initial conditions  may result in significant surface pressure biases and an overall degradation of forecast results throughout the simulation. In order to ensure consistency of the lateral boundary conditions,  we strongly recommend to set the Namelist parameter `init_latbc_from_fg=.TRUE. (limarea_nml)` for any type of limited area simulations. This will force the lateral boundary conditions at the  model start date to be copied from the analysis (or first-guess).
+
+ The boundary data file whose validity date matches the nominal start date requires special care (see Namelist parameter `experiment_start_date`).  This file must be available unconditionally, even if the boundary conditions are not read from the file when choosing `init_latbc_from_fg=.TRUE.` and `dtime_shift=0`.  This is because the file contains the `HHL` field, which provides mandatory 3D height information regarding the vertical grid (see Section 2.3 of the {term}`ICON Tutorial`).
+:::

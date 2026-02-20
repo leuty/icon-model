@@ -462,11 +462,8 @@ CONTAINS
     &       p_diag%z0, &
     &       p_diag%tauw, &
     &       p_diag%phiaw, &
-    &       p_diag%tauhf1, &
-    &       p_diag%phihf1, &
     &       p_diag%tauhf, &
     &       p_diag%phihf, &
-    &       p_diag%xlevtail, &
     &       p_diag%IKP, &
     &       p_diag%IKP1, &
     &       p_diag%IKM, &
@@ -603,7 +600,7 @@ CONTAINS
          & lrestart=.FALSE., loutput=.TRUE.,                        &
          & ldims=shape2d_c, in_group=groups("wave_phy"))
 
-    cf_desc    = t_cf_var('femean', 'm^2', 'mean frequency wave energy', datatype_flt)
+    cf_desc    = t_cf_var('femean', 's-1', 'mean frequency (m0/m-1)', datatype_flt)
     grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
     CALL add_var(p_diag_list, 'femean', p_diag%femean,              &
          & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
@@ -638,14 +635,14 @@ CONTAINS
          & ldims=shape3d_freq_e,                                         &
          & lrestart=.FALSE., loutput=.TRUE.)
 
-    cf_desc    = t_cf_var('f1mean', 'm^2', 'mean frequency wave energy based on F-moment', datatype_flt)
+    cf_desc    = t_cf_var('f1mean', 's-1', 'mean frequency based on f-moment (m1/m0)', datatype_flt)
     grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
     CALL add_var(p_diag_list, 'f1mean', p_diag%f1mean,              &
          & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
          & lrestart=.FALSE., loutput=.TRUE.,                        &
          & ldims=shape2d_c, in_group=groups("wave_phy"))
 
-    cf_desc    = t_cf_var('femeanws', 'm^2', 'mean frequency wind sea wave energy', datatype_flt)
+    cf_desc    = t_cf_var('femeanws', 's-1', 'wind sea mean frequency (m0/m-1)', datatype_flt)
     grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
     CALL add_var(p_diag_list, 'femeanws', p_diag%femeanws,          &
          & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
@@ -721,51 +718,30 @@ CONTAINS
          & lrestart=.FALSE., loutput=.TRUE.,                        &
          & ldims=shape2d_c , in_group=groups("wave_phy"))
 
-    cf_desc    = t_cf_var('wave_stress', '(m/s)^2', 'wave stress', datatype_flt)
+    cf_desc    = t_cf_var('wave_stress', 'm2 s-2', 'wave stress divided by air density', datatype_flt)
     grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
     CALL add_var(p_diag_list, 'tauw', p_diag%tauw,                  &
          & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
          & lrestart=.TRUE., loutput=.TRUE.,                         &
          & ldims=shape2d_c , in_group=groups("wave_phy","wave_fluxes"))
 
-    cf_desc    = t_cf_var('integrated_energy_flux', 'kg/s^3', 'integrated energy flux', datatype_flt)
+    cf_desc    = t_cf_var('integrated_energy_flux', 'W m-2', 'integrated energy flux from wind into waves', datatype_flt)
     grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
     CALL add_var(p_diag_list, 'phiaw', p_diag%phiaw,                &
          & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
          & lrestart=.FALSE., loutput=.TRUE.,                        &
          & ldims=shape2d_c , in_group=groups("wave_phy","wave_fluxes"))
 
-    cf_desc    = t_cf_var('tauhf1', '(m/s)^2', 'high-frequency stress', datatype_flt)
-    grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
-    CALL add_var(p_diag_list, 'tauhf1', p_diag%tauhf1,              &
-         & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
-         & lrestart=.FALSE., loutput=.TRUE.,                        &
-         & ldims=shape2d_c, in_group=groups("wave_phy"))
-
-    cf_desc    = t_cf_var('phihf1', 'm^2/s', 'high-frequency energy flux into ocean', datatype_flt)
-    grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
-    CALL add_var(p_diag_list, 'phihf1', p_diag%phihf1,              &
-         & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
-         & lrestart=.FALSE., loutput=.TRUE.,                        &
-         & ldims=shape2d_c, in_group=groups("wave_phy"))
-
-    cf_desc    = t_cf_var('tauhf', '(m/s)^2', 'high-frequency stress', datatype_flt)
+    cf_desc    = t_cf_var('tauhf', 'm2 s-2', 'high-fequency stress divided by air density', datatype_flt)
     grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
     CALL add_var(p_diag_list, 'tauhf', p_diag%tauhf,                &
          & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
          & lrestart=.FALSE., loutput=.TRUE.,                        &
          & ldims=shape2d_c, in_group=groups("wave_phy"))
 
-    cf_desc    = t_cf_var('phihf', 'kg/s^3', 'high-frequency energy flux into ocean', datatype_flt)
+    cf_desc    = t_cf_var('phihf', 'W m-2', 'high-frequency energy flux into waves', datatype_flt)
     grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
     CALL add_var(p_diag_list, 'phihf', p_diag%phihf,                &
-         & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
-         & lrestart=.FALSE., loutput=.TRUE.,                        &
-         & ldims=shape2d_c, in_group=groups("wave_phy"))
-
-    cf_desc    = t_cf_var('xlevtail', '-', 'tail level', datatype_flt)
-    grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
-    CALL add_var(p_diag_list, 'xlevtail', p_diag%xlevtail,          &
          & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
          & lrestart=.FALSE., loutput=.TRUE.,                        &
          & ldims=shape2d_c, in_group=groups("wave_phy"))
@@ -945,14 +921,14 @@ CONTAINS
          & lrestart=.FALSE., loutput=.TRUE.,                        &
          & ldims=shape2d_c, in_group=groups("wave_phy"))
 
-    cf_desc    = t_cf_var('femean_sea', 'm^2', 'Wind sea mean frequency wave energy', datatype_flt)
+    cf_desc    = t_cf_var('femean_sea', 's-1', 'Wind sea mean frequency (m0/m-1)', datatype_flt)
     grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
     CALL add_var(p_diag_list, 'femean_sea', p_diag%femean_sea,      &
          & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
          & lrestart=.FALSE., loutput=.TRUE.,                        &
          & ldims=shape2d_c, in_group=groups("wave_phy"))
 
-    cf_desc    = t_cf_var('f1mean_sea', 'm^2', 'Wind sea mean frequency', datatype_flt)
+    cf_desc    = t_cf_var('f1mean_sea', 's-1', 'Wind sea mean frequency (m1/m0)', datatype_flt)
     grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
     CALL add_var(p_diag_list, 'f1mean_sea', p_diag%f1mean_sea,      &
          & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
@@ -1023,14 +999,14 @@ CONTAINS
          & lrestart=.FALSE., loutput=.TRUE.,                        &
          & ldims=shape2d_c, in_group=groups("wave_phy"))
 
-    cf_desc    = t_cf_var('femean_swell', 'm^2', 'Swell mean frequency wave energy', datatype_flt)
+    cf_desc    = t_cf_var('femean_swell', 's-1', 'Swell mean frequency (m0/m-1)', datatype_flt)
     grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
     CALL add_var(p_diag_list, 'femean_swell', p_diag%femean_swell,  &
          & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
          & lrestart=.FALSE., loutput=.TRUE.,                        &
          & ldims=shape2d_c, in_group=groups("wave_phy"))
 
-    cf_desc    = t_cf_var('f1mean_swell', 'm^2', 'Swell mean frequency', datatype_flt)
+    cf_desc    = t_cf_var('f1mean_swell', 's-1', 'Swell mean frequency (m1/m0)', datatype_flt)
     grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
     CALL add_var(p_diag_list, 'f1mean_swell', p_diag%f1mean_swell,  &
          & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &

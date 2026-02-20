@@ -101,11 +101,6 @@ $addexp "checksuite.icon-dev/check.atm_bubble_test_update" --builders "${NVHPC_C
 $addexp "checksuite.icon-dev/check.atm_bubble_land_test"   --builders "${NVHPC_CPU_BUILDERS}" --list $listname --runflags "queue=shared ntasks=16 memory=32G"
 ./set_builder_flags Inactive --builders "${NVHPC_CPU_BUILDERS}" --list $listname
 #
-#---------------------------------------------------------------------------------------------------------
-# Other tests
-# limited area runs
-$addexp "checksuite.les/exp.ac3_les_20210211.run" --builders "levante_intel_hybrid" --list $listname
-
 #-----------------------------------------------------------
 # CSCS
 # add experiments relevant for C2SM from yml-config

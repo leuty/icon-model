@@ -306,7 +306,7 @@ SUBROUTINE turbdiff ( &
           tketens, tketadv,                                          &
           ut_sso, vt_sso,                                            &
 !
-          zvari                                                      &
+          zvari,tur_len_scale                                        &
 !
           err_args)
 
@@ -645,9 +645,13 @@ REAL (KIND=wp), DIMENSION(:,:),         OPTIONAL, INTENT(IN)    :: &
   ut_sso,        & ! u-tendency due to the SSO-Scheme              ( 1/s )
   vt_sso           ! v-tendency due to the SSO-Scheme              ( 1/s )
 
-REAL (KIND=wp), DIMENSION(:,:), TARGET, OPTIONAL, INTENT(OUT)    :: &
+REAL (KIND=wp), DIMENSION(:,:), POINTER, INTENT(INOUT)           :: &
                    ! half-level values of:
   edr,           & ! eddy dissipation rate of TKE (EDR)            (m2/s3)
+  tur_len_scale    ! turbulent length scale for output             (m)
+
+REAL (KIND=wp), DIMENSION(:,:), TARGET, OPTIONAL, INTENT(OUT)    :: &
+                   ! half-level values of:
   tket_sso,      & ! TKE-tendency due to SSO wake production       (m2/s3)
   tket_nstc,     & ! TKE-tendency due to near-surf. therm. circul. (m2/s3)
   tket_hshr,     & ! TKE-tendency due to separ. horiz. shear       (m2/s3)
@@ -681,7 +685,8 @@ REAL (KIND=wp) :: &
   fr_tke              ! z1/dt_tke
 
 REAL (KIND=wp), POINTER, CONTIGUOUS :: &
-  ediss(:,:)    !pointer for density and eddy dissipation rate
+     ediss(:,:),   & !pointer for density and eddy dissipation rate
+     len_scale(:,:)  !pointer for turbulent length-scale (m)
 
 ! Lokale logical Variablen:
 
@@ -761,11 +766,11 @@ TYPE (varprf) :: pvar(0:naux+2) !vector of vertical variable profiles at main- a
 
 REAL (KIND=wp), TARGET ::  &
   ! targets of used pointers
-  diss_tar   (nvec,ke1)      ! target for eddy dissipation rate (m2/s3)
+  diss_tar   (nvec,ke1),   & ! target for eddy dissipation rate (m2/s3)
+  len_scale_tar(nvec,ke1)    ! target for turbulent length-scale (m)
 
 REAL (KIND=wp), TARGET ::  &
   ! internal atmospheric variables
-  len_scale(nvec,ke1),     & ! turbulent length-scale (m)
   hor_scale(nvec,ke),      & ! effective hoprizontal length-scale used for sep. horiz. shear calc. (m)
 
   l_scal   (nvec),         & ! reduced maximal turbulent length scale due to horizontal grid spacing (m)
@@ -837,10 +842,16 @@ LOGICAL :: lzacc
 
   ! Pointer assignments:
 
-  IF (PRESENT(edr)) THEN
+  IF (ASSOCIATED(edr)) THEN
      ediss => edr
   ELSE
      ediss => diss_tar
+  END IF
+
+  IF (ASSOCIATED(tur_len_scale)) THEN
+     len_scale => tur_len_scale
+  ELSE
+     len_scale => len_scale_tar
   END IF
 
   prss => zvari(:,:,0)   ! half-level pressure (Pa)
@@ -873,7 +884,7 @@ LOGICAL :: lzacc
   !$ACC DATA &
   !Working arrays
   !$ACC   CREATE(diss_tar, ivtp, hig) &
-  !$ACC   CREATE(len_scale, hor_scale, l_scal, fc_min) &
+  !$ACC   CREATE(len_scale_tar, hor_scale, l_scal, fc_min) &
   !$ACC   CREATE(shv, frh, frm, ftm, dicke, hlp) &
   !$ACC   CREATE(zaux, can, layr, lays, grad, hig, xri, levs) &
   !$ACC   PRESENT(c_big, c_sml, r_air) &
@@ -1778,7 +1789,7 @@ my_thrd_id = omp_get_thread_num()
                              ntur=ntur, nvor=nvor,                                    & !in
 
                              lssintact=lssintact,    lupfrclim=.FALSE.,               & !in
-                             lpres_edr=(lsrfshear .OR. PRESENT(edr)),                 & !in
+                             lpres_edr=(lsrfshear .OR. ASSOCIATED(edr)),              & !in
                              ltkeinp=ltkeinp,                                         & !in
                              imode_stke=tdc%imode_turb,  imode_vel_min=1,             & !in
 

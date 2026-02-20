@@ -310,7 +310,7 @@ cat > ${atmo_namelist} << EOF
 &nwp_phy_nml
  inwp_gscp                    = 2,    ! 1: default, 2: graupel, 4: for two-moment
  inwp_convection              = 0,0,0
- inwp_radiation               = 1,
+ inwp_radiation               = 4,
  inwp_cldcover                = 1     ! 0: no cld, 1: new diagnostic, 3: COSMO, 5: grid scale
  inwp_turb                    = 1     ! 1/10: Raschendorfer, 2: GME
  inwp_satad                   = 1
@@ -371,6 +371,7 @@ cat > ${atmo_namelist} << EOF
  vmr_o2                       = 0.20946
  vmr_cfc11                    = 240.e-12
  vmr_cfc12                    = 532.e-12
+ ecrad_data_path              = '${basedir}/externals/ecrad/data'
 /
 &nonhydrostatic_nml
  iadv_rhotheta                = 2

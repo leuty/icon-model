@@ -1,7 +1,7 @@
 # ICON
 #
 # ------------------------------------------
-# Copyright (C) 2004-2026, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+# Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 # Contact information: icon-model.org
 # See AUTHORS.TXT for a list of authors
 # See LICENSES/ for license information
@@ -171,7 +171,7 @@ cat > ${atmo_namelist} << EOF
 &nwp_phy_nml
  inwp_gscp               = 1
  inwp_convection         = 1
- inwp_radiation          = 4
+ inwp_radiation          = 1
  inwp_cldcover           = 1
  inwp_turb               = 1
  inwp_satad              = 1

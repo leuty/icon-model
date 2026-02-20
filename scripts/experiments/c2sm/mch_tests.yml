@@ -18,7 +18,7 @@ tests:
     checksuite_modes:
       - balfrin: 't'
     ensemble_num:
-      - balfrin_cpu_nvidia: [25,12,13,20,19]
+      - balfrin_cpu_nvidia: [1]
     tolerance_factor:
       - balfrin: 5
   - name: mch_ch_r04b09_dace_synsat

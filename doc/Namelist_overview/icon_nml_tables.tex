@@ -2140,6 +2140,13 @@ filetype=2
 \tabularnewline
 
 %\hline
+lgribout\_compress\_ccsds&
+L& .FALSE. & &
+enable CCSDS second level compression &
+filetype=2
+\tabularnewline
+
+%\hline
 grib\_lib\_\-compat&
 C& ''current'' & &
 Type of GRIB library backward compatibility adjustment:\\
@@ -3515,6 +3522,20 @@ lmask\_boundary&
 L(n\_dom)&  F& &
 Set to \texttt{.TRUE.}, if interpolation zone should be masked in triangular output.&
 \tabularnewline
+
+%\hline
+ldiagnose\_tke &
+L(n\_dom)&  F& &
+Set to \texttt{.TRUE.} to calculate grid-scale TKE based on temporal wind variance over interval specified with \texttt{gstke\_interval}. Also calculates SGS TKE and EDR averaged over interval, and activates additional diagnostic variables for EDR and turbulent length scale.& \texttt{iforcing=3} Time-average SGS TKE, EDR and length scale output currently implemented only for \texttt{inwp\_turb=1} (Turbdiff). Fields will be zero otherwise.
+\tabularnewline
+
+%\hline
+gstke\_interval &
+R(n\_dom) &  3600. & s &
+Time interval in seconds over which to calculate temporal wind variance for grid-scale TKE. & \texttt{iforcing=3}
+
+\tabularnewline
+
 
 %\hline
 \end{longtab}
@@ -8320,6 +8341,7 @@ Insolation scheme\\
 0: Use original insolation (from SRTM in case inwp\_radiation=1 or from ecRad in case inwp\_radiation=4) \\
 1: Use SSI values from Coddington et al. (2016) (inwp\_radiation=1) or scale SSI values to Coddington et al. (2016) values (inwp\_radiation=4) \\
 2: SSI from an external file containing monthly mean time series (inwp\_radiation=4) \\
+4: SSI from AMIP (inwp\_radiation=4)
  &
 \tabularnewline
 

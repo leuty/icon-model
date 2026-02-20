@@ -487,7 +487,7 @@ CONTAINS
         IF ( .NOT. ASSOCIATED(wavenum1_sw) .OR. .NOT. ASSOCIATED(wavenum2_sw) ) &
           &  CALL finish(routine, 'wavenum1 or wavenum2 not associated')
 !$OMP PARALLEL
-!$OMP DO PRIVATE(jb,i_startidx,i_endidx) ICON_OMP_DEFAULT_SCHEDULE
+!$OMP DO PRIVATE(jb,jc,i_startidx,i_endidx,cloud_num_fac) ICON_OMP_DEFAULT_SCHEDULE
         DO jb = i_startblk,i_endblk
           CALL get_indices_c(pt_patch,jb,i_startblk,i_endblk,i_startidx,i_endidx,rl_start,rl_end)
           IF (i_startidx>i_endidx) CYCLE

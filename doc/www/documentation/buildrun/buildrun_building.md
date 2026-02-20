@@ -28,6 +28,11 @@ The {{ '[`configure`]({}/configure)'.format(base_url) }} script of ICON is imple
 
 The following sections provide information on some features and implementation details of the configuration process.
 
+:::{admonition} Deprecated features
+:class: admonition-icontheme
+To use deprecated features, use `--enable-deprecated`. See also the [list of deprecated features](ref_infrastructure_deprecated).
+:::
+
 (ref_buildrun_configuration_icondep)=
 ## ICON dependencies
 

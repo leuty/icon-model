@@ -43,8 +43,9 @@ MODULE mo_nwp_diagnosis
   USE mo_atm_phy_nwp_config, ONLY: atm_phy_nwp_config
   USE mo_advection_config,   ONLY: advection_config
   USE mo_io_config,          ONLY: lflux_avg, uh_max_zmin, uh_max_zmax, ff10m_interval, &
-    &                              luh_max_out, uh_max_nlayer, var_in_output, &
-    &                              itype_dursun, itype_convindices, itype_hzerocl, t_var_in_output
+    &                              luh_max_out, uh_max_nlayer, var_in_output, gstke_interval, &
+    &                              itype_dursun, itype_convindices, itype_hzerocl, t_var_in_output, &
+    &                              ldiagnose_tke
   USE mo_sync,               ONLY: global_max, global_min
   USE mo_vertical_coord_table,  ONLY: vct_a
   USE mo_thdyn_functions,    ONLY: sat_pres_water, spec_humi
@@ -69,7 +70,7 @@ MODULE mo_nwp_diagnosis
   USE mo_time_config,        ONLY: time_config
   USE mo_nwp_tuning_config,  ONLY: lcalib_clcov, max_calibfac_clcl, itune_gust_diag, tune_gustlim_fac
   USE mo_mpi,                ONLY: p_io, p_comm_work, p_bcast
-  USE mo_fortran_tools,      ONLY: assert_acc_host_only, set_acc_host_or_device, assert_acc_device_only
+  USE mo_fortran_tools,      ONLY: assert_acc_host_only, set_acc_host_or_device, assert_acc_device_only, init
   USE mo_radiation_config,   ONLY: decorr_pole, decorr_equator, islope_rad
 
   IMPLICIT NONE
@@ -173,6 +174,10 @@ CONTAINS
 
     IF (itune_gust_diag == 4) THEN
       CALL calc_filtered_gusts( dt_phy_jg, p_sim_time, ext_data, pt_patch, p_metrics, pt_diag, prm_diag, lacc)
+    ENDIF
+
+    IF (ldiagnose_tke(jg)) THEN
+      CALL calc_gs_tke( dt_phy_jg(itfastphy), p_sim_time, pt_patch, pt_prog, pt_diag, prm_diag, lacc)
     ENDIF
 
     ! Calculate vertical integrals of moisture quantities and cloud cover
@@ -2930,5 +2935,136 @@ CONTAINS
      END IF
 
   END SUBROUTINE nwp_diag_global
+
+  !>
+  !! Computation of grid-scale (temporal) wind variance to estimate grid-scale contribution
+  !! to total TKE for ICON simulation at sub-kilometer scales. Based on Welford's online
+  !! variance algorithm.
+  !!
+  SUBROUTINE calc_gs_tke( dt_phy_jg, p_sim_time, pt_patch, pt_prog, pt_diag, prm_diag, lacc)
+
+    LOGICAL, OPTIONAL,  INTENT(IN)   :: lacc            !< initialization flag
+    REAL(wp),           INTENT(IN)   :: dt_phy_jg       !< time interval for fast physics
+                                                        !< packages on domain jg
+    REAL(wp),           INTENT(IN)   :: p_sim_time
+
+    TYPE(t_patch),      INTENT(IN)   :: pt_patch    !<grid/patch info.
+    TYPE(t_nh_diag),    INTENT(IN)   :: pt_diag     !<the diagnostic variables
+    TYPE(t_nh_prog),    INTENT(IN)   :: pt_prog     !<the prognostic variables
+
+    TYPE(t_nwp_phy_diag), INTENT(INOUT):: prm_diag
+
+
+    INTEGER :: rl_start, rl_end
+    INTEGER :: i_startblk, i_endblk    !> blocks
+    INTEGER :: i_startidx, i_endidx    !< slices
+
+    REAL(wp):: t_wgt                   !< weight for running time average
+    REAL(wp):: var1(3), var2(3)
+
+    INTEGER :: jc,jb,jg,jk      ! indices
+    LOGICAL :: lzacc            ! OpenACC flag
+    INTEGER :: nlev, nlevp1
+    LOGICAL :: lcalc_gstke
+
+  !-----------------------------------------------------------------
+
+
+    CALL set_acc_host_or_device(lzacc, lacc)
+
+    jg        = pt_patch%id
+    nlev      = pt_patch%nlev
+    nlevp1    = pt_patch%nlev+1
+
+    ! exclude nest boundary interpolation zone
+    rl_start = grf_bdywidth_c+1
+    rl_end   = min_rlcell_int
+
+    i_startblk = pt_patch%cells%start_block(rl_start)
+    i_endblk   = pt_patch%cells%end_block(rl_end)
+
+    ! time average weight
+    t_wgt = dt_phy_jg/MAX(1.e-6_wp, p_sim_time - prm_diag%prev_gstkeavg_reset)
+
+    ! calculate wind variance when averaging interval is completed
+    lcalc_gstke = p_sim_time - prm_diag%prev_gstkeavg_reset + 0.5_wp*dt_phy_jg >= gstke_interval(jg)
+
+!$OMP PARALLEL
+    IF ( p_sim_time <= 1.e-6_wp) THEN ! first part of IAU phase
+
+      CALL init(prm_diag%gs_tke(:,:,:), lacc=lzacc)
+      CALL init(prm_diag%pop_mean(:,:,:,:), lacc=lzacc)
+      CALL init(prm_diag%pop_var(:,:,:,:), lacc=lzacc)
+      CALL init(prm_diag%sgs_tke(:,:,:), lacc=lzacc)
+      CALL init(prm_diag%avg_edr(:,:,:), lacc=lzacc)
+
+    ELSE  ! regular time steps
+
+!$OMP DO PRIVATE(jc,jb,jk,i_startidx,i_endidx,var1,var2) ICON_OMP_DEFAULT_SCHEDULE
+      DO jb = i_startblk, i_endblk
+        !
+        CALL get_indices_c(pt_patch, jb, i_startblk, i_endblk, &
+          & i_startidx, i_endidx, rl_start, rl_end)
+
+        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+        !$ACC LOOP GANG VECTOR COLLAPSE(2) PRIVATE(var1, var2)
+        DO jk = 1,nlev
+          DO jc = i_startidx, i_endidx
+            ! current departure from average wind
+            var1(1) = pt_diag%u(jc,jk,jb) - prm_diag%pop_mean(jc,jk,jb,1)
+            var1(2) = pt_diag%v(jc,jk,jb) - prm_diag%pop_mean(jc,jk,jb,2)
+            var1(3) = pt_prog%w(jc,jk,jb) - prm_diag%pop_mean(jc,jk,jb,3)
+            ! update average wind for each component
+            prm_diag%pop_mean(jc,jk,jb,1) = prm_diag%pop_mean(jc,jk,jb,1)+var1(1)*t_wgt
+            prm_diag%pop_mean(jc,jk,jb,2) = prm_diag%pop_mean(jc,jk,jb,2)+var1(2)*t_wgt
+            prm_diag%pop_mean(jc,jk,jb,3) = prm_diag%pop_mean(jc,jk,jb,3)+var1(3)*t_wgt
+            ! calculate current departure from updated average wind
+            var2(1) = pt_diag%u(jc,jk,jb) - prm_diag%pop_mean(jc,jk,jb,1)
+            var2(2) = pt_diag%v(jc,jk,jb) - prm_diag%pop_mean(jc,jk,jb,2)
+            var2(3) = pt_prog%w(jc,jk,jb) - prm_diag%pop_mean(jc,jk,jb,3)
+            ! update accumulated variance
+            prm_diag%pop_var(jc,jk,jb,1) = prm_diag%pop_var(jc,jk,jb,1)+var1(1)*var2(1)
+            prm_diag%pop_var(jc,jk,jb,2) = prm_diag%pop_var(jc,jk,jb,2)+var1(2)*var2(2)
+            prm_diag%pop_var(jc,jk,jb,3) = prm_diag%pop_var(jc,jk,jb,3)+var1(3)*var2(3)
+          ENDDO
+        ENDDO
+        !$ACC END PARALLEL
+
+        !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+        !$ACC LOOP GANG VECTOR COLLAPSE(2)
+        DO jk = 1,nlevp1
+          DO jc = i_startidx, i_endidx
+            ! update average SGS TKE
+            prm_diag%sgs_tke(jc,jk,jb) = time_avg(prm_diag%sgs_tke(jc,jk,jb), pt_prog%tke(jc,jk,jb), t_wgt)
+            ! update average EDR
+            prm_diag%avg_edr(jc,jk,jb) = time_avg(prm_diag%avg_edr(jc,jk,jb), prm_diag%edr(jc,jk,jb), t_wgt)
+          ENDDO
+        ENDDO
+        !$ACC END PARALLEL
+
+        IF (lcalc_gstke) THEN
+
+          !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) IF(lzacc)
+          !$ACC LOOP GANG VECTOR COLLAPSE(2)
+          DO jk = 1,nlev
+            DO jc = i_startidx, i_endidx
+              ! calculate GS TKE
+              prm_diag%gs_tke(jc,jk,jb) =0.5_wp*t_wgt*(prm_diag%pop_var(jc,jk,jb,1)+ &
+                   &                                   prm_diag%pop_var(jc,jk,jb,2)+ &
+                   &                                   prm_diag%pop_var(jc,jk,jb,3))
+            ENDDO
+          ENDDO
+          !$ACC END PARALLEL
+
+        ENDIF
+
+      ENDDO ! nblks
+!$OMP END DO NOWAIT
+
+    END IF  ! p_sim_time
+
+!$OMP END PARALLEL
+
+  END SUBROUTINE calc_gs_tke
 
 END MODULE mo_nwp_diagnosis

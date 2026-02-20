@@ -12,7 +12,7 @@ ICON is a flexible, scalable, high-performance modelling framework for weather, 
 
 **Useful links:**
 {{ '[Namelist Overview]({}/doc/Namelist_overview/Namelist_overview.pdf)'.format(base_url) }},
-Deprecated Features,
+[Deprecated Features](ref_infrastructure_deprecated),
 [FAQ](ref_buildrun_faq),
 [Community Newsletter](https://www.icon-model.org/news/community-newsletter)
 

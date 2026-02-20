@@ -32,7 +32,7 @@ MODULE mo_compare_float
     MODULE PROCEDURE notEqual_0d_sp
   END INTERFACE notEqual
 
-  CONTAINS
+CONTAINS
 
   ! Elementwise comparison with given tolerances
   LOGICAL FUNCTION notEqual_1d_dp(a, b, rel_tol, abs_tol) RESULT(notEqual)
@@ -44,13 +44,14 @@ MODULE mo_compare_float
     INTEGER :: i
 
     notEqual = .FALSE. ! start with equal, unless proven otherwise
-    DO i=1,SIZE(a)
+    DO i = 1,SIZE(a)
       IF (notEqual_0d_dp(a(i), b(i), rel_tol, abs_tol)) THEN
         notEqual = .TRUE.
         RETURN
-      ENDIF
+      END IF
     END DO
   END FUNCTION notEqual_1d_dp
+
 
   LOGICAL FUNCTION notEqual_1d_sp(a, b, rel_tol, abs_tol) RESULT(notEqual)
     REAL(sp), INTENT(IN) :: a(:)
@@ -61,13 +62,14 @@ MODULE mo_compare_float
     INTEGER :: i
 
     notEqual = .FALSE. ! start with equal, unless proven otherwise
-    DO i=1,SIZE(a)
+    DO i = 1,SIZE(a)
       IF (notEqual_0d_sp(a(i), b(i), rel_tol, abs_tol)) THEN
         notEqual = .TRUE.
         RETURN
-      ENDIF
+      END IF
     END DO
   END FUNCTION notEqual_1d_sp
+
 
   LOGICAL FUNCTION notEqual_0d_dp(a, b, rel_tol, abs_tol) RESULT(notEqual)
     REAL(dp), INTENT(IN) :: a
@@ -86,6 +88,7 @@ MODULE mo_compare_float
     amplitude = MAX(ABS(a), ABS(b))
     notEqual = ABS(a - b) > MAX(labs_tol, lrel_tol * amplitude)
   END FUNCTION notEqual_0d_dp
+
 
   LOGICAL FUNCTION notEqual_0d_sp(a, b, rel_tol, abs_tol) RESULT(notEqual)
     REAL(sp), INTENT(IN) :: a

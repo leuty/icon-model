@@ -37,7 +37,7 @@ MODULE mo_nh_stepping
     &                                    nlev_hcfl, cfl_monitoring_freq
   USE mo_diffusion_config,         ONLY: diffusion_config
   USE mo_dynamics_config,          ONLY: nnow, nnew, nnow_rcf, nnew_rcf, nsav1, nsav2, lmoist_thdyn, ldeepatmo
-  USE mo_io_config,                ONLY: is_totint_time, n_diag, var_in_output, checkpoint_on_demand
+  USE mo_io_config,                ONLY: is_totint_time, n_diag, var_in_output, checkpoint_on_demand,ldiagnose_tke
   USE mo_parallel_config,          ONLY: nproma, num_prefetch_proc, proc0_offloading
   USE mo_run_config,               ONLY: ltestcase, dtime, nsteps, ldynamics, ltransport,   &
     &                                    ntracer, iforcing, msg_level, test_mode,           &
@@ -493,6 +493,10 @@ MODULE mo_nh_stepping
 
     IF (isRestart() .AND. itune_gust_diag == 4) THEN
       CALL get_prev_trigger_time(prm_nwp_diag_list(:), 'u_10m_a', prm_diag(:)%prev_v10mavg_reset)
+    ENDIF
+
+    IF (isRestart() .AND. ANY(ldiagnose_tke)) THEN
+      CALL get_prev_trigger_time(prm_nwp_diag_list(:), 'pop_mean', prm_diag(:)%prev_gstkeavg_reset)
     ENDIF
 
 #endif /* __NO_NWP__ */
@@ -1601,6 +1605,9 @@ MODULE mo_nh_stepping
 
     IF (itune_gust_diag == 4) THEN
       CALL get_prev_trigger_time(prm_nwp_diag_list(:), 'u_10m_a', prm_diag(:)%prev_v10mavg_reset)
+    ENDIF
+    IF (ANY(ldiagnose_tke)) THEN
+      CALL get_prev_trigger_time(prm_nwp_diag_list(:), 'pop_mean', prm_diag(:)%prev_gstkeavg_reset)
     ENDIF
 
     !--------------------------------------------------------------------------
@@ -3073,8 +3080,8 @@ MODULE mo_nh_stepping
       ! integrate dynamical core
       CALL solve_nh(p_nh_state, p_patch, p_int_state, prep_adv,     &
         &           nnow(jg), nnew(jg), linit_dyn(jg), l_recompute, &
-        &           lsave_mflx, lprep_adv, lclean_mflx,             &
-        &           nstep, ndyn_substeps_tot-1, dt_dyn, lacc=.TRUE.)
+        &           lsave_mflx, lprep_adv, lclean_mflx, nstep,      &
+        &           ndyn_substeps_tot-1, dt_dyn, lacc=.TRUE.)
 
       ! now reset linit_dyn to .FALSE.
       linit_dyn(jg) = .FALSE.

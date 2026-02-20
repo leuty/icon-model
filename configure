@@ -761,6 +761,7 @@ enable_rpaths
 enable_silent_rules
 enable_delayed_config
 enable_separate_mods
+enable_deprecated
 enable_atmo
 enable_les
 enable_upatmo
@@ -1556,6 +1557,7 @@ Optional Features:
                           [default=no]
 
 Model Features:
+  --enable-deprecated     enable usage of deprecated features [default=no]
   --enable-atmo           enable the atmosphere component of ICON
                           [default=yes]
   --enable-les            enable the Large-Eddy Simulation component of ICON
@@ -3114,6 +3116,16 @@ else
 fi
 
 
+
+
+# Check whether --enable-deprecated was given.
+if test "${enable_deprecated+set}" = set; then :
+  enableval=$enable_deprecated; if test x"$enableval" != xno; then :
+  enable_deprecated=yes
+fi
+else
+  enable_deprecated=no
+fi
 
 
 # Check whether --enable-atmo was given.
@@ -5946,6 +5958,10 @@ if test "x$icon_cv_have_quad_precision" = xyes; then :
 fi
 
 as_fn_append FCFLAGS " ${FC_PP_DEF}__ICON__"
+
+if test "x$enable_deprecated" = xyes; then :
+  as_fn_append FCFLAGS " ${FC_PP_DEF}__DEPRECATED"
+fi
 
 if test "x$enable_atmo" = xno; then :
   as_fn_append FCFLAGS " ${FC_PP_DEF}__NO_ICON_ATMO__"

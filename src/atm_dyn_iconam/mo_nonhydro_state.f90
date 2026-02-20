@@ -3931,8 +3931,8 @@ MODULE mo_nonhydro_state
     shape3d_chalf    = (/nproma, nlevp1 , nblks_c    /)
     shape3d_e        = (/nproma, nlev   , nblks_e    /)
     shape3d_ehalf    = (/nproma, nlevp1 , nblks_e    /)
-    shape3d_esquared = (/2     , nproma , nlev   , nblks_e /)
-    shape3d_e8       = (/8     , nproma , nlev   , nblks_e /)
+    shape3d_esquared = (/nproma, 2      , nlev   , nblks_e /)
+    shape3d_e8       = (/nproma, 8      , nlev   , nblks_e /)
     shape3d_v        = (/nproma, nlev   , nblks_v    /)
     shape3d_vhalf    = (/nproma, nlevp1 , nblks_v    /)
 
@@ -4583,7 +4583,7 @@ MODULE mo_nonhydro_state
 
 
       ! Vertical index of neighbor points needed for Taylor-expansion-based pressure gradient
-      ! vertidx_gradp  p_metrics%vertidx_gradp(2,nproma,nlev,nblks_e)
+      ! vertidx_gradp  p_metrics%vertidx_gradp(nproma,2,nlev,nblks_e)
       !
       cf_desc    = t_cf_var('Vertical_index', '-',                              &
       &                     'Vertical index', datatype_flt)
@@ -4598,7 +4598,7 @@ MODULE mo_nonhydro_state
       IF (igradp_method <= 3) THEN
         ! Height differences between local edge point and neighbor cell points used for
         ! pressure gradient computation
-        ! zdiff_gradp  p_metrics%zdiff_gradp(2,nproma,nlev,nblks_e)
+        ! zdiff_gradp  p_metrics%zdiff_gradp(nproma,2,nlev,nblks_e)
         !
         cf_desc    = t_cf_var('Height_differences', 'm',                          &
         &                     'Height differences', datatype_flt)
@@ -4611,7 +4611,7 @@ MODULE mo_nonhydro_state
         __acc_attach(p_metrics%zdiff_gradp)
       ELSE
         ! Coefficients for cubic interpolation of Exner pressure
-        ! coeff_gradp  p_metrics%coeff_gradp(8,nproma,nlev,nblks_e)
+        ! coeff_gradp  p_metrics%coeff_gradp(nproma,8,nlev,nblks_e)
         !
         cf_desc    = t_cf_var('Interpolation_coefficients', '-',                  &
         &                     'Interpolation coefficients', datatype_flt)

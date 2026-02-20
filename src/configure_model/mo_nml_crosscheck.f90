@@ -25,7 +25,8 @@ MODULE mo_nml_crosscheck
   USE mo_time_config,              ONLY: time_config, dt_restart
   USE mo_extpar_config,            ONLY: itopo
   USE mo_io_config,                ONLY: dt_checkpoint, lnetcdf_flt64_output, echotop_meta,&
-    &                                    wshear_uv_heights, n_wshear, srh_heights, n_srh
+    &                                    wshear_uv_heights, n_wshear, srh_heights, n_srh,  &
+    &                                    ldiagnose_tke
   USE mo_parallel_config,          ONLY: check_parallel_configuration,                     &
     &                                    ignore_nproma_use_nblocks_c,                      &
     &                                    ignore_nproma_use_nblocks_e,                      &
@@ -397,13 +398,29 @@ CONTAINS
 
         IF ( (atm_phy_nwp_config(jg)%inwp_radiation > 0) )  THEN
 
+          IF ( atm_phy_nwp_config(jg)%inwp_radiation == 1) THEN
+#ifdef __DEPRECATED
+            CALL message(routine,'Warning: RRTM radiation (inwp_radiation=1) is deprecated!')
+#else
+            CALL finish(routine,'RRTM radiation (inwp_radiation=1) is deprecated! &
+              &                  Activate --D__DEPRECATED to use it anyways.')
+#endif
+          ENDIF
+
           SELECT CASE (irad_o3)
           CASE (-1) ! ok
             CALL message(routine,'Externally specified ozone')
           CASE (0) ! ok
             CALL message(routine,'radiation is used without ozone')
-          CASE (2,4,5,6,7,9,11,79,97) ! ok
+          CASE (2,4,5,7,9,11,79,97) ! ok
             CALL message(routine,'radiation is used with ozone')
+          CASE (6)
+#ifdef __DEPRECATED
+            CALL message(routine,'Warning: GME ozone (irad_o3=6) is deprecated!')
+#else
+            CALL finish(routine,'GME ozone (irad_o3=6) is deprecated! &
+              &                  Activate --D__DEPRECATED to use it anyways.')
+#endif
           CASE (10) ! ok
             CALL message(routine,'radiation is used with ozone calculated from ART')
             IF ( .NOT. lart ) THEN
@@ -711,6 +728,10 @@ CONTAINS
 #endif
 
     END IF
+
+    IF (iforcing==iaes .and. ANY(ldiagnose_tke)) THEN
+      CALL finish(routine, 'TKE diagnostics (ldiagnose_tke=T) do not work with aes physics.')
+    ENDIF
 
     !--------------------------------------------------------------------
     ! YAC for reading Kinne aerosol data

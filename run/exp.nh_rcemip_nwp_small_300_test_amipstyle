@@ -140,7 +140,7 @@ cat >> ${atmo_namelist} << EOF
 &nwp_phy_nml
  inwp_gscp       = 4 ! 4:Seifert microphysics
  inwp_convection = 0 ! 1:Tiedtke/Bechtold
- inwp_radiation  = 1 ! 1:RRTM radiation, 3:PSRAD
+ inwp_radiation  = 4 ! 4:ecRad
  inwp_cldcover   = 1 ! 5: all or nothing
  inwp_turb       = 1 ! 5: Smagorinsky diffusion (Dipankar et al.)
  inwp_gwd        = 0 ! gravity wave drag
@@ -183,6 +183,7 @@ cat >> ${atmo_namelist} << EOF
  vmr_co2    =  348.e-06 ! RCEMIP values; modern-day values
  vmr_ch4    = 1650.e-09
  vmr_n2o    =  306.e-09
+ ecrad_data_path = '${basedir}/externals/ecrad/data'
 /
 &extpar_nml
  itopo          = 0 ! 0: analytical topo; 1: topography/ext. data read from file

@@ -37,6 +37,7 @@ MODULE mo_io_config
   REAL(wp):: dt_diag                    ! diagnostic output timestep [seconds]
   REAL(wp):: gust_interval(max_dom)     ! time interval [seconds] over which maximum wind gusts are taken
   REAL(wp):: ff10m_interval(max_dom)    ! time interval [seconds] over which ff10m is averaged
+  REAL(wp):: gstke_interval(max_dom)    ! time interval [seconds] over which grid-scale TKE is calculated
   REAL(wp):: celltracks_interval(max_dom)  ! time interval [seconds] over which extrema of cell track vars are taken
                                            !  (LPI_MAX, UH_MAX, VORW_CTMAX, W_CTMAX, DBZ_CTMAX)
   CHARACTER(len=max_timedelta_str_len) :: precip_interval(max_dom)   ! time interval over which precipitation variables are accumulated
@@ -88,6 +89,7 @@ MODULE mo_io_config
 
   LOGICAL :: lnetcdf_flt64_output       !< if .TRUE. floating point valued NetCDF output
                                         !  is written in 64-bit instead of 32-bit accuracy
+  LOGICAL :: ldiagnose_tke(max_dom)     ! if true, diagnose GS and SGS TKE components over gstke_interval time period
 
   INTEGER, PARAMETER :: uh_max_nlayer = 3
   REAL(wp):: uh_max_zmin(uh_max_nlayer), &  !< minimum and maximum height in m MSL for the vertical

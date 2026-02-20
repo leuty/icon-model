@@ -66,7 +66,7 @@ MODULE mo_nwp_phy_init
 #ifdef __ECRAD
   USE mo_nwp_ecrad_init,      ONLY: setup_ecrad
   USE mo_ecrad,               ONLY: ecrad_conf, IGasModelIFSRRTMG,                  &
-    &                               ecrad_ssi_default, ecrad_ssi_coddington
+    &                               ecrad_ssi_default, ecrad_ssi_coddington, ecrad_ssi_amip
   USE mo_aerosol_util,        ONLY: init_aerosol_props_tegen_ecrad
 #endif
 
@@ -254,6 +254,7 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
   REAL(wp) :: h650_standard, h850_standard, h950_standard  ! height of 850hPa and 950hPa level in m
 
   REAL(wp) :: N_cn0,z0_nccn,z1e_nccn,N_in0,z0_nin,z1e_nin  ! for CCN and IN in case of gscp=5
+  REAL(wp), POINTER :: edr_ptr(:,:), len_scale_ptr(:,:) ! dummy pointer, not used
 
   CHARACTER(len=*), PARAMETER ::  &
      routine = modname//':init_nwp_phy'
@@ -994,10 +995,7 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
   !------------------------------------------
   !< radiation
   !------------------------------------------
-  SELECT CASE ( atm_phy_nwp_config(jg)%inwp_radiation )
-  CASE (1, 4)
-
-!    prm_diag%lfglac (:,:) = ext_data%atm%soiltyp(:,:) == 1  !soiltyp=ice
+  IF ( atm_phy_nwp_config(jg)%inwp_radiation > 0 ) THEN
 
     SELECT CASE(atm_phy_nwp_config(jg)%inwp_radiation)
       CASE(1) ! RRTM init
@@ -1024,6 +1022,9 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
             ssi_radt(:) = ssi_amip(:)
           CASE(1)       ! Use ssi values from Coddington et al (2016)
             ssi_radt(:) = ssi_coddington(:)
+          CASE(4)       ! 4: RCE
+            scale_fac   = sol_const/1361.371_wp   ! computed relative to amip (1361)
+            ssi_radt(:) = scale_fac*ssi_amip(:)
         END SELECT
         tsi_radt    = SUM(ssi_radt(:))
 
@@ -1033,13 +1034,6 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
           tsi_radt    = 1365._wp
         ENDIF  ! APE
 
-        IF ( nh_test_name == 'RCE'         .OR. nh_test_name == 'RCE_Tconst'         .OR. &
-           & nh_test_name == 'RCE_Tprescr' .OR. nh_test_name == 'RCEMIP_analytical') THEN
-          scale_fac   = sol_const/1361.371_wp   ! computed relative to amip (1361)
-          ssi_radt(:) = scale_fac*ssi_amip(:)
-          tsi_radt    = SUM(ssi_radt(:))
-        ENDIF
-        !
       CASE(4) ! ecRad init
 #ifdef __ECRAD
         IF (msg_level >= 12)  CALL message(modname, 'init ECRAD')
@@ -1102,21 +1096,17 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
           CASE(2)       ! 2: Use ssi values from external file
             CALL read_bc_solar_irradiance(ini_date%date%year,.TRUE.)
             ssi_radt(:) = 0._wp
+          CASE(4)       ! 4: RCE
+            scale_fac   = sol_const/1361.371_wp   ! computed relative to amip (1361)
+            ssi_radt(:) = scale_fac*ecrad_ssi_amip(:)
         END SELECT
         tsi_radt    = SUM(ssi_radt(:))
 
-        ! In case of Aqua planet or RCE experiment:
+        ! In case of Aqua planet experiment:
         IF ( nh_test_name == 'APE_nwp' .OR. nh_test_name == 'dcmip_tc_52' ) THEN
           ssi_radt(:) = ssi_radt(:)*1365._wp/tsi_radt
           tsi_radt    = 1365._wp
         ENDIF  ! APE
-        IF ( nh_test_name == 'RCE'         .OR. nh_test_name == 'RCE_Tconst'         .OR. &
-           & nh_test_name == 'RCE_Tprescr' .OR. nh_test_name == 'RCEMIP_analytical') THEN
-          scale_fac   = sol_const/1361.371_wp   ! computed relative to amip (1361)
-          ssi_radt(:) = scale_fac*ssi_amip(:)
-          tsi_radt    = SUM(ssi_radt(:))
-        ENDIF
-        !
 #else
         CALL finish(routine,  &
           &      'atm_phy_nwp_config(jg)%inwp_radiation = 4 needs -D__ECRAD.')
@@ -1249,7 +1239,7 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
       rad_csalbw(ist) = csalbw(ist) / (2.0_wp * zml_soil(1))
     ENDDO
 
-  END SELECT !inwp_radiation
+  END IF !inwp_radiation > 0
 
   IF ( nh_test_name == 'RCE' .OR. nh_test_name == 'RCE_Tconst' .OR. &
      & nh_test_name == 'RCE_Tprescr'                                ) THEN
@@ -1601,8 +1591,11 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
     i_startblk = p_patch%cells%start_blk(rl_start,1)
     i_endblk   = p_patch%cells%end_blk(rl_end,i_nchdom)
 
+!$OMP PARALLEL PRIVATE(edr_ptr,len_scale_ptr)
+    edr_ptr => NULL()
+    len_scale_ptr => NULL()
 
-!$OMP PARALLEL DO PRIVATE(jb,jk,i_startidx,i_endidx,ic,jc,jt, &
+!$OMP DO PRIVATE(jb,jk,i_startidx,i_endidx,ic,jc,jt, &
 !$OMP            ltkeinp_loc,igz0inp_loc,nlevcm,l_hori,nzprv,zvari,zrhon, &
 !$OMP            l_lake,l_sice, &
 !$OMP            ierrstat, errormsg, eroutine) ICON_OMP_DEFAULT_SCHEDULE
@@ -1779,7 +1772,9 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
 !
         &  tketens=prm_nwp_tend%ddt_tke(:,:,jb),                    &
 !
-        &  zvari=zvari                                              & !out
+        &  zvari=zvari,                                             & !out
+        &  edr=edr_ptr,                                             & !dummy pointer, not used
+        &  tur_len_scale=len_scale_ptr                              & !dummy pointer, not used
         &                                                           ) !end of 'turbdiff' call
 
       ! preparation for concentration boundary condition. Usually inactive for standard ICON runs.
@@ -1825,6 +1820,8 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
       ENDDO
 
     ENDDO  ! jb
+!$OMP END DO
+!$OMP END PARALLEL
 
     tdc%iinit=-1 !initialization has passed
 

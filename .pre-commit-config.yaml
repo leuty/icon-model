@@ -88,7 +88,7 @@ repos:
           )/.*\.([fF]\d*|incf?)$ |
           ^(
             # Apply to selected files only:
-            src/shr_horizontal/mo_rbf_coefficients_io.f90
+            src/shr_horizontal/mo_rbf_coefficients_io.f90 |
             src/shared/mo_compare_float.f90
           )$
   - repo: https://github.com/fsfe/reuse-tool

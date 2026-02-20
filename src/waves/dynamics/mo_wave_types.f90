@@ -65,44 +65,43 @@ MODULE mo_wave_types
   !
   TYPE t_wave_diag
     REAL(wp), POINTER, CONTIGUOUS :: &
-      &  gv_c(:,:,:),         & ! group velocity                    (nproma,nfreqs,nblks_c)  (m/s)
-      &  gv_e(:,:,:),         & ! group velocity                    (nproma,nfreqs,nblks_e)  (m/s)
-      &  flminfr_tab(:,:),    & ! minimum value of energy for a given frequency and wind speed bin (jmax,nfreqs)
-      &  f1mean(:,:),         & ! mean frequency based on f-moment  (nproma,nblks_c)
-      &  wave_num_c(:,:,:),   & ! wave number at cell centers as a function of
-                                ! circular frequency and water depth (nproma,nfreqs,nblks_c) (1/m)
+      &  gv_c(:,:,:),         & ! group velocity                             (nproma,nfreqs,nblks_c)  (m/s)
+      &  gv_e(:,:,:),         & ! group velocity                             (nproma,nfreqs,nblks_e)  (m/s)
+      &  flminfr_tab(:,:),    & ! minimum value of energy for a given
+                                ! frequency and wind speed bin               (jmax,nfreqs)
+      &  wave_num_c(:,:,:),   & ! wave number at cell centers as a function
+                                ! of circular frequency and water depth      (nproma,nfreqs,nblks_c) (1/m)
       &  wave_num_e(:,:,:),   & ! wave number at cell edges as a function of
-                                ! circular frequency and water depth (nproma,nfreqs,nblks_e) (1/m)
+                                ! circular frequency and water depth         (nproma,nfreqs,nblks_e) (1/m)
       &  akmean(:,:),         & ! mean wavenumber based on sqrt(1/k)-moment  (nproma,nblks_c) (1/m)
       &  xkmean(:,:),         & ! mean wavenumber based on sqrt(k)-moment    (nproma,nblks_c) (1/m)
       &  ustar(:,:),          & ! friction velocity                          (nproma,nblks_c) (m/s)
       &  z0(:,:),             & ! roughness length                           (nproma,nblks_c) (m)
-      &  tauhf1(:,:),         & ! init high-frequency stress                 (nproma,nblks_c) (m/s)^2
-      &  phihf1(:,:),         & ! init high-frequency energy flux into ocean (nproma,nblks_c) (m^2/s)
-      &  tauhf(:,:),          & ! high-frequency stress                      (nproma,nblks_c) (m/s)^2
-      &  phihf(:,:),          & ! high-frequency energy flux into ocean      (nproma,nblks_c) (kg/s^3)
-      &  xlevtail(:,:),       & ! tail level                                 (nproma,nblks_c) (-)
-      &  tauw(:,:),           & ! wave stress                                (nproma,nblks_c) (m/s)^2
-      &  phiaw(:,:),          & ! energy flux from wind into waves integrated over full frequency range  (nproma,nblks_c) (kg/s^3)
+      &  tauhf(:,:),          & ! high-frequency stress divided by air density (nproma,nblks_c) (m/s)^2
+      &  phihf(:,:),          & ! high-frequency energy flux into waves      (nproma,nblks_c) (W m-2)
+      &  tauw(:,:),           & ! wave stress divided by air density         (nproma,nblks_c) (m/s)^2
+      &  phiaw(:,:),          & ! energy flux from wind into waves           (nproma,nblks_c) (W m-2)
+                                ! integrated over the full frequency range
       ! total waves
-      &  emean(:,:),          & ! total energy                   (nproma,nblks_c) (m^2)
-      &  emeanws(:,:),        & ! total wind sea input energy    (nproma,nblks_c) (m^2)
-      &  femean(:,:),         & ! mean frequency energy          (nproma,nblks_c) (m^2)
-      &  femeanws(:,:),       & ! windsea mean frequency energy  (nproma,nblks_c) (m^2)
-      &  hs(:,:),             & ! total significant wave height  (nproma,nblks_c) (m)
-      &  hs_dir(:,:),         & ! total mean wave direction      (nproma,nblks_c) (deg)
-      &  tpp(:,:),            & ! total peak wave period         (nproma,nblks_c) (s)
-      &  kp(:,:),             & ! total peak wavenumber          (nproma,nblks_c) (m-1)
-      &  tmp(:,:),            & ! total mean wave period         (nproma,nblks_c) (s)
-      &  tm1(:,:),            & ! total wave m1 period           (nproma,nblks_c) (s)
-      &  tm2(:,:),            & ! total wave m2 period           (nproma,nblks_c) (s)
-      &  ds(:,:),             & ! total directional wave spread  (nproma,nblks_c) (deg)
-      &  hrms_frac(:,:),      & ! square ratio (Hrms / Hmax)**2  (nproma,nblks_c) (-)
-      &  wbr_frac(:,:),       & ! fraction of breaking waves     (nproma,nblks_c) (-)
+      &  emean(:,:),          & ! total energy                               (nproma,nblks_c) (m^2)
+      &  emeanws(:,:),        & ! total wind sea input energy                (nproma,nblks_c) (m^2)
+      &  femean(:,:),         & ! mean frequency (m0/m-1)                    (nproma,nblks_c) (s-1)
+      &  f1mean(:,:),         & ! mean frequency based on f-moment (m1/m0)   (nproma,nblks_c) (s-1)
+      &  femeanws(:,:),       & ! wind sea mean frequency (m0/m-1)           (nproma,nblks_c) (s-1)
+      &  hs(:,:),             & ! total significant wave height              (nproma,nblks_c) (m)
+      &  hs_dir(:,:),         & ! total mean wave direction                  (nproma,nblks_c) (deg)
+      &  tpp(:,:),            & ! total peak wave period                     (nproma,nblks_c) (s)
+      &  kp(:,:),             & ! total peak wavenumber                      (nproma,nblks_c) (m-1)
+      &  tmp(:,:),            & ! total mean wave period                     (nproma,nblks_c) (s)
+      &  tm1(:,:),            & ! total wave m1 period                       (nproma,nblks_c) (s)
+      &  tm2(:,:),            & ! total wave m2 period                       (nproma,nblks_c) (s)
+      &  ds(:,:),             & ! total directional wave spread              (nproma,nblks_c) (deg)
+      &  hrms_frac(:,:),      & ! square ratio (Hrms / Hmax)**2              (nproma,nblks_c) (-)
+      &  wbr_frac(:,:),       & ! fraction of breaking waves                 (nproma,nblks_c) (-)
       ! wind sea
-      &  emean_sea(:,:),      & ! wind sea energy                (nproma,nblks_c) (m^2)
-      &  femean_sea(:,:),     & ! wind sea mean frequency energy (nproma,nblks_c) (m^2)
-      &  f1mean_sea(:,:),     & ! wind sea mean frequency        (nproma,nblks_c) (Hz)
+      &  emean_sea(:,:),      & ! wind sea energy                            (nproma,nblks_c) (m^2)
+      &  femean_sea(:,:),     & ! wind sea mean frequency (m0/m-1)           (nproma,nblks_c) (s-1)
+      &  f1mean_sea(:,:),     & ! wind sea mean frequency (m1/m0)            (nproma,nblks_c) (s-1)
       &  hs_sea(:,:),         & ! sea significant wave height    (nproma,nblks_c) (m)
       &  hs_sea_dir(:,:),     & ! sea mean wave direction        (nproma,nblks_c) (deg)
       &  pp_sea(:,:),         & ! sea peak period                (nproma,nblks_c) (s)
@@ -113,8 +112,8 @@ MODULE mo_wave_types
       &  ds_sea(:,:),         & ! sea directional spreed         (nproma,nblks_c) (deg)
       ! swell
       &  emean_swell(:,:),    & ! swell energy                   (nproma,nblks_c) (m^2)
-      &  femean_swell(:,:),   & ! swell mean frequency energy    (nproma,nblks_c) (m^2)
-      &  f1mean_swell(:,:),   & ! swell sea mean frequency       (nproma,nblks_c) (Hz)
+      &  femean_swell(:,:),   & ! swell mean frequency (m0/m-1)  (nproma,nblks_c) (s-1)
+      &  f1mean_swell(:,:),   & ! swell mean frequency (m1/m0)   (nproma,nblks_c) (s-1)
       &  hs_swell(:,:),       & ! swell significant wave height  (nproma,nblks_c) (m)
       &  hs_swell_dir(:,:),   & ! swell mean wave direction      (nproma,nblks_c) (deg)
       &  pp_swell(:,:),       & ! swell peak period              (nproma,nblks_c) (s)

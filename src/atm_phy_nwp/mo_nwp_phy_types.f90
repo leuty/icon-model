@@ -411,6 +411,7 @@ MODULE mo_nwp_phy_types
       reff_qh(:,:,:)         !! effective radius of cloud hail                (m)
 
     REAL(wp) :: prev_v10mavg_reset  !! storage for previous reset of averaged v10m field
+    REAL(wp) :: prev_gstkeavg_reset !! storage for previous reset of averaged wind fields for GS TKE calculation
 
     !> Diagnostics for LES turbulence
     REAL(wp), POINTER, CONTIGUOUS :: &
@@ -561,6 +562,14 @@ MODULE mo_nwp_phy_types
     REAL(wp), POINTER ::    & !
      &  cloud_fsd(:,:,:)    & !> radiation FSD parameter
      &  => NULL()
+
+    REAL(wp), POINTER, CONTIGUOUS ::    & !
+         &  pop_mean(:,:,:,:), & !> [m/s]   grid-scale wind, (temporal) mean, 3 components
+         &  pop_var(:,:,:,:),  & !> [m2/s2] grid-scale wind, (temporal) variance, 3 components
+         &  gs_tke(:,:,:),     & !> [m2/s2] grid-scale TKE representative of defined time period
+         &  sgs_tke(:,:,:),    & !> [m2/s2] subgrid-scale TKE from parameterization, average over defined time period
+         &  avg_edr(:,:,:),    & !> [m2/s3] EDR, average over defined time period
+         &  tur_len_scale(:,:,:) !> [m] turbulent length scale, from Turbdiff
 
     TYPE(t_nwp_vdiff_state) :: nwp_vdiff_state
 

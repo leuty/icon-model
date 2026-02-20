@@ -32,6 +32,7 @@ MODULE mo_io_nml
                                  & config_dt_diag                 => dt_diag                , &
                                  & config_gust_interval           => gust_interval          , &
                                  & config_ff10m_interval          => ff10m_interval         , &
+                                 & config_gstke_interval          => gstke_interval         , &
                                  & config_celltracks_interval     => celltracks_interval    , &
                                  & config_dt_lpi                  => dt_lpi                 , &
                                  & config_dt_hailcast             => dt_hailcast            , &
@@ -69,7 +70,8 @@ MODULE mo_io_nml
                                  & config_nrestart_streams          => nrestart_streams     , &
                                  & config_checkpoint_on_demand      => checkpoint_on_demand , &
                                  & config_wshear_uv_heights       => wshear_uv_heights      , &
-                                 & config_srh_heights             => srh_heights
+                                 & config_srh_heights             => srh_heights            , &
+                                 & config_ldiagnose_tke           => ldiagnose_tke
 
   USE mo_exception,        ONLY: finish
   USE mo_util_string,      ONLY: tolower
@@ -111,6 +113,7 @@ CONTAINS
     REAL(wp):: dt_diag                    ! diagnostic output timestep [seconds]
     REAL(wp):: gust_interval(max_dom)     ! time interval over which maximum wind gusts are taken
     REAL(wp):: ff10m_interval(max_dom)    ! time interval over which ff10m is averaged
+    REAL(wp):: gstke_interval(max_dom)    ! time interval [seconds] over which grid-scale TKE is calculated
     REAL(wp):: celltracks_interval(max_dom)  ! time interval over which extrema of cell track vars are taken
                                              !  (LPI_MAX, UH_MAX, VORW_CTMAX, W_CTMAX, DBZ_CTMAX)
     TYPE(t_echotop_meta) :: echotop_meta(max_dom) ! meta data for echotops (ECHOTOP, ECHOTOPinM)
@@ -166,6 +169,7 @@ CONTAINS
     LOGICAL :: lnetcdf_flt64_output       !< if .TRUE. floating point valued NetCDF output
                                           !  is written in 64-bit instead of 32-bit accuracy
 
+    LOGICAL :: ldiagnose_tke(max_dom)     ! if true, diagnose GS and SGS TKE components over gstke_interval time period
 
     INTEGER :: restart_file_type
 
@@ -209,7 +213,7 @@ CONTAINS
       &              dt_radar_dbz, sunshine_interval, itype_dursun,       &
       &              itype_convindices, itype_hzerocl, melt_interval,     &
       &              wshear_uv_heights, srh_heights, ff10m_interval,      &
-      &              force_calc_optvar
+      &              force_calc_optvar, gstke_interval, ldiagnose_tke
 
     !-----------------------
     ! 1. default settings
@@ -224,6 +228,7 @@ CONTAINS
 
     gust_interval(:)        = 3600._wp     ! 1 hour
     ff10m_interval(:)       = 600._wp      ! 10 min
+    gstke_interval(:)       = 3600._wp     ! 1 hour
     celltracks_interval(:)  = 3600._wp     ! 1 hour
     DO jg=1, max_dom
       ! echotop_meta(jg)%nechotop will be re-computed later in mo_nml_crosscheck.f90
@@ -255,6 +260,7 @@ CONTAINS
     netcdf_dict             = ' '
     linvert_dict            = .FALSE.
     lnetcdf_flt64_output    = .FALSE.
+    ldiagnose_tke(:)        = .FALSE.
 
     restart_file_type       = config_restart_file_type
     write_initial_state     = config_write_initial_state
@@ -324,6 +330,7 @@ CONTAINS
     config_dt_diag                 = dt_diag
     config_gust_interval(:)        = gust_interval(:)
     config_ff10m_interval(:)       = ff10m_interval(:)
+    config_gstke_interval(:)       = gstke_interval(:)
     config_celltracks_interval(:)  = celltracks_interval(:)
     config_echotop_meta(:)         = echotop_meta(:)
     config_precip_interval(:)      = precip_interval(:)
@@ -361,6 +368,7 @@ CONTAINS
     config_checkpoint_on_demand    = checkpoint_on_demand
     config_wshear_uv_heights       = wshear_uv_heights
     config_srh_heights             = srh_heights
+    config_ldiagnose_tke(:)        = ldiagnose_tke(:)
 
     ! --- consistency check:
 
