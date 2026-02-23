@@ -2207,7 +2207,7 @@ AS_VAR_IF([prefix], [NONE], [prefix=$ac_default_prefix])
 AS_VAR_IF([exec_prefix], [NONE], [exec_prefix=$prefix])
 dnl The order of the variables must be the same as the order they are
 dnl initialized in (see _AC_INIT_PARSE_ARGS):
-for icon_installdir in bindir includedir libdir; do
+for icon_installdir in bindir datarootdir datadir includedir libdir; do
   AS_VAR_COPY([icon_tmp], [$icon_installdir])
   eval "$icon_installdir=\"$icon_tmp\""
 done

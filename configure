@@ -10580,7 +10580,7 @@ fi
 if test "x$exec_prefix" = xNONE; then :
   exec_prefix=$prefix
 fi
-for icon_installdir in bindir includedir libdir; do
+for icon_installdir in bindir datarootdir datadir includedir libdir; do
   eval icon_tmp=\$$icon_installdir
   eval "$icon_installdir=\"$icon_tmp\""
 done
