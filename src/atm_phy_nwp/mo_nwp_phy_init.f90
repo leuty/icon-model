@@ -1903,7 +1903,6 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
   ! update ccycle and ico2conc if C4MIP_FLAG
   ! is set in user's runscript
   IF(ccycle_config(jg)% C4MIP_FLAG /= 'none') THEN
-    WRITE(*,*) 'NEROBELOV TEST', ccycle_config(jg)% C4MIP_FLAG
     CALL update_ccycle_config
   ENDIF
   ! read time-dependent boundary conditions from file

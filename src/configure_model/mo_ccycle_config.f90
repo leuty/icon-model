@@ -134,9 +134,12 @@ CONTAINS
     DO jg = 1,n_dom
 
       SELECT CASE(ccycle_config(jg)% C4MIP_FLAG)
-      CASE ('COU','BGC','RAD')
+      CASE ('COU','BGC')
         ccycle_config(jg)% iccycle   = CCYCLE_MODE_INTERACTIVE
         ccycle_config(jg)% ico2conc  = CCYCLE_CO2CONC_FROMFILE
+      CASE ('RAD')
+        ccycle_config(jg)% iccycle   = CCYCLE_MODE_INTERACTIVE
+        ccycle_config(jg)% ico2conc  = CCYCLE_CO2CONC_CONST
       CASE ('cCOU','cBGC')
         ccycle_config(jg)% iccycle   = CCYCLE_MODE_PRESCRIBED
         ccycle_config(jg)% ico2conc  = CCYCLE_CO2CONC_FROMFILE
