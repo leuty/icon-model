@@ -71,6 +71,7 @@
   - Refactoring of the execution control of the soil-biogeochemistry slow-pool spinup accelerator in QUINCY
   - Fix effects of ice and supercooled water on vegetation growth and nutrient leaching
   - Bugfix vegetation litter decomposition in the Carbon-only QUINCY model
+  - Added interactive nitrogen and phosphorus flags in soil biogeochemistry
 - Refactoring of anthropogenic land cover change process
 - Hydrology: Added ford inline documentation
 - Land initial files
