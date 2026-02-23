@@ -1689,8 +1689,8 @@ CONTAINS
       fname_metadata%extn = of%name_list%filename_extn(1:tlen)
     END IF
 
-    CALL getAttributesForRestarting(restartAttributes)
-    IF (restartAttributes%is_init) THEN
+    IF (isRestart()) THEN
+      CALL getAttributesForRestarting(restartAttributes)
       ! Restart case: Get starting index of ouput from restart file
       !               (if there is such an attribute available).
       WRITE(attname,'(a,i2.2)') 'output_jfile_',i
