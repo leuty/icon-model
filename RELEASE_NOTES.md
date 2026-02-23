@@ -68,6 +68,7 @@
   - Add script to generate CMIP7 based deposition data
   - Refactor vegetation memory structure to reduce code complexity
   - Assure restart identity
+  - Refactoring of the execution control of the soil-biogeochemistry slow-pool spinup accelerator in QUINCY
   - Fix effects of ice and supercooled water on vegetation growth and nutrient leaching
   - Bugfix vegetation litter decomposition in the Carbon-only QUINCY model
 - Refactoring of anthropogenic land cover change process
