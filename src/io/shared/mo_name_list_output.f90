@@ -318,8 +318,8 @@ CONTAINS
     ELSE
       name_len = LEN_TRIM(filename)
       of%cdiFileID       = streamOpenWrite(filename(1:name_len), of%output_type)
-      IF (gribout_config(of%phys_patch_id)%lgribout_compress_ccsds) THEN
-        CALL streamDefCompType(of%cdiFileID, CDI_COMPRESS_SZIP)
+      IF (of%compression_type /= CDI_UNDEFID) THEN
+        CALL streamDefCompType(of%cdiFileID, of%compression_type)
       ENDIF
     ENDIF
 
