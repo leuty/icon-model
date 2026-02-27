@@ -102,6 +102,12 @@
       - utils/test_driver.py
       - test/unit-tests/**/*
     mentions: [k202204]
+  # Single-precision
+  - file_names:
+      - config/buildbot/*_sp
+      - scripts/buildbot_scripts/create_list_single
+    mentions: [k202204]
+    labels: [Single Precision]
   # ComIn
   - file_names:
       - src/io/shared/mo_comin_adapter.f90
