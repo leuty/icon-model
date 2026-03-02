@@ -42,16 +42,12 @@ USE mo_fdbk,          ONLY: t_fdbk
 
 USE mo_t_netcdf_file, ONLY: nlen
 
-!USE mo_netcdf_param   ! provides access to the parameters defined
-                       ! in 'netcdf.inc' of the NetCDF package
-
+USE netcdf
 #endif
 
 IMPLICIT  NONE
 
 #ifdef __DACE__
-
-include 'netcdf.inc'
 
 !================
 ! public entities
@@ -73,7 +69,7 @@ PUBLIC :: t_acc_radar
 PUBLIC :: write_report_radar_1, write_report_radar_2
 
 !Interface block
- INTERFACE add_data
+INTERFACE add_data
    MODULE PROCEDURE              &
      add_inte_vala,              &
      add_real_vala_1D,           &
@@ -197,11 +193,11 @@ INTEGER,          INTENT(in)    :: count      ! number of data to be stored
 INTEGER,          INTENT(inout) :: ierror     ! netcdf error
 !-------------------------------------------------------------------------------
 
-  ierror = nf_put_vara_int ( file% nc% ncid,                &
-                             file% nc% vars(in)% varid,     &
-                             [start],                       &
-                             [count],                       &
-                             ivala(1:count)             )
+  ierror = nf90_put_var ( file% nc% ncid,                &
+                          file% nc% vars(in)% varid,     &
+                          ivala(1:count),                &
+                          [start],                       &
+                          [count]                        )
 
 END SUBROUTINE add_inte_vala
 
@@ -219,11 +215,11 @@ INTEGER,          INTENT(in)    :: count      ! number of data to be stored
 INTEGER,          INTENT(inout) :: ierror     ! netcdf error
 !-------------------------------------------------------------------------------
 
-  ierror = nf_put_vara_real (file% nc% ncid,              &
-                             file% nc% vars(in)% varid,   &
-                             [start],                     &
-                             [count],                     &
-                             rvala1(1:count)              )
+  ierror = nf90_put_var (file% nc% ncid,              &
+                         file% nc% vars(in)% varid,   &
+                         rvala1(1:count),             &
+                         [start],                     &
+                         [count]                      )
 
 END SUBROUTINE add_real_vala_1D
 
@@ -242,11 +238,11 @@ INTEGER,          INTENT(in)    :: count        ! number of data to be stored
 INTEGER,          INTENT(inout) :: ierror       ! netcdf error
 !-------------------------------------------------------------------------------
 
-  ierror = nf_put_vara_real (file% nc% ncid,              &
-                             file% nc% vars(in)% varid,   &
-                             (/start, nr            /),   &
-                             (/count, size(rvala2,2)/),   &
-                             rvala2(:,:)                )
+  ierror = nf90_put_var (file% nc% ncid,              &
+                         file% nc% vars(in)% varid,   &
+                         rvala2(:,:),                 &
+                         (/start, nr            /),   &
+                         (/count, SIZE(rvala2,2)/)    )
 
 END SUBROUTINE add_real_vala_2D
 
@@ -267,11 +263,11 @@ INTEGER   ::  cn      ! string length to be stored
 !-------------------------------------------------------------------------------
   cn = file% nc% vars(in)% p(1)% dim% len
 
-  ierror = nf_put_vara_text (file% nc% ncid,              &
-                             file% nc% vars(in)% varid,   &
-                             (/1,    start/),             &
-                             (/cn,   count/),             &
-                             cvala(1:count)(1:cn)     )
+  ierror = nf90_put_var (file% nc% ncid,              &
+                         file% nc% vars(in)% varid,   &
+                         cvala(1:count)(1:cn),        &
+                         (/1,    start/),             &
+                         (/cn,   count/)              )
 
 END SUBROUTINE add_text_vala
 
@@ -359,10 +355,10 @@ SUBROUTINE write_report_radar_1 ( file, rep_header, rep_body, spec_radar       &
                                                                           RETURN
   ENDIF
 
-  kerr = nf_enddef(file% nc% ncid )
-! IF (kerr /= NF_NOERR) THEN
+  kerr = nf90_enddef(file% nc% ncid )
+! IF (kerr /= NF90_NOERR) THEN
 !   jerr = kerr
-!   WRITE( yerr,'("ERROR in nf_enddef in write_reports")' )
+!   WRITE( yerr,'("ERROR in nf90_enddef in write_reports")' )
 !                                                                         RETURN
 ! ENDIF
 
@@ -388,9 +384,9 @@ SUBROUTINE write_report_radar_1 ( file, rep_header, rep_body, spec_radar       &
     IF (file% nc% vars(in)% nvdims == 1) THEN
 
       kcase = 1
-      IF (     (file% nc% vars(in)% xtype == NF_FLOAT)                         &
-          .OR. (file% nc% vars(in)% xtype == NF_FILL_DOUBLE))  kcase = 2
-!     IF (file% nc% vars(in)% xtype == NF_CHAR)  kcase = 5
+      IF (     (file% nc% vars(in)% xtype == NF90_FLOAT)                         &
+          .OR. (file% nc% vars(in)% xtype == NF90_FILL_DOUBLE))  kcase = 2
+!     IF (file% nc% vars(in)% xtype == NF90_CHAR)  kcase = 5
       ydim  =  file% nc% vars(in)% p(1)% dim% name
       IF (ydim (1:LEN_TRIM( ydim )) == 'd_body') THEN
         kcase = kcase + 2
@@ -819,10 +815,10 @@ SUBROUTINE write_report_radar_2 ( file, rep_header, rep_body, rep_offset, rep_le
                                                                           RETURN
   ENDIF
 
-  kerr = nf_enddef(file% nc% ncid )
-! IF (kerr /= NF_NOERR) THEN
+  kerr = nf90_enddef(file% nc% ncid )
+! IF (kerr /= NF90_NOERR) THEN
 !   jerr = kerr
-!   WRITE( yerr,'("ERROR in nf_enddef in write_reports")' )
+!   WRITE( yerr,'("ERROR in nf90_enddef in write_reports")' )
 !                                                                         RETURN
 ! ENDIF
 
@@ -848,9 +844,9 @@ SUBROUTINE write_report_radar_2 ( file, rep_header, rep_body, rep_offset, rep_le
     IF (file% nc% vars(in)% nvdims == 1) THEN
 
       kcase = 1
-      IF (     (file% nc% vars(in)% xtype == NF_FLOAT)                         &
-          .OR. (file% nc% vars(in)% xtype == NF_FILL_DOUBLE))  kcase = 2
-!     IF (file% nc% vars(in)% xtype == NF_CHAR)  kcase = 5
+      IF (     (file% nc% vars(in)% xtype == NF90_FLOAT)                         &
+          .OR. (file% nc% vars(in)% xtype == NF90_FILL_DOUBLE))  kcase = 2
+!     IF (file% nc% vars(in)% xtype == NF90_CHAR)  kcase = 5
       ydim  =  file% nc% vars(in)% p(1)% dim% name
       IF (ydim (1:LEN_TRIM( ydim )) == 'd_body') THEN
         kcase = kcase + 2
