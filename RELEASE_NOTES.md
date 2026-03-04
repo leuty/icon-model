@@ -86,6 +86,7 @@
 - Update BSD-3C licence year to 2026
 - More flexible handling of the number of PFTs
 - Added a script to process ERA5 data into ICON-Land standalone forcing
+- Update of the script to equilibrate jsbach humus carbon pools
 
 ### Externals
 
