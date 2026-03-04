@@ -37,6 +37,7 @@ SPDX-License-Identifier: BSD-3-Clause
 
 # ICON directories:
 ICON_DIRECTORIES = [
+    ".gitlab",
     "config",
     "data",
     "doc",
@@ -52,6 +53,7 @@ ICON_DIRECTORIES = [
 
 # ICON ignored patterns:
 ICON_IGNORED_PATTERNS = [
+    "ragnarok/cmake/FindNetCDF.cmake",
     # Atmospheric and Environmental Research and Regents of the University of Colorado
     # (BSD-3-Clause):
     "src/atm_phy_rte_rrtmgp/mo_cloud_optics.f90",
@@ -92,6 +94,9 @@ ICON_IGNORED_PATTERNS = [
     "src/sea_ice/dynamics_fem/mo_ice_fem_mesh.f90",
     # SHTOOLS (BSD-3-Clause):
     "src/shr_horizontal/mo_math_legendre.f90",
+    # "Unimportant" technical files:
+    ".gitlab/ci/data/system-checksum-table.yml",
+    ".gitlab/iconbot/notifier.yml",
     # External projects:
     "utils/mkhelper/*",
     "utils/fpp-wrappers/*",
@@ -140,8 +145,8 @@ FILE_TYPES = [
         "prefixes with a shebang and an empty line",
     ),
     FileType(
-        name="CMake",
-        glob_patterns=["*/CMakeLists.txt", "*.cmake"],
+        name="CMake/YAML",
+        glob_patterns=["*/CMakeLists.txt", "*.cmake", "*.yml"],
         line_comment_start="#",
         re_license_prefix=None,
         license_format_message="must start on the first line of the file",

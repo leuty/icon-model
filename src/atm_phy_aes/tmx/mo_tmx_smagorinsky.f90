@@ -40,6 +40,9 @@ MODULE mo_tmx_smagorinsky
 
   PUBLIC :: Smagorinsky_init, Smagorinsky_model
 
+  REAL(wp) :: eps_louis = 1.0E-28_wp
+  !$ACC DECLARE CREATE(eps_louis)
+
   CHARACTER(len=*), PARAMETER :: modname = 'mo_tmx_smagorinsky'
 
   ! PROCEDURE(stability_interface), POINTER :: compute_stability_term => NULL()
@@ -82,9 +85,6 @@ MODULE mo_tmx_smagorinsky
 
       ! Computation of variables for stability correction function
       IF (use_louis) THEN
-        ! -> set procedure pointer for computation of stability term
-        ! PROCEDURE POINTER ARE NOT SUPPORTED YET BY NVIDIA COMPILER
-        !compute_stability_term => compute_stability_term_louis
 
         scaling_factor_louis  => diagnostics%louis_factor%Get_ptr_r2d()
         __acc_attach(scaling_factor_louis)
@@ -178,12 +178,14 @@ MODULE mo_tmx_smagorinsky
 !$OMP END PARALLEL DO
 
     END SUBROUTINE compute_scaling_factor_louis
+
     !============================================================================
     !
     ! This subroutine calls the models to compute the eddy viscosity and
     ! diffusivity based on the Smagorinsky-Lilly eddy viscosity model.
-    ! Depending on the configuration the classical version (Lilly 1962) or the
-    ! Louis forumlation (Louis 1979) for the stability correction function is used.
+    ! Depending on the configuration, the classical version (Lilly 1962) or the
+    ! Louis formulation (Louis 1979) for the stability correction function is used
+    ! with the option to exclude land cells from the Louis formulation.
     !
     SUBROUTINE Smagorinsky_model( &
       domain,                     &
@@ -193,80 +195,30 @@ MODULE mo_tmx_smagorinsky
       mixing_length_sq,           &
       rturb_prandtl,              &
       use_louis,                  &
+      use_louis_land,             &
+      use_louis_ice,              &
       louis_constant_b,           &
       scaling_factor_louis,       &
+      fract_land,                 &
+      fract_ice,                  &
       patch,                      &
       km_ic,                      &
-      kh_ic,                      &
-      stability_function          &
+      kh_ic                       &
       )
 
       TYPE(t_domain), INTENT(in)    :: domain
       REAL(wp), INTENT(in), DIMENSION(:,:,:)  :: mech_prod, bruvais, rho_ic, mixing_length_sq
-      REAL(wp), INTENT(in), DIMENSION(:,:)    :: scaling_factor_louis
+      REAL(wp), INTENT(in), DIMENSION(:,:)    :: scaling_factor_louis, fract_land, fract_ice
       REAL(wp), INTENT(in) :: rturb_prandtl, louis_constant_b
-      LOGICAL,  INTENT(in) :: use_louis
+      LOGICAL,  INTENT(in) :: use_louis, use_louis_land, use_louis_ice
       TYPE(t_patch), INTENT(in) :: patch
 
-      REAL(wp), POINTER, INTENT(inout), DIMENSION(:,:,:) :: km_ic, kh_ic, stability_function
+      REAL(wp), POINTER, INTENT(inout), DIMENSION(:,:,:) :: km_ic, kh_ic
 
-      IF (use_louis) THEN
-        CALL Smagorinsky_model_louis(domain,mech_prod,bruvais,rho_ic,mixing_length_sq, &
-                                     rturb_prandtl,louis_constant_b,scaling_factor_louis, &
-                                     patch,km_ic,kh_ic,stability_function)
-      ELSE
-        CALL Smagorinsky_model_classic(domain,mech_prod,bruvais,rho_ic,mixing_length_sq, &
-                                       rturb_prandtl,patch,km_ic,kh_ic,stability_function)
-      END IF
-
-      !$ACC WAIT
-
-      CALL sync_patch_array(SYNC_C, patch, kh_ic, lacc=.TRUE.)
-      CALL sync_patch_array(SYNC_C, patch, km_ic, lacc=.TRUE.)
-
-    END SUBROUTINE Smagorinsky_model
-    !============================================================================
-    !
-    ! This subroutine computes the eddy viscosity and diffusivity based on the
-    ! classical formulation of the stability correction term:
-    !
-    !    Km = rho * lambda^2 * stability_term
-    !
-    ! where the the stability term includes the strain rate into the stability
-    ! correction function:
-    !
-    !   stability term = sqrt(|S|^2 - N^2 / Pr_t )
-    !
-    !   Km     : eddy viscosity
-    !   |S|    : magnitude of strain rate  (-> |S|^2 = 0.5*mech_prod)
-    !   N^2    : bruvais
-    !   Pr_t   : turbulent Prandtl number
-    !   lambda : mixing length
-    !
-    SUBROUTINE Smagorinsky_model_classic( &
-      domain,                     &
-      mech_prod,                  &
-      bruvais,                    &
-      rho_ic,                     &
-      mixing_length_sq,           &
-      rturb_prandtl,              &
-      patch,                      &
-      km_ic,                      &
-      kh_ic,                      &
-      stability_function          &
-      )
-
-      TYPE(t_domain), INTENT(in)    :: domain
-      REAL(wp), INTENT(in), DIMENSION(:,:,:) :: mech_prod, bruvais, rho_ic, mixing_length_sq
-      REAL(wp), INTENT(in) :: rturb_prandtl
-      TYPE(t_patch), INTENT(in) :: patch
-
-      REAL(wp), INTENT(inout), DIMENSION(:,:,:) :: km_ic, kh_ic, stability_function
-
-      INTEGER :: jb,jc,jk,nlev,nlevp1
+      REAL(wp) :: stability_term
+      INTEGER :: jb, jc, jk, nlev, nlevp1
       INTEGER :: i_startblk, i_endblk, i_startidx, i_endidx
       INTEGER :: rl_start, rl_end
-      REAL(wp) :: stability_term
 
       nlev = domain%nlev
       nlevp1 = nlev+1
@@ -279,10 +231,10 @@ MODULE mo_tmx_smagorinsky
 !$OMP PARALLEL DO PRIVATE(jb, jk, jc, i_startidx, i_endidx, stability_term) ICON_OMP_DEFAULT_SCHEDULE
       DO jb = i_startblk,i_endblk
         CALL get_indices_c(patch, jb, i_startblk, i_endblk, &
-                              i_startidx, i_endidx, rl_start, rl_end)
+          &                i_startidx, i_endidx, rl_start, rl_end)
 
-      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR COLLAPSE(2) ASYNC(1) &
-      !$ACC   PRIVATE(stability_term)
+        !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR COLLAPSE(2) ASYNC(1) &
+        !$ACC   PRIVATE(stability_term)
 #ifdef __LOOP_EXCHANGE
         DO jc = i_startidx, i_endidx
           DO jk = 2 , nlev
@@ -290,14 +242,25 @@ MODULE mo_tmx_smagorinsky
         DO jk = 2 , nlev
           DO jc = i_startidx, i_endidx
 #endif
-            stability_term = SQRT(MAX( 0._wp, 0.5_wp * mech_prod(jc,jk,jb) - rturb_prandtl * bruvais(jc,jk,jb) ))
-
+            IF (use_louis) THEN
+              IF  (      (.NOT. use_louis_land .AND. fract_land(jc,jb) > 0.5_wp) &
+                &   .OR. (.NOT. use_louis_ice  .AND. fract_ice(jc,jb)  > 0.5_wp) &
+                & ) THEN
+                ! If Louis formula is used but not over land and/or sea ice, use classic formulation for cells
+                ! with more than 50% land fraction or more than 50% ice fraction.
+                stability_term = stability_term_classic(mech_prod(jc,jk,jb), bruvais(jc,jk,jb), rturb_prandtl)
+              ELSE
+                stability_term = stability_term_louis(mech_prod(jc,jk,jb), bruvais(jc,jk,jb), rturb_prandtl, &
+                  &  louis_constant_b, scaling_factor_louis(jc,jb))
+              END IF
+            ELSE
+              stability_term = stability_term_classic(mech_prod(jc,jk,jb), bruvais(jc,jk,jb), rturb_prandtl)
+            END IF
             km_ic(jc,jk,jb) = rho_ic(jc,jk,jb)               &
                               * mixing_length_sq(jc,jk,jb)   &
                               * stability_term
 
             kh_ic(jc,jk,jb) = km_ic(jc,jk,jb) * rturb_prandtl
-
           END DO
         END DO
         !$ACC END PARALLEL LOOP
@@ -313,114 +276,13 @@ MODULE mo_tmx_smagorinsky
       END DO
 !$OMP END PARALLEL DO
 
-    END SUBROUTINE Smagorinsky_model_classic
-    !============================================================================
+      !$ACC WAIT(1)
+
+      CALL sync_patch_array(SYNC_C, patch, kh_ic, lacc=.TRUE.)
+      CALL sync_patch_array(SYNC_C, patch, km_ic, lacc=.TRUE.)
+
+    END SUBROUTINE Smagorinsky_model
     !
-    ! This subroutine computes the eddy viscosity and diffusivity based on the
-    ! Louis formulation of the stability correction term:
-    !
-    !    Km = rho * lambda^2 * stability_term
-    !
-    ! where the the stability term includes the strain rate into the stability
-    ! correction function:
-    !
-    !     -> stability_term = sqrt(|S|^2 * stability_factor_louis )
-    !
-    !     -> stability_factor_louis = 1 / (1 + b * Ri )**n
-    !
-    ! Km        : eddy viscosity
-    ! |S|^2     : square of strain rate  (-> |S|^2 = 0.5*mech_prod)
-    ! N^2       : bruvais
-    ! Pr_t      : turbulent Prandtl number
-    ! lambda    : mixing length
-    ! Ri        : Richardson number
-    ! b         : Louis constant
-    !
-    SUBROUTINE Smagorinsky_model_louis( &
-      domain,                     &
-      mech_prod,                  &
-      bruvais,                    &
-      rho_ic,                     &
-      mixing_length_sq,           &
-      rturb_prandtl,              &
-      louis_constant_b,           &
-      scaling_factor_louis,       &
-      patch,                      &
-      km_ic,                      &
-      kh_ic,                      &
-      stability_function          &
-      )
-
-      TYPE(t_domain), INTENT(in)    :: domain
-      REAL(wp), INTENT(in), DIMENSION(:,:,:) :: mech_prod, bruvais, rho_ic, mixing_length_sq
-      REAL(wp), INTENT(in), DIMENSION(:,:)    :: scaling_factor_louis
-      REAL(wp), INTENT(in) :: rturb_prandtl, louis_constant_b
-      TYPE(t_patch), INTENT(in) :: patch
-
-      REAL(wp), INTENT(inout), DIMENSION(:,:,:) :: km_ic, kh_ic, stability_function
-
-      INTEGER :: jb,jc,jk,nlev,nlevp1
-      INTEGER :: i_startblk, i_endblk, i_startidx, i_endidx
-      INTEGER :: rl_start, rl_end
-
-      REAL(wp) :: Ri, stability_term
-      REAL(wp) :: eps = 1.0e-28_wp
-
-      nlev   = domain%nlev
-      nlevp1 = domain%nlev + 1
-
-      rl_start   = 3
-      rl_end     = min_rlcell_int
-      i_startblk = patch%cells%start_block(rl_start)
-      i_endblk   = patch%cells%end_block(rl_end)
-
-!$OMP PARALLEL DO PRIVATE(jb, jk, jc, i_startidx, i_endidx, Ri, stability_term) ICON_OMP_DEFAULT_SCHEDULE
-      DO jb = i_startblk,i_endblk
-        CALL get_indices_c(patch, jb, i_startblk, i_endblk, &
-                              i_startidx, i_endidx, rl_start, rl_end)
-
-      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR COLLAPSE(2) ASYNC(1) &
-      !$ACC   PRIVATE(Ri, stability_term)
-#ifdef __LOOP_EXCHANGE
-        DO jc = i_startidx, i_endidx
-          DO jk = 2 , nlev
-#else
-        DO jk = 2 , nlev
-          DO jc = i_startidx, i_endidx
-#endif
-            Ri  = 2._wp * bruvais(jc,jk,jb) / MAX(eps, mech_prod(jc,jk,jb))
-
-            stability_function(jc,jk,jb) = MAX( 1.0_wp - Ri * rturb_prandtl,                        &
-                                                MIN(1._wp, (1._wp / (1._wp + louis_constant_b       &
-                                                                      * scaling_factor_louis(jc,jb) &
-                                                                      * ABS(Ri)                     &
-                                                            ))**4._wp                               &
-                                              ))
-
-            stability_term = SQRT( 0.5_wp * mech_prod(jc,jk,jb) * stability_function(jc,jk,jb) )
-
-            km_ic(jc,jk,jb) = rho_ic(jc,jk,jb)              &
-                              * mixing_length_sq(jc,jk,jb)  &
-                              * stability_term
-
-            kh_ic(jc,jk,jb) = km_ic(jc,jk,jb) * rturb_prandtl
-
-          END DO
-        END DO
-        !$ACC END PARALLEL LOOP
-
-        !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(1)
-        DO jc = i_startidx, i_endidx
-          kh_ic(jc,1,jb)      = kh_ic(jc,2,jb)
-          kh_ic(jc,nlevp1,jb) = kh_ic(jc,nlev,jb)
-          km_ic(jc,1,jb)      = km_ic(jc,2,jb)
-          km_ic(jc,nlevp1,jb) = km_ic(jc,nlev,jb)
-        END DO
-        !$ACC END PARALLEL LOOP
-      END DO
-!$OMP END PARALLEL DO
-
-    END SUBROUTINE Smagorinsky_model_louis
     !============================================================================
     !
     ! This function computes the stability correction term for the eddy viscosity.
@@ -437,20 +299,19 @@ MODULE mo_tmx_smagorinsky
     ! Pr_t   : turbulent Prandtl number
     ! lambda : mixing length
     !
-    !============================================================================
-    !
-    ! FUNCTION compute_stability_term_classic(mech_prod,bruvais,rturb_prandtl,jb,jc,jk) result(stability_term)
-    ! !$ACC ROUTINE SEQ
+#ifndef _OPENACC
+    ELEMENTAL &
+#endif
+    PURE FUNCTION stability_term_classic(mech_prod, bruvais, rturb_prandtl) RESULT(stability_term)
 
-    !   REAL(wp), INTENT(in), POINTER :: mech_prod(:,:,:), bruvais(:,:,:)
-    !   !REAL(wp), INTENT(in), POINTER :: rturb_prandtl,  mech_prod, bruvais
-    !   REAL(wp), INTENT(in), POINTER :: rturb_prandtl
-    !   INTEGER,  INTENT(in)          :: jb,jc,jk
-    !   REAL(wp) :: stability_term
+      REAL(wp), INTENT(in) :: rturb_prandtl,  mech_prod, bruvais
+      REAL(wp)             :: stability_term
 
-    !   stability_term = SQRT(MAX( 0._wp, 0.5_wp * mech_prod(jc,jk,jb) - rturb_prandtl * bruvais(jc,jk,jb) ))
+      !$ACC ROUTINE SEQ
 
-    ! END FUNCTION compute_stability_term_classic
+      stability_term = SQRT(MAX( 0._wp, 0.5_wp * mech_prod - rturb_prandtl * bruvais ))
+
+    END FUNCTION stability_term_classic
     !
     !============================================================================
     !
@@ -460,9 +321,9 @@ MODULE mo_tmx_smagorinsky
     ! correction function, e.g.
     !     Km = rho * lambda^2 * stability_term
     !
-    !     -> stability_term = sqrt(|S|^2 * stability_factor_louis )
+    !     - stability_term = sqrt(|S|^2 * stability_factor_louis )
     !
-    !     -> stability_factor_louis = 1 / (1 + b * Ri )**n
+    !     - stability_factor_louis = 1 / (1 + b * Ri )**n
     !
     ! Km        : eddy viscosity
     ! |S|^2     : square of strain rate  (-> |S|^2 = 0.5*mech_prod)
@@ -472,127 +333,30 @@ MODULE mo_tmx_smagorinsky
     ! Ri        : Richardson number
     ! b         : Louis constant
     !
-    ! FUNCTION compute_stability_term_louis(mech_prod,bruvais,rturb_prandtl,jb,jc,jk) result(stability_term)
-    ! !$ACC ROUTINE SEQ
+#ifndef _OPENACC
+    ELEMENTAL &
+#endif
+    PURE FUNCTION stability_term_louis(mech_prod, bruvais, rturb_prandtl, &
+      &  louis_constant_b, scaling_factor_louis) RESULT(stability_term)
 
-    !   REAL(wp), INTENT(in), POINTER :: mech_prod(:,:,:), bruvais(:,:,:)
-    !   !REAL(wp), INTENT(in), POINTER :: mech_prod, bruvais
-    !   REAL(wp), INTENT(in), POINTER :: rturb_prandtl
-    !   !REAL(wp), INTENT(in), POINTER :: scaling_factor_louis
-    !   INTEGER,  INTENT(in)          :: jb,jc,jk
-    !   REAL(wp) :: stability_term, Ri, stability_factor_louis
+      REAL(wp), INTENT(in) :: mech_prod, bruvais, rturb_prandtl, louis_constant_b, scaling_factor_louis
+      REAL(wp)             :: stability_term
 
-    !   ! Ri  = 2._wp * bruvais(jc,jk,jb)/ mech_prod(jc,jk,jb)
+      REAL(wp) :: Ri, stability_function
 
-    !   ! stability_factor_louis = MAX(1.0_wp - Ri*rturb_prandtl,                      &
-    !   !                             MIN(1._wp,                                       &
-    !   !                                 1._wp/(1._wp+louis_constant_b                &
-    !   !                                        *scaling_factor_louis(jc,jb)          &
-    !   !                                        *ABS(Ri))**4._wp))
+      !$ACC ROUTINE SEQ
 
-    !   ! stability_term = SQRT( 0.5_wp * mech_prod(jc,jk,jb) * stability_factor_louis )
+      Ri  = 2._wp * bruvais / MAX(eps_louis, mech_prod)
 
+      stability_function = MAX( 1.0_wp - Ri * rturb_prandtl,                   &
+                                MIN(1._wp, (1._wp / (1._wp + louis_constant_b  &
+                                                      * scaling_factor_louis   &
+                                                      * ABS(Ri)                &
+                                            ))**4._wp                          &
+                             ))
 
-    !   Ri  = 2._wp * bruvais(jc,jk,jb) / mech_prod(jc,jk,jb)
+      stability_term = SQRT( 0.5_wp * mech_prod * stability_function )
 
-    !   stability_function(jc,jk,jb) =  MAX(  1.0_wp - Ri*rturb_prandtl,                &
-    !                                         MIN(1._wp,                                &
-    !                                             1._wp/(1._wp+louis_constant_b         &
-    !                                                   *scaling_factor_louis(jc,jb)    &
-    !                                                   *ABS(Ri))**4._wp                &
-    !                                            ))
+    END FUNCTION stability_term_louis
 
-    !   stability_term = SQRT( 0.5_wp * mech_prod(jc,jk,jb) * stability_function(jc,jk,jb) )
-
-    ! END FUNCTION compute_stability_term_louis
-    !============================================================================
-    !
-    ! This subroutine computes the SGS eddy viscosity (Km) and diffusivity (Kh)
-    ! at interface cell centers.
-    ! Note: at this point mech_prod is twice the actual mechanical production term.
-    !--------------------------------------------------------------------------
-    !   Km = rho * lambda^2 * |S| * sqrt(1 - Ri / Pr_t)
-    !   Km = rho * lambda^2 * sqrt(|S|^2 - N^2 / Pr_t )
-    !
-    !   Kh = Km / Pr_t
-    !
-    !   with  lambda : mixing length
-    !         N      : Brunt-Vaisala frequency
-    !         Pr_t   : turbulent Prandtl number
-    !         Ri     : Richardson number (Ri = N^2/|S|^2)
-    !
-    !
-!     SUBROUTINE Smagorinsky_model_not_working( &
-!       mech_prod,                  &
-!       bruvais,                    &
-!       rho_ic,                     &
-!       rturb_prandtl,              &
-!       patch,                      &
-!       p_nh_metrics,               &
-!       km_ic,                      &
-!       kh_ic                       &
-!       )
-
-!       REAL(wp), INTENT(in), POINTER :: mech_prod(:,:,:), bruvais(:,:,:), rho_ic(:,:,:)
-!       REAL(wp), INTENT(in), POINTER :: km_ic(:,:,:), kh_ic(:,:,:)
-!       REAL(wp), INTENT(in), POINTER :: rturb_prandtl
-!       TYPE(t_patch), INTENT(in), POINTER :: patch
-
-!       INTEGER :: jb,jc,jk
-!       INTEGER :: i_startblk, i_endblk, i_startidx, i_endidx
-!       INTEGER :: rl_start, rl_end
-
-!       REAL(wp) :: stability_term
-
-!       rl_start   = 3
-!       rl_end     = min_rlcell_int
-!       i_startblk = patch%cells%start_block(rl_start)
-!       i_endblk   = patch%cells%end_block(rl_end)
-
-! !$OMP PARALLEL DO PRIVATE(jb, jk, jc, i_startidx, i_endidx, stability_term) ICON_OMP_DEFAULT_SCHEDULE
-!       DO jb = i_startblk,i_endblk
-!         CALL get_indices_c(patch, jb, i_startblk, i_endblk, &
-!                               i_startidx, i_endidx, rl_start, rl_end)
-
-!       !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
-!       !$ACC LOOP GANG(STATIC: 1) VECTOR COLLAPSE(2)
-! #ifdef __LOOP_EXCHANGE
-!         DO jc = i_startidx, i_endidx
-!           DO jk = 2 , nlev
-! #else
-!         DO jk = 2 , nlev
-!           DO jc = i_startidx, i_endidx
-! #endif
-
-!             stability_term = compute_stability_term( mech_prod,bruvais,       &
-!                                                      rturb_prandtl,jb,jc,jk)
-
-!             km_ic(jc,jk,jb) = rho_ic(jc,jk,jb) *                          &
-!                               mixing_length_sq(jc,jk,jb) *   &
-!                               stability_term
-
-!             kh_ic(jc,jk,jb) = km_ic(jc,jk,jb) * rturb_prandtl
-!           END DO
-!         END DO
-!         !$ACC END PARALLEL LOOP
-
-!         !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
-!         !$ACC LOOP GANG VECTOR
-!         DO jc = i_startidx, i_endidx
-!           kh_ic(jc,1,jb)      = kh_ic(jc,2,jb)
-!           kh_ic(jc,nlevp1,jb) = kh_ic(jc,nlev,jb)
-!           km_ic(jc,1,jb)      = km_ic(jc,2,jb)
-!           km_ic(jc,nlevp1,jb) = km_ic(jc,nlev,jb)
-!         END DO
-!         !$ACC END PARALLEL
-!       END DO
-! !$OMP END PARALLEL DO
-
-!       !$ACC WAIT
-
-!       CALL sync_patch_array(SYNC_C, patch, kh_ic, lacc=.TRUE.)
-!       CALL sync_patch_array(SYNC_C, patch, km_ic, lacc=.TRUE.)
-
-!     END SUBROUTINE Smagorinsky_model_not_working
-!     !============================================================================
 END MODULE mo_tmx_smagorinsky

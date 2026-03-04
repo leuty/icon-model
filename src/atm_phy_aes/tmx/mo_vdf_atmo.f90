@@ -208,7 +208,7 @@ CONTAINS
     REAL(wp), POINTER :: &
       & cpd, cvd, rturb_prandtl, louis_constant_b, km_min, km_const
     LOGICAL, POINTER :: &
-      & use_louis, use_km_const
+      & use_louis, use_louis_land, use_louis_ice, use_km_const
 
     ! Pointers to input variables
     REAL(wp), POINTER, DIMENSION(:,:,:) :: &
@@ -223,12 +223,14 @@ CONTAINS
     ! Pointers to diagnostic variables
     REAL(wp), POINTER, DIMENSION(:,:,:) :: &
       & ghf, ctgz, div_c, theta_v, pprfac, km, kh, km_c, heating, &  ! 3D full level cell diagnostics
-      & rho_ic, bruvais ,stab_func, mech_prod, km_ic, kh_ic, mix_len_sq, &  ! 3D half level cell diagnostics
+      & rho_ic, bruvais, mech_prod, km_ic, kh_ic, mix_len_sq, &  ! 3D half level cell diagnostics
       & vn, shear, div_stress, &  ! 3D full level edge diagnostics
       & vn_ie, vt_ie, w_ie, km_ie, &  ! 3D half level edge diagnostics
       & u_vert, v_vert, w_vert, km_iv ! 3D vertex diagnostics
     REAL(wp), POINTER, DIMENSION(:,:) :: &
-      & louis_factor ! 2D diagnostics
+      & louis_factor, &
+      & fract_land, &
+      & fract_ice
 
     INTEGER :: jg
     INTEGER :: rl_start, rl_end
@@ -264,6 +266,8 @@ CONTAINS
     cvd              => config%cvd%Get_ptr_r0d()
     rturb_prandtl    => config%rturb_prandtl%Get_ptr_r0d()
     use_louis        => config%use_louis%Get_ptr_l0d()
+    use_louis_land   => config%use_louis_land%Get_ptr_l0d()
+    use_louis_ice    => config%use_louis_ice%Get_ptr_l0d()
     louis_constant_b => config%louis_constant_b%Get_ptr_r0d()
     km_min           => config%km_min%Get_ptr_r0d()
     use_km_const     => config%use_km_const%Get_ptr_l0d()
@@ -293,6 +297,8 @@ CONTAINS
     papm1         => inputs%pres_c%Get_ptr_r3d()
     paphm1        => inputs%pres_ic%Get_ptr_r3d()
     ! vn            => inputs%vn_e%Get_ptr_r3d()
+    fract_land    => inputs%fract_land%Get_ptr_r2d()
+    fract_ice     => inputs%fract_ice%Get_ptr_r2d()
 
     ! Get pointers to diagnostic variables from the diagnostics structure
     ! 3D full level cell diagnostics
@@ -309,7 +315,6 @@ CONTAINS
     ! 3D half level cell diagnostics
     rho_ic        => diags%rho_ic%Get_ptr_r3d()
     bruvais       => diags%bruvais%Get_ptr_r3d()
-    stab_func     => diags%stab_func%Get_ptr_r3d()
     mech_prod     => diags%mech_prod%Get_ptr_r3d()
     km_ic         => diags%km_ic%Get_ptr_r3d()
     kh_ic         => diags%kh_ic%Get_ptr_r3d()
@@ -445,10 +450,10 @@ CONTAINS
 !$OMP END PARALLEL
 
     IF (.NOT. use_km_const) THEN
-      CALL Smagorinsky_model(domain, mech_prod, bruvais, rho_ic,         &
-                             mix_len_sq, rturb_prandtl, use_louis,       &
-                             louis_constant_b, louis_factor, patch,      &
-                             km_ic, kh_ic, stab_func)
+      CALL Smagorinsky_model(domain, mech_prod, bruvais, rho_ic,                   &
+                             mix_len_sq, rturb_prandtl, use_louis, use_louis_land, use_louis_ice, &
+                             louis_constant_b, louis_factor, fract_land, fract_ice, patch,    &
+                             km_ic, kh_ic)
     ELSE
       CALL Assign_constant_eddy_viscosity(domain,  rho_ic, km_const,     &
                                           rturb_prandtl, patch,          &

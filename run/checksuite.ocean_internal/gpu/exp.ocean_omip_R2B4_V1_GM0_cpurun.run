@@ -112,18 +112,12 @@ if [[ -a "/etc/profile" ]]
 then
 	. /etc/profile
 fi
-#-----------------------------------------------------------------------------
-# load modules
-loadmodule="${PWD}/../etc/Modules/icon-levante"
-module load $loadmodule
-module list
-#-----------------------------------------------------------------------------
 
 #-----------------------------------------------------------------------------
 # directories with absolute paths
 # -------------------------------
 thisdir=$(pwd)
-export basedir="${thisdir}/../build/cpurun"
+export basedir="${basedir:-${thisdir}/../build/cpurun}"
 cd "${basedir}/run"
 # experiments_dir can be predefined in a machine specific run_target_* header
 experiments_dir="${experiments_dir:=${basedir}/experiments}"
@@ -1350,8 +1344,9 @@ rm -f skeleton/finish.status
 cp ${RUNSCRIPTDIR}/checksuite.ocean_internal/gpu/omip_variations.sh .
 source omip_variations.sh
 
-# Load PYTHON environment variable pointing to the Python installation which has f90nml
-source ${RUNSCRIPTDIR}/set-up.info
+# A Python with f90nml is needed. If PYTHON is defined, prefer using that
+# and assume that the required package is available
+PYTHON=${PYTHON:-/fastdata/mh0156/buildbot/venv/bin/python3}
 
 idx=0
 # Main loop calling srun (within START_MODEL) for each variation/in each subdirectory

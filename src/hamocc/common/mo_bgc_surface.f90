@@ -248,7 +248,11 @@ SUBROUTINE gasex (local_bgc_mem, start_idx,end_idx, pddpo, za, ptho, psao,  &
 
   USE mo_bgc_constants, ONLY : cmh2ms
 
-  USE mo_carchm,    ONLY: update_hi, update_hi_VE
+#ifndef __LVECTOR__
+  USE mo_carchm,    ONLY: update_hi
+#else
+  USE mo_carchm,    ONLY: update_hi_VE
+#endif
 
   IMPLICIT NONE
 

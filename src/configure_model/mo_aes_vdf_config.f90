@@ -118,6 +118,8 @@ CONTAINS
         CALL print_value('    aes_vdf_config('//TRIM(cg)//')% energy_type                ',aes_vdf_config(jg)% energy_type       )
         CALL print_value('    aes_vdf_config('//TRIM(cg)//')% dissipation_factor         ',aes_vdf_config(jg)% dissipation_factor)
         CALL print_value('    aes_vdf_config('//TRIM(cg)//')% use_louis                  ',aes_vdf_config(jg)% use_louis         )
+        CALL print_value('    aes_vdf_config('//TRIM(cg)//')% use_louis_land             ',aes_vdf_config(jg)% use_louis_land    )
+        CALL print_value('    aes_vdf_config('//TRIM(cg)//')% use_louis_ice              ',aes_vdf_config(jg)% use_louis_ice     )
         CALL print_value('    aes_vdf_config('//TRIM(cg)//')% louis_constant_b           ',aes_vdf_config(jg)% louis_constant_b  )
         CALL print_value('    aes_vdf_config('//TRIM(cg)//')% use_km_const               ',aes_vdf_config(jg)% use_km_const      )
         CALL print_value('    aes_vdf_config('//TRIM(cg)//')% km_const                   ',aes_vdf_config(jg)% km_const          )

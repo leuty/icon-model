@@ -204,6 +204,10 @@ MODULE mo_name_list_output_types
 
     INTEGER                               :: taxis_tunit       ! 1 = TUNIT_SECOND, 2 = TUNIT_MINUTE, 3 TUNIT_HOUR ... (see cdi.inc)
 
+    INTEGER                               :: number_of_bits    ! set number of significant bits for all NetCDF output variables
+    INTEGER                               :: chunk_size        ! set the chunk size for all NetCDF output fields [number of data elements]
+    CHARACTER(len=MAX_CHAR_LENGTH)        :: filter_spec       ! specify a compression algorithm for all NetCDF output variables
+
     !> There are two alternative implementations for setting the
     !  output intervals, "output_bounds" and "output_start" /
     !  "output_end" / "output_interval". The former defines the output

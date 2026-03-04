@@ -466,7 +466,6 @@ CONTAINS
     & opt_acc_async_queue        &
     & )
 
-    USE mo_physical_constants,ONLY: stbo
 
     ! Domain information
     TYPE(t_domain),  INTENT(in), POINTER :: domain
@@ -925,7 +924,6 @@ CONTAINS
     & opt_acc_async_queue        &
     & )
 
-    USE mo_physical_constants,ONLY: stbo
 
     ! Domain information
     TYPE(t_domain),  INTENT(in), POINTER :: domain

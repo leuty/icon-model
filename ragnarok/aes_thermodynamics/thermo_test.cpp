@@ -256,6 +256,6 @@ REGISTER_TYPED_TEST_SUITE_P(ThermoTest, CheckInternalEnergy, CheckTInternalEnerg
                             CheckPotentialTemperature, CheckDewpointTemperature, CheckDewpointTemperatureMelt,
                             CheckSaturationAdjustment, CheckSaturationAdjustment2D);
 using MyTypes = ::testing::Types<float, double>;
-INSTANTIATE_TYPED_TEST_SUITE_P(ThermoTestSuite, ThermoTest, MyTypes);
+INSTANTIATE_TYPED_TEST_SUITE_P(RagnarokTests, ThermoTest, MyTypes);
 
 };  // namespace

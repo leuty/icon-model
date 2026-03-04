@@ -180,8 +180,6 @@ CONTAINS
 
   ! preliminary helper:
   SUBROUTINE init_mmgr
-    USE mo_kind, ONLY:sp, dp
-    USE mo_mpi, ONLY: p_real_sp_byte, p_real_dp_byte
     CHARACTER(len=*), PARAMETER :: routine = 'mo_tmx_var::init_mmgr'
     IF (.NOT. mmgr_require_init) RETURN
     gpu_device = mm_get_gpu_device_uid(0)

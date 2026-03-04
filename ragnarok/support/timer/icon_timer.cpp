@@ -38,7 +38,6 @@ void init_timer(const icon::f2c::FunTable& ftab) {
   } else {
     Timer::set_backend(TimerBackend(ftab.new_timer, do_nothing, do_nothing, ftab.timer_value));
   }
-
   is_initialized = true;
 }
 

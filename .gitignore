@@ -35,6 +35,7 @@
 /icon.mk
 /inlib.mk
 /run/SETUP.config
+/run/SETUP.config.install
 /run/collect.set-up.info
 /run/set-up.info
 /config/cscs/**/.spack-env/**
@@ -73,7 +74,6 @@ spack-configure-args.txt
 /run/*.run
 /run/*_member_id_mixed_*
 /run/*_member_id_double_*
-!/run/exp.nwptest_R02B06N07.run
 /run/*.status
 /run/checksuite.nwp/*.run
 /run/performance/pp.store_performance_*

@@ -149,9 +149,7 @@ CONTAINS
     USE mo_tmx_surface_interface, ONLY: &
       & update_land, update_sea_ice, compute_lw_rad_net, compute_sw_rad_net, compute_albedo, &
       & compute_sfc_fluxes, compute_sfc_sat_spec_humidity, compute_energy_fluxes
-    ! USE mo_vdf_diag_smag,  ONLY: compute_sfc_fluxes, compute_sfc_sat_spec_humidity
     USE mo_physical_constants, ONLY: albedoW ! TODO
-    USE mo_sea_ice_nml, ONLY: albi           ! TODO
 
     CLASS(t_vdf_sfc), INTENT(inout), TARGET :: this
     TYPE(t_datetime), OPTIONAL, INTENT(in), POINTER :: datetime     !< date and time at beginning of time step
@@ -1008,7 +1006,7 @@ CONTAINS
 
   SUBROUTINE compute_valid_indices(domain, fract_tile, nvalid, indices)
 
-    USE mo_index_list, ONLY: generate_index_list_batched, generate_index_list
+    USE mo_index_list, ONLY: generate_index_list_batched
 
     TYPE(t_domain), INTENT(in), POINTER :: domain
     REAL(wp),       INTENT(in)          :: fract_tile(:,:,:)

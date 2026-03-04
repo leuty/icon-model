@@ -340,6 +340,10 @@ CONTAINS
     REAL(wp)                              :: rbf_scale
     LOGICAL :: is_stdio
 
+    INTEGER                               :: number_of_bits
+    INTEGER                               :: chunk_size
+    CHARACTER(len=MAX_CHAR_LENGTH)        :: filter_spec
+
     ! The namelist containing all variables above
     NAMELIST /output_nml/ &
       mode, taxis_tunit, dom,                                &
@@ -356,7 +360,8 @@ CONTAINS
       stream_partitions_hl, stream_partitions_il,            &
       pe_placement_ml, pe_placement_pl,                      &
       pe_placement_hl, pe_placement_il,                      &
-      filename_extn, rbf_scale, operation
+      filename_extn, rbf_scale, operation, filter_spec,      &
+      chunk_size, number_of_bits
 
     ! Before we start: prepare the levels set objects for the vertical
     ! interpolation.
@@ -466,6 +471,9 @@ CONTAINS
       pe_placement_hl(:)       = -1 !< i.e. MPI rank undefined (round-robin placement)
       pe_placement_il(:)       = -1 !< i.e. MPI rank undefined (round-robin placement)
       rbf_scale                = -1._wp
+      number_of_bits           = 0
+      chunk_size               = -1
+      filter_spec              = ''
 
       ! -- Read output_nml
 
@@ -654,6 +662,9 @@ CONTAINS
         p_onl%pe_placement_pl(:)       = pe_placement_pl(:)
         p_onl%pe_placement_hl(:)       = pe_placement_hl(:)
         p_onl%pe_placement_il(:)       = pe_placement_il(:)
+        p_onl%number_of_bits           = number_of_bits
+        p_onl%chunk_size               = chunk_size
+        p_onl%filter_spec              = filter_spec
 
         ! -- translate variables names according to variable name dictionary:
         ! allow case-insensitive variable names:
@@ -2868,6 +2879,9 @@ CONTAINS
         &                                 info, missval, of%output_type,    &
         &                                 gribout_config(of%phys_patch_id), &
         &                                 this_i_lctype,                    &
+        &                                 of%name_list%number_of_bits,      &
+        &                                 of%name_list%chunk_size,          &
+        &                                 of%name_list%filter_spec,         &
         &                                 out_varnames_dict)
 
     ENDDO

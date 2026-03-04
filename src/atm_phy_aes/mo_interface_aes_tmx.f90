@@ -490,17 +490,13 @@ CONTAINS
   SUBROUTINE init_tmx(p_patch, dtime)
 
     USE mo_vdf,      ONLY: heat_type, momentum_type
-    ! USE mo_vdf_sfc,  ONLY: t_vdf_sfc_diagnostics
     USE mo_tmx_field_class, ONLY: isfc_oce, isfc_ice, isfc_lnd
-    ! USE mo_vdf_diag_smag
 
     USE mo_nonhydro_state,     ONLY: p_nh_state
     USE mo_nonhydro_types,     ONLY: t_nh_metrics, t_nh_diag
     USE mo_dynamics_config,    ONLY: nnow, nnow_rcf
-    USE mo_physical_constants, ONLY: cpd, cpv, cvd, cvv, tmelt
-    USE mo_sea_ice_nml,        ONLY: Tf
+    USE mo_physical_constants, ONLY: cpd, cvd, cvv
 
-    USE mo_master_config, ONLY: isRestart
     USE mo_run_config,    ONLY: lmemman
 
     TYPE(t_patch), INTENT(inout), TARGET :: p_patch
@@ -599,6 +595,8 @@ CONTAINS
     CALL vdf%atmo%config%rturb_prandtl%Assign_r0d(aes_vdf_config(jg)%rturb_prandtl)
     CALL vdf%atmo%config%turb_prandtl%Assign_r0d(aes_vdf_config(jg)%turb_prandtl)
     CALL vdf%atmo%config%use_louis%Assign_l0d(aes_vdf_config(jg)%use_louis)
+    CALL vdf%atmo%config%use_louis_land%Assign_l0d(aes_vdf_config(jg)%use_louis_land)
+    CALL vdf%atmo%config%use_louis_ice%Assign_l0d(aes_vdf_config(jg)%use_louis_ice)
     CALL vdf%atmo%config%louis_constant_b%Assign_r0d(aes_vdf_config(jg)%louis_constant_b)
     CALL vdf%atmo%config%use_km_const%Assign_l0d(aes_vdf_config(jg)%use_km_const)
     CALL vdf%atmo%config%km_const%Assign_r0d(aes_vdf_config(jg)%km_const)

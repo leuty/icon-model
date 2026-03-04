@@ -353,7 +353,7 @@
 &                              kdnrn, kdnra, kanam, ksammox, ksnitox, &
 &                              ksdnrn, ksdnra, ksanam, ksnrn2
 
-      USE mo_memory_agg, ONLY : kavdp, kavrhop, ksticka, klmaxagg, kdfagg, kavrhof
+      USE mo_memory_agg, ONLY : kavdp, kavrhop, ksticka, klmaxagg, kdfagg
 
       TYPE(t_bgc_memory), POINTER :: local_bgc_mem
       TYPE(t_sediment_memory), POINTER :: local_sediment_mem
