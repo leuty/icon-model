@@ -94,7 +94,7 @@ repos:
             src/shared/mo_compare_float.f90
           )$
   - repo: https://github.com/fsfe/reuse-tool
-    rev: v5.1.1
+    rev: v6.2.0
     hooks:
       - id: reuse
         stages: [manual]
