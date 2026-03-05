@@ -171,9 +171,6 @@ CONTAINS
     ! "partially present on device" OpenACC error
     CALL build_vdf_atmo_diags(this%diagnostics, this%domain)
 
-    ! Initialize Smagorinsky model
-    CALL Smagorinsky_init(this%domain, this%config, this%inputs, this%diagnostics)
-
   END SUBROUTINE Init_vdf_atmo
   !
   !============================================================================
@@ -237,6 +234,11 @@ CONTAINS
     INTEGER :: istat
 
     CHARACTER(len=*), PARAMETER :: routine = modname//':Compute_diagnostics'
+
+    ! Initialize Smagorinsky model
+    IF (this%is_initial_time) THEN
+      CALL Smagorinsky_init(this%domain, this%config, this%inputs, this%diagnostics)
+    END IF
 
     ! Get pointer to structure for config variables
     config => this%config
@@ -452,11 +454,11 @@ CONTAINS
     IF (.NOT. use_km_const) THEN
       CALL Smagorinsky_model(domain, mech_prod, bruvais, rho_ic,                   &
                              mix_len_sq, rturb_prandtl, use_louis, use_louis_land, use_louis_ice, &
-                             louis_constant_b, louis_factor, fract_land, fract_ice, patch,    &
+                             louis_constant_b, louis_factor, fract_land, fract_ice, &
                              km_ic, kh_ic)
     ELSE
-      CALL Assign_constant_eddy_viscosity(domain,  rho_ic, km_const,     &
-                                          rturb_prandtl, patch,          &
+      CALL Assign_constant_eddy_viscosity(domain,  rho_ic, km_const, &
+                                          rturb_prandtl,             &
                                           km_ic, kh_ic)
     END IF
 
@@ -620,6 +622,8 @@ CONTAINS
     !$ACC END DATA
 
     END ASSOCIATE
+
+    IF (this%is_initial_time) this%is_initial_time = .FALSE.
 
     IF (ltimer) CALL timer_stop(this%timer_diagnostics)
 
@@ -2020,7 +2024,6 @@ CONTAINS
     rho_ic,                     &
     km_const,                   &
     rturb_prandtl,              &
-    patch,                      &
     km_ic,                      &
     kh_ic                       &
     )
@@ -2028,7 +2031,6 @@ CONTAINS
     TYPE(t_domain), INTENT(in)    :: domain
     REAL(wp), INTENT(in), DIMENSION(:,:,:)  :: rho_ic
     REAL(wp), INTENT(in) :: km_const, rturb_prandtl
-    TYPE(t_patch), INTENT(in) :: patch
 
     REAL(wp), INTENT(inout), DIMENSION(:,:,:) :: km_ic, kh_ic
 
@@ -2041,12 +2043,12 @@ CONTAINS
 
     rl_start   = 3
     rl_end     = min_rlcell_int
-    i_startblk = patch%cells%start_block(rl_start)
-    i_endblk   = patch%cells%end_block(rl_end)
+    i_startblk = domain%patch%cells%start_block(rl_start)
+    i_endblk   = domain%patch%cells%end_block(rl_end)
 
 !$OMP PARALLEL DO PRIVATE(jb, jk, jc, i_startidx, i_endidx) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = i_startblk,i_endblk
-      CALL get_indices_c(patch, jb, i_startblk, i_endblk, &
+      CALL get_indices_c(domain%patch, jb, i_startblk, i_endblk, &
                               i_startidx, i_endidx, rl_start, rl_end)
 
     !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR COLLAPSE(2) ASYNC(1)

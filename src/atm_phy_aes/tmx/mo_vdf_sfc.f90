@@ -101,13 +101,12 @@ CONTAINS
     !$ACC ENTER DATA COPYIN(result)
     ! Call Init of abstract parent class
     CALL result%Init_process(dt=dt, name=name, domain=domain)
+    __acc_attach(result%domain)
 
     ! Initialize memory structures
     ALLOCATE(result%config)
     ALLOCATE(result%inputs)
     ALLOCATE(result%diagnostics)
-
-    !$ACC ENTER DATA COPYIN(result%config, result%inputs, result%diagnostics)
 
     ! Initialize the data structures
     CALL build_vdf_sfc_config(result%config, result%domain)
@@ -136,7 +135,7 @@ CONTAINS
 
     ! Initialize structure for diagnostic variables (second scan)
     CALL build_vdf_sfc_diags(this%diagnostics, this%domain)
-      !$ACC ENTER DATA COPYIN(this%diagnostics)
+    !$ACC ENTER DATA COPYIN(this%diagnostics)
 
     ! TODO: simple initialization of CO2
     co2 => this%inputs%co2%Get_ptr_r2d()
@@ -399,8 +398,11 @@ CONTAINS
 !$OMP END PARALLEL
       CASE(isfc_ice)
         IF (nice_thickness_classes /= 1) CALL finish(routine, 'Only one ice thickness class (kice) implemented!')
-
+!$OMP PARALLEL
+        CALL init(tend_tsfc(:,:,jtile), lacc=.TRUE., opt_acc_async_queue=acc_async_queues(jtile))
+!$OMP END PARALLEL
         CALL update_sea_ice(this%domain, this%dt, &
+          & nvalid(:,jtile), indices(:,:,jtile), &
           & old_tsfc(:,:,jtile), &
           & lwfl_net_tile(:,:,jtile), swfl_net_tile(:,:,jtile), &
           & lhfl_tile(:,:,jtile), shfl_tile(:,:,jtile), &
@@ -434,6 +436,9 @@ CONTAINS
           & psfc(:,:), new_tsfc(:,:,jtile), new_qsfc(:,:,jtile), &
           & opt_acc_async_queue=acc_async_queues(jtile))
       CASE(isfc_lnd)
+!$OMP PARALLEL
+        CALL init(tend_tsfc(:,:,jtile), lacc=.TRUE., opt_acc_async_queue=acc_async_queues(jtile))
+!$OMP END PARALLEL
         CALL update_land(jg, this%domain, datetime, this%dt, cvd, &
           & dz, psfc, ta, qa, pa, &
           & rsfl, ssfl, &
@@ -762,8 +767,6 @@ CONTAINS
       END IF
     END IF
 #endif
-
-    CALL compute_valid_indices(this%domain, fract_tile, nvalid, indices)
 
     CALL compute_valid_indices(this%domain, fract_tile, nvalid, indices)
 

@@ -432,7 +432,7 @@ MODULE mo_vdf_atmo_memory
       this%vel_grad_e(3,1)%ptr => this%dw_dn%Get_ptr_r3d()
       this%vel_grad_e(3,2)%ptr => this%dw_dt%Get_ptr_r3d()
       this%vel_grad_e(3,3)%ptr => this%dw_dz%Get_ptr_r3d()
-!$ACC ENTER DATA COPYIN(this)
+      !$ACC ENTER DATA COPYIN(this)
       __acc_attach(this%vel_grad_e(1,1)%ptr)
       __acc_attach(this%vel_grad_e(1,2)%ptr)
       __acc_attach(this%vel_grad_e(1,3)%ptr)

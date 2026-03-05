@@ -28,7 +28,8 @@ MODULE mo_interface_aes_tmx
   USE mo_dynamics_config     ,ONLY: nnow, nnew, nnow_rcf
   USE mo_aes_phy_config      ,ONLY: aes_phy_config, aes_phy_tc, dt_zero
   USE mo_aes_phy_memory      ,ONLY: t_aes_phy_field, prm_field, prm_field_list, &
-    &                               t_aes_phy_tend,  prm_tend, prm_tend_list
+    &                               t_aes_phy_tend,  prm_tend, prm_tend_list, &
+    &                               cdimissval
 
   USE mo_timer               ,ONLY: ltimer, timer_start, timer_stop, timer_tmx
 
@@ -268,7 +269,7 @@ CONTAINS
         ! Retrieve computed tendency for tracers
         tend_tracer_vdf => vdf%atmo%Get_tendency_r4d(vdf%atmo%tracer_idx)
 
-!$OMP PARALLEL DO PRIVATE(jb,jc,jcs,jce,jk,jsfc) ICON_OMP_DEFAULT_SCHEDULE
+!$OMP PARALLEL DO PRIVATE(jb,jc,jcs,jce,jk) ICON_OMP_DEFAULT_SCHEDULE
         DO jb = jbs, jbe
 
           CALL get_indices_c(patch, jb, jbs, jbe, jcs, jce, rls, rle)
@@ -381,14 +382,6 @@ CONTAINS
             !$ACC END LOOP
           END IF
 
-          !$ACC LOOP GANG(STATIC: 1) VECTOR COLLAPSE(2)
-          DO jsfc = 1, nsfc_type
-            DO jc = jcs, jce
-              field%ts_tile(jc,jb,jsfc) = field%ts_tile(jc,jb,jsfc) + tend_ts(jc,jb,jsfc) * dtime
-            END DO
-          END DO
-          !$ACC END LOOP
-
           !$ACC LOOP GANG(STATIC: 1) VECTOR
           DO jc = jcs, jce
 
@@ -437,6 +430,31 @@ CONTAINS
 
         END DO
 
+!$OMP END PARALLEL DO
+
+!$OMP PARALLEL DO PRIVATE(jb,jc,jcs,jce,jsfc) ICON_OMP_DEFAULT_SCHEDULE
+        DO jb = jbs, jbe
+
+          CALL get_indices_c(patch, jb, jbs, jbe, jcs, jce, rls, rle)
+
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+          !$ACC LOOP GANG(STATIC: 1) VECTOR COLLAPSE(2)
+          DO jsfc = 1, nsfc_type
+            DO jc = jcs, jce
+              IF (field%frac_tile(jc,jb,jsfc) > 0.0_wp) THEN
+                field%ts_tile(jc,jb,jsfc) = field%ts_tile(jc,jb,jsfc) + tend_ts(jc,jb,jsfc) * dtime
+              ELSE
+                ! Set non-valid cells for each tile (fraction <= 0) to missing value for output purposes.
+                ! They are also used in mo_aes_phy_diag:surface_fractions at the beginning of the next time step to initialize the
+                ! sea ice surface temperature for newly formed sea ice.
+                field%ts_tile(jc,jb,jsfc) = cdimissval
+              END IF
+            END DO
+          END DO
+          !$ACC END LOOP
+          !$ACC END PARALLEL
+
+        END DO
 !$OMP END PARALLEL DO
 
         !$no EXIT DATA COPYOUT(tend_qtrc_vdf(iqv)%p)

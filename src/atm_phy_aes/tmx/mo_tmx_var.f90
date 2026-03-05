@@ -37,6 +37,8 @@ MODULE mo_tmx_var
   USE mo_timer, ONLY: new_timer, timer_start, timer_stop
   USE mo_util_string, ONLY: int2string
 
+#include "add_var_acc_macro.inc"
+
   IMPLICIT NONE
   PRIVATE
 
@@ -76,7 +78,8 @@ MODULE mo_tmx_var
     INTEGER, POINTER :: i5d(:,:,:,:,:) => NULL()
 
     ! Logical pointers
-    LOGICAL, POINTER :: l0d => NULL()
+    INTEGER(i1), POINTER :: l0d => NULL()
+    INTEGER(i1), POINTER :: l5d(:,:,:,:,:) => NULL()
   END TYPE t_ptr_container
 
   ! TMX variable container class that extends var_descriptor
@@ -101,7 +104,6 @@ MODULE mo_tmx_var
     INTEGER                       :: ref2 = -1     !< Index of second reference dimension
     LOGICAL                       :: is_attached = .FALSE. !< Flag indicating if var is attached to memory
     LOGICAL                       :: is_inizialized = .FALSE. !< Flag indicating if var is initialized
-    LOGICAL, POINTER              :: l0d => NULL() !< Pointer to logical scalar value
   CONTAINS
     PROCEDURE :: Init                  => init_tmx_var
     PROCEDURE :: Update                => t_tmx_var_update_var
@@ -154,6 +156,9 @@ MODULE mo_tmx_var
   TYPE t_tmx_var_p
     TYPE(t_tmx_var), POINTER :: p !< Pointer to a t_tmx_var object
   END TYPE t_tmx_var_p
+
+  LOGICAL, TARGET :: true_value = .TRUE.
+  LOGICAL, TARGET :: false_value = .FALSE.
 
   CHARACTER(len=*), PARAMETER :: modname = 'mo_tmx_var'
 
@@ -413,7 +418,7 @@ CONTAINS
 #ifdef _OPENACC
       CALL checkz(allocate_var_integer(this%var_descriptor, i1, gpu_device), __LINE__)
       CALL checkz(get_var_data(ptr_l5d_d, this%var_descriptor, gpu_device), __LINE__)
-      CALL acc_map_data(c_LOC(ptr_l5d_h), c_LOC(ptr_l5d_d), i1_size*SIZE(ptr_i5d_h))
+      CALL acc_map_data(c_LOC(ptr_l5d_h), c_LOC(ptr_l5d_d), i1_size*SIZE(ptr_l5d_h))
 #endif
     END SELECT
     IF (istat /= 0) CALL finish(routine, 'Allocation of '//this%name//' failed')
@@ -552,38 +557,28 @@ CONTAINS
     CLASS(t_tmx_var), INTENT(inout) :: this  !< The t_tmx_var object
     LOGICAL, INTENT(in) :: value             !< The logical value to assign
 
-    ! INTEGER(i1), POINTER :: ptr_l0d, ptr_l5d(:,:,:,:,:)
-    ! INTEGER :: istat
+    INTEGER(i1), POINTER :: ptr_l0d, ptr_l5d(:,:,:,:,:)
+    INTEGER :: istat
 
     CHARACTER(len=*), PARAMETER :: routine = modname//':t_tmx_var_assign_l0d'
 
-    ! Logicals not supported in memory  manager, yet, so we use this%l0d
+    istat = -1
+    ptr_l5d => NULL()
 
-    ! istat = -1
-    ! ptr_l5d => NULL()
-
-    ! istat = get_var_data(ptr_l5d, this%var_descriptor)
-    ! IF (istat /= 0) THEN
-    !   CALL this%Add_var(this%dims)
-    !   CALL this%Allocate()
-    !   this%is_attached = .TRUE.
-    ! END IF
-    ! istat = get_var_data(ptr_l5d, this%var_descriptor)
-    ! IF (value) THEN
-    !   ptr_l5d(1,1,1,1,1) = 1_i1
-    ! ELSE
-    !   ptr_l5d(1,1,1,1,1) = 0_i1
-    ! END IF
-! #ifdef _OPENACC
-!     istat = copy_to_device(this%var_descriptor, gpu_device)
-! #endif
-
-    IF (.NOT. ASSOCIATED(this%l0d)) THEN
-      ALLOCATE(this%l0d)
-      !$ACC ENTER DATA CREATE(this%l0d)
+    istat = get_var_data(ptr_l5d, this%var_descriptor)
+    IF (istat /= 0) THEN
+      CALL this%Add_var(this%dims)
+      CALL this%Allocate()
+      this%is_attached = .TRUE.
     END IF
-    this%l0d = value
-    !$ACC UPDATE DEVICE(this%l0d)
+    istat = get_var_data(ptr_l5d, this%var_descriptor)
+    IF (value) THEN
+      ptr_l5d(1,1,1,1,1) = 1_i1
+    ELSE
+      ptr_l5d(1,1,1,1,1) = 0_i1
+    END IF
+
+    !$ACC UPDATE DEVICE(ptr_l5d)
 
   END SUBROUTINE t_tmx_var_assign_l0d
 
@@ -613,8 +608,7 @@ CONTAINS
     CASE ('integer')
       istat = get_var_data(ptr_container%i5d, this%var_descriptor)
     CASE ('logical')
-      ptr_container%l0d => this%l0d
-      istat = 0
+      istat = get_var_data(ptr_container%l5d, this%var_descriptor)
     CASE DEFAULT
       istat = -1
     END SELECT
@@ -701,6 +695,9 @@ CONTAINS
         & this%ref2_pos, ref2_idx)
     CASE ('integer')
       CALL slice_integer_ptr(ptr_container, target_rank, this%ref_pos, ref_idx, &
+        & this%ref2_pos, ref2_idx)
+    CASE ('logical')
+      CALL slice_logical_ptr(ptr_container, target_rank, this%ref_pos, ref_idx, &
         & this%ref2_pos, ref2_idx)
     END SELECT
 
@@ -855,6 +852,34 @@ CONTAINS
     END IF
 
   END SUBROUTINE slice_integer_ptr
+
+  ! Helper to slice logical pointers
+  SUBROUTINE slice_logical_ptr(ptrs, target_rank, ref_pos, ref_idx, ref2_pos, ref2_idx)
+
+    TYPE(t_ptr_container), INTENT(inout) :: ptrs
+    INTEGER, INTENT(in) :: target_rank, ref_pos, ref_idx, ref2_pos, ref2_idx
+
+    CHARACTER(len=*), PARAMETER :: routine = modname//':slice_logical_ptr'
+
+    IF (ref_idx /= -1 .OR. ref2_idx /= -1) THEN
+      CALL finish(routine, 'Slicing not supported for logical pointers')
+    ELSE
+      ! No slicing, just dimension reduction
+      SELECT CASE (target_rank)
+      CASE (0)
+        ptrs%l0d => ptrs%l5d(1,1,1,1,1)
+      ! CASE (1)
+      !   ptrs%l1d => ptrs%l5d(:,1,1,1,1)
+      ! CASE (2)
+      !   ptrs%l2d => ptrs%l5d(:,:,1,1,1)
+      ! CASE (3)
+      !   ptrs%l3d => ptrs%l5d(:,:,:,1,1)
+      ! CASE (4)
+      !   ptrs%l4d => ptrs%l5d(:,:,:,:,1)
+      END SELECT
+    END IF
+
+  END SUBROUTINE slice_logical_ptr
 
   ! Detailed slicing subroutines for wp kind - single ref
   SUBROUTINE slice_wp_5d_to_1d_single_ref(ptrs, ref_pos, ref_idx)
@@ -1604,29 +1629,23 @@ CONTAINS
   ! Get pointer methods for logical values
   !----------------------------------------------------------------------
 
-  ! Get pointer to scalar logical variable
+  ! Get pointer to scalar logical variable (from integer representation)
   FUNCTION t_tmx_var_get_ptr_l0d(this) RESULT(ptr_l0d)
 
     CLASS(t_tmx_var), INTENT(in) :: this  !< The t_tmx_var object
     LOGICAL, POINTER             :: ptr_l0d  !< Pointer to the scalar logical value
 
-    ! INTEGER(i1), POINTER :: ptr_l5d(:,:,:,:,:)
-    ! INTEGER              :: istat
+    TYPE(t_ptr_container) :: ptrs
+    INTEGER(i1), POINTER :: ptr_i0d
 
-    CHARACTER(len=*), PARAMETER  :: routine = modname//':t_tmx_var_get_ptr_l0d'
-
-    ! CALL timer_start(timer_tmx_mmgr)
-
-    ! istat = -1
-    ptr_l0d => NULL()
-
-    ! Logicals not supported in memory  manager, yet, so we use this%l0d
-    ! istat = get_var_data(ptr_l5d, this%var_descriptor)
-    ! IF (istat /= 0) CALL finish(routine, "Couldn't get data for variable "//this%name)
-
-    ptr_l0d => this%l0d
-
-    ! CALL timer_stop(timer_tmx_mmgr)
+    CALL this%Get_base_ptr(ptrs)
+    CALL this%Slice_ptr(ptrs, 0)
+    ptr_i0d => ptrs%l0d
+    IF (ASSOCIATED(ptr_i0d) .AND. ptr_i0d == 1_i1) THEN
+      ptr_l0d => true_value
+    ELSE
+      ptr_l0d => false_value
+    END IF
 
   END FUNCTION t_tmx_var_get_ptr_l0d
 

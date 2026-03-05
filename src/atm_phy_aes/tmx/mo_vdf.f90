@@ -302,12 +302,6 @@ CONTAINS
 
     ! CALL message(routine, '')
 
-    DO iproc=1,SIZE(this%processes)
-
-      CALL this%processes(iproc)%p%Compute_diagnostics(datetime)
-
-    END DO
-
     ! If surface module is associated and land is included, check if Louis formula should be used over land.
     ! If not, copy the fraction of the land tile from the sfc process to the fract_land variable in the atmo process.
     ! Since the land-sea mask doesn't change over time, this is only done at the initial time step or after restart.
@@ -342,6 +336,12 @@ CONTAINS
         END SELECT
       END DO
     END IF
+
+    DO iproc=1,SIZE(this%processes)
+
+      CALL this%processes(iproc)%p%Compute_diagnostics(datetime)
+
+    END DO
 
     ! IF (ltimer) CALL timer_start(this%timer_diagnostics)
 

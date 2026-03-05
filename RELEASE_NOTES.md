@@ -14,6 +14,7 @@
 - Fix for double definition of cloud_num in microphysics
 - Correction to rain microphysics (evap and accretion)
 - Fix GPU async queues in TMX surface module
+- OpenACC, memory manager and some other fixes in TMX (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1296)
 - Simplification of the rte-rrtmgp radiation interface (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1087)
 - Fix loop indexing in TMX surface module (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1241)
 - Added options to not use Louis stability formula over land and/or sea ice

@@ -51,6 +51,8 @@ MODULE mo_tmx_surface_interface
 
 CONTAINS
 
+  ! Note: update_land is only called on OpenACC queue 1.
+  !
   SUBROUTINE update_land(jg, domain, datetime_old, dtime, cvd, &
     & dz, pres_srf, ptemp, pq, pres_air, rsfl, ssfl, &
     & rlds, rvds_dir, rnds_dir, rpds_dir, rvds_dif, rnds_dif, rpds_dif, &
@@ -259,6 +261,7 @@ CONTAINS
   END SUBROUTINE update_land
 
   SUBROUTINE update_sea_ice(domain, dtime, &
+    & nvalid, indices, &
     & old_tsfc, &
     & lwflx_net, swflx_net, lhflx, shflx, &
     & ssfl, ice_thickness, &
@@ -274,6 +277,9 @@ CONTAINS
 
     TYPE(t_domain), INTENT(in), POINTER :: domain
     REAL(wp), INTENT(in) :: dtime
+    INTEGER,  INTENT(in)  :: &
+      & nvalid(:), &
+      & indices(:,:)
     REAL(wp), INTENT(in), DIMENSION(:,:) :: &
       & old_tsfc,       &
       & lwflx_net,      &
@@ -299,7 +305,7 @@ CONTAINS
     INTEGER, INTENT(IN), OPTIONAL :: opt_acc_async_queue
     INTEGER :: acc_async_queue
 
-    INTEGER :: jb, jc, jcs, jce, kice
+    INTEGER :: jb, jc, jls, jcs, jce, kice
     REAL(wp), DIMENSION(domain%nproma) :: &
       & Tfw, nonsolar_flux, dnonsolar_flux_dt, &
       & T1, T2 !< Dummies, not used
@@ -311,29 +317,35 @@ CONTAINS
     !$ACC DATA CREATE(Tfw, nonsolar_flux, dnonsolar_flux_dt, T1, T2) ASYNC(acc_async_queue)
 
 !$OMP PARALLEL
-    CALL init(new_tsfc,  lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
-    CALL init(q_top,     lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
-    CALL init(q_bot,     lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
-    CALL init(albvisdir, lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
-    CALL init(albvisdif, lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
-    CALL init(albnirdir, lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
-    CALL init(albnirdif, lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
-    CALL init(T1,        lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
-    CALL init(T2,        lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
+    CALL init(new_tsfc, Tf,      lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
+    CALL init(q_top,             lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
+    CALL init(q_bot,             lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
+    CALL init(albvisdir,         lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
+    CALL init(albvisdif,         lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
+    CALL init(albnirdir,         lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
+    CALL init(albnirdif,         lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
 !$OMP END PARALLEL
 
     kice = 1
 
-!$OMP PARALLEL DO PRIVATE(jb, jcs, jce, jc, Tfw, nonsolar_flux, dnonsolar_flux_dt) ICON_OMP_DEFAULT_SCHEDULE
+!$OMP PARALLEL DO PRIVATE(jb, jcs, jce, jls, jc, Tfw, T1, T2, nonsolar_flux, dnonsolar_flux_dt) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = domain%i_startblk_c,domain%i_endblk_c
       jcs = domain%i_startidx_c(jb)
       jce = domain%i_endidx_c(jb)
       !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(acc_async_queue)
       DO jc = jcs, jce
         Tfw(jc) = Tf
+        T1(jc) = 0._wp
+        T2(jc) = 0._wp
+        nonsolar_flux(jc) = 0._wp
+        dnonsolar_flux_dt(jc) = 0._wp
+      END DO
+      !$ACC END PARALLEL LOOP
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(acc_async_queue) PRIVATE(jc)
+      DO jls = 1, nvalid(jb)
+        jc = indices(jls,jb)
         nonsolar_flux(jc) = lwflx_net(jc,jb) + lhflx(jc,jb) + shflx(jc,jb)
         dnonsolar_flux_dt(jc) = -4._wp * emissivity(jc,jb) * stbo * old_tsfc(jc,jb)**3._wp
-
         new_tsfc(jc,jb) = old_tsfc(jc,jb) - tmelt
       END DO
       !$ACC END PARALLEL LOOP
@@ -361,8 +373,9 @@ CONTAINS
       ! In coupled experiments this is done by the ocean model in either
       ! ice_growth_zerolayer or ice_growth_winton.
       IF ( .NOT. is_coupled_to_ocean() ) THEN
-        !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(acc_async_queue)
-        DO jc = jcs, jce
+        !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(acc_async_queue) PRIVATE(jc)
+        DO jls = 1, nvalid(jb)
+          jc = indices(jls,jb)
           ! Snowfall on ice - no ice => no snow
           IF (ice_thickness(jc,jb) > 0._wp) THEN
             ! Snow only falls when it's below freezing
@@ -379,7 +392,8 @@ CONTAINS
       ENDIF
 
       !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(acc_async_queue)
-      DO jc=jcs,jce
+      DO jls = 1, nvalid(jb)
+        jc = indices(jls,jb)
         new_tsfc(jc,jb) = new_tsfc(jc,jb) + tmelt
       END DO
       !$ACC END PARALLEL LOOP

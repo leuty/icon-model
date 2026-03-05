@@ -20,6 +20,7 @@
 MODULE mo_tmx_smagorinsky
 
   USE mo_kind,                ONLY: wp, vp
+  USE mo_exception,           ONLY: message
   USE mo_tmx_field_class,     ONLY: t_domain
   USE mo_vdf_atmo_memory,     ONLY: t_vdf_atmo_config, t_vdf_atmo_inputs, t_vdf_atmo_diags
   USE mo_model_domain,        ONLY: t_patch
@@ -27,6 +28,7 @@ MODULE mo_tmx_smagorinsky
   USE mo_loopindices,         ONLY: get_indices_c
   USE mo_sync,                ONLY: SYNC_C, sync_patch_array
   USE mo_physical_constants,  ONLY: grav,rgrav
+  USE mo_fortran_tools,       ONLY: init
 
 #ifdef _OPENACC
   use openacc
@@ -45,17 +47,6 @@ MODULE mo_tmx_smagorinsky
 
   CHARACTER(len=*), PARAMETER :: modname = 'mo_tmx_smagorinsky'
 
-  ! PROCEDURE(stability_interface), POINTER :: compute_stability_term => NULL()
-  ! ABSTRACT INTERFACE
-  !  FUNCTION stability_interface(mech_prod,bruvais,rturb_prandtl,jb,jc,jk) result(stability_term)
-  !    IMPORT    :: wp
-  !    REAL(wp), INTENT(in), POINTER :: mech_prod(:,:,:), bruvais(:,:,:)
-  !    REAL(wp), INTENT(in), POINTER :: rturb_prandtl
-  !    INTEGER,  INTENT(in)          :: jb,jc,jk
-  !    REAL(wp) :: stability_term
-  !  END FUNCTION stability_interface
-  ! END INTERFACE
-
   CONTAINS
     !============================================================================
     SUBROUTINE Smagorinsky_init(domain,config,inputs,diagnostics)
@@ -70,6 +61,10 @@ MODULE mo_tmx_smagorinsky
       REAL(wp), POINTER, DIMENSION(:,:)   :: scaling_factor_louis
       REAL(wp), POINTER :: smag_constant, max_turb_scale
       LOGICAL,  POINTER :: use_louis
+
+      CHARACTER(len=*), PARAMETER :: routine = modname//':Smagorinsky_init'
+
+      CALL message(routine, '')
 
       mixing_length_sq  => diagnostics%mix_len_sq%Get_ptr_r3d()
 
@@ -87,13 +82,10 @@ MODULE mo_tmx_smagorinsky
       IF (use_louis) THEN
 
         scaling_factor_louis  => diagnostics%louis_factor%Get_ptr_r2d()
-        __acc_attach(scaling_factor_louis)
 
         ! compute scaling_factor_louis in init!
         CALL compute_scaling_factor_louis(domain,scaling_factor_louis)
 
-      !ELSE
-        !compute_stability_term => compute_stability_term_classic
       END IF
 
     END SUBROUTINE Smagorinsky_init
@@ -117,11 +109,16 @@ MODULE mo_tmx_smagorinsky
       REAL(wp),       INTENT(in)    :: smag_constant, max_turb_scale
       REAL(wp), DIMENSION(:,:,:), INTENT(in)    :: gepot_agl_ic
       REAL(vp), DIMENSION(:,:,:), INTENT(in)    :: dzh
-      REAL(wp), DIMENSION(:,:,:), INTENT(inout) :: mixing_length_sq
+      REAL(wp), DIMENSION(:,:,:), INTENT(out)   :: mixing_length_sq
 
       REAL(wp)  :: kappa, les_filter, z_mc
       INTEGER :: jg, jk, jb, jc
+      INTEGER :: rl_start, rl_end, i_startblk, i_endblk, i_startidx, i_endidx
       INTEGER :: nlevp1
+
+      CHARACTER(len=*), PARAMETER :: routine = modname//':compute_mixing_length'
+
+      ! CALL message(routine, '')
 
       ! von Karman constant
       kappa = 0.4_wp
@@ -129,11 +126,23 @@ MODULE mo_tmx_smagorinsky
       jg     = domain%patch%id
       nlevp1 = domain%nlev + 1
 
+      rl_start   = 3
+      rl_end     = min_rlcell_int
+      i_startblk = domain%patch%cells%start_block(rl_start)
+      i_endblk   = domain%patch%cells%end_block(rl_end)
+
 !$OMP PARALLEL
-!$OMP DO PRIVATE(jb,jc,jk,z_mc,les_filter) ICON_OMP_DEFAULT_SCHEDULE
-      DO jb = domain%i_startblk_c, domain%i_endblk_c
+      CALL init(mixing_length_sq, lacc=.TRUE.)
+!$OMP END PARALLEL
+
+!$OMP PARALLEL
+!$OMP DO PRIVATE(jb,jc,jk,i_startidx, i_endidx, z_mc,les_filter) ICON_OMP_DEFAULT_SCHEDULE
+      DO jb = i_startblk,i_endblk
+        CALL get_indices_c(domain%patch, jb, i_startblk, i_endblk, &
+          &                i_startidx, i_endidx, rl_start, rl_end)
+        !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR COLLAPSE(2) PRIVATE(z_mc, les_filter) ASYNC(1)
         DO jk = 1 , nlevp1
-          DO jc = domain%i_startidx_c(jb), domain%i_endidx_c(jb)
+          DO jc = i_startidx, i_endidx
             z_mc  = gepot_agl_ic(jc,jk,jb) * rgrav
 
             les_filter =  smag_constant           &
@@ -146,11 +155,10 @@ MODULE mo_tmx_smagorinsky
 
           END DO
         END DO
+        !$ACC END PARALLEL LOOP
       END DO
 !$OMP END DO NOWAIT
 !$OMP END PARALLEL
-
-    !$ACC UPDATE DEVICE(mixing_length_sq)
 
     END SUBROUTINE compute_mixing_length
     !============================================================================
@@ -162,15 +170,27 @@ MODULE mo_tmx_smagorinsky
       TYPE(t_domain),           INTENT(in)    :: domain
       REAL(wp), DIMENSION(:,:), INTENT(inout) :: scaling_factor_louis
 
-      INTEGER                               :: jb,jc
+      INTEGER :: jb, jc
+      INTEGER :: rl_start, rl_end, i_startblk, i_endblk, i_startidx, i_endidx
 
       ! Global mean of cell area for R2B8 [m]
       REAL(wp), PARAMETER :: mean_area_R2B8 = 97294071.23714285_wp
 
-!$OMP PARALLEL DO PRIVATE(jb,jc) ICON_OMP_DEFAULT_SCHEDULE
-      DO jb = domain%i_startblk_c, domain%i_endblk_c
+      CHARACTER(len=*), PARAMETER :: routine = modname//':compute_scaling_factor_louis'
+
+      ! CALL message(routine, '')
+
+      rl_start   = 3
+      rl_end     = min_rlcell_int
+      i_startblk = domain%patch%cells%start_block(rl_start)
+      i_endblk   = domain%patch%cells%end_block(rl_end)
+
+!$OMP PARALLEL DO PRIVATE(jb, jc, i_startidx, i_endidx) ICON_OMP_DEFAULT_SCHEDULE
+      DO jb = i_startblk, i_endblk
+        CALL get_indices_c(domain%patch, jb, i_startblk, i_endblk, &
+          &                i_startidx, i_endidx, rl_start, rl_end)
         !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(1)
-        DO jc = domain%i_startidx_c(jb), domain%i_endidx_c(jb)
+        DO jc = i_startidx, i_endidx
           scaling_factor_louis(jc,jb) = mean_area_R2B8 / domain%area(jc,jb)
         END DO
         !$ACC END PARALLEL LOOP
@@ -201,7 +221,6 @@ MODULE mo_tmx_smagorinsky
       scaling_factor_louis,       &
       fract_land,                 &
       fract_ice,                  &
-      patch,                      &
       km_ic,                      &
       kh_ic                       &
       )
@@ -211,7 +230,6 @@ MODULE mo_tmx_smagorinsky
       REAL(wp), INTENT(in), DIMENSION(:,:)    :: scaling_factor_louis, fract_land, fract_ice
       REAL(wp), INTENT(in) :: rturb_prandtl, louis_constant_b
       LOGICAL,  INTENT(in) :: use_louis, use_louis_land, use_louis_ice
-      TYPE(t_patch), INTENT(in) :: patch
 
       REAL(wp), POINTER, INTENT(inout), DIMENSION(:,:,:) :: km_ic, kh_ic
 
@@ -225,12 +243,12 @@ MODULE mo_tmx_smagorinsky
 
       rl_start   = 3
       rl_end     = min_rlcell_int
-      i_startblk = patch%cells%start_block(rl_start)
-      i_endblk   = patch%cells%end_block(rl_end)
+      i_startblk = domain%patch%cells%start_block(rl_start)
+      i_endblk   = domain%patch%cells%end_block(rl_end)
 
 !$OMP PARALLEL DO PRIVATE(jb, jk, jc, i_startidx, i_endidx, stability_term) ICON_OMP_DEFAULT_SCHEDULE
       DO jb = i_startblk,i_endblk
-        CALL get_indices_c(patch, jb, i_startblk, i_endblk, &
+        CALL get_indices_c(domain%patch, jb, i_startblk, i_endblk, &
           &                i_startidx, i_endidx, rl_start, rl_end)
 
         !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR COLLAPSE(2) ASYNC(1) &
@@ -276,10 +294,10 @@ MODULE mo_tmx_smagorinsky
       END DO
 !$OMP END PARALLEL DO
 
-      !$ACC WAIT(1)
+     !$ACC WAIT(1)
 
-      CALL sync_patch_array(SYNC_C, patch, kh_ic, lacc=.TRUE.)
-      CALL sync_patch_array(SYNC_C, patch, km_ic, lacc=.TRUE.)
+      CALL sync_patch_array(SYNC_C, domain%patch, kh_ic, lacc=.TRUE.)
+      CALL sync_patch_array(SYNC_C, domain%patch, km_ic, lacc=.TRUE.)
 
     END SUBROUTINE Smagorinsky_model
     !
