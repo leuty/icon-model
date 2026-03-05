@@ -75,6 +75,7 @@
   - Added interactive nitrogen and phosphorus flags in soil biogeochemistry
   - Remove QUINCY code parts not required in ICON-Land
 - Cleaned up the use of mo_util_string routines
+- Refactored the calculation of global diagnostics and ported to GPU
 - Added a script to process ERA5 data into ICON-Land standalone forcing
 - Update of the script to equilibrate jsbach humus carbon pools
 
