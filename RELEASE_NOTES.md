@@ -74,6 +74,7 @@
   - Bugfix vegetation litter decomposition in the Carbon-only QUINCY model
   - Added interactive nitrogen and phosphorus flags in soil biogeochemistry
   - Remove QUINCY code parts not required in ICON-Land
+- Cleaned up the use of mo_util_string routines
 - Added a script to process ERA5 data into ICON-Land standalone forcing
 - Update of the script to equilibrate jsbach humus carbon pools
 

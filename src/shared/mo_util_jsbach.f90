@@ -1293,11 +1293,13 @@ END MODULE mo_jsb_grid_iface
 MODULE mo_jsb_utils_iface
 
   USE mo_fortran_tools, ONLY: assign_if_present, assign_if_present_allocatable
+  USE mo_util_string,   ONLY: toupper, tolower, int2string, real2string, logical2string, separator, one_of_str => one_of
 
   IMPLICIT NONE
   PRIVATE
 
   PUBLIC :: assign_if_present, assign_if_present_allocatable
+  PUBLIC :: toupper, tolower, int2string, real2string, logical2string, separator, one_of_str
 
 END MODULE mo_jsb_utils_iface
 
