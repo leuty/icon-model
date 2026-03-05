@@ -310,28 +310,6 @@ iconbot:
       changes:
         - ${ICONBOT_CONFIG_REL_PATH}
 
-doc:namelist:
-  stage: basic
-  script:
-    - cd doc/Namelist_overview
-    - pdflatex Namelist_overview.tex
-    # needs to be called a 2nd time for generating the ToC
-    - pdflatex Namelist_overview.tex
-  artifacts:
-    paths:
-      - doc/Namelist_overview/Namelist_overview.pdf
-    expire_in: 1 day
-  tags:
-    - latex
-  rules:
-    - if: $CI_PROJECT_PATH == "icon/icon-model"
-      when: never
-    - if: $CI_PIPELINE_SOURCE == "web"
-      when: manual
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-      changes:
-        - doc/Namelist_overview/*.tex
-
 doc:html:check:
   stage: basic
   extends: .common:html

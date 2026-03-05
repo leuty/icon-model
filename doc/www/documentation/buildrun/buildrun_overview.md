@@ -19,7 +19,7 @@ The sections of the **ICON User Manual** are:
 [](ref_buildrun_supportedconf)
 : List of supported configurations, including example input data which can be used to perform first simulations.
 
-{{ '[Namelist Overview]({}/doc/Namelist_overview/Namelist_overview.pdf)'.format(base_url) }}
+[Namelist Overview](ref_buildrun_nml)
 : Description of the available namelist options in ICON.
 
 [](ref_buildrun_environments)

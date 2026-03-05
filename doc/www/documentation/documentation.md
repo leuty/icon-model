@@ -19,6 +19,7 @@ This website contains a collection of ICON documentation including references to
 [](ref_buildrun_running)  
 [](ref_buildrun_supportedconf)  
 [](ref_buildrun_environments)  
+[Namelist Overview](ref_buildrun_nml)  
 [](ref_buildrun_faq)
 :::
 

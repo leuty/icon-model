@@ -11,7 +11,7 @@ contribute/development_guidelines.md
 ICON is a flexible, scalable, high-performance modelling framework for weather, climate and environmental prediction that provides actionable information for society and advances our understanding of the Earth's climate system.
 
 **Useful links:**
-{{ '[Namelist Overview]({}/doc/Namelist_overview/Namelist_overview.pdf)'.format(base_url) }},
+[Namelist Overview](ref_buildrun_nml),
 [Deprecated Features](ref_infrastructure_deprecated),
 [FAQ](ref_buildrun_faq),
 [Community Newsletter](https://www.icon-model.org/news/community-newsletter)
