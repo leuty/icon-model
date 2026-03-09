@@ -823,7 +823,7 @@ CONTAINS
 #endif
         END DO  ! end loop over edges
       END DO  ! end loop over levels
-      !$ACC END PARALLEL
+      !$ACC END PARALLEL LOOP
     END DO  ! end loop over blocks
     !$ACC WAIT(1)
 !ICON_OMP_END_DO NOWAIT

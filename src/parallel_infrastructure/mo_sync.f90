@@ -3032,7 +3032,7 @@ FUNCTION order_insensit_sum_sp(vals, num_vals, mpi_comm, lacc) RESULT(global_sum
      isum_1 = 0_i8
      isum_2 = 0_i8
      ! Get the maximum absolute value of all numbers.
-     !$ACC PARALLEL DEFAULT(PRESENT) REDUCTION(MAX: abs_max) ASYNC(1) IF(lzacc)
+     !$ACC PARALLEL DEFAULT(PRESENT) COPY(abs_max) ASYNC(1) IF(lzacc)
      !$ACC LOOP GANG VECTOR REDUCTION(MAX: abs_max)
      DO i=1,num_vals
         abs_max = MAX(abs_max, ABS(vals(i)))
@@ -3070,7 +3070,7 @@ FUNCTION order_insensit_sum_sp(vals, num_vals, mpi_comm, lacc) RESULT(global_sum
      r_fact = SCALE(1._sp,iexp-30) ! 1./fact
 
      ! Sum up all numbers as scaled integers
-     !$ACC PARALLEL DEFAULT(PRESENT) REDUCTION(+: isum_1, isum_2) ASYNC(1) IF(lzacc)
+     !$ACC PARALLEL DEFAULT(PRESENT) COPY(isum_1, isum_2) ASYNC(1) IF(lzacc)
      !$ACC LOOP GANG VECTOR PRIVATE(rval, ival1, ival2) REDUCTION(+: isum_1, isum_2)
      DO i=1,num_vals
 
@@ -3161,7 +3161,7 @@ FUNCTION order_insensit_sum_dp(vals, num_vals, mpi_comm, lacc) RESULT(global_sum
    isum_1 = 0_i8
    isum_2 = 0_i8
    ! Get the maximum absolute value of all numbers.
-   !$ACC PARALLEL DEFAULT(PRESENT) REDUCTION(MAX: abs_max) ASYNC(1) IF(lzacc)
+   !$ACC PARALLEL DEFAULT(PRESENT) COPY(abs_max) ASYNC(1) IF(lzacc)
    !$ACC LOOP GANG VECTOR REDUCTION(MAX: abs_max)
    DO i=1,num_vals
       abs_max = MAX(abs_max, ABS(vals(i)))
@@ -3199,7 +3199,7 @@ FUNCTION order_insensit_sum_dp(vals, num_vals, mpi_comm, lacc) RESULT(global_sum
    r_fact = SCALE(1._dp,iexp-30) ! 1./fact
 
    ! Sum up all numbers as scaled integers
-   !$ACC PARALLEL DEFAULT(PRESENT) REDUCTION(+: isum_1, isum_2) ASYNC(1) IF(lzacc)
+   !$ACC PARALLEL DEFAULT(PRESENT) COPY(isum_1, isum_2) ASYNC(1) IF(lzacc)
    !$ACC LOOP GANG VECTOR PRIVATE(rval, ival1, ival2) REDUCTION(+: isum_1, isum_2)
    DO i=1,num_vals
 

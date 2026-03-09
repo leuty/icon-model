@@ -280,7 +280,7 @@ CONTAINS
       ELSE
         nlen = npromz_c
       ENDIF
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+      !$ACC PARALLEL DEFAULT(PRESENT) COPY(z_total_mass, z_kin_energy, z_int_energy, z_pot_energy, z_dry_mass) ASYNC(1)
       !$ACC LOOP GANG VECTOR COLLAPSE(2) PRIVATE(z_volume) &
       !$ACC   REDUCTION(+, z_total_mass, z_kin_energy, z_int_energy, z_pot_energy, z_dry_mass)
       DO jk = 1, nlev
@@ -301,7 +301,7 @@ CONTAINS
       ENDDO
       !$ACC END PARALLEL
 
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+      !$ACC PARALLEL DEFAULT(PRESENT) COPY(z_mean_surfp) ASYNC(1)
       !$ACC LOOP GANG VECTOR COLLAPSE(2) REDUCTION(+, z_mean_surfp)
       DO jc = 1, nlen
         z_mean_surfp = z_mean_surfp + diag%pres_sfc(jc,jb)*patch%cells%area(jc,jb) /  &
@@ -686,7 +686,7 @@ CONTAINS
     LOGICAL, INTENT(IN), OPTIONAL :: lacc ! If true, use openacc
 
     ! local variables
-#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 19
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 20
     ! ACCWA (Cray Fortran <= 17.0.1) using automatic arrays causes a segmentation fault
     REAL(wp), ALLOCATABLE :: vn_aux(:,:), w_aux(:,:)
 #else
@@ -707,7 +707,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     CALL set_acc_host_or_device(lzacc, lacc)
 
-#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 19
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 20
     ! ACCWA (Cray Fortran <= 17.0.1) using automatic arrays causes a segmentation fault
     ALLOCATE(vn_aux(patch%edges%end_blk(min_rledge_int,MAX(1,patch%n_childdom)),patch%nlev))
     ALLOCATE(w_aux (patch%cells%end_blk(min_rlcell_int,MAX(1,patch%n_childdom)),patch%nlevp1))
@@ -880,7 +880,7 @@ CONTAINS
                          grf_bdywidth_e+1, min_rledge_int)
 
       max_hcfl_tmp = 0._wp
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+      !$ACC PARALLEL DEFAULT(PRESENT) COPY(max_hcfl_tmp) ASYNC(1)
       !$ACC LOOP GANG VECTOR COLLAPSE(2) REDUCTION(MAX: max_hcfl_tmp)
       DO jk = 1, nlev_hcfl
         DO je = i_startidx, i_endidx

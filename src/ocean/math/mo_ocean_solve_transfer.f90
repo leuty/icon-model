@@ -15,6 +15,8 @@
 #if (defined(_OPENMP) && defined(OCE_SOLVE_OMP))
 #include "omp_definitions.inc"
 #define PURE_OR_OMP
+#elif (defined(_OPENACC))
+#define PURE_OR_OMP
 #else
 #define PURE_OR_OMP PURE
 #endif

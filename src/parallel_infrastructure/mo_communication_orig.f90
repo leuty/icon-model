@@ -1068,7 +1068,13 @@ CONTAINS
     ENDIF
 
     ! Send our data
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 20
+    ! ASYNC UPDATEs are broken with Cray compiler
+    !$ACC WAIT
+    !$ACC UPDATE HOST(send_buf) IF(use_staging)
+#else
     !$ACC UPDATE HOST(send_buf) ASYNC(get_comm_acc_queue()) IF(use_staging)
+#endif
     IF (lzacc) CALL acc_wait_comms(get_comm_acc_queue())
     IF (iorder_sendrecv == 1) THEN
       DO np = 1, p_pat%np_send ! loop over PEs where to send the data
@@ -1113,7 +1119,13 @@ CONTAINS
 
     IF (lzacc .and. .not. use_staging) CALL comm_group_end()
 
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 20
+    ! ASYNC UPDATEs are broken with Cray compiler
+    !$ACC WAIT
+    !$ACC UPDATE DEVICE(recv_buf) IF(use_staging)
+#else
     !$ACC UPDATE DEVICE(recv_buf) ASYNC(get_comm_acc_queue()) IF(use_staging)
+#endif
     stop_sync_timer(timer_exch_data_wait)
 
     IF (itype_exch_barrier == 2 .OR. itype_exch_barrier == 3) THEN
@@ -1324,7 +1336,13 @@ CONTAINS
     ENDIF
 
     ! Send our data
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 20
+    ! ASYNC UPDATEs are broken with Cray compiler
+    !$ACC WAIT
+    !$ACC UPDATE HOST(send_buf) IF(use_staging)
+#else
     !$ACC UPDATE HOST(send_buf) ASYNC(get_comm_acc_queue()) IF(use_staging)
+#endif
     IF (lzacc) CALL acc_wait_comms(get_comm_acc_queue())
     IF (iorder_sendrecv == 1) THEN
       DO np = 1, p_pat%np_send ! loop over PEs where to send the data
@@ -1370,7 +1388,13 @@ CONTAINS
 
     IF (lzacc .and. .not. use_staging) CALL comm_group_end()
 
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 20
+    ! ASYNC UPDATEs are broken with Cray compiler
+    !$ACC WAIT
+    !$ACC UPDATE DEVICE(recv_buf) IF(use_staging)
+#else
     !$ACC UPDATE DEVICE(recv_buf) ASYNC(get_comm_acc_queue()) IF(use_staging)
+#endif
     stop_sync_timer(timer_exch_data_wait)
 
     IF (itype_exch_barrier == 2 .OR. itype_exch_barrier == 3) THEN
@@ -1776,8 +1800,14 @@ CONTAINS
     ENDIF
 
     ! Send our data
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 20
+    ! ASYNC UPDATEs are broken with Cray compiler
+    !$ACC WAIT
+    !$ACC UPDATE HOST(send_buf) IF(use_staging)
+#else
     !$ACC UPDATE HOST(send_buf) ASYNC(1) IF(use_staging)
     !$ACC WAIT(1)
+#endif
     IF (iorder_sendrecv == 1) THEN
       DO np = 1, p_pat%np_send ! loop over PEs where to send the data
 
@@ -1819,7 +1849,13 @@ CONTAINS
     ! Wait for all outstanding requests to finish
     start_sync_timer(timer_exch_data_wait)
     CALL p_wait
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 20
+    ! ASYNC UPDATEs are broken with Cray compiler
+    !$ACC WAIT
+    !$ACC UPDATE DEVICE(recv_buf) IF(use_staging)
+#else
     !$ACC UPDATE DEVICE(recv_buf) ASYNC(1) IF(use_staging)
+#endif
     stop_sync_timer(timer_exch_data_wait)
 
     IF (itype_exch_barrier == 2 .OR. itype_exch_barrier == 3) THEN
@@ -2118,7 +2154,13 @@ CONTAINS
     ENDIF
 
     ! Send our data
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 20
+    ! ASYNC UPDATEs are broken with Cray compiler
+    !$ACC WAIT
+    !$ACC UPDATE HOST(send_buf) IF(use_staging)
+#else
     !$ACC UPDATE HOST(send_buf) ASYNC(get_comm_acc_queue()) IF(use_staging)
+#endif
     IF (lzacc) CALL acc_wait_comms(get_comm_acc_queue())
     IF (iorder_sendrecv == 1) THEN
       DO np = 1, p_pat%np_send ! loop over PEs where to send the data
@@ -2161,7 +2203,13 @@ CONTAINS
     ! Wait for all outstanding requests to finish
     start_sync_timer(timer_exch_data_wait)
     CALL p_wait
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 20
+    ! ASYNC UPDATEs are broken with Cray compiler
+    !$ACC WAIT
+    !$ACC UPDATE DEVICE(recv_buf) IF(use_staging)
+#else
     !$ACC UPDATE DEVICE(recv_buf) ASYNC(get_comm_acc_queue()) IF(use_staging)
+#endif
     stop_sync_timer(timer_exch_data_wait)
 
     IF (itype_exch_barrier == 2 .OR. itype_exch_barrier == 3) THEN
@@ -2397,7 +2445,13 @@ CONTAINS
 #endif
 
     ! Send our data
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 20
+    ! ASYNC UPDATEs are broken with Cray compiler
+    !$ACC WAIT
+    !$ACC UPDATE HOST(send_buf) IF(use_staging)
+#else
     !$ACC UPDATE HOST(send_buf) ASYNC(get_comm_acc_queue()) IF(use_staging)
+#endif
     IF (lzacc) CALL acc_wait_comms(get_comm_acc_queue())
     IF (iorder_sendrecv == 1) THEN
       DO np = 1, p_pat%np_send ! loop over PEs where to send the data
@@ -2440,7 +2494,13 @@ CONTAINS
     ! Wait for all outstanding requests to finish
     start_sync_timer(timer_exch_data_wait)
     CALL p_wait
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 20
+    ! ASYNC UPDATEs are broken with Cray compiler
+    !$ACC WAIT
+    !$ACC UPDATE DEVICE(recv_buf) IF(use_staging)
+#else
     !$ACC UPDATE DEVICE(recv_buf) ASYNC(get_comm_acc_queue()) IF(use_staging)
+#endif
     stop_sync_timer(timer_exch_data_wait)
 
     IF (lzacc .and. .not. use_staging) CALL comm_group_end()
@@ -2681,7 +2741,13 @@ CONTAINS
 #endif
 
     ! Send our data
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 20
+    ! ASYNC UPDATEs are broken with Cray compiler
+    !$ACC WAIT
+    !$ACC UPDATE HOST(send_buf) IF(use_staging)
+#else
     !$ACC UPDATE HOST(send_buf) ASYNC(get_comm_acc_queue()) IF(use_staging)
+#endif
     IF (lzacc) CALL acc_wait_comms(get_comm_acc_queue())
     IF (iorder_sendrecv == 1) THEN
       DO np = 1, p_pat%np_send ! loop over PEs where to send the data
@@ -2724,7 +2790,13 @@ CONTAINS
     ! Wait for all outstanding requests to finish
     start_sync_timer(timer_exch_data_wait)
     CALL p_wait
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 20
+    ! ASYNC UPDATEs are broken with Cray compiler
+    !$ACC WAIT
+    !$ACC UPDATE DEVICE(recv_buf) IF(use_staging)
+#else
     !$ACC UPDATE DEVICE(recv_buf) ASYNC(get_comm_acc_queue()) IF(use_staging)
+#endif
     stop_sync_timer(timer_exch_data_wait)
 
     IF (lzacc .and. .not. use_staging) CALL comm_group_end()
@@ -2804,7 +2876,7 @@ CONTAINS
     REAL(dp), POINTER :: send_buf_dp(:,:), recv_buf_dp(:,:)
     REAL(sp), POINTER :: send_buf_sp(:,:), recv_buf_sp(:,:)
 #else
-#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 19
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 20
     ! ACCWA (Cray Fortran <= 16.0.1.1) due to bug related to zero sized arrays
     ! automatic arrays cannot be used here CAST-33010
     REAL(dp), ALLOCATABLE :: send_buf_dp(:,:), recv_buf_dp(:,:)
@@ -2898,7 +2970,7 @@ CONTAINS
     !$ACC   PRESENT(recv_src, recv_dst_blk, recv_dst_idx, send_src_blk, send_src_idx) &
     !$ACC   ASYNC(get_comm_acc_queue()) IF(lzacc)
 #else
-#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 19
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 20
     ! ACCWA (Cray Fortran <= 16.0.1.1) due to bug related to zero sized arrays
     ! automatic arrays cannot be used here CAST-33010
     ALLOCATE(send_buf_dp(ndim2tot_dp,p_pat%n_send), recv_buf_dp(ndim2tot_dp,p_pat%n_recv))
@@ -3077,7 +3149,13 @@ CONTAINS
 #endif
 
     ! Send our data
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 20
+    ! ASYNC UPDATEs are broken with Cray compiler
+    !$ACC WAIT
+    !$ACC UPDATE HOST(send_buf_sp, send_buf_dp) IF(use_staging)
+#else
     !$ACC UPDATE HOST(send_buf_sp, send_buf_dp) ASYNC(get_comm_acc_queue()) IF(use_staging)
+#endif
     IF (lzacc) CALL acc_wait_comms(get_comm_acc_queue())
     IF (iorder_sendrecv == 1) THEN
       DO np = 1, p_pat%np_send ! loop over PEs where to send the data
@@ -3129,7 +3207,13 @@ CONTAINS
     ! Wait for all outstanding requests to finish
     start_sync_timer(timer_exch_data_wait)
     CALL p_wait
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 20
+    ! ASYNC UPDATEs are broken with Cray compiler
+    !$ACC WAIT
+    !$ACC UPDATE DEVICE(recv_buf_sp, recv_buf_dp) IF(use_staging)
+#else
     !$ACC UPDATE DEVICE(recv_buf_sp, recv_buf_dp) ASYNC(get_comm_acc_queue()) IF(use_staging)
+#endif
     stop_sync_timer(timer_exch_data_wait)
 
     IF (lzacc .and. .not. use_staging) CALL comm_group_end()
@@ -3202,7 +3286,7 @@ CONTAINS
     CALL acc_wait_comms(get_comm_acc_queue())
     !$ACC END DATA
 
-#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 19
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 20
     ! ACCWA (Cray Fortran <= 16.0.1.1) due to bug related to zero sized arrays
     ! automatic arrays cannot be used here CAST-33010
     DEALLOCATE(send_buf_dp, recv_buf_dp)
@@ -3366,8 +3450,14 @@ CONTAINS
 #endif
 
     ! Send our data
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 20
+    ! ASYNC UPDATEs are broken with Cray compiler
+    !$ACC WAIT
+    !$ACC UPDATE HOST(send_buf) IF(use_staging)
+#else
     !$ACC UPDATE HOST(send_buf) ASYNC(1) IF(use_staging)
     !$ACC WAIT(1)
+#endif
     IF (iorder_sendrecv == 1) THEN
       DO np = 1, p_pat%np_send ! loop over PEs where to send the data
 
@@ -3411,7 +3501,13 @@ CONTAINS
     CALL p_wait
     stop_sync_timer(timer_exch_data_wait)
 
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 20
+    ! ASYNC UPDATEs are broken with Cray compiler
+    !$ACC WAIT
+    !$ACC UPDATE DEVICE(recv_buf) IF(use_staging)
+#else
     !$ACC UPDATE DEVICE(recv_buf) ASYNC(1) IF(use_staging)
+#endif
 
     IF (itype_exch_barrier == 2 .OR. itype_exch_barrier == 3) THEN
       start_sync_timer(timer_barrier)
@@ -3613,8 +3709,14 @@ CONTAINS
 #endif
 
     ! Send our data
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 20
+    ! ASYNC UPDATEs are broken with Cray compiler
+    !$ACC WAIT
+    !$ACC UPDATE HOST(send_buf) IF(use_staging)
+#else
     !$ACC UPDATE HOST(send_buf) ASYNC(1) IF(use_staging)
     !$ACC WAIT(1)
+#endif
     IF (iorder_sendrecv == 1) THEN
       DO np = 1, p_pat%np_send ! loop over PEs where to send the data
 
@@ -3658,7 +3760,13 @@ CONTAINS
     CALL p_wait
     stop_sync_timer(timer_exch_data_wait)
 
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 20
+    ! ASYNC UPDATEs are broken with Cray compiler
+    !$ACC WAIT
+    !$ACC UPDATE DEVICE(recv_buf) IF(use_staging)
+#else
     !$ACC UPDATE DEVICE(recv_buf) ASYNC(1) IF(use_staging)
+#endif
 
     IF (itype_exch_barrier == 2 .OR. itype_exch_barrier == 3) THEN
       start_sync_timer(timer_barrier)
@@ -4012,8 +4120,14 @@ CONTAINS
             ENDIF
           ENDDO
 
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 20
+    ! ASYNC UPDATEs are broken with Cray compiler
+          !$ACC WAIT
+          !$ACC UPDATE HOST(auxs_buf(:,ioffset+1:isum)) IF(use_staging)
+#else
           !$ACC UPDATE HOST(auxs_buf(:,ioffset+1:isum)) ASYNC(1) IF(use_staging)
           !$ACC WAIT(1)
+#endif
 
           IF(isum > ioffset) CALL p_send(auxs_buf(1,ioffset+1), pid, 1, &
             p_count=(isum-ioffset)*ndim2tot, comm=p_pat_coll%patterns(1)%p%comm, use_g2g=use_g2g)
@@ -4040,8 +4154,15 @@ CONTAINS
             ENDIF
           ENDDO
 
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 20
+    ! ASYNC UPDATEs are broken with Cray compiler
+          !$ACC WAIT
+          !$ACC UPDATE HOST(auxs_buf(:,ioffset+1:isum)) IF(use_staging)
+          !$ACC WAIT(1)
+#else
           !$ACC UPDATE HOST(auxs_buf(:,ioffset+1:isum)) ASYNC(1) IF(use_staging)
           !$ACC WAIT(1)
+#endif
 
           IF(isum > ioffset) CALL p_isend(auxs_buf(1,ioffset+1), pid, 1, &
             p_count=(isum-ioffset)*ndim2tot, comm=p_pat_coll%patterns(1)%p%comm, use_g2g=use_g2g)
@@ -4097,8 +4218,14 @@ CONTAINS
             ENDIF
           ENDDO
 
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 20
+    ! ASYNC UPDATEs are broken with Cray compiler
+          !$ACC WAIT
+          !$ACC UPDATE HOST(auxs_buf(:,ioffset+1:isum)) IF(use_staging)
+#else
           !$ACC UPDATE HOST(auxs_buf(:,ioffset+1:isum)) ASYNC(1) IF(use_staging)
           !$ACC WAIT(1)
+#endif
 !$OMP MASTER
           IF(isum > ioffset) CALL p_isend(auxs_buf(1,ioffset+1), pid, 1, &
             p_count=(isum-ioffset)*ndim2tot, comm=p_pat_coll%patterns(1)%p%comm, use_g2g=use_g2g)
@@ -4123,7 +4250,13 @@ CONTAINS
         stop_sync_timer(timer_barrier)
       ENDIF
 
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 20
+    ! ASYNC UPDATEs are broken with Cray compiler
+      !$ACC WAIT
+      !$ACC UPDATE DEVICE(auxr_buf) IF(use_staging)
+#else
       !$ACC UPDATE DEVICE(auxr_buf) ASYNC(1) IF(use_staging)
+#endif
 
       ! Copy exchanged data back to receive buffer
 
@@ -4530,8 +4663,14 @@ CONTAINS
             ENDIF
           ENDDO
 
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 20
+    ! ASYNC UPDATEs are broken with Cray compiler
+          !$ACC WAIT
+          !$ACC UPDATE HOST(auxs_buf(:,ioffset+1:isum)) IF(use_staging)
+#else
           !$ACC UPDATE HOST(auxs_buf(:,ioffset+1:isum)) ASYNC(1) IF(use_staging)
           !$ACC WAIT(1)
+#endif
 
           IF(isum > ioffset) CALL p_send(auxs_buf(1,ioffset+1), pid, 1, &
             p_count=(isum-ioffset)*ndim2tot, comm=p_pat_coll%patterns(1)%p%comm, use_g2g=use_g2g)
@@ -4558,8 +4697,14 @@ CONTAINS
             ENDIF
           ENDDO
 
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 20
+    ! ASYNC UPDATEs are broken with Cray compiler
+          !$ACC WAIT
+          !$ACC UPDATE HOST(auxs_buf(:,ioffset+1:isum)) IF(use_staging)
+#else
           !$ACC UPDATE HOST(auxs_buf(:,ioffset+1:isum)) ASYNC(1) IF(use_staging)
           !$ACC WAIT(1)
+#endif
 
           IF(isum > ioffset) CALL p_isend(auxs_buf(1,ioffset+1), pid, 1, &
             p_count=(isum-ioffset)*ndim2tot, comm=p_pat_coll%patterns(1)%p%comm, use_g2g=use_g2g)
@@ -4615,8 +4760,14 @@ CONTAINS
             ENDIF
           ENDDO
 
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 20
+    ! ASYNC UPDATEs are broken with Cray compiler
+          !$ACC WAIT
+          !$ACC UPDATE HOST(auxs_buf(:,ioffset+1:isum)) IF(use_staging)
+#else
           !$ACC UPDATE HOST(auxs_buf(:,ioffset+1:isum)) ASYNC(1) IF(use_staging)
           !$ACC WAIT(1)
+#endif
 !$OMP MASTER
           IF(isum > ioffset) CALL p_isend(auxs_buf(1,ioffset+1), pid, 1, &
             p_count=(isum-ioffset)*ndim2tot, comm=p_pat_coll%patterns(1)%p%comm, use_g2g=use_g2g)
@@ -4641,7 +4792,13 @@ CONTAINS
         stop_sync_timer(timer_barrier)
       ENDIF
 
+#if defined(_CRAYFTN) && _RELEASE_MAJOR <= 20
+    ! ASYNC UPDATEs are broken with Cray compiler
+      !$ACC WAIT
+      !$ACC UPDATE DEVICE(auxr_buf) IF(use_staging)
+#else
       !$ACC UPDATE DEVICE(auxr_buf) ASYNC(1) IF(use_staging)
+#endif
 
       ! Copy exchanged data back to receive buffer
 

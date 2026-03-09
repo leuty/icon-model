@@ -5575,7 +5575,7 @@ CONTAINS
     CALL init(s_nv, lacc=.TRUE.)
     CALL init(s_qv, lacc=.TRUE.)
 
-    !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) REDUCTION(MAX: cmax_temp)
+    !$ACC PARALLEL ASYNC(1) DEFAULT(PRESENT) COPY(cmax_temp)
     !$ACC LOOP SEQ
     DO k = kts, kte
       !$ACC LOOP GANG VECTOR PRIVATE(v_nv, v_qv, kk, dz_loc) REDUCTION(MAX: cmax_temp)

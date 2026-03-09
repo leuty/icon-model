@@ -71,9 +71,9 @@
 ### Externals
 
 - Added Memory Manager library 1.0.0 as external in externals/memman
-- Switch to YAC v3.14
 - Added Gravity waves parametrisation MS-GWaM as external in externals/msgwam
 - Switch to probtest v3.1
+- Switch to YAC v3.14.0_p1
 
 ### Infrastructure
 
@@ -124,8 +124,9 @@
 - Open mkexp section and polish supported configurations in the documentation (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1147)
 - Add contributing guidelines for Ragnarok (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1081)
 - Add shallow water example to supported configurations (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1190)
-- Fixing a CPU/GPU divergence by using a comparison with an epsilon, instead of 0._wp (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1896)
+- Fixing a CPU/GPU divergence by using a comparison with an epsilon, instead of 0.\_wp (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1896)
 - Add deprecated features section to the documentation (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1897)
+- Implemented workarounds to support Cray compiler 20 for AMD GPUs
 
 
 # Release notes for icon-2025.10-2

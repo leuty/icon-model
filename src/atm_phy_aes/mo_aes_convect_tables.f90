@@ -875,7 +875,7 @@ SUBROUTINE prepare_ua_index_spline(jg, name, jcs, size, temp, idx, zalpha, &
     ztmax = flucupmax
     IF (PRESENT(xi)) THEN
       znphase = 0.0_wp
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+      !$ACC PARALLEL DEFAULT(PRESENT) COPY(znphase) ASYNC(1)
       !$ACC LOOP GANG VECTOR PRIVATE(ztshft, ztt, ztest) REDUCTION(+: znphase) PRIVATE(zinbounds)
       DO jl = jcs,size
         ztshft = FSEL(tmelt-temp(jl),1.0_wp,0.0_wp)

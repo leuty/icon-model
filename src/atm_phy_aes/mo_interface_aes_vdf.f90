@@ -270,7 +270,7 @@ CONTAINS
     !$ACC   CREATE(zaa_btm, zbb, zbb_btm, zfactor_sfc, ddt_u, ddt_v) &
     !$ACC   CREATE(zthvvar, ztottevn, zch_tile, kedisp, tend_ua_vdf) &
     !$ACC   CREATE(tend_va_vdf, tend_wa_vdf, q_vdf, tend_qtrc_vdf, q_snocpymlt, zco2) &
-#if !(defined(_CRAYFTN) && _RELEASE_MAJOR <= 19)
+#if !(defined(_CRAYFTN) && _RELEASE_MAJOR <= 20)
     !ACCWA zero sized arrays are not properly supported (CAST-33010) and cause here
     ! weird "present" error
     !$ACC   CREATE(tend_qtrc_vdf_dummy) &
