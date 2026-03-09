@@ -1550,9 +1550,7 @@ CONTAINS
     TYPE(t_patch), POINTER :: p_p, patch0
     TYPE(p_t_patch), TARGET :: patches(0:n_lp)
     TYPE(t_ptr_2d_int)  :: multivar_2d_data_int(0:n_lp)
-    TYPE(t_ptr_2d_wp)  :: multivar_2d_data_wp(0:n_lp)
     TYPE(t_ptr_3d_int) :: multivar_3d_data_int(0:n_lp)
-    TYPE(t_ptr_3d_wp) :: multivar_3d_data_wp(0:n_lp)
     LOGICAL :: lhave_phys_id
 
 
@@ -1624,23 +1622,7 @@ CONTAINS
       END DO
     END IF
 
-    ! p_p%cells%edge_orientation(:,:,:)
-    DO ip = 0, n_lp
-      multivar_3d_data_wp(ip)%p => &
-        patches(ip)%p%cells%edge_orientation(:,:,1:max_cell_connectivity)
-    END DO
-    CALL read_2D_extdim(stream_id, on_cells, 'orientation_of_normal', &
-      &                 n_lp+1, fill_array=multivar_3d_data_wp(:), &
-      &                 start_extdim=1, end_extdim=max_cell_connectivity)
-
-    ! p_p%cells%area(:,:)
-    DO ip = 0, n_lp
-      multivar_2d_data_wp(ip)%p => patches(ip)%p%cells%area(:,:)
-    END DO
-    CALL read_2D(stream_id, on_cells, 'cell_area_p', n_lp+1, &
-      &          multivar_2d_data_wp(:))
-
-    ! p_p%edges%phys_id(:,:)
+   ! p_p%edges%phys_id(:,:)
     IF (ig > 1) THEN
       lhave_phys_id = nf90_inq_varid(ncid_grf, 'phys_edge_id', varid) == nf90_noerr
     ELSE
@@ -1698,6 +1680,173 @@ CONTAINS
         idx_no(multivar_3d_data_int(ip)%p(:,:,1:2))
     END DO
 
+   ! p_p%verts%neighbor_idx(:,:,:)
+    ! p_p%verts%neighbor_blk(:,:,:)
+    DO ip = 0, n_lp
+      multivar_3d_data_int(ip)%p => &
+        patches(ip)%p%verts%neighbor_idx(:,:,1:max_verts_connectivity)
+    END DO
+    CALL read_2D_extdim_int(stream_id, on_vertices, 'vertices_of_vertex', &
+      &                     n_lp+1, fill_array=multivar_3d_data_int(:), &
+      &                     start_extdim=1, end_extdim=max_verts_connectivity)
+    DO ip = 0, n_lp
+      CALL block_connectivity(&
+        patches(ip)%p%verts%neighbor_idx(:,:,1:max_verts_connectivity), &
+        patches(ip)%p%verts%neighbor_blk(:,:,1:max_verts_connectivity), &
+        patches(ip)%p%verts%decomp_info%glb2loc_index, &
+        SIZE(patches(ip)%p%verts%neighbor_idx, 2), &
+        patches(ip)%p%n_patch_verts, max_verts_connectivity)
+    END DO
+
+    ! p_p%verts%cell_idx(:,:,:)
+    ! p_p%verts%cell_blk(:,:,:)
+    DO ip = 0, n_lp
+      multivar_3d_data_int(ip)%p => &
+        patches(ip)%p%verts%cell_idx(:,:,1:max_verts_connectivity)
+    END DO
+    CALL read_2D_extdim_int(stream_id, on_vertices, 'cells_of_vertex', &
+      &                     n_lp+1, fill_array=multivar_3d_data_int(:), &
+      &                     start_extdim=1, end_extdim=max_verts_connectivity)
+    DO ip = 0, n_lp
+      CALL block_connectivity(&
+        patches(ip)%p%verts%cell_idx(:,:,1:max_verts_connectivity), &
+        patches(ip)%p%verts%cell_blk(:,:,1:max_verts_connectivity), &
+        patches(ip)%p%cells%decomp_info%glb2loc_index, &
+        SIZE(patches(ip)%p%verts%cell_idx, 2), &
+        patches(ip)%p%n_patch_verts, max_verts_connectivity)
+    END DO
+
+    ! p_p%verts%edge_idx(:,:,:)
+    ! p_p%verts%edge_blk(:,:,:)
+    DO ip = 0, n_lp
+      multivar_3d_data_int(ip)%p => &
+        patches(ip)%p%verts%edge_idx(:,:,1:max_verts_connectivity)
+    END DO
+    CALL read_2D_extdim_int(stream_id, on_vertices, 'edges_of_vertex', &
+      &                     n_lp+1, fill_array=multivar_3d_data_int(:), &
+      &                     start_extdim=1, end_extdim=max_verts_connectivity)
+    DO ip = 0, n_lp
+      CALL block_connectivity(&
+        patches(ip)%p%verts%edge_idx(:,:,1:max_verts_connectivity), &
+        patches(ip)%p%verts%edge_blk(:,:,1:max_verts_connectivity), &
+        patches(ip)%p%edges%decomp_info%glb2loc_index, &
+        SIZE(patches(ip)%p%verts%edge_idx, 2), &
+        patches(ip)%p%n_patch_verts, max_verts_connectivity)
+    END DO
+
+    ! p_p%verts%num_edges
+    DO ip = 0, n_lp
+      p_p => patches(ip)%p
+      IF (use_duplicated_connectivity) THEN
+        DO jv = 1, p_p%n_patch_verts
+          idx = idx_no(jv)
+          blk = blk_no(jv)
+          p_p%verts%num_edges(idx,blk) = &
+            COUNT((p_p%verts%edge_idx(idx,blk,1:max_verts_connectivity) &
+              &    /= p_p%verts%edge_idx(idx,blk,max_verts_connectivity)) .OR.&
+              &   (p_p%verts%edge_blk(idx,blk,1:max_verts_connectivity) &
+              &    /= p_p%verts%edge_blk(idx,blk,max_verts_connectivity))) + 1
+        END DO
+      ELSE
+        DO jv = 1, p_p%n_patch_verts
+          idx = idx_no(jv)
+          blk = blk_no(jv)
+          p_p%verts%num_edges(idx,blk) = &
+            COUNT(p_p%verts%edge_idx(idx,blk,1:max_verts_connectivity) /= 0)
+        END DO
+      END IF
+    END DO
+
+    ! read geometry parameters
+    patch0 => patches(0)%p
+    return_status = parallel_read_geometry_info(ncid, patch0%geometry_info)
+    IF (return_status /= 0 ) THEN
+      ! the information was missing from the file (ie old grids)
+      ! calclulate basic settings
+!       CALL finish("","did not read from file")
+      CALL set_missing_geometry_info(patch0)
+    ENDIF
+    CALL set_grid_geometry_derived_info(patch0%geometry_info)
+
+    DO ip = 1, n_lp
+      CALL copy_grid_geometry_info(from_geometry_info = patch0%geometry_info, &
+        &                     to_geometry_info = patches(ip)%p%geometry_info)
+!       write(0,*) "-------------------------------------------------------"
+!       write(0,*) "area, char_length=", p_p%geometry_info%mean_cell_area, &
+!         & p_p%geometry_info%mean_characteristic_length
+!       write(0,*) "-------------------------------------------------------"
+    ENDDO
+    !-------------------------------------------------
+
+    CALL read_grid_geometry(stream_id, ncid, ig, patch, n_lp, id_lp, lsep_grfinfo, patches )
+
+    !-------------------------------------------------
+    CALL nf(nf90_close(ncid), routine)
+    CALL closeFile(stream_id)
+    IF (lsep_grfinfo) THEN
+      CALL nf(nf90_close(ncid_grf), routine)
+      CALL closeFile(stream_id_grf)
+    END IF
+    !-------------------------------------------------
+    !Check for plane_torus case
+    IF(p_p%geometry_info%geometry_type == planar_torus_geometry .AND. .NOT. is_plane_torus) THEN
+      CALL message(routine, &
+        & "Grid is plane torus: turning on is_plane_torus automatically")
+      is_plane_torus = .TRUE.
+    END IF
+
+    IF(p_p%geometry_info%geometry_type /= planar_torus_geometry .AND. is_plane_torus) &
+      CALL finish(routine,"Input grid is NOT plane torus, Stopping")
+    !-------------------------------------------------
+
+    CALL message (modname//':read_remaining_patch', 'read finished')
+
+  END SUBROUTINE read_remaining_patch
+  !-------------------------------------------------------------------------
+
+
+  !-------------------------------------------------------------------------
+  !> Reads the remaining patch information into the divided patch
+  SUBROUTINE read_grid_geometry(stream_id, ncid, ig, patch, n_lp, id_lp, lsep_grfinfo, patches )
+
+    TYPE(t_stream_id), INTENT(inout) :: stream_id
+    INTEGER,       INTENT(in)    ::  ncid       ! netcdf id
+    INTEGER,       INTENT(in)    ::  ig       ! domain ID
+    TYPE(t_patch), INTENT(inout), TARGET ::  patch  ! patch data structure
+    INTEGER,       INTENT(in)    ::  n_lp     ! Number of local parents on the same level
+    INTEGER,       INTENT(in)    ::  id_lp(:) ! IDs of local parents on the same level
+    !> If .true., read fields related to grid refinement from separate  grid files
+    LOGICAL,       INTENT(IN)    :: lsep_grfinfo
+    TYPE(p_t_patch), TARGET, INTENT(INOUT) :: patches(0:n_lp)
+
+    INTEGER :: ip, jv
+    INTEGER :: max_cell_connectivity, max_verts_connectivity
+    TYPE(t_patch), POINTER :: p_p
+
+    TYPE(t_ptr_3d_wp) :: multivar_3d_data_wp(0:n_lp)
+    TYPE(t_ptr_2d_wp)  :: multivar_2d_data_wp(0:n_lp)
+    TYPE(t_ptr_3d_int) :: multivar_3d_data_int(0:n_lp)
+    INTEGER :: return_status
+
+    max_cell_connectivity = patch%cells%max_connectivity
+    max_verts_connectivity = patch%verts%max_connectivity
+
+    ! p_p%cells%edge_orientation(:,:,:)
+    DO ip = 0, n_lp
+      multivar_3d_data_wp(ip)%p => &
+        patches(ip)%p%cells%edge_orientation(:,:,1:max_cell_connectivity)
+    END DO
+    CALL read_2D_extdim(stream_id, on_cells, 'orientation_of_normal', &
+      &                 n_lp+1, fill_array=multivar_3d_data_wp(:), &
+      &                 start_extdim=1, end_extdim=max_cell_connectivity)
+
+    ! p_p%cells%area(:,:)
+    DO ip = 0, n_lp
+      multivar_2d_data_wp(ip)%p => patches(ip)%p%cells%area(:,:)
+    END DO
+    CALL read_2D(stream_id, on_cells, 'cell_area_p', n_lp+1, &
+      &          multivar_2d_data_wp(:))
+
     ! p_p%edges%tangent_orientation(:,:)
     DO ip = 0, n_lp
       multivar_2d_data_wp(ip)%p => patches(ip)%p%edges%tangent_orientation(:,:)
@@ -1705,13 +1854,14 @@ CONTAINS
     CALL read_2D(stream_id, on_edges, 'edge_system_orientation', n_lp+1, &
       &          multivar_2d_data_wp(:))
 
+!---------------------------------------
+! from here on there is a __GNUC__ guard
 #ifdef __GNUC__
     DO ip = 0, n_lp
       ALLOCATE(multivar_2d_data_wp(ip)%p(nproma, patches(ip)%p%nblks_e))
       multivar_2d_data_wp(ip)%p(:,:) = 0.0_wp
     END DO
 #endif
-
     ! p_p%edges%center(:,:)%lon
 #ifndef __GNUC__
     DO ip = 0, n_lp
@@ -1801,7 +1951,8 @@ CONTAINS
       DEALLOCATE(multivar_2d_data_wp(ip)%p)
     END DO
 #endif
-
+! end of __GNUC__ guard
+!----------------------
     ! p_p%edges%primal_edge_length(:,:)
     DO ip = 0, n_lp
       multivar_2d_data_wp(ip)%p => patches(ip)%p%edges%primal_edge_length(:,:)
@@ -1832,83 +1983,6 @@ CONTAINS
       &                 fill_array=multivar_3d_data_wp(:), start_extdim=1, &
       &                 end_extdim=2)
 
-    ! p_p%verts%neighbor_idx(:,:,:)
-    ! p_p%verts%neighbor_blk(:,:,:)
-    DO ip = 0, n_lp
-      multivar_3d_data_int(ip)%p => &
-        patches(ip)%p%verts%neighbor_idx(:,:,1:max_verts_connectivity)
-    END DO
-    CALL read_2D_extdim_int(stream_id, on_vertices, 'vertices_of_vertex', &
-      &                     n_lp+1, fill_array=multivar_3d_data_int(:), &
-      &                     start_extdim=1, end_extdim=max_verts_connectivity)
-    DO ip = 0, n_lp
-      CALL block_connectivity(&
-        patches(ip)%p%verts%neighbor_idx(:,:,1:max_verts_connectivity), &
-        patches(ip)%p%verts%neighbor_blk(:,:,1:max_verts_connectivity), &
-        patches(ip)%p%verts%decomp_info%glb2loc_index, &
-        SIZE(patches(ip)%p%verts%neighbor_idx, 2), &
-        patches(ip)%p%n_patch_verts, max_verts_connectivity)
-    END DO
-
-    ! p_p%verts%cell_idx(:,:,:)
-    ! p_p%verts%cell_blk(:,:,:)
-    DO ip = 0, n_lp
-      multivar_3d_data_int(ip)%p => &
-        patches(ip)%p%verts%cell_idx(:,:,1:max_verts_connectivity)
-    END DO
-    CALL read_2D_extdim_int(stream_id, on_vertices, 'cells_of_vertex', &
-      &                     n_lp+1, fill_array=multivar_3d_data_int(:), &
-      &                     start_extdim=1, end_extdim=max_verts_connectivity)
-    DO ip = 0, n_lp
-      CALL block_connectivity(&
-        patches(ip)%p%verts%cell_idx(:,:,1:max_verts_connectivity), &
-        patches(ip)%p%verts%cell_blk(:,:,1:max_verts_connectivity), &
-        patches(ip)%p%cells%decomp_info%glb2loc_index, &
-        SIZE(patches(ip)%p%verts%cell_idx, 2), &
-        patches(ip)%p%n_patch_verts, max_verts_connectivity)
-    END DO
-
-    ! p_p%verts%edge_idx(:,:,:)
-    ! p_p%verts%edge_blk(:,:,:)
-    DO ip = 0, n_lp
-      multivar_3d_data_int(ip)%p => &
-        patches(ip)%p%verts%edge_idx(:,:,1:max_verts_connectivity)
-    END DO
-    CALL read_2D_extdim_int(stream_id, on_vertices, 'edges_of_vertex', &
-      &                     n_lp+1, fill_array=multivar_3d_data_int(:), &
-      &                     start_extdim=1, end_extdim=max_verts_connectivity)
-    DO ip = 0, n_lp
-      CALL block_connectivity(&
-        patches(ip)%p%verts%edge_idx(:,:,1:max_verts_connectivity), &
-        patches(ip)%p%verts%edge_blk(:,:,1:max_verts_connectivity), &
-        patches(ip)%p%edges%decomp_info%glb2loc_index, &
-        SIZE(patches(ip)%p%verts%edge_idx, 2), &
-        patches(ip)%p%n_patch_verts, max_verts_connectivity)
-    END DO
-
-    ! p_p%verts%num_edges
-    DO ip = 0, n_lp
-      p_p => patches(ip)%p
-      IF (use_duplicated_connectivity) THEN
-        DO jv = 1, p_p%n_patch_verts
-          idx = idx_no(jv)
-          blk = blk_no(jv)
-          p_p%verts%num_edges(idx,blk) = &
-            COUNT((p_p%verts%edge_idx(idx,blk,1:max_verts_connectivity) &
-              &    /= p_p%verts%edge_idx(idx,blk,max_verts_connectivity)) .OR.&
-              &   (p_p%verts%edge_blk(idx,blk,1:max_verts_connectivity) &
-              &    /= p_p%verts%edge_blk(idx,blk,max_verts_connectivity))) + 1
-        END DO
-      ELSE
-        DO jv = 1, p_p%n_patch_verts
-          idx = idx_no(jv)
-          blk = blk_no(jv)
-          p_p%verts%num_edges(idx,blk) = &
-            COUNT(p_p%verts%edge_idx(idx,blk,1:max_verts_connectivity) /= 0)
-        END DO
-      END IF
-    END DO
-
     ! p_p%verts%edge_orientation(:,:,:)
     DO ip = 0, n_lp
       p_p => patches(ip)%p
@@ -1937,28 +2011,7 @@ CONTAINS
     END DO
     CALL read_2D(stream_id, on_vertices, 'dual_area_p', n_lp+1, &
       &          fill_array=multivar_2d_data_wp(:))
-
-    !-------------------------------------------------
-    ! read geometry parameters
-    patch0 => patches(0)%p
-    return_status = parallel_read_geometry_info(ncid, patch0%geometry_info)
-    IF (return_status /= 0 ) THEN
-      ! the information was missing from the file (ie old grids)
-      ! calclulate basic settings
-!       CALL finish("","did not read from file")
-      CALL set_missing_geometry_info(patch0)
-    ENDIF
-    CALL set_grid_geometry_derived_info(patch0%geometry_info)
-
-    DO ip = 1, n_lp
-      CALL copy_grid_geometry_info(from_geometry_info = patch0%geometry_info, &
-        &                     to_geometry_info = patches(ip)%p%geometry_info)
-!       write(0,*) "-------------------------------------------------------"
-!       write(0,*) "area, char_length=", p_p%geometry_info%mean_cell_area, &
-!         & p_p%geometry_info%mean_characteristic_length
-!       write(0,*) "-------------------------------------------------------"
-    ENDDO
-    !---------------------------------------------------
+  !---------------------------------------------------
     ! cartesian positions
     IF (gridfile_has_cartesian_info(ncid)) THEN
       CALL read_cartesian_positions(stream_id, patch, n_lp, id_lp, patches)
@@ -1967,30 +2020,10 @@ CONTAINS
     END IF
     !-------------------------------------------------
 
-
-    CALL nf(nf90_close(ncid), routine)
-    CALL closeFile(stream_id)
-    IF (lsep_grfinfo) THEN
-      CALL nf(nf90_close(ncid_grf), routine)
-      CALL closeFile(stream_id_grf)
-    END IF
-    !-------------------------------------------------
-    !Check for plane_torus case
-    IF(p_p%geometry_info%geometry_type == planar_torus_geometry .AND. .NOT. is_plane_torus) THEN
-      CALL message(routine, &
-        & "Grid is plane torus: turning on is_plane_torus automatically")
-      is_plane_torus = .TRUE.
-    END IF
-
-    IF(p_p%geometry_info%geometry_type /= planar_torus_geometry .AND. is_plane_torus) &
-      CALL finish(routine,"Input grid is NOT plane torus, Stopping")
-    !-------------------------------------------------
-
-    CALL message (modname//':read_remaining_patch', 'read finished')
-
-  END SUBROUTINE read_remaining_patch
+  END SUBROUTINE read_grid_geometry
   !-------------------------------------------------------------------------
 
+  !-------------------------------------------------------------------------
   SUBROUTINE convert_to_local_index(array, array_size, max_connectivity, &
     &                               glb2loc_index, duplicate)
 
