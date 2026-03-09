@@ -63,7 +63,7 @@ CONTAINS
     & alb_vis_dif, &
     & alb_nir_dir, &
     & alb_nir_dif, &
-    & kh, km, kh_neutral, km_neutral, &
+    & kh, km, interp_fac_2m, interp_fac_10m, interp_fac_tsfc, &
     & co2flx)
 
     INTEGER, INTENT(in) :: &
@@ -95,19 +95,20 @@ CONTAINS
       & co2       (:,:)     ! CO2 at lowest atmospheric level
 
     REAL(wp), INTENT(out), OPTIONAL :: &
-      & tsfc (:,:),       & ! new surface temperature
-      & tsfc_rad (:,:),   & ! new surface radiative temperature
-      & tsfc_eff (:,:),   & ! new surface effective temperature for rad heating
-      & q_snocpymlt(:,:), & ! heat used to melt snow on canopy
-      & qsat(:,:),        & ! saturated specific humidity at surface
-      & alb_vis_dir(:,:), &
-      & alb_vis_dif(:,:), &
-      & alb_nir_dir(:,:), &
-      & alb_nir_dif(:,:), &
-      & kh         (:,:), & ! surface exchange coefficient (heat)
-      & km         (:,:), & ! surface exchange coefficient (momentum)
-      & kh_neutral (:,:), & ! neutral surface exchange coefficient (heat)
-      & km_neutral (:,:), & ! neutral surface exchange coefficient (momentum)
+      & tsfc (:,:),           & ! new surface temperature
+      & tsfc_rad (:,:),       & ! new surface radiative temperature
+      & tsfc_eff (:,:),       & ! new surface effective temperature for rad heating
+      & q_snocpymlt(:,:),     & ! heat used to melt snow on canopy
+      & qsat(:,:),            & ! saturated specific humidity at surface
+      & alb_vis_dir(:,:),     &
+      & alb_vis_dif(:,:),     &
+      & alb_nir_dir(:,:),     &
+      & alb_nir_dif(:,:),     &
+      & kh         (:,:),     & ! surface exchange coefficient (heat)
+      & km         (:,:),     & ! surface exchange coefficient (momentum)
+      & interp_fac_2m (:,:),  & ! neutral surface exchange coefficient (heat)
+      & interp_fac_10m(:,:),  & ! neutral surface exchange coefficient (momentum)
+      & interp_fac_tsfc(:,:), &
       & co2flx     (:,:)    ! CO2 flux into the atmosphere from natural sources
 
     INTEGER :: jb, jc, jcs, jce
@@ -131,8 +132,9 @@ CONTAINS
       CALL init(alb_nir_dif, lacc=.TRUE.)
       CALL init(kh, lacc=.TRUE.)
       CALL init(km, lacc=.TRUE.)
-      CALL init(kh_neutral, lacc=.TRUE.)
-      CALL init(km_neutral, lacc=.TRUE.)
+      CALL init(interp_fac_2m, lacc=.TRUE.)
+      CALL init(interp_fac_10m, lacc=.TRUE.)
+      CALL init(interp_fac_tsfc, lacc=.TRUE.)
       CALL init(co2flx, lacc=.TRUE.)
     END IF
 !$OMP END PARALLEL
@@ -203,8 +205,9 @@ CONTAINS
           & alb_nir_dif       = alb_nir_dif(jcs:jce,jb),                                  & ! out
           & kh                = kh(jcs:jce,jb),                                           & ! out
           & km                = km(jcs:jce,jb),                                           & ! out
-          & kh_neutral        = kh_neutral(jcs:jce,jb),                                   & ! out
-          & km_neutral        = km_neutral(jcs:jce,jb),                                   & ! out
+          & interp_fac_2m     = interp_fac_2m(jcs:jce,jb),                                & ! out
+          & interp_fac_10m    = interp_fac_10m(jcs:jce,jb),                               & ! out
+          & interp_fac_tsfc   = interp_fac_tsfc(jcs:jce,jb),                              & ! out
           & co2_flux          = co2flx(jcs:jce, jb)                                       & ! out
           ! & t_eff_srf         = ztsfc_lnd_eff(jcs:jce),                                   & ! out (T_s^eff) surface temp
           !                                                                                     ! (effective, for longwave rad)
@@ -1013,11 +1016,10 @@ CONTAINS
   !=================================================================
   !
   SUBROUTINE compute_10m_wind( &
-    & domain,                     &
-    & nvalid, indices, zf, zh,    &
-    & ua, va,                     &
-    & moist_rich, km, km_neutral, &
-    & u10m, v10m, wind10m,        &
+    & domain,                  &
+    & nvalid, indices,         &
+    & ua, va, interp_fac,      &
+    & u10m, v10m, wind10m,     &
     & opt_acc_async_queue)
 
     ! Domain information
@@ -1029,8 +1031,7 @@ CONTAINS
       & nvalid(:),           &
       & indices(:,:)
     REAL(wp), DIMENSION(:,:), INTENT(in) :: &
-      & zf, zh, &
-      & ua, va, moist_rich, km, km_neutral
+      & interp_fac, ua, va
     REAL(wp), DIMENSION(:,:), INTENT(out) :: &
       & u10m, v10m, wind10m
     !
@@ -1040,12 +1041,6 @@ CONTAINS
     INTEGER :: acc_async_queue
 
     INTEGER :: jb, jls, js
-    REAL(wp) :: zrat, zbm, zcbn, zcbs, zcbu, zmerge, zred
-
-    ! to prevent floating-point arithmetic inconsistencies later in
-    ! the interpolation to u 10m and 2m T/T_d: has been 0.01 before
-    ! (Cray FP instead of IEEE 754 FP format)
-    REAL(wp), PARAMETER :: zepsec = 0.028_wp
 
     CHARACTER(len=*), PARAMETER :: routine = modname//':compute_10m_wind'
 
@@ -1057,20 +1052,13 @@ CONTAINS
     CALL init(wind10m, lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
 !$OMP END PARALLEL
 
-!$OMP PARALLEL DO PRIVATE(jb, jls, js, zrat, zbm, zcbn, zcbs, zcbu, zmerge, zred) ICON_OMP_DEFAULT_SCHEDULE
+!$OMP PARALLEL DO PRIVATE(jb, jls, js) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = domain%i_startblk_c,domain%i_endblk_c
-      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(acc_async_queue) PRIVATE(js, zrat, zbm, zcbn, zcbs, zcbu, zmerge, zred)
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(acc_async_queue) PRIVATE(js)
       DO jls = 1, nvalid(jb)
         js = indices(jls,jb)
-        zbm    = 1._wp / MAX(zepsec, SQRT(km(js,jb)) / ckap)
-        zrat   = 10._wp / (zf(js,jb) - zh(js,jb))
-        zcbn   = LOG(1._wp + (EXP (km_neutral(js,jb)) - 1._wp) * zrat )
-        zcbs   = -(km_neutral(js,jb) - zbm) * zrat
-        zcbu   = -LOG(1._wp + (EXP (km_neutral(js,jb) - zbm) - 1._wp) * zrat)
-        zmerge = MERGE(zcbs, zcbu, moist_rich(js,jb) > 0._wp)
-        zred   = (zcbn + zmerge) / zbm
-        u10m(js,jb) = zred * ua(js,jb)
-        v10m(js,jb) = zred * va(js,jb)
+        u10m(js,jb) = interp_fac(js,jb) * ua(js,jb)
+        v10m(js,jb) = interp_fac(js,jb) * va(js,jb)
         wind10m(js,jb) = SQRT(u10m(js,jb)**2._wp + (v10m(js,jb)**2._wp))
       END DO
     !$ACC END PARALLEL LOOP
@@ -1081,11 +1069,10 @@ CONTAINS
   !
   !=================================================================
   !
-  SUBROUTINE compute_2m_temperature(              &
-    & domain, isfc,                               &
-    & nvalid, indices, zf, zh,                    &
-    & tatm, tsfc,                                 &
-    & moist_rich, kh, km, kh_neutral, km_neutral, &
+  SUBROUTINE compute_2m_temperature( &
+    & domain, isfc,                  &
+    & nvalid, indices, tatm, tsfc,   &
+    & interp_fac, interp_tsfc,       &
     & t2m)
 
     ! Domain information
@@ -1098,18 +1085,11 @@ CONTAINS
       & indices(:,:),        &
       & isfc
     REAL(wp), DIMENSION(:,:), INTENT(in) :: &
-      & zf, zh, &
-      & tatm, tsfc, moist_rich, kh, km, kh_neutral, km_neutral
+      & tatm, tsfc, interp_fac, interp_tsfc
     REAL(wp), DIMENSION(:,:), INTENT(out) :: &
       & t2m
 
     INTEGER :: jb, jls, js
-    REAL(wp) :: zrat, zbm, zbh, zcbn, zcbs, zcbu, zmerge, zred
-
-    ! to prevent floating-point arithmetic inconsistencies later in
-    ! the interpolation to u 10m and 2m T/T_d: has been 0.01 before
-    ! (Cray FP instead of IEEE 754 FP format)
-    REAL(wp), PARAMETER :: zepsec = 0.028_wp
 
     CHARACTER(len=*), PARAMETER :: routine = modname//':compute_2m_temperature'
 
@@ -1117,26 +1097,12 @@ CONTAINS
     CALL init(t2m, lacc=.TRUE.)
 !$OMP END PARALLEL
 
-!$OMP PARALLEL DO PRIVATE(jb, jls, js, zrat, zbm, zbh, zcbn, zcbs, zcbu, zmerge, zred) ICON_OMP_DEFAULT_SCHEDULE
+!$OMP PARALLEL DO PRIVATE(jb, jls, js) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = domain%i_startblk_c,domain%i_endblk_c
-      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(1) PRIVATE(js, zrat, zbm, zcbn, zcbs, zcbu, zmerge, zred)
+      !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR ASYNC(1) PRIVATE(js)
       DO jls = 1, nvalid(jb)
         js = indices(jls,jb)
-        zrat = 2._wp / (zf(js,jb) - zh(js,jb))
-        zbm  = 1._wp / MAX(zepsec, SQRT(km(js,jb)) / ckap)
-        zbh  = 1._wp / MAX(zepsec, kh(js,jb) * zbm / ckap**2._wp)
-        IF (isfc == isfc_lnd) THEN
-          zcbn   = LOG(1._wp + (EXP (kh_neutral(js,jb)) - 1._wp) * zrat )
-          zcbs   = -(kh_neutral(js,jb) - zbh) * zrat
-          zcbu   = -LOG(1._wp + (EXP (kh_neutral(js,jb) - zbh) - 1._wp) * zrat)
-        ELSE
-          zcbn   = LOG(1._wp + (EXP (km_neutral(js,jb)) - 1._wp) * zrat )
-          zcbs   = -(km_neutral(js,jb) - zbh) * zrat
-          zcbu   = -LOG(1._wp + (EXP (km_neutral(js,jb) - zbh) - 1._wp) * zrat)
-        END IF
-        zmerge = MERGE(zcbs, zcbu, moist_rich(js,jb) > 0._wp)
-        zred   = (zcbn + zmerge) / zbh
-        t2m(js,jb) = tsfc(js,jb) + zred * (tatm(js,jb) - tsfc(js,jb))
+        t2m(js,jb) = tsfc(js,jb) + interp_fac(js,jb) * tatm(js,jb) - interp_tsfc(js,jb)
       END DO
     !$ACC END PARALLEL LOOP
     ENDDO

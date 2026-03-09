@@ -386,8 +386,8 @@ CONTAINS
     ! Local pointers for surface variables
     REAL(wp), POINTER, DIMENSION(:,:,:) :: fract_tile
     REAL(wp), POINTER, DIMENSION(:,:,:) :: &
-      & km_tile, kh_tile, km_neutral_tile, kh_neutral_tile, &
-      & moist_rich_tile, t2m_tile, hus2m_tile, dew2m_tile, &
+      & km_tile, kh_tile, interp_fac_2m_tile, interp_fac_10m_tile, &
+      & interp_fac_tsfc_tile, t2m_tile, hus2m_tile, dew2m_tile, &
       & u10m_tile, v10m_tile, wind10m_tile
 
     ! Local pointers for surface grid mean variables
@@ -477,9 +477,9 @@ CONTAINS
     ! Get pointers to surface tile diagnostics
     km_tile => diags_sfc%km_tile%Get_ptr_r3d()
     kh_tile => diags_sfc%kh_tile%Get_ptr_r3d()
-    km_neutral_tile => diags_sfc%km_neutral_tile%Get_ptr_r3d()
-    kh_neutral_tile => diags_sfc%kh_neutral_tile%Get_ptr_r3d()
-    moist_rich_tile => diags_sfc%moist_rich_tile%Get_ptr_r3d()
+    interp_fac_2m_tile => diags_sfc%interp_fac_2m_tile%Get_ptr_r3d()
+    interp_fac_10m_tile => diags_sfc%interp_fac_10m_tile%Get_ptr_r3d()
+    interp_fac_tsfc_tile => diags_sfc%interp_fac_tsfc_tile%Get_ptr_r3d()
     t2m_tile => diags_sfc%t2m_tile%Get_ptr_r3d()
     hus2m_tile => diags_sfc%hus2m_tile%Get_ptr_r3d()
     dew2m_tile => diags_sfc%dew2m_tile%Get_ptr_r3d()
@@ -508,17 +508,15 @@ CONTAINS
 
       CALL compute_10m_wind( &
         & domain_sfc, nvalid(:,jtile), indices(:,:,jtile), &
-        & zf(:,:), zh(:,:), &
         & new_ua(:,nlev,:), new_va(:,nlev,:), &
-        & moist_rich_tile(:,:,jtile), km_tile(:,:,jtile), km_neutral_tile(:,:,jtile), &
+        & interp_fac_10m_tile(:,:,jtile), &
         & u10m_tile(:,:,jtile), v10m_tile(:,:,jtile), wind10m_tile(:,:,jtile) &
         & )
 
       CALL compute_2m_temperature( &
           & domain_sfc, domain_sfc%sfc_types(jtile), nvalid(:,jtile), indices(:,:,jtile), &
-          & zf(:,:), zh(:,:), new_ta(:,nlev,:), new_tsfc(:,:,jtile), &
-          & moist_rich_tile(:,:,jtile), kh_tile(:,:,jtile), km_tile(:,:,jtile), &
-          & kh_neutral_tile(:,:,jtile), km_neutral_tile(:,:,jtile), &
+          & new_ta(:,nlev,:), new_tsfc(:,:,jtile), &
+          & interp_fac_2m_tile(:,:,jtile), interp_fac_tsfc_tile(:,:,jtile), &
           & t2m_tile(:,:,jtile) &
           & )
 

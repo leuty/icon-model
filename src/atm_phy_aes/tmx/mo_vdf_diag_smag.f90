@@ -355,10 +355,10 @@ CONTAINS
 ! #ifndef _OPENACC
 !   ELEMENTAL &
 ! #endif
-  PURE SUBROUTINE sfc_exchange_coefficients(                   &
+  PURE SUBROUTINE sfc_exchange_coefficients(              &
     & dz,                                                 &
     & pqm1, thetam1, mwind, rough_m, theta_sfc, qsat_sfc, &
-    & km, kh, km_neutral, kh_neutral                      &
+    & km, kh, interp_fac_2m, interp_fac_10m               &
     & )
 
     REAL(wp), INTENT(in) :: &
@@ -371,15 +371,16 @@ CONTAINS
       qsat_sfc
       !
     REAL(wp), INTENT(out) :: &
-      kh,         &
-      km,         &
-      kh_neutral, &
-      km_neutral
+      kh,            &
+      km,            &
+      interp_fac_2m, &
+      interp_fac_10m
 
     !$ACC ROUTINE SEQ
 
     REAL(wp) :: z_mc, RIB, tcn_mom, tcn_heat, &
       &         shfl_local, lhfl_local, bflx1, ustar, obukhov_length, inv_bus_mom
+    REAL(wp) :: zrat_2m, zrat_10m, zbm, zbh, zbn, zcbn, zcbu, zcbs, zmerge
     REAL(wp) :: tch
     REAL(wp) :: tcm
 
@@ -417,8 +418,32 @@ CONTAINS
 
     kh  = tch
     km  = tcm
-    kh_neutral = ckap / MAX(zepsec, SQRT(tcn_heat))
-    km_neutral = ckap / MAX(zepsec, SQRT(tcn_mom))
+
+    ! Interpolation heights
+    zrat_2m  =  2._wp / z_mc
+    zrat_10m = 10._wp / z_mc
+
+    ! Transfer coefficients for momentum, heat, and neutral conditions
+    zbm  = 1._wp / MAX(zepsec, SQRT(km) / ckap)
+    zbh  = 1._wp / MAX(zepsec, kh * zbm / ckap**2._wp)
+    zbn  = 1._wp / MAX(zepsec, SQRT(tcn_mom) / ckap)
+
+    ! Compute 2m interpolation factor
+    zcbn   = LOG(1._wp + (EXP (zbn) - 1._wp) * zrat_2m )
+    zcbs   = -(zbn - zbh) * zrat_2m
+    zcbu   = -LOG(1._wp + (EXP (zbn - zbh) - 1._wp) * zrat_2m)
+    zmerge = MERGE(zcbs, zcbu, RIB > 0._wp)
+
+    interp_fac_2m   = (zcbn + zmerge) / zbh
+
+    ! Compute 10m interpolation factor
+
+    zcbn   = LOG(1._wp + (EXP (zbn) - 1._wp) * zrat_10m )
+    zcbs   = -(zbn - zbh) * zrat_10m
+    zcbu   = -LOG(1._wp + (EXP (zbn - zbh) - 1._wp) * zrat_10m)
+    zmerge = MERGE(zcbs, zcbu, RIB > 0._wp)
+
+    interp_fac_10m   = (zcbn + zmerge) / zbh
 
   END SUBROUTINE sfc_exchange_coefficients
   !
@@ -432,7 +457,7 @@ CONTAINS
     & nvalid, indices, dz,                               &
     & pqm1,                                              &
     & thetam1, mwind, rough_m, theta_sfc, qsat_sfc,      &
-    & km, kh, km_neutral, kh_neutral,                    &
+    & km, kh, interp_fac_2m, interp_fac_10m,             &
     & opt_acc_async_queue                                &
     )
 
@@ -457,10 +482,10 @@ CONTAINS
       ! Output variables
       !
       REAL(wp), DIMENSION(:,:), INTENT(out) :: &
-        kh,         &
-        km,         &
-        kh_neutral, &
-        km_neutral
+        kh,            &
+        km,            &
+        interp_fac_2m, &
+        interp_fac_10m
       !
       ! Optional ACC queue
       !
@@ -477,8 +502,8 @@ CONTAINS
 !$OMP PARALLEL
     CALL init(km,         lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
     CALL init(kh,         lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
-    CALL init(km_neutral, lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
-    CALL init(kh_neutral, lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
+    CALL init(interp_fac_2m,  lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
+    CALL init(interp_fac_10m, lacc=.TRUE., opt_acc_async_queue=acc_async_queue)
 !$OMP END PARALLEL
 
 !$OMP PARALLEL DO PRIVATE(jb,jls,js, dz_temp) ICON_OMP_DEFAULT_SCHEDULE
@@ -494,7 +519,7 @@ CONTAINS
           & dz_temp,                                                                         &
           & pqm1(js,jb),                                                                     &
           & thetam1(js,jb), mwind(js,jb), rough_m(js,jb), theta_sfc(js,jb), qsat_sfc(js,jb), &
-          & km(js,jb), kh(js,jb), km_neutral(js,jb), kh_neutral(js,jb)                       &
+          & km(js,jb), kh(js,jb), interp_fac_2m(js,jb), interp_fac_10m(js,jb)                &
           & )
       END DO !jls
       !$ACC END PARALLEL LOOP
