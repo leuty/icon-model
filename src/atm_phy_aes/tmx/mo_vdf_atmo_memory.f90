@@ -64,6 +64,8 @@ MODULE mo_vdf_atmo_memory
       & dissipation_factor    !< Factor for kinetic energy dissipation calculation []
     TYPE(t_tmx_var) :: &
       & use_louis        , & !< Switch to activate Louis stability formula []
+      & use_louis_land   , & !< Switch to activate Louis formula over land (default: true) []
+      & use_louis_ice    , & !< Switch to activate Louis formula over sea ice (default: true) []
       & use_km_const     , & !< Switch to use constant turbulent diffusivity []
       & use_scale_turb_energy_flux, & !< Switch to scale turbulent energy flux []
       & solver_type      , & !< Type of solver (1=explicit, 2=implicit) []
@@ -91,7 +93,9 @@ MODULE mo_vdf_atmo_memory
       & cv_air_c     ,  & !< Specific heat capacity at constant volume [J/(kg K)]
       & z_c          ,  & !< Height of full levels [m]
       & dz_c         ,  & !< Vertical grid spacing at full levels [m]
-      & inv_dz_c          !< Inverse of vertical grid spacing (1/dz) [1/m]
+      & inv_dz_c     ,  & !< Inverse of vertical grid spacing (1/dz) [1/m]
+      & fract_land   ,  & !< Fraction of land in grid cell [] (for use_louis_land=false only)
+      & fract_ice         !< Fraction of sea ice in grid cell [] (for use_louis_ice=false only)
 
     ! Half levels on cells (interfaces)
     TYPE(t_tmx_var) ::  &
@@ -242,6 +246,8 @@ MODULE mo_vdf_atmo_memory
     CALL this%km_min           %Init('km_min',             'double',  dims=shape_0d, patch_id=patch_id)
     CALL this%k_s              %Init('k_s',                'double',  dims=shape_0d, patch_id=patch_id)
     CALL this%use_louis        %Init('use_louis',          'logical', dims=shape_0d, patch_id=patch_id)
+    CALL this%use_louis_land   %Init('use_louis_land',     'logical', dims=shape_0d, patch_id=patch_id)
+    CALL this%use_louis_ice    %Init('use_louis_ice',      'logical', dims=shape_0d, patch_id=patch_id)
     CALL this%louis_constant_b %Init('louis_constant_b',   'double',  dims=shape_0d, patch_id=patch_id)
     CALL this%use_km_const     %Init('use_km_const',       'logical', dims=shape_0d, patch_id=patch_id)
     CALL this%km_const         %Init('km_const',           'double',  dims=shape_0d, patch_id=patch_id)
@@ -311,6 +317,10 @@ MODULE mo_vdf_atmo_memory
     ! Initialize 3D fields at full levels on edges
     shape_3d = [nproma,nlev,nblks_e]
     ! CALL this%vn_e         %Init('vn_e',          'double', dims=shape_3d, patch_id=patch_id)
+
+    shape_2d = [nproma,nblks_c]
+    CALL this%fract_land   %Init('fract_land',    'double', dims=shape_2d, patch_id=patch_id)
+    CALL this%fract_ice    %Init('fract_ice',     'double', dims=shape_2d, patch_id=patch_id)
 
   END SUBROUTINE build_vdf_atmo_inputs
 
@@ -422,7 +432,7 @@ MODULE mo_vdf_atmo_memory
       this%vel_grad_e(3,1)%ptr => this%dw_dn%Get_ptr_r3d()
       this%vel_grad_e(3,2)%ptr => this%dw_dt%Get_ptr_r3d()
       this%vel_grad_e(3,3)%ptr => this%dw_dz%Get_ptr_r3d()
-!$ACC ENTER DATA COPYIN(this)
+      !$ACC ENTER DATA COPYIN(this)
       __acc_attach(this%vel_grad_e(1,1)%ptr)
       __acc_attach(this%vel_grad_e(1,2)%ptr)
       __acc_attach(this%vel_grad_e(1,3)%ptr)

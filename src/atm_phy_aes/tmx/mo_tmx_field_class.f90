@@ -126,7 +126,7 @@ CONTAINS
   FUNCTION t_domain_constructor(patch, nproma, nlev, ntiles, sfc_types) RESULT(domain)
 
     USE mo_loopindices,        ONLY: get_indices_e, get_indices_c
-    USE mo_impl_constants,     ONLY: min_rlcell, min_rledge_int, min_rlcell_int, min_rlvert_int
+    USE mo_impl_constants,     ONLY: min_rlcell_int, min_rledge_int
     USE mo_impl_constants_grf, ONLY: grf_bdywidth_c, grf_bdywidth_e
     USE mo_math_constants,     ONLY: rad2deg
 

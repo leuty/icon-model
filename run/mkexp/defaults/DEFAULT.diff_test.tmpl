@@ -155,9 +155,9 @@ for info in file_infos:
         logging.error("%s: second file is missing", file_name)
         status += 1
     else:
-        command = "cdo -s diffn".split() + [file_path, other_path]
+        command = f"%{JOB.cdo} -s diffn {file_path} {other_path}"
         try:
-            subprocess.run(command).check_returncode()
+            subprocess.run(command, shell=True).check_returncode()
             logging.info("%s: ok", file_name)
         except subprocess.CalledProcessError:
             logging.debug("'%s'", " ".join(command))

@@ -101,13 +101,12 @@ CONTAINS
     !$ACC ENTER DATA COPYIN(result)
     ! Call Init of abstract parent class
     CALL result%Init_process(dt=dt, name=name, domain=domain)
+    __acc_attach(result%domain)
 
     ! Initialize memory structures
     ALLOCATE(result%config)
     ALLOCATE(result%inputs)
     ALLOCATE(result%diagnostics)
-
-    !$ACC ENTER DATA COPYIN(result%config, result%inputs, result%diagnostics)
 
     ! Initialize the data structures
     CALL build_vdf_sfc_config(result%config, result%domain)
@@ -136,7 +135,7 @@ CONTAINS
 
     ! Initialize structure for diagnostic variables (second scan)
     CALL build_vdf_sfc_diags(this%diagnostics, this%domain)
-      !$ACC ENTER DATA COPYIN(this%diagnostics)
+    !$ACC ENTER DATA COPYIN(this%diagnostics)
 
     ! TODO: simple initialization of CO2
     co2 => this%inputs%co2%Get_ptr_r2d()
@@ -149,9 +148,7 @@ CONTAINS
     USE mo_tmx_surface_interface, ONLY: &
       & update_land, update_sea_ice, compute_lw_rad_net, compute_sw_rad_net, compute_albedo, &
       & compute_sfc_fluxes, compute_sfc_sat_spec_humidity, compute_energy_fluxes
-    ! USE mo_vdf_diag_smag,  ONLY: compute_sfc_fluxes, compute_sfc_sat_spec_humidity
     USE mo_physical_constants, ONLY: albedoW ! TODO
-    USE mo_sea_ice_nml, ONLY: albi           ! TODO
 
     CLASS(t_vdf_sfc), INTENT(inout), TARGET :: this
     TYPE(t_datetime), OPTIONAL, INTENT(in), POINTER :: datetime     !< date and time at beginning of time step
@@ -203,7 +200,8 @@ CONTAINS
       & albvisdir_tile, albvisdif_tile, &
       & albnirdir_tile, albnirdif_tile, &
       & kh_tile, km_tile, &
-      & kh_neutral_tile, km_neutral_tile, &
+      & interp_fac_2m_tile, interp_fac_10m_tile, &
+      & interp_fac_tsfc_tile, &
       & wind_rel_tile, &
       & lhfl_tile, shfl_tile, &
       & ustress_tile, vstress_tile, &
@@ -309,8 +307,9 @@ CONTAINS
     albedo_tile => diags%albedo_tile%Get_ptr_r3d()
     kh_tile => diags%kh_tile%Get_ptr_r3d()
     km_tile => diags%km_tile%Get_ptr_r3d()
-    kh_neutral_tile => diags%kh_neutral_tile%Get_ptr_r3d()
-    km_neutral_tile => diags%km_neutral_tile%Get_ptr_r3d()
+    interp_fac_2m_tile => diags%interp_fac_2m_tile%Get_ptr_r3d()
+    interp_fac_10m_tile => diags%interp_fac_10m_tile%Get_ptr_r3d()
+    interp_fac_tsfc_tile => diags%interp_fac_tsfc_tile%Get_ptr_r3d()
     lhfl_tile => diags%lhfl_tile%Get_ptr_r3d()
     shfl_tile => diags%shfl_tile%Get_ptr_r3d()
     wind_rel_tile => diags%wind_rel_tile%Get_ptr_r3d()
@@ -399,10 +398,25 @@ CONTAINS
         CALL init(albnirdir_tile(:,:,jtile), albedoW, lacc=.TRUE., opt_acc_async_queue=acc_async_queues(jtile))
         CALL init(albnirdif_tile(:,:,jtile), albedoW, lacc=.TRUE., opt_acc_async_queue=acc_async_queues(jtile))
 !$OMP END PARALLEL
+
+!$OMP PARALLEL DO PRIVATE(jc, jcl, jb) ICON_OMP_DEFAULT_SCHEDULE
+        DO jb = this%domain%i_startblk_c, this%domain%i_endblk_c
+          !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR PRIVATE(jc) ASYNC(acc_async_queues(jtile))
+          DO jcl = 1, nvalid(jb,jtile)
+            jc = indices(jcl,jb,jtile)
+            interp_fac_tsfc_tile(jc,jb,jtile) = interp_fac_2m_tile(jc,jb,jtile) * new_tsfc(jc,jb,jtile)
+          END DO
+          !$ACC END PARALLEL LOOP
+        END DO
+!$OMP END PARALLEL DO
+
       CASE(isfc_ice)
         IF (nice_thickness_classes /= 1) CALL finish(routine, 'Only one ice thickness class (kice) implemented!')
-
+!$OMP PARALLEL
+        CALL init(tend_tsfc(:,:,jtile), lacc=.TRUE., opt_acc_async_queue=acc_async_queues(jtile))
+!$OMP END PARALLEL
         CALL update_sea_ice(this%domain, this%dt, &
+          & nvalid(:,jtile), indices(:,:,jtile), &
           & old_tsfc(:,:,jtile), &
           & lwfl_net_tile(:,:,jtile), swfl_net_tile(:,:,jtile), &
           & lhfl_tile(:,:,jtile), shfl_tile(:,:,jtile), &
@@ -426,6 +440,7 @@ CONTAINS
             new_tsfc_rad(jc,jb,jtile) = new_tsfc(jc,jb,jtile)
             new_tsfc_eff(jc,jb,jtile) = new_tsfc(jc,jb,jtile)
             tend_tsfc(jc,jb,jtile) = (new_tsfc(jc,jb,jtile) - old_tsfc(jc,jb,jtile)) / dtime
+            interp_fac_tsfc_tile(jc,jb,jtile) = interp_fac_2m_tile(jc,jb,jtile) * new_tsfc(jc,jb,jtile)
           END DO
           !$ACC END PARALLEL LOOP
         END DO
@@ -436,6 +451,9 @@ CONTAINS
           & psfc(:,:), new_tsfc(:,:,jtile), new_qsfc(:,:,jtile), &
           & opt_acc_async_queue=acc_async_queues(jtile))
       CASE(isfc_lnd)
+!$OMP PARALLEL
+        CALL init(tend_tsfc(:,:,jtile), lacc=.TRUE., opt_acc_async_queue=acc_async_queues(jtile))
+!$OMP END PARALLEL
         CALL update_land(jg, this%domain, datetime, this%dt, cvd, &
           & dz, psfc, ta, qa, pa, &
           & rsfl, ssfl, &
@@ -450,8 +468,8 @@ CONTAINS
           & albvisdir_tile(:,:,jtile), albvisdif_tile(:,:,jtile), &
           & albnirdir_tile(:,:,jtile), albnirdif_tile(:,:,jtile), &
           & kh_tile(:,:,jtile), km_tile(:,:,jtile), &
-          & kh_neutral_tile(:,:,jtile), km_neutral_tile(:,:,jtile), &
-          & co2flx_nat_tile(:,:,jtile) &
+          & interp_fac_2m_tile(:,:,jtile), interp_fac_10m_tile(:,:,jtile), &
+          & interp_fac_tsfc_tile(:,:,jtile), co2flx_nat_tile(:,:,jtile) &
           & )
 
 !$OMP PARALLEL DO PRIVATE(jc, jcl, jb) ICON_OMP_DEFAULT_SCHEDULE
@@ -631,7 +649,7 @@ CONTAINS
     REAL(wp), POINTER, DIMENSION(:,:,:) :: &
       & qsat_tile, rho_tile, theta_tile, thetav_tile, &
       & moist_rich_tile, rough_h_tile, rough_m_tile, &
-      & km_tile, kh_tile, km_neutral_tile, kh_neutral_tile, &
+      & km_tile, kh_tile, interp_fac_2m_tile, interp_fac_10m_tile, &
       & evapotrans_tile, lhfl_tile, shfl_tile, &
       & wind_rel_tile, ustress_tile, vstress_tile, &
       & u10m_tile, v10m_tile, wind10m_tile, &
@@ -718,8 +736,8 @@ CONTAINS
     rough_m_tile => diags%rough_m_tile%Get_ptr_r3d()
     km_tile => diags%km_tile%Get_ptr_r3d()
     kh_tile => diags%kh_tile%Get_ptr_r3d()
-    km_neutral_tile => diags%km_neutral_tile%Get_ptr_r3d()
-    kh_neutral_tile => diags%kh_neutral_tile%Get_ptr_r3d()
+    interp_fac_2m_tile => diags%interp_fac_2m_tile%Get_ptr_r3d()
+    interp_fac_10m_tile => diags%interp_fac_10m_tile%Get_ptr_r3d()
     evapotrans_tile => diags%evapotrans_tile%Get_ptr_r3d()
     lhfl_tile => diags%lhfl_tile%Get_ptr_r3d()
     shfl_tile => diags%shfl_tile%Get_ptr_r3d()
@@ -764,8 +782,6 @@ CONTAINS
       END IF
     END IF
 #endif
-
-    CALL compute_valid_indices(this%domain, fract_tile, nvalid, indices)
 
     CALL compute_valid_indices(this%domain, fract_tile, nvalid, indices)
 
@@ -824,12 +840,11 @@ CONTAINS
             & theta_tile(:,:,jtile), qsat_tile(:,:,jtile), &
             ! Output
             & km_tile(:,:,jtile), kh_tile(:,:,jtile), &
-            & km_neutral_tile(:,:,jtile), kh_neutral_tile(:,:,jtile))
+            & interp_fac_2m_tile(:,:,jtile), interp_fac_10m_tile(:,:,jtile))
           CALL compute_10m_wind( &
             & this%domain, nvalid(:,jtile), indices(:,:,jtile), &
-            & zf, zh, &
             & ua, va, &
-            & moist_rich_tile(:,:,jtile), km_tile(:,:,jtile), km_neutral_tile(:,:,jtile), &
+            & interp_fac_10m_tile(:,:,jtile), &
             & u10m_tile(:,:,jtile), v10m_tile(:,:,jtile), wind10m_tile(:,:,jtile) &
             & )
 
@@ -887,7 +902,7 @@ CONTAINS
           & theta_tile(:,:,jtile), qsat_tile(:,:,jtile), &
             ! Output
           & km_tile(:,:,jtile), kh_tile(:,:,jtile), &
-          & km_neutral_tile(:,:,jtile), kh_neutral_tile(:,:,jtile), &
+          & interp_fac_2m_tile(:,:,jtile), interp_fac_10m_tile(:,:,jtile), &
           & opt_acc_async_queue=jtile)
       END IF
 
@@ -1008,7 +1023,7 @@ CONTAINS
 
   SUBROUTINE compute_valid_indices(domain, fract_tile, nvalid, indices)
 
-    USE mo_index_list, ONLY: generate_index_list_batched, generate_index_list
+    USE mo_index_list, ONLY: generate_index_list_batched
 
     TYPE(t_domain), INTENT(in), POINTER :: domain
     REAL(wp),       INTENT(in)          :: fract_tile(:,:,:)

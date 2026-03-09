@@ -143,14 +143,13 @@ MODULE mo_vdf_sfc_memory
 
     ! Surface exchange coefficients
     TYPE(t_tmx_var) :: &
-      & kh          , & !< Grid-mean exchange coefficient for heat [-]
-      & km          , & !< Grid-mean exchange coefficient for momentum [-]
-      & kh_tile     , & !< Exchange coefficient for heat per tile [-]
-      & km_tile     , & !< Exchange coefficient for momentum per tile [-]
-      & kh_neutral  , & !< Grid-mean neutral exchange coefficient for heat [-]
-      & km_neutral  , & !< Grid-mean neutral exchange coefficient for momentum [-]
-      & kh_neutral_tile, & !< Neutral exchange coefficient for heat per tile [-]
-      & km_neutral_tile    !< Neutral exchange coefficient for momentum per tile [-]
+      & kh                  , & !< Grid-mean exchange coefficient for heat [-]
+      & km                  , & !< Grid-mean exchange coefficient for momentum [-]
+      & kh_tile             , & !< Exchange coefficient for heat per tile [-]
+      & km_tile             , & !< Exchange coefficient for momentum per tile [-]
+      & interp_fac_10m_tile , & !< Interpolation coefficient in 10m height per tile [-]
+      & interp_fac_2m_tile  , & !< Interpolation coefficient in 2m height per tile [-]
+      & interp_fac_tsfc_tile    !< Product of interpolation coefficient and surface temperature per tile [K]
 
     ! Surface fluxes - grid mean
     TYPE(t_tmx_var) :: &
@@ -400,8 +399,6 @@ MODULE mo_vdf_sfc_memory
     ! Surface exchange coefficients - grid mean
     CALL this%kh%Init('exchange coefficient for scalar', 'double', dims=shape_2d, patch_id=patch_id)
     CALL this%km%Init('exchange coefficient for momentum', 'double', dims=shape_2d, patch_id=patch_id)
-    CALL this%kh_neutral%Init('neutral exchange coefficient for scalar', 'double', dims=shape_2d, patch_id=patch_id)
-    CALL this%km_neutral%Init('neutral exchange coefficient for momentum', 'double', dims=shape_2d, patch_id=patch_id)
 
     ! Albedo - grid mean
     CALL this%albvisdir%Init('albedo VIS direct', 'double', dims=shape_2d, patch_id=patch_id)
@@ -441,8 +438,9 @@ MODULE mo_vdf_sfc_memory
     ! Surface exchange coefficients per tile
     CALL this%kh_tile%Init('exchange coefficient for scalar, tile', 'double', dims=shape_3d, patch_id=patch_id)
     CALL this%km_tile%Init('exchange coefficient for momentum, tile', 'double', dims=shape_3d, patch_id=patch_id)
-    CALL this%kh_neutral_tile%Init('neutral exchange coefficient for scalar, tile', 'double', dims=shape_3d, patch_id=patch_id)
-    CALL this%km_neutral_tile%Init('neutral exchange coefficient for momentum, tile', 'double', dims=shape_3d, patch_id=patch_id)
+    CALL this%interp_fac_2m_tile%Init('interpolation coef. at 2m height, tile', 'double', dims=shape_3d, patch_id=patch_id)
+    CALL this%interp_fac_10m_tile%Init('interpolation coef. at 10m heigh, tile', 'double', dims=shape_3d, patch_id=patch_id)
+    CALL this%interp_fac_tsfc_tile%Init('product of interp. coef. and sfc temp., tile', 'double', dims=shape_3d, patch_id=patch_id)
     CALL this%moist_rich_tile%Init('moist richardson number, tile', 'double', dims=shape_3d, patch_id=patch_id)
 
     ! Surface fluxes per tile
