@@ -50,6 +50,9 @@ $addexp "checksuite.infrastructure/testbed/exp.icon-testbed_sync"               
 # tracer hadley advection with validation on periodic solution
 $addexp "exp.atm_tracer_Hadley_validate" --builders "${SP_BUILDERS}" --list $listname
 
+# Jablonowski-Williamson experiment - no validation
+$addexp "exp.testcase_jabw" --builders "lumi_cpu_sp levante_intel_hybrid_sp levante_gpu_nvhpc_sp" --list $listname
+
 # Single-precision checksuites
 $addexp "checksuite.icon-dev/check.aes_amip_test" --builders "${LEVANTE_SP_BUILDERS}" --list $listname --runflags "ntasks=16 queue=compute memory=32G"
 
