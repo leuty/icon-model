@@ -241,6 +241,10 @@ cat > ${wave_namelist} << EOF
 &energy_propagation_nml
  itype_limit  = 4     ! positive definite flux limiter
 /
+&gribout_nml
+ generatingCenter        = 98                                 ! MPI-M
+                                                              ! to suppress writing of DWD local Section
+/
 &output_nml
  filetype                =                          4         ! output format: 2=GRIB2, 4=NETCDFv2
  dom                     =                         -1         ! write all domains
