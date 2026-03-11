@@ -76,6 +76,7 @@
 - Added Gravity waves parametrisation MS-GWaM as external in externals/msgwam
 - Switch to probtest v3.1
 - Switch to YAC v3.14.0_p1
+- Switch to CDI v2.6.0
 
 ### Infrastructure
 
