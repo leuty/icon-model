@@ -26,7 +26,8 @@ MODULE mo_name_list_output_init
                                                 & gridDefNvertex, gridDefXvals, cdiDefAttTxt, CDI_GLOBAL, gridDefParamRLL,      &
                                                 & gridDefYvals, gridDefXlongname, gridDefYlongname, gridDefReference,           &
                                                 & taxisDefTunit, taxisDefCalendar, taxisDefRdate, taxisDefRtime, vlistDefTaxis, &
-                                                & gridDefProj, GRID_PROJECTION, GRID_CURVILINEAR, institutDef
+                                                & gridDefProj, GRID_PROJECTION, GRID_CURVILINEAR, institutDef,                  &
+                                                & CDI_COMPRESS_NONE, CDI_COMPRESS_SZIP
   USE mo_cdi_constants,                     ONLY: GRID_UNSTRUCTURED_CELL, GRID_UNSTRUCTURED_VERT, GRID_UNSTRUCTURED_EDGE, &
                                                 & GRID_REGULAR_LONLAT, GRID_VERTEX, GRID_EDGE, GRID_CELL, GRID_ZONAL
   USE mo_dynamics_config, ONLY: nnow, nnew, nold
@@ -336,6 +337,9 @@ CONTAINS
       &                                      pe_placement_hl(MAX_NUM_IO_PROCS), &
       &                                      pe_placement_il(MAX_NUM_IO_PROCS)
 
+    !> switch for optional individual control on GRIB2 compression
+    INTEGER                               :: compression_type
+
     !> RBF shape parameter.
     REAL(wp)                              :: rbf_scale
     LOGICAL :: is_stdio
@@ -356,7 +360,7 @@ CONTAINS
       stream_partitions_hl, stream_partitions_il,            &
       pe_placement_ml, pe_placement_pl,                      &
       pe_placement_hl, pe_placement_il,                      &
-      filename_extn, rbf_scale, operation
+      filename_extn, rbf_scale, operation, compression_type
 
     ! Before we start: prepare the levels set objects for the vertical
     ! interpolation.
@@ -466,6 +470,7 @@ CONTAINS
       pe_placement_hl(:)       = -1 !< i.e. MPI rank undefined (round-robin placement)
       pe_placement_il(:)       = -1 !< i.e. MPI rank undefined (round-robin placement)
       rbf_scale                = -1._wp
+      compression_type         = CDI_UNDEFID !<  (-1) take over setting of main switch
 
       ! -- Read output_nml
 
@@ -502,6 +507,18 @@ CONTAINS
         CALL finish(routine,'Illegal LAT increment')
       END IF
       IF(reg_lon_def(3)<reg_lon_def(1)) CALL finish(routine,'end lon < start lon')
+
+      IF (filetype == FILETYPE_GRB2) THEN
+        IF (ALL([CDI_UNDEFID, CDI_COMPRESS_NONE, CDI_COMPRESS_SZIP] /= compression_type)) THEN
+          WRITE(message_text,'(a,i0,a)') 'compression_type = ', compression_type, ' is unsupported (supported values: 0, 1)'
+          CALL finish(routine, message_text)
+        ENDIF
+      ELSE
+        IF (compression_type /= CDI_UNDEFID) THEN
+          WRITE(message_text,'(a,i0,a)') ' Setting a compression_type is supported for GRIB2 output only'
+          CALL finish(routine, message_text)
+        ENDIF
+      END IF
 
       ! -- Scale output bounds
 
@@ -654,6 +671,7 @@ CONTAINS
         p_onl%pe_placement_pl(:)       = pe_placement_pl(:)
         p_onl%pe_placement_hl(:)       = pe_placement_hl(:)
         p_onl%pe_placement_il(:)       = pe_placement_il(:)
+        p_onl%compression_type         = compression_type
 
         ! -- translate variables names according to variable name dictionary:
         ! allow case-insensitive variable names:
@@ -1367,6 +1385,17 @@ CONTAINS
           p_of%io_proc_id      = -1 ! undefined MPI rank
           p_of%pe_placement    = pe_placement(ifile_partition)
 
+          ! individual setting of GRIB2 compression
+          IF (p_onl%compression_type == CDI_UNDEFID) THEN
+            IF (p_of%name_list%filetype == FILETYPE_GRB2) THEN
+              p_of%compression_type = MERGE(CDI_COMPRESS_SZIP, CDI_COMPRESS_NONE, gribout_config(idom)%lgribout_compress_ccsds)
+            ELSE
+              p_of%compression_type = CDI_UNDEFID
+            ENDIF
+          ELSE
+            p_of%compression_type = p_onl%compression_type
+          ENDIF
+
           CALL add_varlist_to_output_file(p_of, varlist_ptr)
         END DO ! ifile_partition
       ENDDO ! i_typ
@@ -1689,8 +1718,8 @@ CONTAINS
       fname_metadata%extn = of%name_list%filename_extn(1:tlen)
     END IF
 
-    CALL getAttributesForRestarting(restartAttributes)
-    IF (restartAttributes%is_init) THEN
+    IF (isRestart()) THEN
+      CALL getAttributesForRestarting(restartAttributes)
       ! Restart case: Get starting index of ouput from restart file
       !               (if there is such an attribute available).
       WRITE(attname,'(a,i2.2)') 'output_jfile_',i

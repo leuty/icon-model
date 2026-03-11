@@ -1890,6 +1890,7 @@ contains
     if (dace% lpio) call open_nml (assimilation_config(1)%dace_namelist_file)
 
     call read_nml_mec_obs () ! read namelist /MEC_OBS/
+    read_cdfin = .true.
     call read_obs_nml     () ! read namelist /observations/
     call read_std_nml_dace() ! read namelist /STD_OBS/
     call read_nml_hum_ana    ! read namelist /HUM_ANA/
@@ -1914,7 +1915,7 @@ contains
     ! read observations from CDFIN files
     ! (see read_veri_obs for details).
     !===================================
-    read_cdfin = .true.
+    !read_cdfin = .true.
     !-------------------------------
     ! initialize observation modules
     !-------------------------------

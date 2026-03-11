@@ -203,6 +203,11 @@ MODULE mo_name_list_output_types
     LOGICAL                               :: output_grid       ! Flag whether grid information is output (in NetCDF output)
 
     INTEGER                               :: taxis_tunit       ! 1 = TUNIT_SECOND, 2 = TUNIT_MINUTE, 3 TUNIT_HOUR ... (see cdi.inc)
+    INTEGER                               :: compression_type  ! compression type (applicable to GRIB2 output files only):
+                                                               ! -1 (default): take over setting of gribout_nml:lgribout_compress_ccsds
+                                                               ! 0 (CDI_COMPRESS_NONE): no (special) data compression
+                                                               ! 1 (CDI_COMPRESS_SZIP): CCSDS compression
+                                                               ! other GRIB2 compression options are currently unsupported
 
     !> There are two alternative implementations for setting the
     !  output intervals, "output_bounds" and "output_start" /
@@ -358,6 +363,8 @@ MODULE mo_name_list_output_types
     INTEGER                               :: output_type                      !< CDI format
     INTEGER                               :: phys_patch_id                    !< ID of physical output patch
     INTEGER                               :: log_patch_id                     !< ID of logical output patch
+    INTEGER                               :: compression_type                 !< compression type of output file
+
     !> level type: level_type_ml/level_type_pl/level_type_hl/level_type_il
     INTEGER                               :: ilev_type
     INTEGER                               :: max_vars                         !< maximum number of variables allocated

@@ -254,19 +254,7 @@ CONTAINS
         cf_desc    = t_cf_var(TRIM(wesd_name), 'm^2 s', 'wave energy spectral density', datatype_flt)
         new_cf_desc = t_cf_var(TRIM(wesd_name), 'm^2 s rad^-1', 'wave energy spectral density', &
           &                    datatype_flt)
-        grib2_desc = grib2_var(10, 0, 42, ibits, GRID_UNSTRUCTURED, GRID_CELL)     &
-          &        + t_grib2_int_key("numberOfWaveDirections", wc%ndirs)           &
-          &        + t_grib2_int_key("typeOfWaveDirectionSequence", 2)             &
-          &        + t_grib2_int_key("waveDirectionNumber", jd)                    &
-          &        + t_grib2_int_key("numberOfWaveDirectionSequenceParameters", 2) &
-          &        + t_grib2_intarr_key("scaleFactorOfWaveDirectionSequenceParameter", scaleFactorArr) &
-          &        + t_grib2_intarr_key("scaledValueOfWaveDirectionSequenceParameter", wdspArr) &
-          &        + t_grib2_int_key("numberOfWaveFrequencies", wc%nfreqs)         &
-          &        + t_grib2_int_key("typeOfWaveFrequencySequence", 1)             &
-          &        + t_grib2_int_key("waveFrequencyNumber", jf)                    &
-          &        + t_grib2_int_key("numberOfWaveFrequencySequenceParameters", 2) &
-          &        + t_grib2_intarr_key("scaleFactorOfWaveFrequencySequenceParameter", scaleFactorArr) &
-          &        + t_grib2_intarr_key("scaledValueOfWaveFrequencySequenceParameter", wfspArr)
+        grib2_desc = grib2_var(10, 0, 42, ibits, GRID_UNSTRUCTURED, GRID_CELL)
 
         CALL add_ref( p_prog_list, wesd_container_name,                          &
           &  TRIM(wesd_name), p_prog%wesd(jf)%dir(jd)%p_2d,                      &

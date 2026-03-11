@@ -10109,6 +10109,17 @@ separate attributes for output.
   - Use this variable for internal diagnostics applied on all given output variables or groups except time-constant ones: `mean` for generating time averaged, `square` for time averaged square values, `max` or `min` for maximum and minimum and `acc` for accumulated values within the corresponding interval, i.e.  `output_interval`. Supported are 2D, 3D and single values like global means on model levels of all components. All operations can be used on global and nested grids.
   -
 
+* - (output_nml-compression_type)=
+    **compression_type**
+  - I
+  - -1
+  -
+  - Compression type (available for GRIB2 output only)
+    - -1: take over the setting of `gribout_nml:lgribout_compress_ccsds`
+    - 0: (CDI_COMPRESS_NONE): No (special) data compression
+    - 1: (CDI_COMPRESS_SZIP): CCSDS compression
+  - filetype=2
+
 * - (output_nml-pe_placement_il)=
     **pe_placement_il**
   - I(:)

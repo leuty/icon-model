@@ -35,7 +35,7 @@ if test -n "${BB_NAME-}"; then
   )
 fi
 
-${icon_dir}/config/mpim/${linux_codename}.nag --enable-yaxt --disable-openmp --enable-rte-rrtmgp --enable-serialization --enable-rttov --enable-dace --enable-emvorado
+${icon_dir}/config/mpim/${linux_codename}.nag --enable-yaxt --disable-openmp --enable-rte-rrtmgp --enable-serialization --enable-rttov --disable-dace --enable-emvorado
 
 time make ${makeflags}
 

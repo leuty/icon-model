@@ -133,7 +133,7 @@ MODULE mo_name_list_output
     &                                     num_work_procs, p_pe, p_pe_work,                          &
     &                                     p_max, p_comm_work_2_io, mpi_request_null
 #ifdef NO_ASYNC_IO_RMA
-  USE mo_mpi,                       ONLY: p_io, p_wait_n, p_comm_work_io, get_my_global_mpi_id,     &
+  USE mo_mpi,                       ONLY: p_io, p_comm_work_io, get_my_global_mpi_id,               &
                                           num_test_procs
 #endif
 #ifdef _OPENACC
@@ -318,8 +318,8 @@ CONTAINS
     ELSE
       name_len = LEN_TRIM(filename)
       of%cdiFileID       = streamOpenWrite(filename(1:name_len), of%output_type)
-      IF (gribout_config(of%phys_patch_id)%lgribout_compress_ccsds) THEN
-        CALL streamDefCompType(of%cdiFileID, CDI_COMPRESS_SZIP)
+      IF (of%compression_type /= CDI_UNDEFID) THEN
+        CALL streamDefCompType(of%cdiFileID, of%compression_type)
       ENDIF
     ENDIF
 
@@ -1184,11 +1184,11 @@ CONTAINS
       IF(use_dp_mpi2io) THEN
         CALL mpi_isend(of%mem_win%mem_ptr_dp, SIZE(of%mem_win%mem_ptr_dp), p_real_dp, &
             num_test_procs + num_work_procs + of%io_proc_id, 2305 + file_idx, &
-            p_comm_work_io, req_send_data(file_idx))
+            p_comm_work_io, req_send_data(file_idx), mpierr)
       ELSE
         CALL mpi_isend(of%mem_win%mem_ptr_sp, SIZE(of%mem_win%mem_ptr_sp), p_real_sp, &
             num_test_procs + num_work_procs + of%io_proc_id, 2305 + file_idx, &
-            p_comm_work_io, req_send_data(file_idx))
+            p_comm_work_io, req_send_data(file_idx), mpierr)
       END IF
 #else
       ! In case of async IO: Done writing to memory window, unlock it

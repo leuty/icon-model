@@ -25,6 +25,10 @@
 - Modified cloud fraction for two-moment cloud ice microphysics (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1769, https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1922)
 - ecRad updates (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1869)
 - Coupling CAMS aerosols with Segal and Khain cloud droplets activation scheme (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1555)
+- Update of dace_icon and changes in data assimilation interfaces (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/2001)
+- EMVORADO:
+  - reduce memory usage of emvorado and remove MODE_IAU_OLD (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/2024)
+  - Replace netcdf77 procedures by netcdf90 procedures in mo_fdbk_emvorado.f90 (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/2028)
 - New diagnostic output fields
   - accumulated freezing rain (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1989)
   - new optional turbulence diagnostics (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1993)
@@ -32,9 +36,7 @@
   - fix for parallel GRIB decoding (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1947)
 - cleanup:
   - remove init mode iau old (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1962)
-  - EMVORADO: reduce memory usage of emvorado and remove MODE_IAU_OLD (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1971)
-  - Put RRTM radiation and associated ozone option (irad_o3 = 6) into deprecated mode (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1897)
-  - Deprecate RRTM radiation and associated ozone option (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1897)
+  - Deprecate RRTM radiation and associated ozone option (irad_o3 = 6) (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1897)
 
 
 ### ICON-Ocean
@@ -83,6 +85,7 @@
 - Refactor Output Coupling: Masking and Half-Level Support (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1097)
 - Enable coupling between atmo on GPU and oce on CPU (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1868)
 - Coupling of icon-waves and ocean (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1833)
+- Skip reading of output_jfile information for model init from restart (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/2017)
 
 #### Scripting and testing
 
@@ -101,6 +104,7 @@
 - mkexp: require account (compute project) setting on levante (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1203)
 - Disable slp coupling to work around restart differences (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1193)
 - update CLM test (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1864)
+- Add new test case for lterra_urb=.true. (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1911)
 
 #### Building
 
@@ -115,6 +119,7 @@
 - Fix detection of an external ComIn (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1163)
 - Fix the configuration and building order of the bundled packages (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1162)
 - Configure YAC and YAXT in parallel when possible (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1198)
+- Fix usage of configure option --enable-async-io-rma=no (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/2035)
 
 #### Miscellaneous
 

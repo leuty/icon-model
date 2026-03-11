@@ -4441,47 +4441,78 @@ FTRACE_END('rtifc_k')
    integer,                 allocatable :: iatl_mw(:)
    type(rttov_emis_atlas_data), pointer :: atlas_(:)
    integer                              :: instr_cnrm(mcnrm), iatl_cnrm(mcnrm)
+   logical                              :: msk_iopts(size(iopts))
    integer                              :: ierr
-   integer                              :: n_opt
+   integer                              :: n_opt, n_new
    integer                              :: n_cnrm
+   integer                              :: n_atlas_old
    logical                              :: l_distrib
    integer                              :: ic, iopt
-   integer                              :: i, j
+   integer                              :: i, j, k
 
    pe_ifc = my_proc_id
    pe_rt  = pe_ifc
-
-   n_atlas = 0
    ierr    = 0
-
    l_distrib = .false.
 #if defined(_RTIFC_DISTRIBCOEF)
    l_distrib = (n_proc > 1) .and. read1pe
 #endif
 
-   if (associated(atlas)) call finish(proc, 'Atlases initialized already.')
-
-   ! Remove double entries
    n_opt = size(iopts)
-   if (n_opt == 0) return
+   msk_iopts = .true.
+   ! Check for atlases, that are initialized already:
+   do i = 1, n_opt
+     iopt = iopts(i)
+     if (iopt<=0 .or. iopt>n_opts) call finish(proc, 'invalid option index')
+     rto => rt_opts(iopt)
+     do k = 1, rto%natl
+       j = rto%iatl(k)
+       if (j <= 0 .or. j > n_atlas) call finish(proc, 'invalid rto%iatl')
+       if (rto%atl_typ(k) == 0 .and. atlas(j)% atlas_id == atlas_id(i)) msk_iopts(i) = .false.
+     end do
+   end do
+   n_new = count(msk_iopts)
+   if (n_new <= 0) return
 
    ! do i = 1, n_opt
    !   write(0,*) 'init_atlas',i,iopts(i),atlas_id(i),rt_opts(iopts(i))%satid,rt_opts(iopts(i))%instr
    ! end do
 
-   i = maxval(atlas_id)
-   allocate(iatl_ir(i), iatl_mw(i))
-   iatl_ir = 0 ; iatl_mw = 0
+   n_atlas_old = n_atlas
 
    if (io_proc_id == pe_ifc .or. .not.l_distrib) then
-     allocate(atlas(n_opt))
-     n_atlas = 0
-     n_cnrm  = 0
-     write(*,*)
-     write(*,'(1x,A)') 'Initialize RTTOV emissivity atlases:'
+     if (io_proc_id == pe_ifc) then
+       write(*,*)
+       write(*,'(" Initialize RTTOV emissivity atlases for ",I2," datasets:")') n_new
+     end if
+     ! Information on initialized atlases
+     i = max(maxval(atlas_id),maxval(atlas(1:n_atlas)%atlas_id))
+     allocate(iatl_ir(i), iatl_mw(i))
+     iatl_ir = 0 ; iatl_mw = 0
+     instr_cnrm = -1 ; iatl_cnrm  = -1 ; n_cnrm     = 0
+     do i = 1, n_atlas
+       if (atlas(i)%is_mw) then
+         iatl_mw(atlas(i)%atlas_id) = i
+         if (atlas(i)%atlas_id == cnrm_mw_atlas_id) then
+           n_cnrm = n_cnrm + 1
+           iatl_cnrm(n_cnrm) = i
+           instr_cnrm(n_cnrm) = atlas(i)%cnrm_mw_atlas%inst_id
+         end if
+       else
+         iatl_ir(atlas(i)%atlas_id) = i
+       end if
+     end do
+     ! Allocate/reallocate
+     allocate(atlas_(n_atlas+n_new))
+     if (n_atlas > 0) then
+       atlas_(1:n_atlas) = atlas(1:n_atlas)
+       deallocate(atlas)
+     end if
+     atlas => atlas_
+     ! Init (new) atlases
      do i = 1, n_opt
+       if (.not.msk_iopts(i)) cycle
        iopt = iopts(i)
-       if (iopt<=0 .or. iopt>n_opts) call finish(proc, 'invalid option index')
        rto => rt_opts(iopt)
        ic = rto%icoeff
        ierr = 0
@@ -4507,9 +4538,9 @@ FTRACE_END('rtifc_k')
        case(sensor_id_mw,sensor_id_po) !MW
          if (atlas_id(i) == cnrm_mw_atlas_id) then
            if (any(instr_cnrm(1:n_cnrm) == coefs(ic)%coef%id_inst)) then
-             do j = 1, n_cnrm
-               if (instr_cnrm(j) == coefs(ic)%coef%id_inst) then
-                 call add_iatl(iatl_cnrm(j))
+             do k = 1, n_cnrm
+               if (instr_cnrm(k) == coefs(ic)%coef%id_inst) then
+                 call add_iatl(iatl_cnrm(k))
                  exit
                endif
              end do
@@ -4557,15 +4588,21 @@ FTRACE_END('rtifc_k')
    if (l_distrib) then
      call p_bcast(n_atlas,io_proc_id,mpi_comm_type)
      if (io_proc_id == pe_ifc) then
-       write(stdout,'(3x,A,I2,A)') 'Distribute ',n_atlas,' emissivity atlases.'
+       write(stdout,'(3x,A,I2,A)') 'Distribute ',n_new,' emissivity atlases.'
      else
-       allocate(atlas(n_atlas))
+       allocate(atlas_(n_atlas))
+       if (n_atlas_old > 0) then
+         atlas_(1:n_atlas_old) = atlas(1:n_atlas_old)
+         deallocate(atlas)
+       end if
+       atlas => atlas_
      end if
-     do i = 1, n_atlas
+     do i = n_atlas_old+1, n_atlas
        if (io_proc_id /= pe_ifc) call rttov_deallocate_emis_atlas(atlas(i))
        call p_bcast(atlas(i),io_proc_id,mpi_comm_type)
      end do
      do i = 1, n_opt
+       if (.not.msk_iopts(i)) cycle
        call p_bcast(rt_opts(iopts(i))%natl   ,io_proc_id,mpi_comm_type)
        call p_bcast(rt_opts(iopts(i))%iatl   ,io_proc_id,mpi_comm_type)
        call p_bcast(rt_opts(iopts(i))%atl_typ,io_proc_id,mpi_comm_type)
@@ -4731,32 +4768,48 @@ FTRACE_END('rtifc_k')
    character(len=*),       parameter   :: proc   = 'rtifc_init_brdf_atlas'
    character(len=300)                  :: msg    = ''
    type(t_rtopts),         pointer     :: rto
-   integer                             :: i, iopt, ic
+   type(rttov_brdf_atlas_data), pointer:: vis_atlas_(:) => null()
+   integer                             :: iopts_(size(iopts))
+   integer                             :: i, j, iopt, ic, n_new
    integer                             :: n_opt
    logical                             :: l_distrib
 
    stat = 0
    pe_ifc = my_proc_id
    pe_rt  = pe_ifc
-
    l_distrib = .false.
 #if defined(_RTIFC_DISTRIBCOEF)
    l_distrib = (n_proc > 1) .and. read1pe
 #endif
 
-   if (associated(vis_atlas)) call finish(proc, 'VIS-atlases initialized already.')
-
    n_opt = size(iopts)
-   if (n_opt == 0) return
+   iopts_ = iopts
+   ! Check for atlases, that are initialized already:
+   do i = 1, n_opt
+     iopt = iopts_(i)
+     if (iopt<=0 .or. iopt>n_opts) call finish(proc, 'invalid option index')
+     rto => rt_opts(iopt)
+     if (any(rto%atl_typ(1:rto%natl) == 1)) iopts_(i) = -1 ! BRDF initialized already
+   end do
+   n_new = count(iopts_ > 0)
+   iopts_(1:n_new) = pack(iopts_(:), mask=(iopts_(:)>0))
+   if (n_new <= 0) return
 
-   allocate(vis_atlas(n_opt))
-   n_atlas_vis = n_opt
+   allocate(vis_atlas_(n_atlas_vis+n_new))
+   if (n_atlas_vis > 0) then
+     vis_atlas_(1:n_atlas_vis) = vis_atlas(1:n_atlas_vis)
+     deallocate(vis_atlas)
+   end if
+   vis_atlas => vis_atlas_
 
    if (io_proc_id == pe_ifc .or. .not.l_distrib) then
-     do i = 1, n_opt
-       iopt = iopts(i)
-       write(0,*) 'iopt',i,iopt,n_opts
-       if (iopt<=0 .or. iopt>n_opts) call finish(proc, 'invalid option index')
+     if (io_proc_id == pe_ifc) then
+       write(*,*)
+       write(*,'(" Initialize RTTOV BRDF reflectivity atlases for ",I2," datasets:")') n_new
+     end if
+     do i = 1, n_new
+       j = n_atlas_vis + i
+       iopt = iopts_(i)
        rto => rt_opts(iopt)
        ic = rto%icoeff
        write(msg,'(4(A,"=",I3,1x))') "platform",coefs(ic)%coef%id_platform,"sat",coefs(ic)%coef%id_sat,&
@@ -4765,38 +4818,41 @@ FTRACE_END('rtifc_k')
             coefs(ic)%coef%id_sensor == sensor_id_po .or. &
             all(coefs(ic)%coef%ss_val_chn(:) == 0))       &
             call finish(proc, 'Invalid instrument in BRDF-atlas initialization: '//trim(msg))
-       call rttov_setup_brdf_atlas(stat, rto%opts, month, vis_atlas(i), path=path, coefs=coefs(ic))
+       call rttov_setup_brdf_atlas(stat, rto%opts, month, vis_atlas(j), path=path, coefs=coefs(ic))
        if (stat == 0) then
          if (io_proc_id == pe_ifc) write(stdout,*) 'BRDF atlas initialized: '//trim(msg)
        else
          write(0,*) 'Failed to initialize BRDF atlas: '//trim(msg)
          return
        end if
-       call add_iatl(i)
+       call add_iatl(j)
      end do
    else
-     do i = 1, n_opt
-       call rttov_deallocate_brdf_atlas(vis_atlas(i))
+     do i = 1, n_new
+       call rttov_deallocate_brdf_atlas(vis_atlas(n_atlas_vis+i))
      end do
    end if
 #if defined(_RTIFC_DISTRIBCOEF)
    if (l_distrib) then
-     do i = 1, n_opt
-       call p_bcast(vis_atlas(i)%init,io_proc_id,mpi_comm_type)
-       if (vis_atlas(i)%init) then
+     do i = 1, n_new
+       j = n_atlas_vis+i
+       call p_bcast(vis_atlas(j)%init,io_proc_id,mpi_comm_type)
+       if (vis_atlas(j)%init) then
          if (io_proc_id == pe_ifc) then
-           write(msg,'(3(A,"=",I3,1x))') "platform",vis_atlas(i)%brdf_atlas%platform_id,"sat",&
-                vis_atlas(i)%brdf_atlas%sat_id,"inst",vis_atlas(i)%brdf_atlas%inst_id
+           write(msg,'(3(A,"=",I3,1x))') "platform",vis_atlas(j)%brdf_atlas%platform_id,"sat",&
+                vis_atlas(j)%brdf_atlas%sat_id,"inst",vis_atlas(j)%brdf_atlas%inst_id
            write(stdout,*) 'Distribute BRDF atlas: '//trim(msg)
          end if
-         call p_bcast(vis_atlas(i),io_proc_id,mpi_comm_type)
+         call p_bcast(vis_atlas(j),io_proc_id,mpi_comm_type)
        end if
-       call p_bcast(rt_opts(iopts(i))%natl   ,io_proc_id,mpi_comm_type)
-       call p_bcast(rt_opts(iopts(i))%iatl   ,io_proc_id,mpi_comm_type)
-       call p_bcast(rt_opts(iopts(i))%atl_typ,io_proc_id,mpi_comm_type)
+       call p_bcast(rt_opts(iopts_(i))%natl   ,io_proc_id,mpi_comm_type)
+       call p_bcast(rt_opts(iopts_(i))%iatl   ,io_proc_id,mpi_comm_type)
+       call p_bcast(rt_opts(iopts_(i))%atl_typ,io_proc_id,mpi_comm_type)
      end do
    end if
 #endif
+
+   n_atlas_vis = n_atlas_vis + n_new
 
  contains
 
