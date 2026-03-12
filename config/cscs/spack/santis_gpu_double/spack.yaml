@@ -17,3 +17,6 @@ spack:
   view: true
   concretizer:
     unify: true
+  packages:
+    mpi:
+      require: cray-mpich%nvhpc

@@ -31,7 +31,7 @@ include:
 
 .setup_py_env:
   script:
-    - export SQFS_PATH=/capstor/store/cscs/userlab/cws01/ci/ci-python-image/py_icon_ci.squashfs
+    - export SQFS_PATH=/capstor/store/cscs/userlab/cws01/ci/python_image_icon25.2_v4/py_icon_ci.squashfs
     - mkdir -p .venv
 
 .check_with_uenv:
@@ -39,7 +39,6 @@ include:
     - !reference [.setup_py_env, script]
     - uenv run ${UENV_VERSION},${SQFS_PATH}:$(pwd)/.venv --view modules,default -- bash -c '
         source $(pwd)/.venv/bin/activate &&
-        module load nvhpc cdo &&
         ./check.${EXPERIMENT}.run 2>&1 | tee LOG.check.${EXPERIMENT}.run.o ;
         exit_code=${PIPESTATUS[0]} ;
         exit $exit_code'
@@ -49,7 +48,6 @@ include:
     - !reference [.setup_py_env, script]
     - uenv run ${UENV_VERSION},${SQFS_PATH}:$(pwd)/.venv --view modules,default -- bash -c '
         source $(pwd)/.venv/bin/activate &&
-        module load nvhpc cdo &&
         python3 scripts/cscs_ci/probtest_container_wrapper.py $PROBTEST_TASK $EXPERIMENT'
 
 .santis_create_common:
