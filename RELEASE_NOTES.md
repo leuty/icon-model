@@ -426,6 +426,7 @@
 - Add low-resolution mkexp test setups for AES based bubble, Radiative Convective Equilibrium, Aquaplanet, AMIP, nested, A/O coupled and OMIP
 - New AMIP setup in exp.aes_amip
 - Re-enable restart mechanism in AMIP-runscripts, generated with make_runscripts
+- In mkexp, introduce machine-level defaults for blocking paramters
 
 #### Building
 
