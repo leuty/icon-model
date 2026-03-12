@@ -40,7 +40,7 @@ check_error $? "${MODEL} does not exist?"
 #%- endmacro
 
 
-#% macro check_MODEL_status(JOB, WITH_ATMO, WITH_OCEAN):
+#% macro check_MODEL_status(JOB, WITH_ATMO, WITH_OCEAN, IS_COUPLED_OUTPUT):
 # Check the finish status
 #% if JOB.hybrid is defined
 if [ -r finish_atmo.status -a -r finish_ocean.status ] ; then
@@ -56,29 +56,51 @@ else
   check_final_status -1 "${START} ${MODEL}"
 fi
 #%  else
+#%  if IS_COUPLED_OUTPUT:
+if [ -r finish_atmo.status -o -r finish_ocean.status ] ; then
+  check_final_status 0 "${START} ${MODEL}"
+else
+  check_final_status -1 "${START} ${MODEL}"
+fi
+#%  else
 if [ -r finish.status ] ; then
   check_final_status 0 "${START} ${MODEL}"
 else
   check_final_status -1 "${START} ${MODEL}"
 fi
 #%  endif
+#%  endif
 #% endif
 #%- endmacro
 
-#% macro write_finish_status(JOB, WITH_ATMO, WITH_OCEAN, finish_status):
+#% macro write_finish_status(JOB, WITH_ATMO, WITH_OCEAN, IS_COUPLED_OUTPUT, finish_status):
 #%#
 # Write finish status to log file
-#% if WITH_ATMO is set and WITH_OCEAN is set:
+#% if (WITH_ATMO is set and WITH_OCEAN is set) or IS_COUPLED_OUTPUT:
+#%   if WITH_ATMO is set:
 finish_status_atm=`cat finish_atmo.status`
 finish_status_atm="${finish_status_atm# }"
-finish_status_oce=`cat finish_ocean.status`
-finish_status_oce="${finish_status_oce# }"
 echo "${finish_status_atm}"
-echo "${finish_status_oce}"
 echo "============================"
 echo "Script run (atmo) successfully: $finish_status_atm"
+echo "============================"
+#%   endif
+
+#%   if WITH_OCEAN is set:
+finish_status_oce=`cat finish_ocean.status`
+finish_status_oce="${finish_status_oce# }"
+echo "${finish_status_oce}"
+echo "============================"
 echo "Script run (oce) successfully: $finish_status_oce"
 echo "============================"
+#%   endif
+
+#%   if WITH_ATMO is not set:
+finish_status_atm=${finish_status_oce}
+#%   endif
+#%   if WITH_OCEAN is not set:
+finish_status_oce=${finish_status_atm}
+#%   endif
 
 s="${finish_status_atm}|${finish_status_oce}"
 if [[ "$s" == "RESTART|RESTART" ]]; then

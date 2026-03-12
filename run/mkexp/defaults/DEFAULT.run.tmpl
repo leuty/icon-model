@@ -147,6 +147,9 @@ mpi_oce_io_procs=$(($mpi_procs_pernode - $mpi_atm_io_procs))
 #%   endif
 #%  endif
 #% endif
+
+# ----------------------------------------------------------------------------
+nr_of_hiopy_workers=%{hiopy.nr_of_workers if hiopy is defined else 0}
 #
 #=============================================================================
 
@@ -235,7 +238,7 @@ mpi_atm_procs=$((no_of_nodes * atm_per_node))
 #%   else:
 mpi_oce_nodes=%{JOB.ocean_nodes|d(0)}
 mpi_atm_nodes=$((no_of_nodes - mpi_oce_nodes))
-mpi_oce_procs=$((mpi_oce_nodes * mpi_procs_pernode))
+mpi_oce_procs=$((mpi_oce_nodes * mpi_procs_pernode - nr_of_hiopy_workers))
 mpi_atm_procs=$((mpi_total_procs - mpi_oce_procs))
 atm_per_node=$(((mpi_atm_procs + mpi_atm_nodes - 1)/mpi_atm_nodes))
 #%   endif
@@ -511,7 +514,7 @@ fi
 #
 %{launcher.check_MODEL_executable(JOB)}
 #
-#-----------------------------------------------------------------------------
+#
 #
 # start experiment
 #
@@ -519,6 +522,11 @@ fi
 %{run_hybrid.write_host_file(JOB.use_hostfile|d(None))}
 #% else:
 #%  if JOB.use_openmp_hack is not set:
+#%      if JOB.use_mpmd is set:
+mpi_atm_io_procs=%{namelists.NAMELIST_atm.parallel_nml.num_io_procs}
+mpi_oce_io_procs=%{namelists.NAMELIST_oce.parallel_nml.num_io_procs}
+#%      endif
+
 #%      if JOB.use_hostfile is set:
 #%         if IO_DISTRIBUTION_OVER_GPUS is set and JOB.use_gpus is set:
 #%            include "mkexp/environments/hostfiles_levante/hostfile_distrib_io_on_gpus.tmpl"
@@ -535,6 +543,9 @@ fi
 #% if JOB.hybrid is defined:
 %{run_hybrid.write_run_wrapper_gpu()}
 %{run_hybrid.write_run_wrapper_cpu()}
+#% if hiopy is defined:
+%{run_hybrid.write_run_wrapper_hiopy()}
+#% endif
 #% else
 #%  if JOB.use_gpus is set:
 #%            include "mkexp/environments/run_wrapper_"+ ENVIRONMENT +".tmpl"
@@ -579,18 +590,24 @@ if [ $mpi_oce_io_procs -eq 0 ] ; then
 else
   oce_io_line="$((mpi_atm_procs + mpi_oce_procs - mpi_oce_io_procs))-$((mpi_atm_procs + mpi_oce_procs -1)) numactl --interleave=4-7 -- ${MODEL}"
 fi
-# Create the MPMD config file
+#%  endif
+
+#%  if JOB.use_mpmd is set and hiopy is not defined:
+# creating mpmd file
+# Create MPMD config file
 exec 3>&1 # save stdout
 exec > icon_mpmd.conf
 echo "$atm_io_line"
 echo "$oce_io_line"
 echo "* numactl --localalloc -- ${MODEL}"
 exec 1>&3 # restore stdout
-
-
 #%  endif
-#% endif
+#%  endif
 
+# ---------------------------------------------------------------------
+#%  if hiopy is defined and JOB.hybrid is not defined:
+#%    include 'mkexp/defaults/hiopy/run.tmpl'
+#%  endif
 
 #% if JOB.debug_level|d(0)|int > 0:
 thisscript=$(realpath $0)
@@ -646,7 +663,9 @@ date
 #
 #-----------------------------------------------------------------------------
 #
-%{launcher.check_MODEL_status(JOB, WITH_ATMO, WITH_OCEAN)}
+#% set IS_COUPLED_OUTPUT = namelists.NAMELIST_atm.coupling_mode_nml.coupled_to_output is set or namelists.NAMELIST_oce.coupling_mode_nml.coupled_to_output is set
+
+%{launcher.check_MODEL_status(JOB, WITH_ATMO, WITH_OCEAN, IS_COUPLED_OUTPUT)}
 
 #% set atmo_restart = namelists.NAMELIST_atm.run_nml.restart_filename
 #% set ocean_restart = namelists.NAMELIST_oce.run_nml.restart_filename
@@ -696,7 +715,7 @@ rm -rfv %{land_restart|replace('<rsttime>', '${start_stamp}Z')}
 #%    endif
 #%  endif
 
-%{launcher.write_finish_status(JOB, WITH_ATMO, WITH_OCEAN, finish_status)}
+%{launcher.write_finish_status(JOB, WITH_ATMO, WITH_OCEAN, IS_COUPLED_OUTPUT, finish_status)}
 
 #%  if WITH_OBGC is set:
 #-----------------------------------------------------------------------------

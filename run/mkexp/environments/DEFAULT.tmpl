@@ -1,4 +1,3 @@
-#%# -*- mode: sh -*-
 #%#- ICON
 #%#-
 #%#- ------------------------------------------
@@ -11,21 +10,7 @@
 #
 # Setup for generic system
 #
-# $Id: run/mkexp/environments/DEFAULT.tmpl 2 2025-05-19 09:22:30Z m221078 $
-#
 
-#%  for var in JOB.env:
-#%    set val = JOB.env[var]
-#%    if val:
-#%      for line in JOB.env.comments[var]:
-%{line}
-#%      endfor
-#%      set inline_comment = JOB.env.inline_comments[var]
-export %{var}=%{'"'+val+'"' if ' ' in val else val}%{' '+inline_comment if inline_comment}
-#%    else:
-unset %{var}%{' '+inline_comment if inline_comment}
-#%    endif
-#%  endfor
-
-exec < /dev/null > %{LOG_DIR}/%{JOB.log_file} 2>&1
+#%  set language = JOB.language|d("sh")
+#%  include 'mkexp/environments/DEFAULT.'+language+'.tmpl' ignore missing
 #%#

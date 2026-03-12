@@ -16,6 +16,7 @@
 
 #%#------------------------
 #% macro set_mpi_variables(JOB, namelists):
+nr_of_hiopy_workers=%{hiopy.nr_of_workers if hiopy is defined else 0}
 #% set nodes = JOB.nodes|d(1)|int
 no_of_nodes=${SLURM_JOB_NUM_NODES:=%{nodes}}
 export atm_procs_per_node=%{JOB.hybrid.atm.gpus_per_node|d(JOB.default_gpus_per_node)}
@@ -30,6 +31,7 @@ oce_procs=$(( oce_procs_per_node * (no_of_nodes-1) ))    # The CPUs of the last 
 #% else
 oce_procs=$(( oce_procs_per_node * no_of_nodes ))
 #% endif
+oce_procs=$((oce_procs - nr_of_hiopy_workers))
 echo "atm_procs: ${atm_procs}"
 echo "oce_procs: ${oce_procs}"
 #%# Define *_io_procs varaible and replace namelist parameter by it
@@ -37,10 +39,14 @@ export atm_io_procs=%{namelists.NAMELIST_atm.parallel_nml.num_io_procs}
 #% set _ = namelists.NAMELIST_atm.parallel_nml.update({"num_io_procs": "raw(${atm_io_procs})"})
 export oce_io_procs=%{namelists.NAMELIST_oce.parallel_nml.num_io_procs}
 #% set _ = namelists.NAMELIST_oce.parallel_nml.update({"num_io_procs": "raw(${oce_io_procs})"})
+#%  if hiopy is defined:
+atm_io_procs=0
+oce_io_procs=0
+#%  endif
 echo "atm_io_procs: ${atm_io_procs}"
 echo "oce_io_procs: ${oce_io_procs}"
 
-mpi_total_procs=$(( atm_procs + oce_procs + atm_io_procs + oce_io_procs ))
+mpi_total_procs=$(( atm_procs + oce_procs + atm_io_procs + oce_io_procs + nr_of_hiopy_workers))
 echo "mpi_total_procs: ${mpi_total_procs}"
 
 # Calculate the number of CPU procs per node
@@ -77,6 +83,11 @@ oce_min_rank=$((atm_max_rank + 1 ))
 oce_max_rank=$((atm_max_rank + oce_procs + oce_io_procs))
 oce_group_size=1
 oce_inc_rank=1
+
+echo "atm_min_rank: $atm_min_rank"
+echo "atm_max_rank: $atm_max_rank"
+echo "oce_min_rank: $oce_min_rank"
+echo "oce_max_rank: $oce_max_rank"
 #%- endmacro
 
 
@@ -92,14 +103,15 @@ oce_inc_rank=1
 #% set nodes = JOB.nodes|d(1)|int
 export SLURM_HOSTFILE=$EXPDIR/hst_file
 
-/usr/bin/python3 -c 'from ClusterShell.NodeSet import NodeSet
+/usr/bin/python3 -c "
+from ClusterShell.NodeSet import NodeSet
 import os
 
-SLURM_NODELIST      = os.environ["SLURM_NODELIST"]
-atm_procs_per_node  = int(os.environ["atm_procs_per_node"])
-oce_procs_per_node  = int(os.environ["oce_procs_per_node"])
-atm_io_procs        = int(os.environ["atm_io_procs"])
-oce_io_procs        = int(os.environ["oce_io_procs"])
+SLURM_NODELIST      = os.environ['SLURM_NODELIST']
+atm_procs_per_node  = int(os.environ['atm_procs_per_node'])
+oce_procs_per_node  = int(os.environ['oce_procs_per_node'])
+atm_io_procs        = int(os.environ['atm_io_procs'])
+oce_io_procs        = int(os.environ['oce_io_procs'])
 
 node_list = NodeSet(SLURM_NODELIST)
 
@@ -132,13 +144,21 @@ for host in node_list[0:-1]:
 # Distribute OCE IO procs on CPUs: all out-ranks on the last node
 host = node_list[-1]
 for i in range(oce_io_procs):
-    print(host)' > $SLURM_HOSTFILE
+    print(host)
 #% else
 # Distribute ATM IO, OCE and OCE IO procs on CPU:
 for host in node_list:
     for i in range(atm_io_procs + oce_procs_per_node + oce_io_procs):
-        print(host)' > $SLURM_HOSTFILE
+        print(host)
 #% endif
+
+#%  if hiopy is defined:
+# Hiopy procs on the last node
+for host in node_list[-1]:
+    for i in range(%{hiopy.nr_of_workers}):
+        print(host)
+#%  endif
+" > $SLURM_HOSTFILE
 #-----------------------------------------------------------------------------
 #% else
 echo "No JOB.use_hostfile is set."
@@ -243,12 +263,32 @@ chmod 755 ./run_model_cpu.sh
 #%- endmacro
 
 
+#%#------------------------
+#% macro write_run_wrapper_hiopy():
+cat > run_hiopy.sh << EOF
+#! /usr/bin/bash
+#echo Hiopy process \$SLURM_LOCALID on \$(hostname)
+#%  for var in JOB.hybrid.hiopy.env:
+export %{var}=%{JOB.hybrid.hiopy.env[var]}
+#%  endfor
+#%#
+source %{hiopy.venv}/bin/activate
+hiopy-worker --zarr-store-protocol file --zarr-store-path %{DATA_DIR}/%{hiopy.relative_path_to_dataset} --nthreads %{JOB.hybrid.hiopy.env["OMP_NUM_THREADS"]}
+EOF
+
+chmod 755  ./run_hiopy.sh
+#-----------------------------------------------------------------------------
+#%- endmacro
+
 
 #%#------------------------
 #% macro write_mpmd_file(use_mpmd=None):
 #% if use_mpmd is set:
 cat > icon_mpmd.conf << EOF
 0-$(( atm_procs -1 )) ./run_model_gpu.sh
+#%  if hiopy is defined:
+$(( oce_max_rank + 1 ))-$(( oce_max_rank + %{hiopy.nr_of_workers})) ./run_hiopy.sh
+#%  endif
 * ./run_model_cpu.sh
 EOF
 #% endif
