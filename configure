@@ -6070,6 +6070,10 @@ if test "x$icon_gpu_secondary" = xhip; then :
   as_fn_append FCFLAGS " ${FC_PP_DEF}__HIP__"
 fi
 
+if test "x$enable_grib2" = xyes; then :
+  as_fn_append FCFLAGS " ${FC_PP_DEF}HAVE_CDI_GRIB2"
+fi
+
 if test "x$enable_parallel_netcdf" = xyes; then :
   as_fn_append FCFLAGS " ${FC_PP_DEF}HAVE_PARALLEL_NETCDF"
 fi
@@ -9537,7 +9541,7 @@ fi
 fi
 fi
 
-if test "x$enable_emvorado" = xyes; then :
+if test x"$enable_grib2" = xyes || test x"$enable_emvorado" = xyes; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether the Fortran 90 interfaces of ECCODES library is available" >&5
 $as_echo_n "checking whether the Fortran 90 interfaces of ECCODES library is available... " >&6; }
 if ${icon_cv_have_eccodes+:} false; then :
@@ -9562,14 +9566,24 @@ rm -f core conftest.err conftest.$ac_objext \
 fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $icon_cv_have_eccodes" >&5
 $as_echo "$icon_cv_have_eccodes" >&6; }
-   if test "x$icon_cv_have_eccodes" = xyes; then :
+fi
+if test "x$enable_emvorado" = xyes; then :
+  if test "x$icon_cv_have_eccodes" = xyes; then :
   as_fn_append FCFLAGS " ${FC_PP_DEF}GRIBAPI"
 else
   { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error $? "unable to link a test program using the Fortran 90 interfaces of ECCODES library: set FCFLAGS, LDFLAGS and LIBS accordingly
+as_fn_error $? "unable to link a test program using the Fortran 90 interfaces of ECCODES library: either disable the radar forward operator EMVORADO (--disable-emvorado) or set FCFLAGS, LDFLAGS and LIBS accordingly
 See \`config.log' for more details
 ${icon_usr_note}" "$LINENO" 5; }
+fi
+fi
+if test "x$enable_grib2" = xyes; then :
+  if test "x$icon_cv_have_eccodes" = xyes; then :
+  as_fn_append FCFLAGS " ${FC_PP_DEF}HAVE_ECCODES"
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: the Fortran 90 interface of ECCODES library is not available: the respective features are disabled" >&5
+$as_echo "$as_me: WARNING: the Fortran 90 interface of ECCODES library is not available: the respective features are disabled" >&2;}
 fi
 fi
 

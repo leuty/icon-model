@@ -426,37 +426,36 @@ CONTAINS
 #endif
 
   FUNCTION get_eccodes_version()
-#ifdef GRIBAPI
-    ! This is normally the case when EMVORADO is enabled:
+#if defined(HAVE_ECCODES)
     USE eccodes, ONLY: codes_get_api_version, kindOfInt
-#else
+#elif defined(HAVE_CDI_GRIB2)
     USE mo_cdi, ONLY: gribapiLibraryVersion
 #endif
     CHARACTER(:), ALLOCATABLE :: get_eccodes_version
+#if defined(HAVE_ECCODES) || defined(HAVE_CDI_GRIB2)
     CHARACTER(32) :: buf = ''
     INTEGER(c_int) :: major, minor, patch
-#ifdef GRIBAPI
+#endif
+#if defined(HAVE_ECCODES)
     INTEGER(kindOfInt) :: ver
     CALL codes_get_api_version(ver)
     major = ver/10000
     minor = MODULO(ver, 10000)/100
     patch = MODULO(ver, 100)
-#else
+#elif defined(HAVE_CDI_GRIB2)
     major = 0; minor = 0; patch = 0
     CALL gribapiLibraryVersion(major, minor, patch)
 #endif
+#if defined(HAVE_ECCODES) || defined(HAVE_CDI_GRIB2)
     IF (major /= 0 .OR. minor /= 0 .OR. patch /= 0) THEN
       WRITE (buf, '(i0,2(a,i0))') major, '.', minor, '.', patch
       get_eccodes_version = buf(1:LEN_TRIM(buf))
     ELSE
-#ifdef GRIBAPI
-      ! We use ECCODES but do not know the version:
       get_eccodes_version = unknown_value
-#else
-      ! We might be simply not using ECCODES:
-      get_eccodes_version = ''
-#endif
     END IF
+#else
+    get_eccodes_version = ''
+#endif
   END FUNCTION get_eccodes_version
 
   FUNCTION get_netcdf_c_version()

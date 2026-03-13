@@ -26,6 +26,7 @@ MODULE mo_gribout_config
 
   PUBLIC :: t_gribout_config
   PUBLIC :: gribout_config
+  PUBLIC :: have_gribout_nml
   PUBLIC :: configure_gribout
   PUBLIC :: gribout_crosscheck
 
@@ -175,6 +176,8 @@ MODULE mo_gribout_config
   !!
   TYPE(t_gribout_config), TARGET :: gribout_config(1:max_phys_dom)
 
+  !> TRUE if user has specified a gribout namelist.
+  LOGICAL :: have_gribout_nml = .FALSE.
 
 CONTAINS
 
