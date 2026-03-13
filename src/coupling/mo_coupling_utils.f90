@@ -605,11 +605,11 @@ CONTAINS
     USE yaxt,                  ONLY: xt_idxlist, xt_xmap, xt_redist, &
                                      xt_idxvec_new, xt_idxlist_delete, &
                                      xt_xmap_dist_dir_new, xt_xmap_delete, &
-                                     xt_redist_p2p_new, xt_redist_p2p_off_new, &
+                                     xt_redist_p2p_off_new,  &
                                      xt_redist_collection_new, &
                                      xt_redist_s_exchange, &
-                                     xt_redist_s_exchange1, xt_redist_delete
-    USE iso_c_binding,         ONLY: C_LOC, C_NULL_PTR, C_PTR
+                                     xt_redist_delete
+    USE iso_c_binding,         ONLY: C_PTR, C_LOC
 
     TYPE(t_patch), INTENT(IN) :: p_patch(1:n_dom) ! array of nested patches
     CHARACTER(LEN=*), INTENT(IN) :: grid_name     ! name of the nested grid
@@ -1836,9 +1836,6 @@ CONTAINS
   ! registers a field mask for a grid
   SUBROUTINE cpl_def_cell_field_mask( &
     caller, grid_id, is_valid, mask_id)
-
-    USE, INTRINSIC :: iso_c_binding, ONLY : c_size_t, c_int
-
 
     CHARACTER(LEN=*), INTENT(IN) :: caller ! name of the calling routine (for debugging)
     INTEGER, INTENT(IN)  :: grid_id        ! grid identifier

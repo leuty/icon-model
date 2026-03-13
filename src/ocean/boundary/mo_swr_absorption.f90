@@ -82,7 +82,6 @@ CONTAINS
     USE mo_model_domain,              ONLY: t_patch, t_patch_3d
     USE mo_ocean_types,               ONLY: t_hydro_ocean_state
     USE mo_grid_subset,               ONLY: t_subset_range, get_index_range
-    USE mo_run_config,                ONLY: dtime
 
     TYPE(t_patch_3d ),TARGET, INTENT(in)              :: patch_3D
     TYPE(t_hydro_ocean_state), TARGET, INTENT(inout)  :: ocean_state
@@ -141,7 +140,6 @@ CONTAINS
     USE mo_model_domain,              ONLY: t_patch, t_patch_3d
     USE mo_ocean_types,               ONLY: t_hydro_ocean_state
     USE mo_grid_subset,               ONLY: t_subset_range, get_index_range
-    USE mo_impl_constants,            ONLY: sea_boundary
     USE mo_dynamics_config,           ONLY: nold
     USE mo_run_config,                ONLY: dtime
     USE mo_parallel_config,           ONLY: nproma
@@ -250,7 +248,6 @@ CONTAINS
     USE mo_run_config,                ONLY: dtime
     USE mo_parallel_config,           ONLY: nproma
     USE mo_impl_constants,            ONLY: max_char_length
-    USE mo_exception,                 ONLY: finish
 
     TYPE(t_patch_3d ),TARGET, INTENT(in)              :: patch_3d
     TYPE(t_hydro_ocean_state), TARGET, INTENT(inout)  :: ocean_state
@@ -352,8 +349,9 @@ CONTAINS
     USE mo_model_domain,              ONLY: t_patch, t_patch_3d
     USE mo_ocean_types,               ONLY: t_hydro_ocean_state
     USE mo_grid_subset,               ONLY: t_subset_range, get_index_range
-    USE mo_run_config,                ONLY: dtime
+#ifdef _OPENACC
     USE mo_exception,                 ONLY: finish
+#endif
 
     TYPE(t_patch_3d ),TARGET, INTENT(in)              :: patch_3D
     TYPE(t_hydro_ocean_state), TARGET, INTENT(inout)  :: ocean_state
@@ -422,9 +420,7 @@ CONTAINS
     USE mo_model_domain,              ONLY: t_patch, t_patch_3d
     USE mo_ocean_types,               ONLY: t_hydro_ocean_state
     USE mo_grid_subset,               ONLY: t_subset_range, get_index_range
-    USE mo_impl_constants,            ONLY: sea_boundary
     USE mo_dynamics_config,           ONLY: nold
-    USE mo_run_config,                ONLY: dtime
 
 
     TYPE(t_patch_3d ),TARGET, INTENT(in)              :: patch_3d

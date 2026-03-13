@@ -12,9 +12,17 @@
 
 #include <Kokkos_Core.hpp>
 
+#ifndef __STANDALONE
+#include "support/icon_bridge/ragnarok.hpp"
+#endif
+
 int main(int argc, char** argv) {
   // Initialize Kokkos before any tests run.
   Kokkos::initialize(argc, argv);
+
+#ifndef __STANDALONE
+  ragnarok::initialize_serial_backend();
+#endif
 
   ::testing::InitGoogleTest(&argc, argv);
   int result = RUN_ALL_TESTS();

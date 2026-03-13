@@ -31,9 +31,11 @@ PROGRAM icon
     &                               my_process_is_stdio, my_process_is_mpi_workroot
   USE mo_master_init,         ONLY: init_master_control
   USE mo_master_control,      ONLY: get_my_namelist_filename, get_my_process_type,      &
-    &                               atmo_process, ocean_process, ps_radiation_process,  &
-    &                               hamocc_process, jsbach_process, icon_output_process,&
-    &                               wave_process
+    &                               atmo_process, ocean_process, hamocc_process, &
+    &                               jsbach_process, icon_output_process
+#ifndef __NO_ICON_WAVES__
+  USE mo_master_control,      ONLY: wave_process
+#endif
   USE mo_coupling_config,     ONLY: is_coupled_run
 #ifndef __NO_ICON_TESTBED__
   USE mo_master_control,      ONLY: testbed_process

@@ -170,7 +170,7 @@ MODULE mo_atmo_model
 #endif
 
 #ifndef __NO_RAGNAROK__
-  USE mo_ragnarok, ONLY: init_ragnarok
+  USE mo_ragnarok, ONLY: init_ragnarok, finalize_ragnarok
   USE mo_ragnarok_support, ONLY: init_ragnarok_support
 #endif
 
@@ -837,6 +837,13 @@ CONTAINS
 #ifndef __NO_JSBACH__
     CALL jsbach_finalize()
 #endif
+
+#ifndef __NO_RAGNAROK__
+    ! finalize ragnarok & Kokkos
+    !------------------------------------------------------------------
+    IF (my_process_is_work()) CALL finalize_ragnarok()
+#endif
+
     CALL message(routine, 'clean-up finished')
 
   END SUBROUTINE destruct_atmo_model

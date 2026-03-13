@@ -50,6 +50,8 @@ MODULE mo_nh_supervise
   ! Needed by supervise_total_integrals_nh to keep data between steps
   REAL(wp), ALLOCATABLE, SAVE :: z_tracer_mass_0(:)      ! tracer specific total mass at first step
 
+  INTEGER, ALLOCATABLE, SAVE :: water_tracer_list(:)     ! list of all water tracer IDs (including vapor)
+
   INTEGER :: n_file_ti = -1, n_file_tti = -1,  check_total_quant_fileid = -1       ! file identifiers
 
   ! --- Print-out of max winds to an ASCII file.
@@ -75,7 +77,7 @@ CONTAINS
   SUBROUTINE init_supervise_nh( )
     ! local variables
     CHARACTER(*), PARAMETER :: routine = modname//"::init_supervise_nh"
-    INTEGER :: istat
+    INTEGER :: istat, jt
 
     ! --- Print-out of max winds to an ASCII file.
     !     This requires namelist setting 'run_nml::output = "maxwinds"'
@@ -87,6 +89,17 @@ CONTAINS
       IF (istat/=SUCCESS) &
         &  CALL finish(routine, 'could not open '//maxwinds_filename)
     END IF
+
+    IF ( lforcing .AND. iforcing /= iheldsuarez ) THEN
+      ! store IDs of all water tracers in a list, including vapor
+      ALLOCATE( water_tracer_list(iqm_max), STAT=istat)
+      IF (istat/=SUCCESS) &
+        & CALL finish(routine, "Unable to allocate 'water_tracer_list'")
+
+      water_tracer_list = (/(jt, jt=1,iqm_max)/)
+      !$ACC ENTER DATA COPYIN(water_tracer_list)
+    ENDIF
+
   END SUBROUTINE init_supervise_nh
 
 
@@ -106,6 +119,11 @@ CONTAINS
       IF (istat/=SUCCESS) &
         &  CALL finish(routine,'could not close '//maxwinds_filename)
     END IF
+
+    IF (ALLOCATED(water_tracer_list)) THEN
+      !$ACC EXIT DATA DELETE(water_tracer_list)
+      DEALLOCATE(water_tracer_list)
+    ENDIF
   END SUBROUTINE finalize_supervise_nh
 
 
@@ -178,21 +196,15 @@ CONTAINS
 
     REAL(wp) :: max_vn, max_w
     INTEGER  :: max_vn_level, max_vn_process, max_w_level, max_w_process
-    INTEGER  :: water_tracer_list(iqm_max)    ! list of all water tracer IDs (including vapor)
 
     CHARACTER(*), PARAMETER :: routine = modname//"::supervise_total_integrals_nh"
     !-----------------------------------------------------------------------------
 
     CALL assert_acc_device_only(routine, lacc)
 
-    ! store IDs of all water tracers in a list, including vapor
-    IF ( lforcing .AND. iforcing /= iheldsuarez ) THEN
-      water_tracer_list = (/(jt, jt=1,iqm_max)/)
-    ENDIF
-
-    !$ACC DATA CREATE(z_ekin, z_qsum, z_aux_tracer) COPYIN(water_tracer_list)
+    !$ACC DATA CREATE(z_ekin, z_qsum, z_aux_tracer)
 #ifndef NOMPI
-    !$ACC DATA CREATE(z_total_mass_2d, z_dry_mass_2d, z_kin_energy_2d, z_int_energy_2d, z_pot_energy_2d, z_surfp_2d) COPYIN(water_tracer_list)
+    !$ACC DATA CREATE(z_total_mass_2d, z_dry_mass_2d, z_kin_energy_2d, z_int_energy_2d, z_pot_energy_2d, z_surfp_2d)
 #endif
 
     IF (.NOT. ALLOCATED (z_tracer_mass_0)) THEN
@@ -470,28 +482,28 @@ CONTAINS
         z_tracer_mass_0(:)     = z_tracer_mass(:)
         z_total_tracer_mass_0  = z_total_tracer_mass
         z_water_mass_0         = z_water_mass
-      ELSE
-        ! compute mass change relative to time step 1
-        !
-        IF (z_total_tracer_mass_0 == 0._wp) THEN
-          z_total_tracer_mass_re = 0._wp
-        ELSE
-          z_total_tracer_mass_re = z_total_tracer_mass /z_total_tracer_mass_0 -1._wp
-        ENDIF
-        IF (z_water_mass_0 == 0._wp) THEN
-          z_water_mass_re = 0._wp
-        ELSE
-          z_water_mass_re = z_water_mass /z_water_mass_0 -1._wp
-        ENDIF
-        !
-        DO jt=1,ntracer
-          IF (z_tracer_mass_0(jt) == 0._wp) THEN
-            z_tracer_mass_re(jt) = 0._wp
-          ELSE
-            z_tracer_mass_re(jt) = z_tracer_mass(jt) /z_tracer_mass_0(jt) - 1._wp
-          ENDIF
-        ENDDO
       ENDIF
+
+      ! compute mass change relative to time step 1
+      !
+      IF (z_total_tracer_mass_0 == 0._wp) THEN
+        z_total_tracer_mass_re = 0._wp
+      ELSE
+        z_total_tracer_mass_re = z_total_tracer_mass /z_total_tracer_mass_0 -1._wp
+      ENDIF
+      IF (z_water_mass_0 == 0._wp) THEN
+        z_water_mass_re = 0._wp
+      ELSE
+        z_water_mass_re = z_water_mass /z_water_mass_0 -1._wp
+      ENDIF
+      !
+      DO jt=1,ntracer
+        IF (z_tracer_mass_0(jt) == 0._wp) THEN
+          z_tracer_mass_re(jt) = 0._wp
+        ELSE
+          z_tracer_mass_re(jt) = z_tracer_mass(jt) /z_tracer_mass_0(jt) - 1._wp
+        ENDIF
+      ENDDO
 
       ! write to file
       IF (my_process_is_stdio()) THEN

@@ -513,7 +513,7 @@ CONTAINS
 #ifndef NOMPI
   FUNCTION get_mpi_library_version(fallback)
 #ifndef MPI_GET_LIBRARY_VERSION_BROKEN
-    USE mpi
+    USE mpi, ONLY: mpi_max_library_version_string, mpi_get_library_version, mpi_success
 #endif
     CHARACTER(:), ALLOCATABLE :: get_mpi_library_version
     CHARACTER(*), OPTIONAL, INTENT(in) :: fallback

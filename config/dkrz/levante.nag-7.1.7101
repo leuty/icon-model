@@ -72,6 +72,9 @@ ICON_CFLAGS='-O3'
 ICON_BUNDLED_CFLAGS='-O2'
 ICON_YAC_CFLAGS='-O2 -pthread'
 
+# Let CDI know it can enable the support for compression filters even with the
+# older NetCDF version:
+ICON_CDI_CFLAGS="${ICON_BUNDLED_CFLAGS} -DHAVE_DECL_NCAUX_H5FILTERSPEC_PARSELIST"
 # Ensure the Python interface of MTIME is not overlinked:
 ICON_MTIME_CFLAGS="${ICON_BUNDLED_CFLAGS} -Wl,--as-needed"
 
@@ -164,6 +167,7 @@ FC="${FC}" \
 FCFLAGS="${FCFLAGS}" \
 ICON_BUNDLED_CFLAGS="${ICON_BUNDLED_CFLAGS}" \
 ICON_BUNDLED_FCFLAGS="${ICON_BUNDLED_FCFLAGS}" \
+ICON_CDI_CFLAGS="${ICON_CDI_CFLAGS}" \
 ICON_CFLAGS="${ICON_CFLAGS}" \
 ICON_DACEVICTIMS_FCFLAGS="${ICON_DACEVICTIMS_FCFLAGS}" \
 ICON_DACEVICTIMS_PATH="${ICON_DACEVICTIMS_PATH}" \
@@ -174,8 +178,8 @@ ICON_EMVORADO_PATH="${ICON_EMVORADO_PATH}" \
 ICON_FCFLAGS="${ICON_FCFLAGS}" \
 ICON_LDFLAGS="${ICON_LDFLAGS}" \
 ICON_MTIME_CFLAGS="${ICON_MTIME_CFLAGS}" \
-ICON_YAC_CFLAGS="$ICON_YAC_CFLAGS" \
 ICON_SCT_FCFLAGS="${ICON_SCT_FCFLAGS}" \
+ICON_YAC_CFLAGS="$ICON_YAC_CFLAGS" \
 LDFLAGS="${LDFLAGS}" \
 LIBS="${LIBS}" \
 MPI_LAUNCH="${MPI_LAUNCH}" \
@@ -204,6 +208,7 @@ if test $(pwd) != $(cd "${icon_dir}"; pwd); then
     test -d "${src}" && mkdir -p "${dir}" && rsync -uavz "${src}/" "${dir}"
   done
   rsync -uavz ${icon_dir}/make_runscripts .
+  rsync -uavz ${icon_dir}/scripts .
   ln -sf ${icon_dir}/data
   ln -sf ${icon_dir}/vertical_coord_tables
 fi

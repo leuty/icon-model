@@ -66,6 +66,7 @@ path = [
   "config.h.in",
   "config/**/*_ENV_TAG",
   "config/**/*_TAG*",
+  "ragnarok/aes_microphysics/bindings/python/requirements.txt",
   "run/tolerance/PROBTEST_TAG",
   "run/tolerance/hashes/*",
   "schedulers/ecmwf/gen/mapfile_vlist.txt",

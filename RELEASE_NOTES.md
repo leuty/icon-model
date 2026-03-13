@@ -6,6 +6,7 @@
 
 - Swap dimensions of coefficient fields for igradp_method (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1978)
 - Assume `itime_scheme>=4` for the dycore (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1969)
+- Fix for diagnostic output with option `totint` (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1245)
 
 #### AES Physics
 
@@ -14,8 +15,11 @@
 - Fix for double definition of cloud_num in microphysics
 - Correction to rain microphysics (evap and accretion)
 - Fix GPU async queues in TMX surface module
+- OpenACC, memory manager and some other fixes in TMX (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1296)
 - Simplification of the rte-rrtmgp radiation interface (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1087)
 - Fix loop indexing in TMX surface module (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1241)
+- Added options to not use Louis stability formula over land and/or sea ice
+- Fix in TMX of the near-surface diagnostics interpolation effecting 2m temperature and 10m wind
 
 #### NWP Physics
 
@@ -37,7 +41,6 @@
 - cleanup:
   - remove init mode iau old (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1962)
   - Deprecate RRTM radiation and associated ozone option (irad_o3 = 6) (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1897)
-
 
 ### ICON-Ocean
 
@@ -65,10 +68,20 @@
   - fix boundary condition for wave group velocity at ocean-land boundary edges (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1951)
   - Fix units and descriptions for wave-specific fields (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1995)
 
-
 ### Soil and Surface
 
 #### Climate: ICON-Land
+
+- QUINCY development
+  - Refactoring of the execution control of the soil-biogeochemistry slow-pool spinup accelerator in QUINCY
+  - Fix effects of ice and supercooled water on vegetation growth and nutrient leaching
+  - Bugfix vegetation litter decomposition in the Carbon-only QUINCY model
+  - Added interactive nitrogen and phosphorus flags in soil biogeochemistry
+  - Remove QUINCY code parts not required in ICON-Land
+- Cleaned up the use of mo_util_string routines
+- Refactored the calculation of global diagnostics and ported to GPU
+- Added a script to process ERA5 data into ICON-Land standalone forcing
+- Update of the script to equilibrate jsbach humus carbon pools
 
 ### Externals
 
@@ -107,6 +120,8 @@
 - Disable slp coupling to work around restart differences (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1193)
 - update CLM test (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1864)
 - Add new test case for lterra_urb=.true. (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1911)
+- mkexp: Add support for hybrid and GPU only runs at Levante dolpung partition (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/877)
+- make_runscripts: Experiment template for dycore testcase `jabw` (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1245)
 
 #### Building
 
@@ -418,6 +433,7 @@
 - Add low-resolution mkexp test setups for AES based bubble, Radiative Convective Equilibrium, Aquaplanet, AMIP, nested, A/O coupled and OMIP
 - New AMIP setup in exp.aes_amip
 - Re-enable restart mechanism in AMIP-runscripts, generated with make_runscripts
+- In mkexp, introduce machine-level defaults for blocking paramters
 
 #### Building
 

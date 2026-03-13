@@ -72,6 +72,8 @@ MODULE mo_turb_vdiff_config
     INTEGER  :: energy_type                !< use 1: dry static energy 2: internal energy for thermal diffusion in tmx
     REAL(wp) :: dissipation_factor         !< for tmx only; factor for dissipation of kinetic energy
     LOGICAL  :: use_louis                  !< Switch to activate Louis formula for exchange coefficient
+    LOGICAL  :: use_louis_land             !< Switch to activate Louis formula over land (default: true)
+    LOGICAL  :: use_louis_ice              !< Switch to activate Louis formula over sea ice (default: true)
     REAL(wp) :: louis_constant_b           !< Louis constant b in Eq. 15 of Louis (1979) [BLM]
     LOGICAL  :: use_km_const               !< Switch to use a constant turbulent viscosity/diffusivity for CBL testcase debugging
     REAL(wp) :: km_const                   !< value of constant turbulent viscosity -> kh = km / turb_prandtl (CBL testcase)
@@ -157,6 +159,8 @@ CONTAINS
     config%energy_type                = 2
     config%dissipation_factor         = 1._wp
     config%use_louis                  = .TRUE.
+    config%use_louis_land             = .TRUE.
+    config%use_louis_ice              = .TRUE.
     config%louis_constant_b           = 4.2_wp
     config%use_km_const               = .FALSE.
     config%km_const                   = 1.0_wp

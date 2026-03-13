@@ -43,6 +43,7 @@ MODULE mo_name_list_output_printvars
   USE mo_jsb_vertical_axes,                 ONLY: setup_zaxes_jsbach
 #endif
   USE mo_util_cdi,                          ONLY: create_cdi_variable
+  USE mo_impl_constants,                    ONLY: MAX_CHAR_LENGTH
 #endif
   USE mo_cdi,                               ONLY: cdi_max_name
   USE mo_gribout_config,                    ONLY: t_gribout_config
@@ -172,7 +173,9 @@ CONTAINS
     ! add the variable in question to the vlist:
     tmp_varID = create_cdi_variable(tmp_vlistID, tmp_gridID, tmp_zaxisID,        &
       &                             info, 0._dp, FILETYPE_GRB2,                  &
-      &                             gribout_config, i_lctype, out_varnames_dict)
+      &                             gribout_config, i_lctype,                    &
+      &                             0, -1, REPEAT(' ', MAX_CHAR_LENGTH),         &
+      &                             out_varnames_dict)
     ! open temporary GRIB2 file, write variable:
     tmp_filename = tmp_filename_base//"."//int2string(get_my_global_mpi_id(),'(i0)')
     tmp_streamID = streamOpenWrite(TRIM(tmp_filename), FILETYPE_GRB2)

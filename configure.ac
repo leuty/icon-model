@@ -74,6 +74,8 @@ run "make distclean" there first])])
 
 ############################# OPTION DECLARATIONS ##############################
 
+AC_ARG_PROGRAM
+
 AC_ARG_ENABLE([rpaths],
   [AS_HELP_STRING([--enable-rpaths],
      [add directories specified with -L flags in LDFLAGS, ICON_LDFLAGS and LIBS
@@ -2214,7 +2216,7 @@ AS_VAR_IF([prefix], [NONE], [prefix=$ac_default_prefix])
 AS_VAR_IF([exec_prefix], [NONE], [exec_prefix=$prefix])
 dnl The order of the variables must be the same as the order they are
 dnl initialized in (see _AC_INIT_PARSE_ARGS):
-for icon_installdir in bindir includedir libdir; do
+for icon_installdir in bindir datarootdir datadir includedir libdir; do
   AS_VAR_COPY([icon_tmp], [$icon_installdir])
   eval "$icon_installdir=\"$icon_tmp\""
 done
@@ -3050,9 +3052,9 @@ KOKKOS library @<:@default=$ICON_BUNDLED_HIPFLAGS@:>@])dnl
    ACX_SUBDIR_REMOVE_ARGS([ragnarok/build],
      [-DCMAKE_C_*=*|-DCMAKE_Fortran_*=*|-DCMAKE_CXX_FLAGS=*])
    icon_kokkos_extra_args=
+   AS_VAR_APPEND([icon_kokkos_extra_args], [' -DKokkos_ENABLE_SERIAL=ON'])
    AS_VAR_IF([enable_openmp], [yes],
-     [AS_VAR_APPEND([icon_kokkos_extra_args], [' -DKokkos_ENABLE_OPENMP=ON'])],
-     [AS_VAR_APPEND([icon_kokkos_extra_args], [' -DKokkos_ENABLE_SERIAL=ON'])])
+     [AS_VAR_APPEND([icon_kokkos_extra_args], [' -DKokkos_ENABLE_OPENMP=ON'])],[])
    AS_CASE([$icon_gpu_secondary],
      [cuda],
      [AS_VAR_APPEND([icon_kokkos_extra_args], [' -DKokkos_ENABLE_CUDA=ON'])],
@@ -3260,7 +3262,8 @@ RAGNAROK library @<:@default=$ICON_BUNDLED_HIPFLAGS@:>@])dnl
      [-DCMAKE_BUILD_TYPE=None],
      [-DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH"],
      [-DBUILD_SHARED_LIBS=OFF], [-DBUILD_TESTING=OFF],
-     [-DRGK_ENABLE_STANDALONE=OFF],
+     [-DRGK_ENABLE_STANDALONE=OFF],[-DRGK_ENABLE_PYTHON_BINDINGS=OFF],
+     [-DRGK_ENABLE_SINGLE_PRECISION="$enable_single_precision"],
      [-DCMAKE_CUDA_ARCHITECTURES=OFF], [-DCMAKE_HIP_ARCHITECTURES=OFF])
    icon_bundled_config_after_config([ragnarok/build], [externals/kokkos/build])
    AS_VAR_APPEND([bundled_includes],

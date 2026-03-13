@@ -12,8 +12,13 @@
 # system paths on levante
 set(GTest_ROOT
     "/sw/spack-levante/googletest-1.10.0-opzgcq"
-    CACHE STRING "Path to Googletest on Levante" FORCE
+    CACHE PATH "Path to Googletest on Levante" FORCE
 )
+set(NetCDF_ROOT
+    "/sw/spack-levante/netcdf-cxx4-4.3.1-42ju4n;/sw/spack-levante/netcdf-c-main-k4lh4v"
+    CACHE PATH "Path to NetCDF C++ on Levante" FORCE
+)
+
 set(GCC_ROOT "/sw/spack-levante/gcc-11.2.0-bcn7mb")
 set(NVHPC_ROOT "/sw/spack-levante/nvhpc-24.7-py26uc/Linux_x86_64/24.7")
 
@@ -62,6 +67,10 @@ set(BUILD_TESTING
 set(RGK_ENABLE_STANDALONE
     ON
     CACHE BOOL "Enable standalone" FORCE
+)
+set(RGK_ENABLE_PYTHON_BINDINGS
+    OFF
+    CACHE BOOL "Enable python bindings" FORCE
 )
 
 # kokkos options

@@ -3,6 +3,7 @@
 # ---------------------------------------------------------------
 # Copyright (C) 2004-2026, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 # Contact information: icon-model.org
+#
 # See AUTHORS.TXT for a list of authors
 # See LICENSES/ for license information
 # SPDX-License-Identifier: BSD-3-Clause
@@ -331,6 +332,9 @@ doc:html:check:
         $CI_PIPELINE_SOURCE == "merge_request_event" &&
           $CI_MERGE_REQUEST_PROJECT_PATH == "icon/icon-nwp"
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - .gitlab/ci/common/html.yml
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes: !reference [.common:html, rules, changes]
 
 doc:html:publish:pages:
@@ -345,6 +349,9 @@ doc:html:publish:pages:
       when: never
     - if: $CI_PIPELINE_SOURCE == "web"
       when: manual
+    - if: $CI_PIPELINE_SOURCE == "push"
+      changes:
+        - .gitlab/ci/common/html.yml
     - if: $CI_PIPELINE_SOURCE == "push"
       changes: !reference [.common:html, rules, changes]
   manual_confirmation: This job updates the GitLab Pages of the current project

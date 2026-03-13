@@ -12,7 +12,7 @@
 # Atmosphere standalone script template
 #   Sapphire 2.0 namelist, R02B08 for production,
 #   untuned R02B09, R02B10 settings,
-#   R02B04, R02B06, R02B07  for testing purposes only
+#   untuned R02B04, R02B06, R02B07  for testing purposes only
 # -------------------------------------------------------------
 #
 author_list='Monika Esch, MPIM'
@@ -43,7 +43,7 @@ icon_data_poolFolder="${icon_data_rootFolder:-/pool/data/ICON}/grids/public/mpim
 #
 # Define resolution:
 #
-grid_refinement=R02B08
+grid_refinement=R02B10
 #
 # Set various parameters, time steps, start and end date etc for
 #  the different resolutions first
@@ -251,7 +251,7 @@ atm_file_interval="P1M"
 
 output_atm_vgrid=no              # produces 1 file, but only once
 output_atm_gmean=no               # produces 2 files
-output_atm_qp=yes                 # produces 2 file,  for quickplots, daily means
+output_atm_qp=yes                 # produces 4 file,  for quickplots, daily means
 
 # asynchronous diagnostic output processes
 # ----------------------------------------
@@ -565,9 +565,11 @@ dataaero=${icon_data_poolFolder}/${grid_id}/aerosol_kinne/r0100
 year=$start_year
 while [[ $year -le $end_year ]]
 do
-#    add_link_file $datadir/bc_ozone_historical_${year}.nc                 ./bc_ozone_${year}.nc
+if [[ ${year} -le 2014 ]] ; then
+    add_link_file $datadir/bc_ozone_historical_${year}.nc                 ./bc_ozone_${year}.nc
+else
     add_link_file $datadir/bc_ozone_ssp370_${year}.nc                     ./bc_ozone_${year}.nc
-
+fi
 # for aerosol
     add_link_file $dataaero/bc_aeropt_kinne_sw_b14_fin_${year}.nc         ./bc_aeropt_kinne_sw_b14_fin_${year}.nc
   (( year = year+1 ))
@@ -582,8 +584,15 @@ add_link_file $datadir/greenhouse_ssp370.nc                               ./bc_g
 #
 datadir=${icon_data_poolFolder}/common/solar_radiation
 add_link_file $datadir/swflux_14band_cmip6_1850-2299-v3.2.nc              ./bc_solar_irradiance_sw_b14.nc
-#
-datadir=${icon_data_poolFolder}/${grid_id}/land/r0101
+# New land grids are only available for R02B04 and R02B08
+case "$grid_refinement" in
+   R02B06|R02B07|R02B09|R02B10)
+    datadir="${icon_data_poolFolder}/${grid_id}/land/r0100"
+    ;;
+   *)
+    datadir="${icon_data_poolFolder}/${grid_id}/land/r0101"
+   ;;
+esac
 #
 add_link_file $datadir/ic_land_soil.nc                                    ./ic_land_soil.nc
 add_link_file $datadir/bc_land_frac_${pft_file_tag}2015.nc                ./bc_land_frac.nc

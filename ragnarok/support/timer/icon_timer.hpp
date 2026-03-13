@@ -130,7 +130,13 @@ class Timer {
   friend void init_timer(const icon::f2c::FunTable& fun_tab);
 
  public:
-  Timer(const std::string& name) : name(name) { id = backend.gen_id(name.c_str(), name.length()); }
+  Timer(const std::string& name) : name(name) {
+    if (backend.is_valid()) {
+      id = backend.gen_id(name.c_str(), name.length());
+    } else {
+      id = TimerBackend::undef_id;
+    }
+  }
 
   void start() {
     if (id == TimerBackend::undef_id) {

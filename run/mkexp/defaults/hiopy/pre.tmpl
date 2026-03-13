@@ -1,0 +1,88 @@
+#! %{JOB.python3} #%# -*- mode: python -*- vi: set ft=python :
+#%#- ICON
+#%#-
+#%#- ------------------------------------------
+#%#- Copyright (C) 2004-2025, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
+#%#- Contact information: icon-model.org
+#%#- See AUTHORS.TXT for a list of authors
+#%#- See LICENSES/ for license information
+#%#- SPDX-License-Identifier: BSD-3-Clause
+#%#- ------------------------------------------
+#
+# Configure hierarchical data request for hiopy
+# Generate data request configuration using parse_data_request module
+
+import json
+import sys
+import os
+#% include 'mkexp/defaults/logging.tmpl'
+
+
+# Add the necessary scripts for python
+module_path = os.path.join('%{MODEL_DIR}', 'run', 'mkexp', 'defaults', 'hiopy')
+sys.path.insert(0, module_path)
+
+#%  if hiopy.grid.type == "healpix":
+from init_hierarchy import init_data_request as init_hierarchial_dataset
+#%  else:
+from init_model_grid import init_data_request as init_model_grid_dataset
+#%  endif
+from create_datarequest_config import parse_data_request
+
+user_config = %{namelists.hiopy}
+
+from datetime import datetime
+import isodate as isodate
+
+time_agg_allowed = %{hiopy.time_agg}
+for time_agg_required in %{hiopy.time_agg}:
+    duration = isodate.parse_duration(time_agg_required)
+    start_date = datetime.fromisoformat('%{INITIAL_DATE}')
+    end_date = datetime.fromisoformat('%{FINAL_DATE}')
+    if (end_date - start_date) < duration:
+        logging.warning(f"Required time-agg {time_agg_required} is beyond the simulation date. It will be skipped...")
+    else:
+        time_agg_allowed.append(time_agg_required)
+
+try:
+    data_request = parse_data_request(user_config, time_agg_allowed, %{hiopy.grid})
+
+    data_request_config_file = os.path.join('%{DATA_DIR}', 'hiopy_data_request.json')
+    with open(data_request_config_file, 'w') as f:
+        json.dump(data_request, f, indent=2)
+
+    logging.info(f"Successfully created data request config: {data_request_config_file}")
+    logging.info(f"Data request contains {len(data_request)} data groups")
+
+    # Build simulation parameters
+    simulation_params = {
+        "dataset_path": os.path.join('%{DATA_DIR}', '%{hiopy.relative_path_to_dataset}'),
+        "start_date": '%{INITIAL_DATE}',
+        "end_date": '%{FINAL_DATE}',
+        "simulated_hours_per_chunk": %{hiopy.simulated_hours_per_chunk|d(24)|int},
+        "chunks_per_shard": %{hiopy.chunks_per_shard|d(1)|int},
+    }
+
+    # Load or create variable names dictionary
+    #%  if JOB.var_names_dict_file is defined:
+    var_names_dict_file = '%{JOB.var_names_dict_file}'
+    with open(var_names_dict_file, 'r') as f:
+        var_names_dict = json.load(f)
+    #%  else:
+    # Use default empty dictionary if no var_names mapping provided
+    var_names_dict = {}
+    #%  endif
+
+    logging.info(f"Initializing zarr dataset at: {simulation_params['dataset_path']}")
+    logging.info(f"Simulation period: {simulation_params['start_date']} to {simulation_params['end_date']}")
+    #%  if hiopy.grid.type == "healpix":
+    init_hierarchial_dataset(data_request, simulation_params, var_names_dict)
+    #%  else:
+    init_model_grid_dataset(data_request, simulation_params, var_names_dict)
+    #%  endif
+    logging.info(f"Successfully initialized zarr dataset")
+    sys.exit(0)
+
+except Exception as e:
+    logging.error(f"Error initializing zarr dataset for the experiment: {e}")
+    sys.exit(1)

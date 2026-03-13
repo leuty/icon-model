@@ -348,7 +348,7 @@ os.chdir(work_dir)
 # Generate Makefile
 
 makefile_template = '''\
-CDO = cdo
+CDO = %{JOB.cdo}
 CDOFLAGS = -s -O --reduce_dim
 PLOT_TIMESER = plot_timeser
 

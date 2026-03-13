@@ -35,13 +35,11 @@ CONTAINS
 !!   call pore water diffusion
 !!
 
-!
-
    USE mo_memory_bgc, ONLY  : ro2ut, rnit, nitdem, n2prod,         &
         &                     rcar, ralk,                   &
         &                     ro2ammo, &
-        &                     rnh4no2, rno2no3, rno3no2,rno3nh4,&
-        &                     rno2n2, ro2nitri, alk_nrn2,                 &
+        &                     rnh4no2, rno2no3, rno3no2, rno3nh4, &
+        &                     rno2n2, alk_nrn2,                 &
         &                     o2thresh, o2den_lim
 
    USE mo_sedmnt, ONLY      : seddw,              &

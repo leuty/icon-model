@@ -81,6 +81,12 @@ include:
       - if: $CI_PROJECT_PATH == "icon/icon-model"
         when: never
       - when: always
+  - local: .gitlab/ci/nightly/*.yml
+    rules:
+      - if: $CI_PROJECT_PATH == "icon/icon-model"
+        when: never
+      - if: $CI_PIPELINE_SOURCE == "web"
+      - if: $CI_PIPELINE_SOURCE == "schedule" && $ICON_CI_TEST_SCHEDULE == "nightly"
   - local: .gitlab/ci/cscs/santis.yml
     rules:
       - if: $CI_PROJECT_PATH == "icon/icon-model"

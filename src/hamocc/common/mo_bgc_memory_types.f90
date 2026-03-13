@@ -493,8 +493,7 @@ CONTAINS
 
   !-------------------------------------------------------------------------
   SUBROUTINE alloc_mem_biomod_types(bgc_mem_instance)
-    USE mo_control_bgc
-    USE mo_param1_bgc
+    USE mo_control_bgc, ONLY : bgc_nproma, wp
 
     TYPE(t_bgc_memory) :: bgc_mem_instance
 

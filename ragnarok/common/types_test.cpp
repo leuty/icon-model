@@ -46,7 +46,7 @@ class TypesTest : public testing::Test {
 
 TYPED_TEST_SUITE_P(TypesTest);
 
-TYPED_TEST_P(TypesTest, TypesTestSuiteCheckManagedView2DLayout) {
+TYPED_TEST_P(TypesTest, CheckManagedView2DLayout) {
   const size_t dim1 = 2;
   const size_t dim2 = 3;
 
@@ -59,7 +59,7 @@ TYPED_TEST_P(TypesTest, TypesTestSuiteCheckManagedView2DLayout) {
   EXPECT_EQ(hostView(0, 2), TypeParam{2});
 }
 
-TYPED_TEST_P(TypesTest, TypesTestSuiteCheckManagedView3DLayout) {
+TYPED_TEST_P(TypesTest, CheckManagedView3DLayout) {
   const size_t dim1 = 2;
   const size_t dim2 = 3;
   const size_t dim3 = 2;
@@ -73,7 +73,7 @@ TYPED_TEST_P(TypesTest, TypesTestSuiteCheckManagedView3DLayout) {
   EXPECT_EQ(hostView(0, 1, 1), TypeParam{3});
 }
 
-TYPED_TEST_P(TypesTest, TypesTestSuiteCheckUnmanagedView2DLayout) {
+TYPED_TEST_P(TypesTest, CheckUnmanagedView2DLayout) {
   const size_t dim1              = 2;
   const size_t dim2              = 3;
 
@@ -89,7 +89,7 @@ TYPED_TEST_P(TypesTest, TypesTestSuiteCheckUnmanagedView2DLayout) {
   EXPECT_EQ(icon2d.data(), view2d.data());
 }
 
-TYPED_TEST_P(TypesTest, TypesTestSuiteCheckUnmanagedView3DLayout) {
+TYPED_TEST_P(TypesTest, CheckUnmanagedView3DLayout) {
   const size_t dim1                     = 2;
   const size_t dim2                     = 3;
   const size_t dim3                     = 2;
@@ -108,7 +108,7 @@ TYPED_TEST_P(TypesTest, TypesTestSuiteCheckUnmanagedView3DLayout) {
   EXPECT_EQ(icon3d.data(), view3d.data());
 }
 
-TYPED_TEST_P(TypesTest, TypesTestSuiteCheckHostView) {
+TYPED_TEST_P(TypesTest, CheckHostView) {
   const size_t dim1       = 2;
   TypeParam array1D[dim1] = {TypeParam{0}, TypeParam{1}};
   auto view1d             = HostView1D<TypeParam>(array1D, dim1);
@@ -117,11 +117,10 @@ TYPED_TEST_P(TypesTest, TypesTestSuiteCheckHostView) {
   EXPECT_TRUE(array1D == view1d.data());
 }
 
-REGISTER_TYPED_TEST_SUITE_P(TypesTest, TypesTestSuiteCheckManagedView2DLayout, TypesTestSuiteCheckManagedView3DLayout,
-                            TypesTestSuiteCheckUnmanagedView2DLayout, TypesTestSuiteCheckUnmanagedView3DLayout,
-                            TypesTestSuiteCheckHostView);
+REGISTER_TYPED_TEST_SUITE_P(TypesTest, CheckManagedView2DLayout, CheckManagedView3DLayout, CheckUnmanagedView2DLayout,
+                            CheckUnmanagedView3DLayout, CheckHostView);
 
 using MyTypes = ::testing::Types<float, double>;
-INSTANTIATE_TYPED_TEST_SUITE_P(Tests, TypesTest, MyTypes);
+INSTANTIATE_TYPED_TEST_SUITE_P(RagnarokTests, TypesTest, MyTypes);
 
 }  // namespace

@@ -19,7 +19,12 @@ MODULE mo_cloud_mig
        &                            timer_sat, timer_grp
 
   USE mo_aes_thermo          ,ONLY: saturation_adjustment
+
+#ifndef __NO_RAGNAROK__
+  USE mo_ragnarok_microphysics, ONLY: graupel_run
+#else
   USE mo_aes_graupel         ,ONLY: graupel_run
+#endif
 
   IMPLICIT NONE
   PRIVATE
@@ -163,6 +168,12 @@ CONTAINS
     !
     IF (ltimer) call timer_start(timer_grp)
     !
+
+#ifndef __NO_RAGNAROK__
+    !$ACC HOST_DATA USE_DEVICE(rho, zta, pf, dz, zqv, zqc, zqi, zqr, zqs, zqg) &
+    !$ACC   USE_DEVICE(zqnc, zqrsflux, pr_rain, pr_ice, pr_snow, pr_grpl, pr_eflx)
+#endif
+
     CALL graupel_run( nvec= nproma        ,& !< in
          &        ke      = jke           ,& !< in
          &        ivstart = jcs           ,& !< in
@@ -188,6 +199,11 @@ CONTAINS
          &        prs_gsp = pr_snow (:)   ,& !<   out: precip rate snow
          &        prg_gsp = pr_grpl (:)   ,& !<   out: precip rate graupel
          &        pre_gsp = pr_eflx (:)   )  !<   out: precip energy flux
+
+#ifndef __NO_RAGNAROK__
+   !$ACC END HOST_DATA
+#endif
+
     !
     IF (ltimer) call timer_stop(timer_grp)
 
