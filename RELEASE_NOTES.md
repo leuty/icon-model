@@ -202,6 +202,7 @@
 - Anthropogenic emission files: Created anthropogenic emission data including aviation sources from the CMIP7 dataset
 - Update BSD-3C licence year to 2026
 - More flexible handling of the number of PFTs
+- Remove legacy snow scheme and namelist switch l_snow
 
 ### Infrastructure
 

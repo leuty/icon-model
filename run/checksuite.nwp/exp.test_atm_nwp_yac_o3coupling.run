@@ -654,7 +654,6 @@ cat > ${basedir}/run/${jsbach_namelist} << EOF
 &jsb_sse_nml
   l_heat_cap_dyn       = .true.
   l_heat_cond_dyn      = .true.
-  l_snow               = .true.
   l_dynsnow            = .true.
   l_freeze             = .true.
   l_supercool          = .true.
