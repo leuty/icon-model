@@ -19,7 +19,7 @@ MODULE mo_wave_state
   USE mo_parallel_config,           ONLY: nproma
   USE mo_model_domain,              ONLY: t_patch
   USE mo_grid_config,               ONLY: n_dom, l_limited_area, ifeedback_type
-  USE mo_coupling_config,           ONLY: is_coupled_to_atmo, is_coupled_to_ocean
+  USE mo_coupling_config,           ONLY: is_coupled_to_ocean
   USE mo_impl_constants,            ONLY: success, max_char_length, VNAME_LEN, TLEV_NNOW, &
     &                                     HINTP_TYPE_LONLAT_NNB, HINTP_TYPE_LONLAT_BCTR
   USE mo_math_constants,            ONLY: rad2deg
@@ -210,7 +210,7 @@ CONTAINS
     scaleFactorArr = (/scaleFactor, scaleFactor/)
     !
     ! scaled waveDirectionSequenceParameters
-    ! hint arithmetic sequence for direction calculation (see mo_wave_config)
+    ! hint: arithmetic sequence for direction calculation (see mo_wave_config)
     ! dirs(jd) =  0.5_wp*wc%delth + REAL(jd-1,wp) * wc%delth
     scaled_wdsp1 = NINT(rad2deg * 0.5_wp*wc%delth * 10**(scaleFactor))
     scaled_wdsp2 = NINT(rad2deg * wc%delth * 10**(scaleFactor))
@@ -254,7 +254,19 @@ CONTAINS
         cf_desc    = t_cf_var(TRIM(wesd_name), 'm^2 s', 'wave energy spectral density', datatype_flt)
         new_cf_desc = t_cf_var(TRIM(wesd_name), 'm^2 s rad^-1', 'wave energy spectral density', &
           &                    datatype_flt)
-        grib2_desc = grib2_var(10, 0, 42, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+        grib2_desc = grib2_var(10, 0, 42, ibits, GRID_UNSTRUCTURED, GRID_CELL)                         &
+          &        + t_grib2_int_key   ("numberOfWaveDirections", wc%ndirs)                            &
+          &        + t_grib2_int_key   ("typeOfWaveDirectionSequence", 2)                              &
+          &        + t_grib2_int_key   ("waveDirectionNumber", jd)                                     &
+          &        + t_grib2_int_key   ("numberOfWaveDirectionSequenceParameters", 2)                  &
+          &        + t_grib2_intarr_key("scaleFactorOfWaveDirectionSequenceParameter", scaleFactorArr) &
+          &        + t_grib2_intarr_key("scaledValueOfWaveDirectionSequenceParameter", wdspArr)        &
+          &        + t_grib2_int_key   ("numberOfWaveFrequencies", wc%nfreqs)                          &
+          &        + t_grib2_int_key   ("typeOfWaveFrequencySequence", 1)                              &
+          &        + t_grib2_int_key   ("waveFrequencyNumber", jf)                                     &
+          &        + t_grib2_int_key   ("numberOfWaveFrequencySequenceParameters", 2)                  &
+          &        + t_grib2_intarr_key("scaleFactorOfWaveFrequencySequenceParameter", scaleFactorArr) &
+          &        + t_grib2_intarr_key("scaledValueOfWaveFrequencySequenceParameter", wfspArr)
 
         CALL add_ref( p_prog_list, wesd_container_name,                          &
           &  TRIM(wesd_name), p_prog%wesd(jf)%dir(jd)%p_2d,                      &

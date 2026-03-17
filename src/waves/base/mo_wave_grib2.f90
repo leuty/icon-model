@@ -63,13 +63,10 @@ CONTAINS
       productDefinitionTemplate = 101
     ENDIF
 
-    !!!!                                                                            !!!!
-    !!!! Deactivated, since this PDT is not supported by the current version of CDI !!!!
-    !!!!                                                                            !!!!
-!!$    res = cdiDefKeyInt(vlistID, varID, CDI_KEY_PRODUCTDEFINITIONTEMPLATE, productDefinitionTemplate)
-!!$    IF (res/=CDI_NOERR) THEN
-!!$      CALL finish(routine, "error when defining productDefinitionTemplate")
-!!$    ENDIF
+    res = cdiDefKeyInt(vlistID, varID, CDI_KEY_PRODUCTDEFINITIONTEMPLATE, productDefinitionTemplate)
+    IF (res/=CDI_NOERR) THEN
+      CALL finish(routine, "error when defining productDefinitionTemplate")
+    ENDIF
 
   END SUBROUTINE set_grib2_pdt_wave_spectra
 
