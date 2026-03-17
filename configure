@@ -806,6 +806,7 @@ enable_bundled_python
 enable_loop_exchange
 enable_dim_swap
 enable_realloc_buf
+enable_lvector
 enable_vectorized_lrtm
 enable_mixed_precision
 enable_single_precision
@@ -1667,6 +1668,16 @@ Optimization Features:
   --enable-dim-swap       enable dimension swap [default=auto]
   --enable-realloc-buf    enable reallocatable buffer in the communication
                           [default=no]
+  --enable-lvector        enable optimizations for vector engines in the ocean
+                          component of ICON. The value of the argument must be
+                          one of the following [default=auto]:
+                            auto   enable all optimizations for vector engines
+                                   only when using a NEC compiler
+                            all    enable all optimizations for vector engines
+                            bitid  enable optimizations for vector engines
+                                   that preserve bit-identical results
+                            yes    alias for 'all'
+                            no     disable optimizations for vector engines
   --enable-vectorized-lrtm
                           enable the parallelization-invariant version of LRTM
                           [default=no]
@@ -3681,6 +3692,21 @@ else
 fi
 
 
+# Check whether --enable-lvector was given.
+if test "${enable_lvector+set}" = set; then :
+  enableval=$enable_lvector; case $enableval in #(
+  yes) :
+    enable_lvector=all ;; #(
+  auto|all|bitid|no) :
+     ;; #(
+  *) :
+    as_fn_error $? "unexpected value for the argument --enable-lvector='$enableval'; valid values are 'auto', 'all', 'bitid', 'yes' (same as 'all'), 'no'" "$LINENO" 5 ;;
+esac
+else
+  enable_lvector=auto
+fi
+
+
 # Check whether --enable-vectorized-lrtm was given.
 if test "${enable_vectorized_lrtm+set}" = set; then :
   enableval=$enable_vectorized_lrtm; if test x"$enableval" != xno; then :
@@ -4898,6 +4924,16 @@ $as_echo "$acx_cv_fc_compiler_vendor" >&6; }
 
 FC_VENDOR=$acx_cv_fc_compiler_vendor
 
+
+if test "x$enable_lvector" = xauto; then :
+  if test "x$FC_VENDOR" = xnec; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: Optimized code for vector engines is enabled because $FC is recognized as the NEC Fortran compiler: disable the optimizations if required (--disable-lvector)" >&5
+$as_echo "$as_me: Optimized code for vector engines is enabled because $FC is recognized as the NEC Fortran compiler: disable the optimizations if required (--disable-lvector)" >&6;}
+      enable_lvector=all
+else
+  enable_lvector=no
+fi
+fi
 
 if test "x$enable_intel_consistency" = xauto; then :
   if test "x$FC_VENDOR" = xintel; then :
@@ -6134,6 +6170,13 @@ fi
 
 if test "x$enable_realloc_buf" = xyes; then :
   as_fn_append FCFLAGS " ${FC_PP_DEF}__REALLOC_BUF"
+fi
+
+if test x"$enable_lvector" != xno; then :
+  as_fn_append FCFLAGS " ${FC_PP_DEF}__LVECTOR__"
+   if test "x$enable_lvector" = xbitid; then :
+  as_fn_append FCFLAGS " ${FC_PP_DEF}__LVEC_BITID__"
+fi
 fi
 
 if test "x$enable_vectorized_lrtm" = xyes; then :

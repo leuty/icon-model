@@ -498,6 +498,25 @@ AC_ARG_ENABLE([realloc-buf],
   [AS_IF([test x"$enableval" != xno ], [enable_realloc_buf=yes])],
   [enable_realloc_buf=no])
 
+AC_ARG_ENABLE([lvector],
+[  --enable-lvector        enable optimizations for vector engines in the ocean
+                          component of ICON. The value of the argument must be
+                          one of the following @<:@default=auto@:>@:
+                            auto   enable all optimizations for vector engines
+                                   only when using a NEC compiler
+                            all    enable all optimizations for vector engines
+                            bitid  enable optimizations for vector engines
+                                   that preserve bit-identical results
+                            yes    alias for 'all'
+                            no     disable optimizations for vector engines],
+[AS_CASE([$enableval],
+   [yes], [enable_lvector=all],
+   [auto|all|bitid|no], [],
+   [AC_MSG_ERROR([unexpected value for the argument dnl
+--enable-lvector='$enableval'; valid values are 'auto', 'all', 'bitid', dnl
+'yes' (same as 'all'), 'no'])])],
+[enable_lvector=auto])
+
 AC_ARG_ENABLE([vectorized-lrtm],
   [AS_HELP_STRING([--enable-vectorized-lrtm],
      [enable the parallelization-invariant version of LRTM
@@ -974,6 +993,14 @@ ACX_FC_PP_SRCEXT([f90])
 ACX_COMPILER_FC_VENDOR_SIMPLE
 AC_SUBST([FC_VENDOR], [$acx_cv_fc_compiler_vendor])
 
+AS_VAR_IF([enable_lvector], [auto],
+  [AS_VAR_IF([FC_VENDOR], [nec],
+     [AC_MSG_NOTICE([Optimized code for vector engines is enabled because dnl
+$FC is recognized as the NEC Fortran compiler: disable the optimizations if dnl
+required (--disable-lvector)])
+      enable_lvector=all],
+     [enable_lvector=no])])
+
 AS_VAR_IF([enable_intel_consistency], [auto],
   [AS_VAR_IF([FC_VENDOR], [intel],
      [AC_MSG_NOTICE([Intel compiler directives enforcing consistency are dnl
@@ -1184,6 +1211,11 @@ AS_VAR_IF([enable_dim_swap], [yes],
 
 AS_VAR_IF([enable_realloc_buf], [yes],
   [AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}__REALLOC_BUF"])])
+
+AS_IF([test x"$enable_lvector" != xno],
+  [AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}__LVECTOR__"])
+   AS_VAR_IF([enable_lvector], [bitid],
+     [AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}__LVEC_BITID__"])])])
 
 AS_VAR_IF([enable_vectorized_lrtm], [yes],
   [AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}LRTM_FULL_VECTORIZATION"])])

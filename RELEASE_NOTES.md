@@ -137,6 +137,7 @@
 - Fix the configuration and building order of the bundled packages (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1162)
 - Configure YAC and YAXT in parallel when possible (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1198)
 - Fix usage of configure option --enable-async-io-rma=no (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/2035)
+- Added option `--enable-lvector` to control optimizations for vector engines in the ocean component of ICON
 
 #### Miscellaneous
 

@@ -26,10 +26,12 @@ include:
     ICON_CI_UTILS_GIT_CLONE_PATH: ${ICON_CI_COMMON_DKRZ_SHMEM_PATH}/icon
     ICON_CI_UTILS_ICON_SOURCE_PATH: ${ICON_CI_UTILS_GIT_CLONE_PATH}
     ICON_CI_UTILS_ICON_BUILD_JOB_COUNT: ${ICON_CI_COMMON_DKRZ_SLURM_NTASKS}
+    LVECTOR_SWITCH: "no"
     ICON_CI_UTILS_GIT_SPARSE_PATTERNS: >-
       /configure /utils/ /*.in /run/ /src/ /support/ /ragnarok/ /config/
     ICON_CI_UTILS_ICON_CONFIG_EXTRA_ARGS: >-
       --enable-ocean
+      --enable-lvector=${LVECTOR_SWITCH}
       FCFLAGS="-I/sw/spack-levante/netcdf-fortran-4.6.1-y65bmi/include -g -O2 -Mrecursive -Mallocatable=03 -Mstack_arrays ${FCFLAGS}"
       PYTHON='/fastdata/mh0156/buildbot/venv/bin/python3'
   before_script:
@@ -48,8 +50,7 @@ include:
   needs: []
   variables:
     ICON_CI_COMMON_DKRZ_SLURM_TIMELIMIT: "15:00"
-    ICON_CI_COMMON_DKRZ_SLURM_EXTRA_PARAMETERS: >-
-      --mem=40G
+    ICON_CI_COMMON_DKRZ_SLURM_EXTRA_PARAMETERS: --mem=40G
     ICON_CI_UTILS_GIT_SPARSE_PATTERNS: /run/
     GIT_SUBMODULE_STRATEGY: none
     HDF5_PLUGIN_PATH: /sw/spack-levante/netcdf-c-main-bdxvs5/plugins
@@ -107,15 +108,14 @@ oes:omip:validation:cpu:build:
   extends: .nightly:ocean:validation:build
   variables:
     ICON_CI_UTILS_ICON_CONFIG_REL_PATH: config/dkrz/levante.cpu.nvhpc-24.7
-    FCFLAGS: >-
-      -Minfo=inline -Mnofma
+    FCFLAGS: -Minfo=inline -Mnofma
 
 oes:omip:validation:cpu:lvec:build:
   extends: .nightly:ocean:validation:build
   variables:
     ICON_CI_UTILS_ICON_CONFIG_REL_PATH: config/dkrz/levante.cpu.nvhpc-24.7
-    FCFLAGS: >-
-      -Minfo=inline -Mnofma -D__LVECTOR__ -D__LVEC_BITID__
+    FCFLAGS: -Minfo=inline -Mnofma
+    LVECTOR_SWITCH: "bitid"
 
 oes:omip:validation:gpu:build:
   extends: .nightly:ocean:validation:build
@@ -129,7 +129,8 @@ oes:omip:validation:gpu:lvec:build:
   variables:
     ICON_CI_UTILS_ICON_CONFIG_REL_PATH: config/dkrz/levante.gpu.nvhpc-24.7
     FCFLAGS: >-
-      -Minfo=accel,inline -acc=gpu,verystrict -Mnofma -gpu=cc80,cuda12.5,math_uniform -D__LVECTOR__ -D__LVEC_BITID__
+      -Minfo=accel,inline -acc=gpu,verystrict -Mnofma -gpu=cc80,cuda12.5,math_uniform
+    LVECTOR_SWITCH: "bitid"
 
 oes:omip:validation:cpu:V0:run:
   extends: .nightly:ocean:validation:run
