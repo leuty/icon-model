@@ -11,12 +11,12 @@
 #-----------------------------------------------------------------------------
 # Hostfile Generation for openmp_hack   #TODO JD: WHAT IS THIS?
 #
-# $Id: run/mkexp/environments/hostfiles_levante/hostfile_openmp_hack.tmpl 2 2025-11-14 k202123 $
+# $Id: run/mkexp/environments/hostfiles/hostfile_openmp_hack.tmpl 3 2025-11-21 12:20:58Z k202204 $
 #
 export SLURM_HOSTFILE=$EXPDIR/hst_file
 
-hostset=$(nodeset -e $SLURM_NODELIST)
-hostarr=($hostset)
+hosts=$(%{JOB.hostnames_command})
+hostarr=($hosts)
 
 touch $SLURM_HOSTFILE
 rm $SLURM_HOSTFILE

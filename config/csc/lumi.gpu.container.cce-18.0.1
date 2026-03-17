@@ -34,7 +34,7 @@ _EOF
 sw_root=${ICON_SW_PREFIX-'/appl/local/climatedt/sw'}
 echo "Using software stack from ${sw_root}"
 
-modules='PrgEnv-cray cce/18.0.1 craype-x86-milan craype-accel-amd-gfx90a rocm cray-mpich cray-hdf5 cray-netcdf cray-libsci !libfabric !craype-x86-spr'
+modules='PrgEnv-cray cce/18.0.1 craype-x86-milan craype-accel-amd-gfx90a rocm cray-mpich cray-hdf5 cray-netcdf cray-libsci cray-python !libfabric !craype-x86-spr'
 #modules='PrgEnv-cray cce/18.0.0 craype-x86-milan craype-accel-amd-gfx90a rocm cray-mpich cray-hdf5 cray-netcdf cray-libsci'
 
 LIBFABRIC_ROOT='/opt/cray/libfabric/1.15.2.0'
@@ -119,7 +119,7 @@ CMAKE="${sw_root}/gcc-12.2.0-zen2/cmake-3.21.4/bin/cmake"
 # LD_LIBRARY_PATH variable for the configure scripts and test suites of the
 # bundled libraries to work. Therefore, we configure ICON with --disable-rpaths
 # to avoid duplicate RPATH entries in the ICON executable:
-EXTRA_CONFIG_ARGS='--disable-rpaths --disable-mpi-checks --enable-mpi-gpu --enable-gpu=openacc+hip --disable-coupling --enable-dim-swap --enable-fcgroup-O0 --enable-fcgroup-O1 --enable-fcgroup-DIAG --with-external-cdi'
+EXTRA_CONFIG_ARGS='--disable-rpaths --disable-mpi-checks --enable-mpi-gpu --enable-gpu=openacc+hip --disable-coupling --enable-dim-swap --enable-fcgroup-O0 --enable-fcgroup-O1 --enable-fcgroup-DIAG --with-external-cdi --enable-bundled-python=mtime'
 
 ################################################################################
 

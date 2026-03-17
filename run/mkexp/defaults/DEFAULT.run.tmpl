@@ -92,7 +92,7 @@ export ICON_THREADS=$OMP_NUM_THREADS
 #% else
 no_of_nodes=${SLURM_JOB_NUM_NODES:=%{JOB.nodes|d(1)}}
 #%  if IO_DISTRIBUTION_OVER_GPUS is defined:
-num_io_tasks=%{JOB.num_io_tasks}
+num_io_tasks=%{JOB.num_io_tasks|d(0)}
 
 # Calculate the total number of I/O processors
 # Ensure num_io_tasks is divisible by no_of_nodes, otherwise round up to the next multiple of no_of_nodes
@@ -529,14 +529,14 @@ mpi_oce_io_procs=%{namelists.NAMELIST_oce.parallel_nml.num_io_procs}
 
 #%      if JOB.use_hostfile is set:
 #%         if IO_DISTRIBUTION_OVER_GPUS is set and JOB.use_gpus is set:
-#%            include "mkexp/environments/hostfiles_levante/hostfile_distrib_io_on_gpus.tmpl"
+#%            include "mkexp/environments/hostfiles/hostfile_distrib_io_on_gpus.tmpl"
 #%         else:
-#%            include "mkexp/environments/hostfiles_levante/hostfile.tmpl"
+#%            include "mkexp/environments/hostfiles/hostfile.tmpl"
 #%         endif
 #%      endif
 #%  else:
 #%#     # use_openmp_hack is set
-#%      include "mkexp/environments/hostfiles_levante/hostfile_openmp_hack.tmpl"
+#%      include "mkexp/environments/hostfiles/hostfile_openmp_hack.tmpl"
 #%  endif
 #% endif
 

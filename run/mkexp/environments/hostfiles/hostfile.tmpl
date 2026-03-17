@@ -11,7 +11,7 @@
 #-----------------------------------------------------------------------------
 # Hostfile Generation for ?    #TDOD JD: FILL
 #
-# $Id: run/mkexp/environments/hostfiles_levante/hostfile.tmpl 1 2025-01-09 k202123 $
+# $Id: run/mkexp/environments/hostfiles/hostfile.tmpl 2 2025-08-01 12:17:01Z k202204 $
 #
 mpi_atm_io_procs=%{namelists.NAMELIST_atm.parallel_nml.num_io_procs}
 mpi_oce_io_procs=%{namelists.NAMELIST_oce.parallel_nml.num_io_procs}
@@ -22,6 +22,8 @@ function fill_hostfile(){
    total=$1
    nio=$2
    direction=$3
+
+   hosts=$(%{JOB.hostnames_command})
 
    block=$((mpi_procs_pernode/%{2 if JOB.hardware_threads is set else 4}))
 
@@ -36,7 +38,7 @@ function fill_hostfile(){
    iohsts=""
    left=$total
    while [ $left -gt $nio ] ; do
-     for hst in $(nodeset -e $SLURM_NODELIST); do
+     for hst in $hosts; do
        myblock=$block
        if [ $left -le $(($last_block*$no_of_nodes)) ] ; then
          myblock=$last_block

@@ -34,7 +34,7 @@ _EOF
 sw_root=${ICON_SW_PREFIX-'/appl/local/climatedt/sw'}
 echo "Using software stack from ${sw_root}"
 
-modules='PrgEnv-cray cce/16.0.1.1 craype-x86-milan cray-mpich cray-hdf5 cray-netcdf cray-libsci !libfabric'
+modules='PrgEnv-cray cce/16.0.1.1 craype-x86-milan cray-mpich cray-hdf5 cray-netcdf cray-libsci cray-python !libfabric'
 
 LIBFABRIC_ROOT='/opt/cray/libfabric/1.15.2.0'
 
@@ -79,13 +79,13 @@ LDFLAGS="-L${ECCODES_ROOT}/lib64 -L${FYAML_ROOT}/lib -L${XML2_ROOT}/lib"
 # https://gitlab.dkrz.de/icon/icon/-/merge_requests/254:
 LDFLAGS+=' -fuse-ld=ld'
 
-ICON_LDFLAGS="-Wl,--disable-new-dtags -Wl,--as-needed -Wl,-rpath -Wl,${LIBFABRIC_ROOT}/lib64"
+ICON_LDFLAGS="-Wl,--disable-new-dtags -Wl,-rpath -Wl,${LIBFABRIC_ROOT}/lib64"
 
-LIBS="${XML2_LIBS} ${FYAML_LIBS} ${ECCODES_LIBS} ${ZLIB_LIBS}"
+LIBS="-Wl,--as-needed ${XML2_LIBS} ${FYAML_LIBS} ${ECCODES_LIBS} ${ZLIB_LIBS}"
 
 CMAKE="${sw_root}/gcc-12.2.0-zen2/cmake-3.21.4/bin/cmake"
 
-EXTRA_CONFIG_ARGS='--disable-mpi-checks --enable-openmp --enable-grib2 --enable-loop-exchange --enable-fcgroup-O0 --enable-fcgroup-DIAG'
+EXTRA_CONFIG_ARGS='--disable-mpi-checks --enable-openmp --enable-grib2 --enable-loop-exchange --enable-fcgroup-O0 --enable-fcgroup-DIAG --enable-bundled-python=mtime'
 
 ################################################################################
 
