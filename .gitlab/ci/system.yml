@@ -335,6 +335,10 @@ aes:bubble:gpu:run:
     ICON_CI_COMMON_DKRZ_SLURM_GPUS_PER_NODE: 4
     ICON_CI_COMMON_DKRZ_SLURM_EXTRA_PARAMETERS: --exclusive
 
+aes:bubble:gpu:analyze:
+  extends: .system:analyze
+  needs: [aes:bubble:gpu:run]
+
 aes:bubble:gpu_sp:build:
   extends:
     - .system:build:levante
@@ -362,6 +366,10 @@ aes:bubble:gpu_sp:run:
       namelists.NAMELIST_atm.interpol_nml.lrbf_write=.FALSE.
       namelists.NAMELIST_atm.interpol_nml.lrbf_read=.TRUE.
 
+aes:bubble:gpu_sp:analyze:
+  extends: .system:analyze
+  needs: [aes:bubble:gpu_sp:run]
+
 aes:bubble:ragnarok:gpu:build:
   extends: aes:bubble:gpu:build
   variables:
@@ -374,6 +382,10 @@ aes:bubble:ragnarok:gpu:build:
 aes:bubble:ragnarok:gpu:run:
   extends: aes:bubble:gpu:run
   needs: [aes:bubble:ragnarok:gpu:build]
+
+aes:bubble:ragnarok:gpu:analyze:
+  extends: .system:analyze
+  needs: [aes:bubble:ragnarok:gpu:run]
 
 aes:coupled:cpu:build:
   extends: .system:build:levante
@@ -409,9 +421,12 @@ generate-checksum-table:
     - aes:bubble:cpu:analyze
     - aes:bubble:cpu_sp:analyze
     - aes:bubble:gcc:analyze
+    - aes:bubble:gpu:analyze
+    - aes:bubble:gpu_sp:analyze
     - aes:bubble:nag:analyze
     - aes:bubble:nag_sp:analyze
     - aes:bubble:ragnarok:cpu:analyze
+    - aes:bubble:ragnarok:gpu:analyze
     - aes:coupled:cpu:analyze
   extends:
     - .common:alpine
