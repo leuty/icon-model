@@ -16704,6 +16704,15 @@ Defined and used in: {{ '[src/waves/config/mo_initwave_nml.f90]({}/src/waves/con
   - wind direction measured clockwise from true north
   - ltestcase=.TRUE.
 
+* - (wave_nml-r_wsp10)=
+    **r_wsp10**
+  - R
+  - 1000000.0
+  - m
+  - physical radius of wind field
+  - ltestcase=.TRUE.
+
+
 * - (wave_nml-stokes_method)=
     **stokes_method**
   - I

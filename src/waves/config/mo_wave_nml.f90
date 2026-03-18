@@ -108,6 +108,7 @@ CONTAINS
     REAL(wp) :: peak_lat, peak_lon ! geographical location (deg) of wind peak value
     REAL(wp) :: peak_wsp10         ! peak value of 10m wind speed at (peak_lat, peak_lon)
     REAL(wp) :: dir_wsp10          ! wind direction measured clockwise from true north (deg)
+    REAL(wp) :: r_wsp10            ! physical radius of wind field (m)
 
     ! source function time integration
     REAL(wp) :: impl_fac       ! implicitness factor for total source function time integration
@@ -130,7 +131,7 @@ CONTAINS
          stokes_method, stokes_depth, niter_smooth, &
          linput_sf1, linput_sf2, ldissip_sf, lwave_brk_sf, lnon_linear_sf, lbottom_fric_sf, &
          lwave_stress1, lwave_stress2, peak_lat, peak_lon, &
-         peak_wsp10, dir_wsp10, &
+         peak_wsp10, dir_wsp10, r_wsp10, &
          impl_fac, nsubs_refrac
 
     !-----------------------------------------------------------
@@ -200,6 +201,7 @@ CONTAINS
     peak_lon  = -140.0_wp  !< longitude (deg) of max wind speed
     peak_wsp10 = 25.0_wp   !< peak 10m wind spead (m/s) at (peak_lat, peak_lon)
     dir_wsp10 = 45._wp     !< flow direction measured clockwise from true north (deg)
+    r_wsp10 = 1000000._wp  !< physical radius of wind field (typical radius of extratropical cyclones) (m)
 
     impl_fac = 1.0_wp     !! first order Euler backward time integration scheme
                           !! for total source function
@@ -304,6 +306,7 @@ CONTAINS
       wave_config(jg)%peak_lon          = peak_lon
       wave_config(jg)%peak_wsp10        = peak_wsp10
       wave_config(jg)%dir_wsp10         = dir_wsp10
+      wave_config(jg)%r_wsp10           = r_wsp10
       wave_config(jg)%impl_fac          = impl_fac
     ENDDO
 

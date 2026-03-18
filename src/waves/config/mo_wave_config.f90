@@ -118,6 +118,7 @@ MODULE mo_wave_config
     REAL(wp) :: peak_lat, peak_lon ! geographical location (deg) of wind peak value
     REAL(wp) :: peak_wsp10         ! peak value of 10m wind spead at (peak_lat, peak_lon)
     REAL(wp) :: dir_wsp10          ! flow direction measured clockwise from true north (deg)
+    REAL(wp) :: r_wsp10            ! physical radius of wind field (m)
 
     REAL(wp) :: impl_fac       !! implicitness factor for total source function time integration
                                !! impl_fac=0.5 : second order Crank-Nicholson/trapezoidal scheme
