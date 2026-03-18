@@ -2827,8 +2827,8 @@ dnl fallback value is based on CMAKE_INSTALL_LIBDIR, hence we override it too:
 ${icon_abs_top_builddir}/externals/mtime/build"])
    AS_VAR_IF([icon_mtime_python], [yes],
      [AS_VAR_APPEND([BUNDLED_PYTHONPATH],
-        ["${BUNDLED_PYTHONPATH+"${PATH_SEPARATOR}"}dnl
-${icon_abs_top_builddir}/externals/mtime/build/python"])])
+        ["${BUNDLED_PYTHONPATH:+"${PATH_SEPARATOR}"}dnl
+\${abs_top_builddir}/externals/mtime/build/python"])])
    AS_VAR_APPEND([bundled_includes],
      ["${FC_MOD_IN}externals/mtime/build/src/mod "])
    icon_bundled_declare_libfiles([externals/mtime/build], [src/libmtime.a])
@@ -2928,7 +2928,7 @@ ${icon_abs_top_builddir}/externals/yaxt/src/.libs/libyaxt_c.a"])],
    AS_VAR_IF([icon_yac_python], [yes],
      [AS_VAR_APPEND([BUNDLED_PYTHONPATH],
         ["${BUNDLED_PYTHONPATH:+"${PATH_SEPARATOR}"}dnl
-${icon_abs_top_builddir}/externals/yac/python"])])
+\${abs_top_builddir}/externals/yac/python"])])
    AS_VAR_APPEND([bundled_includes], ["${FC_MOD_IN}externals/yac/src/mci "])
    icon_bundled_declare_libfiles([externals/yac],
      [src/mci/libyac_mci.a], [src/core/libyac_core.a])

@@ -11484,7 +11484,7 @@ esac
    done
    as_fn_append bundled_CMAKE_PREFIX_PATH "${bundled_CMAKE_PREFIX_PATH:+";"}${icon_abs_top_builddir}/externals/mtime/build"
    if test "x$icon_mtime_python" = xyes; then :
-  as_fn_append BUNDLED_PYTHONPATH "${BUNDLED_PYTHONPATH+"${PATH_SEPARATOR}"}${icon_abs_top_builddir}/externals/mtime/build/python"
+  as_fn_append BUNDLED_PYTHONPATH "${BUNDLED_PYTHONPATH:+"${PATH_SEPARATOR}"}\${abs_top_builddir}/externals/mtime/build/python"
 fi
    as_fn_append bundled_includes "${FC_MOD_IN}externals/mtime/build/src/mod "
    BUNDLED_LIBFILES="externals/mtime/build/src/libmtime.a $BUNDLED_LIBFILES"
@@ -11688,7 +11688,7 @@ esac
 fi
 fi
    if test "x$icon_yac_python" = xyes; then :
-  as_fn_append BUNDLED_PYTHONPATH "${BUNDLED_PYTHONPATH:+"${PATH_SEPARATOR}"}${icon_abs_top_builddir}/externals/yac/python"
+  as_fn_append BUNDLED_PYTHONPATH "${BUNDLED_PYTHONPATH:+"${PATH_SEPARATOR}"}\${abs_top_builddir}/externals/yac/python"
 fi
    as_fn_append bundled_includes "${FC_MOD_IN}externals/yac/src/mci "
    BUNDLED_LIBFILES="externals/yac/src/mci/libyac_mci.a externals/yac/src/core/libyac_core.a $BUNDLED_LIBFILES"

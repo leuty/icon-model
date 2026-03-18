@@ -60,7 +60,8 @@ use_builddir='@abs_top_builddir@'
 PYTHON='@PYTHON@'
 
 # PYTHONPATH to the bundled Python interfaces:
-BUNDLED_PYTHONPATH='@BUNDLED_PYTHONPATH@'
+abs_top_builddir='@abs_top_builddir@'
+eval 'BUNDLED_PYTHONPATH="@BUNDLED_PYTHONPATH@"'
 
 # Set use_site:
 use_host=`cat <<\_EOF

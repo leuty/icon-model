@@ -33,18 +33,6 @@ include:
   before_script:
     - !reference [.common:dkrz:levante, before_script]
     - !reference [.utils:icon:build, before_script]
-  script:
-    - !reference [.utils:icon:build, script]
-    - |
-      # !reference [.system:build:levante, script]
-      # We have to do it due to the hard-coded BUNDLED_PYTHONPATH:
-      icon_ci_log_info_msg 'Preparing SETUP.config for the dependent jobs...'
-      (
-        set -x
-        sed -i~ \
-          -e "s|${ICON_CI_UTILS_ICON_BUILD_PATH}|@ICON_CI_UTILS_ICON_BUILD_PATH@|g" \
-          "${CI_PROJECT_DIR}/run/SETUP.config"
-      ) 2>&1
   rules:
     - if: $CI_PIPELINE_SOURCE == "web"
       when: manual
@@ -75,16 +63,6 @@ include:
   before_script:
     - !reference [.common:dkrz:levante, before_script]
     - module load python3
-    - |
-      # !reference [.system:run:levante, before_script]
-      icon_ci_log_info_msg 'Preparing SETUP.config...'
-      (
-        set -x
-        sed -i~ \
-          -e "s|@ICON_CI_UTILS_ICON_BUILD_PATH@|${CI_PROJECT_DIR}|g" \
-          "${CI_PROJECT_DIR}/run/SETUP.config"
-        rm -f "${CI_PROJECT_DIR}/run/SETUP.config~"
-      ) 2>&1
     - !reference [.utils:icon:run, before_script]
   rules:
     - if: $CI_PIPELINE_SOURCE == "web"
