@@ -12,8 +12,8 @@
 import logging
 import os
 
-prefix = '' if os.environ.get('TIMEWARP_IS_RUNNING_') else '%(asctime)s: '
-logging.basicConfig(format=prefix+'%(levelname)s%(message)s',
+#%  set prefix = '%(asctime)s: ' if JOB.log_timestamps is set else ''
+logging.basicConfig(format='%{prefix}%(levelname)s%(message)s',
                     level=logging.INFO)
 logging.addLevelName(logging.DEBUG, 'Debug: ')
 logging.addLevelName(logging.INFO, '')

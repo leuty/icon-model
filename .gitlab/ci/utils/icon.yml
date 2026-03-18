@@ -238,6 +238,7 @@
           WORK_DIR="${CI_PROJECT_DIR}/${ICON_CI_UTILS_ICON_MKEXP_WORK_REL_PATH}" \
           EXP_ID="${ICON_CI_UTILS_ICON_MKEXP_EXP_ID}" \
           jobs.run.subdir="${ICON_CI_UTILS_ICON_MKEXP_RUN_SUBDIR}" \
+          jobs.run_start.log_timestamps=false \
           ${ICON_CI_UTILS_ICON_MKEXP_EXTRA_ARGS-}
       ) 2>&1
       icon_ci_log_section_end

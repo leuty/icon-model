@@ -36,17 +36,15 @@ set -x
 UTILS_DIR=%{MODEL_DIR}/utils
 PATH=$UTILS_DIR:$PATH
 
+#%  if JOB.log_timestamps is set:
 # Support log style output
-if ! ${TIMEWARP_IS_RUNNING_:-false}
-then
-    pipe=%{EXP_ID}_%{JOB.id}_$$.pipe
-    mkfifo $pipe
-    trap "cd $PWD && rm -f $pipe" EXIT
-    %{JOB.python3} $UTILS_DIR/timewarp $pipe &
-    exec > $pipe 2>&1
-    export TIMEWARP_IS_RUNNING_=true
-fi
+pipe=%{EXP_ID}_%{JOB.id}_$$.pipe
+mkfifo $pipe
+trap "cd $PWD && rm -f $pipe" EXIT
+%{JOB.python3} $UTILS_DIR/timewarp $pipe &
+exec > $pipe 2>&1
 
+#%  endif
 #% do VARIABLES_.add('MODEL_DIR')
 #% do VARIABLES_.add('SCRIPT_DIR')
 #% do VARIABLES_.add('PREFIX')
@@ -286,6 +284,7 @@ read start_date < $start_date_file
 #%#
 code=$(%{JOB.python3} -c "
 #% include 'mkexp/defaults/mtime.tmpl'
+#% do JOB.update({'log_timestamps': 'false'})
 #% include 'mkexp/defaults/logging.tmpl'
 
 atmo_time_step = '%{atmo_time_step}'
