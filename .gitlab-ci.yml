@@ -8,6 +8,31 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ---------------------------------------------------------------
 
+spec:
+  inputs:
+    add-basic-stage:
+      type: boolean
+      default: true
+      description: add the basic stage to the pipeline
+    add-unit-stage:
+      type: boolean
+      default: true
+      description: add the unit stage to the pipeline
+    add-functional-stage:
+      type: boolean
+      default: true
+      description: add the functional stage to the pipeline
+    add-system-stage:
+      type: boolean
+      default: true
+      description: add the system stage to the pipeline
+    add-external-stage:
+      type: boolean
+      default: true
+      description: add the external stage to the pipeline
+
+---
+
 workflow:
   rules:
     - if: $CI_PIPELINE_SOURCE == "push"
@@ -29,8 +54,13 @@ default:
 
 include:
   - local: .gitlab/ci/basic.yml
+    rules:
+      - if: '"$[[ inputs.add-basic-stage ]]" == "false"'
+        when: never
   - local: .gitlab/ci/unit/icon.yml
     rules:
+      - if: '"$[[ inputs.add-unit-stage ]]" == "false"'
+        when: never
       - if: $CI_PROJECT_PATH == "icon/icon-model"
         when: never
       - if: $CI_PIPELINE_SOURCE == "web"
@@ -47,6 +77,8 @@ include:
           - utils/**/*
   - local: .gitlab/ci/unit/ragnarok.yml
     rules:
+      - if: '"$[[ inputs.add-unit-stage ]]" == "false"'
+        when: never
       - if: $CI_PROJECT_PATH == "icon/icon-model"
         when: never
       - if: $CI_PIPELINE_SOURCE == "web"
@@ -56,6 +88,8 @@ include:
           - ragnarok/**/*
   - local: .gitlab/ci/functional/nwp-microphysics.yml
     rules:
+      - if: '"$[[ inputs.add-functional-stage ]]" == "false"'
+        when: never
       - if: $CI_PROJECT_PATH == "icon/icon-model"
         when: never
       - if: $CI_PIPELINE_SOURCE == "web"
@@ -78,17 +112,23 @@ include:
           - test/microphysics_1mom_schemes/**/*
   - local: .gitlab/ci/system.yml
     rules:
+      - if: '"$[[ inputs.add-system-stage ]]" == "false"'
+        when: never
       - if: $CI_PROJECT_PATH == "icon/icon-model"
         when: never
       - when: always
   - local: .gitlab/ci/nightly/*.yml
     rules:
+      - if: '"$[[ inputs.add-system-stage ]]" == "false"'
+        when: never
       - if: $CI_PROJECT_PATH == "icon/icon-model"
         when: never
       - if: $CI_PIPELINE_SOURCE == "web"
       - if: $CI_PIPELINE_SOURCE == "schedule" && $ICON_CI_TEST_SCHEDULE == "nightly"
   - local: .gitlab/ci/cscs/santis.yml
     rules:
+      - if: '"$[[ inputs.add-external-stage ]]" == "false"'
+        when: never
       - if: $CI_PROJECT_PATH == "icon/icon-model"
         when: never
       - if: $CI_PIPELINE_SOURCE == "web"
