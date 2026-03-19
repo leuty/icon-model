@@ -82,6 +82,7 @@
 - Refactored the calculation of global diagnostics and ported to GPU
 - Added a script to process ERA5 data into ICON-Land standalone forcing
 - Update of the script to equilibrate jsbach humus carbon pools
+- Fixing an error in the effect of supercooled water on plant water stress
 
 ### Externals
 
