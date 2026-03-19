@@ -55,8 +55,7 @@ default:
 include:
   - local: .gitlab/ci/basic.yml
     rules:
-      - if: '"$[[ inputs.add-basic-stage ]]" == "false"'
-        when: never
+      - if: '"$[[ inputs.add-basic-stage ]]" == "true"'
   - local: .gitlab/ci/unit/icon.yml
     rules:
       - if: '"$[[ inputs.add-unit-stage ]]" == "false"'
