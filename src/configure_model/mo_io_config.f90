@@ -157,6 +157,13 @@ MODULE mo_io_config
     LOGICAL :: dhail_mx     = .FALSE. !< Flag. TRUE if computation of maximum expected hail diameter desired
     LOGICAL :: dhail_av     = .FALSE. !< Flag. TRUE if computation of average expected hail diameter desired
     LOGICAL :: dhail_sd     = .FALSE. !< Flag. TRUE if computation of standard deviation of hail diameter desired
+    LOGICAL :: dm_hail      = .FALSE. !< Flag. TRUE if computation of mean mass diameter of hail from 2-moment scheme desired
+    LOGICAL :: dm_hail_max_s= .FALSE. !< Flag. TRUE if computation of mean mass diameter of hail from 2-moment scheme desired
+    LOGICAL :: demax_hail_s = .FALSE. !< Flag. TRUE if computation of estim. max. hail diameter at surface from 2-moment scheme desired
+    LOGICAL :: demax_hail_tmax_s=.FALSE. !< Flag. TRUE if computation of time maximum of estim. max. hail diameter at surface from 2-moment scheme desired
+    LOGICAL :: kef_hail_s   = .FALSE. !< Flag. TRUE if computation of hail kinetic energy flux at surface is desired
+    LOGICAL :: kef_hail_max_s=.FALSE. !< Flag. TRUE if computation of time maximum of hail kinetic energy flux at surface is desired
+    LOGICAL :: ke_hail_s    = .FALSE. !< Flag. TRUE if computation of hail kinetic energy (flux accumulated over time) at surface is desired
     LOGICAL :: wshear_u     = .FALSE. !< Flag. TRUE if computation of vertical U wind shear components is desired
     LOGICAL :: wshear_v     = .FALSE. !< Flag. TRUE if computation of vertical V wind shear components is desired
     LOGICAL :: lapserate    = .FALSE. !< Flag. TRUE if computation of T(500hPa) - T(850hPa) is desired
@@ -348,6 +355,13 @@ CONTAINS
         var_in_output(jg)%dhail_mx    = is_variable_in_output_dom(var_name="dhail_mx", jg=jg_nml)
         var_in_output(jg)%dhail_av    = is_variable_in_output_dom(var_name="dhail_av", jg=jg_nml)
         var_in_output(jg)%dhail_sd    = is_variable_in_output_dom(var_name="dhail_sd", jg=jg_nml)
+        var_in_output(jg)%dm_hail     = is_variable_in_output_dom(var_name="dm_hail", jg=jg_nml)
+        var_in_output(jg)%dm_hail_max_s= is_variable_in_output_dom(var_name="dm_hail_max_s", jg=jg_nml)
+        var_in_output(jg)%demax_hail_s = is_variable_in_output_dom(var_name="demax_hail_s", jg=jg_nml)
+        var_in_output(jg)%demax_hail_tmax_s = is_variable_in_output_dom(var_name="demax_hail_tmax_s", jg=jg_nml)
+        var_in_output(jg)%kef_hail_s  = is_variable_in_output_dom(var_name="kef_hail_s", jg=jg_nml)
+        var_in_output(jg)%kef_hail_max_s= is_variable_in_output_dom(var_name="kef_hail_max_s", jg=jg_nml)
+        var_in_output(jg)%ke_hail_s   = is_variable_in_output_dom(var_name="ke_hail_s", jg=jg_nml)
         var_in_output(jg)%wshear_u    = is_variable_in_output_dom(var_name="wshear_u", jg=jg_nml)
         var_in_output(jg)%wshear_v    = is_variable_in_output_dom(var_name="wshear_v", jg=jg_nml)
         var_in_output(jg)%lapserate   = is_variable_in_output_dom(var_name="lapse_rate", jg=jg_nml)

@@ -5052,7 +5052,7 @@ Defined and used in: {{ '[src/namelists/mo_interpol_nml.f90]({}/src/namelists/mo
     (/18.0,25.0,35.0/)
   - s
     dBZ
-  - Derived type to define properties of radar reflectivity echotops for each domain. Two types of echotops are available: minimum pressure ('echotop') and maximum height ('echotopinm') during a given time interval where a given reflectivity threshold is exeeded. Takes effect if 'echotop' and/or 'echotopinm' is/are present in the ml_varlist of any domain-specific namelist [output_nml](ref_buildrun_nml_output_nml).
+  - Derived type to define properties of radar reflectivity echotops for each domain. Two types of echotops are available: minimum pressure (`'echotop'`) and maximum height (`'echotopinm'`) during a given time interval where a given reflectivity threshold is exeeded. Takes effect if 'echotop' and/or 'echotopinm' is/are present in the ml_varlist of any domain-specific namelist [output_nml](ref_buildrun_nml_output_nml).
   The derived type contains the echotop properties which are listed to the left, along with their defaults and units.
   - [iforcing](run_nml-iforcing)=3
 
@@ -5540,6 +5540,63 @@ Here is a table of the available diagnostics and some additional information on 
   - 2d
   -
   - [2]
+
+* - dm_hail_s
+  - mean mass diameter of hail at the surface
+  - m
+  - [iforcing](run_nml-iforcing) = inwp, [inwp_gsp](nwp_phy_nml-inwp_gscp) = 4,5,6,7
+  - 2d
+  -
+  - [2]
+
+* - dm_hail_max_s
+  - Time maximum of mean mass diameter of hail at the surface
+  - m
+  - [iforcing](run_nml-iforcing) = inwp, [inwp_gsp](nwp_phy_nml-inwp_gscp) = 4,5,6,7
+  - 2d
+  - celltracks_interval
+  - [2]
+
+* - demax_hail_s
+  - estimated maximum hail diameter at the surface
+  - m
+  - [iforcing](run_nml-iforcing) = inwp, [inwp_gsp](nwp_phy_nml-inwp_gscp) = 4,5,6,7
+  - 2d
+  - `[nwp_tuning_nml](ref_buildrun_nml_nwp_phy_nml)`: [tune_demax_hail_s](nwp_tuning_nml-tune_demax_hail_s), [prhthresh_demax_hail_s](nwp_tuning_nml-prhthresh_demax_hail_s), [kefthresh_demax_hail_s](nwp_tuning_nml-kefthresh_demax_hail_s), [qnhthresh_demax_hail_s](nwp_tuning_nml-qnhthresh_demax_hail_s), [lwindeffect_kef_hail_s](nwp_tuning_nml-lwindeffect_kef_hail_s)
+  - [2]
+
+* - demax_hail_tmax_s
+  - time maximum of estimated maximum hail diameter at the surface
+  - m
+  - [iforcing](run_nml-iforcing) = inwp, [inwp_gsp](nwp_phy_nml-inwp_gscp) = 4,5,6,7
+  - 2d
+  - celltracks_interval
+    `[nwp_tuning_nml](ref_buildrun_nml_nwp_phy_nml)`: [tune_demax_hail_s](nwp_tuning_nml-tune_demax_hail_s), [prhthresh_demax_hail_s](nwp_tuning_nml-prhthresh_demax_hail_s), [kefthresh_demax_hail_s](nwp_tuning_nml-kefthresh_demax_hail_s), [qnhthresh_demax_hail_s](nwp_tuning_nml-qnhthresh_demax_hail_s), [lwindeffect_kef_hail_s](nwp_tuning_nml-lwindeffect_kef_hail_s)
+  - [2]
+
+* - kef_hail_s
+  - hail kinetic energy flux at the surface
+  - W m-2
+  - [iforcing](run_nml-iforcing) = inwp, [inwp_gsp](nwp_phy_nml-inwp_gscp) = 4,5,6,7
+  - 2d
+  -
+  - [2]
+
+* - kef_hail_max_s
+  - time maximum of hail kinetic energy flux at the surface
+  - W m-2
+  - [iforcing](run_nml-iforcing) = inwp, [inwp_gsp](nwp_phy_nml-inwp_gscp) = 4,5,6,7
+  - 2d
+  - celltracks_interval
+  - [4]
+
+* - ke_hail_s
+  - accumulated hail kinetic energy at the surface
+  - J m-2
+  - [iforcing](run_nml-iforcing) = inwp, [inwp_gsp](nwp_phy_nml-inwp_gscp) = 4,5,6,7
+  - 2d
+  - precip_interval
+  - [4]
 ```
 
 
@@ -8969,6 +9026,46 @@ Please note: These tuning parameters are NOT domain specific.
   - m{math}`^{-3}`, m{math}`^{-3}`, -
   - Lower and upper bound and scaling factor for external cloud droplet number concentration climatology
   - icpl_aero_gscp = 3.
+
+* - (nwp_tuning_nml-tune_demax_hail_s)=
+    **tune_demax_hail_s**
+  - R
+  - 1.6
+  -
+  - In case of two-moment microphysics, for optional diagnostic maximum estimated size of hail (output fields `demax_hail_s`, `demax_hail_tmax_s`): scaling factor for computing the estimated maximum hail diameter at the surface from the mean mass diameter of hail.
+  - inwp_gscp = 4,5,6,7
+
+* - (nwp_tuning_nml-prhthresh_demax_hail_s)=
+    **prhthresh_demax_hail_s**
+  - R
+  - 5e-4
+  - kg m{math}`^{-2}` s{math}`^{-1}`
+  - In case of two-moment microphysics, for optional diagnostic maximum estimated size of hail (`demax_hail_s`, `demax_hail_tmax_s`): hail rate threshold above which to compute the estimated maximum hail diameter. For smaller hail rate, the diameter is set to 0.0.
+  - inwp_gscp = 4,5,6,7
+
+* - (nwp_tuning_nml-kefthresh_demax_hail_s)=
+    **kefthresh_demax_hail_s**
+  - R
+  - 1.5e-1
+  - W m{math}`^{-2}`
+  - In case of two-moment microphysics, for optional diagnostic maximum estimated size of hail (`demax_hail_s`, `demax_hail_tmax_s`): hail kinetic energy flux threshold above which to compute the estimated maximum hail diameter. For smaller flux, the diameter is set to 0.0.
+  - inwp_gscp = 4,5,6,7
+
+* - (nwp_tuning_nml-qnhthresh_demax_hail_s)=
+    **qnhthresh_demax_hail_s**
+  - R
+  - 1.5e-2
+  - m{math}`^{-3}`
+  - In case of two-moment microphysics, for optional diagnostic maximum estimated size of hail (`demax_hail_s`, `demax_hail_tmax_s`): hail number density threshold above which to compute the estimated maximum hail diameter. For smaller number, the diameter is set to 0.0.
+  - inwp_gscp = 4,5,6,7
+
+* - (nwp_tuning_nml-lwindeffect_kef_hail_s)=
+    **lwindeffect_kef_hail_s**
+  - L
+  - .FALSE.
+  -
+  - In case of two-moment microphysics, for optional diagnostic hail kinetic energy (output fields `kef_hail_s`, `kef_hail_max_s`, `ke_hail_s`): switch to take into account near-surface wind speed effects.
+  - inwp_gscp = 4,5,6,7
 ```
 
 **IAU**
@@ -9026,7 +9123,7 @@ There are for sure parameters which could be optimized for different resolutions
   - Type of numerical time integration scheme for the two-moment scheme:
     - 0: explicit Euler-forward
     - 1: semi-implicit solver similar to that of the standard one-moment schemes
-  - [iforcing](run_nml-iforcing)=3, inwp_gscp=4
+  - [iforcing](run_nml-iforcing)=3  inwp_gscp=4
 
 * - (twomom_mcrph_nml-ccn_type)=
     **ccn_type**
@@ -9041,7 +9138,7 @@ There are for sure parameters which could be optimized for different resolutions
     - 8: "high CCN" ("continental")
     - 9: "very high CCN" ("polluted")
     If applied together with the ART aerosol physics **inwp_gscp=6**, this parameter has no effect.
-  - [iforcing](run_nml-iforcing)=3, inwp_gscp=4,5,7
+  - [iforcing](run_nml-iforcing)=3  inwp_gscp=4,5,7
 
 * - (twomom_mcrph_nml-ccn_Ncn0)=
     **ccn_Ncn0**
@@ -9049,7 +9146,7 @@ There are for sure parameters which could be optimized for different resolutions
   - -999.99
   - m{math}`^{-3}`
   - CN concentration near ground. A value of < -900 indicates that the hardcoded value associated with the ccn_type will be used. If applied together with the ART aerosol physics **inwp_gscp=6**, this parameter has no effect.
-  - [iforcing](run_nml-iforcing)=2,3 inwp_gscp=4,5,7
+  - [iforcing](run_nml-iforcing)=2,3  inwp_gscp=4,5,7
 
 * - (twomom_mcrph_nml-ccn_wcb_min)=
     **ccn_wcb_min**
@@ -9057,7 +9154,7 @@ There are for sure parameters which could be optimized for different resolutions
   - 0.1
   - m{math}`^{-3}`
   - Minimum updraft speed for Segal & Khain cloud nucleation parameterization. If applied together with the ART aerosol physics **inwp_gscp=6**, this parameter has no effect.
-  - [iforcing](run_nml-iforcing)=2,3 inwp_gscp=4,5,7
+  - [iforcing](run_nml-iforcing)=2,3  inwp_gscp=4,5,7
 
 * - (twomom_mcrph_nml-iicephase)=
     **iicephase**
@@ -9067,7 +9164,7 @@ There are for sure parameters which could be optimized for different resolutions
   - Turning on/off mixed phase processes in the two-moment scheme:
     - 0: warm phase processes only
     - 1: mixed phase processes
-  - [iforcing](run_nml-iforcing)=3, inwp_gscp=4,5,6,7
+  - [iforcing](run_nml-iforcing)=3,  inwp_gscp=4,5,6,7
 
 * - (twomom_mcrph_nml-alpha_spacefilling)=
     **alpha_spacefilling**
@@ -9075,7 +9172,7 @@ There are for sure parameters which could be optimized for different resolutions
   - 0.01
   -
   - Parameter in conversion of snow or cloud ice to graupel by riming: degree of void filling by frozen supercooled droplets within the ice particle skeleton, above which the particle is converted to the graupel class. Smaller values lead to faster conversion. 0.01 means very fast conversion to graupel. A value of 0.68 is the theoretical limit for densest sphere packing and leads to rather slow conversion.
-  - [iforcing](run_nml-iforcing)=2,3 inwp_gscp=4,5,6,7
+  - [iforcing](run_nml-iforcing)=2,3  inwp_gscp=4,5,6,7
 
 * - (twomom_mcrph_nml-D_conv_ii)=
     **D_conv_ii**
@@ -9083,7 +9180,7 @@ There are for sure parameters which could be optimized for different resolutions
   - 75.0e-6
   - m
   - diameter threshold for the onset of conversion to snow by ice selfcollection
-  - [iforcing](run_nml-iforcing)=2,3 inwp_gscp=4,5,6,7
+  - [iforcing](run_nml-iforcing)=2,3  inwp_gscp=4,5,6,7
 
 * - (twomom_mcrph_nml-D_rainfrz_ig)=
     **D_rainfrz_ig**
@@ -9091,7 +9188,7 @@ There are for sure parameters which could be optimized for different resolutions
   - 0.50e-3
   - m
   - Spectral size threshold below which freezing rain drops are converted to cloud ice. Larger drops are converted to graupel or hail, depending on parameter D_rainfrz_gh.
-  - [iforcing](run_nml-iforcing)=2,3 inwp_gscp=4,5,6,7
+  - [iforcing](run_nml-iforcing)=2,3  inwp_gscp=4,5,6,7
 
 * - (twomom_mcrph_nml-D_rainfrz_gh)=
     **D_rainfrz_gh**
@@ -9099,7 +9196,7 @@ There are for sure parameters which could be optimized for different resolutions
   - 1.25e-3
   - m
   - Spectral size threshold above which freezing rain drops are converted to hail. Smaller drops are converted to cloud ice or graupel, depending on parameter D_rainfrz_ig.
-  - [iforcing](run_nml-iforcing)=2,3 inwp_gscp=4,5,6,7
+  - [iforcing](run_nml-iforcing)=2,3  inwp_gscp=4,5,6,7
 
 * - (twomom_mcrph_nml-luse_mu_Dm_rain)=
     **luse_mu_Dm_rain**
@@ -9107,7 +9204,7 @@ There are for sure parameters which could be optimized for different resolutions
   - .FALSE.
   -
   - To switch on the usage of the dynamical {math}`\mu`-{math}`D_M`-relation for raindrops below cloud base.
-  - [iforcing](run_nml-iforcing)=2,3 inwp_gscp=4,5,6,7
+  - [iforcing](run_nml-iforcing)=2,3  inwp_gscp=4,5,6,7
 
 * - (twomom_mcrph_nml-rain_cmu0)=
     **rain_cmu0**
@@ -9116,7 +9213,7 @@ There are for sure parameters which could be optimized for different resolutions
   -
   - Parameter of the {math}`\mu`-{math}`D`-relation in the rain size distribution for evaporation and sedimentation below cloud base:
     asymptotic {math}`\mu`-value for spectra with small mean diameter.
-  - [iforcing](run_nml-iforcing)=2,3 inwp_gscp=4,5,6,7
+  - [iforcing](run_nml-iforcing)=2,3  inwp_gscp=4,5,6,7
 
 * - (twomom_mcrph_nml-rain_cmu1)=
     **rain_cmu1**
@@ -9125,7 +9222,7 @@ There are for sure parameters which could be optimized for different resolutions
   -
   - Parameter of the {math}`\mu`-{math}`D`-relation in the rain size distribution for evaporation and sedimentation below cloud base:
     asymptotic {math}`\mu`-value for spectra with large mean diameter.
-  - [iforcing](run_nml-iforcing)=2,3 inwp_gscp=4,5,6,7
+  - [iforcing](run_nml-iforcing)=2,3  inwp_gscp=4,5,6,7
 
 * - (twomom_mcrph_nml-rain_cmu3)=
     **rain_cmu3**
@@ -9134,7 +9231,7 @@ There are for sure parameters which could be optimized for different resolutions
   - m
   - Parameter of the {math}`\mu`-{math}`D`-relation in the rain size distribution for evaporation and sedimentation below cloud base:
     equilibrium mean spectral diameter for breakup and selfcollection.
-  - [iforcing](run_nml-iforcing)=2,3 inwp_gscp=4,5,6,7
+  - [iforcing](run_nml-iforcing)=2,3  inwp_gscp=4,5,6,7
 
 * - (twomom_mcrph_nml-rain_cmu4)=
     **rain_cmu4**
@@ -9143,7 +9240,7 @@ There are for sure parameters which could be optimized for different resolutions
   -
   - Parameter of the {math}`\mu`-{math}`D`-relation in the rain size distribution for evaporation and sedimentation below cloud base:
     base value of {math}`\mu`.
-  - [iforcing](run_nml-iforcing)=2,3 inwp_gscp=4,5,6,7
+  - [iforcing](run_nml-iforcing)=2,3  inwp_gscp=4,5,6,7
 
 * - (twomom_mcrph_nml-in_fact)=
     **in_fact**
@@ -9151,7 +9248,7 @@ There are for sure parameters which could be optimized for different resolutions
   - 1.0
   -
   - Factor to tune the IN concentration for heterogeneous ice nucleation
-  - [iforcing](run_nml-iforcing)=2,3 inwp_gscp=4,5,6,7
+  - [iforcing](run_nml-iforcing)=2,3  inwp_gscp=4,5,6,7
 
 * - (twomom_mcrph_nml-nu_i)=
     **nu_i**
@@ -9161,7 +9258,7 @@ There are for sure parameters which could be optimized for different resolutions
   - Shape parameter {math}`\nu` for cloud ice in the PSD
     {math}`f(x)=N_{0}x^{\nu}\exp(-\lambda x^{\mu})`
     A value of < -900  indicates that the background value {math}`\nu=0.0` from {{ '[src/atm_phy_schemes/mo_2mom_mcrph_main.f90]({}/src/atm_phy_schemes/mo_2mom_mcrph_main.f90)'.format(base_url) }} is used.
-  - [iforcing](run_nml-iforcing)=2,3 inwp_gscp=4,5,6,7
+  - [iforcing](run_nml-iforcing)=2,3  inwp_gscp=4,5,6,7
 
 * - (twomom_mcrph_nml-mu_i)=
     **mu_i**
@@ -9171,7 +9268,7 @@ There are for sure parameters which could be optimized for different resolutions
   - Shape parameter {math}`\mu` for cloud ice in the PSD
     {math}`f(x)=N_{0}x^{\nu}\exp(-\lambda x^{\mu})`
     A value of < -900  indicates that the background value {math}`\mu=1/3` from {{ '[src/atm_phy_schemes/mo_2mom_mcrph_main.f90]({}/src/atm_phy_schemes/mo_2mom_mcrph_main.f90)'.format(base_url) }} is used.
-  - [iforcing](run_nml-iforcing)=2,3 inwp_gscp=4,5,6,7
+  - [iforcing](run_nml-iforcing)=2,3  inwp_gscp=4,5,6,7
 
 * - (twomom_mcrph_nml-ageo_i)=
     **ageo_i**
@@ -9180,7 +9277,7 @@ There are for sure parameters which could be optimized for different resolutions
   -
   - Prefactor of the assumed size-mass-relation for cloud ice {math}`D=a_{geo}x^{b_{geo}}` for {math}`x` in kg and {math}`D` in m.
     A value of < -900  indicates that the background value {math}`a_{geo}=0.835` from {{ '[src/atm_phy_schemes/mo_2mom_mcrph_main.f90]({}/src/atm_phy_schemes/mo_2mom_mcrph_main.f90)'.format(base_url) }} is used.
-  - [iforcing](run_nml-iforcing)=2,3 inwp_gscp=4,5,6,7
+  - [iforcing](run_nml-iforcing)=2,3  inwp_gscp=4,5,6,7
 
 * - (twomom_mcrph_nml-bgeo_i)=
     **bgeo_i**
@@ -9189,7 +9286,7 @@ There are for sure parameters which could be optimized for different resolutions
   -
   - Exponent of the assumed size-mass-relation for cloud ice {math}`D=a_{geo}x^{b_{geo}}` for {math}`x` in kg and {math}`D` in m.
     A value of < -900  indicates that the background value {math}`b_{geo}=0.39` from {{ '[src/atm_phy_schemes/mo_2mom_mcrph_main.f90]({}/src/atm_phy_schemes/mo_2mom_mcrph_main.f90)'.format(base_url) }} is used.
-  - [iforcing](run_nml-iforcing)=2,3 inwp_gscp=4,5,6,7
+  - [iforcing](run_nml-iforcing)=2,3  inwp_gscp=4,5,6,7
 
 * - (twomom_mcrph_nml-avel_i)=
     **avel_i**
@@ -9198,7 +9295,7 @@ There are for sure parameters which could be optimized for different resolutions
   -
   - Prefactor of the assumed fallspeed-mass-relation for cloud ice {math}`v=a_{vel}x^{b_{vel}}` for {math}`x` in kg and {math}`v` in m/s.
     A value of < -900  indicates that the background value {math}`a_{vel}=27.7` from {{ '[src/atm_phy_schemes/mo_2mom_mcrph_main.f90]({}/src/atm_phy_schemes/mo_2mom_mcrph_main.f90)'.format(base_url) }} is used.
-  - [iforcing](run_nml-iforcing)=2,3 inwp_gscp=4,5,6,7
+  - [iforcing](run_nml-iforcing)=2,3  inwp_gscp=4,5,6,7
 
 * - (twomom_mcrph_nml-bvel_i)=
     **bvel_i**
@@ -9207,7 +9304,7 @@ There are for sure parameters which could be optimized for different resolutions
   -
   - Exponent of the assumed fallspeed-mass-relation for cloud ice {math}`v=a_{vel}x^{b_{vel}}` for {math}`x` in kg and {math}`v` in m/s.
     A value of < -900  indicates that the background value {math}`b_{vel}=0.21579` from {{ '[src/atm_phy_schemes/mo_2mom_mcrph_main.f90]({}/src/atm_phy_schemes/mo_2mom_mcrph_main.f90)'.format(base_url) }} is used.
-  - [iforcing](run_nml-iforcing)=2,3 inwp_gscp=4,5,6,7
+  - [iforcing](run_nml-iforcing)=2,3  inwp_gscp=4,5,6,7
 
 * - (twomom_mcrph_nml-nu_s)=
     **nu_s**
@@ -9217,7 +9314,7 @@ There are for sure parameters which could be optimized for different resolutions
   - Shape parameter {math}`\nu` for snow in the PSD
     {math}`f(x)=N_{0}x^{\nu}\exp(-\lambda x^{\mu})`
     A value of < -900  indicates that the background value {math}`\nu=0.0` from {{ '[src/atm_phy_schemes/mo_2mom_mcrph_main.f90]({}/src/atm_phy_schemes/mo_2mom_mcrph_main.f90)'.format(base_url) }} is used.
-  - [iforcing](run_nml-iforcing)=2,3 inwp_gscp=4,5,6,7
+  - [iforcing](run_nml-iforcing)=2,3  inwp_gscp=4,5,6,7
 
 * - (twomom_mcrph_nml-mu_s)=
     **mu_s**
@@ -9227,7 +9324,7 @@ There are for sure parameters which could be optimized for different resolutions
   - Shape parameter {math}`\mu` for snow in the PSD
     {math}`f(x)=N_{0}x^{\nu}\exp(-\lambda x^{\mu})`
     A value of < -900  indicates that the background value {math}`\mu=0.5` from {{ '[src/atm_phy_schemes/mo_2mom_mcrph_main.f90]({}/src/atm_phy_schemes/mo_2mom_mcrph_main.f90)'.format(base_url) }} is used.
-  - [iforcing](run_nml-iforcing)=2,3 inwp_gscp=4,5,6,7
+  - [iforcing](run_nml-iforcing)=2,3  inwp_gscp=4,5,6,7
 
 * - (twomom_mcrph_nml-ageo_s)=
     **ageo_s**
@@ -9236,7 +9333,7 @@ There are for sure parameters which could be optimized for different resolutions
   -
   - Prefactor of the assumed size-mass-relation for snow {math}`D=a_{geo}x^{b_{geo}}` for {math}`x` in kg and {math}`D` in m.
     A value of < -900  indicates that the background value {math}`a_{geo}=5.13` from {{ '[src/atm_phy_schemes/mo_2mom_mcrph_main.f90]({}/src/atm_phy_schemes/mo_2mom_mcrph_main.f90)'.format(base_url) }} is used.
-  - [iforcing](run_nml-iforcing)=2,3 inwp_gscp=4,5,6,7
+  - [iforcing](run_nml-iforcing)=2,3  inwp_gscp=4,5,6,7
 
 * - (twomom_mcrph_nml-bgeo_s)=
     **bgeo_s**
@@ -9245,7 +9342,7 @@ There are for sure parameters which could be optimized for different resolutions
   -
   - Exponent of the assumed size-mass-relation for snow {math}`D=a_{geo}x^{b_{geo}}` for {math}`x` in kg and {math}`D` in m.
     A value of < -900  indicates that the background value {math}`b_{geo}=1/2` from {{ '[src/atm_phy_schemes/mo_2mom_mcrph_main.f90]({}/src/atm_phy_schemes/mo_2mom_mcrph_main.f90)'.format(base_url) }} is used.
-  - [iforcing](run_nml-iforcing)=2,3 inwp_gscp=4,5,6,7
+  - [iforcing](run_nml-iforcing)=2,3  inwp_gscp=4,5,6,7
 
 * - (twomom_mcrph_nml-avel_s)=
     **avel_s**
@@ -9254,7 +9351,7 @@ There are for sure parameters which could be optimized for different resolutions
   -
   - Prefactor of the assumed fallspeed-mass-relation for snow {math}`v=a_{vel}x^{b_{vel}}` for {math}`x` in kg and {math}`v` in m/s.
     A value of < -900  indicates that the background value {math}`a_{vel}=400.0` from {{ '[src/atm_phy_schemes/mo_2mom_mcrph_main.f90]({}/src/atm_phy_schemes/mo_2mom_mcrph_main.f90)'.format(base_url) }} is used.
-  - [iforcing](run_nml-iforcing)=2,3 inwp_gscp=4,5,6,7
+  - [iforcing](run_nml-iforcing)=2,3  inwp_gscp=4,5,6,7
 
 * - (twomom_mcrph_nml-bvel_s)=
     **bvel_s**
@@ -9263,7 +9360,7 @@ There are for sure parameters which could be optimized for different resolutions
   -
   - Exponent of the assumed fallspeed-mass-relation for snow {math}`v=a_{vel}x^{b_{vel}}` for {math}`x` in kg and {math}`v` in m/s.
     A value of < -900  indicates that the background value {math}`b_{vel}=0.35` from {{ '[src/atm_phy_schemes/mo_2mom_mcrph_main.f90]({}/src/atm_phy_schemes/mo_2mom_mcrph_main.f90)'.format(base_url) }} is used.
-  - [iforcing](run_nml-iforcing)=2,3 inwp_gscp=4,5,6,7
+  - [iforcing](run_nml-iforcing)=2,3  inwp_gscp=4,5,6,7
 
 * - (twomom_mcrph_nml-nu_r)=
     **nu_r**
@@ -9273,7 +9370,7 @@ There are for sure parameters which could be optimized for different resolutions
   - Shape parameter {math}`\nu` of the rain mass distribution inside clouds. Refers to the generalized gamma distribution with respect to mass {math}`x`:
     {math}`f(x)=N_{0}x^{\nu}\exp(-\lambda x^{\mu})`
     A value < -900 indicates that the background value {math}`\nu=0.0` from {{ '[src/atm_phy_schemes/mo_2mom_mcrph_main.f90]({}/src/atm_phy_schemes/mo_2mom_mcrph_main.f90)'.format(base_url) }} is used.
-  - [iforcing](run_nml-iforcing)=2,3 inwp_gscp=4,5,6,7
+  - [iforcing](run_nml-iforcing)=2,3  inwp_gscp=4,5,6,7
 
 * - (twomom_mcrph_nml-nu_g)=
     **nu_g**
@@ -9283,7 +9380,7 @@ There are for sure parameters which could be optimized for different resolutions
   - Shape parameter {math}`\nu` for graupel in the PSD
     {math}`f(x)=N_{0}x^{\nu}\exp(-\lambda x^{\mu})`
     A value of < -900  indicates that the background value {math}`\nu=1.0` from {{ '[src/atm_phy_schemes/mo_2mom_mcrph_main.f90]({}/src/atm_phy_schemes/mo_2mom_mcrph_main.f90)'.format(base_url) }} is used.
-  - [iforcing](run_nml-iforcing)=2,3 inwp_gscp=4,5,6,7
+  - [iforcing](run_nml-iforcing)=2,3  inwp_gscp=4,5,6,7
 
 * - (twomom_mcrph_nml-mu_g)=
     **mu_g**
@@ -9302,7 +9399,7 @@ There are for sure parameters which could be optimized for different resolutions
   -
   - Prefactor of the assumed size-mass-relation for graupel {math}`D=a_{geo}x^{b_{geo}}` for {math}`x` in kg and {math}`D` in m.
     A value of < -900  indicates that the background value {math}`a_{geo}=0.124` from {{ '[src/atm_phy_schemes/mo_2mom_mcrph_main.f90]({}/src/atm_phy_schemes/mo_2mom_mcrph_main.f90)'.format(base_url) }} is used.
-  - [iforcing](run_nml-iforcing)=2,3 inwp_gscp=4,5,6,7
+  - [iforcing](run_nml-iforcing)=2,3  inwp_gscp=4,5,6,7
 
 * - (twomom_mcrph_nml-bgeo_g)=
     **bgeo_g**
@@ -9311,7 +9408,7 @@ There are for sure parameters which could be optimized for different resolutions
   -
   - Exponent of the assumed size-mass-relation for graupel {math}`D=a_{geo}x^{b_{geo}}` for {math}`x` in kg and {math}`D` in m.
     A value of < -900  indicates that the background value {math}`b_{geo}=0.314` from {{ '[src/atm_phy_schemes/mo_2mom_mcrph_main.f90]({}/src/atm_phy_schemes/mo_2mom_mcrph_main.f90)'.format(base_url) }} is used.
-  - [iforcing](run_nml-iforcing)=2,3 inwp_gscp=4,5,6,7
+  - [iforcing](run_nml-iforcing)=2,3  inwp_gscp=4,5,6,7
 
 * - (twomom_mcrph_nml-avel_g)=
     **avel_g**
@@ -9320,7 +9417,7 @@ There are for sure parameters which could be optimized for different resolutions
   -
   - Prefactor of the assumed fallspeed-mass-relation for graupel {math}`v=a_{vel}x^{b_{vel}}` for {math}`x` in kg and {math}`v` in m/s.
     A value of < -900  indicates that the background value {math}`a_{vel}=100.0` from {{ '[src/atm_phy_schemes/mo_2mom_mcrph_main.f90]({}/src/atm_phy_schemes/mo_2mom_mcrph_main.f90)'.format(base_url) }} is used.
-  - [iforcing](run_nml-iforcing)=2,3 inwp_gscp=4,5,6,7
+  - [iforcing](run_nml-iforcing)=2,3  inwp_gscp=4,5,6,7
 
 * - (twomom_mcrph_nml-bvel_g)=
     **bvel_g**
@@ -9329,7 +9426,7 @@ There are for sure parameters which could be optimized for different resolutions
   -
   - Exponent of the assumed fallspeed-mass-relation for graupel {math}`v=a_{vel}x^{b_{vel}}` for {math}`x` in kg and {math}`v` in m/s.
     A value of < -900  indicates that the background value {math}`b_{vel}=0.34` from {{ '[src/atm_phy_schemes/mo_2mom_mcrph_main.f90]({}/src/atm_phy_schemes/mo_2mom_mcrph_main.f90)'.format(base_url) }} is used.
-  - [iforcing](run_nml-iforcing)=2,3 inwp_gscp=4,5,6,7
+  - [iforcing](run_nml-iforcing)=2,3  inwp_gscp=4,5,6,7
 
 * - (twomom_mcrph_nml-nu_h)=
     **nu_h**
@@ -9339,7 +9436,7 @@ There are for sure parameters which could be optimized for different resolutions
   - Shape parameter {math}`\nu` for hail in the PSD
     {math}`f(x)=N_{0}x^{\nu}\exp(-\lambda x^{\mu})`
     A value of < -900  indicates that the background value {math}`\nu=1.0` from {{ '[src/atm_phy_schemes/mo_2mom_mcrph_main.f90]({}/src/atm_phy_schemes/mo_2mom_mcrph_main.f90)'.format(base_url) }} is used.
-  - [iforcing](run_nml-iforcing)=2,3 inwp_gscp=4,5,6,7
+  - [iforcing](run_nml-iforcing)=2,3  inwp_gscp=4,5,6,7
 
 * - (twomom_mcrph_nml-mu_h)=
     **mu_h**
@@ -9349,7 +9446,7 @@ There are for sure parameters which could be optimized for different resolutions
   - Shape parameter {math}`\mu` for hail in the PSD
     {math}`f(x)=N_{0}x^{\nu}\exp(-\lambda x^{\mu})`
     A value of < -900  indicates that the background value {math}`\mu=1/3` from {{ '[src/atm_phy_schemes/mo_2mom_mcrph_main.f90]({}/src/atm_phy_schemes/mo_2mom_mcrph_main.f90)'.format(base_url) }} is used.
-  - [iforcing](run_nml-iforcing)=2,3 inwp_gscp=4,5,6,7
+  - [iforcing](run_nml-iforcing)=2,3  inwp_gscp=4,5,6,7
 
 * - (twomom_mcrph_nml-ageo_h)=
     **ageo_h**
@@ -9358,7 +9455,7 @@ There are for sure parameters which could be optimized for different resolutions
   -
   - Prefactor of the assumed size-mass-relation for hail {math}`D=a_{geo}x^{b_{geo}}` for {math}`x` in kg and {math}`D` in m.
     A value of < -900  indicates that the background value {math}`a_{geo}=0.1366` from {{ '[src/atm_phy_schemes/mo_2mom_mcrph_main.f90]({}/src/atm_phy_schemes/mo_2mom_mcrph_main.f90)'.format(base_url) }} is used.
-  - [iforcing](run_nml-iforcing)=2,3 inwp_gscp=4,5,6,7
+  - [iforcing](run_nml-iforcing)=2,3  inwp_gscp=4,5,6,7
 
 * - (twomom_mcrph_nml-bgeo_h)=
     **bgeo_h**
@@ -9367,7 +9464,7 @@ There are for sure parameters which could be optimized for different resolutions
   -
   - Exponent of the assumed size-mass-relation for hail {math}`D=a_{geo}x^{b_{geo}}` for {math}`x` in kg and {math}`D` in m.
     A value of < -900  indicates that the background value {math}`b_{geo}=1/3` from {{ '[src/atm_phy_schemes/mo_2mom_mcrph_main.f90]({}/src/atm_phy_schemes/mo_2mom_mcrph_main.f90)'.format(base_url) }} is used.
-  - [iforcing](run_nml-iforcing)=2,3 inwp_gscp=4,5,6,7
+  - [iforcing](run_nml-iforcing)=2,3  inwp_gscp=4,5,6,7
 
 * - (twomom_mcrph_nml-avel_h)=
     **avel_h**
@@ -9376,7 +9473,7 @@ There are for sure parameters which could be optimized for different resolutions
   -
   - Prefactor of the assumed fallspeed-mass-relation for hail {math}`v=a_{vel}x^{b_{vel}}` for {math}`x` in kg and {math}`v` in m/s.
     A value of < -900  indicates that the background value {math}`a_{vel}=39.3` from {{ '[src/atm_phy_schemes/mo_2mom_mcrph_main.f90]({}/src/atm_phy_schemes/mo_2mom_mcrph_main.f90)'.format(base_url) }} is used.
-  - [iforcing](run_nml-iforcing)=2,3 inwp_gscp=4,5,6,7
+  - [iforcing](run_nml-iforcing)=2,3  inwp_gscp=4,5,6,7
 
 * - (twomom_mcrph_nml-bvel_h)=
     **bvel_h**
@@ -9385,7 +9482,15 @@ There are for sure parameters which could be optimized for different resolutions
   -
   - Exponent of the assumed fallspeed-mass-relation for hail {math}`v=a_{vel}x^{b_{vel}}` for {math}`x` in kg and {math}`v` in m/s.
     A value of < -900  indicates that the background value {math}`b_{vel}=1/6` from {{ '[src/atm_phy_schemes/mo_2mom_mcrph_main.f90]({}/src/atm_phy_schemes/mo_2mom_mcrph_main.f90)'.format(base_url) }} is used.
-  - [iforcing](run_nml-iforcing)=2,3 inwp_gscp=4,5,6,7
+  - [iforcing](run_nml-iforcing)=2,3  inwp_gscp=4,5,6,7
+
+* - (twomom_mcrph_nml-xmax_h)=
+    **xmax_h**
+  - R
+  - -999.99
+  - kg
+  - Maximum allowed mean-mass diameter {math}`x_{max,h}` of the hail PSD. If the actual {math}`x_h` gets larger during time stepping, the hail number concentration is raised to keep {math}`x_h` below this limit. <br> A value of < -900  indicates that the background value {math}`x_{max,h}=0.005` kg from {{ '[src/atm_phy_schemes/mo_2mom_mcrph_main.f90]({}/src/atm_phy_schemes/mo_2mom_mcrph_main.f90)'.format(base_url) }} is used.
+  - [iforcing](run_nml-iforcing)=2,3  inwp_gscp=4,5,6,7
 
 * - (twomom_mcrph_nml-melt_h_tune_fac)=
     **melt_h_tune_fac**
@@ -9393,7 +9498,7 @@ There are for sure parameters which could be optimized for different resolutions
   - 1.0
   -
   - Tuning factor for the hail melting rate. Values larger than 1.0 enhance the hail melting, smaller values slow down the melting.
-  - [iforcing](run_nml-iforcing)=2,3 inwp_gscp=4,5,6,7
+  - [iforcing](run_nml-iforcing)=2,3  inwp_gscp=4,5,6,7
 
 * - (twomom_mcrph_nml-melt_g_tune_fac)=
     **melt_g_tune_fac**
@@ -9401,7 +9506,7 @@ There are for sure parameters which could be optimized for different resolutions
   - 1.0
   -
   - Tuning factor for the graupel melting rate. Values larger than 1.0 enhance the graupel melting, smaller values slow down the melting.
-  - [iforcing](run_nml-iforcing)=2,3 inwp_gscp=4,5,6,7
+  - [iforcing](run_nml-iforcing)=2,3  inwp_gscp=4,5,6,7
 
 * - (twomom_mcrph_nml-Tmax_gr_rime)=
     **Tmax_gr_rime**
@@ -9417,7 +9522,7 @@ There are for sure parameters which could be optimized for different resolutions
   - .TRUE.
   -
   - To switch on the turbulent enhancement of collision processes involving water droplets (autoconversion, accretion, rain selfcollection).
-  - [iforcing](run_nml-iforcing)=2,3 inwp_gscp=4,5,6,7
+  - [iforcing](run_nml-iforcing)=2,3  inwp_gscp=4,5,6,7
 
 * - (twomom_mcrph_nml-lturb_len)=
     **lturb_len**
@@ -9425,7 +9530,7 @@ There are for sure parameters which could be optimized for different resolutions
   - 300
   - m
   - Turbulent length scale used for lturb_enhc=.TRUE.
-  - [iforcing](run_nml-iforcing)=2,3 inwp_gscp=4,5,6,7 lturb_enhc=.TRUE.
+  - [iforcing](run_nml-iforcing)=2,3  inwp_gscp=4,5,6,7 lturb_enhc=.TRUE.
 
 * - (twomom_mcrph_nml-iice_stick)=
     **iice_stick**
@@ -9444,7 +9549,7 @@ There are for sure parameters which could be optimized for different resolutions
     - 9: option 5 times factor 0.75
     - 10: {math}`e = \min(10^{(0.035(T-T_3)-0.7)},0.2)` from Cotton et al. (1986)
     with {math}`T_3=273.16` K
-  - [iforcing](run_nml-iforcing)=2,3 inwp_gscp=4,5,6,7
+  - [iforcing](run_nml-iforcing)=2,3  inwp_gscp=4,5,6,7
 
 * - (twomom_mcrph_nml-isnow_stick)=
     **isnow_stick**
@@ -9463,7 +9568,7 @@ There are for sure parameters which could be optimized for different resolutions
   - Optional choice of the sticking. efficiency parameterization for other frozen category collisions as function of temperature.
     Same choices as for `iice_stick`.
     Does not apply for graupel selfcollection. There, the below [ecoll_gg](twomom_mcrph_nml-ecoll_gg), `ecoll_gg_wet` and `Tcoll_gg_wet` apply.
-  - [iforcing](run_nml-iforcing)=2,3 inwp_gscp=4,5,6,7
+  - [iforcing](run_nml-iforcing)=2,3  inwp_gscp=4,5,6,7
 
 * - (twomom_mcrph_nml-ecoll_gg)=
     **ecoll_gg**
@@ -9479,7 +9584,7 @@ There are for sure parameters which could be optimized for different resolutions
   - 0.4
   -
   - Collision efficiency for graupel autoconversion (wet graupel). Value between 0 and 1.
-  - [iforcing](run_nml-iforcing)=2,3 inwp_gscp=4,5,6,7
+  - [iforcing](run_nml-iforcing)=2,3  inwp_gscp=4,5,6,7
 
 * - (twomom_mcrph_nml-Tcoll_gg_wet)=
     **Tcoll_gg_wet**
@@ -9487,7 +9592,7 @@ There are for sure parameters which could be optimized for different resolutions
   - 270.16
   - K
   - Temperature limit above which graupel autoconversion is considered to be for wet surfaces.
-  - [iforcing](run_nml-iforcing)=2,3 inwp_gscp=4,5,6,7
+  - [iforcing](run_nml-iforcing)=2,3  inwp_gscp=4,5,6,7
 
 * - (twomom_mcrph_nml-cap_ice)=
     **cap_ice**
@@ -9503,7 +9608,7 @@ There are for sure parameters which could be optimized for different resolutions
   - -999.99
   -
   - Capacitance for snow depositional growth. A value < -900 indicates the usage of the code-internal backgroud value 3.0.
-  - [iforcing](run_nml-iforcing)=2,3 inwp_gscp=4,5,6,7
+  - [iforcing](run_nml-iforcing)=2,3  inwp_gscp=4,5,6,7
 
 * - (twomom_mcrph_nml-vsedi_max_s)=
     **vsedi_max_s**
@@ -9511,7 +9616,7 @@ There are for sure parameters which could be optimized for different resolutions
   - -999.99
   - m/s
   - Maximum allowed spectral mean sedimentation velocity of snow at sea level. A value < -900 indicates the usage of the code-internal backgroud value 1.2 m/s.
-  - [iforcing](run_nml-iforcing)=2,3 inwp_gscp=4,5,6,7
+  - [iforcing](run_nml-iforcing)=2,3  inwp_gscp=4,5,6,7
 
 * - (twomom_mcrph_nml-itype_shedding_gh)=
     **itype_shedding_gh**
@@ -9522,7 +9627,7 @@ There are for sure parameters which could be optimized for different resolutions
     - 0: no shedding,
     - 1: simpe,
     - 2: more physical. If applied together with the ART aerosol physics **inwp_gscp=6**, only options 0 and 1 are currently supported.
-  - [iforcing](run_nml-iforcing)=2,3 inwp_gscp=4,5,6,7
+  - [iforcing](run_nml-iforcing)=2,3  inwp_gscp=4,5,6,7
 
 * - (twomom_mcrph_nml-D_shed_gh)=
     **D_shed_gh**
@@ -9532,7 +9637,7 @@ There are for sure parameters which could be optimized for different resolutions
   - Critical graupel/hail particle diameter for shedding during riming (wet growth) and melting. Shedding happens if:
     itype_shedding_gh = 1: {math}`D_{meanmass}>` D_shed_gh
     itype_shedding_gh = 2: in the spectral PSD-part where {math}`D>\max(D_{wetgr},\text{D\_shed\_gh})` - that is for wet growth but not below a stable diameter, e.g., 9 mm after Rasmussen and Heymfield
-  - itype_shedding_gh=1,2 [iforcing](run_nml-iforcing)=2,3 inwp_gscp=4,5,6,7
+  - itype_shedding_gh=1,2 [iforcing](run_nml-iforcing)=2,3  inwp_gscp=4,5,6,7
 
 * - (twomom_mcrph_nml-llim_gr_prod_rain_riming)=
     **llim_gr_prod_rain_riming**
@@ -9540,7 +9645,7 @@ There are for sure parameters which could be optimized for different resolutions
   - .FALSE.
   -
   - If .TRUE., limit the graupel production by rain riming of ice/snow by a bulk-density-based criterion on the mean-mass-particles of the collision partners.
-  - [iforcing](run_nml-iforcing)=2,3 inwp_gscp=4,5,6,7
+  - [iforcing](run_nml-iforcing)=2,3  inwp_gscp=4,5,6,7
 
 * - (twomom_mcrph_nml-wgt_D_coll_limgrprod)=
     **wgt_D_coll_limgrprod**
@@ -9548,7 +9653,7 @@ There are for sure parameters which could be optimized for different resolutions
   - 0.5
   -
   - Weight {math}`\in [0,1]` for the collided mean-mass-particle's diameter {math}`D_{coll}`: how much does the smaller collision partner contribute to the overall diameter?
-  - llim_gr_prod_rain_riming=.TRUE. [iforcing](run_nml-iforcing)=2,3 inwp_gscp=4,5,6,7
+  - llim_gr_prod_rain_riming=.TRUE. [iforcing](run_nml-iforcing)=2,3  inwp_gscp=4,5,6,7
 
 * - (twomom_mcrph_nml-wgt_rho_coll_limgrprod)=
     **wgt_rho_coll_limgrprod**
@@ -9556,7 +9661,9 @@ There are for sure parameters which could be optimized for different resolutions
   - 0.5
   -
   - Weight {math}`\in [0,1]` for the limit of the collided mean-mass-particle's bulk density: how near should it be to the bulk density of graupel in order to convert it to graupel?
-  - llim_gr_prod_rain_riming=.TRUE. [iforcing](run_nml-iforcing)=2,3 inwp_gscp=4,5,6,7
+  - llim_gr_prod_rain_riming=.TRUE.
+    [iforcing](run_nml-iforcing)=2,3
+    inwp_gscp=4,5,6,7
 ```
 
 
@@ -11910,7 +12017,7 @@ If ICON is configured with the flag `--enable-emvorado` and compiled with the pr
 
 EMVORADO is the Efficient Modular VOlume RADar Operator for simulating radar volume scans for cloud- and weather radar wavelengths, see
 
- - EMVORADO User's Guide in ICON's EMVORADO submodule `externals/emvorado/DOC/TEX/emvorado_userguide.pdf`
+ - EMVORADO User's Guide in ICON's EMVORADO submodule `externals/emvorado/DOC/TEX/emvorado_userguide.pdf` or from the COSMO webpage <https://www.cosmo-model.org/content/model/documentation/core/emvorado_userguide.pdf>
  - [COSMO Technical Report No. 28](https://www.cosmo-model.org/content/model/documentation/techReports/cosmo/docs/techReport28.pdf)
 
 for detailed information.
@@ -11932,13 +12039,13 @@ for detailed information.
     I
   - 4
   -
-  - This type contains: synradar_meta%itype_refl and many other parameters which are only relevant if itype_refl is not the default (4). Instance of the derived type   **dbzcalc_params** from EMVORADO to specify details of the radar reflectivity calculation for related outputs ('dbz', 'dbz_850', 'dbz_cmax', 'dbz_ctmax', 'echotop',   'echotopinm'). The type is documented in detail in the EMVORADO User's Guide.
-    The most important component is **itype_refl:**
-    **1:** Mie-scattering from EMVORADO assuming spherical particles and including a detailed melting scheme for the radar "bright band".
-    **3:** Rayleigh-Oguchi approximation from EMVORADO including a simple melting scheme, but not producing pronounced "bright bands".
-    **4:** Traditional Rayleigh approximation from ICON, also without pronounced "bright bands". **This is the default.**
-    **5:** T-matrix scattering from EMVORADO assuming oblate spheroids, otherwise similar to Mie-option 1.
-    **6:** T-matrix scattering from EMVORADO assuming spherical particles, only for sanity-checks against Mie-option 1.
+  - This type contains: synradar_meta%itype_refl and many other parameters which are only relevant if itype_refl is not the default (4). Instance of the derived type   **dbzcalc_params** from EMVORADO to specify details of the radar reflectivity calculation for related outputs (`'dbz'`, `'dbz_850'`, `'dbz_cmax'`, `'dbz_ctmax'`, `'echotop'`, `'echotopinm'`). The type is documented in detail in the EMVORADO User's Guide (link see above).
+    The most important component is **itype_refl:**  
+      - **1:** Mie-scattering from EMVORADO assuming spherical particles and including a detailed melting scheme for the radar "bright band".  
+      - **3:** Rayleigh-Oguchi approximation from EMVORADO including a simple melting scheme, but not producing pronounced "bright bands".  
+      - **4:** Traditional Rayleigh approximation from ICON, also without pronounced "bright bands". **This is the default.**  
+      - **5:** T-matrix scattering from EMVORADO assuming oblate spheroids, otherwise similar to Mie-option 1.  
+      - **6:** T-matrix scattering from EMVORADO assuming spherical particles, only for sanity-checks against Mie-option 1.  
     For options 1, 5, 6 there are many more relevant type components.
   - [iforcing](run_nml-iforcing)=3,
     ICON configure'd with `--enable-emvorado`
@@ -11983,9 +12090,9 @@ for detailed information.
   - 0
   -
   - Options (0,1, or 2) to limit excessive radar signals coming from the large tail of (some) hydrometeor PSDs. When integrating radar moments over the PSD, the mass of particles larger than a certain diameter {math}`D_c` (separate namelist parameters for hydrometeors, see below) is redistributed to
-      - [1] particles of exact size {math}`D_c`
-      - [2] to all particles with {math}`D < D_c` by scaling up the PSD there
-    before integrating over the PSD. If set to 0 (default), no such redistribution is applied. More details in Emvorado User's Guide.
+      - **1:** particles of exact size {math}`D_c`
+      - **2:** to all particles with {math}`D < D_c` by scaling up the PSD there
+    before integrating over the PSD. If set to 0 (default), no such redistribution is applied. More details in the EMVORADO User's Guide, see above.
   - [iforcing](run_nml-iforcing)=3,
     ICON configure'd with `--enable-emvorado`,
     synradar_meta%itype_refl=1, 5, 6

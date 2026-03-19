@@ -204,7 +204,7 @@ MODULE mo_nh_init_nest_utils
                                        ! snow_age, t_avginc, t_sk, rh_avginc, t_wgt_avginc, rh_daywgt_avginc, t_daywgt_avginc, vabs_avginc,
                                        ! t_2m_filt, + aux variable for lake temp
     num_wtrvars  = 6                   ! water state fields + fr_seaice + alb_si
-    num_phdiagvars = 60                ! number of positive-definite physics diagnostic variables
+    num_phdiagvars = 64                ! number of positive-definite physics diagnostic variables
     num_phdiagvars_npd = 16+uh_max_nlayer ! number of other (non-positive-definite) physics diagnostic variables
 
     ALLOCATE(thv_pr_par  (nproma, nlev_p,      p_patch(jg)%nblks_c), &
@@ -428,6 +428,18 @@ MODULE mo_nh_init_nest_utils
           IF (var_in_output(jg)%freez_rain_prec) THEN
             phdiag_par(jc,60,jb) = prm_diag(jg)%freez_rain_prec(jc,jb)
           ENDIF
+          IF (var_in_output(jg)%dm_hail_max_s) THEN
+            phdiag_par(jc,61,jb) = prm_diag(jg)%dm_hail_max_s(jc,jb)
+          ENDIF
+          IF (var_in_output(jg)%demax_hail_tmax_s) THEN
+            phdiag_par(jc,62,jb) = prm_diag(jg)%demax_hail_tmax_s(jc,jb)
+          END IF
+          IF (var_in_output(jg)%kef_hail_max_s) THEN
+            phdiag_par(jc,63,jb) = prm_diag(jg)%kef_hail_max_s(jc,jb)
+          END IF
+          IF (var_in_output(jg)%ke_hail_s) THEN
+            phdiag_par(jc,64,jb) = prm_diag(jg)%ke_hail_s(jc,jb)
+          END IF
 
           ! non-positive definite fields
           phdiag_npd_par(jc,1,jb) = prm_diag(jg)%u_10m(jc,jb)
@@ -879,6 +891,18 @@ MODULE mo_nh_init_nest_utils
           IF (var_in_output(jg)%freez_rain_prec) THEN
             prm_diag(jgc)%freez_rain_prec(jc,jb) = MAX(0._wp,phdiag_chi(jc,60,jb))
           ENDIF
+          IF (var_in_output(jg)%dm_hail_max_s) THEN
+            prm_diag(jg)%dm_hail_max_s(jc,jb) = phdiag_chi(jc,61,jb)
+          ENDIF
+          IF (var_in_output(jg)%demax_hail_tmax_s) THEN
+            prm_diag(jg)%demax_hail_tmax_s(jc,jb) = phdiag_chi(jc,62,jb)
+          END IF
+          IF (var_in_output(jg)%kef_hail_max_s) THEN
+            prm_diag(jg)%kef_hail_max_s(jc,jb) = phdiag_chi(jc,63,jb)
+          END IF
+          IF (var_in_output(jg)%ke_hail_s) THEN
+            prm_diag(jg)%ke_hail_s(jc,jb) = phdiag_chi(jc,64,jb)
+          END IF
 
           ! non-positive definite fields
           prm_diag(jgc)%u_10m(jc,jb)       = phdiag_npd_chi(jc,1,jb)

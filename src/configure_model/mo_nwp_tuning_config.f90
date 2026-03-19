@@ -94,6 +94,11 @@ MODULE mo_nwp_tuning_config
   PUBLIC :: tune_dursun_scaling
   PUBLIC :: tune_sbmccn
   PUBLIC :: tune_urbahf, tune_urbisa
+  PUBLIC :: tune_demax_hail_s
+  PUBLIC :: prhthresh_demax_hail_s
+  PUBLIC :: kefthresh_demax_hail_s
+  PUBLIC :: qnhthresh_demax_hail_s
+  PUBLIC :: lwindeffect_kef_hail_s
   PUBLIC :: tune_tau_shallow, tune_tau_mid, tune_tau_deep
 
   !!--------------------------------------------------------------------------
@@ -106,7 +111,7 @@ MODULE mo_nwp_tuning_config
   REAL(wp) :: &                    !< low level wake drag constant
     &  tune_gkwake(max_dom)
 
-   REAL(wp) :: &                    !< gravity wave drag constant; optional enhanced value for low latitudes
+  REAL(wp) :: &                    !< gravity wave drag constant; optional enhanced value for low latitudes
     &  tune_gkdrag(max_dom), tune_gkdrag_enh(max_dom)
 
   REAL(wp) :: &                    !< critical Froude number in SSO scheme
@@ -360,6 +365,26 @@ MODULE mo_nwp_tuning_config
 
   REAL(wp) :: &                    !< lower and upper bound for variable ISA paraeterization
        &  tune_urbisa(2)           !< depending on smoothed urban fraction
+
+  REAL(wp) :: &                    !< scaling factor to compute estim. max. hail diam.
+       &  tune_demax_hail_s        !< at surface from mean mass diameter of hail
+  !$ACC DECLARE CREATE(tune_demax_hail_s)
+
+  REAL(wp) :: &                    !< prh (= precip rate hail = hail_gscp_rate kg/(m**2 s)) threshold above to compute
+       &  prhthresh_demax_hail_s   !< estim. max. hail diam. at surface from mean mass diameter of hail
+  !$ACC DECLARE CREATE(prhthresh_demax_hail_s)
+
+  REAL(wp) :: &                    !< kef (= hail kinetic energy flux = kef_hail_s W/m**2) threshold above to compute
+       &  kefthresh_demax_hail_s   !< estim. max. hail diam. at surface from mean mass diameter of hail
+  !$ACC DECLARE CREATE(kefthresh_demax_hail_s)
+
+  REAL(wp) :: &                    !< qnh (= hail number density 1/m**3) threshold above to compute
+       &  qnhthresh_demax_hail_s   !< estim. max. hail diam. at surface from mean mass diameter of hail
+  !$ACC DECLARE CREATE(qnhthresh_demax_hail_s)
+
+  LOGICAL :: &                     !< switch for taking into account effects of near-surface winds (u,v,w)
+       lwindeffect_kef_hail_s      !< on the kinetic energy flux of hail stones in an approximate way
+  !$ACC DECLARE CREATE(lwindeffect_kef_hail_s)
 
 !  END TYPE t_nwp_tuning_config
 

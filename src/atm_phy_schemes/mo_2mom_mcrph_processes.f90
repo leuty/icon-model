@@ -2212,7 +2212,7 @@ CONTAINS
 
             melt_h = melt * K_T * (T_a - T_3)
             melt_v = melt * D_v*L_wd/R_d * (e_a/T_a - e_3/T_3)
-            melt_q = cfg_params%melt_g_tune_fak * (melt_h * fh_q + melt_v * fv_q)
+            melt_q = melt_h * fh_q + melt_v * fv_q
 
             ! UB: for melt_n we assume that x_s is constant during melting
             melt_n = MIN(MAX( (melt_q - q_s) / x_s + n_s, 0.0_wp), n_s)
@@ -2971,7 +2971,7 @@ CONTAINS
              melt_h = melt * K_T * (T_a - T_3)
              melt_v = melt * D_v*L_wd/R_d * (e_a/T_a - e_3/T_3)
 
-             melt_q = cfg_params%melt_g_tune_fak* (melt_h * fh_q + melt_v * fv_q)
+             melt_q = cfg_params%melt_g_tune_fac* (melt_h * fh_q + melt_v * fv_q)
 
              ! UB: assume that x_g is constant during melting
              melt_n = MIN(MAX( (melt_q - q_g) / x_g + n_g, 0.0_wp), n_g)
@@ -3065,7 +3065,7 @@ CONTAINS
             melt_h = melt * K_T * (T_a - T_3)
             melt_v = melt * D_v*L_wd/R_d * (e_a/T_a - e_3/T_3)
 
-            melt_q = cfg_params%melt_h_tune_fak * (melt_h * fh_q + melt_v * fv_q)
+            melt_q = cfg_params%melt_h_tune_fac * (melt_h * fh_q + melt_v * fv_q)
 
             ! UB: assume that x_h is constant during melting
             melt_n = MIN(MAX( (melt_q - q_h) / x_h + n_h, 0.0_wp), n_h)

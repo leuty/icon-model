@@ -1440,7 +1440,7 @@ MODULE mo_nh_stepping
 #ifndef __NO_NWP__
       CALL nwp_opt_diagnostics(p_patch(1:), p_patch_local_parent, p_int_state_local_parent, &
                                ext_data, p_nh_state, p_int_state(1:), prm_diag, &
-                               l_nml_output_dom, nnow, nnow_rcf, lpi_max_Event, celltracks_Event,  &
+                               l_nml_output_dom, nnow, nnow_rcf, kstart_moist, lpi_max_Event, celltracks_Event, &
                                dbz_Event, hail_max_Event, mtime_current, time_config%tc_dt_model, lacc=.TRUE.)
 
       DO jg = 1, n_dom

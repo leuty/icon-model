@@ -32,6 +32,7 @@ MODULE mo_pp_tasks
     & TASK_COMPUTE_DBZCMAX, TASK_COMPUTE_DBZ850,                      &
     & TASK_COMPUTE_DBZLMX_LOW, TASK_COMPUTE_SRH, TASK_COMPUTE_VIS,    &
     & TASK_COMPUTE_WSHEAR_U, TASK_COMPUTE_WSHEAR_V,                   &
+    & TASK_COMPUTE_DMH,                                               &
     & TASK_COMPUTE_LAPSERATE, TASK_COMPUTE_MCONV,                     &
     & TASK_INTP_VER_ZLEV,                                             &
     & TASK_INTP_VER_ILEV,                                             &
@@ -89,7 +90,8 @@ MODULE mo_pp_tasks
     &                                   compute_field_lapserate,                 &
     &                                   compute_field_mconv,                     &
     &                                   compute_field_srh,                       &
-    &                                   compute_field_wshear
+    &                                   compute_field_wshear,                    &
+    &                                   compute_field_dmean_2mom
   USE mo_io_config,               ONLY: itype_pres_msl, itype_rh,                &
     &                                   n_wshear, wshear_uv_heights, n_srh, srh_heights
   USE mo_grid_config,             ONLY: l_limited_area, n_dom_start
@@ -1376,6 +1378,10 @@ CONTAINS
     CASE (TASK_COMPUTE_DBZCMAX)
       CALL compute_field_dbzcmax( p_patch, jg, prm_diag%dbz3d_lin(:,:,:),            &
           &   out_var%wp_ptr(:,:,out_var_idx,1,1), lacc=lacc)   ! unused dimensions are filled up with 1
+
+    CASE (TASK_COMPUTE_DMH)
+      CALL compute_field_dmean_2mom( 'hail', p_patch, p_prog_rcf, &
+           out_var%wp_ptr(:,:,:,out_var_idx,1), lacc=lacc)
 
     CASE (TASK_COMPUTE_SMI)
       CALL compute_field_smi(p_patch, p_lnd_state(jg)%diag_lnd, &

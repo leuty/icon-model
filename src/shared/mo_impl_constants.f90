@@ -590,6 +590,7 @@ MODULE mo_impl_constants
   INTEGER, PARAMETER, PUBLIC :: TASK_COMPUTE_DBZLMX_LOW= 35 !< task: compute radar reflectivity layer maximum [500,2500] m AGL
   INTEGER, PARAMETER, PUBLIC :: TASK_COMPUTE_INVERSION = 36 !< task: compute radar reflectivity layer maximum [500,2500] m AGL
   INTEGER, PARAMETER, PUBLIC :: TASK_COMPUTE_MCONV     = 37 !< task: compute low level horizontal moisture convergence div.(q_v*v_h) [1/s], average 0-1000 m AGL
+  INTEGER, PARAMETER, PUBLIC :: TASK_COMPUTE_DMH       = 38 !< task: compute mean mass diameter of hail
 
   !--------------------------------------------------------------------!
   !  VARIABLE TIMELEVEL SPECIFICATION (FOR POST-PROCESSING SCHEDULER)  !

@@ -70,6 +70,9 @@ MODULE mo_opt_nwp_diagnostics
   USE mo_diag_hailcast,         ONLY: hailstone_driver
   USE mo_util_phys,             ONLY: inversion_height_index
   USE mo_nwp_tuning_config,     ONLY: tune_dursun_scaling, itune_vis_diag, itune_ceiling_diag
+  USE mo_2mom_mcrph_types,      ONLY: particle, t_diag_coeffs_2mom
+  USE mo_2mom_mcrph_main,       ONLY: init_2mom_scheme, get_diag_coeffs_2mom
+  USE mo_2mom_mcrph_setup,      ONLY: particle_meanmass, particle_diameter
   USE microphysics_1mom_schemes,ONLY: get_cloud_number, get_snow_temperature
 #ifdef HAVE_RADARFWO
   USE radar_data_mie,             ONLY: ldebug_dbz, T0C_emvorado => T0C_fwo
@@ -120,7 +123,6 @@ MODULE mo_opt_nwp_diagnostics
   PUBLIC :: compute_field_dbzcmax
   PUBLIC :: compute_field_dbz850
   PUBLIC :: compute_field_dbzlmx
-  PUBLIC :: maximize_field_dbzctmax
   PUBLIC :: compute_field_echotop
   PUBLIC :: compute_field_echotopinm
   PUBLIC :: compute_field_wshear
@@ -131,9 +133,21 @@ MODULE mo_opt_nwp_diagnostics
   PUBLIC :: compute_field_inversion_height
   PUBLIC :: compute_updraft_duration
   PUBLIC :: compute_hail_statistics
+  PUBLIC :: compute_field_dmean_2mom
+  PUBLIC :: compute_field_dmhail_2mom_surf
+  PUBLIC :: compute_field_demaxhail_2mom_surf
+  PUBLIC :: maximize_field
+  PUBLIC :: compute_field_kef_2mom_surf
 
   !> module name
   CHARACTER(LEN=*), PARAMETER :: modname = 'mo_opt_nwp_diagnostics'
+
+  !> generic interface to store the maximum of a field, e.g., over time
+  INTERFACE maximize_field
+    MODULE PROCEDURE &
+         maximize_field_2dr, &
+         maximize_field_3d2dr
+  END INTERFACE maximize_field
 
 CONTAINS
 
@@ -683,8 +697,6 @@ CONTAINS
                                 p_metrics, p_prog, p_diag,                 &
                                 sdi_2, lacc)
 
-    IMPLICIT NONE
-
     TYPE(t_patch),      INTENT(IN)    :: ptr_patch           !< patch on which computation is performed
     INTEGER,            INTENT(IN)    :: jg    ! domain ID of main grid
     TYPE(t_patch), TARGET, INTENT(IN) :: ptr_patch_local_parent    !< parent grid for larger exchange halo
@@ -1102,8 +1114,6 @@ CONTAINS
   SUBROUTINE compute_field_lpi( ptr_patch, jg, ptr_patch_local_parent, p_int,   &
                                 p_metrics, p_prog, p_prog_rcf, p_diag,          &
                                 lpi, lacc )
-
-    IMPLICIT NONE
 
     TYPE(t_patch),      INTENT(IN)    :: ptr_patch         !< patch on which computation is performed
     INTEGER,            INTENT(IN)    :: jg                ! domain ID of main grid
@@ -1523,8 +1533,6 @@ CONTAINS
                                 p_metrics, p_prog, p_prog_rcf, p_diag,           &
                                 lpi_max, lacc )
 
-    IMPLICIT NONE
-
     TYPE(t_patch),      INTENT(IN)    :: ptr_patch         !< patch on which computation is performed
     INTEGER,            INTENT(IN)    :: jg                ! domain ID of main grid
     TYPE(t_patch), TARGET, INTENT(IN) :: ptr_patch_local_parent  !< parent grid for larger exchange halo
@@ -1586,8 +1594,6 @@ CONTAINS
   SUBROUTINE compute_field_ceiling( ptr_patch, jg,    &
                                 p_metrics, prm_diag,  &
                                 ceiling_height, lacc )
-
-    IMPLICIT NONE
 
     TYPE(t_patch),        INTENT(IN)  :: ptr_patch     !< patch on which computation is performed
     INTEGER,              INTENT(IN)  :: jg            ! domain ID of main grid
@@ -1697,8 +1703,6 @@ CONTAINS
                                 p_metrics, prm_diag,  &
                                 hbas_sc, lacc)
 
-    IMPLICIT NONE
-
     TYPE(t_patch),        INTENT(IN)  :: ptr_patch     !< patch on which computation is performed
     TYPE(t_nh_metrics),   INTENT(IN)  :: p_metrics
     TYPE(t_nwp_phy_diag), INTENT(IN)  :: prm_diag
@@ -1762,8 +1766,6 @@ CONTAINS
   SUBROUTINE compute_field_htop_sc( ptr_patch,        &
                                 p_metrics, prm_diag,  &
                                 htop_sc, lacc)
-
-    IMPLICIT NONE
 
     TYPE(t_patch),        INTENT(IN)  :: ptr_patch     !< patch on which computation is performed
     TYPE(t_nh_metrics),   INTENT(IN)  :: p_metrics
@@ -1884,6 +1886,7 @@ CONTAINS
 
 !$OMP PARALLEL
     CALL init(twater(:,:), lacc=lzacc)
+!$OMP BARRIER
 
 !$OMP DO PRIVATE(jc,jk,jb,i_startidx,i_endidx,q_water), ICON_OMP_RUNTIME_SCHEDULE
     DO jb = i_startblk, i_endblk
@@ -1935,8 +1938,6 @@ CONTAINS
   !!
   SUBROUTINE compute_field_q_sedim( ptr_patch, jg, p_prog_rcf, q_sedim, lacc )
 
-    IMPLICIT NONE
-
     TYPE(t_patch),        INTENT(IN)  :: ptr_patch     !< patch on which computation is performed
     INTEGER,              INTENT(IN)  :: jg            ! domain ID of main grid
     TYPE(t_nh_prog),      INTENT(IN)  :: p_prog_rcf
@@ -1959,7 +1960,8 @@ CONTAINS
     i_startblk = ptr_patch%cells%start_block( i_rlstart )
     i_endblk   = ptr_patch%cells%end_block  ( i_rlend   )
 !$OMP PARALLEL
-    CALL init(q_sedim( :, :, 1:i_startblk-1 ), lacc=lzacc)
+    CALL init(q_sedim( :, :, : ), lacc=lzacc)
+!$OMP BARRIER
 
 !$OMP DO PRIVATE(jb,jk,jc,i_startidx,i_endidx), ICON_OMP_RUNTIME_SCHEDULE
     DO jb = i_startblk, i_endblk
@@ -2070,6 +2072,7 @@ CONTAINS
 
 !$OMP PARALLEL
     CALL init(mconv, 0.0_wp, lacc=.FALSE.)
+!$OMP BARRIER
 !$OMP DO PRIVATE(jb,jk,jc,i_startidx,i_endidx,k_start,k_start_vec, &
 !$OMP            div_qvv_layer, &
 !$OMP            div_qvv_mean,iex,ieb), ICON_OMP_RUNTIME_SCHEDULE
@@ -2151,6 +2154,7 @@ CONTAINS
       ! --- Weighted average over the neighbouring grid cells:
 !$OMP PARALLEL
       CALL init(mconv_smth, 0.0_wp, lacc=.FALSE.)
+!$OMP BARRIER
 !$OMP DO PRIVATE(jb,i_startidx,i_endidx,jc,  &
 !$OMP            p_conv_sum,p_conv_wgt,wgt_loc,area_norm, &
 !$OMP            l,jc2,jb2), ICON_OMP_DEFAULT_SCHEDULE
@@ -2207,7 +2211,7 @@ CONTAINS
   !! Calculate
   !!     TCOND_MAX   (total column-integrated condensate, max. during the last hour)
   !! and TCOND10_MAX (total column-integrated condensate above z(T=-10 degC), max. during the last hour)
-  !! Here, compute columnwise amximum of these input fields and the newly computed fields.
+  !! Here, compute columnwise maximum of these input fields and the newly computed fields.
   !!
   !! Implementation analogous to those of Uli Blahak in COSMO.
   !!
@@ -2845,8 +2849,6 @@ CONTAINS
   !!
   SUBROUTINE cal_cape_cin_mu(i_startidx, i_endidx, kmoist, z_limit, te, qve, prs, hhl,  &
                              cape_mu, cin_mu, lacc )
-
-    IMPLICIT NONE
 
     INTEGER, INTENT (IN) ::  &
          i_startidx, i_endidx,  &  !> start and end indices of loops in horizontal patch
@@ -4023,7 +4025,6 @@ CONTAINS
   !!  safety measure for very low temperatures:
   !! Initial version: Ulrich Blahak, 13.4.2022
   ELEMENTAL FUNCTION esat_water(temp)
-    IMPLICIT NONE
 
     REAL (wp)              :: esat_water
     REAL (wp), INTENT(IN)  :: temp
@@ -4688,8 +4689,6 @@ CONTAINS
   !!
   SUBROUTINE compute_field_dbzcmax( ptr_patch, jg, dbz3d_lin, dbz_cmax, lacc )
 
-    IMPLICIT NONE
-
     TYPE(t_patch),        INTENT(IN)  :: ptr_patch        !< patch on which computation is performed
     INTEGER,              INTENT(IN)  :: jg               ! domain ID of main grid
     REAL(wp),             INTENT(IN)  :: dbz3d_lin(:,:,:) !< reflectivity in mm^6/m^3
@@ -4720,7 +4719,8 @@ CONTAINS
     most_negative_value = -HUGE(1.0_wp)
 
 !$OMP PARALLEL
-    CALL init(dbz_cmax(:,i_startblk:i_endblk), most_negative_value, lacc=lzacc)
+    CALL init(dbz_cmax(:,:), most_negative_value, lacc=lzacc)
+!$OMP BARRIER
 !$OMP DO PRIVATE(jb,jk,jc,i_startidx,i_endidx), ICON_OMP_RUNTIME_SCHEDULE
     DO jb = i_startblk, i_endblk
 
@@ -4749,71 +4749,9 @@ CONTAINS
   END SUBROUTINE compute_field_dbzcmax
 
   !>
-  !! Compute column maximum radar reflectivity from dbz3d_lin and maximize over time
-  !!
-  SUBROUTINE maximize_field_dbzctmax( ptr_patch, jg, dbz3d_lin, dbz_ctmax, lacc )
-
-    IMPLICIT NONE
-
-    TYPE(t_patch),        INTENT(IN)  :: ptr_patch        !< patch on which computation is performed
-    INTEGER,              INTENT(IN)  :: jg               ! domain ID of main grid
-    REAL(wp),             INTENT(IN)  :: dbz3d_lin(:,:,:) !< reflectivity in mm^6/m^3
-
-    REAL(wp),             INTENT(INOUT) :: dbz_ctmax(:,:)  !< input/output variable, dim: (nproma,nblks_c)
-
-    LOGICAL,    OPTIONAL, INTENT(IN)  :: lacc             !< initialization flag
-
-    INTEGER :: i_rlstart,  i_rlend
-    INTEGER :: i_startblk, i_endblk
-    INTEGER :: i_startidx, i_endidx
-    INTEGER :: jb, jk, jc
-
-    LOGICAL :: lzacc             ! OpenACC flag
-    CALL set_acc_host_or_device(lzacc, lacc)
-
-    !$ACC DATA PRESENT(dbz3d_lin, dbz_ctmax, kstart_moist(jg:jg), ptr_patch) IF(lzacc)
-
-    ! without halo or boundary  points:
-    i_rlstart = grf_bdywidth_c + 1
-    i_rlend   = min_rlcell_int
-
-    i_startblk = ptr_patch%cells%start_block( i_rlstart )
-    i_endblk   = ptr_patch%cells%end_block  ( i_rlend   )
-
-!$OMP PARALLEL
-!$OMP DO PRIVATE(jb,jk,jc,i_startidx,i_endidx), ICON_OMP_RUNTIME_SCHEDULE
-    DO jb = i_startblk, i_endblk
-
-      CALL get_indices_c( ptr_patch, jb, i_startblk, i_endblk,     &
-                          i_startidx, i_endidx, i_rlstart, i_rlend)
-
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-      !$ACC LOOP SEQ
-      DO jk = kstart_moist(jg), ptr_patch%nlev
-        !$ACC LOOP GANG VECTOR
-        DO jc = i_startidx, i_endidx
-
-          dbz_ctmax(jc,jb) = MAX (dbz_ctmax(jc,jb), dbz3d_lin(jc,jk,jb))
-
-        END DO
-      END DO
-      !$ACC END PARALLEL
-
-    END DO
-    !$ACC WAIT(1)
-!$OMP END DO NOWAIT
-!$OMP END PARALLEL
-
-    !$ACC END DATA
-
-  END SUBROUTINE maximize_field_dbzctmax
-
-  !>
   !! Compute radar reflectivity around approx 850 hPa from dbz3d_lin.
   !!
   SUBROUTINE compute_field_dbz850( ptr_patch, k850, dbz3d_lin, dbz_850, lacc )
-
-    IMPLICIT NONE
 
     TYPE(t_patch),        INTENT(IN)  :: ptr_patch        !< patch on which computation is performed
     INTEGER,              INTENT(IN)  :: k850(:,:)        !< level index field indicating 850 hPa
@@ -4841,7 +4779,8 @@ CONTAINS
     i_endblk   = ptr_patch%cells%end_block  ( i_rlend   )
 
 !$OMP PARALLEL
-    CALL init(dbz_850(:,i_startblk:i_endblk), lacc=lzacc)
+    CALL init(dbz_850(:,:), lacc=lzacc)
+!$OMP BARRIER
 !$OMP DO PRIVATE(jb,jk,jc,i_startidx,i_endidx), ICON_OMP_RUNTIME_SCHEDULE
     DO jb = i_startblk, i_endblk
 
@@ -4884,8 +4823,6 @@ CONTAINS
   !!
   SUBROUTINE compute_field_dbzlmx( ptr_patch, jg, z_agl_low, z_agl_up, p_metrics, dbz3d_lin, dbzlmx, lacc )
 
-    IMPLICIT NONE
-
     TYPE(t_patch),        INTENT(IN)  :: ptr_patch        !< patch on which computation is performed
     REAL(wp),             INTENT(in)  :: z_agl_low        !< lower height bound AGL for maximisation of reflectivity
     REAL(wp),             INTENT(in)  :: z_agl_up         !< upper height bound AGL for maximisation of reflectivity
@@ -4919,7 +4856,8 @@ CONTAINS
     i_endblk   = ptr_patch%cells%end_block  ( i_rlend   )
 
 !$OMP PARALLEL
-    CALL init(dbzlmx(:,i_startblk:i_endblk), lacc=lzacc)
+    CALL init(dbzlmx(:,:), lacc=lzacc)
+!$OMP BARRIER
 !$OMP DO PRIVATE(jb,jk,jc,i_startidx,i_endidx,zml), ICON_OMP_RUNTIME_SCHEDULE
     DO jb = i_startblk, i_endblk
 
@@ -4957,8 +4895,6 @@ CONTAINS
   !! Compute ECHOTOPs in Pa from linear dbz3d_lin
   !!
   SUBROUTINE compute_field_echotop( ptr_patch, jg, p_diag, dbz3d_lin, echotop_p, lacc )
-
-    IMPLICIT NONE
 
     TYPE(t_patch),        INTENT(IN)  :: ptr_patch        !< patch on which computation is performed
     INTEGER,              INTENT(IN)  :: jg               !< domain ID of main grid
@@ -5069,8 +5005,6 @@ CONTAINS
   !! Compute ECHOTOPs in m MSL from linear dbz3d_lin
   !!
   SUBROUTINE compute_field_echotopinm( ptr_patch, jg, p_metrics, dbz3d_lin, echotop_z, lacc )
-
-    IMPLICIT NONE
 
     TYPE(t_patch),        INTENT(IN)  :: ptr_patch        !< patch on which computation is performed
     INTEGER,              INTENT(IN)  :: jg               !< domain ID of grid
@@ -5495,8 +5429,6 @@ CONTAINS
   !!
   SUBROUTINE compute_field_wshear( ptr_patch, p_metrics, u_or_v, wshear_heights, wshear )
 
-    IMPLICIT NONE
-
     TYPE(t_patch),        INTENT(IN)  :: ptr_patch         !< Patch on which computation is performed
     TYPE(t_nh_metrics),   INTENT(IN)  :: p_metrics
     REAL(wp),             INTENT(IN)  :: u_or_v(:,:,:)     !< Either U or V field on model levels in m/s
@@ -5558,8 +5490,6 @@ CONTAINS
   !!   dTdz = T(pu) - T(pl)
   !!
   SUBROUTINE compute_field_lapserate( ptr_patch, p_metrics, p_diag, pu, pl, lapserate )
-
-    IMPLICIT NONE
 
     TYPE(t_patch),        INTENT(IN)  :: ptr_patch         !< Patch on which computation is performed
     TYPE(t_nh_metrics),   INTENT(IN)  :: p_metrics
@@ -5683,8 +5613,6 @@ CONTAINS
        z_up_srh, z_up_meanwind, z_low_shear, z_up_shear, dz_shear, &
        srh )
 
-    IMPLICIT NONE
-
     TYPE(t_patch),        INTENT(IN)  :: ptr_patch         !< Patch on which computation is performed
     TYPE(t_nh_metrics),   INTENT(IN)  :: p_metrics
     TYPE(t_nh_diag),      INTENT(IN)  :: p_diag            !< Diag. state which contains temp and pres
@@ -5718,6 +5646,7 @@ CONTAINS
 
 !$OMP PARALLEL
     CALL init(srh(:,:,:), 0.0_wp, lacc=.FALSE.)
+!$OMP BARRIER
 !$OMP DO PRIVATE(jb,jc,lev_srh,i_startidx,i_endidx,k_start,k_start_vec, &
 !$OMP            speed_shear,u_mean,v_mean,u_shear,v_shear,u_storm,v_storm, &
 !$OMP            u_shear_up,u_shear_low,v_shear_up,v_shear_low,r_or_left_fac, &
@@ -6331,4 +6260,533 @@ CONTAINS
 !$OMP END DO NOWAIT
 !$OMP END PARALLEL
   END SUBROUTINE compute_field_inversion_height
+
+  !>
+  !! Calculate the mean mass diameter for hydrometeor species of the 2-moment scheme
+  !!
+  SUBROUTINE compute_field_dmean_2mom( chydrotype, ptr_patch, p_prog_rcf, dm, lacc )
+
+    CHARACTER(len=*),   INTENT(IN)    :: chydrotype
+    TYPE(t_patch),      INTENT(IN)    :: ptr_patch          !< patch on which computation is performed
+    TYPE(t_nh_prog),    INTENT(IN)    :: p_prog_rcf
+
+    REAL(wp),           INTENT(OUT)   :: dm(:,:,:)          !< output variable, dim: (nproma,ke,nblks_c)
+    LOGICAL, INTENT(IN), OPTIONAL     :: lacc               ! If true, use openacc
+
+    INTEGER  :: i_rlstart,  i_rlend
+    INTEGER  :: i_startblk, i_endblk
+    INTEGER  :: i_startidx, i_endidx
+
+    INTEGER  :: jc, jk, jb, jg, iqx, iqnx
+    REAL(wp) :: x
+    LOGICAL  :: lzacc ! non-optional version of lacc
+    TYPE(particle) :: cloud, rain, ice, snow, graupel, hail
+    TYPE(particle) :: prt
+
+    jg = ptr_patch%id
+
+    IF (.NOT.atm_phy_nwp_config(jg)%l2moment) THEN
+      CALL finish( modname//'compute_field_dmean_2mom',  &
+           &     "Calculation of Dmean for "//TRIM(chydrotype)//" only possible with 2-moment microphysics" )
+    END IF
+
+    CALL set_acc_host_or_device(lzacc, lacc)
+
+    CALL init_2mom_scheme(cloud,rain,ice,snow,graupel,hail)
+    ! dummy init:
+    prt = rain
+
+    SELECT CASE (TRIM(chydrotype))
+    CASE ('cloud')
+      iqx  = iqc
+      iqnx = iqnc
+      prt%x_max = cloud%x_max
+      prt%x_min = cloud%x_min
+      prt%a_geo = cloud%a_geo
+      prt%b_geo = cloud%b_geo
+    CASE ('rain')
+      iqx  = iqr
+      iqnx = iqnr
+      prt%x_max = rain%x_max
+      prt%x_min = rain%x_min
+      prt%a_geo = rain%a_geo
+      prt%b_geo = rain%b_geo
+    CASE ('ice')
+      iqx  = iqi
+      iqnx = iqni
+      prt%x_max = ice%x_max
+      prt%x_min = ice%x_min
+      prt%a_geo = ice%a_geo
+      prt%b_geo = ice%b_geo
+    CASE ('snow')
+      iqx  = iqs
+      iqnx = iqns
+      prt%x_max = snow%x_max
+      prt%x_min = snow%x_min
+      prt%a_geo = snow%a_geo
+      prt%b_geo = snow%b_geo
+    CASE ('graupel')
+      iqx  = iqg
+      iqnx = iqng
+      prt%x_max = graupel%x_max
+      prt%x_min = graupel%x_min
+      prt%a_geo = graupel%a_geo
+      prt%b_geo = graupel%b_geo
+    CASE ('hail')
+      iqx  = iqh
+      iqnx = iqnh
+      prt%x_max = hail%x_max
+      prt%x_min = hail%x_min
+      prt%a_geo = hail%a_geo
+      prt%b_geo = hail%b_geo
+    CASE default
+      CALL finish( modname//'compute_field_dmean_2mom',  &
+           &     "Calculation of Dmean for "//TRIM(chydrotype)//" not implemented" )
+    END SELECT
+
+    !$ACC DATA PRESENT(ptr_patch, p_prog_rcf%tracer, dm) &
+    !$ACC   PRESENT(kstart_moist(jg)) &
+    !$ACC   COPYIN(prt) &
+    !$ACC   IF(lzacc)
+
+    ! without halo or boundary  points:
+    i_rlstart = grf_bdywidth_c + 1
+    i_rlend   = min_rlcell_int
+
+    i_startblk = ptr_patch%cells%start_block( i_rlstart )
+    i_endblk   = ptr_patch%cells%end_block  ( i_rlend   )
+
+!$OMP PARALLEL
+    CALL init(dm(:,:,:), lacc=lzacc)
+!$OMP BARRIER
+!$OMP DO PRIVATE(jb,jk,jc,i_startidx,i_endidx,x), ICON_OMP_RUNTIME_SCHEDULE
+    DO jb = i_startblk, i_endblk
+
+      CALL get_indices_c( ptr_patch, jb, i_startblk, i_endblk,     &
+                          i_startidx, i_endidx, i_rlstart, i_rlend)
+
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+      !$ACC LOOP SEQ
+      DO jk = kstart_moist(jg), ptr_patch%nlev
+        !$ACC LOOP GANG VECTOR PRIVATE(jc, x)
+        DO jc = i_startidx, i_endidx
+
+          x = particle_meanmass(prt, p_prog_rcf%tracer(jc,jk,jb,iqx), p_prog_rcf%tracer(jc,jk,jb,iqnx))
+          dm(jc,jk,jb) = particle_diameter(prt, x)
+
+        END DO
+      END DO
+      !$ACC END PARALLEL
+
+    END DO
+    !$ACC WAIT(1)
+!$OMP END DO NOWAIT
+!$OMP END PARALLEL
+
+  !$ACC END DATA
+  END SUBROUTINE compute_field_dmean_2mom
+
+  !>
+  !! Calculate the mean mass diameter of hail at the surface for the 2-moment scheme
+  !!
+  SUBROUTINE compute_field_dmhail_2mom_surf( ptr_patch, p_prog, p_prog_rcf, dmean, lacc )
+
+    TYPE(t_patch),      INTENT(IN)    :: ptr_patch        !< patch on which computation is performed
+    TYPE(t_nh_prog),    INTENT(IN)    :: p_prog           !< nonhydrostatic state
+    TYPE(t_nh_prog),    INTENT(IN)    :: p_prog_rcf
+
+    REAL(wp),           INTENT(OUT)   :: dmean(:,:)       !> output variable, dim: (nproma,nblks_c)
+    LOGICAL, INTENT(IN), OPTIONAL     :: lacc             ! If true, use openacc
+
+    INTEGER  :: i_rlstart,  i_rlend
+    INTEGER  :: i_startblk, i_endblk
+    INTEGER  :: i_startidx, i_endidx
+
+    INTEGER  :: jc, jb, jg, iqx, iqnx
+    REAL(wp) :: qh, qnh, x
+    LOGICAL  :: lzacc ! non-optional version of lacc
+    TYPE(particle) :: cloud, rain, ice, snow, graupel, hail
+
+    jg = ptr_patch%id
+
+    IF (.NOT.atm_phy_nwp_config(jg)%l2moment) THEN
+      CALL finish( modname//'compute_field_demaxhail_2mom_surf',  &
+           &     "Calculation of dm_hail_s only possible with 2-moment microphysics" )
+    END IF
+
+    CALL set_acc_host_or_device(lzacc, lacc)
+
+    CALL init_2mom_scheme(cloud,rain,ice,snow,graupel,hail)
+
+    !$ACC DATA PRESENT(ptr_patch, p_prog_rcf%tracer, dmean) &
+    !$ACC   COPYIN(hail) &
+    !$ACC   IF(lzacc)
+
+    ! without halo or boundary  points:
+    i_rlstart = grf_bdywidth_c + 1
+    i_rlend   = min_rlcell_int
+
+    i_startblk = ptr_patch%cells%start_block( i_rlstart )
+    i_endblk   = ptr_patch%cells%end_block  ( i_rlend   )
+
+!$OMP PARALLEL
+    CALL init(dmean(:,:), lacc=lzacc)
+!$OMP BARRIER
+!$OMP DO PRIVATE(jb,jc,i_startidx,i_endidx,qh,qnh,x), ICON_OMP_RUNTIME_SCHEDULE
+    DO jb = i_startblk, i_endblk
+
+      CALL get_indices_c( ptr_patch, jb, i_startblk, i_endblk,     &
+                          i_startidx, i_endidx, i_rlstart, i_rlend)
+
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+      !$ACC LOOP GANG VECTOR PRIVATE(jc, qh, qnh, x)
+      DO jc = i_startidx, i_endidx
+
+        qh  = p_prog_rcf%tracer(jc,ptr_patch%nlev,jb,iqh)
+        qnh = p_prog_rcf%tracer(jc,ptr_patch%nlev,jb,iqnh)
+        x = particle_meanmass(hail, qh, qnh)
+        dmean(jc,jb) = particle_diameter(hail, x)
+
+      END DO
+      !$ACC END PARALLEL
+
+    END DO
+    !$ACC WAIT(1)
+!$OMP END DO NOWAIT
+!$OMP END PARALLEL
+
+  !$ACC END DATA
+  END SUBROUTINE compute_field_dmhail_2mom_surf
+
+  !>
+  !! Calculate the estimated max. diameter of hail at the surface for the 2-moment scheme
+  !!  by multiplying the mean mass diameter by a tune_fac. Do this only if the hail rate >= prhthresh,
+  !!  the hail kinetic energy flux >= kefthresh and the hail number density >= qnhthresh
+  !!  to filter out noisy and unrealistic size estimates for very small and potentially spurious hail
+  !!  amounts.
+  !!
+  SUBROUTINE compute_field_demaxhail_2mom_surf( ptr_patch, p_prog, p_prog_rcf, prm_diag, &
+                                                tune_fac, prhthresh, kefthresh, qnhthresh, demax, lacc )
+
+    TYPE(t_patch),      INTENT(IN)    :: ptr_patch        !< patch on which computation is performed
+    TYPE(t_nh_prog),    INTENT(IN)    :: p_prog           !< nonhydrostatic state
+    TYPE(t_nh_prog),    INTENT(IN)    :: p_prog_rcf
+    TYPE(t_nwp_phy_diag), INTENT(IN)  :: prm_diag        !< physics variables
+
+    REAL(wp),           INTENT(IN)    :: tune_fac         !< factor to be multiplied to DM_HAIL
+    REAL(wp),           INTENT(IN)    :: prhthresh        !< hail rate threshold for computing DM_HAIL [kg/(m**2 s)]
+    REAL(wp),           INTENT(IN)    :: kefthresh        !< hail kinetic energy flux threshold for computing DM_HAIL [W/m**2]
+    REAL(wp),           INTENT(IN)    :: qnhthresh        !< hail number density threshold for computing DM_HAIL [1/m**3]
+    REAL(wp),           INTENT(OUT)   :: demax(:,:)       !> output variable, dim: (nproma,nblks_c)
+    LOGICAL, INTENT(IN), OPTIONAL     :: lacc             ! If true, use openacc
+
+    INTEGER  :: i_rlstart,  i_rlend
+    INTEGER  :: i_startblk, i_endblk
+    INTEGER  :: i_startidx, i_endidx
+
+    INTEGER  :: jc, jb, jg, iqx, iqnx
+    REAL(wp) :: rho, qnh
+    REAL(wp) :: dmean( SIZE(demax, dim=1), SIZE(demax, dim=2) )
+    LOGICAL  :: lzacc ! non-optional version of lacc
+
+    jg = ptr_patch%id
+
+    IF (.NOT.atm_phy_nwp_config(jg)%l2moment) THEN
+      CALL finish( modname//'compute_field_demaxhail_2mom_surf',  &
+           &     "Calculation of demax_hail_s only possible with 2-moment microphysics" )
+    END IF
+
+    CALL set_acc_host_or_device(lzacc, lacc)
+
+    !$ACC DATA CREATE(dmean) &
+    !$ACC   PRESENT(ptr_patch, p_prog%rho, p_prog_rcf%tracer) &
+    !$ACC   PRESENT(prm_diag%hail_gsp_rate, prm_diag%kef_hail_s) &
+    !$ACC   PRESENT(demax, tune_fac, prhthresh, kefthresh, qnhthresh) &
+    !$ACC   IF(lzacc)
+
+    CALL compute_field_dmhail_2mom_surf( ptr_patch, p_prog, p_prog_rcf, dmean, lacc )
+
+    ! without halo or boundary  points:
+    i_rlstart = grf_bdywidth_c + 1
+    i_rlend   = min_rlcell_int
+
+    i_startblk = ptr_patch%cells%start_block( i_rlstart )
+    i_endblk   = ptr_patch%cells%end_block  ( i_rlend   )
+
+!$OMP PARALLEL
+    CALL init(demax(:,:), lacc=lzacc)
+!$OMP BARRIER
+!$OMP DO PRIVATE(jb,jc,i_startidx,i_endidx,rho,qnh), ICON_OMP_RUNTIME_SCHEDULE
+    DO jb = i_startblk, i_endblk
+
+      CALL get_indices_c( ptr_patch, jb, i_startblk, i_endblk,     &
+                          i_startidx, i_endidx, i_rlstart, i_rlend)
+
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+      !$ACC LOOP GANG VECTOR PRIVATE(jc, rho, qnh)
+      DO jc = i_startidx, i_endidx
+
+        rho = p_prog%rho(jc,ptr_patch%nlev,jb)
+        qnh = p_prog_rcf%tracer(jc,ptr_patch%nlev,jb,iqnh)
+        IF ( prm_diag%hail_gsp_rate(jc,jb) >= prhthresh .AND. rho*qnh >= qnhthresh .AND. &
+             prm_diag%kef_hail_s(jc,jb) >= kefthresh ) THEN
+          demax(jc,jb) = dmean(jc,jb) * tune_fac
+        END IF
+
+      END DO
+      !$ACC END PARALLEL
+
+    END DO
+    !$ACC WAIT(1)
+!$OMP END DO NOWAIT
+!$OMP END PARALLEL
+
+  !$ACC END DATA
+  END SUBROUTINE compute_field_demaxhail_2mom_surf
+
+  !>
+  !! Calculate the hail kinetic energy flux (kef) at the surface for the 2-moment scheme,
+  !!  including also the estimated impact of atmospheric transport (u,v,w) as well as
+  !!  hail stone velocity adjustment to it. KEF is computed for impacts on a surface
+  !!  perpendicular to the hail trajectories.
+  !! It is defined by:
+  !!   kef = 0.5 * \int_0^{\infty} x ( v_T(x) + a*v_h - b*min(w,0) )^3 N(x) dx
+  !!       = 0.5 * \int_0^{\infty} x ( v_T(x) +       A     )^3 N(x) dx
+  !!       = 0.5 * \int_0^{\infty} x ( v_T(x)^3 + 3*A*v_T(x)^2 + 3*A^2*v_T(x) + A^3 ) N(x) dx
+  !!       = 0.5*a_vel^3*M(3*b_vel+1) + 3*A*0.5*a_vel^2*M(2*b_vel+1) + &
+  !!         3*A^2*0.5*a_vel*M(b_vel+1) + 0.5*A^3*M(1)
+  !! where:
+  !!   x = particle mass
+  !!   v_T(x) = particle terminal fallspeed = a_vel * x^b_vel
+  !!   v_h    = horizontal wind speed at some level z1 AGL (z1 tbd)
+  !!    a     = tuning factor to blend in the effect of v_h on hailstone fallspeed
+  !!              along trajectory at the ground
+  !!    w     = vertical wind speed at some level z2 AGL   (z2 tbd)
+  !!    b     = tuning factor to blend in the effect of up/downdrafts
+  !!              aloft on hailstone fallspeed along trajectory at the ground
+  !!    A     = a*v_h - b*min(w,0)
+  !!   N(x) = particle mass distribution
+  !!
+  !! kef is therefore a sum of terms proportional to the Moments
+  !!  M(3*b_vel+1), M(2*b_vel+1), M(b_vel+1) and 1 of the mass distribution.
+  !! and
+  !!  M(s) ~ n_h * x_h^s = q_h * x_h^(s-1)    with x_h = q_h / n_h (mean mass)
+  !!
+  SUBROUTINE compute_field_kef_2mom_surf( ptr_patch, p_prog, p_prog_rcf, p_diag, prm_diag, lwindeffect, kef, lacc )
+
+    TYPE(t_patch),      INTENT(IN)    :: ptr_patch        !< patch on which computation is performed
+    TYPE(t_nh_prog),    INTENT(IN)    :: p_prog, p_prog_rcf  !< (we use w from p_prog and qh, qnh from p_prog_rcf)
+    TYPE(t_nh_diag),      INTENT(IN)  :: p_diag           !< diagnostic variables (we use u, v)
+    TYPE(t_nwp_phy_diag), INTENT(IN)  :: prm_diag         !< physics variables
+    LOGICAL,              INTENT(in)  :: lwindeffect      !< whether to take into account the
+                                                          !<  wind effect on hailstone kinetic energy or not
+
+    REAL(wp),           INTENT(OUT)   :: kef(:,:)         !> output variable, dim: (nproma,nblks_c)
+    LOGICAL, INTENT(IN), OPTIONAL     :: lacc             ! If true, use openacc
+
+    INTEGER  :: i_rlstart,  i_rlend
+    INTEGER  :: i_startblk, i_endblk
+    INTEGER  :: i_startidx, i_endidx
+
+    INTEGER  :: jc, jb, jg, iqx, iqnx, jk1_vh, jk2_w
+    REAL(wp) :: exp_kef_3, exp_kef_2, exp_kef_1, x, delta_v
+    LOGICAL  :: lzacc ! non-optional version of lacc
+    TYPE(particle) :: cloud, rain, ice, snow, graupel, hail
+    TYPE(t_diag_coeffs_2mom) :: c
+
+    REAL(wp), PARAMETER :: tune_v_h = 0.2_wp   ! tuning factor for influence of near-surface horizontal wind speed on KEF (tbd later)
+    REAL(wp), PARAMETER :: tune_v_v = 0.2_wp   ! tuning factor for influence of up/downdrafts aloft on KEF (tbd later)
+
+    jg = ptr_patch%id
+
+    IF (.NOT.atm_phy_nwp_config(jg)%l2moment) THEN
+      CALL finish( modname//'compute_field_kef_2mom_surf',  &
+           &     "Calculation of KEF_HAIL_S only possible with 2-moment microphysics" )
+    END IF
+
+    CALL set_acc_host_or_device(lzacc, lacc)
+
+    CALL init_2mom_scheme(cloud,rain,ice,snow,graupel,hail)
+
+    !$ACC DATA PRESENT(ptr_patch, p_prog%w, p_prog_rcf%tracer, p_diag%u, p_diag%v, kef) &
+    !$ACC   COPYIN(hail) &
+    !$ACC   IF(lzacc)
+
+    ! Constant exponents t for the needed moments of the hail PSD for the kinetic energy flux:
+    !  so that M(s) ~ q*x^(s-1) = q*x^t  with t = s-1:
+    exp_kef_3 = 3.0_wp*hail%b_vel  ! Moment 3*b_vel+1
+    exp_kef_2 = 2.0_wp*hail%b_vel  ! Moment 2*b_vel+1
+    exp_kef_1 =        hail%b_vel  ! Moment   b_vel+1
+    c = get_diag_coeffs_2mom ()
+
+    jk1_vh = ptr_patch%nlev - 2 ! level for horizontal wind
+    jk2_w  = ptr_patch%nlev - 4 ! level for vertical wind
+
+    ! without halo or boundary  points:
+    i_rlstart = grf_bdywidth_c + 1
+    i_rlend   = min_rlcell_int
+
+    i_startblk = ptr_patch%cells%start_block( i_rlstart )
+    i_endblk   = ptr_patch%cells%end_block  ( i_rlend   )
+
+!$OMP PARALLEL
+    CALL init(kef(:,:), lacc=lzacc)
+!$OMP BARRIER
+
+!$OMP DO PRIVATE(jb,jc,i_startidx,i_endidx,x,delta_v), ICON_OMP_RUNTIME_SCHEDULE
+    DO jb = i_startblk, i_endblk
+
+      CALL get_indices_c( ptr_patch, jb, i_startblk, i_endblk,     &
+                          i_startidx, i_endidx, i_rlstart, i_rlend)
+
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+      !$ACC LOOP GANG VECTOR PRIVATE(jc, x, delta_v)
+      DO jc = i_startidx, i_endidx
+        x = particle_meanmass(hail, p_prog_rcf%tracer(jc,ptr_patch%nlev,jb,iqh), &
+                                    p_prog_rcf%tracer(jc,ptr_patch%nlev,jb,iqnh))
+        IF (lwindeffect) THEN
+          delta_v = tune_v_h * SQRT(p_diag%u(jc,jk1_vh,jb)**2 + p_diag%v(jc,jk1_vh,jb)**2) - &
+                    tune_v_v * MIN(p_prog%w(jc,jk2_w,jb), 0.0_wp)
+
+          kef(jc,jb) =      c%coeff_v3_kef_hail * p_prog_rcf%tracer(jc,ptr_patch%nlev,jb,iqh) * EXP(exp_kef_3*LOG(x)) + &
+               delta_v *    c%coeff_v2_kef_hail * p_prog_rcf%tracer(jc,ptr_patch%nlev,jb,iqh) * EXP(exp_kef_2*LOG(x)) + &
+               delta_v**2 * c%coeff_v1_kef_hail * p_prog_rcf%tracer(jc,ptr_patch%nlev,jb,iqh) * EXP(exp_kef_1*LOG(x)) + &
+               delta_v**3 * 0.5_wp * p_prog_rcf%tracer(jc,ptr_patch%nlev,jb,iqh)
+        ELSE
+          kef(jc,jb) =      c%coeff_v3_kef_hail * p_prog_rcf%tracer(jc,ptr_patch%nlev,jb,iqh) * EXP(exp_kef_3*LOG(x))
+        END IF
+      END DO
+      !$ACC END PARALLEL
+
+    END DO
+    !$ACC WAIT(1)
+!$OMP END DO NOWAIT
+!$OMP END PARALLEL
+
+  !$ACC END DATA
+  END SUBROUTINE compute_field_kef_2mom_surf
+
+  !>
+  !! =======================================================================================
+  !! Generic maximisation procedures
+  !! =======================================================================================
+
+  !>
+  !! Do a maximisation step for a 2D field in a generic fashion for the purpose
+  !!  of computing time maxima of instantaneous values.
+  !!  It takes the pointwise maximum of an input field <field_2d_in> (the instantaneous value)
+  !!  and an INOUT field <field_2d_max>, which receives the maximum of both.
+  !!
+  !! Maximisation is done in the interior domain without halo or boundary points.
+  !!
+  SUBROUTINE maximize_field_2dr( ptr_patch, field_2d_in, field_2d_max, lacc )
+
+    TYPE(t_patch),      INTENT(IN)    :: ptr_patch         !< patch on which computation is performed
+
+    REAL(wp), INTENT(IN)              :: field_2d_in(:,:)  !< input variable, dim: (nproma,nblks_c)
+    REAL(wp), INTENT(INOUT)           :: field_2d_max(:,:) !< input/output variable, dim: (nproma,nblks_c)
+    LOGICAL,  INTENT(IN), OPTIONAL    :: lacc              ! If true, use openacc
+
+    INTEGER :: i_rlstart,  i_rlend
+    INTEGER :: i_startblk, i_endblk
+    INTEGER :: i_startidx, i_endidx
+    INTEGER :: jb, jc
+    LOGICAL :: lzacc ! non-optional version of lacc
+
+    CALL set_acc_host_or_device(lzacc, lacc)
+
+    !$ACC DATA PRESENT(ptr_patch, field_2d_in, field_2d_max) IF(lzacc)
+
+    ! without halo or boundary  points:
+    i_rlstart = grf_bdywidth_c + 1
+    i_rlend   = min_rlcell_int
+    i_startblk = ptr_patch%cells%start_block( i_rlstart )
+    i_endblk   = ptr_patch%cells%end_block  ( i_rlend   )
+!$OMP PARALLEL
+!$OMP DO PRIVATE(jb,jc,i_startidx,i_endidx), ICON_OMP_RUNTIME_SCHEDULE
+
+    DO jb = i_startblk, i_endblk
+
+      CALL get_indices_c( ptr_patch, jb, i_startblk, i_endblk,     &
+                          i_startidx, i_endidx, i_rlstart, i_rlend)
+
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+      !$ACC LOOP GANG VECTOR
+      DO jc = i_startidx, i_endidx
+        field_2d_max(jc,jb) = MAX( field_2d_max(jc,jb), field_2d_in(jc,jb) )
+      END DO
+      !$ACC END PARALLEL
+    END DO
+    !$ACC WAIT(1)
+!$OMP END DO NOWAIT
+!$OMP END PARALLEL
+
+    !$ACC END DATA
+
+  END SUBROUTINE maximize_field_2dr
+
+  !>
+  !! Do a maximisation step for the column max of a 3D field in a generic fashion for the purpose
+  !!  of computing time maxima of instantaneous column max values.
+  !!  It takes the column maximum of a 3D input field <field_3d_in> (the instantaneous value)
+  !!  and an INOUT field <field_2d_cmax>, which receives the maximum of the column maxima.
+  !!
+  !! Maximisation is done in the interior domain without halo or boundary points.
+  !!
+  SUBROUTINE maximize_field_3d2dr( ptr_patch, field_3d_in, k_start, field_2d_cmax, lacc )
+
+    TYPE(t_patch),        INTENT(IN)  :: ptr_patch            !< patch on which computation is performed
+    REAL(wp),             INTENT(IN)  :: field_3d_in(:,:,:)   !< the 3D field to take the column and time max from
+    INTEGER,              INTENT(in)  :: k_start
+
+    REAL(wp),             INTENT(INOUT) :: field_2d_cmax(:,:) !< input/output variable for storing the max of the column max, dim: (nproma,nblks_c)
+
+    LOGICAL,    OPTIONAL, INTENT(IN)  :: lacc             !< initialization flag
+
+    INTEGER :: i_rlstart,  i_rlend
+    INTEGER :: i_startblk, i_endblk
+    INTEGER :: i_startidx, i_endidx
+    INTEGER :: jb, jk, jc
+
+    LOGICAL :: lzacc             ! OpenACC flag
+    CALL set_acc_host_or_device(lzacc, lacc)
+
+    !$ACC DATA PRESENT(field_3d_in, field_2d_cmax, ptr_patch) IF(lzacc)
+
+    ! without halo or boundary  points:
+    i_rlstart = grf_bdywidth_c + 1
+    i_rlend   = min_rlcell_int
+
+    i_startblk = ptr_patch%cells%start_block( i_rlstart )
+    i_endblk   = ptr_patch%cells%end_block  ( i_rlend   )
+
+!$OMP PARALLEL
+!$OMP DO PRIVATE(jb,jk,jc,i_startidx,i_endidx), ICON_OMP_RUNTIME_SCHEDULE
+    DO jb = i_startblk, i_endblk
+
+      CALL get_indices_c( ptr_patch, jb, i_startblk, i_endblk,     &
+                          i_startidx, i_endidx, i_rlstart, i_rlend)
+
+      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+      !$ACC LOOP SEQ
+      DO jk = k_start, ptr_patch%nlev
+        !$ACC LOOP GANG VECTOR
+        DO jc = i_startidx, i_endidx
+
+          field_2d_cmax(jc,jb) = MAX (field_2d_cmax(jc,jb), field_3d_in(jc,jk,jb))
+
+        END DO
+      END DO
+      !$ACC END PARALLEL
+
+    END DO
+    !$ACC WAIT(1)
+!$OMP END DO NOWAIT
+!$OMP END PARALLEL
+
+    !$ACC END DATA
+
+  END SUBROUTINE maximize_field_3d2dr
+
+
 END MODULE mo_opt_nwp_diagnostics

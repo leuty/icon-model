@@ -93,7 +93,7 @@ MODULE mo_2mom_mcrph_config
     REAL(wp) :: bgeo_g    ! bgeo for graupel, D = ageo*x^bgeo
     REAL(wp) :: avel_g    ! avel for graupel, v = avel*x^bvel
     REAL(wp) :: bvel_g    ! bvel for graupel, v = avel*x^bvel
-    REAL(wp) :: melt_g_tune_fak ! Factor multiplying melting of graupel
+    REAL(wp) :: melt_g_tune_fac ! Factor multiplying melting of graupel
 
     !------------------------
     ! .. Parameters for hail:
@@ -104,7 +104,8 @@ MODULE mo_2mom_mcrph_config
     REAL(wp) :: bgeo_h    ! bgeo for hail, D = ageo*x^bgeo
     REAL(wp) :: avel_h    ! avel for hail, v = avel*x^bvel
     REAL(wp) :: bvel_h    ! bvel for hail, v = avel*x^bvel
-    REAL(wp) :: melt_h_tune_fak ! Factor to increase/decrease hail melting rate
+    REAL(wp) :: xmax_h    ! bvel for hail, v = avel*x^bvel
+    REAL(wp) :: melt_h_tune_fac ! Factor to increase/decrease hail melting rate
 
     !------------------------------------------
     ! .. Parameters for conversions/collisions:

@@ -156,6 +156,13 @@ MODULE mo_2mom_mcrph_types
                 alf_imm, bet_imm, nin_imm
   END TYPE dep_imm_coeffs
 
+  !..these are coefficients for diagnostics, which should be pre-computed at
+  !   the initial stage:
+  TYPE t_diag_coeffs_2mom
+    ! for hail kinetic energy flux including horizontal transport:
+    REAL(wp) :: coeff_v3_kef_hail, coeff_v2_kef_hail, coeff_v1_kef_hail
+  END TYPE t_diag_coeffs_2mom
+
   ! Type declaration for a general 1D equidistant lookup table:
   TYPE lookupt_1D
     LOGICAL :: is_initialized = .FALSE.
