@@ -230,21 +230,30 @@ Currently, there are two options to obtain [grid](ref_buildrun_gridextpar) and [
 ## Initial & Boundary Data
 
 ## Using `hiopy` as an io component for ICON experiments
-[Hiopy](https://dkrz-sw.gitlab-pages.dkrz.de/hiopy/hiopy.html) can be used to write output from ICON simulations. Currently, the [Zarr](https://zarr.dev/) data format is supported and the output can be written in regular lat-lon grid, unstructured grid or the healpix grid.
+[Hiopy](https://dkrz-sw.gitlab-pages.dkrz.de/hiopy/index.html) can be used to write output from ICON simulations. Currently, the [Zarr](https://zarr.dev/) data format is supported and the output can be written in regular lat-lon grid, unstructured grid or the healpix grid.
 
 Pre-requisites:
-1. mkexp (for configuration)
+1. Mkexp (for configuration)
 2. YAC built with a compiler which supports C++20 (eg: gcc 13)
-3. python 3.11 or greater
-4. mpi 4.1.5 or greater
+3. Python 3.11 or greater
+4. MPI 4.1.2 or greater
 
 Supported environments via mkexp:
-1. levante-cpu
-2. dolpung-hybrid (cpu-gpu)
+1. Levante-cpu
+2. Dolpung-hybrid (cpu-gpu)
 
-If you are interested in running hiopy without mkexp, refer to the [Hiopy](https://dkrz-sw.gitlab-pages.dkrz.de/hiopy/hiopy.html) documentation or get in touch with its developers.
+Current limitations for the experiment:
+1. Only proleptic-gregorian calendar is supported
+2. Only the ICON's native names (from add_var) is supported
+3. Using hiopy parallel to the icon' async-output (pio-type 1) is not possible via mkexp
+
+If you are interested in running hiopy without mkexp, refer to the [Hiopy](https://dkrz-sw.gitlab-pages.dkrz.de/hiopy/index.html) documentation or get in touch with its developers.
 
 ### Setting up hiopy
+
+For HPC systems, the right modules will have to be known prior to building Hiopy alongside the ICON executable.
+Issues could arrise if the HPC system limits the use of the required C++20 support in its compilers or uses older Python versions.
+For further details on how to navigate potential limitations, visit [hiopy-installation](https://dkrz-sw.gitlab-pages.dkrz.de/hiopy/getting_started.html#installation).
 
 #### Install YAC to get a $PATH_TO_YOUR_YAC_PKG_CONFIG
 Build ICON with `--prefix ${PREFIX_PATH} --enable-bundled-python=mtime,yac` specified to an installation path of choice

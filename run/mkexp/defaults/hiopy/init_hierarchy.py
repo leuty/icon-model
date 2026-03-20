@@ -123,16 +123,6 @@ def init_data_request(
 
                     time_chunk = int(hours_per_chunk * 60 * 60 / timestep_s)
 
-                    # for lower zooms, we append everything into one file
-                    if zoom_lev <= 7:
-                        time_chunk = int(
-                            hours_per_chunk
-                            * simulation_params["chunks_per_shard"]
-                            * 60
-                            * 60
-                            / timestep_s
-                        )
-
                     if zoom_lev in [8, 9]:
                         cell_chunk = int(ncells / 4)
 
@@ -142,8 +132,10 @@ def init_data_request(
                     if zoom_lev >= 12:
                         cell_chunk = int(ncells / 64)
 
-                    if zoom_lev >= 10 and timestep_s > 12000:
-                        time_chunk = simulation_params["chunks_per_shard"]
+                    if (timestep_s > 86400) or (
+                        zoom_lev >= 10 and timestep_s > 12000
+                    ):
+                        time_chunk = 1
                         chunks_per_shard = 1
 
                     chunk_shape = (time_chunk, cell_chunk)
@@ -151,6 +143,7 @@ def init_data_request(
                     is_3d = group_config.get("name_of_level", None)
                     if is_3d:
                         height_chunk = len(group_config["levels"])
+                        chunks_per_shard = 1
                         chunk_shape = (
                             chunk_shape[0],
                             height_chunk,

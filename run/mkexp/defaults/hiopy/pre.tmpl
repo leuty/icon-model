@@ -17,6 +17,9 @@ import sys
 import os
 #% include 'mkexp/defaults/logging.tmpl'
 
+#% if "proleptic gregorian" not in CALENDAR:
+#% do die("Hiopy supports only the proleptic gregorian calendar. Reconfigure with this calendar to use hiopy.")
+#% endif
 
 # Add the necessary scripts for python
 module_path = os.path.join('%{MODEL_DIR}', 'run', 'mkexp', 'defaults', 'hiopy')
@@ -31,20 +34,25 @@ from create_datarequest_config import parse_data_request
 
 user_config = %{namelists.hiopy}
 
-from datetime import datetime
+from datetime import datetime, timedelta
 import isodate as isodate
 
-time_agg_allowed = %{hiopy.time_agg}
-for time_agg_required in %{hiopy.time_agg}:
-    duration = isodate.parse_duration(time_agg_required)
-    start_date = datetime.fromisoformat('%{INITIAL_DATE}')
-    end_date = datetime.fromisoformat('%{FINAL_DATE}')
-    if (end_date - start_date) < duration:
-        logging.warning(f"Required time-agg {time_agg_required} is beyond the simulation date. It will be skipped...")
-    else:
-        time_agg_allowed.append(time_agg_required)
-
 try:
+
+    time_agg_allowed = []
+    for time_agg_required in %{hiopy.time_agg}:
+        duration = isodate.parse_duration(time_agg_required)
+        if not isinstance(duration, timedelta):
+            raise ValueError(f"Time aggregations required {time_agg_required} contains months or years. Hiopy currently supports only non-ambiguous time durations on proleptic gregorian calendar.")
+        start_date = datetime.fromisoformat('%{INITIAL_DATE}')
+        end_date = datetime.fromisoformat('%{FINAL_DATE}')
+        if (end_date - start_date) < duration:
+            logging.warning(f"Required time-agg {time_agg_required} is beyond the simulation date. It will be skipped...")
+        else:
+            time_agg_allowed.append(time_agg_required)
+
+    logging.info(f"Allowed time aggregations for this experiment: {time_agg_allowed}")
+
     data_request = parse_data_request(user_config, time_agg_allowed, %{hiopy.grid})
 
     data_request_config_file = os.path.join('%{DATA_DIR}', 'hiopy_data_request.json')

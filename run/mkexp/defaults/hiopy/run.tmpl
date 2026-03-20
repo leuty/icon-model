@@ -40,7 +40,7 @@ chmod 755 ./run_hiopy.sh
 exec 3>&1 # save stdout
 exec > icon_mpmd.conf
 
-python << EOF
+%{JOB.python3} << EOF
 # Distribute hiopy evenly across ranks, centered in their subrange
 nr_of_workers_alloted=%{hiopy.nr_of_workers}
 hiopy_inc_rank=$mpi_total_procs//nr_of_workers_alloted

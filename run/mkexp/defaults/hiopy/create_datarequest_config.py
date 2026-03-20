@@ -159,22 +159,9 @@ def parse_data_request(user_data_request_config, time_aggs_needed, grid_info):
                 ),
             }
 
-    times = sorted(
-        {v["settings"]["time_res_needed"] for v in data_request.values()},
-        key=lambda x: isodate.parse_duration(x),
-    )
-
     for v in data_request.values():
-        t = isodate.parse_duration(v["settings"]["time_res_needed"])
-        v["settings"]["time_res_needed"] = [
-            x
-            for x in times
-            if isodate.parse_duration(x) == t
-            or (
-                isodate.parse_duration(x) > t
-                and x in time_aggs_needed
-                and require_full_hierarchy
-            )
-        ]
+        v["settings"]["time_res_needed"] = list(
+            {v["settings"]["time_res_needed"]} | set(time_aggs_needed)
+        )
 
     return data_request
