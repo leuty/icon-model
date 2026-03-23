@@ -7,6 +7,7 @@
 - Swap dimensions of coefficient fields for igradp_method (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1978)
 - Assume `itime_scheme>=4` for the dycore (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1969)
 - Fix for diagnostic output with option `totint` (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1245)
+- Fix possible surface temperatures and related profiles for RCE test case (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1192)
 
 #### AES Physics
 
