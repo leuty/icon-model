@@ -186,6 +186,8 @@ SUBROUTINE calc_hydrology ( &
   REAL(wp) :: lse_c(nvec,ke_soil_hy) !< LSE superdiagonal
   REAL(wp) :: lse_rhs(nvec,ke_soil_hy) !< LSE right-hand side
   REAL(wp) :: lse_sol(nvec,ke_soil_hy) !< LSE solution
+  REAL(wp) :: backfill_incr(nvec)      !< for mass-conserving back-filling of soil water
+                                       !  if falling below adp or ice content due to hydraulic transport
 
   LOGICAL :: has_soil(nvec) !< Solver mask.
   LOGICAL :: mire_mask(nvec) !< Solver mask for mires.
@@ -227,7 +229,7 @@ SUBROUTINE calc_hydrology ( &
   !$ACC DATA CREATE(mire_mask) ASYNC(acc_async_queue) IF(lzacc .AND. itype_mire == 1)
 
   !$ACC DATA CREATE(fr_w_ml, fr_liq_ml, fr_ice_ml, pore_vol, air_dryness_point, zdw, zdw1, zkw, zkw1) &
-  !$ACC   CREATE(lse_a, lse_b, lse_c, lse_rhs, lse_sol, has_soil) NO_CREATE(mire_mask) PRESENT(ivend) &
+  !$ACC   CREATE(lse_a, lse_b, lse_c, lse_rhs, lse_sol, has_soil, backfill_incr) NO_CREATE(mire_mask) PRESENT(ivend) &
   !$ACC   ASYNC(acc_async_queue)
 
   !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(acc_async_queue) IF(lzacc)
@@ -495,8 +497,11 @@ SUBROUTINE calc_hydrology ( &
     DO kso = 1, ke_soil_hy
       !$ACC LOOP GANG(STATIC: 1) VECTOR
       DO i = ivstart, ivend
+        IF (kso == 1) backfill_incr(i) = 0._wp
         IF (has_soil(i)) THEN
-          w_so_new(i,kso) = lse_sol(i,kso)*dz_hl(kso) + w_so_ice_now(i,kso)
+          w_so_new(i,kso) = lse_sol(i,kso)*dz_hl(kso) + w_so_ice_now(i,kso) - backfill_incr(i)
+          backfill_incr(i) = -MIN(0._wp,w_so_new(i,kso)-air_dryness_point(i)*dz_hl(kso),w_so_new(i,kso)-w_so_ice_now(i,kso))
+          w_so_new(i,kso) = w_so_new(i,kso) + backfill_incr(i)
         END IF
       END DO
     END DO
@@ -1572,6 +1577,9 @@ SUBROUTINE calc_soil_water_melt ( &
         ELSE
           delta_w_ice = MIN(delta_w_ice, MAX(w_avail, 0.0_wp))
         ENDIF
+
+        ! limit w_so_ice to w_so (evaporation may exceed the liquid soil water content for frozen soil)
+        delta_w_ice = MIN(delta_w_ice, w_so_new-w_so_ice_now(i,kso))
 
         IF (delta_w_ice > 0.0_wp) THEN
           ! limit latent heat release due to freezing to half the difference from the melting point.

@@ -2208,6 +2208,9 @@ MODULE mo_initicon
                 lerr = .TRUE.
               END SELECT
 
+              ! ensure that the soil ice content does not exceed the total soil water content
+              lnd_prog_now%w_so_ice_t(jc,jk,jb,jt) = MIN(lnd_prog_now%w_so_ice_t(jc,jk,jb,jt),lnd_prog_now%w_so_t(jc,jk,jb,jt))
+
             ENDDO  ! ic
           ENDDO  ! jk
 

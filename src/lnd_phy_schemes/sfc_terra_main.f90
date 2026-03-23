@@ -1668,6 +1668,7 @@ CONTAINS
 ! for optional fields related to soil water budget
 !$ACC END DATA
 
+  ! Debug output for tracking numerical instabilities
   IF (msg_level >= 19) THEN
     !$ACC UPDATE HOST(ivend) ASYNC(acc_async_queue)
     IF (.NOT. lcuda_graph_lnd) THEN
@@ -1675,14 +1676,16 @@ CONTAINS
     END IF
     DO i = ivstart, ivend
 
-     IF (ABS(t_s_now(i)-t_s_new(i)) > 15.0_wp .or. ABS(t_sk_now(i)-t_sk_new(i)) > 15.0_wp) THEN
+     IF (ABS(t_s_now(i)-t_s_new(i)) > 15.0_wp .OR. ABS(t_sk_now(i)-t_sk_new(i)) > 15.0_wp .OR. &
+         ABS(t_snow_now(i)-t_snow_new(i)) > 15.0_wp) THEN
         WRITE(*,'(A        )') '                                '
         WRITE(*,'(A,2I5)'  ) 'SFC-DIAGNOSIS terra output:  iblock = ', iblock, i
 
         WRITE(*,'(A        )') ' Temperatures and Humidities: '
         WRITE(*,'(A,2F28.16)') '   t_s      now/new :  ', t_s_now(i),       t_s_new(i)
+        WRITE(*,'(A,2F28.16)') '   t_sk     now/new :  ', t_sk_now(i),      t_sk_new(i)
         WRITE(*,'(A,2F28.16)') '   t_snow   now/new :  ', t_snow_now(i),    t_snow_new(i)
-        WRITE(*,'(A, F28.16)') '   t_g              :  ', t_g(i)
+        WRITE(*,'(A,2F28.16)') '   t_g, t_air(ke)   :  ', t_g(i),           t(i)
         WRITE(*,'(A, F28.16)') '   qv_s (out)       :  ', qv_s(i)
         WRITE(*,'(A,2F28.16)') '   w_snow   now/new :  ', w_snow_now(i),    w_snow_new(i)
         WRITE(*,'(A,2F28.16)') '   rho_snow now/new :  ', rho_snow_now(i),  rho_snow_new(i)
@@ -1709,6 +1712,7 @@ CONTAINS
         IF (itype_trvg == 3) THEN
           WRITE(*,'(A, F28.16)') '   plevap               :  ', plevap(i)
         ENDIF
+        WRITE(*,'(A,2F28.16)') '   solar/thermal net rad. : ',sobs(i),thbs(i)
         WRITE(*,'(A,2F28.16)') '   zshfl/zlhfl (surface):  ', zshfl_sfc(i), zlhfl_sfc(i)
         WRITE(*,'(A, F28.16)') '   zqhfl (surface)      :  ', zqhfl_sfc(i)
         WRITE(*,'(A,2F28.16)') '   zshfl/zlhfl (soil)   :  ', zshfl_s(i), zlhfl_s(i)

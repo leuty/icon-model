@@ -79,7 +79,7 @@ tests:
     ensemble_num:
       - balfrin_cpu_nvidia: [50,21,39,38,15]
       - balfrin_cpu_nvidia_mixed: [1,4,7,8,10,20,34,40]
-      - santis_cpu_nvhpc: [1,2,11]
+      - santis_cpu_nvhpc: [1,26,46]
     tolerance_factor:
       - santis: 6
   - name: mch_icon-ch2
@@ -210,7 +210,7 @@ tests:
     checksuite_modes:
       - santis: 't'
     ensemble_num:
-      - santis_cpu_nvhpc: [1,2,5,16,25]
+      - santis_cpu_nvhpc: [1,3,14,17,20,31,40]
   - name: mch_opr_r19b07_lpi
     tags: ['atm','merge2rc','probtest']
     machines:
