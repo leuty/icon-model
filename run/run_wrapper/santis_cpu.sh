@@ -11,11 +11,14 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ---------------------------------------------------------------
 
-export LOCAL_RANK=$SLURM_LOCALID
-export GLOBAL_RANK=$SLURM_PROCID
-export NUMA=(0 1 2 3)
-export SOCKET_ID=$(($LOCAL_RANK / 70))
-export NUMA_NODE=${NUMA[$SOCKET_ID]}
+LOCAL_RANK=$SLURM_LOCALID
+GLOBAL_RANK=$SLURM_PROCID
+
+N_SOCKETS=$(lscpu | grep "Socket(s):" | sed 's/[^0-9]*//g')
+N_CORES_TOT=$(sinfo -p normal -h -o "%c")
+N_CORES_PER_SOCKET=$((N_CORES_TOT / N_SOCKETS))
+
+NUMA_NODE=$(((LOCAL_RANK / N_CORES_PER_SOCKET) % N_SOCKETS))
 
 ulimit -s unlimited
 numactl --cpunodebind=$NUMA_NODE --membind=$NUMA_NODE bash -c "$@"

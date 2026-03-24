@@ -11,15 +11,14 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ---------------------------------------------------------------
 
-export LOCAL_RANK=$SLURM_LOCALID
-export GLOBAL_RANK=$SLURM_PROCID
-# The first 4 ranks get assigned to GPUs
-# Subsequent ranks get no GPU
-export GPUS=(0 1 2 3)
-export NUMA=(0 1 2 3 0 1 2 3)
-export NUMA_NODE=${NUMA[$LOCAL_RANK]}
+LOCAL_RANK=$SLURM_LOCALID
+GLOBAL_RANK=$SLURM_PROCID
 
-export CUDA_VISIBLE_DEVICES=${GPUS[$SLURM_LOCALID%8]}
+N_SOCKETS=$(nvidia-smi --list-gpus | wc -l)
+
+NUMA_NODE=$((LOCAL_RANK % N_SOCKETS))
+
+export CUDA_VISIBLE_DEVICES=$NUMA_NODE
 
 ulimit -s unlimited
 numactl --cpunodebind=$NUMA_NODE --membind=$NUMA_NODE bash -c "$@"
