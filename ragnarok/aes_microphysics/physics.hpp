@@ -103,7 +103,7 @@ KOKKOS_INLINE_FUNCTION T ice_number(const T t, const T rho) {
 /// @return Ice sticking
 //
 template <typename T>
-KOKKOS_INLINE_FUNCTION T ice_sticking(const T t) {
+KOKKOS_INLINE_FUNCTION T ice_sticking(const T t, const T cia) {
   constexpr T a       = T{0.09};                         // scale factor for freezing depression
   constexpr T b       = T{1.00};                         // maximum for exponential temperature factor
   constexpr T eff_min = T{0.075};                        // minimum sticking efficiency
@@ -112,7 +112,8 @@ KOKKOS_INLINE_FUNCTION T ice_sticking(const T t) {
 
   // per original code seems like aggregation is allowed even with no snow
   // present
-  return Kokkos::fmax(Kokkos::fmax(Kokkos::min(Kokkos::exp(a * (t - tmelt<T>)), b), eff_min), eff_fac * (t - tcrit));
+  return Kokkos::fmax(Kokkos::fmax(Kokkos::min(Kokkos::exp(a * (t - tmelt<T>)), b), eff_min), eff_fac * (t - tcrit)) *
+         cia;
 }
 
 ///

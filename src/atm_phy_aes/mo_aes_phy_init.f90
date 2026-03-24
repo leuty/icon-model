@@ -79,6 +79,9 @@ MODULE mo_aes_phy_init
   ! cloud optical properties
   USE mo_aes_cop_config,       ONLY: eval_aes_cop_config, print_aes_cop_config
 
+  ! "graupel" cloud microphysics
+  USE mo_cloud_mig_config,    ONLY: cloud_mig_config, print_cloud_mig_config
+
   ! two-moment bulk microphysics
   USE mo_2mom_mcrph_driver,    ONLY: two_moment_mcrph_init
 
@@ -258,9 +261,16 @@ CONTAINS
     !
     CALL print_ccycle_config
 
+    !
     ! cloud microphysics (mig - graupel)
     !
-    ! No setting of parameters necessary - nothing to do
+    lany=.FALSE.
+    DO jg = 1,ng
+       lany = lany .OR. (aes_phy_tc(jg)%dt_mig > dt_zero)
+    END DO
+    IF (lany) THEN
+      CALL print_cloud_mig_config(ng)
+    END IF
     !
     ! cloud microphysics (two moment bulk microphysics)
     !

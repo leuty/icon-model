@@ -95,8 +95,9 @@ TYPED_TEST_P(GraupelPhysicsTest, DepFactor) {
 
 TYPED_TEST_P(GraupelPhysicsTest, IceSticking) {
   TypeParam reference = TypeParam{1.0};
+  TypeParam cia       = TypeParam{1.0};
 
-  TypeParam result    = physics::ice_sticking(tmelt<TypeParam>);
+  TypeParam result    = physics::ice_sticking(tmelt<TypeParam>, cia);
   this->validate(result, reference);
 }
 

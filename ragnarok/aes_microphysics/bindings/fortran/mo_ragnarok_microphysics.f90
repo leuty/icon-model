@@ -20,7 +20,7 @@ MODULE mo_ragnarok_microphysics
 
   INTERFACE
 
-    SUBROUTINE run(nvec, ke, ivstart, ivend, kstart, dt, dz, t, rho, p, qv,   &
+    SUBROUTINE run(nvec, ke, ivstart, ivend, kstart, dt, cia, dz, t, rho, p, qv,   &
         &                         qc, qi, qr, qs, qg, qnc, prr_gsp, pri_gsp, prs_gsp, prg_gsp, &
         &                         pre_gsp, pflx) BIND(c)
 
@@ -28,6 +28,7 @@ MODULE mo_ragnarok_microphysics
       ! arguments
       INTEGER(c_int), VALUE, INTENT(IN) :: nvec, ke, ivstart, ivend, kstart
       REAL(wp), VALUE, INTENT(IN) :: dt
+      REAL(wp), VALUE, INTENT(IN) :: cia
       REAL(wp), DIMENSION(*), INTENT(IN) :: dz, rho, p
       REAL(wp), DIMENSION(*), INTENT(INOUT) :: t
       REAL(wp), DIMENSION(*), INTENT(INOUT) :: qv, qc, qi, qr, qs, qg
@@ -43,12 +44,13 @@ MODULE mo_ragnarok_microphysics
 
 CONTAINS
 
-  SUBROUTINE graupel_run(nvec, ke, ivstart, ivend, kstart, dt, qnc, dz, rho, p, t, qv,   &
+  SUBROUTINE graupel_run(nvec, ke, ivstart, ivend, kstart, dt, cia, qnc, dz, rho, p, t, qv,   &
       &                         qc, qi, qr, qs, qg, pflx, prr_gsp, pri_gsp, prs_gsp, prg_gsp, &
       &                         pre_gsp)
 
     INTEGER, INTENT(IN) :: nvec, ke, ivstart, ivend, kstart
     REAL(wp), INTENT(IN) :: dt
+    REAL(wp), INTENT(IN) :: cia
     REAL(wp), DIMENSION(:, :), INTENT(IN) :: dz, rho, p
     REAL(wp), DIMENSION(:, :), INTENT(INOUT) :: t
     REAL(wp), DIMENSION(:, :), INTENT(INOUT) :: qv, qc, qi, qr, qs, qg
@@ -56,7 +58,7 @@ CONTAINS
     REAL(wp), DIMENSION(:, :), INTENT(OUT) :: pflx
     REAL(wp), DIMENSION(:), INTENT(INOUT) :: prr_gsp, pri_gsp, prs_gsp, prg_gsp, pre_gsp
 
-    CALL run(nvec, ke, ivstart - 1, ivend, kstart - 1, dt, dz, t, rho, p, qv,  &
+    CALL run(nvec, ke, ivstart - 1, ivend, kstart - 1, dt, cia, dz, t, rho, p, qv,  &
         &                         qc, qi, qr, qs, qg, qnc, prr_gsp, pri_gsp, prs_gsp, prg_gsp, &
         &                         pre_gsp, pflx)
 

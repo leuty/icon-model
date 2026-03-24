@@ -41,6 +41,7 @@ namespace graupel {
 /// @param [in] ivend End index for horizontal direction
 /// @param [in] kstart Start index for vertical direction
 /// @param [in] dt Time step for integration of microphysics (s)
+/// @param [in] cia Parameter to change the ice sticking efficiency
 /// @param [in] dz Layer thickness of full levels (m)
 /// @param [inout] t Temperature in Kelvin
 /// @param [in] rho Density of moist air (kg/m3)
@@ -60,18 +61,18 @@ namespace graupel {
 /// @param [out] pflx Total precipitation flux
 ///
 template <typename T>
-void run(const int nvec, const int ke, const int ivstart, const int ivend, const int kstart, const T dt, T* dz, T* t,
-         T* rho, T* p, T* qv, T* qc, T* qi, T* qr, T* qs, T* qg, const T* qnc, T* prr_gsp, T* pri_gsp, T* prs_gsp,
-         T* prg_gsp, T* pre_gsp, T* pflx);
+void run(const int nvec, const int ke, const int ivstart, const int ivend, const int kstart, const T dt, const T cia,
+         T* dz, T* t, T* rho, T* p, T* qv, T* qc, T* qi, T* qr, T* qs, T* qg, const T* qnc, T* prr_gsp, T* pri_gsp,
+         T* prs_gsp, T* prg_gsp, T* pre_gsp, T* pflx);
 
 template <class ExecutionSpace, typename T>
 void run(ExecutionSpace execSpace, const int nvec, const int ke, const int ivstart, const int ivend, const int kstart,
-         const T dt, T* dz, T* t, T* rho, T* p, T* qv, T* qc, T* qi, T* qr, T* qs, T* qg, const T* qnc, T* prr_gsp,
-         T* pri_gsp, T* prs_gsp, T* prg_gsp, T* pre_gsp, T* pflx, const bool lrain);
+         const T dt, const T cia, T* dz, T* t, T* rho, T* p, T* qv, T* qc, T* qi, T* qr, T* qs, T* qg, const T* qnc,
+         T* prr_gsp, T* pri_gsp, T* prs_gsp, T* prg_gsp, T* pre_gsp, T* pflx, const bool lrain);
 
 template <class ExecutionSpace, typename T>
 void run(ExecutionSpace execSpace, const int nvec, const short ke, const int ivstart, const int ivend,
-         const short kstart, const T dt, View2D<T> d_dz, View2D<T> d_t, View2D<T> d_rho, View2D<T> d_p,
+         const short kstart, const T dt, const T cia, View2D<T> d_dz, View2D<T> d_t, View2D<T> d_rho, View2D<T> d_p,
          View2D<T> d_qx_lqv, View2D<T> d_qx_lqc, View2D<T> d_qx_lqi, View2D<T> d_qx_lqr, View2D<T> d_qx_lqs,
          View2D<T> d_qx_lqg, ConstView1D<T> qnc, View1D<T> d_qp_lqr, View1D<T> d_qp_lqi, View1D<T> d_qp_lqs,
          View1D<T> d_qp_lqg, View1D<T> d_qp_flx, View2D<T> d_plfx, const bool lrain);

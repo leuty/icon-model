@@ -41,12 +41,13 @@ TYPED_TEST_SUITE_P(GraupelRunTest);
 
 TYPED_TEST_P(GraupelRunTest, RunBasicSingleColumn) {
   // Test parameters
-  const int nvec     = 1;                // Single horizontal point
-  const int ke       = 5;                // 5 vertical levels
-  const int ivstart  = 0;                // Start from first point
-  const int ivend    = nvec;             // End at first point
-  const int kstart   = 0;                // Start from first level
-  const TypeParam dt = TypeParam{30.0};  // 30 second time step
+  const int nvec      = 1;                // Single horizontal point
+  const int ke        = 5;                // 5 vertical levels
+  const int ivstart   = 0;                // Start from first point
+  const int ivend     = nvec;             // End at first point
+  const int kstart    = 0;                // Start from first level
+  const TypeParam dt  = TypeParam{30.0};  // 30 second time step
+  const TypeParam cia = TypeParam{0.7};   // 0.7 control param
 
   // Allocate arrays
   std::vector<TypeParam> dz(nvec * ke, TypeParam{500.0});    // 500m layer thickness
@@ -108,9 +109,9 @@ TYPED_TEST_P(GraupelRunTest, RunBasicSingleColumn) {
   TypeParam qi_initial = qi[0];
 
   // Run the graupel scheme
-  graupel::run(nvec, ke, ivstart, ivend, kstart, dt, d_dz.data(), d_t.data(), d_rho.data(), d_p.data(), d_qv.data(),
-               d_qc.data(), d_qi.data(), d_qr.data(), d_qs.data(), d_qg.data(), d_qnc.data(), d_prr_gsp.data(),
-               d_pri_gsp.data(), d_prs_gsp.data(), d_prg_gsp.data(), d_pre_gsp.data(), d_pflx.data());
+  graupel::run(nvec, ke, ivstart, ivend, kstart, dt, cia, d_dz.data(), d_t.data(), d_rho.data(), d_p.data(),
+               d_qv.data(), d_qc.data(), d_qi.data(), d_qr.data(), d_qs.data(), d_qg.data(), d_qnc.data(),
+               d_prr_gsp.data(), d_pri_gsp.data(), d_prs_gsp.data(), d_prg_gsp.data(), d_pre_gsp.data(), d_pflx.data());
 
   Kokkos::deep_copy(h_qv, d_qv);
   Kokkos::deep_copy(h_qc, d_qc);
@@ -159,12 +160,13 @@ TYPED_TEST_P(GraupelRunTest, RunBasicSingleColumn) {
 
 TYPED_TEST_P(GraupelRunTest, RunWarmRain) {
   // Test warm rain process (T > 273.15K)
-  const int nvec     = 1;
-  const int ke       = 3;
-  const int ivstart  = 0;
-  const int ivend    = nvec;
-  const int kstart   = 0;
-  const TypeParam dt = TypeParam{10.0};
+  const int nvec      = 1;
+  const int ke        = 3;
+  const int ivstart   = 0;
+  const int ivend     = nvec;
+  const int kstart    = 0;
+  const TypeParam dt  = TypeParam{10.0};
+  const TypeParam cia = TypeParam{0.7};
 
   // Setup for warm rain conditions
   std::vector<TypeParam> dz(nvec * ke, TypeParam{300.0});
@@ -222,9 +224,9 @@ TYPED_TEST_P(GraupelRunTest, RunWarmRain) {
 
   TypeParam qr_initial = qr[0];
 
-  graupel::run(nvec, ke, ivstart, ivend, kstart, dt, d_dz.data(), d_t.data(), d_rho.data(), d_p.data(), d_qv.data(),
-               d_qc.data(), d_qi.data(), d_qr.data(), d_qs.data(), d_qg.data(), d_qnc.data(), d_prr_gsp.data(),
-               d_pri_gsp.data(), d_prs_gsp.data(), d_prg_gsp.data(), d_pre_gsp.data(), d_pflx.data());
+  graupel::run(nvec, ke, ivstart, ivend, kstart, dt, cia, d_dz.data(), d_t.data(), d_rho.data(), d_p.data(),
+               d_qv.data(), d_qc.data(), d_qi.data(), d_qr.data(), d_qs.data(), d_qg.data(), d_qnc.data(),
+               d_prr_gsp.data(), d_pri_gsp.data(), d_prs_gsp.data(), d_prg_gsp.data(), d_pre_gsp.data(), d_pflx.data());
 
   Kokkos::deep_copy(h_qr, d_qr);
   Kokkos::deep_copy(h_qi, d_qi);
@@ -244,12 +246,13 @@ TYPED_TEST_P(GraupelRunTest, RunWarmRain) {
 
 TYPED_TEST_P(GraupelRunTest, RunZeroInitialConditions) {
   // Test with zero initial hydrometeors
-  const int nvec     = 1;
-  const int ke       = 3;
-  const int ivstart  = 0;
-  const int ivend    = nvec;
-  const int kstart   = 0;
-  const TypeParam dt = TypeParam{30.0};
+  const int nvec      = 1;
+  const int ke        = 3;
+  const int ivstart   = 0;
+  const int ivend     = nvec;
+  const int kstart    = 0;
+  const TypeParam dt  = TypeParam{30.0};
+  const TypeParam cia = TypeParam{0.7};
 
   std::vector<TypeParam> dz(nvec * ke, TypeParam{400.0});
   std::vector<TypeParam> t(nvec * ke, TypeParam{280.0});
@@ -304,9 +307,9 @@ TYPED_TEST_P(GraupelRunTest, RunZeroInitialConditions) {
   auto h_pflx    = HostView2D<TypeParam>(pflx.data(), ke, nvec);
   auto d_pflx    = Kokkos::create_mirror_view_and_copy(MemorySpace(), h_pflx);
 
-  graupel::run(nvec, ke, ivstart, ivend, kstart, dt, d_dz.data(), d_t.data(), d_rho.data(), d_p.data(), d_qv.data(),
-               d_qc.data(), d_qi.data(), d_qr.data(), d_qs.data(), d_qg.data(), d_qnc.data(), d_prr_gsp.data(),
-               d_pri_gsp.data(), d_prs_gsp.data(), d_prg_gsp.data(), d_pre_gsp.data(), d_pflx.data());
+  graupel::run(nvec, ke, ivstart, ivend, kstart, dt, cia, d_dz.data(), d_t.data(), d_rho.data(), d_p.data(),
+               d_qv.data(), d_qc.data(), d_qi.data(), d_qr.data(), d_qs.data(), d_qg.data(), d_qnc.data(),
+               d_prr_gsp.data(), d_pri_gsp.data(), d_prs_gsp.data(), d_prg_gsp.data(), d_pre_gsp.data(), d_pflx.data());
 
   Kokkos::deep_copy(h_qc, d_qc);
   Kokkos::deep_copy(h_qi, d_qi);

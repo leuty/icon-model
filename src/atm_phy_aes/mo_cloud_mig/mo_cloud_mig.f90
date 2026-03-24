@@ -36,6 +36,7 @@ CONTAINS
 
   SUBROUTINE cloud_mig     ( jcs, jce   ,&
        &                     pdtime     ,&
+       &                     cia        ,&
        &                     dz         ,&
        &                     rho        ,&
        &                     pf         ,&
@@ -63,6 +64,7 @@ CONTAINS
     !
     INTEGER , INTENT(in)  :: jcs, jce      !< column index range
     REAL(wp), INTENT(in)  :: pdtime        !< timestep
+    REAL(wp), INTENT(in)  :: cia           !<
     !
     REAL(wp), INTENT(in)  :: dz      (:,:) !< vertical layer thickness
     REAL(wp), INTENT(in)  :: rho     (:,:) !< density
@@ -180,6 +182,7 @@ CONTAINS
          &        ivend   = jce           ,& !< in
          &        kstart  = jks           ,& !< in
          &        dt      = pdtime        ,& !< in   : timestep
+         &        cia     = cia           ,& !< in   : parameter to control ice amount
          &        qnc     = zqnc    (:)   ,& !< in
          &        dz      = dz      (:,:) ,& !< in   : vertical layer thickness
          &        rho     = rho     (:,:) ,& !< in   : density

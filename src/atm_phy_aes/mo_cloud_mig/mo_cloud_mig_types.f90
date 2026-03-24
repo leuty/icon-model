@@ -31,7 +31,7 @@ MODULE mo_cloud_mig_types
      ! configuration parameters
      ! ------------------------
      !
-     ! no parameters available.....
+     REAL(wp) :: cia        !control ice amount
      !
      ! thresholds
      !

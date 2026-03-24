@@ -45,9 +45,10 @@ void run_standalone(const std::string input_file) {
   const std::string output_file = "output.nc";
 
   const T dt                    = T{30};
+  const T cia                   = T{0.7};
   const int itime               = 0;
 
-  std::cout << "Using default setup: dt=" << dt << ", itime=" << itime << std::endl;
+  std::cout << "Using default setup: dt=" << dt << ", cia=" << cia << ", itime=" << itime << std::endl;
 
   // Parameters from the input file
   int ncells, nlev;
@@ -133,8 +134,8 @@ void run_standalone(const std::string input_file) {
 
   // run the computations
   Kokkos::DefaultExecutionSpace execSpace;
-  graupel::run<Kokkos::DefaultExecutionSpace, T>(execSpace, nvec, kend, ivbeg, ivend, kbeg, dt, d_dz, d_t, d_rho, d_p,
-                                                 d_qx_lqv, d_qx_lqc, d_qx_lqi, d_qx_lqr, d_qx_lqs, d_qx_lqg, d_qnc,
+  graupel::run<Kokkos::DefaultExecutionSpace, T>(execSpace, nvec, kend, ivbeg, ivend, kbeg, dt, cia, d_dz, d_t, d_rho,
+                                                 d_p, d_qx_lqv, d_qx_lqc, d_qx_lqi, d_qx_lqr, d_qx_lqs, d_qx_lqg, d_qnc,
                                                  d_qp_lqr, d_qp_lqi, d_qp_lqs, d_qp_lqg, d_qp_flx, d_pflx, true);
 
   end_graupel = std::chrono::steady_clock::now();

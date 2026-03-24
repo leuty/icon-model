@@ -119,7 +119,7 @@ KOKKOS_INLINE_FUNCTION void update_qx_qp(int iv, short k, MinIndexView<Execution
 }
 
 template <typename T>
-KOKKOS_INLINE_FUNCTION void compute_sx2x(const T& dt, const T& qnc, T (&d_sx2x)[idx::nx][idx::nx],
+KOKKOS_INLINE_FUNCTION void compute_sx2x(const T& dt, const T& cia, const T& qnc, T (&d_sx2x)[idx::nx][idx::nx],
                                          const T (&d_qx)[idx::nx], const T& d_rho, const T& d_t, const T& d_p,
                                          const bool is_sig_present) {
   T eta                      = ZERO<T>;
@@ -142,7 +142,7 @@ KOKKOS_INLINE_FUNCTION void compute_sx2x(const T& dt, const T& qnc, T (&d_sx2x)[
   if (d_t < tmelt<T>) {
     T n_ice = physics::ice_number(d_t, d_rho);
     T m_ice = physics::ice_mass(d_qx[idx::lqi], n_ice);
-    T x_ice = physics::ice_sticking(d_t);
+    T x_ice = physics::ice_sticking(d_t, cia);
     if (is_sig_present) {
       eta                        = physics::deposition_factor(d_t, qvsi);
       d_sx2x[idx::lqv][idx::lqi] = transition::vapor_x_ice(d_qx[idx::lqi], m_ice, eta, dvsi, d_rho, dt);
@@ -197,10 +197,10 @@ KOKKOS_INLINE_FUNCTION void update_temp(const T& dt, T (&d_dqdt)[idx::nx], const
 
 template <class ExecutionSpace, typename T>
 void graupel::run(ExecutionSpace execSpace, const int nvec, const short ke, const int ivstart, const int ivend,
-                  const short kstart, const T dt, View2D<T> d_dz, View2D<T> d_t, View2D<T> d_rho, View2D<T> d_p,
-                  View2D<T> d_qx_lqv, View2D<T> d_qx_lqc, View2D<T> d_qx_lqi, View2D<T> d_qx_lqr, View2D<T> d_qx_lqs,
-                  View2D<T> d_qx_lqg, ConstView1D<T> d_qnc, View1D<T> d_qp_lqr, View1D<T> d_qp_lqi, View1D<T> d_qp_lqs,
-                  View1D<T> d_qp_lqg, View1D<T> d_qp_flx, View2D<T> d_pflx, const bool lrain) {
+                  const short kstart, const T dt, const T cia, View2D<T> d_dz, View2D<T> d_t, View2D<T> d_rho,
+                  View2D<T> d_p, View2D<T> d_qx_lqv, View2D<T> d_qx_lqc, View2D<T> d_qx_lqi, View2D<T> d_qx_lqr,
+                  View2D<T> d_qx_lqs, View2D<T> d_qx_lqg, ConstView1D<T> d_qnc, View1D<T> d_qp_lqr, View1D<T> d_qp_lqi,
+                  View1D<T> d_qp_lqs, View1D<T> d_qp_lqg, View1D<T> d_qp_flx, View2D<T> d_pflx, const bool lrain) {
   // create working data structures
   View2D<T> d_qx[idx::nx] = {d_qx_lqr, d_qx_lqi, d_qx_lqs, d_qx_lqg, d_qx_lqc, d_qx_lqv};
   View1D<T> d_qp[idx::np] = {d_qp_lqr, d_qp_lqi, d_qp_lqs, d_qp_lqg};
@@ -268,7 +268,7 @@ void graupel::run(ExecutionSpace execSpace, const int nvec, const short ke, cons
         T d_qx_tmp[idx::nx]        = {d_qx_lqr(k, iv), d_qx_lqi(k, iv), d_qx_lqs(k, iv),
                                       d_qx_lqg(k, iv), d_qx_lqc(k, iv), d_qx_lqv(k, iv)};
 
-        compute_sx2x(dt, d_qnc(ivstart), d_sx2x, d_qx_tmp, d_rho(k, iv), d_t(k, iv), d_p(k, iv), val);
+        compute_sx2x(dt, cia, d_qnc(ivstart), d_sx2x, d_qx_tmp, d_rho(k, iv), d_t(k, iv), d_p(k, iv), val);
         update_qx(d_dqdt, d_sink, d_sx2x, d_qx_tmp, dt, val);
         update_temp(dt, d_dqdt, d_qx_tmp, d_t(k, iv));
 
@@ -311,8 +311,9 @@ void graupel::run(ExecutionSpace execSpace, const int nvec, const short ke, cons
 
 template <class ExecutionSpace, typename T>
 void graupel::run(ExecutionSpace execSpace, const int nvec, const int ke, const int ivstart, const int ivend,
-                  const int kstart, const T dt, T* dz, T* t, T* rho, T* p, T* qv, T* qc, T* qi, T* qr, T* qs, T* qg,
-                  const T* qnc, T* prr_gsp, T* pri_gsp, T* prs_gsp, T* prg_gsp, T* pre_gsp, T* pflx, const bool lrain) {
+                  const int kstart, const T dt, const T cia, T* dz, T* t, T* rho, T* p, T* qv, T* qc, T* qi, T* qr,
+                  T* qs, T* qg, const T* qnc, T* prr_gsp, T* pri_gsp, T* prs_gsp, T* prg_gsp, T* pre_gsp, T* pflx,
+                  const bool lrain) {
   auto d_dz     = View2D<T, ExecutionSpace>(dz, ke, nvec);
   auto d_t      = View2D<T, ExecutionSpace>(t, ke, nvec);
   auto d_rho    = View2D<T, ExecutionSpace>(rho, ke, nvec);
@@ -334,14 +335,14 @@ void graupel::run(ExecutionSpace execSpace, const int nvec, const int ke, const 
   auto d_qnc    = ConstView1D<T, ExecutionSpace>(qnc, nvec);
 
   graupel::run<ExecutionSpace, T>(execSpace, nvec, static_cast<short>(ke), ivstart, ivend, static_cast<short>(kstart),
-                                  dt, d_dz, d_t, d_rho, d_p, d_qx_lqv, d_qx_lqc, d_qx_lqi, d_qx_lqr, d_qx_lqs, d_qx_lqg,
-                                  d_qnc, d_qp_lqr, d_qp_lqi, d_qp_lqs, d_qp_lqg, d_qp_flx, d_pflx, lrain);
+                                  dt, cia, d_dz, d_t, d_rho, d_p, d_qx_lqv, d_qx_lqc, d_qx_lqi, d_qx_lqr, d_qx_lqs,
+                                  d_qx_lqg, d_qnc, d_qp_lqr, d_qp_lqi, d_qp_lqs, d_qp_lqg, d_qp_flx, d_pflx, lrain);
 }
 
 template <typename T>
-void graupel::run(const int nvec, const int ke, const int ivstart, const int ivend, const int kstart, const T dt, T* dz,
-                  T* t, T* rho, T* p, T* qv, T* qc, T* qi, T* qr, T* qs, T* qg, const T* qnc, T* prr_gsp, T* pri_gsp,
-                  T* prs_gsp, T* prg_gsp, T* pre_gsp, T* pflx) {
+void graupel::run(const int nvec, const int ke, const int ivstart, const int ivend, const int kstart, const T dt,
+                  const T cia, T* dz, T* t, T* rho, T* p, T* qv, T* qc, T* qi, T* qr, T* qs, T* qg, const T* qnc,
+                  T* prr_gsp, T* pri_gsp, T* prs_gsp, T* prg_gsp, T* pre_gsp, T* pflx) {
   // switch to enable precipitation
   const bool lrain = true;
 
@@ -352,12 +353,12 @@ void graupel::run(const int nvec, const int ke, const int ivstart, const int ive
   if constexpr (ragnarok::isCPU()) {
     Kokkos::Serial space = ragnarok::get_serial_exec_space();
     graupel::run<decltype(space), T>(space, nvec, static_cast<short>(ke), ivstart, ivend, static_cast<short>(kstart),
-                                     dt, dz, t, rho, p, qv, qc, qi, qr, qs, qg, qnc, prr_gsp, pri_gsp, prs_gsp, prg_gsp,
-                                     pre_gsp, pflx, lrain);
+                                     dt, cia, dz, t, rho, p, qv, qc, qi, qr, qs, qg, qnc, prr_gsp, pri_gsp, prs_gsp,
+                                     prg_gsp, pre_gsp, pflx, lrain);
   } else {
     auto space = Kokkos::DefaultExecutionSpace();
     graupel::run<decltype(space), T>(space, nvec, static_cast<short>(ke), ivstart, ivend, static_cast<short>(kstart),
-                                     dt, dz, t, rho, p, qv, qc, qi, qr, qs, qg, qnc, prr_gsp, pri_gsp, prs_gsp, prg_gsp,
-                                     pre_gsp, pflx, lrain);
+                                     dt, cia, dz, t, rho, p, qv, qc, qi, qr, qs, qg, qnc, prr_gsp, pri_gsp, prs_gsp,
+                                     prg_gsp, pre_gsp, pflx, lrain);
   }
 }

@@ -94,9 +94,10 @@ void run(const Integer_t ncells, const Integer_t nlev, const T dt, py::array_t<T
   Integer_t kstart  = 0;
   T qnc_vec[ncells];
   qnc_vec[0]     = T{qnc};
+  const T cia    = T{1.0};
 
   auto execSpace = Kokkos::DefaultExecutionSpace();
-  graupel::run<decltype(execSpace), T>(execSpace, nvec, kend, ivstart, ivend, kstart, dt, get_ptr(dz), get_ptr(t),
+  graupel::run<decltype(execSpace), T>(execSpace, nvec, kend, ivstart, ivend, kstart, dt, cia, get_ptr(dz), get_ptr(t),
                                        get_ptr(rho), get_ptr(p), get_ptr(qv), get_ptr(qc), get_ptr(qi), get_ptr(qr),
                                        get_ptr(qs), get_ptr(qg), qnc_vec, get_ptr(prr_gsp), get_ptr(pri_gsp),
                                        get_ptr(prs_gsp), get_ptr(prg_gsp), get_ptr(pre_gsp), get_ptr(pflx), lrain);

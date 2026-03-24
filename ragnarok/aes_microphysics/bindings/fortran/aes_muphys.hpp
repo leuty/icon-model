@@ -22,9 +22,9 @@ typedef double real_t;
 extern "C" {
 
 void run(const int nvec, const int ke, const int ivstart, const int ivend, const int kstart, const real_t dt,
-         real_t* dz, real_t* t, real_t* rho, real_t* p, real_t* qv, real_t* qc, real_t* qi, real_t* qr, real_t* qs,
-         real_t* qg, const real_t* qnc, real_t* prr_gsp, real_t* pri_gsp, real_t* prs_gsp, real_t* prg_gsp,
-         real_t* pre_gsp, real_t* pflx);
+         const real_t cia, real_t* dz, real_t* t, real_t* rho, real_t* p, real_t* qv, real_t* qc, real_t* qi,
+         real_t* qr, real_t* qs, real_t* qg, const real_t* qnc, real_t* prr_gsp, real_t* pri_gsp, real_t* prs_gsp,
+         real_t* prg_gsp, real_t* pre_gsp, real_t* pflx);
 }
 
 #endif  // RAGNAROK_AES_MICROPHYSICS_BINDINGS_FORTRAN_H_
