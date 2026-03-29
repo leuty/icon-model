@@ -663,7 +663,7 @@ CONTAINS
       & in_group=groups_oce_monitor,ldims=(/1/))
     CALL add_var(ocean_default_list, 'amoc26n', ocean_state_diag%monitor%amoc26n , &
       & GRID_LONLAT, za_surface,    &
-      & t_cf_var('amoc26n', 'kg s-1', 'amoc26n', datatype_flt),&
+      & t_cf_var('amoc26n', 'Sv', 'amoc26n', datatype_flt),&
       & dflt_g2_decl_lonlat,&
       & in_group=groups_oce_monitor,ldims=(/1/))
 
