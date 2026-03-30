@@ -496,7 +496,7 @@ active process (_dt_prc_ > 0) is used for the integration
 * - (aes_phy_nml-zmaxcloudy)=
     **zmaxcloudy**
   - R
-  - 33000.0
+  - 22500.0
   - m
   - maximum height (m) for cloud related computations
   -

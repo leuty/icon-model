@@ -22,6 +22,7 @@
 - Added options to not use Louis stability formula over land and/or sea ice
 - Fix in TMX of the near-surface diagnostics interpolation effecting 2m temperature and 10m wind
 - Re-introduce a new namelist switch for microphysics (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1344)
+- Change zmaxcloudy to 22500.0 m (https://gitlab.dkrz.de/icon/icon/-/merge_requests/803)
 
 #### NWP Physics
 
