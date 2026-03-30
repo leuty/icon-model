@@ -485,8 +485,8 @@ $addexp "checksuite.ocean_internal/ShallowWater/exp.ocean_WilliamsonTestCase2_He
 $addexp "checksuite.ocean_internal/omip/exp.test_ocean_zstar_omip_10days"           --builders "lumi_cpu" --list $listname
 
 ## mkexp experiments on LUMI
-$addexp "checksuite.atm/gpu/test_amip-aes_R2B6_gpu.config" --builders "lumi_gpu" --list $listname --runflags "EXP_OPTIONS+=buildbot_lumi_gpu jobs.run.queue=dev-g"
-$addexp "examples/bubble.config"                           --builders "lumi_cpu" --list $listname --runflags "EXP_OPTIONS+=buildbot_lumi_cpu jobs.run.queue=debug"
+$addexp "checksuite.atm/gpu/test_amip-aes_R2B6_gpu.config" --builders "lumi_gpu" --list $listname --runflags "EXP_OPTIONS+=buildbot_lumi_gpu jobs.run.partition=dev-g"
+$addexp "examples/bubble.config"                           --builders "lumi_cpu" --list $listname --runflags "EXP_OPTIONS+=buildbot_lumi_cpu jobs.run.partition=debug"
 
 # Communication tests
 $addexp checksuite.infrastructure/testbed/exp.icon-testbed_communication_yaxt --builders 'levante_gpu_nvhpc' --list $listname
