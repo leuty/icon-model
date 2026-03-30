@@ -70,7 +70,7 @@ KOKKOS_INLINE_FUNCTION T cloud_to_rain(const T t, const T rho, const T qc, const
   T result        = ZERO<T>;
 
   if (qc > qmin_ac && t > graupel::tfrz_hom<T>) {
-    T x         = Kokkos::log(Kokkos::min(rho_mx, Kokkos::max(rho_mn, rho * qr)));
+    T x         = Kokkos::log(Kokkos::fmin(rho_mx, Kokkos::fmax(rho_mn, rho * qr)));
     T ac_kernel = a_ac[0] + x * (a_ac[1] + x * (a_ac[2] + x * (a_ac[3] + x * a_ac[4])));
     T tau       = Kokkos::fmax(tau_min, Kokkos::fmin(static_cast<T>(1.0) - qc / (qc + qr),
                                                      tau_max));  // time-scale
@@ -261,7 +261,7 @@ KOKKOS_INLINE_FUNCTION T rain_to_vapor(const T t, const T rho, const T qc, const
   if (qr > graupel::qmin<T> && (dvsw + qc <= ZERO<T>)) {
     T tc       = t - tmelt<T>;
     T evap_max = (c1 + tc * (c2 + c3 * tc)) * (-dvsw) / dt;
-    T x        = Kokkos::log(Kokkos::min(rho_mx, Kokkos::max(rho_mn, qr * rho)));
+    T x        = Kokkos::log(Kokkos::fmin(rho_mx, Kokkos::fmax(rho_mn, qr * rho)));
     T evap     = -Kokkos::exp(a_ev[0] + x * (a_ev[1] + x * (a_ev[2] + x * (a_ev[3] + x * a_ev[4])))) * dvsw;
     return Kokkos::fmin(evap, evap_max);
   }
@@ -430,7 +430,7 @@ KOKKOS_INLINE_FUNCTION T vapor_x_snow(const T t, const T p, const T rho, const T
         result = (c3 + c4 * p) * dvsw * Kokkos::pow(qs * rho, b);
       }
     }
-    result = Kokkos::max(result, -qs / dt);
+    result = Kokkos::fmax(result, -qs / dt);
   }
 
   return result;

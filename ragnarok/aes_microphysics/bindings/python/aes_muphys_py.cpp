@@ -43,18 +43,21 @@ static auto full_size(py::array_t<T> a) {
 
 template <typename T>
 void calc_dz(py::array_t<T> z, py::array_t<T> dz, const Integer_t ncells, const Integer_t nlev) {
-  T* tmp_dz;
-  Integer_t tmp_ncells = ncells;
-  Integer_t tmp_nlev   = nlev;
-  utils::calc_dz<T>(get_ptr(z), tmp_dz, tmp_ncells, tmp_nlev);
+  // Convert numpy array to std::vector for input
+  auto z_ptr = get_ptr(z);
+  const std::vector<T> z_vec(z_ptr, z_ptr + ncells * nlev);
 
+  // Create output vector
+  std::vector<T> dz_vec;
+
+  // Call the actual calc_dz function
+  utils::calc_dz<T>(z_vec, dz_vec, ncells, nlev);
+
+  // Copy result back to numpy array
   auto dz_ptr = get_ptr(dz);
   assert(full_size(dz) == ncells * nlev);
-  std::memcpy(dz_ptr, tmp_dz, ncells * nlev * sizeof(T));
-  for (int i = 0; i < ncells * nlev; i++) {
-    assert(dz_ptr[i] == tmp_dz[i]);
-  }
-  delete[] tmp_dz;
+  assert(dz_vec.size() == ncells * nlev);
+  std::memcpy(dz_ptr, dz_vec.data(), ncells * nlev * sizeof(T));
 }
 
 template <typename T>

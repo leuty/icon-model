@@ -178,7 +178,7 @@ KOKKOS_INLINE_FUNCTION T dewpoint_temperature(const T tk, const T qv, const T pr
   }
   zfrac = Kokkos::log(pres * qv / (c2es<T> * (static_cast<T>(1.) + vtmpc1<T> * qv))) / zcvm3;
 
-  return Kokkos::min(tk, (tmelt<T> - zfrac * zcvm4) / (static_cast<T>(1.) - zfrac));
+  return Kokkos::fmin(tk, (tmelt<T> - zfrac * zcvm4) / (static_cast<T>(1.) - zfrac));
 }
 
 /// @brief Partitions water mass to maintain saturation
@@ -230,7 +230,7 @@ KOKKOS_INLINE_FUNCTION void saturation_adjustment(T& te, T& qve, T& qce, const T
       Tx    = Tx - (ux - ue) / dux;
     }
     qx  = qsat_rho(Tx, rho);
-    qce = Kokkos::max(qve + qce - qx, static_cast<T>(0.));
+    qce = Kokkos::fmax(qve + qce - qx, static_cast<T>(0.));
     qve = qx;
   }
   te = Tx;

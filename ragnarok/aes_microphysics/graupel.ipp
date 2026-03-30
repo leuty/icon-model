@@ -283,7 +283,7 @@ void graupel::run(ExecutionSpace execSpace, const int nvec, const short ke, cons
           const short min_k = min_on_extent_0(d_kmin, iv);
           T d_eflx          = ZERO<T>;
           for (short k = min_k; k < ke; ++k) {
-            short kp1 = Kokkos::min(ke - 1, k + 1);
+            short kp1 = Kokkos::fmin(ke - 1, k + 1);
             T qliq    = d_qx[idx::lqc](k, iv) + d_qx[idx::lqr](k, iv);
             T qice    = d_qx[idx::lqs](k, iv) + d_qx[idx::lqi](k, iv) + d_qx[idx::lqg](k, iv);
             T e_int =

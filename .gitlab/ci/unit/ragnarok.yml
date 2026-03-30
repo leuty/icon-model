@@ -21,6 +21,7 @@ include:
     CLICOLOR_FORCE: 1
     VERBOSE: # any given value is ignored, it's just checked for existence
     MAKEFLAGS: --no-print-directory --output-sync=target
+    CTEST_OUTPUT_ON_FAILURE: 1
     GTEST_COLOR: 1
   script:
     - |
@@ -48,7 +49,7 @@ include:
       icon_ci_log_section_start 'Testing Ragnarok' 'collapsed=false'
       (
         set -ux
-        ctest --test-dir "${ICON_CI_RAGNAROK_BUILD_PATH}" --verbose
+        ctest --test-dir "${ICON_CI_RAGNAROK_BUILD_PATH}"
       ) 2>&1
       icon_ci_log_section_end
 
@@ -212,11 +213,11 @@ ragnarok:cpu:openmp:
     OMP_PROC_BIND: close
     OMP_PLACES: cores
     OMP_NUM_THREADS: ${ICON_CI_COMMON_DKRZ_SLURM_NTASKS}
-    ICON_CI_RAGNAROK_CACHE_FILE_REL_PATH: cmake/caches/levante_cpu.cmake
+    ICON_CI_RAGNAROK_CACHE_FILE_REL_PATH: cmake/caches/levante_cpu_intel.cmake
 
 ragnarok:gpu:
   extends: .ragnarok:levante
   variables:
     ICON_CI_COMMON_DKRZ_SLURM_PARTITION: gpu
     ICON_CI_COMMON_DKRZ_SLURM_GPUS_PER_NODE: 1
-    ICON_CI_RAGNAROK_CACHE_FILE_REL_PATH: cmake/caches/levante_gpu.cmake
+    ICON_CI_RAGNAROK_CACHE_FILE_REL_PATH: cmake/caches/levante_gpu_nvhpc.cmake

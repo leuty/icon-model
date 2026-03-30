@@ -19,8 +19,8 @@ using array_2d_t = std::vector<std::vector<T, std::allocator<T>>>;
 namespace utils {
 
 template <typename T>
-static void calc_dz(T* z, T*& dz, int& ncells, int& nlev) {
-  dz = new T[ncells * nlev];
+static void calc_dz(const std::vector<T>& z, std::vector<T>& dz, int ncells, int nlev) {
+  dz.resize(ncells * nlev);
   array_2d_t<T> zh(nlev + 1, std::vector<T>(ncells));
 
   for (int i = 0; i < ncells; i++) {

@@ -30,7 +30,8 @@ option(RGK_ENABLE_SINGLE_PRECISION "Use single precision" OFF)
 include(CTest)
 
 if(BUILD_TESTING)
-  find_package(GTest)
+  find_package(GTest) # note that the version constraint won't work without the
+                      # CONFIG keyword
   if(NOT GTest_FOUND)
     message(CHECK_START "Fetching external GTest")
     include(FetchContent)

@@ -10,50 +10,48 @@
 // ---------------------------------------------------------------
 /// @brief read-in time-constant data fields without a time dimension
 template <typename T>
-void io::input_vector(netCDF::NcFile& datafile, T*& v, const std::string input, int& ncells, int& nlev) {
+void io::input_vector(netCDF::NcFile& datafile, std::vector<T>& v, const std::string& input, int ncells, int nlev) {
   netCDF::NcVar var;
-  v = new T[ncells * nlev];
+  v.resize(ncells * nlev);
   //  access the input variable
   try {
     var = datafile.getVar(input);
   } catch (netCDF::exceptions::NcNotVar& e) {
-    std::cout << "FAILURE in accessing " << input << " (no time dimension) *******" << std::endl;
-    e.what();
-    e.errorCode();
+    std::cerr << "FAILURE in accessing " << input << " (no time dimension): " << e.what() << std::endl;
+    throw;
   }
   //  read-in input field values
   try {
     const std::vector<size_t> startp = {0, 0};
     const std::vector<size_t> count  = {static_cast<size_t>(nlev), static_cast<size_t>(ncells)};
-    var.getVar(startp, count, v);
+    var.getVar(startp, count, v.data());
   } catch (netCDF::exceptions::NcNotVar& e) {
-    std::cout << "FAILURE in reading values from " << input << " (no time dimensions) *******" << std::endl;
-    e.what();
-    e.errorCode();
+    std::cerr << "FAILURE in reading values from " << input << " (no time dimensions): " << e.what() << std::endl;
+    throw;
   }
 }
 
 template <typename T>
-void io::input_vector(netCDF::NcFile& datafile, T*& v, const std::string input, int& ncells, int& nlev, int itime) {
+void io::input_vector(netCDF::NcFile& datafile, std::vector<T>& v, const std::string& input, int ncells, int nlev,
+                      int itime) {
   netCDF::NcVar att = datafile.getVar(input);
   try {
-    v = new T[ncells * nlev];
+    v.resize(ncells * nlev);
     if (att.isNull()) {
       throw NC_ERR;
     }
     std::vector<size_t> startp = {static_cast<size_t>(itime), 0, 0};
     std::vector<size_t> count  = {1, static_cast<size_t>(nlev), static_cast<size_t>(ncells)};
-    att.getVar(startp, count, v);
+    att.getVar(startp, count, v.data());
   } catch (netCDF::exceptions::NcException& e) {
-    e.what();
-    std::cout << "FAILURE in reading " << input << std::endl;
-    throw NC_ERR;
+    std::cerr << "FAILURE in reading " << input << ": " << e.what() << std::endl;
+    throw;
   }
 }
 
 template <typename T, typename NCT>
-void io::output_vector(netCDF::NcFile& datafile, std::vector<netCDF::NcDim>& dims, const std::string output, T*& v,
-                       int& ncells, int& nlev, int& deflate_level) {
+void io::output_vector(netCDF::NcFile& datafile, std::vector<netCDF::NcDim>& dims, const std::string& output,
+                       const std::vector<T>& v, int ncells, int nlev, int deflate_level) {
   // fortran:column major while c++ is row major
   NCT ncT;
   netCDF::NcVar var = datafile.addVar(output, ncT, dims);
@@ -67,9 +65,9 @@ void io::output_vector(netCDF::NcFile& datafile, std::vector<netCDF::NcDim>& dim
 }
 
 template <typename T, typename NCT>
-void io::output_vector(netCDF::NcFile& datafile, std::vector<netCDF::NcDim>& dims, const std::string output,
-                       std::map<std::string, netCDF::NcVarAtt> varAttributes, T*& v, int& ncells, int& nlev,
-                       int& deflate_level) {
+void io::output_vector(netCDF::NcFile& datafile, std::vector<netCDF::NcDim>& dims, const std::string& output,
+                       std::map<std::string, netCDF::NcVarAtt> varAttributes, const std::vector<T>& v, int ncells,
+                       int nlev, int deflate_level) {
   // fortran:column major while c++ is row major
   NCT ncT;
   netCDF::NcVar var = datafile.addVar(output, ncT, dims);
@@ -80,11 +78,11 @@ void io::output_vector(netCDF::NcFile& datafile, std::vector<netCDF::NcDim>& dim
   if (deflate_level > 0) {
     var.setCompression(true, false, deflate_level);
   }
-  // Add given attribues to the output variables (string, only)
+  // Add given attributes to the output variables (string, only)
   for (auto& attribute_name : {"standard_name", "long_name", "units", "coordinates", "CDI_grid_type"}) {
     auto attribute = varAttributes[attribute_name];
 
-    // skip if attribte is not present
+    // skip if attribute is not present
     if (attribute.isNull()) continue;
 
     std::string dataValues = "default";
@@ -95,8 +93,9 @@ void io::output_vector(netCDF::NcFile& datafile, std::vector<netCDF::NcDim>& dim
 }
 
 template <typename T>
-void io::read_fields(const std::string input_file, const int& itime, int& ncells, int& nlev, T*& z, T*& t, T*& p,
-                     T*& rho, T*& qv, T*& qc, T*& qi, T*& qr, T*& qs, T*& qg) {
+void io::read_fields(const std::string& input_file, int itime, int& ncells, int& nlev, std::vector<T>& z,
+                     std::vector<T>& t, std::vector<T>& p, std::vector<T>& rho, std::vector<T>& qv, std::vector<T>& qc,
+                     std::vector<T>& qi, std::vector<T>& qr, std::vector<T>& qs, std::vector<T>& qg) {
   netCDF::NcFile datafile(input_file, netCDF::NcFile::read);
 
   //  read in the dimensions from the base variable: zg
@@ -123,8 +122,11 @@ void io::read_fields(const std::string input_file, const int& itime, int& ncells
 }
 
 template <typename T, typename NCT>
-void io::write_fields(const std::string output_file, int& ncells, int& nlev, T*& t, T*& qv, T*& qc, T*& qi, T*& qr,
-                      T*& qs, T*& qg, T*& prr_gsp, T*& pri_gsp, T*& prs_gsp, T*& prg_gsp, T*& pflx, T*& pre_gsp) {
+void io::write_fields(const std::string& output_file, int ncells, int nlev, const std::vector<T>& t,
+                      const std::vector<T>& qv, const std::vector<T>& qc, const std::vector<T>& qi,
+                      const std::vector<T>& qr, const std::vector<T>& qs, const std::vector<T>& qg,
+                      const std::vector<T>& prr_gsp, const std::vector<T>& pri_gsp, const std::vector<T>& prs_gsp,
+                      const std::vector<T>& prg_gsp, const std::vector<T>& pflx, const std::vector<T>& pre_gsp) {
   netCDF::NcFile datafile(output_file, netCDF::NcFile::replace);
   netCDF::NcDim ncells_dim          = datafile.addDim("ncells", ncells);
   netCDF::NcDim nlev_dim            = datafile.addDim("height", nlev);
@@ -161,7 +163,7 @@ static void copy_coordinate_variables_if_present(netCDF::NcFile& datafile, netCD
     if (coordinate.isNull()) continue;
 
     // copy possible new dimensions from input coordinates to the output
-    // befor adding the related data variables
+    // before adding the related data variables
     for (netCDF::NcDim& dim : coordinate.getDims()) {
       auto currentDims = datafile.getDims();
       // map.contains() would be better, but requires c++20
@@ -176,13 +178,10 @@ static void copy_coordinate_variables_if_present(netCDF::NcFile& datafile, netCD
       var.putAtt(attribute.getName(), attribute.getType(), attribute.getAttLength(), dataValues.c_str());
     }
 
-    // Calculate the total size of the varibale
+    // Calculate the total size of the variable
     auto dimensions = coordinate.getDims();
-    struct Prod {
-      void operator()(netCDF::NcDim n) { prod *= n.getSize(); }
-      int prod{1};
-    };
-    int totalSize = std::for_each(dimensions.cbegin(), dimensions.cend(), Prod()).prod;
+    int totalSize   = std::accumulate(dimensions.cbegin(), dimensions.cend(), 1,
+                                      [](int acc, const netCDF::NcDim& dim) { return acc * dim.getSize(); });
 
     // Create a one-dimensional vector to store its values
     std::vector<T> oneDimensionalVariable(totalSize);
@@ -194,9 +193,12 @@ static void copy_coordinate_variables_if_present(netCDF::NcFile& datafile, netCD
 }
 
 template <typename T, typename NCT>
-void io::write_fields(const std::string output_file, std::string input_file, int& ncells, int& nlev, T*& t, T*& qv,
-                      T*& qc, T*& qi, T*& qr, T*& qs, T*& qg, T*& prr_gsp, T*& pri_gsp, T*& prs_gsp, T*& prg_gsp,
-                      T*& pflx, T*& pre_gsp) {
+void io::write_fields(const std::string& output_file, const std::string& input_file, int ncells, int nlev,
+                      const std::vector<T>& t, const std::vector<T>& qv, const std::vector<T>& qc,
+                      const std::vector<T>& qi, const std::vector<T>& qr, const std::vector<T>& qs,
+                      const std::vector<T>& qg, const std::vector<T>& prr_gsp, const std::vector<T>& pri_gsp,
+                      const std::vector<T>& prs_gsp, const std::vector<T>& prg_gsp, const std::vector<T>& pflx,
+                      const std::vector<T>& pre_gsp) {
   netCDF::NcFile datafile(output_file, netCDF::NcFile::replace);
   netCDF::NcFile inputfile(input_file, netCDF::NcFile::read);
   auto baseDims            = inputfile.getVar(BASE_VAR).getDims();

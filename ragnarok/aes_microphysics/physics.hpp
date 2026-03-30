@@ -112,7 +112,7 @@ KOKKOS_INLINE_FUNCTION T ice_sticking(const T t, const T cia) {
 
   // per original code seems like aggregation is allowed even with no snow
   // present
-  return Kokkos::fmax(Kokkos::fmax(Kokkos::min(Kokkos::exp(a * (t - tmelt<T>)), b), eff_min), eff_fac * (t - tcrit)) *
+  return Kokkos::fmax(Kokkos::fmax(Kokkos::fmin(Kokkos::exp(a * (t - tmelt<T>)), b), eff_min), eff_fac * (t - tcrit)) *
          cia;
 }
 
@@ -159,10 +159,10 @@ KOKKOS_INLINE_FUNCTION T snow_number(const T t, const T rho_s) {
     T tc  = Kokkos::fmax(Kokkos::fmin(t, tmax), tmin) - tmelt<T>;
     T alf = Kokkos::pow(static_cast<T>(10.), (xa1 + tc * (xa2 + tc * xa3)));
     T bet = xb1 + tc * (xb2 + tc * xb3);
-    T n0s =
-        n0s3 *
-        Kokkos::pow((Kokkos::max(rho_s, rho_s_mn) / graupel::ams<T>), (static_cast<T>(4.0) - static_cast<T>(3) * bet)) /
-        (alf * alf * alf);
+    T n0s = n0s3 *
+            Kokkos::pow((Kokkos::fmax(rho_s, rho_s_mn) / graupel::ams<T>),
+                        (static_cast<T>(4.0) - static_cast<T>(3) * bet)) /
+            (alf * alf * alf);
     T y     = Kokkos::exp(n0s2 * tc);
     T n0smn = Kokkos::fmax(n0s4 * y, n0s5);
     T n0smx = Kokkos::fmin(n0s6 * y, n0s7);
