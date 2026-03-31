@@ -265,15 +265,30 @@ chmod 755 ./run_model_cpu.sh
 
 #%#------------------------
 #% macro write_run_wrapper_hiopy():
-cat > run_hiopy.sh << EOF
+cat > run_hiopy.sh << 'EOF'
 #! /usr/bin/bash
-#echo Hiopy process \$SLURM_LOCALID on \$(hostname)
 #%  for var in JOB.hybrid.hiopy.env:
 export %{var}=%{JOB.hybrid.hiopy.env[var]}
 #%  endfor
 #%#
 source %{hiopy.venv}/bin/activate
-hiopy-worker --zarr-store-protocol file --zarr-store-path %{DATA_DIR}/%{hiopy.relative_path_to_dataset} --nthreads %{JOB.hybrid.hiopy.env["OMP_NUM_THREADS"]}
+
+#%  set base = DATA_DIR
+#%  set args = ''
+#%#
+#%  if hiopy.storage_backend == 's3':
+#%    set s3_dict = {}
+#%    do s3_dict.update(key = '${S3_KEY}')
+#%    do s3_dict.update(secret = '${S3_SECRET}')
+#%    do s3_dict.update(endpoint_url = hiopy.storage.s3.endpoint_url)
+#%#
+#%    set base = 's3://'+hiopy.storage.s3.bucket
+#%    set args = '--s3-storage-options "'+s3_dict|replace("'", '\\"')+'"'
+#% endif
+
+hiopy-worker --zarr-store-protocol "%{hiopy.storage_backend}" \
+             --zarr-store-path "%{base}/%{hiopy.relative_path_to_dataset}" \
+             --nthreads %{JOB.hybrid.hiopy.env["OMP_NUM_THREADS"]} %{args}
 EOF
 
 chmod 755  ./run_hiopy.sh

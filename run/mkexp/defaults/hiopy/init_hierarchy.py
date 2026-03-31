@@ -18,13 +18,16 @@ import zarr
 
 
 def init_data_request(
-    data_request: dict, simulation_params: dict, dict_of_names: dict
+    dataset: zarr.Group,
+    data_request: dict,
+    simulation_params: dict,
+    dict_of_names: dict,
 ):
     start = datetime.fromisoformat(simulation_params["start_date"])
     end = datetime.fromisoformat(simulation_params["end_date"])
     logging.info(f"Simulation start date: {start}, end date: {end}")
     logging.info(
-        f"Total simulation duration in seconds: {(end - start).total_seconds() / 3600}"
+        f"Total simulation duration in hours: {(end - start).total_seconds() / 3600}"
     )
     total_simulated_hours = (end - start).total_seconds() / 3600
 
@@ -33,9 +36,6 @@ def init_data_request(
             cname="zstd", clevel=6, shuffle=zarr.codecs.BloscShuffle.shuffle
         )
     }
-    dataset = zarr.open_group(
-        simulation_params["dataset_path"], zarr_format=3, mode="a"
-    )
 
     for data_group in data_request:
         try:
@@ -55,7 +55,7 @@ def init_data_request(
                     continue
 
                 parent_zoom_lev = np.max(group_grid_details["zoom_levels"])
-                logging.info(
+                logging.debug(
                     f"Parent zoom level for {data_group} is {parent_zoom_lev}"
                 )
 
@@ -135,6 +135,9 @@ def init_data_request(
                     if (timestep_s > 86400) or (
                         zoom_lev >= 10 and timestep_s > 12000
                     ):
+                        logging.warning(
+                            "Selected chunking will lead to very large file sizes for zoomlev >= 10. Setting chunks_per_shard to 1 to avoid memory issues in runtime."
+                        )
                         time_chunk = 1
                         chunks_per_shard = 1
 
@@ -143,7 +146,11 @@ def init_data_request(
                     is_3d = group_config.get("name_of_level", None)
                     if is_3d:
                         height_chunk = len(group_config["levels"])
-                        chunks_per_shard = 1
+                        if zoom_lev > 9:
+                            logging.warning(
+                                "Selected chunking will lead to very large file sizes for 3D vars. Setting chunks_per_shard to 1 to avoid memory issues in runtime."
+                            )
+                            chunks_per_shard = 1
                         chunk_shape = (
                             chunk_shape[0],
                             height_chunk,
@@ -185,7 +192,6 @@ def init_data_request(
                             hiopy_args["attributes"][
                                 "hiopy::interpolation_stack"
                             ] = "[conservative: {partial_coverage: true}, fixed: {user_value: 0.0}]"
-                            # hiopy_args["attributes"]["hiopy::interpolation_stack"] = "[average, fixed: {user_value: NAN}]"
                             frac_mask_yac_name = "valid_mask"
                             if "half" in group_config["frac_mask"]:
                                 frac_mask_yac_name = "valid_mask_half"
@@ -224,7 +230,6 @@ def init_data_request(
 
                         if variable in dict_of_names:
                             hiopy_args["yac_name"] = dict_of_names[variable]
-
                         if variable not in zg:
                             hc.add_variable(
                                 zg,
@@ -239,7 +244,7 @@ def init_data_request(
                             )
         except Exception as e:
             logging.error(
-                f"Store initialisation failed for {data_group} with error: {e}"
+                f"Store initialisation failed for {data_request[data_group]} with error: {e}"
             )
             raise e
 

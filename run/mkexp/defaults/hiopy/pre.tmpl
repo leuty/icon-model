@@ -15,6 +15,8 @@
 import json
 import sys
 import os
+import zarr
+
 #% include 'mkexp/defaults/logging.tmpl'
 
 #% if "proleptic gregorian" not in CALENDAR:
@@ -38,7 +40,6 @@ from datetime import datetime, timedelta
 import isodate as isodate
 
 try:
-
     time_agg_allowed = []
     for time_agg_required in %{hiopy.time_agg}:
         duration = isodate.parse_duration(time_agg_required)
@@ -62,9 +63,25 @@ try:
     logging.info(f"Successfully created data request config: {data_request_config_file}")
     logging.info(f"Data request contains {len(data_request)} data groups")
 
-    # Build simulation parameters
+
+    zarr_store_path = ""
+#% if hiopy.storage_backend == 's3':
+    import fsspec
+    zarr_store_path = "%{hiopy.storage.s3.bucket}/%{hiopy.relative_path_to_dataset}"
+    fs = fsspec.filesystem("s3",
+                            key=os.environ["S3_KEY"],
+                            secret=os.environ["S3_SECRET"],
+                            endpoint_url="%{hiopy.storage.s3.endpoint_url}",
+                            asynchronous=True)
+    store = zarr.storage.FsspecStore(fs=fs, path=zarr_store_path)
+    dataset = zarr.open_group(store=store, zarr_format=3, mode="w")
+#% else:
+    zarr_store_path = "%{DATA_DIR}/%{hiopy.relative_path_to_dataset}"
+    dataset = zarr.open_group(zarr_store_path, zarr_format=3, mode="a")
+#% endif
+    logging.info(f"Initialized zarr store at {zarr_store_path}")
+
     simulation_params = {
-        "dataset_path": os.path.join('%{DATA_DIR}', '%{hiopy.relative_path_to_dataset}'),
         "start_date": '%{INITIAL_DATE}',
         "end_date": '%{FINAL_DATE}',
         "simulated_hours_per_chunk": %{hiopy.simulated_hours_per_chunk|d(24)|int},
@@ -81,12 +98,11 @@ try:
     var_names_dict = {}
     #%  endif
 
-    logging.info(f"Initializing zarr dataset at: {simulation_params['dataset_path']}")
     logging.info(f"Simulation period: {simulation_params['start_date']} to {simulation_params['end_date']}")
     #%  if hiopy.grid.type == "healpix":
-    init_hierarchial_dataset(data_request, simulation_params, var_names_dict)
+    init_hierarchial_dataset(dataset, data_request, simulation_params, var_names_dict)
     #%  else:
-    init_model_grid_dataset(data_request, simulation_params, var_names_dict)
+    init_model_grid_dataset(dataset, data_request, simulation_params, var_names_dict)
     #%  endif
     logging.info(f"Successfully initialized zarr dataset")
     sys.exit(0)

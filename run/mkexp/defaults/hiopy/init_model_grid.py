@@ -20,7 +20,10 @@ import zarr
 
 
 def init_data_request(
-    data_request: dict, simulation_params: dict, dict_of_names: dict
+    dataset: zarr.Group,
+    data_request: dict,
+    simulation_params: dict,
+    dict_of_names: dict,
 ):
     start = datetime.fromisoformat(simulation_params["start_date"])
     end = datetime.fromisoformat(simulation_params["end_date"])
@@ -31,9 +34,6 @@ def init_data_request(
             cname="zstd", clevel=6, shuffle=zarr.codecs.BloscShuffle.shuffle
         )
     }
-    dataset = zarr.open_group(
-        simulation_params["dataset_path"], zarr_format=3, mode="w"
-    )
 
     for data_group in data_request:
         try:
@@ -65,7 +65,7 @@ def init_data_request(
 
                 if "atm" in data_group or "land" in data_group:
                     group_name = f"{ts_needed}_{time_method}_atm"
-                if "ocean" in data_group or "hamocc" in data_group:
+                if "oce" in data_group or "hamocc" in data_group:
                     group_name = f"{ts_needed}_{time_method}_ocean"
 
                 zg = None
@@ -126,7 +126,6 @@ def init_data_request(
                     hours_per_chunk = int(total_simulated_hours)
 
                 time_chunk = int(hours_per_chunk * 60 * 60 / timestep_s)
-
                 chunk_shape = (time_chunk, cell_chunk)
 
                 is_3d = group_config.get("name_of_level", None)
@@ -153,7 +152,7 @@ def init_data_request(
                         sorted(group_config["levels"]),
                         collection_selection,
                     )
-                if "ocean" in hiopy_args["yac_source_comp"]:
+                if "oce" in hiopy_args["yac_source_comp"]:
                     if "ocean_frac_mask_sfc" not in zg:
                         hc.add_variable(
                             zg,
@@ -213,7 +212,7 @@ def init_data_request(
 
         except Exception as e:
             logging.error(
-                f"Store initialisation failed for {data_group} with error: {e}"
+                f"Store initialisation failed for {data_request[data_group]} with error: {e}"
             )
             raise e
 

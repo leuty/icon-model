@@ -75,9 +75,8 @@ def parse_data_request(user_data_request_config, time_aggs_needed, grid_info):
         ) or "variables" not in data_group:
             continue
 
-        require_full_hierarchy = (
-            True if grid_info["type"] == "healpix" else False
-        )
+        assert type(data_group["variables"]) == list
+
         grid_details = {}
         if grid_info["type"] == "healpix":
             grid_details = {

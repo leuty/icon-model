@@ -18,19 +18,24 @@
 #%  endfor
 echo "Hiopy configured with venv: %{hiopy.venv}, nr_of_workers: %{hiopy.nr_of_workers}, dataset path: %{hiopy.relative_path_to_dataset}, backend: %{hiopy.storage_backend}"
 
+## Run wrapper for the hiopy worker
+cat > run_hiopy.sh << 'EOF'
+#!/bin/sh
+source %{hiopy.venv}/bin/activate
+
+conditional_args=()
 #% if hiopy.storage_backend == 's3':
-zarr_store_path=%{hiopy.relative_path_to_dataset}
+zarr_store_path="%{hiopy.storage.s3.bucket}/%{hiopy.relative_path_to_dataset}"
+conditional_args+=(--s3-storage-options
+                   "{\"key\":\"${S3_KEY}\", \"secret\":\"${S3_SECRET}\", \"endpoint_url\":\"%{hiopy.storage.s3.endpoint_url}\"}"
+                  )
 #% else:
 zarr_store_path="%{DATA_DIR}/%{hiopy.relative_path_to_dataset}"
 #% endif
 
-## Run wrapper for the hiopy worker
-cat > run_hiopy.sh << EOF
-#!/bin/sh
-source %{hiopy.venv}/bin/activate
-hiopy-worker --zarr-store-protocol %{hiopy.storage_backend} \
-             --zarr-store-path %{DATA_DIR}/%{hiopy.relative_path_to_dataset} \
-             --nthreads %{threads_per_task}
+hiopy-worker --zarr-store-protocol "%{hiopy.storage_backend}" \
+             --zarr-store-path "${zarr_store_path}" \
+             --nthreads %{threads_per_task} "${conditional_args[@]}"
 EOF
 chmod 755 ./run_hiopy.sh
 
