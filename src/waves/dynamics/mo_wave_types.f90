@@ -144,8 +144,6 @@ MODULE mo_wave_types
       &  hmax(:,:),           & ! maximum wave height            (nproma,nblks_c) (m)
       &  Tmax(:,:),           & ! maximum wave period            (nproma,nblks_c) (s)
       !
-      &  kbar(:,:),           & ! Wavenumber for Breivik parametrisation (nproma,nblks_c) (1/m)
-      &  T_stokes(:,:),       & ! magnitude of Stokes transport (nproma,nblks_c)        (m^2/s)
       &  u3d_stokes(:,:,:),   & ! U-component of 3d Stokes drift (nproma,ndepths,nblks_c) (m/s)
       &  v3d_stokes(:,:,:),   & ! V-component of 3d Stokes drift (nproma,ndepths,nblks_c) (m/s)
       &  phioc(:,:),          & ! wave-to-ocean energy flux (nproma,nbkls_c) (kg/s^3)

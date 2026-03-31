@@ -28,7 +28,8 @@ MODULE mo_wave_diagnostics
   USE mo_kind,                ONLY: wp
   USE mo_fortran_tools,       ONLY: init
   USE mo_wave_constants,      ONLY: EMIN
-  USE mo_wave_stokes,         ONLY: stokes_profile_spectrum, stokes_profile_breivik
+  USE mo_wave_stokes,         ONLY: stokes_profile_spectrum, stokes_profile_breivik, &
+    &                               stokes_drift
 
   IMPLICIT NONE
 
@@ -201,8 +202,6 @@ CONTAINS
 
     ! vertical profile
     IF (ASSOCIATED(p_diag%last_idx_depth) .AND. &
-      & ASSOCIATED(p_diag%kbar)           .AND. &
-      & ASSOCIATED(p_diag%T_stokes)       .AND. &
       & ASSOCIATED(p_diag%u3d_stokes)     .AND. &
       & ASSOCIATED(p_diag%v3d_stokes)) THEN
 
@@ -227,8 +226,6 @@ CONTAINS
           &                  wesd = wesd, &
           &              u_stokes = p_diag%u_stokes, & !
           &              v_stokes = p_diag%v_stokes, & !
-          &                  kbar = p_diag%kbar,     & ! OUT
-          &              T_stokes = p_diag%T_stokes, & ! OUT
           &            u3d_stokes = p_diag%u3d_stokes, & ! OUT
           &            v3d_stokes = p_diag%v3d_stokes)   ! OUT
       END IF
@@ -1137,106 +1134,5 @@ CONTAINS
 !$OMP END PARALLEL
 
   END SUBROUTINE mean_wave_direction_spread_sep
-
-
-  !>
-  !! Calculation of Stokes drift components
-  !!
-  !! Adaptation of WAM 4.5 code of the subroutine STOKES_DRIFT
-  !! developed by M.REISTAD, O.SAETRA, and H.GUNTHER
-  !!
-  !! References:
-  !! Kern E. Kenyon, JGR, Vol 74 NO 28, 1969
-  !! O. Breivik, J.-R. Bidlot & P. Janssen, 2016 (high-frequency tail)
-  !!
-  SUBROUTINE stokes_drift(p_patch, wave_config, wave_num_c, depth, wesd, u_stokes, v_stokes)
-
-    CHARACTER(len=*), PARAMETER ::  &
-      &  routine = modname//':stokes_drift'
-
-    TYPE(t_patch),               INTENT(IN)    :: p_patch
-    TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
-    REAL(wp),                    INTENT(IN)    :: wave_num_c(:,:,:)  !< wave number (1/m)
-    REAL(wp),                    INTENT(IN)    :: depth(:,:)
-    TYPE(t_wesd),                INTENT(IN)    :: wesd(:)            !< energy spectral bins
-    REAL(wp),                    INTENT(INOUT) :: u_stokes(:,:)
-    REAL(wp),                    INTENT(INOUT) :: v_stokes(:,:)
-
-    TYPE(t_wave_config), POINTER :: wc => NULL()
-
-    REAL(wp) :: ak, akd, fact
-    REAL(wp) :: si(nproma), ci(nproma)
-
-    INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
-    INTEGER :: i_startidx, i_endidx
-    INTEGER :: jc,jb,jf,jd
-
-    wc => wave_config
-
-    i_rlstart  = 1
-    i_rlend    = min_rlcell
-    i_startblk = p_patch%cells%start_block(i_rlstart)
-    i_endblk   = p_patch%cells%end_block(i_rlend)
-
-!$OMP PARALLEL
-    CALL init(u_stokes, lacc=.FALSE.)
-    CALL init(v_stokes, lacc=.FALSE.)
-!$OMP BARRIER
-!$OMP DO PRIVATE(jb,jc,jf,jd,i_startidx,i_endidx,ak,akd,si,ci,fact) ICON_OMP_DEFAULT_SCHEDULE
-    DO jb = i_startblk, i_endblk
-      CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,           &
-           &                 i_startidx, i_endidx, i_rlstart, i_rlend)
-
-      ! initialisation of si, ci
-      DO jc = i_startidx, i_endidx
-        si(jc) = 0._wp
-        ci(jc) = 0._wp
-      END DO
-
-      freqs:DO jf = 1,wc%nfreqs
-        DO jd = 1, wc%ndirs
-          DO jc = i_startidx, i_endidx
-            si(jc) = si(jc) + wesd(jf)%ptr(jc,jd,jb) * wc%sin_dir(jd)
-            ci(jc) = ci(jc) + wesd(jf)%ptr(jc,jd,jb) * wc%cos_dir(jd)
-          END DO
-        END DO
-
-        DO jc = i_startidx, i_endidx
-          ak = wave_num_c(jc,jf,jb)
-          akd = ak * depth(jc,jb)
-          fact = 2._wp*grav*ak**2/(pi2*wc%freqs(jf)*TANH(2._wp*akd)) * wc%DFIM(jf)
-          si(jc) = fact * si(jc)
-          ci(jc) = fact * ci(jc)
-          u_stokes(jc,jb) = u_stokes(jc,jb) + si(jc)
-          v_stokes(jc,jb) = v_stokes(jc,jb) + ci(jc)
-        END DO
-
-      END DO freqs
-
-      ! Addition of HF tail following Breivik (2016)
-      DO jc = i_startidx, i_endidx
-        si(jc)  = 0._wp
-        ci(jc)  = 0._wp
-      ENDDO
-
-      DO jd = 1, wc%ndirs
-        DO jc = i_startidx, i_endidx
-          si(jc) = si(jc) + 2._wp*wesd(wc%nfreqs)%ptr(jc,jd,jb) * wc%sin_dir(jd) *  &
-                          &  wave_num_c(jc,wc%nfreqs,jb) * pi2*wc%freqs(wc%nfreqs)**2
-          ci(jc) = ci(jc) + 2._wp*wesd(wc%nfreqs)%ptr(jc,jd,jb) * wc%cos_dir(jd) *  &
-                          &  wave_num_c(jc,wc%nfreqs,jb) * pi2*wc%freqs(wc%nfreqs)**2
-        END DO
-      END DO
-
-      DO jc = i_startidx, i_endidx
-        u_stokes(jc,jb) = u_stokes(jc,jb) + si(jc)
-        v_stokes(jc,jb) = v_stokes(jc,jb) + ci(jc)
-      END DO
-
-    END DO
-!$OMP ENDDO NOWAIT
-!$OMP END PARALLEL
-
-  END SUBROUTINE stokes_drift
 
 END MODULE mo_wave_diagnostics

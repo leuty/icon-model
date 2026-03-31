@@ -25,8 +25,6 @@ MODULE mo_wave_io_config
      !
      ! diagnostics for Stokes drift vertical profile
      LOGICAL :: last_idx_depth = .FALSE. !< Flag. TRUE if the storage is required
-     LOGICAL :: kbar           = .FALSE. ! --//--
-     LOGICAL :: T_stokes       = .FALSE. ! --//--
      LOGICAL :: u3d_stokes     = .FALSE. ! --//--
      LOGICAL :: v3d_stokes     = .FALSE. ! --//--
      LOGICAL :: tauoc_x        = .FALSE. ! --//--
@@ -56,8 +54,6 @@ CONTAINS
     ! diagnostics for Stokes drift vertical profile and wave-to-ocean fluxes
     DO jg=1,n_dom
       wave_var_in_output(jg)%last_idx_depth = is_variable_in_output_dom(var_name="last_idx_depth", jg=jg)
-      wave_var_in_output(jg)%kbar           = is_variable_in_output_dom(var_name="kbar"          , jg=jg)
-      wave_var_in_output(jg)%T_stokes       = is_variable_in_output_dom(var_name="T_stokes"      , jg=jg)
       wave_var_in_output(jg)%u3d_stokes     = is_variable_in_output_dom(var_name="u3d_stokes"    , jg=jg)
       wave_var_in_output(jg)%v3d_stokes     = is_variable_in_output_dom(var_name="v3d_stokes"    , jg=jg)
       wave_var_in_output(jg)%tauoc_x        = is_variable_in_output_dom(var_name="tauoc_x"       , jg=jg)

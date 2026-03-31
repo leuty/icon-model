@@ -515,8 +515,6 @@ CONTAINS
     &       p_diag%u_stokes, &
     &       p_diag%v_stokes, &
     &       p_diag%last_idx_depth, &
-    &       p_diag%kbar, &
-    &       p_diag%T_stokes, &
     &       p_diag%u3d_stokes, &
     &       p_diag%v3d_stokes, &
     &       p_diag%steepness, &
@@ -1195,8 +1193,6 @@ CONTAINS
 
 
     IF (var_in_output%last_idx_depth .OR. &
-      & var_in_output%kbar           .OR. &
-      & var_in_output%T_stokes       .OR. &
       & var_in_output%u3d_stokes     .OR. &
       & var_in_output%v3d_stokes)   THEN
 
@@ -1209,20 +1205,6 @@ CONTAINS
       CALL add_var(p_diag_list, 'last_idx_depth', p_diag%last_idx_depth, &
            & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,    &
            & lrestart=.FALSE., loutput=.TRUE.,                           &
-           & ldims=shape2d_c)
-
-      cf_desc    = t_cf_var('kbar', 'm-1', 'Breivik wavenumber', datatype_flt)
-      grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
-      CALL add_var(p_diag_list, 'kbar', p_diag%kbar,                  &
-           & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
-           & lrestart=.FALSE., loutput=.TRUE.,                        &
-           & ldims=shape2d_c)
-
-      cf_desc    = t_cf_var('T_stokes', 'm2s-1', 'Magnitude of Stokes transport', datatype_flt)
-      grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
-      CALL add_var(p_diag_list, 'T_stokes', p_diag%T_stokes,          &
-           & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
-           & lrestart=.FALSE., loutput=.TRUE.,                        &
            & ldims=shape2d_c)
 
       cf_desc    = t_cf_var('u3d_stokes', 'ms-1', 'U-component of 3d Stokes drift', datatype_flt)
