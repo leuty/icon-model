@@ -82,6 +82,7 @@
   - Added interactive nitrogen and phosphorus flags in soil biogeochemistry
   - Remove QUINCY code parts not required in ICON-Land
   - Fix minor diagnostic issue when restarting using IQJ configuration
+  - Code cleanup removing depricated QUINCY SPP1685 project code
 - Cleaned up the use of mo_util_string routines
 - Refactored the calculation of global diagnostics and ported to GPU
 - Added a script to process ERA5 data into ICON-Land standalone forcing
