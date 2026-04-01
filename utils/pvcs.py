@@ -361,6 +361,8 @@ DEFINE_STRING_GETTER(GLUE(LANG_PREFIX, compiler_secondary_version))
 #endif
 """
 
+ICON_NAME = "icon"
+
 
 def run_cmd(*args, **kwargs):
     input_string = kwargs.get("input_string", None)
@@ -552,7 +554,7 @@ def apply_element_template(name, path, version_summary):
     )
 
 
-def generate_version_c(srcdir=None, subdirs=None, stream=None):
+def generate_version_c(srcdir=None, bundled_srcdirs=None, stream=None):
     srcdir = os.path.abspath(srcdir) if srcdir else os.getcwd()
 
     icon_version_summary = {}
@@ -564,33 +566,34 @@ def generate_version_c(srcdir=None, subdirs=None, stream=None):
     version_c_lines = [
         HEADER,
         apply_element_template(
-            "icon",
+            ICON_NAME,
             srcdir,
             icon_version_summary,
         ),
     ]
 
-    subdir_repos = []
-    if subdirs:
-        subdir_repos.extend(
-            (
-                # It might lead to name collisions in the future but currently we simply
-                # use the basename as the subdirectory name:
-                os.path.basename(subdir).lower(),
-                os.path.join(srcdir, subdir),
-            )
-            for subdir in subdirs
-        )
+    if bundled_srcdirs:
+        for bundled_name_path in bundled_srcdirs:
+            bundled_name_path_split = bundled_name_path.split(":", 1)
+            if len(bundled_name_path_split) > 1:
+                path = bundled_name_path_split[1]
+                name = bundled_name_path_split[0]
+            else:
+                path = bundled_name_path_split[0]
+                name = os.path.basename(path).lower()
 
-    for name, path in subdir_repos:
-        # The path might not be a git submodule. We assume that there are no .git
-        # directories in between path and srcdir:
-        version_summary = icon_version_summary
-        if is_repo_root(path):
-            version_summary = get_version_summary(path)
-        version_c_lines.append(
-            apply_element_template(name, path, version_summary)
-        )
+            assert (
+                name != ICON_NAME
+            ), "Bundled library name cannot be '{0}'".format(ICON_NAME)
+
+            # The path might not be a git submodule. We assume that there are no .git
+            # directories in between path and srcdir:
+            version_summary = icon_version_summary
+            if is_repo_root(path):
+                version_summary = get_version_summary(path)
+            version_c_lines.append(
+                apply_element_template(name, path, version_summary)
+            )
 
     version_c_lines.append(FOOTER)
 
@@ -619,15 +622,16 @@ def _parse_args():
 
     parser.add_argument(
         "--srcdir",
-        metavar="SRCDIR",
-        help="root source directory of ICON (default: %(default)s)",
+        help="path to the root source directory of ICON (default: %(default)s)",
         default=".",
     )
     parser.add_argument(
-        "--subdirs",
-        metavar="SUBDIR",
-        help="relative (to SRCDIR) paths to git submodules to collect the version "
-        "information for",
+        "--bundled-srcdirs",
+        help="paths to the root source directories of the ICON bundled libraries; each "
+        "path can be optinally prepended with a string followed by a colon (:), which "
+        "will be used as the ID (name) of the repository in the generated C file; if "
+        "no repository name is provided, it will be set to the basename (in lowercase) "
+        "of the specified directory",
         nargs="*",
     )
     parser.add_argument(
@@ -648,13 +652,15 @@ def _main():
 
     if not args.output:
         generate_version_c(
-            srcdir=args.srcdir, subdirs=args.subdirs, stream=sys.stdout
+            srcdir=args.srcdir,
+            bundled_srcdirs=args.bundled_srcdirs,
+            stream=sys.stdout,
         )
     elif not os.path.exists(args.output):
         with open(args.output, "w") as version_c_stream:
             generate_version_c(
                 srcdir=args.srcdir,
-                subdirs=args.subdirs,
+                bundled_srcdirs=args.bundled_srcdirs,
                 stream=version_c_stream,
             )
     else:
@@ -663,7 +669,7 @@ def _main():
         version_c_string_stream = io.StringIO()
         generate_version_c(
             srcdir=args.srcdir,
-            subdirs=args.subdirs,
+            bundled_srcdirs=args.bundled_srcdirs,
             stream=version_c_string_stream,
         )
         version_c_content = version_c_string_stream.getvalue()

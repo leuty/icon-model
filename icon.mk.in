@@ -99,22 +99,23 @@ LIBS:= @LIBS@
 # Common infix for all preprocessed files:
 pp_infix:= .pp-
 
-# Auxiliary function. Receives a space-separated list of subdirectories inside
-# $(srcdir), a space-separated list of shell patterns and a space-separated
-# ignore list of subdirectories inside $(srcdir). Returns a space-separated list
-# of relative (with respect to $(srcdir)) paths to files residing in the given
-# subdirectories and matching at least one of the given patterns. Files residing
-# in subdirectories from the ignore list (i.e. the third argument) are ignored.
-# Files, as well as the second and higher order subdirectories, with names
-# starting with a dot are ignored. Files containing the preprocessor infix
-# '*$(pp_infix)*' are ignored. Duplicates are eliminated.
-find_files= $(sort $(patsubst $(srcdir)/%,%, \
-                $(shell find $(addprefix $(srcdir)/,$(1)) \
-                    \( $(foreach p,$(3),-path '$(srcdir)/$(p)' -o) \
+# Auxiliary function. Receives a base directory, a space-separated list of
+# subdirectories inside that base directory, a space-separated list of shell
+# patterns and a space-separated ignore list of subdirectories inside the base
+# directory. Returns a space-separated list of relative (with respect to the
+# base directory) paths to files residing in the given subdirectories and
+# matching at least one of the given patterns. Files residing in subdirectories
+# from the ignore list (i.e. the fourth argument) are ignored. Files, as well as
+# the second and higher order subdirectories, with names starting with a dot are
+# ignored. Files containing the preprocessor infix '*$(pp_infix)*' are ignored.
+# Duplicates are eliminated.
+find_files= $(sort $(patsubst $(1)/%,%, \
+                $(shell find $(addprefix $(1)/,$(2)) \
+                    \( $(foreach p,$(4),-path '$(1)/$(p)' -o) \
                         -name '.' -o -name '..' -o -name '.*' \) \
                     -prune -o \
                     \( \! \( -type d -o -name '*$(pp_infix)*' \) -a \
-                        \( $(foreach p,$(2),-name $(p) -o) -false \) \) \
+                        \( $(foreach p,$(3),-name $(p) -o) -false \) \) \
                     -print )))
 
 # Auxiliary function. Receives a space-separated list of make patterns and a
@@ -128,37 +129,37 @@ filter_notdir_patterns= $(foreach v,$(2),$(if $(filter $(1),$(notdir $(v))),$(v)
 filter_notdir_substring= $(foreach v,$(2),$(if $(findstring $(1),$(notdir $(v))),$(v)))
 
 # All source files:
-all_files:= $(call find_files,$(subdirs) $(test_subdir), \
+all_files:= $(call find_files,$(srcdir),$(subdirs) $(test_subdir), \
                 '*.f90' '*.inc' '*.incf' '*.c' '*.cu' '*.hip.cc',$(ignored_subdirs))
 
-# Relative (to $(srcdir)) paths to the root source directories of all extra
-# packages to be passed to the version provenance collection tool:
-PVCS_subdirs:= @icon_pvcs_subdirs@
+# Paths to the root source directories of all extra packages to be passed to the
+# version provenance collection tool:
+PVCS_bundled_srcdirs:= @icon_pvcs_bundled_srcdirs@
 
 # JSBACH sources (must be preprocessed with DSL4JSB):
 @JSBACH_ENABLED@JSBACH_subdir:= externals/jsbach/src
-@JSBACH_ENABLED@JSBACH_dsl_files:= $(call find_files,$(JSBACH_subdir),'*.f90')
-@JSBACH_ENABLED@PVCS_subdirs+= externals/jsbach
+@JSBACH_ENABLED@JSBACH_dsl_files:= $(call find_files,$(srcdir),$(JSBACH_subdir),'*.f90')
+@JSBACH_ENABLED@PVCS_bundled_srcdirs+= $(srcdir)/externals/jsbach
 
 # DACE sources:
 @DACE_ENABLED@DACE_subdir:= externals/dace_icon/src_for_icon
-@DACE_ENABLED@all_files+= $(call find_files,$(DACE_subdir),'*.f90' '*.inc' '*.incf' '*.c')
-@DACE_ENABLED@PVCS_subdirs+= externals/dace_icon
+@DACE_ENABLED@all_files+= $(call find_files,$(srcdir),$(DACE_subdir),'*.f90' '*.inc' '*.incf' '*.c')
+@DACE_ENABLED@PVCS_bundled_srcdirs+= $(srcdir)/externals/dace_icon
 
 # EMVORADO sources:
 @EMVORADO_ENABLED@EMVORADO_subdir:= externals/emvorado
-@EMVORADO_ENABLED@all_files+= $(call find_files,$(EMVORADO_subdir),'*.f90' '*.incf')
-@EMVORADO_ENABLED@PVCS_subdirs+= $(EMVORADO_subdir)
+@EMVORADO_ENABLED@all_files+= $(call find_files,$(srcdir),$(EMVORADO_subdir),'*.f90' '*.incf')
+@EMVORADO_ENABLED@PVCS_bundled_srcdirs+= $(srcdir)/$(EMVORADO_subdir)
 
 # ART sources:
 @ART_ENABLED@ART_subdir:= externals/art
-@ART_ENABLED@all_files+= $(call find_files,$(ART_subdir),'*.f90' '*.inc' '*.incf')
-@ART_ENABLED@PVCS_subdirs+= $(ART_subdir)
+@ART_ENABLED@all_files+= $(call find_files,$(srcdir),$(ART_subdir),'*.f90' '*.inc' '*.incf')
+@ART_ENABLED@PVCS_bundled_srcdirs+= $(srcdir)/$(ART_subdir)
 
 # MSGWAM sources:
 @MSGWAM_ENABLED@MSGWAM_subdir:= externals/msgwam
-@MSGWAM_ENABLED@all_files+= $(call find_files,$(MSGWAM_subdir),'*.f90')
-@MSGWAM_ENABLED@PVCS_subdirs+= $(MSGWAM_subdir)
+@MSGWAM_ENABLED@all_files+= $(call find_files,$(srcdir),$(MSGWAM_subdir),'*.f90')
+@MSGWAM_ENABLED@PVCS_bundled_srcdirs+= $(srcdir)/$(MSGWAM_subdir)
 
 # Fortran '.f90' source files:
 f90_files:= $(filter %.f90,$(all_files))
@@ -169,11 +170,13 @@ c_files:= $(filter %.c,$(all_files))
 # HIP '.hip.cc' source files:
 @HIP_ENABLED@hip_files:= $(filter %.hip.cc,$(all_files))
 
-# Relative paths to the directories with Fortran include files:
-inc_subdirs:= $(patsubst %/,%,$(sort $(dir $(filter %.inc %.incf,$(all_files)))))
+# Paths to the directories with Fortran include files:
+inc_dirs:= $(addprefix $(srcdir)/,$(patsubst %/,%,$(dir $(filter %.inc %.incf,$(all_files)))))
+# Eliminate duplicates:
+inc_dirs:= $(sort $(inc_dirs))
 
 # Extend Fortran compiler flags enabling the location of include files:
-make_FCFLAGS+= $(foreach d,$(inc_subdirs),@FC_INC_FLAG@$(srcdir)/$(d) @FC_INC_FLAG_PP_f90@$(srcdir)/$(d))
+make_FCFLAGS+= $(foreach d,$(inc_dirs),@FC_INC_FLAG@$(d) @FC_INC_FLAG_PP_f90@$(d))
 
 # Source files implementing test programs:
 test_prog_f90_files:= $(call filter_notdir_patterns,test_%,$(filter $(test_subdir)/%,$(f90_files)))
@@ -749,7 +752,7 @@ $(bundled_cmake_builddirs):
 # Version file generation rules:
 version.@OBJEXT@: config.h
 version.c: force-create-version
-	$(silent_GEN)$(PVCS) --srcdir $(srcdir) --output $@ --subdirs $(PVCS_subdirs)
+	$(silent_GEN)$(PVCS) --srcdir $(srcdir) --output $@ --bundled-srcdirs $(PVCS_bundled_srcdirs)
 
 # Directory creation rule:
 %/.dirstamp:

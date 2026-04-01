@@ -9,20 +9,16 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ---------------------------------------------------------------
 
-# Join all arguments using the separator given by the first argument, prefixing each with the second.
-# Usage: join_arr <sep> <prefix> <item0> <item1>...
+: "${ICON_DIR:?ICON_DIR must be defined before sourcing this script.}"
+
+# Join all arguments using the separator given by the first argument.
+# Usage: join_arr <sep> <item0> <item1>...
 function join_arr {
-  sep="$1"
-  prefix="$2"
-  shift 2
-  while (( $# > 1 )); do
-    echo -n "$prefix$1$sep"
-    shift
-  done
-  echo "$prefix$1"
+  local IFS="$1"; shift
+  printf '%s' "$*"
 }
 
-
+# ICON
 INLINE_LIST_ICON=(
   src/advection/mo_advection_utils.f90
   src/atm_phy_aes/mo_aes_thermo.f90
@@ -48,32 +44,38 @@ INLINE_LIST_ICON=(
   src/shared/mo_statistics.f90
   src/shared/mo_loopindices.f90
 )
+INLINE_LIST_ICON=("${INLINE_LIST_ICON[@]/#/${ICON_DIR}/}")
 
-INLINE_LIST_ICON+=(
+# ICONMATH
+INLINE_LIST_ICONMATH=(
   externals/iconmath/src/support/mo_math_utilities.F90
   externals/iconmath/src/support/mo_lib_loopindices.f90
 )
+INLINE_LIST_ICONMATH=("${INLINE_LIST_ICONMATH[@]/#/${ICON_DIR}/}")
 
-
+# ART
 INLINE_LIST_ART=(
   externals/art/aerosol_dynamics/mo_art_aerosol_utilities.f90
   externals/art/shared/mo_art_modes.f90
   externals/art/tools/mo_art_clipping.f90
 )
+INLINE_LIST_ART=("${INLINE_LIST_ART[@]/#/${ICON_DIR}/}")
 
-
+# DACE
 INLINE_LIST_DACE=(
   externals/dace_icon/src_for_icon/mo_physics.f90
 )
+INLINE_LIST_DACE=("${INLINE_LIST_DACE[@]/#/${ICON_DIR}/}")
 
-
+# ECRAD
 INLINE_LIST_ECRAD=(
   externals/ecrad/radiation/radiation_two_stream.F90
   externals/ecrad/radiation/radiation_liquid_optics_socrates.F90
   externals/ecrad/radiation/radiation_ice_optics_fu.F90
 )
+INLINE_LIST_ECRAD=("${INLINE_LIST_ECRAD[@]/#/${ICON_DIR}/}")
 
-
+# EMVORADO
 INLINE_LIST_EMVORADO=(
   externals/emvorado/src_emvorado/radar_gamma_functions_vec.f90
   externals/emvorado/src_emvorado/radar_mie_meltdegree.f90
@@ -85,9 +87,12 @@ INLINE_LIST_EMVORADO=(
   externals/emvorado/src_emvorado/radar_dmin_wetgrowth.f90
   externals/emvorado/src_iface_icon/radar_interface.f90
 )
+INLINE_LIST_EMVORADO=("${INLINE_LIST_EMVORADO[@]/#/${ICON_DIR}/}")
 
+# OCEAN
 INLINE_LIST_OCEAN=(
   externals/iconmath/src/support/mo_math_utilities.F90
   src/advection/mo_advection_utils.f90
   src/ocean/physics/mo_ocean_thermodyn.f90
 )
+INLINE_LIST_OCEAN=("${INLINE_LIST_OCEAN[@]/#/${ICON_DIR}/}")

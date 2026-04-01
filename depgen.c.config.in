@@ -7,6 +7,6 @@
 # See LICENSES/ for license information
 # SPDX-License-Identifier: BSD-3-Clause
 # ------------------------------------------
---src-root=@srcdir@
+--src-roots=@builddir@:@srcdir@
 --pp-enable
 --pp-eval-expr

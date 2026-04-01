@@ -68,10 +68,11 @@ FC='mpinfort'
 FCFLAGS="-USX -D__SX__=__NEC__ -I${HDF5_ROOT}/include -I${NETCDFF_ROOT}/include -I${ECCODES_ROOT}/include -fdiag-vector=0 -report-all -no-report-cg -traceback=verbose -O3 -mstack-arrays -msched-block -mvector-floating-divide-instruction -mvector-sqrt-instruction -floop-unroll-completely=8 -floop-unroll-completely-nest=8 -fcse-after-vectorization -mno-vector-fma -fno-associative-math"
 
 # Load list of inline files from DWD:
+ICON_DIR=${icon_dir}
 source "${icon_dir}/config/dwd/inlinelist.sh"
 
-ICON_FCFLAGS="-D__COMM_OPT__ -D__BLOCK_GET__ -D_RTTOV_ARCH_VECTOR -finline-functions -finline-file=$(join_arr : "${icon_dir}/" "${INLINE_LIST_EMVORADO[@]}" "${INLINE_LIST_ICON[@]}" "${INLINE_LIST_ART[@]}" "${INLINE_LIST_DACE[@]}")"
-ICON_ECRAD_FCFLAGS="-finline-functions -finline-file=$(join_arr : "${icon_dir}/" "${INLINE_LIST_ECRAD[@]}")"
+ICON_FCFLAGS="-D__COMM_OPT__ -D__BLOCK_GET__ -D_RTTOV_ARCH_VECTOR -finline-functions -finline-file=$(join_arr : "${INLINE_LIST_EMVORADO[@]}" "${INLINE_LIST_ICON[@]}" "${INLINE_LIST_ICONMATH[@]}" "${INLINE_LIST_ART[@]}" "${INLINE_LIST_DACE[@]}")"
+ICON_ECRAD_FCFLAGS="-finline-functions -finline-file=$(join_arr : "${INLINE_LIST_ECRAD[@]}")"
 ICON_FORTRAN_SUPPORT_FCFLAGS='-fpp'
 
 # We have two instances of SZIP in the software tree: the original one, which is
