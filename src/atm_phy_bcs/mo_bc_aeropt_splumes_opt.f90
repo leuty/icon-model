@@ -539,7 +539,7 @@ MODULE mo_bc_aeropt_splumes_opt
          jb                          ,& !< index for current block
          nb_sw                          !< number of bands in short wave
 
-    TYPE(datetime), POINTER      :: this_datetime
+    TYPE(datetime), INTENT(IN)   :: this_datetime
 
     REAL(wp), INTENT (IN)        :: &
          zf(nproma,klev),            & !< geometric height at full level [m]

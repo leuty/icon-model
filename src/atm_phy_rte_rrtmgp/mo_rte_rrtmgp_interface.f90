@@ -144,7 +144,7 @@ CONTAINS
          loland(:),                & !< land sea mask, land=.true.
          loglac(:)                   !< glacier mask, glacier=.true.
 
-    TYPE(datetime), POINTER ::  this_datetime !< actual time step
+    TYPE(datetime) ::  this_datetime !< actual time step
 
     REAL(WP),INTENT(IN)  :: &
          pcos_mu0(:),     & !< mu0 for solar zenith angle

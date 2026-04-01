@@ -16,7 +16,6 @@ MODULE mo_cloud_gas_profiles
   USE mo_kind,                 ONLY: wp
   USE mo_impl_constants,       ONLY: max_dom
   USE mo_run_config,           ONLY: ntracer
-  USE mo_parallel_config,      ONLY: nproma
   USE mo_aes_phy_config,       ONLY: aes_phy_config
   USE mo_aes_cov_config,       ONLY: aes_cov_config
   USE mo_aes_rad_config,       ONLY: aes_rad_config
@@ -171,7 +170,7 @@ CONTAINS
     !       at the surface and precipitation have no effect on the atmospheric mass.
     !       Therefore let let us use here the total air mass as dry air mass.
     !
-    TYPE(datetime),POINTER, INTENT(IN)  :: this_datetime !< actual time step
+    TYPE(datetime), INTENT(IN)  :: this_datetime !< actual time step
     REAL(wp), INTENT(INOUT) ::      &
     & xvmr_vap(kbdim,klev),         & !< water vapor mass in layer [kg/m2]
     & xvmr_co2(kbdim,klev),         & !< CO2 volume mixing ratio

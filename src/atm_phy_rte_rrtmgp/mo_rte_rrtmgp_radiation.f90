@@ -68,7 +68,7 @@ MODULE mo_rte_rrtmgp_radiation
   ! Prepares information for radiation call
 
     TYPE(t_patch),           INTENT(in) :: p_patch
-    TYPE(datetime), POINTER, INTENT(in) :: datetime_radiation, & !< date and time of radiative transfer calculation
+    TYPE(datetime), INTENT(in) :: datetime_radiation, & !< date and time of radiative transfer calculation
          &                                 current_datetime       !< current time step
     LOGICAL,                 INTENT(in) :: ltrig_rad !< .true. if SW radiative transfer calculation has
                                                      !< to be done at current time step
@@ -337,7 +337,7 @@ MODULE mo_rte_rrtmgp_radiation
     & loland(:),           & !< land mask
     & loglac(:)              !< glacier mask
 
-    TYPE(datetime), POINTER :: this_datetime !< actual time step
+    TYPE(datetime) :: this_datetime !< actual time step
 
     REAL(wp), INTENT(IN)    :: &
     & pcos_mu0(:),         & !< cosine of solar zenith angle
