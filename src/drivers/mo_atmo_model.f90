@@ -67,7 +67,7 @@ MODULE mo_atmo_model
   USE mo_dynamics_config,         ONLY: configure_dynamics, lmoist_thdyn
   USE mo_run_config,              ONLY: configure_run,                                        &
     &                                   ltimer, ltestcase,                                    &
-    &                                   ldynamics, ltransport,                                &
+    &                                   ldynamics, ltransport, lmsgwam,                       &
     &                                   nshift,                                               &
     &                                   num_lev,                                              &
     &                                   msg_level,                                            &
@@ -737,7 +737,7 @@ CONTAINS
     ! 12. Setup MS-GWaM
     !------------------------------------------------------------------
 
-    CALL setup_msgwam_interface(n_dom,p_patch(1:),'construct')
+    CALL setup_msgwam_interface(lmsgwam,n_dom,p_patch(1:),'construct')
 #endif
 
     !------------------------------------------------------------------
@@ -763,7 +763,7 @@ CONTAINS
 
 #ifdef __MSGWAM
     ! destruct MS-GWaM
-    CALL setup_msgwam_interface(n_dom,p_patch(1:),'destruct')
+    CALL setup_msgwam_interface(lmsgwam,n_dom,p_patch(1:),'destruct')
 #endif
 
 

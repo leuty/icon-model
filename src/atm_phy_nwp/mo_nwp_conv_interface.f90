@@ -48,6 +48,7 @@ MODULE mo_nwp_conv_interface
 #ifdef __MSGWAM
   USE mo_gw_source_config,     ONLY: gws_conv_config
   USE mo_setup_msgwam_interface, ONLY: p_msgwam
+  USE mo_cumaster,             ONLY: t_msgwam_fields
 #endif
 
   ! for stochastic convection
@@ -125,6 +126,7 @@ CONTAINS
     REAL(wp) :: z_ddspeed(nproma)                      !< maximum downdraft speed at the surface
 #ifdef __MSGWAM
     REAL(wp) :: z_heatchg_cgw(nproma,p_patch%nlev)     !< convective temperature tendency *cvd
+    TYPE(t_msgwam_fields) :: msgwam_fields
 #endif
 
     ! stochastic cloud ensemble variables:
@@ -268,7 +270,7 @@ CONTAINS
 !$OMP            z_dtdt,z_dtdt_sv,zk850,zk950,u850,u950,v850,v950,wfac,z_ddspeed,convfac,nconv, &
 !$OMP            iseed,presmean,umean,vmean,qvmean,tempmean,qhfl_avg,shfl_avg,l,jc2,jb2,area_norm, &
 #ifdef __MSGWAM
-!$OMP            z_heatchg_cgw, &
+!$OMP            z_heatchg_cgw,msgwam_fields, &
 #endif
 !$OMP            p_pres,p_u,p_v,p_qv,p_temp,p_qhfl_avg,p_shfl_avg,p_cloud_ensemble,ptr_spg), ICON_OMP_GUIDED_SCHEDULE
     DO jb = i_startblk, i_endblk
@@ -549,6 +551,23 @@ CONTAINS
         ELSE
           ptr_spg => NULL()   ! no stochastic perturbation of convection
         ENDIF
+#ifdef __MSGWAM
+        IF (lmsgwam(jg)) THEN
+          msgwam_fields%ktype_cgw => p_msgwam(jg)%ktype_cgw(:,jb)
+          msgwam_fields%kcbot_cgw => p_msgwam(jg)%mbas_con_cgw(:,jb)
+          msgwam_fields%kctop_cgw => p_msgwam(jg)%mtop_con_cgw(:,jb)
+          msgwam_fields%heat_cgw => p_msgwam(jg)%heat_cgw(:,:,jb)
+          msgwam_fields%tupd_cgw => p_msgwam(jg)%tupd_cgw(:,:,jb)
+          msgwam_fields%test_cgw => p_msgwam(jg)%test_1_cgw(:,:,jb)
+        ELSE
+          msgwam_fields%ktype_cgw => NULL()
+          msgwam_fields%kcbot_cgw => NULL()
+          msgwam_fields%kctop_cgw => NULL()
+          msgwam_fields%heat_cgw => NULL()
+          msgwam_fields%tupd_cgw => NULL()
+          msgwam_fields%test_cgw => NULL()
+        ENDIF
+#endif
 
         CALL cumastrn &
 &         (kidia  = i_startidx            , kfdia  = i_endidx               ,& !> IN
@@ -605,13 +624,9 @@ CONTAINS
 &          pcen     =    ptr_conv_tracer                                    ,& !! IN
 &          ptenrhoc =    ptr_conv_tracer_tend                               ,& !! OUT
 #ifdef __MSGWAM
-&          nsrc_cgw  =   gws_conv_config%n_source(jg)                       ,& !! IN
-&          ktype_cgw =   p_msgwam(jg)%ktype_cgw   (:,jb)                    ,& !! OUT
-&          kcbot_cgw =   p_msgwam(jg)%mbas_con_cgw(:,jb)                    ,& !! OUT
-&          kctop_cgw =   p_msgwam(jg)%mtop_con_cgw(:,jb)                    ,& !! OUT
-&          heat_cgw  =   p_msgwam(jg)%heat_cgw(:,:,jb)                      ,& !! OUT
-&          tupd_cgw  =   p_msgwam(jg)%tupd_cgw(:,:,jb)                      ,& !! OUT
-&          test_cgw  =   p_msgwam(jg)%test_1_cgw(:,:,jb)                    ,& !! OUT
+&          nsrc_cgw      = gws_conv_config%n_source(jg)                     ,& !! IN
+&          msgwam_fields = msgwam_fields                                    ,& !! IN
+&          lmsgwam       = lmsgwam(jg)                                      ,& !! IN
 #endif
 &          l_lpi  =      lcompute_lpi                                       ,& !! IN
 &          l_lfd  =      lcompute_lfd                                       ,& !! IN
