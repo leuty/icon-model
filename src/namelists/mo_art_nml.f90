@@ -45,6 +45,7 @@ MODULE mo_art_nml
   INTEGER :: iart_init_gas(1:max_dom)           !< Initialization of gaseous species
   INTEGER :: iart_fplume             !< run FPlume model (Volcanic Plumes)
   INTEGER :: iart_volc_numb          !< number of volcanoes
+  INTEGER :: iart_solvar_type        !< type of solar variability
   CHARACTER(LEN=IART_PATH_LEN)  :: cart_fplume_inp
                                      !< path to FPlume input files (use without file extension)
   LOGICAL :: lart_diag_out           !< Enable output of diagnostic fields
@@ -164,7 +165,8 @@ MODULE mo_art_nml
    &                cart_chemtracer_xml, cart_mecca_xml, cart_aerosol_xml,              &
    &                cart_modes_xml, cart_pntSrc_xml, cart_diagnostics_xml,              &
    &                lart_psc, cart_coag_xml, cart_aero_emiss_xml, cart_opt_props_nc,    &
-   &                cart_type_sedim, lart_debugRestart, radioact_maxtint, irad_multicall
+   &                cart_type_sedim, lart_debugRestart, radioact_maxtint,               &
+   &                irad_multicall, iart_solvar_type
 
 CONTAINS
   !-------------------------------------------------------------------------
@@ -207,6 +209,7 @@ CONTAINS
     cart_io_suffix(1:max_dom)  = 'grid-number'
     iart_fplume                = 0
     iart_volc_numb             = 0
+    iart_solvar_type           = 1    ! fixed from input file FJX_spec.dat
     cart_fplume_inp            = ''
 
     ! Atmospheric Chemistry (Details: cf. Tab. 2.2 ICON-ART User Guide)
@@ -409,6 +412,7 @@ CONTAINS
       art_config(jg)%cart_io_suffix       = TRIM(cart_io_suffix(jg))
       art_config(jg)%iart_fplume          = iart_fplume
       art_config(jg)%iart_volc_numb       = iart_volc_numb
+      art_config(jg)%iart_solvar_type     = iart_solvar_type
       art_config(jg)%cart_fplume_inp      = TRIM(cart_fplume_inp)
 
       ! Atmospheric Chemistry (Details: cf. Tab. 2.2 ICON-ART User Guide)
