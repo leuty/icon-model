@@ -12,6 +12,13 @@ This guide assumes some knowledge on git and the linux operating system. If that
 Check our [Frequently Answered Questions section](ref_buildrun_faq) in case you have troubles while handling ICON, or you are simply curious.
 :::
 
+```{button-link} https://exchange.icon-model.org
+:color: primary
+:expand:
+:outline:
+Discuss with the ICON Community on exchange.icon-model.org
+```
+
 (ref_gettingstarted_obtaining)=
 ## Obtaining the Code
 

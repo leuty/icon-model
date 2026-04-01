@@ -119,6 +119,11 @@ html_theme_options = {
     "footer_start": ["imprint", "copyright", "sphinx-version"],
     "icon_links": [
         {
+            "name": "icon-exchange",
+            "url": "https://exchange.icon-model.org",
+            "icon": "fa-brands fa-discourse",
+        },
+        {
             "name": "icon-model.org",
             "url": "https://icon-model.org",
             "icon": "fas fa-home",
