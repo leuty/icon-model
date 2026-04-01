@@ -84,6 +84,7 @@
   - Fix minor diagnostic issue when restarting using IQJ configuration
   - Code cleanup removing depricated QUINCY SPP1685 project code
   - Bugfix in soil nutrient vertical transport
+  - Fix multiple issues in soil biogeochemistry langmuir kinetics
 - Cleaned up the use of mo_util_string routines
 - Refactored the calculation of global diagnostics and ported to GPU
 - Added a script to process ERA5 data into ICON-Land standalone forcing
