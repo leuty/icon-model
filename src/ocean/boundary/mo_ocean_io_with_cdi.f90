@@ -165,8 +165,8 @@ CONTAINS
 
     ! read and initialize ICON prognostic fields
     !
-    CALL read_dwdfg_oce(patch_3d%p_patch_2D(:), inputInstructions, ocean_state, params_oce, p_sea_ice, read_initicono)
-    IF(lread_ana_oce) CALL read_dwdana_oce(patch_3d%p_patch_2D(:), inputInstructions, ocean_state, p_sea_ice, read_initicono)
+    CALL read_dwdfg_oce(patch_3d, patch_3d%p_patch_2D(:), inputInstructions, ocean_state, params_oce, p_sea_ice, read_initicono)
+    IF(lread_ana_oce) CALL read_dwdana_oce(patch_3d, patch_3d%p_patch_2D(:), inputInstructions, ocean_state, p_sea_ice, read_initicono)
 
     CALL deallocate_initicono(initicono)
 
@@ -363,7 +363,8 @@ CONTAINS
   END SUBROUTINE construct_initicono
 
   ! Read the data from the first-guess file.
-  SUBROUTINE read_dwdfg_oce(p_patch, inputInstructions, ocean_state, params_oce, p_sea_ice, read_initicono)
+  SUBROUTINE read_dwdfg_oce(patch_3d, p_patch, inputInstructions, ocean_state, params_oce, p_sea_ice, read_initicono)
+    TYPE(t_patch_3d ),TARGET, INTENT(inout) :: patch_3d
     TYPE(t_patch), INTENT(INOUT) :: p_patch(:)
     TYPE(t_readInstructionListPtr) :: inputInstructions(n_dom)
     TYPE(t_hydro_ocean_state), INTENT(INOUT) :: ocean_state(:)
@@ -427,7 +428,7 @@ CONTAINS
     END DO
 
     ! Fetch the input DATA from the request list.
-    CALL fetch_dwdfg_oce(requestList, ocean_state, params_oce, inputInstructions, read_initicono)
+    CALL fetch_dwdfg_oce(patch_3d, requestList, ocean_state, params_oce, inputInstructions, read_initicono)
     CALL fetch_dwdfg_seaice(requestList, p_sea_ice, inputInstructions, read_initicono)
 
     ! Cleanup.
@@ -436,7 +437,8 @@ CONTAINS
   END SUBROUTINE read_dwdfg_oce
 
   ! Read data from analysis files.
-  SUBROUTINE read_dwdana_oce(p_patch, inputInstructions, ocean_state, p_sea_ice, read_initicono)
+  SUBROUTINE read_dwdana_oce(patch_3d, p_patch, inputInstructions, ocean_state, p_sea_ice, read_initicono)
+    TYPE(t_patch_3d),TARGET, INTENT(inout) :: patch_3d
     TYPE(t_patch), INTENT(INOUT) :: p_patch(:)
     TYPE(t_readInstructionListPtr) :: inputInstructions(n_dom)
     TYPE(t_hydro_ocean_state), INTENT(INOUT), TARGET :: ocean_state(:)
@@ -534,7 +536,7 @@ CONTAINS
     SELECT CASE(init_mode_oce)
       CASE(MODE_DWDANA_OCE, MODE_IAU_OCE)
         IF(lread_ana_oce) THEN
-          CALL fetch_dwdana_oce(requestList, ocean_state, initicono, inputInstructions, read_initicono)
+          CALL fetch_dwdana_oce(patch_3d, requestList, ocean_state, initicono, inputInstructions, read_initicono)
           CALL fetch_dwdana_seaice(requestList, p_sea_ice, initicono, inputInstructions, read_initicono)
         ENDIF
         IF(init_mode_oce .EQ. MODE_IAU_OCE ) THEN

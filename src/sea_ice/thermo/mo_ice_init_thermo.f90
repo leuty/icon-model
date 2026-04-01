@@ -38,7 +38,7 @@ MODULE mo_ice_init_thermo
     &                               init_analytic_hs_param, init_analytic_temp_under_ice, &
     &                               albi, albedoW_sim, initialize_seaice_fromfile, &
     &                               i_ice_therm, Tf
-  USE mo_ocean_nml,           ONLY: limit_seaice, seaice_limit
+  USE mo_ocean_nml,           ONLY: limit_seaice, seaice_limit, use_initicono
   USE mo_ocean_types,         ONLY: t_hydro_ocean_state
   USE mo_ocean_state,         ONLY: v_base, ocean_restart_list, ocean_default_list
   USE mo_var_list,            ONLY: add_var, t_var_list_ptr
@@ -115,37 +115,45 @@ CONTAINS
     ice% Tsurf(:,:,:)  = Tf
     ice% T1   (:,:,:)  = Tf
     ice% T2   (:,:,:)  = Tf
-    ice% conc (:,:,:)  = 0.0_wp
-
-    IF (initialize_seaice_fromfile) THEN
+    IF(use_initicono) THEN
       hi_max = seaice_limit * v_base%del_zlev_m(1)
-
-      CALL init_cell_2D_variable_fromFile(patch_3d, read_in, "seaice_hi_2D", has_missValue, missValue)
       IF (limit_seaice) THEN
-        ice%hi(:,1,:) = MIN(read_in(:,:),hi_max)
-      ELSE
-         ice%hi(:,1,:) = read_in(:,:)
+        ice%hi(:,1,:) = MIN(ice%hi(:,1,:),hi_max)
       ENDIF
-      CALL init_cell_2D_variable_fromFile(patch_3d, read_in, "seaice_hs_2D", has_missValue, missValue)
-      ice%hs(:,1,:) = read_in(:,:)
-      CALL init_cell_2D_variable_fromFile(patch_3d, read_in, "seaice_conc_2D", has_missValue, missValue)
-      ice%conc(:,1,:) = read_in(:,:)
-
     ELSE
-      ! Stupid initialisation trick for Levitus initialisation
-      IF (use_IceInitialization_fromTemperature) THEN
-        WHERE (p_os%p_prog(nold(1))%tracer(:,1,:,1) <= init_analytic_temp_under_ice .and. v_base%lsm_c(:,1,:) <= sea_boundary )
-          ice%hi(:,1,:)   = init_analytic_hi_param
-          ice%hs(:,1,:)   = init_analytic_hs_param
-          ice%conc(:,1,:) = init_analytic_conc_param
-        ENDWHERE
-      ! or constant initialization for ice, snow and concentration
+      ice% conc (:,:,:)  = 0.0_wp
+      IF (initialize_seaice_fromfile) THEN
+      ! hi, hs and conc already read in with initicon-o routine
+
+        hi_max = seaice_limit * v_base%del_zlev_m(1)
+
+        CALL init_cell_2D_variable_fromFile(patch_3d, read_in, "seaice_hi_2D", has_missValue, missValue)
+        IF (limit_seaice) THEN
+          ice%hi(:,1,:) = MIN(read_in(:,:),hi_max)
+        ELSE
+          ice%hi(:,1,:) = read_in(:,:)
+        ENDIF
+        CALL init_cell_2D_variable_fromFile(patch_3d, read_in, "seaice_hs_2D", has_missValue, missValue)
+        ice%hs(:,1,:) = read_in(:,:)
+        CALL init_cell_2D_variable_fromFile(patch_3d, read_in, "seaice_conc_2D", has_missValue, missValue)
+        ice%conc(:,1,:) = read_in(:,:)
+
       ELSE
-        WHERE (v_base%lsm_c(:,1,:) <= sea_boundary )
-          ice%hi(:,1,:)    = init_analytic_hi_param
-          ice%hs(:,1,:)    = init_analytic_hs_param
-          ice%conc(:,1,:)  = init_analytic_conc_param
-        ENDWHERE
+        ! Stupid initialisation trick for Levitus initialisation
+        IF (use_IceInitialization_fromTemperature) THEN
+          WHERE (p_os%p_prog(nold(1))%tracer(:,1,:,1) <= init_analytic_temp_under_ice .and. v_base%lsm_c(:,1,:) <= sea_boundary )
+            ice%hi(:,1,:)   = init_analytic_hi_param
+            ice%hs(:,1,:)   = init_analytic_hs_param
+            ice%conc(:,1,:) = init_analytic_conc_param
+          ENDWHERE
+        ! or constant initialization for ice, snow and concentration
+        ELSE
+          WHERE (v_base%lsm_c(:,1,:) <= sea_boundary )
+            ice%hi(:,1,:)    = init_analytic_hi_param
+            ice%hs(:,1,:)    = init_analytic_hs_param
+            ice%conc(:,1,:)  = init_analytic_conc_param
+          ENDWHERE
+        ENDIF
       ENDIF
     ENDIF
 

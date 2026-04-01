@@ -23,7 +23,8 @@ MODULE mo_ocean_initicono
   USE mo_impl_constants,          ONLY: max_ntracer
   USE mo_ocean_types,             ONLY: t_hydro_ocean_state
   USE mo_sea_ice_types,           ONLY: t_sea_ice
-  USE mo_ocean_nml,               ONLY: init_mode_oce, vert_cor_type
+  USE mo_ocean_nml,               ONLY: init_mode_oce, vert_cor_type, fillValue, &
+  &                                     n_zlev, fg_apply_fillValues
   USE mo_initicon_types,          ONLY: t_pi_tracer
   USE mtime,                      ONLY: datetime
   USE mo_run_config,              ONLY: ntracer
@@ -35,6 +36,9 @@ MODULE mo_ocean_initicono
   USE mo_fortran_tools,           ONLY: DO_DEALLOCATE, DO_PTR_DEALLOCATE
   USE mo_initicon_io,             ONLY: fetch3d, fetch3d_with_status, fetchSurface, t_fetchParams
   USE mo_ocean_physics_types,     ONLY: t_ho_params
+  USE mo_grid_subset,             ONLY: t_subset_range, get_index_range
+  USE mo_model_domain,            ONLY: t_patch_3d
+
   IMPLICIT NONE
   PRIVATE
 
@@ -286,7 +290,8 @@ MODULE mo_ocean_initicono
   !! Fetch the DWD first guess from the request list (ocean only)
   !! First guess (FG) is read for to, so, u, v (or vn), zos
   !! whereas DA output is read for to, so, u, v (or vn), zos
-  SUBROUTINE fetch_dwdfg_oce(requestList, ocean_state, params_oce, inputInstructions, read_initicono)
+  SUBROUTINE fetch_dwdfg_oce(patch_3d, requestList, ocean_state, params_oce, inputInstructions, read_initicono)
+    TYPE(t_patch_3d ),TARGET, INTENT(inout) :: patch_3d
     CLASS(t_InputRequestList), POINTER, INTENT(INOUT) :: requestList
     TYPE(t_hydro_ocean_state), INTENT(INOUT), TARGET :: ocean_state(:)
     TYPE(t_ho_params), INTENT(INOUT)              :: params_oce
@@ -307,39 +312,50 @@ MODULE mo_ocean_initicono
       !request the first guess fields (ocean only)
       IF(vert_cor_type .eq. 0) THEN
         CALL fetchSurface(params, 'zos', 1, ocean_state(1)%p_prog(nold(1))%h)
+        IF(fg_apply_fillValues) CALL add_missval_2d(patch_3d, ocean_state(1)%p_prog(nold(1))%h)
       ELSEIF(vert_cor_type .eq. 1) THEN
         CALL fetchSurface(params, 'zos', 1, ocean_state(1)%p_prog(nold(1))%eta_c)
+        IF(fg_apply_fillValues) CALL add_missval_2d(patch_3d, ocean_state(1)%p_prog(nold(1))%eta_c)
       ENDIF
       CALL fetchSurface(params, 'stretch_c', 1, ocean_state(1)%p_prog(nold(1))%stretch_c)
+      IF(fg_apply_fillValues) CALL add_missval_2d(patch_3d, ocean_state(1)%p_prog(nold(1))%stretch_c)
 
       !The following variables are read in even though they are in
       !the diagnostic group.
 
       CALL fetch3d_with_status(routine, 'dwdfg file', params, 'u', 1, ocean_state(1)%p_diag%u, lfound_u)
+      IF(lfound_u .AND. fg_apply_fillValues) CALL add_missval_3d(patch_3d, ocean_state(1)%p_diag%u)
       CALL fetch3d_with_status(routine, 'dwdfg file', params, 'v', 1, ocean_state(1)%p_diag%v, lfound_v)
+      IF(lfound_u .AND. fg_apply_fillValues) CALL add_missval_3d(patch_3d, ocean_state(1)%p_diag%v)
       CALL fetch3d_with_status(routine, 'dwdfg file', params, 'normal_velocity', 1, ocean_state(1)%p_prog(nold(1))%vn, &
                               & lfound_vn)
+
       CALL fetch3d_with_status(routine, 'dwdfg file', params, 'tke', 1, params_oce%vmix_params%tke, lfound_tke)
+      IF(lfound_tke .AND. fg_apply_fillValues) CALL add_missval_3d(patch_3d, params_oce%vmix_params%tke)
       my_ptr3d => ocean_state(1)%p_diag%SWPT
       CALL fetch3d_with_status(routine, 'dwdfg file', params, 'to', 1, my_ptr3d, lfound_to)
 
       IF(lfound_to) THEN
         to_var = 'to'
+        IF(fg_apply_fillValues) CALL add_missval_3d(patch_3d, ocean_state(1)%p_diag%SWPT)
       ELSE
         CALL fetch3d(params, 'SWPT', 1, my_ptr3d)
         to_var = 'SWPT'
+        IF(fg_apply_fillValues) CALL add_missval_3d(patch_3d, ocean_state(1)%p_diag%SWPT)
       ENDIF
+
       !GRIB files contain temperature in Kelvin but ICON-O wants degrees Celsius, conversion is done with a post-op
       IF(MAXVAL(ocean_state(1)%p_diag%SWPT) >= 100._wp) THEN
-        write(0,*) MAXVAL(ocean_state(1)%p_diag%SWPT)
-        call finish(routine, "Wrong temperature unit. Please check the naming of your temperature field in your input file.")
+        WRITE(0,*) MAXVAL(ocean_state(1)%p_diag%SWPT)
+        CALL finish(routine, "Wrong temperature unit. Please check the naming of your temperature field in your input file.")
       ENDIF
       ocean_state(1)%p_prog(nold(1))%tracer(:,:,:,1) = ocean_state(1)%p_diag%SWPT
 
       my_ptr3d => ocean_state(1)%p_prog(nold(1))%tracer(:,:,:,2)
       CALL fetch3d_with_status(routine, 'dwdfg file', params, 'so', 1, my_ptr3d, lfound_so)
+      IF(lfound_so .AND. fg_apply_fillValues) CALL add_missval_3d(patch_3d, my_ptr3d)
 
-  END SUBROUTINE fetch_dwdfg_oce
+    END SUBROUTINE fetch_dwdfg_oce
 
   !>
   !! Fetch DA-analysis DATA from the request list (ocean only)
@@ -348,7 +364,8 @@ MODULE mo_ocean_initicono
   !! are read (atmosphere only). The following full fields are read, if available:
   !! u, v, vn, to, so, zos, stretch_c
   !!
-  SUBROUTINE fetch_dwdana_oce(requestList, ocean_state, initicono, inputInstructions, read_initicono)
+  SUBROUTINE fetch_dwdana_oce(patch_3d, requestList, ocean_state, initicono, inputInstructions, read_initicono)
+    TYPE(t_patch_3d ),TARGET, INTENT(inout) :: patch_3d
     CLASS(t_InputRequestList), POINTER, INTENT(INOUT) :: requestList
     TYPE(t_hydro_ocean_state), INTENT(INOUT), TARGET :: ocean_state(:)
     TYPE(t_initicono_state), INTENT(INOUT), TARGET :: initicono(:)
@@ -386,9 +403,11 @@ MODULE mo_ocean_initicono
       IF(lHaveFg .AND. inputInstructions(1)%ptr%sourceOfVar(to_var) == kInputSourceAna) THEN
         CALL inputInstructions(1)%ptr%setSource(to_var, kInputSourceBoth)
       END IF
+      IF(fg_apply_fillValues) CALL add_missval_3d(patch_3d, my_ptr%to)
     ELSE
       my_ptr3d => ocean_state(1)%p_prog(nold(1))%tracer(:,:,:,1)
       CALL fetch3d_with_status(routine, 'dwdana file', params, to_var, 1, my_ptr3d, lfound_to)
+      IF(fg_apply_fillValues) CALL add_missval_3d(patch_3d, my_ptr3d)
     ENDIF
 
     IF ( init_mode_oce == MODE_IAU_OCE ) THEN
@@ -398,9 +417,11 @@ MODULE mo_ocean_initicono
       IF(lHaveFg .AND. inputInstructions(1)%ptr%sourceOfVar('so') == kInputSourceAna) THEN
         CALL inputInstructions(1)%ptr%setSource('so', kInputSourceBoth)
       END IF
+      IF(lfound_so .AND. fg_apply_fillValues) CALL add_missval_3d(patch_3d, my_ptr%so)
     ELSE
       my_ptr3d => ocean_state(1)%p_prog(nold(1))%tracer(:,:,:,2)
       CALL fetch3d_with_status(routine, 'dwdana file', params, 'so', 1, my_ptr3d, lfound_so)
+      IF(fg_apply_fillValues) CALL add_missval_3d(patch_3d, my_ptr3d)
     ENDIF
 
     IF ( init_mode_oce == MODE_IAU_OCE ) THEN
@@ -410,9 +431,11 @@ MODULE mo_ocean_initicono
       IF(lHaveFg .AND. inputInstructions(1)%ptr%sourceOfVar('u') == kInputSourceAna) THEN
         CALL inputInstructions(1)%ptr%setSource('u', kInputSourceBoth)
       END IF
+      IF(lfound_u .AND. fg_apply_fillValues) CALL add_missval_3d(patch_3d, my_ptr%u)
     ELSE
       my_ptr3d => ocean_state(1)%p_diag%u
       CALL fetch3d_with_status(routine, 'dwdana file', params, 'u', 1, my_ptr3d, lfound_u)
+      IF(fg_apply_fillValues) CALL add_missval_3d(patch_3d, my_ptr3d)
     ENDIF
 
     IF ( init_mode_oce == MODE_IAU_OCE ) THEN
@@ -422,9 +445,11 @@ MODULE mo_ocean_initicono
       IF(lHaveFg .AND. inputInstructions(1)%ptr%sourceOfVar('v') == kInputSourceAna) THEN
         CALL inputInstructions(1)%ptr%setSource('v', kInputSourceBoth)
       END IF
+      IF(lfound_v .AND. fg_apply_fillValues) CALL add_missval_3d(patch_3d, my_ptr%v)
     ELSE
       my_ptr3d => ocean_state(1)%p_diag%v
       CALL fetch3d_with_status(routine, 'dwdana file', params, 'v', 1, my_ptr3d, lfound_v)
+      IF(fg_apply_fillValues) CALL add_missval_3d(patch_3d, my_ptr3d)
     ENDIF
 
     IF ( init_mode_oce == MODE_IAU_OCE ) THEN
@@ -564,5 +589,50 @@ MODULE mo_ocean_initicono
     ENDIF
 
   END SUBROUTINE fetch_dwdana_seaice
+
+  SUBROUTINE add_missval_3d(patch_3d, var)
+
+   TYPE(t_patch_3d ) :: patch_3d
+   REAL(wp), INTENT(INOUT) :: var(:,:,:)
+   INTEGER :: blocks, idx, start_cell_index, end_cell_index, level
+   TYPE(t_subset_range), POINTER :: all_cells
+
+   CHARACTER(LEN = *), PARAMETER :: routine = modname//':add_missval_3d'
+
+    all_cells => patch_3d%p_patch_2d(1)%cells%ALL
+
+    DO blocks = all_cells%start_block, all_cells%end_block
+      CALL get_index_range(all_cells, blocks, start_cell_index, end_cell_index)
+      DO idx = start_cell_index, end_cell_index
+        DO level = patch_3d%p_patch_1d(1)%dolic_c(idx,blocks) + 1, n_zlev
+            var(idx,level,blocks) = fillValue
+        ENDDO
+      ENDDO
+    ENDDO
+
+  END SUBROUTINE add_missval_3d
+
+  SUBROUTINE add_missval_2d(patch_3d, var)
+
+   TYPE(t_patch_3d ) :: patch_3d
+   REAL(wp), INTENT(INOUT) :: var(:,:)
+   INTEGER :: blocks, idx, start_cell_index, end_cell_index
+   TYPE(t_subset_range), POINTER :: all_cells
+
+   CHARACTER(LEN = *), PARAMETER :: routine = modname//':add_missval2d'
+
+   all_cells => patch_3d%p_patch_2d(1)%cells%ALL
+
+   DO blocks = all_cells%start_block, all_cells%end_block
+     CALL get_index_range(all_cells, blocks, start_cell_index, end_cell_index)
+     DO idx = start_cell_index, end_cell_index
+       IF (patch_3d%p_patch_1d(1)%dolic_c(idx,blocks) .EQ. 0) THEN
+         var(idx,blocks) = fillValue
+       ENDIF
+     ENDDO
+   ENDDO
+
+  END SUBROUTINE add_missval_2d
+
 
 END MODULE mo_ocean_initicono

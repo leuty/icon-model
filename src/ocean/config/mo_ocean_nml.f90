@@ -979,6 +979,7 @@ MODULE mo_ocean_nml
   REAL(wp) :: initial_perturbation_max_ratio  = 0.05_wp
   LOGICAL  :: initialize_fromRestart = .false.
   LOGICAL  :: use_fillValue          = .false.         ! should _FillValue attribute be set
+  LOGICAL  :: fg_apply_fillValues = .false. !If initicon-o, add fillvalues after reading in. Only use at initialization from file without fillvalues
   LOGICAL  :: use_initicono = .false. !true if data assimilation is used or first guess file is read
   REAL(wp) :: dt_iau_oce = 0._wp !Time window for incr. analysis update
   REAL(wp) :: dt_ana_oce = 0._wp !Time window for assimilation cycle
@@ -1045,6 +1046,7 @@ MODULE mo_ocean_nml
     & initial_perturbation_max_ratio,  &
     & initialize_fromRestart     , &
     & use_fillValue              , &
+    & fg_apply_fillValues        , &
     & use_initicono              , &
     & dt_iau_oce                 , &
     & dt_ana_oce                 , &
