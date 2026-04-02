@@ -5912,7 +5912,7 @@ Scope: l_limited_area=.TRUE.
 * - (limarea_nml-init_latbc_from_fg)=
     **init_latbc_from_fg**
   - L
-  - .FALSE.
+  - .TRUE.
   -
   - If .TRUE., take lateral boundary conditions for initial time from first guess (or analysis) field
   - itype_latbc {math}`\ge` 1

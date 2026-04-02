@@ -109,7 +109,7 @@ CONTAINS
     latbc_boundary_grid = ""  ! empty string means: whole domain is read for lateral boundary
     latbc_varnames_map_file = " "
     latbc_contains_qcqi = .TRUE.
-    init_latbc_from_fg  = .FALSE.
+    init_latbc_from_fg  = .TRUE.
     nudge_hydro_pres    = .TRUE.
     fac_latbc_presbiascor = 0._wp
 
