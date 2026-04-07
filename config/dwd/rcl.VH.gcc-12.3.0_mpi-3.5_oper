@@ -96,7 +96,7 @@ FCFLAGS="-I${HDF5ROOT}/include -I${NETCDFFROOT}/include -I${rttov_root}/include/
 ICON_OCEAN_FCFLAGS='-D__LVECTOR__'
 ICON_OCEAN_PATH='src/hamocc:src/ocean:src/sea_ice'
 ICON_DACE_FCFLAGS='-fallow-argument-mismatch'
-ICON_DACE_PATH="externals/dace_icon"
+ICON_DACE_PATH="externals/dace"
 
 LDFLAGS='-add-gcc-rpath -shared-mpi'
 LIBS="${xml2_libs} ${fyaml_libs} ${eccodes_libs} ${rttov_libs} ${aocl_libs} ${netcdff_libs} ${netcdf_libs} ${hdf5_libs} ${zlib_libs} ${szip_libs} ${aec_libs} ${cxx_libs}"

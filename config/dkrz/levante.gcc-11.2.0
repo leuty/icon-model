@@ -104,7 +104,7 @@ ICON_BUNDLED_FCFLAGS="${common_extra_FCFLAGS} -std=f2008"
 ICON_ECRAD_FCFLAGS="${common_extra_FCFLAGS} -fallow-invalid-boz"
 
 ICON_DACE_FCFLAGS="${common_extra_FCFLAGS} -fallow-argument-mismatch"
-ICON_DACE_PATH='externals/dace_icon'
+ICON_DACE_PATH='externals/dace'
 
 LDFLAGS="-L${HDF5_ROOT}/lib -L${NETCDF_ROOT}/lib -L${NETCDFF_ROOT}/lib ${BLAS_LAPACK_LDFLAGS} -L${ECCODES_ROOT}/lib64 -L${FYAML_ROOT}/lib"
 LIBS="-Wl,--disable-new-dtags -Wl,--as-needed ${XML2_LIBS} ${FYAML_LIBS} ${ECCODES_LIBS} ${BLAS_LAPACK_LIBS} ${NETCDFF_LIBS} ${NETCDF_LIBS} ${HDF5_LIBS} ${ZLIB_LIBS} ${STDCPP_LIBS}"

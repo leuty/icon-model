@@ -74,10 +74,10 @@ ICON_MPICHVICTIMS_PATH='src/io/restart/mo_async_restart_comm_data.f90:src/io/res
 # The inconsistencies related to p_bcast_derivedtype cannot be tolerated using
 # selective mismatch flags:
 ICON_DACE_FCFLAGS="${non_libtool_FCFLAGS} ${full_mismatch_FCFLAGS}"
-ICON_DACE_PATH='externals/dace_icon'
+ICON_DACE_PATH='externals/dace'
 
 # The following files a victims of the inconsistent call to the nf_get_att_real
-# function in externals/dace_icon/src_for_icon/mo_iratlas.f90
+# function in externals/dace/fetch/src/src_for_icon/mo_iratlas.f90
 # (see https://gitlab.dkrz.de/dwd-sw/dace-icon-interface/-/merge_requests/8):
 ICON_DACEVICTIMS_FCFLAGS="${ICON_FCFLAGS} -wmismatch=nf_get_att_real"
 ICON_DACEVICTIMS_PATH='src/atm_dyn_iconam/mo_nh_stepping.f90:src/data_assimilation/interfaces/mo_icon2dace.f90:src/drivers/icon.f90:src/drivers/mo_atmo_model.f90:src/drivers/mo_atmo_nonhydrostatic.f90'

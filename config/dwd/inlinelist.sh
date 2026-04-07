@@ -63,9 +63,9 @@ INLINE_LIST_ART=("${INLINE_LIST_ART[@]/#/${ICON_DIR}/}")
 
 # DACE
 INLINE_LIST_DACE=(
-  externals/dace_icon/src_for_icon/mo_physics.f90
+  externals/dace/fetch/src/src_for_icon/mo_physics.f90
 )
-INLINE_LIST_DACE=("${INLINE_LIST_DACE[@]/#/${ICON_DIR}/}")
+INLINE_LIST_DACE=("${INLINE_LIST_DACE[@]/#/${PWD}/}")
 
 # ECRAD
 INLINE_LIST_ECRAD=(

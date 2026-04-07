@@ -122,6 +122,7 @@
 - Fix the configuration and building order of the bundled packages (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1162)
 - Configure YAC and YAXT in parallel when possible (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1198)
 - Fix usage of configure option --enable-async-io-rma=no (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/2035)
+- Fetch DACE from the private repository at build time when `--enable-dace`.
 
 #### Miscellaneous
 

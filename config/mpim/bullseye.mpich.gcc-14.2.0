@@ -60,7 +60,7 @@ ICON_OCEAN_FCFLAGS='-O3 -fno-tree-loop-vectorize -std=f2008 -fmodule-private'
 ICON_OCEAN_PATH='src/hamocc:src/ocean:src/sea_ice'
 
 ICON_DACE_FCFLAGS='-O2 -std=f2018 -fmodule-private'
-ICON_DACE_PATH='externals/dace_icon'
+ICON_DACE_PATH='externals/dace'
 
 ICON_ECRAD_FCFLAGS='-O2 -fmodule-private'
 

@@ -94,7 +94,6 @@ style:general:
     # TODO: we should check all ICON source files, as well as all source files
     # of the bundled libraries that are built as part of ICON:
     #   - externals/art
-    #   - externals/dace_icon
     #   - externals/emvorado
     #   - externals/jsbach
     #   - externals/msgwam

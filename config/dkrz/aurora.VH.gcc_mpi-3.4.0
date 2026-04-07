@@ -68,7 +68,7 @@ FCFLAGS="-I${HDF5_ROOT}/include -I${NETCDFF_ROOT}/include -I${ECCODES_ROOT}/incl
 ICON_FCFLAGS='-D__COMM_OPT__ -D__BLOCK_GET__ -D__NEC_VH__ -std=f2008 -fallow-argument-mismatch'
 
 ICON_DACE_FCFLAGS='-fallow-argument-mismatch'
-ICON_DACE_PATH='externals/dace_icon'
+ICON_DACE_PATH='externals/dace'
 
 ICON_OCEAN_FCFLAGS='-D__LVECTOR__'
 ICON_OCEAN_PATH='src/hamocc:src/ocean:src/sea_ice'

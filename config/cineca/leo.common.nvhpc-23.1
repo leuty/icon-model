@@ -72,7 +72,7 @@ CPPFLAGS="-I${MPI_ROOT}/include -I${HDF5_ROOT}/include -I${NETCDF_ROOT}/include 
 # The compiler fails to process some of the EMVORADO and DACE source files with
 # the default optimization level:
 ICON_WORKAROUND1_FCFLAGS="-O1 "
-ICON_WORKAROUND1_PATH='externals/dace_icon/src_for_icon/mo_rad.f90:src/data_assimilation/interfaces/radar_interface.f90'
+ICON_WORKAROUND1_PATH='externals/dace/fetch/src/src_for_icon/mo_rad.f90:src/data_assimilation/interfaces/radar_interface.f90'
 
 MPI_LAUNCH="${MPI_ROOT}/bin/mpirun ${LEO_GPU_MPIRUN_FLAGS}"
 

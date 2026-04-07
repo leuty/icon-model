@@ -72,7 +72,7 @@ ICON_OCEAN_FCFLAGS='-O3 -fno-tree-loop-vectorize -std=f2008'
 ICON_BUNDLED_FCFLAGS="${ICON_COMMON_FCFLAGS} -std=f2008"
 ICON_ECRAD_FCFLAGS="${ICON_COMMON_FCFLAGS} -fallow-invalid-boz"
 ICON_DACE_FCFLAGS="${ICON_COMMON_FCFLAGS} -fallow-argument-mismatch"
-ICON_DACE_PATH='externals/dace_icon'
+ICON_DACE_PATH='externals/dace'
 
 MPI_LAUNCH="${BUILDENV_ROOT}/${BUILDENV}/bin/mpiexec"
 

@@ -642,6 +642,8 @@ ICON_SCT_CFLAGS
 ICON_SCT_FCFLAGS
 ICON_ECRAD_FCFLAGS
 ICON_RTE_RRTMGP_FCFLAGS
+icon_dace_fetchstamp
+icon_dace_subdir
 ICON_CMAKE_EXCLUDE
 icon_pvcs_bundled_srcdirs
 BUNDLED_LIBFILES
@@ -1584,8 +1586,8 @@ Model Features:
                           calculations [default=yes]
   --enable-rttov          enable usage of the radiative transfer model for
                           TOVS [default=no]
-  --enable-dace           enable the DACE modules for data assimilation
-                          [default=no]
+  --enable-dace           enable the Data Assimilation Coding Environment
+                          (DACE) modules for data assimilation [default=no]
   --enable-emvorado       enable the radar forward operator EMVORADO
                           [default=no]
   --enable-art            enable the aerosols and reactive trace component ART
@@ -2438,54 +2440,6 @@ ac_abs_srcdir=$ac_abs_top_srcdir$ac_dir_suffix
 
 } # asx_srcdirs_fn
 
-acx_subdir_pre_adjust_config_args ()
-{
-if ${acx_subdir_pre_adjusted_config_args+:} false; then :
-
-else
-  acx_subdir_pre_adjusted_config_args=$ac_configure_args
-            eval "set dummy $acx_subdir_pre_adjusted_config_args"; shift
-   acx_subdir_pre_adjusted_config_args=
-   while test $# != 0; do
-     acx_tmp=$1
-     case $acx_tmp in #(
-  -cache-file|--cache-file|--cache-fil|--cache-fi|--cache-f|--cache-|--cache|--cach|--cac|--ca|--c| \
-                -srcdir|--srcdir|--srcdi|--srcd|--src|--sr| \
-                -prefix|--prefix|--prefi|--pref|--pre|--pr|--p) :
-    test 2 -gt $# || shift;  ;; #(
-  -cache-file=*|--cache-file=*|--cache-fil=*|--cache-fi=*|--cache-f=*|--cache-=*|--cache=*|--cach=*|--cac=*|--ca=*|--c=*| \
-                -srcdir=*|--srcdir=*|--srcdi=*|--srcd=*|--src=*|--sr=*| \
-                -prefix=*|--prefix=*|--prefi=*|--pref=*|--pre=*|--pr=*|--p=*| \
-                --config-cache|-C| \
-                -enable-option-checking|-enable-option-checking=*|--enable-option-checking|--enable-option-checking=*|-disable-option-checking|--disable-option-checking) :
-     ;; #(
-  *) :
-           case $acx_tmp in #(
-  *\'*) :
-    acx_tmp=`$as_echo "$acx_tmp" | sed "s/'/'\\\\\\\\''/g"` ;; #(
-  *) :
-     ;;
-esac
-        as_fn_append acx_subdir_pre_adjusted_config_args " '$acx_tmp'" ;;
-esac
-     shift
-   done
-            as_fn_append acx_subdir_pre_adjusted_config_args " '--disable-option-checking'"
-            if test "x$prefix" = xNONE; then :
-  acx_tmp="--prefix=$ac_default_prefix"
-else
-  acx_tmp="--prefix=$prefix"
-fi
-            case $acx_tmp in #(
-  *\'*) :
-    acx_tmp=`$as_echo "$acx_tmp" | sed "s/'/'\\\\\\\\''/g"` ;; #(
-  *) :
-     ;;
-esac
-            as_fn_append acx_subdir_pre_adjusted_config_args " '$acx_tmp'"
-fi
-} # acx_subdir_pre_adjust_config_args
-
 acx_subdir_pre_adjust_cmake_args_nocomps_noutils ()
 {
 if ${acx_subdir_pre_adjusted_cmake_args_nocomps_noutils+:} false; then :
@@ -2562,6 +2516,54 @@ fi
 
 fi
 } # acx_subdir_pre_adjust_cmake_args_nocomps_noutils
+
+acx_subdir_pre_adjust_config_args ()
+{
+if ${acx_subdir_pre_adjusted_config_args+:} false; then :
+
+else
+  acx_subdir_pre_adjusted_config_args=$ac_configure_args
+            eval "set dummy $acx_subdir_pre_adjusted_config_args"; shift
+   acx_subdir_pre_adjusted_config_args=
+   while test $# != 0; do
+     acx_tmp=$1
+     case $acx_tmp in #(
+  -cache-file|--cache-file|--cache-fil|--cache-fi|--cache-f|--cache-|--cache|--cach|--cac|--ca|--c| \
+                -srcdir|--srcdir|--srcdi|--srcd|--src|--sr| \
+                -prefix|--prefix|--prefi|--pref|--pre|--pr|--p) :
+    test 2 -gt $# || shift;  ;; #(
+  -cache-file=*|--cache-file=*|--cache-fil=*|--cache-fi=*|--cache-f=*|--cache-=*|--cache=*|--cach=*|--cac=*|--ca=*|--c=*| \
+                -srcdir=*|--srcdir=*|--srcdi=*|--srcd=*|--src=*|--sr=*| \
+                -prefix=*|--prefix=*|--prefi=*|--pref=*|--pre=*|--pr=*|--p=*| \
+                --config-cache|-C| \
+                -enable-option-checking|-enable-option-checking=*|--enable-option-checking|--enable-option-checking=*|-disable-option-checking|--disable-option-checking) :
+     ;; #(
+  *) :
+           case $acx_tmp in #(
+  *\'*) :
+    acx_tmp=`$as_echo "$acx_tmp" | sed "s/'/'\\\\\\\\''/g"` ;; #(
+  *) :
+     ;;
+esac
+        as_fn_append acx_subdir_pre_adjusted_config_args " '$acx_tmp'" ;;
+esac
+     shift
+   done
+            as_fn_append acx_subdir_pre_adjusted_config_args " '--disable-option-checking'"
+            if test "x$prefix" = xNONE; then :
+  acx_tmp="--prefix=$ac_default_prefix"
+else
+  acx_tmp="--prefix=$prefix"
+fi
+            case $acx_tmp in #(
+  *\'*) :
+    acx_tmp=`$as_echo "$acx_tmp" | sed "s/'/'\\\\\\\\''/g"` ;; #(
+  *) :
+     ;;
+esac
+            as_fn_append acx_subdir_pre_adjusted_config_args " '$acx_tmp'"
+fi
+} # acx_subdir_pre_adjust_config_args
 
 acx_subdir_extra_run_0 ()
 {
@@ -3846,7 +3848,7 @@ $as_echo "$as_me: WARNING: entry '$icon_fcgroup_entry' of the Fortran compile gr
      ;;
 esac
     icon_fcgroup_delayed_fetch=no
-    for icon_delayed_fetch_path in ; do
+    for icon_delayed_fetch_path in externals/dace; do
       case $icon_fcgroup_entry in #(
   "$icon_delayed_fetch_path"|"$icon_delayed_fetch_path/"*) :
     case $icon_fcgroup_entry in #(
@@ -4149,14 +4151,6 @@ if test "x$enable_jsbach" = xyes; then :
 fi
 fi
 
-if test "x$enable_dace" = xyes; then :
-  icon_subdir_srcdir="$srcdir/externals/dace_icon"
-   icon_subdir_unique_file="src_for_icon/mo_fdbk_tables.f90"
-   if test ! -r "$icon_subdir_srcdir/$icon_subdir_unique_file"; then :
-  as_fn_error $? "unable to find sources of the DACE modules for data assimilation ($icon_subdir_unique_file) in '$icon_subdir_srcdir': disable the component (--disable-dace)" "$LINENO" 5
-fi
-fi
-
 if test "x$enable_emvorado" = xyes; then :
   icon_subdir_srcdir="$srcdir/externals/emvorado"
    icon_subdir_unique_file="src_emvorado/radar_organize.f90"
@@ -4164,8 +4158,8 @@ if test "x$enable_emvorado" = xyes; then :
   as_fn_error $? "unable to find sources of the radar forward operator EMVORADO ($icon_subdir_unique_file) in '$icon_subdir_srcdir': disable the operator (--disable-emvorado)" "$LINENO" 5
 fi
    if test "x$enable_dace" = xno; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: the radar forward operator EMVORADO is enabled but the DACE modules for data assimilation are disabled: EMVORADO will not be able to produce the FEEDBACK (fdbk) files for data assimilation" >&5
-$as_echo "$as_me: WARNING: the radar forward operator EMVORADO is enabled but the DACE modules for data assimilation are disabled: EMVORADO will not be able to produce the FEEDBACK (fdbk) files for data assimilation" >&2;}
+  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: the radar forward operator EMVORADO is enabled but the Data Assimilation Coding Environment (DACE) modules for data assimilation are disabled: EMVORADO will not be able to produce the FEEDBACK (fdbk) files for data assimilation" >&5
+$as_echo "$as_me: WARNING: the radar forward operator EMVORADO is enabled but the Data Assimilation Coding Environment (DACE) modules for data assimilation are disabled: EMVORADO will not be able to produce the FEEDBACK (fdbk) files for data assimilation" >&2;}
 fi
 fi
 
@@ -10652,6 +10646,59 @@ BUNDLED_LIBFILES=''
 icon_pvcs_bundled_srcdirs=''
 
 
+
+if test "x$enable_dace" = xyes; then :
+                       acx_subdir_run_cmd_externals_dace_fetch="'${CMAKE}'"
+   acx_subdir_build_type_externals_dace_fetch='cmake'
+                                             acx_subdir_pre_adjust_cmake_args_nocomps_noutils
+      acx_subdir_run_args_externals_dace_fetch=$acx_subdir_pre_adjusted_cmake_args_nocomps_noutils
+         asx_srcdirs_fn "externals/dace/fetch"
+      acx_tmp="$ac_top_srcdir/externals/dace"
+      case $acx_tmp in #(
+  *\'*) :
+    acx_tmp=`$as_echo "$acx_tmp" | sed "s/'/'\\\\\\\\''/g"` ;; #(
+  *) :
+     ;;
+esac
+      as_fn_append acx_subdir_run_args_externals_dace_fetch " '$acx_tmp'"
+      as_fn_append extra_build_subdirs " externals/dace/fetch"
+   acx_subdir_run_externals_dace_fetch=yes
+   eval "set dummy $acx_subdir_run_args_externals_dace_fetch"; shift
+   acx_subdir_run_args_externals_dace_fetch=
+   while test $# != 0; do
+     acx_tmp=$1
+     case $acx_tmp in #(
+  -D*|--no-warn-unused-cli) :
+     ;; #(
+  *) :
+           case $acx_tmp in #(
+  *\'*) :
+    acx_tmp=`$as_echo "$acx_tmp" | sed "s/'/'\\\\\\\\''/g"` ;; #(
+  *) :
+     ;;
+esac
+        as_fn_append acx_subdir_run_args_externals_dace_fetch " '$acx_tmp'" ;;
+esac
+     shift
+   done
+   icon_dace_subdir='externals/dace/fetch/src'
+
+   icon_dace_fetchstamp='externals/dace/fetch/.fetchstamp'
+
+   set dummy -DICON_DACE_SOURCE_DIR="$icon_abs_top_builddir/$icon_dace_subdir" -DICON_DACE_FETCH_STAMP_FILE="$icon_abs_top_builddir/$icon_dace_fetchstamp"; shift
+   for acx_tmp; do
+     case $acx_tmp in #(
+  *\'*) :
+    acx_tmp=`$as_echo "$acx_tmp" | sed "s/'/'\\\\\\\\''/g"` ;; #(
+  *) :
+     ;;
+esac
+     as_fn_append acx_subdir_run_args_externals_dace_fetch " '$acx_tmp'"
+   done
+   as_fn_append BUNDLED_RULES "$icon_dace_fetchstamp: externals/dace/fetch;$as_nl"
+   as_fn_append BUNDLED_RULES "version.c: $icon_dace_fetchstamp$as_nl"
+   as_fn_append icon_pvcs_bundled_srcdirs " dace:$icon_dace_subdir"
+fi
 
 if test "x$enable_rte_rrtmgp" = xyes && test "x$with_external_rte_rrtmgp" = xno; then :
   icon_subdir_srcdir="$srcdir/externals/rte-rrtmgp"

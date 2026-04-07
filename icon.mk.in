@@ -141,10 +141,13 @@ PVCS_bundled_srcdirs:= @icon_pvcs_bundled_srcdirs@
 @JSBACH_ENABLED@JSBACH_dsl_files:= $(call find_files,$(srcdir),$(JSBACH_subdir),'*.f90')
 @JSBACH_ENABLED@PVCS_bundled_srcdirs+= $(srcdir)/externals/jsbach
 
-# DACE sources:
-@DACE_ENABLED@DACE_subdir:= externals/dace_icon/src_for_icon
-@DACE_ENABLED@all_files+= $(call find_files,$(srcdir),$(DACE_subdir),'*.f90' '*.inc' '*.incf' '*.c')
-@DACE_ENABLED@PVCS_bundled_srcdirs+= $(srcdir)/externals/dace_icon
+# DACE sources (fetched to the build directory):
+@DACE_ENABLED@DACE_subdir:= @icon_dace_subdir@/src_for_icon
+# Make sure the repository clone is up-to-date before searching for files:
+@DACE_ENABLED@include @icon_dace_fetchstamp@
+@DACE_ENABLED@DACE_all_files:= $(call find_files,.,$(DACE_subdir),'*.f90' '*.inc' '*.incf' '*.c')
+@DACE_ENABLED@DACE_inc_files:= $(filter %.inc %.incf,$(DACE_all_files))
+@DACE_ENABLED@all_files+= $(filter-out $(DACE_inc_files),$(DACE_all_files))
 
 # EMVORADO sources:
 @EMVORADO_ENABLED@EMVORADO_subdir:= externals/emvorado
@@ -172,6 +175,7 @@ c_files:= $(filter %.c,$(all_files))
 
 # Paths to the directories with Fortran include files:
 inc_dirs:= $(addprefix $(srcdir)/,$(patsubst %/,%,$(dir $(filter %.inc %.incf,$(all_files)))))
+@DACE_ENABLED@inc_dirs+= $(patsubst %/,%,$(dir $(DACE_inc_files)))
 # Eliminate duplicates:
 inc_dirs:= $(sort $(inc_dirs))
 

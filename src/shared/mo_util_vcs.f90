@@ -249,7 +249,7 @@ CONTAINS
       CALL message('', '  JSBACH: '//get_revision('jsbach'))
 #endif
 #ifdef __DACE__
-      CALL message('', '  DACE: '//get_revision('dace_icon'))
+      CALL message('', '  DACE: '//get_revision('dace'))
 #endif
 #ifdef HAVE_RADARFWO
       CALL message('', '  EMVORADO: '//get_revision('emvorado'))
