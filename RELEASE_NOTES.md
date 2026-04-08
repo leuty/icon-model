@@ -133,6 +133,7 @@
 - make_runscripts: Experiment template for dycore testcase `jabw` (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1245)
 - mkexp: Add support for LUMI CPUs and GPUs (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/835)
 - mkexp: Additional comments giving examples in jsbach offline configuration (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1340)
+- make_runscripts: Increase stacksize for default targets (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1363)
 
 #### Building
 
