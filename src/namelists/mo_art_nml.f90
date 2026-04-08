@@ -137,6 +137,15 @@ MODULE mo_art_nml
   ! Restart-DEBUG: Write DEBUG-Restartfile
   LOGICAL :: lart_debugRestart
 
+  ! MieAI (internal mixing)
+  INTEGER :: iart_MieAI
+  CHARACTER(LEN=IART_PATH_LEN)  :: &
+    &  cart_MieAI_files              !< Path to MieAI model files like ANN model parameters,
+                                     ! quantile mapping parmaters and min/max values
+                                     ! used for preprocessing
+  CHARACTER(LEN=IART_PATH_LEN)  :: &
+    &  cart_ri                       !< Path to Directory containing refractive indices data
+
   ! Time interval over which maximum of air concentration of radionuclides is taken
   REAL(wp):: radioact_maxtint(1:max_dom)
 
@@ -166,7 +175,8 @@ MODULE mo_art_nml
    &                cart_modes_xml, cart_pntSrc_xml, cart_diagnostics_xml,              &
    &                lart_psc, cart_coag_xml, cart_aero_emiss_xml, cart_opt_props_nc,    &
    &                cart_type_sedim, lart_debugRestart, radioact_maxtint,               &
-   &                irad_multicall, iart_solvar_type
+   &                irad_multicall, iart_solvar_type, iart_MieAI, cart_MieAI_files,     &
+   &                cart_ri
 
 CONTAINS
   !-------------------------------------------------------------------------
@@ -274,6 +284,11 @@ CONTAINS
 
     ! Write DEBUG-Restartfile
     lart_debugRestart   = .FALSE.
+
+    ! MieAI (internal mixing)
+    iart_MieAI          = 0
+    cart_MieAI_files    = ''
+    cart_ri             = ''
 
     ! Time interval over which maximum of air concentration of radionuclides is taken
     radioact_maxtint(:) = 3600._wp
@@ -392,6 +407,27 @@ CONTAINS
         IF (iart_volc_numb==0) iart_volc_numb = 1
       END IF
 
+      ! MieAI data path
+      IF (iart_MieAI>=1) THEN
+        IF (iart_MieAI>=2) THEN
+          CALL finish('mo_art_nml:read_art_namelist','namelist parameter iart_MieAI >= 2' &
+                    //' has not been implemented yet.')
+        END IF
+
+        IF(TRIM(cart_MieAI_files) == '') THEN
+          CALL finish('mo_art_nml:read_art_namelist','namelist parameter cart_MieAI_files' &
+                    //' has to be given for iart_MieAI>=1. Also, please ensure that ' &
+                    //' MieAI.txt, mlp_min_max.csv and quantile_transform.csv files ' &
+                    //' are present in that directory.')
+        END IF
+
+        IF(TRIM(cart_ri) == '') THEN
+          CALL finish('mo_art_nml:read_art_namelist','namelist parameter cart_ri' &
+                    //' has to be given for iart_MieAI>=1. Also, please ensure that ' &
+                    //' all 6 refractive indices datasets are present in that directory.')
+        END IF
+      END IF
+
     END IF  ! lart
 
 
@@ -477,6 +513,11 @@ CONTAINS
 
       ! Write DEBUG-Restartfile
       art_config(jg)%lart_debugRestart   = lart_debugRestart
+
+      ! MieAI (internal mixing)
+      art_config(jg)%iart_MieAI          = iart_MieAI
+      art_config(jg)%cart_MieAI_files    = cart_MieAI_files
+      art_config(jg)%cart_ri             = cart_ri
 
       ! Time interval over which maximum of air concentration of radionuclides is taken
       art_config(jg)%radioact_maxtint    = radioact_maxtint(jg)

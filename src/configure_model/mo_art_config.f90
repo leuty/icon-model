@@ -146,6 +146,15 @@ MODULE mo_art_config
     ! Write DEBUG-Restartfile
     LOGICAL :: lart_debugRestart
 
+    ! MieAI (internal mixing)
+    INTEGER :: iart_MieAI
+    CHARACTER(LEN=IART_PATH_LEN)  :: &
+      &  cart_MieAI_files              !< Path to MieAI model files like ANN model parameters,
+                                       ! quantile mapping parmaters and min/max values
+                                       ! used for preprocessing
+    CHARACTER(LEN=IART_PATH_LEN)  :: &
+      &  cart_ri                       !< Path to Directory containing refractive indices data
+
     ! Time interval over which maximum of air concentration of radionuclides is taken
     REAL(wp):: radioact_maxtint
 
