@@ -598,6 +598,8 @@ OPENMP_ENABLED
 MPI_DISABLED
 MPI_ENABLED
 HD_ENABLED
+COMIN_SHARED_ENABLED
+COMIN_STATIC_ENABLED
 MSGWAM_ENABLED
 ART_ENABLED
 EMVORADO_ENABLED
@@ -826,7 +828,6 @@ with_external_mtime
 with_external_yac
 with_external_tixi
 with_external_fortran_support
-with_external_comin
 '
       ac_precious_vars='build_alias
 host_alias
@@ -1596,8 +1597,13 @@ Model Features:
                           [default=no]
   --enable-art-gpl        enable GPL-licensed code parts of the ART component
                           [default=no]
-  --enable-comin          enable the ICON community interface (COMIN)
-                          [default=no]
+  --enable-comin          enable the ICON community interface (COMIN). The
+                          value of the argument must be one of the following
+                          [default=no]:
+                            static|yes  enable static bundled COMIN library
+                            shared      enable shared bundled COMIN library
+                            external    use external COMIN library
+                            no          disable COMIN interface
   --enable-hd             enable the Hydrological Discharge (HD) model. The
                           value of the argument must be one of the following
                           [default=no]:
@@ -1716,7 +1722,6 @@ Optional Packages:
   --with-external-tixi    use external TIXI library [default=no]
   --with-external-fortran-support
                           use external FORTRAN-SUPPORT library [default=no]
-  --with-external-comin   use external COMIN library [default=no]
 
 Some influential environment variables:
   BUILD_ENV   initialization code to set up the building environment (must be
@@ -3381,9 +3386,14 @@ fi
 
 # Check whether --enable-comin was given.
 if test "${enable_comin+set}" = set; then :
-  enableval=$enable_comin; if test x"$enableval" != xno; then :
-  enable_comin=yes
-fi
+  enableval=$enable_comin; case $enableval in #(
+  yes) :
+    enable_comin=static ;; #(
+  static|shared|external|no) :
+     ;; #(
+  *) :
+    as_fn_error $? "unexpected value for the argument --enable-comin='$enableval'; valid values are 'static', 'yes' (same as 'static'), 'shared', 'external', 'no'" "$LINENO" 5 ;;
+esac
 else
   enable_comin=no
 fi
@@ -4027,17 +4037,6 @@ else
 fi
 
 
-
-# Check whether --with-external-comin was given.
-if test "${with_external_comin+set}" = set; then :
-  withval=$with_external_comin; if test x"$withval" != xno; then :
-  with_external_comin=yes
-fi
-else
-  with_external_comin=no
-fi
-
-
 ############################# OPTION CROSS-CHECKS ##############################
 
 if test "x$enable_single_precision" = xyes; then :
@@ -4128,12 +4127,12 @@ case "$enable_coupling$with_external_yac$icon_yac_python" in #(
      ;;
 esac
 
-case "$enable_comin$with_external_comin$icon_comin_python" in #(
-  no*yes) :
+case "$enable_comin$icon_comin_python" in #(
+  noyes) :
     as_fn_error $? "unsupported combination of the configure options: you are trying to configure with the Python interface of the bundled COMIN library but the ICON community interface (COMIN) is disabled: either disable the Python interface of the bundled COMIN (see --enable-bundled-python) or enable the community interface (--enable-comin)" "$LINENO" 5 ;; #(
-  *yesyes) :
-    as_fn_error $? "unsupported combination of the configure options: you are trying to configure with the Python interface of the bundled COMIN library and an external COMIN library: either disable the Python interface of the bundled COMIN (see --enable-bundled-python) or use the bundled version of COMIN library (--without-external-comin)" "$LINENO" 5 ;; #(
-  yesnoauto) :
+  externalyes) :
+    as_fn_error $? "unsupported combination of the configure options: you are trying to configure with the Python interface of the bundled COMIN library and an external COMIN library: either disable the Python interface of the bundled COMIN (see --enable-bundled-python) or use the bundled version of COMIN library (see --enable-comin)" "$LINENO" 5 ;; #(
+  staticauto|sharedauto) :
     icon_comin_python=yes ;; #(
   *auto) :
     icon_comin_python=no ;; #(
@@ -5114,6 +5113,80 @@ fi
 $as_echo "$cross_compiling" >&6; }
 
    rm -f conftest.$ac_ext conftest$ac_exeext conftest.out
+
+case $enable_comin in #(
+  static) :
+          { $as_echo "$as_me:${as_lineno-$LINENO}: checking for Fortran compiler flag needed to add all symbols to the dynamic symbol table" >&5
+$as_echo_n "checking for Fortran compiler flag needed to add all symbols to the dynamic symbol table... " >&6; }
+   if ${acx_cv_fc_export_dynamic_flag+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  acx_cv_fc_export_dynamic_flag=unknown
+      case $host_os in #(
+  darwin*) :
+    acx_cv_fc_export_dynamic_flag= ;; #(
+  *) :
+    case $acx_cv_fc_compiler_vendor in #(
+  nag) :
+    acx_cv_fc_export_dynamic_flag='-Wl,-Wl,,--export-dynamic' ;; #(
+  *) :
+    acx_cv_fc_export_dynamic_flag='-Wl,--export-dynamic' ;;
+esac ;;
+esac
+      if test -n "$acx_cv_fc_export_dynamic_flag" && test "x$acx_cv_fc_export_dynamic_flag" != xunknown; then :
+  acx_save_LDFLAGS=$LDFLAGS
+         LDFLAGS="$acx_cv_fc_export_dynamic_flag $LDFLAGS"
+         cat > conftest.$ac_ext <<_ACEOF
+      program main
+
+      end
+_ACEOF
+if ac_fn_fc_try_link "$LINENO"; then :
+
+else
+  acx_cv_fc_export_dynamic_flag=unknown
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+         LDFLAGS=$acx_save_LDFLAGS
+fi
+fi
+
+   if test -n "$acx_cv_fc_export_dynamic_flag"; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $acx_cv_fc_export_dynamic_flag" >&5
+$as_echo "$acx_cv_fc_export_dynamic_flag" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: none needed" >&5
+$as_echo "none needed" >&6; }
+fi
+   if test "x$acx_cv_fc_export_dynamic_flag" = xunknown; then :
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "unable to detect Fortran compiler flag needed to add all symbols to the dynamic symbol table
+See \`config.log' for more details
+${icon_usr_note}" "$LINENO" 5; }
+else
+  as_fn_append ICON_LDFLAGS " $acx_cv_fc_export_dynamic_flag"
+fi
+    ;; #(
+  shared) :
+       { $as_echo "$as_me:${as_lineno-$LINENO}: checking for the filename extension of shared libraries" >&5
+$as_echo_n "checking for the filename extension of shared libraries... " >&6; }
+if ${acx_cv_shlib_ext+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  case $host_os in #(
+  darwin*) :
+    acx_cv_shlib_ext=dylib ;; #(
+  *) :
+    acx_cv_shlib_ext=so ;;
+esac
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $acx_cv_shlib_ext" >&5
+$as_echo "$acx_cv_shlib_ext" >&6; } ;; #(
+  *) :
+     ;;
+esac
 
                acx_fc_line_length_none_in_cache=no
    if ${acx_cv_fc_line_length_unlimited+:} false; then :
@@ -9866,7 +9939,7 @@ ${icon_usr_note}" "$LINENO" 5; }
 fi
 fi
 
-if test "x$enable_comin" = xyes && test "x$with_external_comin" = xyes; then :
+if test "x$enable_comin" = xexternal; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether COMIN library is available" >&5
 $as_echo_n "checking whether COMIN library is available... " >&6; }
 if ${icon_cv_have_comin+:} false; then :
@@ -9895,7 +9968,7 @@ $as_echo "$icon_cv_have_comin" >&6; }
    if test "x$icon_cv_have_comin" = xno; then :
   { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error $? "unable to link a test program using COMIN library: either use the bundled version of COMIN (--without-external-comin) or set FCFLAGS, LDFLAGS and LIBS accordingly
+as_fn_error $? "unable to link a test program using COMIN library: either use the bundled version of COMIN (see --enable-comin) or set FCFLAGS, LDFLAGS and LIBS accordingly
 See \`config.log' for more details
 ${icon_usr_note}" "$LINENO" 5; }
 fi
@@ -11794,7 +11867,7 @@ esac
    as_fn_append icon_pvcs_bundled_srcdirs " $icon_subdir_srcdir"
 fi
 
-if test "x$enable_comin" = xyes && test "x$with_external_comin" = xno; then :
+if test "x$enable_comin" = xstatic || test "x$enable_comin" = xshared; then :
   icon_subdir_srcdir="$srcdir/externals/comin"
    icon_subdir_unique_file="src/comin_setup.F90"
    if test ! -r "$icon_subdir_srcdir/$icon_subdir_unique_file"; then :
@@ -11808,7 +11881,7 @@ fi
                                              acx_subdir_pre_adjust_cmake_args_nocomps_noutils
       acx_subdir_run_args_externals_comin_build=$acx_subdir_pre_adjusted_cmake_args_nocomps_noutils
          asx_srcdirs_fn "externals/comin/build"
-      acx_tmp="$ac_top_srcdir/externals/comin"
+      acx_tmp="$ac_top_srcdir/utils/cmake-wrapper"
       case $acx_tmp in #(
   *\'*) :
     acx_tmp=`$as_echo "$acx_tmp" | sed "s/'/'\\\\\\\\''/g"` ;; #(
@@ -11836,7 +11909,23 @@ esac
 esac
      shift
    done
-   set dummy -DCMAKE_AR="$AR" -DCMAKE_RANLIB="$RANLIB" -DCMAKE_C_FLAGS="$subdir_CFLAGS $ICON_COMIN_CFLAGS $subdir_CPPFLAGS" -DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_COMIN_FCFLAGS" -DCMAKE_CXX_FLAGS="$subdir_CXXFLAGS $ICON_COMIN_CXXFLAGS $subdir_CPPFLAGS" -DCMAKE_BUILD_TYPE=None -DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH" -DCMAKE_INSTALL_LIBDIR="$libdir" -DCMAKE_INSTALL_INCLUDEDIR="$includedir" -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF -DCOMIN_ENABLE_EXAMPLES=OFF -DCOMIN_ENABLE_PYTHON_ADAPTER="$icon_comin_python" -DPython3_EXECUTABLE="$PYTHON"; shift
+   icon_comin_extra_args=
+   if test "x$enable_comin" = xstatic; then :
+  icon_comin_extra_args='-DBUILD_SHARED_LIBS=OFF'
+      as_fn_append icon_comin_extra_args ' -DICON_DEP_LIBRARIES=$<TARGET_OBJECTS:ComIn::ComIn>'
+else
+  icon_comin_extra_args='-DBUILD_SHARED_LIBS=ON'
+      as_fn_append icon_comin_extra_args " -DCMAKE_SHARED_LIBRARY_SUFFIX_CXX=.$acx_cv_shlib_ext"
+fi
+   if test "x$enable_delayed_config" = xyes; then :
+  case $icon_comin_extra_args in #(
+  *\$*) :
+    icon_comin_extra_args=`$as_echo "$icon_comin_extra_args" | sed 's/\\$/$$/g'` ;; #(
+  *) :
+     ;;
+esac
+fi
+   set dummy -DCMAKE_AR="$AR" -DCMAKE_RANLIB="$RANLIB" -DCMAKE_C_FLAGS="$subdir_CFLAGS $ICON_COMIN_CFLAGS $subdir_CPPFLAGS" -DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_COMIN_FCFLAGS" -DCMAKE_CXX_FLAGS="$subdir_CXXFLAGS $ICON_COMIN_CXXFLAGS $subdir_CPPFLAGS" -DCMAKE_BUILD_TYPE=None -DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH" -DCMAKE_INSTALL_LIBDIR="$libdir" -DCMAKE_INSTALL_INCLUDEDIR="$includedir" -DBUILD_TESTING=OFF -DICON_DEP_SOURCE_DIR="${icon_abs_top_srcdir}/externals/comin" -DCOMIN_ENABLE_EXAMPLES=OFF -DCOMIN_ENABLE_PYTHON_ADAPTER="$icon_comin_python" -DPython3_EXECUTABLE="$PYTHON" $icon_comin_extra_args; shift
    for acx_tmp; do
      case $acx_tmp in #(
   *\'*) :
@@ -11846,11 +11935,19 @@ esac
 esac
      as_fn_append acx_subdir_run_args_externals_comin_build " '$acx_tmp'"
    done
-   as_fn_append bundled_CMAKE_PREFIX_PATH "${bundled_CMAKE_PREFIX_PATH:+";"}${icon_abs_top_builddir}/externals/comin/build"
-   as_fn_append bundled_includes "${FC_MOD_IN}externals/comin/build/mod "
-   BUNDLED_LIBFILES="externals/comin/build/libcomin.a $BUNDLED_LIBFILES"
-   as_fn_append BUNDLED_RULES "externals/comin/build/libcomin.a: externals/comin/build;$as_nl"
-   as_fn_append icon_pvcs_bundled_srcdirs " $icon_subdir_srcdir"
+   as_fn_append bundled_CMAKE_PREFIX_PATH "${bundled_CMAKE_PREFIX_PATH:+";"}${icon_abs_top_builddir}/externals/comin/build/_icon"
+   as_fn_append bundled_includes "${FC_MOD_IN}externals/comin/build/_icon/mod "
+   if test "x$enable_comin" = xstatic; then :
+  BUNDLED_LIBFILES="externals/comin/build/_icon/libcomin.a $BUNDLED_LIBFILES"
+   as_fn_append BUNDLED_RULES "externals/comin/build/_icon/libcomin.a: externals/comin/build;$as_nl"
+else
+  BUNDLED_LIBFILES="externals/comin/build/_icon/libcomin.$acx_cv_shlib_ext $BUNDLED_LIBFILES"
+   as_fn_append BUNDLED_RULES "externals/comin/build/_icon/libcomin.$acx_cv_shlib_ext: externals/comin/build;$as_nl"
+      if test "x$enable_rpaths" = xyes; then :
+  ICON_LDFLAGS="$acx_cv_fc_rpath_flag$icon_abs_top_builddir/externals/comin/build/_icon $ICON_LDFLAGS"
+fi
+fi
+   as_fn_append icon_pvcs_bundled_srcdirs ' externals/comin'
 fi
 
 if test "x$with_external_fortran_support" = xno; then :
@@ -12446,6 +12543,19 @@ else
   MSGWAM_ENABLED='#'
 
 fi
+
+COMIN_STATIC_ENABLED='#'
+
+COMIN_SHARED_ENABLED='#'
+
+case $enable_comin in #(
+  static) :
+    COMIN_STATIC_ENABLED= ;; #(
+  shared) :
+    COMIN_SHARED_ENABLED= ;; #(
+  *) :
+     ;;
+esac
 
 if test x"$enable_hd" != xno; then :
   HD_ENABLED=''

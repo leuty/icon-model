@@ -166,7 +166,7 @@ CONTAINS
     ! Extended list of tracers by ComIn (incl. ART if present)
     TYPE(t_ptr_tracer), ALLOCATABLE, TARGET :: ptr_conv_tracer_tend_comin(:)
     TYPE(t_ptr_tracer), ALLOCATABLE, TARGET :: ptr_conv_tracer_comin(:)
-    TYPE(t_comin_tracer_info), POINTER :: this_info => NULL()
+    TYPE(t_comin_tracer_info), POINTER :: this_info
 
     CALL set_acc_host_or_device(lzacc, lacc)
 

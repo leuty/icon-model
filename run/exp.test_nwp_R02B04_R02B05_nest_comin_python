@@ -118,10 +118,10 @@ dynamics_parent_grid_id="${dynamics_parent_grid_id},"
 
 # Add the path to the COMIN and plugins shared libraries to LD_LIBRARY_PATH
 
-simple_fortran_plugin_dir=/externals/comin/build/plugins/simple_fortran
+simple_fortran_plugin_dir=/externals/comin/build/_icon/plugins/simple_fortran
 add_comin_setup "$simple_fortran_plugin_dir"
 mpi_communicator_test_dir=/externals/comin/build/test
-python_adapter_dir=/externals/comin/build/plugins/python_adapter
+python_adapter_dir=/externals/comin/build/_icon/plugins/python_adapter
 add_comin_setup "$python_adapter_dir"
 
 

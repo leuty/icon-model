@@ -171,7 +171,7 @@ CONTAINS
 
   INTEGER :: iqb, snowbin_start, snowbin_end !< for SBM microphysics bins vertical diffusion
 
-  TYPE(t_comin_tracer_info), POINTER :: this_info => NULL()
+  TYPE(t_comin_tracer_info), POINTER :: this_info
 
   REAL(wp), POINTER, CONTIGUOUS :: edr_ptr(:,:), len_scale_ptr(:,:)
 

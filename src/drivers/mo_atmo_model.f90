@@ -154,9 +154,7 @@ MODULE mo_atmo_model
   USE mo_check_ext_constants,     ONLY: check_ext_constants
 
 #ifndef __NO_ICON_COMIN__
-  USE comin_host_interface,       ONLY: comin_parallel_mpi_handshake,     &
-    &                                   mpi_handshake_dummy,              &
-    &                                   comin_plugin_primaryconstructor
+  USE comin_host_interface,       ONLY: comin_plugin_primaryconstructor
   USE mo_comin_config,            ONLY: comin_config
   USE mo_comin_adapter,           ONLY: icon_expose_descrdata
   USE mo_time_config,             ONLY: time_config
@@ -164,8 +162,7 @@ MODULE mo_atmo_model
   USE mo_run_config,              ONLY: number_of_grid_used
   USE mo_util_vgrid_types,        ONLY: vgrid_buffer
   USE mo_run_config,              ONLY: dtime
-  USE mo_grid_config,             ONLY: start_time, end_time
-  USE mo_mpi,                     ONLY: p_comm_comin
+  USE mo_grid_config,             ONLY: start_time, end_time, l_limited_area
   USE mo_impl_constants,          ONLY: max_dom
 #endif
 
@@ -330,16 +327,6 @@ CONTAINS
 
 #ifndef __NO_RAGNAROK__
     IF (my_process_is_work()) CALL init_ragnarok()
-#endif
-
-#ifndef __NO_ICON_COMIN__
-    ! Non-work PEs dont participate in the plugin comms
-    IF (my_process_is_work()) THEN
-      CALL comin_parallel_mpi_handshake(p_comm_comin, &
-           & comin_config%plugin_list(1:comin_config%nplugins)%comm, TRIM(get_my_process_name()))
-    ELSE
-      CALL mpi_handshake_dummy(p_comm_comin)
-    ENDIF
 #endif
 
 
@@ -700,7 +687,8 @@ CONTAINS
             &  start_time = start_time, &
             &  end_time = end_time, &
             &  time_config = time_config, &
-            &  dtime = dtime )
+            &  dtime = dtime, &
+            &  l_limited_area = l_limited_area)
     END IF
     ! - call primary constructors
     IF (timers_level > 2) CALL timer_start(timer_comin_primary_constructors)

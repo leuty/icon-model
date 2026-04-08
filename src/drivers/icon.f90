@@ -76,12 +76,14 @@ PROGRAM icon
   USE memman,           ONLY: mm_initialize, mm_finalize
 #endif
 #ifndef __NO_ICON_COMIN__
+  USE iso_c_binding, ONLY: C_BOOl
   USE mo_kind, ONLY: wp
   USE comin_host_interface,  ONLY: comin_setup_check,      &
     &                              comin_setup_errhandler, &
     &                              t_comin_setup_version_info, &
     &                              comin_setup_get_version,    &
     &                              comin_setup_init
+  USE mo_comin_adapter, ONLY: icon_comin_finish_c
 #endif /* ifndef __NO_ICON_COMIN__ */
 
   IMPLICIT NONE
@@ -218,14 +220,14 @@ PROGRAM icon
 #ifndef __NO_ICON_COMIN__
   !-------------------------------------------------------------------
   ! Initialize ICON community interfaces
-  CALL comin_setup_init(my_process_is_stdio())
+  CALL comin_setup_init(LOGICAL(my_process_is_stdio(), C_BOOL))
   comin_version = comin_setup_get_version()
   WRITE(message_text,'(2(a,i0))') &
     &  "        linked to ICON Community Interface v", &
     &  comin_version%version_no_major, ".", comin_version%version_no_minor
   CALL message('', message_text)
 
-  CALL comin_setup_errhandler(finish)
+  CALL comin_setup_errhandler(icon_comin_finish_c)
   CALL comin_setup_check("icon", wp)
 
   CALL message('', '')

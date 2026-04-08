@@ -239,10 +239,20 @@ AC_ARG_ENABLE([art-gpl],
   [enable_art_gpl=no])
 
 AC_ARG_ENABLE([comin],
-  [AS_HELP_STRING([--enable-comin],
-     [enable the ICON community interface (COMIN) @<:@default=no@:>@])],
-  [AS_IF([test x"$enableval" != xno], [enable_comin=yes])],
-  [enable_comin=no])
+[  --enable-comin          enable the ICON community interface (COMIN). The
+                          value of the argument must be one of the following
+                          @<:@default=no@:>@:
+                            static|yes  enable static bundled COMIN library
+                            shared      enable shared bundled COMIN library
+                            external    use external COMIN library
+                            no          disable COMIN interface],
+[AS_CASE([$enableval],
+   [yes], [enable_comin=static],
+   [static|shared|external|no], [],
+   [AC_MSG_ERROR([unexpected value for the argument dnl
+--enable-comin='$enableval'; valid values are 'static', 'yes' (same as dnl
+'static'), 'shared', 'external', 'no'])])],
+[enable_comin=no])
 
 AC_ARG_ENABLE([hd],
 [  --enable-hd             enable the Hydrological Discharge (HD) model. The
@@ -748,12 +758,6 @@ AC_ARG_WITH([external-fortran-support],
   [AS_IF([test x"$withval" != xno], [with_external_fortran_support=yes])],
   [with_external_fortran_support=no])
 
-AC_ARG_WITH([external-comin],
-  [AS_HELP_STRING([--with-external-comin],
-     [use external COMIN library @<:@default=no@:>@])],
-  [AS_IF([test x"$withval" != xno], [with_external_comin=yes])],
-  [with_external_comin=no])
-
 ############################# OPTION CROSS-CHECKS ##############################
 
 AS_VAR_IF([enable_single_precision], [yes],
@@ -871,18 +875,18 @@ bundled version of YAC library (--without-external-yac)])],
   [yesnoauto], [icon_yac_python=yes],
   [*auto], [icon_yac_python=no])
 
-AS_CASE(["$enable_comin$with_external_comin$icon_comin_python"],
-  [no*yes], [AC_MSG_ERROR([unsupported combination of the configure options: dnl
+AS_CASE(["$enable_comin$icon_comin_python"],
+  [noyes], [AC_MSG_ERROR([unsupported combination of the configure options: dnl
 you are trying to configure with the Python interface of the bundled COMIN dnl
 library but the ICON community interface (COMIN) is disabled: either disable dnl
 the Python interface of the bundled COMIN (see --enable-bundled-python) or dnl
 enable the community interface (--enable-comin)])],
-  [*yesyes], [AC_MSG_ERROR([unsupported combination of the configure dnl
+  [externalyes], [AC_MSG_ERROR([unsupported combination of the configure dnl
 options: you are trying to configure with the Python interface of the dnl
 bundled COMIN library and an external COMIN library: either disable the dnl
 Python interface of the bundled COMIN (see --enable-bundled-python) or use dnl
-the bundled version of COMIN library (--without-external-comin)])],
-  [yesnoauto], [icon_comin_python=yes],
+the bundled version of COMIN library (see --enable-comin)])],
+  [staticauto|sharedauto], [icon_comin_python=yes],
   [*auto], [icon_comin_python=no])
 
 ############################# CODEBASE EXTENSIONS ##############################
@@ -1021,6 +1025,13 @@ AS_VAR_IF([enable_rpaths], [yes],
 
 dnl Run the delayed cross-compilation check:
 ACX_COMPILER_CROSS_CHECK_NOW
+
+AS_CASE([$enable_comin],
+  [static],
+  [ACX_SHLIB_FC_EXPORT_DYNAMIC_FLAG(
+     [AS_VAR_APPEND([ICON_LDFLAGS], [" $acx_cv_fc_export_dynamic_flag"])])],
+  [shared],
+  [ACX_SHLIB_EXT])
 
 ACX_FC_LINE_LENGTH([unlimited])
 
@@ -2073,7 +2084,7 @@ interface of TIXI library: either disable the aerosols and reactive trace dnl
 component (--disable-art) or use the bundled version of TIXI library dnl
 (--without-external-tixi), or set FCFLAGS, LDFLAGS and LIBS accordingly])])])
 
-AS_IF([test "x$enable_comin" = xyes && test "x$with_external_comin" = xyes],
+AS_VAR_IF([enable_comin], [external],
   [AC_CACHE_CHECK([whether COMIN library is available], [icon_cv_have_comin],
      [icon_cv_have_comin=no
       AC_LINK_IFELSE([AC_LANG_PROGRAM([], [[
@@ -2086,7 +2097,7 @@ AS_IF([test "x$enable_comin" = xyes && test "x$with_external_comin" = xyes],
         [icon_cv_have_comin=yes])])
    AS_VAR_IF([icon_cv_have_comin], [no],
      [AC_MSG_FAILURE([unable to link a test program using COMIN library: dnl
-either use the bundled version of COMIN (--without-external-comin) or set dnl
+either use the bundled version of COMIN (see --enable-comin) or set dnl
 FCFLAGS, LDFLAGS and LIBS accordingly])])])
 
 AS_VAR_IF([with_external_fortran_support], [yes],
@@ -2969,7 +2980,7 @@ version of TIXI library @<:@default=$ICON_BUNDLED_CFLAGS@:>@])dnl
    icon_bundled_declare_libfiles([externals/tixi], [src/libicon_tixi.a])
    AS_VAR_APPEND([icon_pvcs_bundled_srcdirs], [" $icon_subdir_srcdir"])])
 
-AS_IF([test "x$enable_comin" = xyes && test "x$with_external_comin" = xno],
+AS_IF([test "x$enable_comin" = xstatic || test "x$enable_comin" = xshared],
   [icon_subdir_srcdir="$srcdir/externals/comin"
    icon_subdir_unique_file="src/comin_setup.F90"
    AS_IF([test ! -r "$icon_subdir_srcdir/$icon_subdir_unique_file"],
@@ -2987,11 +2998,21 @@ version of COMIN library @<:@default=$ICON_BUNDLED_CFLAGS@:>@])dnl
      [C++ compiler flags to be appended to CXXFLAGS when configuring the
 bundled version of COMIN library @<:@default=$ICON_BUNDLED_CXXFLAGS@:>@])dnl
    ICON_COMIN_CXXFLAGS=${ICON_COMIN_CXXFLAGS-$ICON_BUNDLED_CXXFLAGS}
-   ACX_SUBDIR_INIT_CMAKE([externals/comin],
+   ACX_SUBDIR_INIT_CMAKE([utils/cmake-wrapper],
      [no-run no-adjust-compilers no-adjust-utilities],
      [externals/comin/build], ['${CMAKE}'])
    ACX_SUBDIR_REMOVE_ARGS([externals/comin/build],
      [-DCMAKE_C_FLAGS=*|-DCMAKE_Fortran_FLAGS=*|-DCMAKE_CXX_FLAGS=*])
+   icon_comin_extra_args=
+   AS_VAR_IF([enable_comin], [static],
+     [icon_comin_extra_args='-DBUILD_SHARED_LIBS=OFF'
+      AS_VAR_APPEND([icon_comin_extra_args],
+        [' -DICON_DEP_LIBRARIES=$<TARGET_OBJECTS:ComIn::ComIn>'])],
+     [icon_comin_extra_args='-DBUILD_SHARED_LIBS=ON'
+      AS_VAR_APPEND([icon_comin_extra_args],
+        [" -DCMAKE_SHARED_LIBRARY_SUFFIX_CXX=.$acx_cv_shlib_ext"])])
+   AS_VAR_IF([enable_delayed_config], [yes],
+     [ASX_ESCAPE_MAKE_SYNTAX([icon_comin_extra_args])])
    ACX_SUBDIR_APPEND_ARGS([externals/comin/build],
      [-DCMAKE_AR="$AR"], [-DCMAKE_RANLIB="$RANLIB"],
      [-DCMAKE_C_FLAGS="$subdir_CFLAGS $ICON_COMIN_CFLAGS $subdir_CPPFLAGS"],
@@ -3001,17 +3022,26 @@ bundled version of COMIN library @<:@default=$ICON_BUNDLED_CXXFLAGS@:>@])dnl
      [-DCMAKE_BUILD_TYPE=None],
      [-DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH"],
      [-DCMAKE_INSTALL_LIBDIR="$libdir"],
-     [-DCMAKE_INSTALL_INCLUDEDIR="$includedir"],
-     [-DBUILD_SHARED_LIBS=OFF], [-DBUILD_TESTING=OFF],
+     [-DCMAKE_INSTALL_INCLUDEDIR="$includedir"], [-DBUILD_TESTING=OFF],
+     [-DICON_DEP_SOURCE_DIR="${icon_abs_top_srcdir}/externals/comin"],
      [-DCOMIN_ENABLE_EXAMPLES=OFF],
      [-DCOMIN_ENABLE_PYTHON_ADAPTER="$icon_comin_python"],
-     [-DPython3_EXECUTABLE="$PYTHON"])
+     [-DPython3_EXECUTABLE="$PYTHON"], [$icon_comin_extra_args])
    AS_VAR_APPEND([bundled_CMAKE_PREFIX_PATH],
      ["${bundled_CMAKE_PREFIX_PATH:+";"}dnl
-${icon_abs_top_builddir}/externals/comin/build"])
-   AS_VAR_APPEND([bundled_includes], ["${FC_MOD_IN}externals/comin/build/mod "])
-   icon_bundled_declare_libfiles([externals/comin/build], [libcomin.a])
-   AS_VAR_APPEND([icon_pvcs_bundled_srcdirs], [" $icon_subdir_srcdir"])])
+${icon_abs_top_builddir}/externals/comin/build/_icon"])
+   AS_VAR_APPEND([bundled_includes],
+     ["${FC_MOD_IN}externals/comin/build/_icon/mod "])
+   AS_VAR_IF([enable_comin], [static],
+     [icon_bundled_declare_libfiles([externals/comin/build],
+        [_icon/libcomin.a])],
+     [icon_bundled_declare_libfiles([externals/comin/build],
+        [_icon/libcomin.$acx_cv_shlib_ext])
+      AS_VAR_IF([enable_rpaths], [yes],
+        [ICON_LDFLAGS=dnl
+"$acx_cv_fc_rpath_flag$icon_abs_top_builddir/externals/comin/build/_icon dnl
+$ICON_LDFLAGS"])])
+   AS_VAR_APPEND([icon_pvcs_bundled_srcdirs], [' externals/comin'])])
 
 AS_VAR_IF([with_external_fortran_support], [no],
   [icon_subdir_srcdir="$srcdir/externals/fortran-support"
@@ -3447,6 +3477,12 @@ AS_VAR_IF([enable_art], [yes],
 AS_VAR_IF([enable_msgwam], [yes],
   [AC_SUBST([MSGWAM_ENABLED], [''])],
   [AC_SUBST([MSGWAM_ENABLED], ['#'])])
+
+AC_SUBST([COMIN_STATIC_ENABLED], ['#'])
+AC_SUBST([COMIN_SHARED_ENABLED], ['#'])
+AS_CASE([$enable_comin],
+  [static], [COMIN_STATIC_ENABLED=],
+  [shared], [COMIN_SHARED_ENABLED=])
 
 AS_IF([test x"$enable_hd" != xno],
   [AC_SUBST([HD_ENABLED], [''])],

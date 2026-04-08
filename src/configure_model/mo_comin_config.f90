@@ -21,7 +21,7 @@ MODULE mo_comin_config
   PUBLIC
 
   TYPE :: t_comin_tracer_info
-    CHARACTER(LEN=vname_len)           :: name
+    CHARACTER(LEN=:), ALLOCATABLE      :: name
     INTEGER                            :: idx_tracer = -1 !< Index in ICON's tracer array
     INTEGER                            :: idx_turb   = -1 !< Index in ICON's ddt_tracer_turb array
     INTEGER                            :: idx_conv   = -1 !< Index in ICON's ddt_tracer_conv array
@@ -31,7 +31,7 @@ MODULE mo_comin_config
   TYPE :: t_comin_icon_domain_config
     INTEGER :: nturb_tracer = 0
     INTEGER :: nconv_tracer = 0
-    TYPE(t_comin_tracer_info), POINTER :: tracer_info_head
+    TYPE(t_comin_tracer_info), POINTER :: tracer_info_head => NULL()
   END TYPE t_comin_icon_domain_config
 
   TYPE :: t_comin_config

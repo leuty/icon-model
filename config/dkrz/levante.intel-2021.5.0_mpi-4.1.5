@@ -54,7 +54,7 @@ xml2_libs='-lxml2'
 
 ################################################################################
 
-BUILD_ENV="export LD_LIBRARY_PATH=\"${gcc_root}/lib64:${hdf5_root}/lib:${netcdf_root}/lib:${netcdff_root}/lib:${netlib_lapack_root}/lib64:${eccodes_root}/lib64:${fyaml_root}/lib:\${LD_LIBRARY_PATH}\"; export PATH=\"${gcc_root}/bin:${hdf5_root}/bin:\${PATH}\";"
+BUILD_ENV="export LD_LIBRARY_PATH=\"${gcc_root}/lib64:${hdf5_root}/lib:${netcdf_root}/lib:${netcdff_root}/lib:${netlib_lapack_root}/lib64:${eccodes_root}/lib64:${fyaml_root}/lib:\${LD_LIBRARY_PATH}\"; export PATH=\"${gcc_root}/bin:${hdf5_root}/bin:\${PATH}\"; export MPI_ROOT=\"${mpi_root}\";"
 
 arch='-m64 -march=core-avx2 -mtune=core-avx2'
 

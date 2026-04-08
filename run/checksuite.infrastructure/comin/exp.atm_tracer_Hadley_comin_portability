@@ -74,7 +74,7 @@ atmo_namelist=NAMELIST_${EXPNAME}_atm
 
 #--------------------------------------------------------------------------------------------------
 
-python_adapter_dir=/externals/comin/build/plugins/python_adapter
+python_adapter_dir=/externals/comin/build/_icon/plugins/python_adapter
 add_comin_setup "$python_adapter_dir"
 
 # (3) Define the model configuration

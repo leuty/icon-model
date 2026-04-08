@@ -194,7 +194,6 @@ USE mo_icon2dace,           ONLY: init_dace, finish_dace
     &                             EP_ATM_INIT_FINALIZE,               &
     &                             EP_DESTRUCTOR,                      &
     &                             comin_var_list_finalize,            &
-    &                             comin_var_request_list_finalize,    &
     &                             comin_descrdata_finalize,           &
     &                             comin_setup_finalize,               &
     &                             COMIN_DOMAIN_OUTSIDE_LOOP
@@ -299,7 +298,6 @@ CONTAINS
     CALL icon_call_callback(EP_DESTRUCTOR, COMIN_DOMAIN_OUTSIDE_LOOP, lacc=.TRUE.)
     IF (comin_config%nplugins /= 0) THEN
        CALL comin_var_list_finalize()
-       CALL comin_var_request_list_finalize()
        CALL comin_descrdata_finalize()
        CALL comin_setup_finalize()
     END IF

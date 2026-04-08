@@ -103,7 +103,7 @@
     mentions: [k202204]
   # ComIn
   - file_names:
-      - src/io/shared/mo_comin_adapter.f90
+      - src/comin/mo_comin_adapter.f90
     mentions: [k202160]
     labels: [ComIn]
   # Externals:

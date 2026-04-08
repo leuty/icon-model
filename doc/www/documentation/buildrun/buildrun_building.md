@@ -57,7 +57,7 @@ The list of packages required for successful configuration and building depends 
 | Package | Dependency condition<sup><a href="#f1">1</a></sup><a name="f1back"/> | Required flags<sup><a href="#f1">1</a></sup> |
 | :---: | :---: | :---: |
 | [FORTRAN-SUPPORT](https://gitlab.dkrz.de/icon-libraries/libfortran-support) | `--with-external-fortran-support` | `FCFLAGS='-I/path/to/fortran-support/include' LDFLAGS='-L/path/to/fortran-support/lib' LIBS='-lfortran-support'` |
-| [COMIN](https://gitlab.dkrz.de/icon-comin/comin) | `--enable-comin --with-external-comin` | `FCFLAGS='-I/path/to/comin/include' LDFLAGS='-L/path/to/comin/lib' LIBS='-lcomin'` |
+| [COMIN](https://gitlab.dkrz.de/icon-comin/comin) | `--enable-comin=external` | `FCFLAGS='-I/path/to/comin/include' LDFLAGS='-L/path/to/comin/lib' LIBS='-lcomin'` |
 | [ICON-TIXI](https://gitlab.dkrz.de/icon-libraries/libtixi) (a modified version of [TIXI](https://github.com/DLR-SC/tixi)) | `--enable-art --with-external-tixi` | `FCFLAGS='-I/path/to/tixi/include' LDFLAGS='-L/path/to/tixi/lib' LIBS='-licon_tixi'` |
 | [XML2](https://gitlab.gnome.org/GNOME/libxml2/-/wikis/home) | `--enable-art` | `CPPFLAGS='-I/path/to/libxml2/include/libxml2' LDFLAGS='-L/path/to/libxml2/lib' LIBS='-lxml2'` |
 | [YAC](https://gitlab.dkrz.de/dkrz-sw/yac) | `--enable-coupling --with-external-yac` | `FCFLAGS='-I/path/to/yac/include' LDFLAGS='-L/path/to/yac/lib' LIBS='-lyac'` |

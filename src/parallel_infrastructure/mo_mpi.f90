@@ -222,7 +222,7 @@ MODULE mo_mpi
   ! Comment: Please use basic WRITE to nerr for messaging in the whole
   !          MPI package to achieve proper output.
 
-  USE, INTRINSIC :: iso_c_binding, ONLY: c_char, c_signed_char, c_int
+  USE, INTRINSIC :: iso_c_binding, ONLY: c_char, c_signed_char, c_int, c_bool
 
 #ifndef NOMPI
   USE mpi
@@ -258,7 +258,8 @@ MODULE mo_mpi
 #endif
 
   USE mo_master_control, ONLY: get_my_process_type, hamocc_process, ocean_process, process_exists, &
-       &                       my_process_is_hamocc, my_process_is_ocean
+       &                       my_process_is_hamocc, my_process_is_ocean, my_process_is_atmo, &
+       &                       get_my_process_name
 
 #ifdef HAVE_YAXT
   USE yaxt,                   ONLY: xt_initialize, xt_initialized
@@ -267,7 +268,9 @@ MODULE mo_mpi
 
 #ifndef __NO_ICON_COMIN__
   USE comin_host_interface,   ONLY: comin_callback_context_call,  &
-    &                               EP_FINISH, COMIN_DOMAIN_OUTSIDE_LOOP
+    &                               EP_FINISH, COMIN_DOMAIN_OUTSIDE_LOOP, comin_parallel_mpi_handshake, &
+    &                               mpi_handshake_dummy
+  USE mo_comin_config,            ONLY: comin_config
 #endif
 
   IMPLICIT NONE
@@ -2205,6 +2208,19 @@ CONTAINS
       WRITE (nerr,'(a,a,i5)') method_name, ' my_mpi_function=', my_mpi_function
 #endif
 
+#ifndef __NO_ICON_COMIN__
+      ! Split the comin communicator into the plugin communicators.  Each plagin
+      ! can specify a "comm" indentifier in the namelist.  The plugin
+      ! communicator allows plugins to communicate with external
+      ! processes. (E.g. to offload work)
+      IF (my_process_is_work()) THEN
+        CALL comin_parallel_mpi_handshake(p_comm_comin, &
+             & comin_config%plugin_list(1:comin_config%nplugins)%comm, TRIM(get_my_process_name()))
+      ELSE
+        CALL mpi_handshake_dummy(p_comm_comin)
+      ENDIF
+#endif
+
   END SUBROUTINE set_mpi_work_communicators
   !-------------------------------------------------------------------------
 
@@ -2880,8 +2896,8 @@ CONTAINS
     ! of all PEs
 
 #ifndef __NO_ICON_COMIN__
-    ! we dont use timers here due to cycic dependencies...
-    CALL comin_callback_context_call(EP_FINISH, COMIN_DOMAIN_OUTSIDE_LOOP, lacc=.FALSE.)
+    ! we dont use timers here due to cyclic dependencies...
+    CALL comin_callback_context_call(EP_FINISH, COMIN_DOMAIN_OUTSIDE_LOOP, lacc=.FALSE._C_BOOL)
 #endif
 
 #ifndef NOMPI

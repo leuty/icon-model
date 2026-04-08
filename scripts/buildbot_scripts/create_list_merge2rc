@@ -184,9 +184,8 @@ $addexp "exp.test_nwp_R02B04_R02B05_nest_comin_python" --without-configureflags 
 $addexp "checksuite.nwp/nwpexp.run_ICON_19_R2B4_cmip_forcing"  --without-configureflags "--without-mpi" --runflags "cpu_time=00:30:00 no_of_nodes=1" --builders "levante_intel_hybrid levante_gcc_hybrid" --list $listname
 
 $addexp "checksuite.infrastructure/comin/nwpexp.build_comin_plugins_DWD_nec" --builders "dwd_nec_coupling" --list $listname
-# deactivate COMIN expermiment for builder dwd_nec_coupling until a fix is available.
-#$addexp "exp.test_nwp_R02B04_R02B05_nest_comin"                                  --builders "dwd_nec_coupling" --list $listname
-#./adddep --from-experiment "exp.test_nwp_R02B04_R02B05_nest_comin" --to-experiment "checksuite.infrastructure/comin/nwpexp.build_comin_plugins_DWD_nec" --builders "dwd_nec_coupling" --list $listname
+$addexp "exp.test_nwp_R02B04_R02B05_nest_comin"                              --builders "dwd_nec_coupling" --list $listname
+./adddep --from-experiment "exp.test_nwp_R02B04_R02B05_nest_comin" --to-experiment "checksuite.infrastructure/comin/nwpexp.build_comin_plugins_DWD_nec" --builders "dwd_nec_coupling" --list $listname
 
 # this experiment runs only with-mpi and without openmp
 #

@@ -42,14 +42,15 @@ MODULE mo_advection_utils
   USE mo_run_config,            ONLY: ico2
 #ifndef __NO_ICON_COMIN__
   USE iso_c_binding,            ONLY: c_ptr, c_f_pointer
-  USE comin_host_interface,     ONLY: comin_request_get_list,            &
-    &                                 comin_metadata_get_or,             &
-    &                                 t_comin_request_item,              &
-    &                                 comin_ftnlist_iterator_begin,      &
-    &                                 comin_ftnlist_iterator_next,       &
-    &                                 comin_ftnlist_iterator_value,      &
-    &                                 comin_ftnlist_iterator_delete,     &
-    &                                 comin_ftnlist_is_end
+  USE comin_host_interface,     ONLY: comin_request_list_iterator_begin,  &
+    &                                 comin_request_list_iterator_delete, &
+    &                                 comin_request_list_iterator_is_end, &
+    &                                 comin_request_list_iterator_next,   &
+    &                                 comin_var_request_get_descriptor,   &
+    &                                 comin_var_request_get_metadata,     &
+    &                                 comin_metadata_get_or,              &
+    &                                 t_comin_var_metadata,               &
+    &                                 t_comin_var_descriptor
 #endif
   USE mo_ccycle_config, ONLY: ccycle_config, CCYCLE_MODE_INTERACTIVE
 
@@ -282,9 +283,10 @@ CONTAINS
     INTEGER  :: jg, name_len, itracer
     CHARACTER(len=MAX_CHAR_LENGTH) :: src_name_str
 #ifndef __NO_ICON_COMIN__
-    TYPE(t_comin_request_item), POINTER    :: item
-    TYPE(c_ptr)                            :: list, it, cptr
-    LOGICAL                                :: tracer, tracer_conv, tracer_turb
+    TYPE(t_comin_var_metadata)   :: metadata
+    TYPE(t_comin_var_descriptor) :: descr
+    TYPE(c_ptr)                  :: it, req, cptr
+    LOGICAL                      :: tracer, tracer_conv, tracer_turb
 #endif
 
     INTEGER  :: iqb
@@ -625,74 +627,48 @@ CONTAINS
     ! loop over the total list of additional requested tracer
     ! variables and add them to the `advection_config` data structure.
     !
-    ! Since ICON does not accept a domain-specifc number of tracers, we do this for domain jg=1 only.
-    jg=1
-    list = comin_request_get_list()
-    CALL comin_ftnlist_iterator_begin(list, it)
-    VAR_LOOP : DO WHILE (.NOT. comin_ftnlist_is_end(list,it))
-      CALL comin_ftnlist_iterator_value(it, cptr)
-      CALL C_F_POINTER(cptr, item)
+    ! Generally, we allow a domain-dependent specification of lturb and/or lconv.
+    it = comin_request_list_iterator_begin()
+    DO WHILE (.NOT. comin_request_list_iterator_is_end(it))
+      req = comin_request_list_iterator_next(it)
 
-      ! skip if variable was not requested for this domain
-      IF (item%descriptor%id /= jg) THEN
-        CALL comin_ftnlist_iterator_next(it)
-        CYCLE VAR_LOOP
+      descr = comin_var_request_get_descriptor(req)
+      metadata = comin_var_request_get_metadata(req)
+
+      jg = descr%id
+      IF (jg < 1 .OR. jg > n_dom) CYCLE
+
+      CALL comin_metadata_get_or(metadata,"tracer",tracer,.FALSE.)
+      IF (.NOT. tracer) CYCLE
+
+      ! Since ICON does not accept a domain-specifc number of tracers, we do this for domain jg=1 only.
+      IF (jg == 1) THEN
+        ntracer = ntracer + 1
+        advection_config(jg)%tracer_names(ntracer) = descr%name
+
+        WRITE(message_text,'(a,a)') 'Attention: ComIn active, adding tracer ', descr%name
+        CALL message(routine,message_text)
       END IF
 
-      CALL comin_metadata_get_or(item%metadata,"tracer",tracer,.FALSE.)
-      IF (.NOT. tracer) THEN
-        CALL comin_ftnlist_iterator_next(it)
-        CYCLE VAR_LOOP
+      CALL comin_metadata_get_or(metadata,"tracer_turb",tracer_turb,.FALSE.)
+      IF (tracer_turb) THEN
+        comin_config%comin_icon_domain_config(jg)%nturb_tracer = &
+          &  comin_config%comin_icon_domain_config(jg)%nturb_tracer + 1
       END IF
 
-      ntracer = ntracer + 1
-      advection_config(jg)%tracer_names(ntracer) = item%descriptor%name
+      CALL comin_metadata_get_or(metadata,"tracer_conv",tracer_conv,.FALSE.)
+      IF (tracer_conv) THEN
+        comin_config%comin_icon_domain_config(jg)%nconv_tracer = &
+          &  comin_config%comin_icon_domain_config(jg)%nconv_tracer + 1
+      END IF
 
-      WRITE(message_text,*) 'Attention: ComIn active, adding tracer ', &
-        &                   TRIM(item%descriptor%name)
-      CALL message(routine,message_text)
-      CALL comin_ftnlist_iterator_next(it)
-    END DO VAR_LOOP
-    CALL comin_ftnlist_iterator_delete(it)
+    END DO
+    CALL comin_request_list_iterator_delete(it)
 
-    WRITE(message_text,'(a,i3)') 'Attention: ComIn active, '//&
-      &   'ntracer is increased to ',ntracer
+    WRITE(message_text,'(a,i3)') 'Attention: ComIn active, ntracer is increased to ', ntracer
     CALL message(routine,message_text)
 
-    ! Seperate loop for adding the tracer to turbulence/convection
-    ! Generally allowing a domain-dependent specification of lturb and/or lconv
     DOM_LOOP : DO jg = 1, n_dom
-      CALL comin_ftnlist_iterator_begin(list, it)
-      VAR_LOOP_TURB : DO WHILE (.NOT. comin_ftnlist_is_end(list,it))
-        CALL comin_ftnlist_iterator_value(it, cptr)
-        CALL C_F_POINTER(cptr, item)
-        ! skip if variable was not requested for this domain
-        IF (item%descriptor%id /= jg) THEN
-          CALL comin_ftnlist_iterator_next(it)
-          CYCLE VAR_LOOP_TURB
-        END IF
-
-        CALL comin_metadata_get_or(item%metadata,"tracer",tracer,.FALSE.)
-        IF (.NOT. tracer) THEN
-          CALL comin_ftnlist_iterator_next(it)
-          CYCLE VAR_LOOP_TURB
-        END IF
-
-        CALL comin_metadata_get_or(item%metadata,"tracer_turb",tracer_turb,.FALSE.)
-        IF (tracer_turb) THEN
-          comin_config%comin_icon_domain_config(jg)%nturb_tracer = &
-            &  comin_config%comin_icon_domain_config(jg)%nturb_tracer + 1
-        END IF
-
-        CALL comin_metadata_get_or(item%metadata,"tracer_conv",tracer_conv,.FALSE.)
-        IF (tracer_conv) THEN
-          comin_config%comin_icon_domain_config(jg)%nconv_tracer = &
-            &  comin_config%comin_icon_domain_config(jg)%nconv_tracer + 1
-        END IF
-
-        CALL comin_ftnlist_iterator_next(it)
-      END DO VAR_LOOP_TURB
-      CALL comin_ftnlist_iterator_delete(it)
       WRITE (message_text,'(A,I2,A,I2,A)') "Domain ",jg," contains ",                              &
         &                                  comin_config%comin_icon_domain_config(jg)%nturb_tracer, &
         &                                  " comin tracer registered for turbulent transport"

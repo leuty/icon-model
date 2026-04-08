@@ -68,8 +68,10 @@ include:
     ICON_CI_COMMON_DKRZ_SLURM_PARTITION: compute
     ICON_CI_COMMON_DKRZ_SLURM_NTASKS: 256
     ICON_CI_UTILS_GIT_SPARSE_PATTERNS: >-
-      /utils/ /run/mkexp/ /${ICON_CI_UTILS_ICON_MKEXP_CONFIG_REL_PATH}
-      /run/dict.iconam.mpim /run/add_run_routines /data
+      /utils/
+      /${ICON_CI_UTILS_ICON_MKEXP_CONFIG_REL_PATH}
+      /run/
+      /data/
     ICON_CI_UTILS_ICON_MKEXP_ACCOUNT: ${ICON_CI_COMMON_DKRZ_SLURM_ACCOUNT}
   before_script:
     - !reference [.common:dkrz:levante, before_script]
@@ -452,6 +454,46 @@ generate-checksum-table:
     - if: $CI_PIPELINE_SOURCE == "schedule"
       when: never
     - !reference [.system:analyze, rules]
+
+.comin:amip-nwp:
+  variables:
+    ICON_CI_UTILS_PIP_PYTHON: /sw/spack-levante/python-3.9.9-w7ch77/bin/python3
+    ICON_CI_UTILS_ICON_CONFIG_EXTRA_ARGS: --enable-atmo --enable-nwp --enable-comin --enable-bundled-python=mtime,comin PYTHON=${ICON_CI_UTILS_PIP_PYTHON}
+    ICON_CI_UTILS_ICON_BUILD_EXTRA_SUBMODULE_PATHS: externals/comin externals/jsbach
+    ICON_CI_UTILS_ICON_MKEXP_CONFIG_REL_PATH: run/checksuite.infrastructure/comin/amip-nwp-comin.config
+
+comin:amip-nwp:cpu:build:
+  extends:
+    - .system:build:levante
+    - .comin:amip-nwp
+  variables:
+    ICON_CI_UTILS_ICON_CONFIG_REL_PATH: config/dkrz/levante.intel
+
+comin:amip-nwp:cpu:run:
+  extends:
+    - .utils:pip
+    - .system:run:levante
+    - .comin:amip-nwp
+  needs: [comin:amip-nwp:cpu:build]
+  variables:
+    ICON_CI_COMMON_DKRZ_SLURM_NNODES: 1
+    ICON_CI_COMMON_DKRZ_SLURM_NTASKS: 256
+    ICON_CI_COMIN_VENV: ${CI_PROJECT_DIR}/venv
+    ICON_CI_UTILS_PIP_PYTHON_VENV_BASE: /sw/spack-levante/python-3.9.9-w7ch77/bin/python3
+    ICON_CI_UTILS_PIP_PYTHON: ${ICON_CI_COMIN_VENV}/bin/python3
+    COMIN_PYTHON_EXECUTABLE: ${ICON_CI_COMIN_VENV}/bin/python3
+    ICON_CI_UTILS_PIP_PACKAGES: numpy
+  before_script:
+    - !reference [.system:run:levante, before_script]
+    - |
+      # !reference [comin:amip-nwp:cpu:run, before_script]
+      icon_ci_log_section_start 'Initializing Python environment'
+      (
+        set -x
+        ${ICON_CI_UTILS_PIP_PYTHON_VENV_BASE} -m venv "${ICON_CI_COMIN_VENV}"
+      )
+      icon_ci_log_section_end
+    - !reference [.utils:pip, before_script]
 
 Accept new checksum table:
   stage: system
