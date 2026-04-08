@@ -90,6 +90,7 @@
 - Added a script to process ERA5 data into ICON-Land standalone forcing
 - Update of the script to equilibrate jsbach humus carbon pools
 - Fixing an error in the effect of supercooled water on plant water stress
+- Fix for jsbach simulations with natural and anthropogenic land cover change
 
 ### Externals
 
