@@ -505,9 +505,9 @@ $addexp "checksuite.infrastructure/testbed/exp.icon-testbed_sync" --builders "br
 ###
 # Single-precision
 
-# Reactivate single-precision builders
-# Unit-tests (already run during build stage on mpimac_gcc_sp)
+# Unit-tests
 $addexp "checksuite.infrastructure/checkICON/exp.check_icon" --builders "${SP_BUILDERS}" --list ${listname}
+# Unit-tests already run during build stage on mpimac_gcc_sp
 ./rmexp "checksuite.infrastructure/checkICON/exp.check_icon" --builders "mpimac_gcc_sp" --list ${listname}
 
 # Communication tests (added for non single-precision builder variants above)
@@ -516,12 +516,13 @@ $addexp checksuite.infrastructure/testbed/exp.icon-testbed_communication_orig --
 $addexp checksuite.infrastructure/testbed/exp.icon-testbed_communication_yaxt --builders 'levante_intel_hybrid_sp' --list $listname --runflags "queue=shared,compute ntasks=8 memory=32G"
 $addexp checksuite.infrastructure/testbed/exp.icon-testbed_communication_orig --builders 'levante_intel_hybrid_sp' --list $listname --runflags "queue=shared,compute ntasks=16 memory=32G"
 
-# Validation of Tracer Hadley experiment (experiment template not usable for dwd_nec_sp)
+# Validation of Tracer Hadley experiment
 $addexp "exp.atm_tracer_Hadley_validate" --builders "${SP_BUILDERS} levante_gcc levante_gpu_nvhpc" --list $listname
-./rmexp "exp.atm_tracer_Hadley_validate" --builders "dwd_nec_sp" --list $listname
 
 # Jablonowski-Williamson experiment - no validation (smoke-test only)
-$addexp "exp.testcase_jabw" --builders "lumi_cpu_sp levante_intel_hybrid_sp levante_gpu_nvhpc_sp" --list $listname
+$addexp "exp.testcase_jabw" --builders "${SP_BUILDERS}" --list $listname
+# Experiment is too slow on NAG with -O0
+./rmexp "exp.testcase_jabw" --builders "levante_nag_sp" --list $listname
 
 # Single-precision checksuites
 $addexp "checksuite.icon-dev/check.aes_amip_test" --builders "${LEVANTE_SP_BUILDERS}" --list $listname --runflags "ntasks=16 queue=compute memory=32G"

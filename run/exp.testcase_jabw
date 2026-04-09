@@ -90,7 +90,7 @@ lrbf_read='.TRUE.'
 # For a complete list see Namelist_overview and Namelist_overview.pdf
 #-----------------------------------------------------------------------------
 
-cat > ${atmo_namelist} << EOF
+cat > ${basedir}/run/${atmo_namelist} << EOF
 &parallel_nml
  nproma         = ${nproma}
  nproma_sub     = ${nproma_sub}
@@ -99,6 +99,7 @@ cat > ${atmo_namelist} << EOF
  l_test_openmp  = .false.
  l_log_checks   = .false.
  num_io_procs   = ${num_io_procs}
+ proc0_shift    = ${proc0_shift}
 /
 &nh_testcase_nml
  nh_test_name   = 'jabw'     ! test case identifier
@@ -152,7 +153,7 @@ cat > ${atmo_namelist} << EOF
 EOF
 
 test "$output_data" = "on" && {
-cat >> ${atmo_namelist} << EOF
+cat >> ${base_dir}/run/${atmo_namelist} << EOF
 &output_nml
  filetype               = 4
  dom                    = -1

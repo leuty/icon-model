@@ -2848,86 +2848,187 @@ CONTAINS
       INTEGER, OPTIONAL, INTENT(IN) :: nshift
       CLASS(t_comm_pattern), POINTER, INTENT(INOUT) :: comm_pattern
 
-      CALL check_exchange_mult( &
-        & out_array1=out_array1, in_array1=in_array1, ref_out_array1=ref_out_array1, &
-        & out_array2=out_array2, in_array2=in_array2, ref_out_array2=ref_out_array2, &
-        & out_array3=out_array3, in_array3=in_array3, ref_out_array3=ref_out_array3, &
-        & out_array4=out_array4, in_array4=in_array4, ref_out_array4=ref_out_array4, &
-        & out_array5=out_array5, in_array5=in_array5, ref_out_array5=ref_out_array5, &
-        & out_array6=out_array6, in_array6=in_array6, ref_out_array6=ref_out_array6, &
-        & out_array7=out_array7, in_array7=in_array7, ref_out_array7=ref_out_array7, &
-        & out_array4d=out_array4d, in_array4d=in_array4d, ref_out_array4d=ref_out_array4d, &
-        & nshift=nshift, comm_pattern=comm_pattern)
-      CALL check_exchange_mult( &
-        & out_array1=out_array1, in_array1=in_array1, ref_out_array1=ref_out_array1, &
-        & out_array2=out_array2, in_array2=in_array2, ref_out_array2=ref_out_array2, &
-        & out_array3=out_array3, in_array3=in_array3, ref_out_array3=ref_out_array3, &
-        & out_array4=out_array4, in_array4=in_array4, ref_out_array4=ref_out_array4, &
-        & out_array5=out_array5, in_array5=in_array5, ref_out_array5=ref_out_array5, &
-        & out_array6=out_array6, in_array6=in_array6, ref_out_array6=ref_out_array6, &
-        ! & out_array7=out_array7, in_array7=in_array7, ref_out_array7=ref_out_array7, &
-        & out_array4d=out_array4d, in_array4d=in_array4d, ref_out_array4d=ref_out_array4d, &
-        & nshift=nshift, comm_pattern=comm_pattern)
-      CALL check_exchange_mult( &
-        & out_array1=out_array1, in_array1=in_array1, ref_out_array1=ref_out_array1, &
-        & out_array2=out_array2, in_array2=in_array2, ref_out_array2=ref_out_array2, &
-        & out_array3=out_array3, in_array3=in_array3, ref_out_array3=ref_out_array3, &
-        & out_array4=out_array4, in_array4=in_array4, ref_out_array4=ref_out_array4, &
-        & out_array5=out_array5, in_array5=in_array5, ref_out_array5=ref_out_array5, &
-        ! & out_array6=out_array6, in_array6=in_array6, ref_out_array6=ref_out_array6, &
-        ! & out_array7=out_array7, in_array7=in_array7, ref_out_array7=ref_out_array7, &
-        & out_array4d=out_array4d, in_array4d=in_array4d, ref_out_array4d=ref_out_array4d, &
-        & nshift=nshift, comm_pattern=comm_pattern)
-      CALL check_exchange_mult( &
-        & out_array1=out_array1, in_array1=in_array1, ref_out_array1=ref_out_array1, &
-        & out_array2=out_array2, in_array2=in_array2, ref_out_array2=ref_out_array2, &
-        & out_array3=out_array3, in_array3=in_array3, ref_out_array3=ref_out_array3, &
-        & out_array4=out_array4, in_array4=in_array4, ref_out_array4=ref_out_array4, &
-        ! & out_array5=out_array5, in_array5=in_array5, ref_out_array5=ref_out_array5, &
-        ! & out_array6=out_array6, in_array6=in_array6, ref_out_array6=ref_out_array6, &
-        ! & out_array7=out_array7, in_array7=in_array7, ref_out_array7=ref_out_array7, &
-        & out_array4d=out_array4d, in_array4d=in_array4d, ref_out_array4d=ref_out_array4d, &
-        & nshift=nshift, comm_pattern=comm_pattern)
-      CALL check_exchange_mult( &
-        & out_array1=out_array1, in_array1=in_array1, ref_out_array1=ref_out_array1, &
-        & out_array2=out_array2, in_array2=in_array2, ref_out_array2=ref_out_array2, &
-        & out_array3=out_array3, in_array3=in_array3, ref_out_array3=ref_out_array3, &
-        ! & out_array4=out_array4, in_array4=in_array4, ref_out_array4=ref_out_array4, &
-        ! & out_array5=out_array5, in_array5=in_array5, ref_out_array5=ref_out_array5, &
-        ! & out_array6=out_array6, in_array6=in_array6, ref_out_array6=ref_out_array6, &
-        ! & out_array7=out_array7, in_array7=in_array7, ref_out_array7=ref_out_array7, &
-        & out_array4d=out_array4d, in_array4d=in_array4d, ref_out_array4d=ref_out_array4d, &
-        & nshift=nshift, comm_pattern=comm_pattern)
-      CALL check_exchange_mult( &
-        & out_array1=out_array1, in_array1=in_array1, ref_out_array1=ref_out_array1, &
-        & out_array2=out_array2, in_array2=in_array2, ref_out_array2=ref_out_array2, &
-        ! & out_array3=out_array3, in_array3=in_array3, ref_out_array3=ref_out_array3, &
-        ! & out_array4=out_array4, in_array4=in_array4, ref_out_array4=ref_out_array4, &
-        ! & out_array5=out_array5, in_array5=in_array5, ref_out_array5=ref_out_array5, &
-        ! & out_array6=out_array6, in_array6=in_array6, ref_out_array6=ref_out_array6, &
-        ! & out_array7=out_array7, in_array7=in_array7, ref_out_array7=ref_out_array7, &
-        & out_array4d=out_array4d, in_array4d=in_array4d, ref_out_array4d=ref_out_array4d, &
-        & nshift=nshift, comm_pattern=comm_pattern)
-      CALL check_exchange_mult( &
-        & out_array1=out_array1, in_array1=in_array1, ref_out_array1=ref_out_array1, &
-        ! & out_array2=out_array2, in_array2=in_array2, ref_out_array2=ref_out_array2, &
-        ! & out_array3=out_array3, in_array3=in_array3, ref_out_array3=ref_out_array3, &
-        ! & out_array4=out_array4, in_array4=in_array4, ref_out_array4=ref_out_array4, &
-        ! & out_array5=out_array5, in_array5=in_array5, ref_out_array5=ref_out_array5, &
-        ! & out_array6=out_array6, in_array6=in_array6, ref_out_array6=ref_out_array6, &
-        ! & out_array7=out_array7, in_array7=in_array7, ref_out_array7=ref_out_array7, &
-        & out_array4d=out_array4d, in_array4d=in_array4d, ref_out_array4d=ref_out_array4d, &
-        & nshift=nshift, comm_pattern=comm_pattern)
-      CALL check_exchange_mult( &
-        ! & out_array1=out_array1, in_array1=in_array1, ref_out_array1=ref_out_array1, &
-        ! & out_array2=out_array2, in_array2=in_array2, ref_out_array2=ref_out_array2, &
-        ! & out_array3=out_array3, in_array3=in_array3, ref_out_array3=ref_out_array3, &
-        ! & out_array4=out_array4, in_array4=in_array4, ref_out_array4=ref_out_array4, &
-        ! & out_array5=out_array5, in_array5=in_array5, ref_out_array5=ref_out_array5, &
-        ! & out_array6=out_array6, in_array6=in_array6, ref_out_array6=ref_out_array6, &
-        ! & out_array7=out_array7, in_array7=in_array7, ref_out_array7=ref_out_array7, &
-        & out_array4d=out_array4d, in_array4d=in_array4d, ref_out_array4d=ref_out_array4d, &
-        & nshift=nshift, comm_pattern=comm_pattern)
+      IF (PRESENT(out_array4d)) THEN
+        IF (PRESENT(out_array7)) THEN
+        CALL check_exchange_mult( &
+          & out_array1=out_array1, in_array1=in_array1, ref_out_array1=ref_out_array1, &
+          & out_array2=out_array2, in_array2=in_array2, ref_out_array2=ref_out_array2, &
+          & out_array3=out_array3, in_array3=in_array3, ref_out_array3=ref_out_array3, &
+          & out_array4=out_array4, in_array4=in_array4, ref_out_array4=ref_out_array4, &
+          & out_array5=out_array5, in_array5=in_array5, ref_out_array5=ref_out_array5, &
+          & out_array6=out_array6, in_array6=in_array6, ref_out_array6=ref_out_array6, &
+          & out_array7=out_array7, in_array7=in_array7, ref_out_array7=ref_out_array7, &
+          & out_array4d=out_array4d, in_array4d=in_array4d, ref_out_array4d=ref_out_array4d, &
+          & nshift=nshift, comm_pattern=comm_pattern)
+        ENDIF
+        IF (PRESENT(out_array6)) THEN
+        CALL check_exchange_mult( &
+          & out_array1=out_array1, in_array1=in_array1, ref_out_array1=ref_out_array1, &
+          & out_array2=out_array2, in_array2=in_array2, ref_out_array2=ref_out_array2, &
+          & out_array3=out_array3, in_array3=in_array3, ref_out_array3=ref_out_array3, &
+          & out_array4=out_array4, in_array4=in_array4, ref_out_array4=ref_out_array4, &
+          & out_array5=out_array5, in_array5=in_array5, ref_out_array5=ref_out_array5, &
+          & out_array6=out_array6, in_array6=in_array6, ref_out_array6=ref_out_array6, &
+          ! & out_array7=out_array7, in_array7=in_array7, ref_out_array7=ref_out_array7, &
+          & out_array4d=out_array4d, in_array4d=in_array4d, ref_out_array4d=ref_out_array4d, &
+          & nshift=nshift, comm_pattern=comm_pattern)
+        ENDIF
+        IF (PRESENT(out_array5)) THEN
+        CALL check_exchange_mult( &
+          & out_array1=out_array1, in_array1=in_array1, ref_out_array1=ref_out_array1, &
+          & out_array2=out_array2, in_array2=in_array2, ref_out_array2=ref_out_array2, &
+          & out_array3=out_array3, in_array3=in_array3, ref_out_array3=ref_out_array3, &
+          & out_array4=out_array4, in_array4=in_array4, ref_out_array4=ref_out_array4, &
+          & out_array5=out_array5, in_array5=in_array5, ref_out_array5=ref_out_array5, &
+          ! & out_array6=out_array6, in_array6=in_array6, ref_out_array6=ref_out_array6, &
+          ! & out_array7=out_array7, in_array7=in_array7, ref_out_array7=ref_out_array7, &
+          & out_array4d=out_array4d, in_array4d=in_array4d, ref_out_array4d=ref_out_array4d, &
+          & nshift=nshift, comm_pattern=comm_pattern)
+        ENDIF
+        IF (PRESENT(out_array4)) THEN
+        CALL check_exchange_mult( &
+          & out_array1=out_array1, in_array1=in_array1, ref_out_array1=ref_out_array1, &
+          & out_array2=out_array2, in_array2=in_array2, ref_out_array2=ref_out_array2, &
+          & out_array3=out_array3, in_array3=in_array3, ref_out_array3=ref_out_array3, &
+          & out_array4=out_array4, in_array4=in_array4, ref_out_array4=ref_out_array4, &
+          ! & out_array5=out_array5, in_array5=in_array5, ref_out_array5=ref_out_array5, &
+          ! & out_array6=out_array6, in_array6=in_array6, ref_out_array6=ref_out_array6, &
+          ! & out_array7=out_array7, in_array7=in_array7, ref_out_array7=ref_out_array7, &
+          & out_array4d=out_array4d, in_array4d=in_array4d, ref_out_array4d=ref_out_array4d, &
+          & nshift=nshift, comm_pattern=comm_pattern)
+        ENDIF
+        IF (PRESENT(out_array3)) THEN
+        CALL check_exchange_mult( &
+          & out_array1=out_array1, in_array1=in_array1, ref_out_array1=ref_out_array1, &
+          & out_array2=out_array2, in_array2=in_array2, ref_out_array2=ref_out_array2, &
+          & out_array3=out_array3, in_array3=in_array3, ref_out_array3=ref_out_array3, &
+          ! & out_array4=out_array4, in_array4=in_array4, ref_out_array4=ref_out_array4, &
+          ! & out_array5=out_array5, in_array5=in_array5, ref_out_array5=ref_out_array5, &
+          ! & out_array6=out_array6, in_array6=in_array6, ref_out_array6=ref_out_array6, &
+          ! & out_array7=out_array7, in_array7=in_array7, ref_out_array7=ref_out_array7, &
+          & out_array4d=out_array4d, in_array4d=in_array4d, ref_out_array4d=ref_out_array4d, &
+          & nshift=nshift, comm_pattern=comm_pattern)
+        ENDIF
+        IF (PRESENT(out_array2)) THEN
+        CALL check_exchange_mult( &
+          & out_array1=out_array1, in_array1=in_array1, ref_out_array1=ref_out_array1, &
+          & out_array2=out_array2, in_array2=in_array2, ref_out_array2=ref_out_array2, &
+          ! & out_array3=out_array3, in_array3=in_array3, ref_out_array3=ref_out_array3, &
+          ! & out_array4=out_array4, in_array4=in_array4, ref_out_array4=ref_out_array4, &
+          ! & out_array5=out_array5, in_array5=in_array5, ref_out_array5=ref_out_array5, &
+          ! & out_array6=out_array6, in_array6=in_array6, ref_out_array6=ref_out_array6, &
+          ! & out_array7=out_array7, in_array7=in_array7, ref_out_array7=ref_out_array7, &
+          & out_array4d=out_array4d, in_array4d=in_array4d, ref_out_array4d=ref_out_array4d, &
+          & nshift=nshift, comm_pattern=comm_pattern)
+        ENDIF
+        IF (PRESENT(out_array1)) THEN
+        CALL check_exchange_mult( &
+          & out_array1=out_array1, in_array1=in_array1, ref_out_array1=ref_out_array1, &
+          ! & out_array2=out_array2, in_array2=in_array2, ref_out_array2=ref_out_array2, &
+          ! & out_array3=out_array3, in_array3=in_array3, ref_out_array3=ref_out_array3, &
+          ! & out_array4=out_array4, in_array4=in_array4, ref_out_array4=ref_out_array4, &
+          ! & out_array5=out_array5, in_array5=in_array5, ref_out_array5=ref_out_array5, &
+          ! & out_array6=out_array6, in_array6=in_array6, ref_out_array6=ref_out_array6, &
+          ! & out_array7=out_array7, in_array7=in_array7, ref_out_array7=ref_out_array7, &
+          & out_array4d=out_array4d, in_array4d=in_array4d, ref_out_array4d=ref_out_array4d, &
+          & nshift=nshift, comm_pattern=comm_pattern)
+        ENDIF
+        CALL check_exchange_mult( &
+          ! & out_array1=out_array1, in_array1=in_array1, ref_out_array1=ref_out_array1, &
+          ! & out_array2=out_array2, in_array2=in_array2, ref_out_array2=ref_out_array2, &
+          ! & out_array3=out_array3, in_array3=in_array3, ref_out_array3=ref_out_array3, &
+          ! & out_array4=out_array4, in_array4=in_array4, ref_out_array4=ref_out_array4, &
+          ! & out_array5=out_array5, in_array5=in_array5, ref_out_array5=ref_out_array5, &
+          ! & out_array6=out_array6, in_array6=in_array6, ref_out_array6=ref_out_array6, &
+          ! & out_array7=out_array7, in_array7=in_array7, ref_out_array7=ref_out_array7, &
+          & out_array4d=out_array4d, in_array4d=in_array4d, ref_out_array4d=ref_out_array4d, &
+          & nshift=nshift, comm_pattern=comm_pattern)
+      ELSE
+        IF (PRESENT(out_array7)) THEN
+        CALL check_exchange_mult( &
+          & out_array1=out_array1, in_array1=in_array1, ref_out_array1=ref_out_array1, &
+          & out_array2=out_array2, in_array2=in_array2, ref_out_array2=ref_out_array2, &
+          & out_array3=out_array3, in_array3=in_array3, ref_out_array3=ref_out_array3, &
+          & out_array4=out_array4, in_array4=in_array4, ref_out_array4=ref_out_array4, &
+          & out_array5=out_array5, in_array5=in_array5, ref_out_array5=ref_out_array5, &
+          & out_array6=out_array6, in_array6=in_array6, ref_out_array6=ref_out_array6, &
+          & out_array7=out_array7, in_array7=in_array7, ref_out_array7=ref_out_array7, &
+          !& out_array4d=out_array4d, in_array4d=in_array4d, ref_out_array4d=ref_out_array4d, &
+          & nshift=nshift, comm_pattern=comm_pattern)
+        ENDIF
+        IF (PRESENT(out_array6)) THEN
+        CALL check_exchange_mult( &
+          & out_array1=out_array1, in_array1=in_array1, ref_out_array1=ref_out_array1, &
+          & out_array2=out_array2, in_array2=in_array2, ref_out_array2=ref_out_array2, &
+          & out_array3=out_array3, in_array3=in_array3, ref_out_array3=ref_out_array3, &
+          & out_array4=out_array4, in_array4=in_array4, ref_out_array4=ref_out_array4, &
+          & out_array5=out_array5, in_array5=in_array5, ref_out_array5=ref_out_array5, &
+          & out_array6=out_array6, in_array6=in_array6, ref_out_array6=ref_out_array6, &
+          ! & out_array7=out_array7, in_array7=in_array7, ref_out_array7=ref_out_array7, &
+          !& out_array4d=out_array4d, in_array4d=in_array4d, ref_out_array4d=ref_out_array4d, &
+          & nshift=nshift, comm_pattern=comm_pattern)
+        ENDIF
+        IF (PRESENT(out_array5)) THEN
+        CALL check_exchange_mult( &
+          & out_array1=out_array1, in_array1=in_array1, ref_out_array1=ref_out_array1, &
+          & out_array2=out_array2, in_array2=in_array2, ref_out_array2=ref_out_array2, &
+          & out_array3=out_array3, in_array3=in_array3, ref_out_array3=ref_out_array3, &
+          & out_array4=out_array4, in_array4=in_array4, ref_out_array4=ref_out_array4, &
+          & out_array5=out_array5, in_array5=in_array5, ref_out_array5=ref_out_array5, &
+          ! & out_array6=out_array6, in_array6=in_array6, ref_out_array6=ref_out_array6, &
+          ! & out_array7=out_array7, in_array7=in_array7, ref_out_array7=ref_out_array7, &
+          !& out_array4d=out_array4d, in_array4d=in_array4d, ref_out_array4d=ref_out_array4d, &
+          & nshift=nshift, comm_pattern=comm_pattern)
+        ENDIF
+        IF (PRESENT(out_array4)) THEN
+        CALL check_exchange_mult( &
+          & out_array1=out_array1, in_array1=in_array1, ref_out_array1=ref_out_array1, &
+          & out_array2=out_array2, in_array2=in_array2, ref_out_array2=ref_out_array2, &
+          & out_array3=out_array3, in_array3=in_array3, ref_out_array3=ref_out_array3, &
+          & out_array4=out_array4, in_array4=in_array4, ref_out_array4=ref_out_array4, &
+          ! & out_array5=out_array5, in_array5=in_array5, ref_out_array5=ref_out_array5, &
+          ! & out_array6=out_array6, in_array6=in_array6, ref_out_array6=ref_out_array6, &
+          ! & out_array7=out_array7, in_array7=in_array7, ref_out_array7=ref_out_array7, &
+          !& out_array4d=out_array4d, in_array4d=in_array4d, ref_out_array4d=ref_out_array4d, &
+          & nshift=nshift, comm_pattern=comm_pattern)
+        ENDIF
+        IF (PRESENT(out_array3)) THEN
+        CALL check_exchange_mult( &
+          & out_array1=out_array1, in_array1=in_array1, ref_out_array1=ref_out_array1, &
+          & out_array2=out_array2, in_array2=in_array2, ref_out_array2=ref_out_array2, &
+          & out_array3=out_array3, in_array3=in_array3, ref_out_array3=ref_out_array3, &
+          ! & out_array4=out_array4, in_array4=in_array4, ref_out_array4=ref_out_array4, &
+          ! & out_array5=out_array5, in_array5=in_array5, ref_out_array5=ref_out_array5, &
+          ! & out_array6=out_array6, in_array6=in_array6, ref_out_array6=ref_out_array6, &
+          ! & out_array7=out_array7, in_array7=in_array7, ref_out_array7=ref_out_array7, &
+          !& out_array4d=out_array4d, in_array4d=in_array4d, ref_out_array4d=ref_out_array4d, &
+          & nshift=nshift, comm_pattern=comm_pattern)
+        ENDIF
+        IF (PRESENT(out_array2)) THEN
+        CALL check_exchange_mult( &
+          & out_array1=out_array1, in_array1=in_array1, ref_out_array1=ref_out_array1, &
+          & out_array2=out_array2, in_array2=in_array2, ref_out_array2=ref_out_array2, &
+          ! & out_array3=out_array3, in_array3=in_array3, ref_out_array3=ref_out_array3, &
+          ! & out_array4=out_array4, in_array4=in_array4, ref_out_array4=ref_out_array4, &
+          ! & out_array5=out_array5, in_array5=in_array5, ref_out_array5=ref_out_array5, &
+          ! & out_array6=out_array6, in_array6=in_array6, ref_out_array6=ref_out_array6, &
+          ! & out_array7=out_array7, in_array7=in_array7, ref_out_array7=ref_out_array7, &
+          !& out_array4d=out_array4d, in_array4d=in_array4d, ref_out_array4d=ref_out_array4d, &
+          & nshift=nshift, comm_pattern=comm_pattern)
+        ENDIF
+        IF (PRESENT(out_array1)) THEN
+        CALL check_exchange_mult( &
+          & out_array1=out_array1, in_array1=in_array1, ref_out_array1=ref_out_array1, &
+          ! & out_array2=out_array2, in_array2=in_array2, ref_out_array2=ref_out_array2, &
+          ! & out_array3=out_array3, in_array3=in_array3, ref_out_array3=ref_out_array3, &
+          ! & out_array4=out_array4, in_array4=in_array4, ref_out_array4=ref_out_array4, &
+          ! & out_array5=out_array5, in_array5=in_array5, ref_out_array5=ref_out_array5, &
+          ! & out_array6=out_array6, in_array6=in_array6, ref_out_array6=ref_out_array6, &
+          ! & out_array7=out_array7, in_array7=in_array7, ref_out_array7=ref_out_array7, &
+          !& out_array4d=out_array4d, in_array4d=in_array4d, ref_out_array4d=ref_out_array4d, &
+          & nshift=nshift, comm_pattern=comm_pattern)
+        ENDIF
+      ENDIF
 
     END SUBROUTINE check_exchange_mult_dp
 
@@ -2975,13 +3076,13 @@ CONTAINS
       nfields = 0
       ndim2tot = 0
       IF (PRESENT(out_array4d)) THEN
-        ALLOCATE(tmp_out_array4d(SIZE(out_array4d,1),SIZE(out_array4d,2),&
-                                    SIZE(out_array4d,3),SIZE(out_array4d,4)))
-        tmp_out_array4d = out_array4d
-        nfields = nfields + SIZE(out_array4d, 4)
-        ndim2 = SIZE(out_array4d, 2)
-        ndim2tot = ndim2tot + &
-          &        MERGE(1, ndim2 - kshift, ndim2 == 1) * SIZE(out_array4d, 4)
+      ALLOCATE(tmp_out_array4d(SIZE(out_array4d,1),SIZE(out_array4d,2),&
+                                  SIZE(out_array4d,3),SIZE(out_array4d,4)))
+      tmp_out_array4d = out_array4d
+      nfields = nfields + SIZE(out_array4d, 4)
+      ndim2 = SIZE(out_array4d, 2)
+      ndim2tot = ndim2tot + &
+        &        MERGE(1, ndim2 - kshift, ndim2 == 1) * SIZE(out_array4d, 4)
       END IF
       IF (PRESENT(out_array1)) THEN
         ALLOCATE(tmp_out_array1(SIZE(out_array1,1),SIZE(out_array1,2),&
@@ -3045,19 +3146,149 @@ CONTAINS
       !$ACC   COPY(out_array1, out_array2, out_array3, out_array4) &
       !$ACC   COPY(out_array5, out_array6, out_array7, out_array4d) &
       !$ACC   IF(lzacc)
-      IF (nfields > 0) THEN
-        CALL exchange_data_mult( &
-          p_pat=comm_pattern, lacc=lzacc, &
-          nfields=nfields, ndim2tot=ndim2tot, &
-          recv1=out_array1, send1=in_array1, &
-          recv2=out_array2, send2=in_array2, &
-          recv3=out_array3, send3=in_array3, &
-          recv4=out_array4, send4=in_array4, &
-          recv5=out_array5, send5=in_array5, &
-          recv6=out_array6, send6=in_array6, &
-          recv7=out_array7, send7=in_array7, &
-          recv4d=out_array4d, send4d=in_array4d, &
-          nshift=kshift)
+      IF (PRESENT(out_array4d)) THEN
+        IF (PRESENT(out_array7)) THEN
+          CALL exchange_data_mult( &
+            p_pat=comm_pattern, lacc=lzacc, &
+            nfields=nfields, ndim2tot=ndim2tot, &
+            recv1=out_array1, send1=in_array1, &
+            recv2=out_array2, send2=in_array2, &
+            recv3=out_array3, send3=in_array3, &
+            recv4=out_array4, send4=in_array4, &
+            recv5=out_array5, send5=in_array5, &
+            recv6=out_array6, send6=in_array6, &
+            recv7=out_array7, send7=in_array7, &
+            recv4d=out_array4d, send4d=in_array4d, &
+            nshift=kshift)
+        ELSE IF (PRESENT(out_array6)) THEN
+          CALL exchange_data_mult( &
+            p_pat=comm_pattern, lacc=lzacc, &
+            nfields=nfields, ndim2tot=ndim2tot, &
+            recv1=out_array1, send1=in_array1, &
+            recv2=out_array2, send2=in_array2, &
+            recv3=out_array3, send3=in_array3, &
+            recv4=out_array4, send4=in_array4, &
+            recv5=out_array5, send5=in_array5, &
+            recv6=out_array6, send6=in_array6, &
+            recv4d=out_array4d, send4d=in_array4d, &
+            nshift=kshift)
+        ELSE IF (PRESENT(out_array5)) THEN
+          CALL exchange_data_mult( &
+            p_pat=comm_pattern, lacc=lzacc, &
+            nfields=nfields, ndim2tot=ndim2tot, &
+            recv1=out_array1, send1=in_array1, &
+            recv2=out_array2, send2=in_array2, &
+            recv3=out_array3, send3=in_array3, &
+            recv4=out_array4, send4=in_array4, &
+            recv5=out_array5, send5=in_array5, &
+            recv4d=out_array4d, send4d=in_array4d, &
+            nshift=kshift)
+        ELSE IF (PRESENT(out_array4)) THEN
+          CALL exchange_data_mult( &
+            p_pat=comm_pattern, lacc=lzacc, &
+            nfields=nfields, ndim2tot=ndim2tot, &
+            recv1=out_array1, send1=in_array1, &
+            recv2=out_array2, send2=in_array2, &
+            recv3=out_array3, send3=in_array3, &
+            recv4=out_array4, send4=in_array4, &
+            recv4d=out_array4d, send4d=in_array4d, &
+            nshift=kshift)
+        ELSE IF (PRESENT(out_array3)) THEN
+          CALL exchange_data_mult( &
+            p_pat=comm_pattern, lacc=lzacc, &
+            nfields=nfields, ndim2tot=ndim2tot, &
+            recv1=out_array1, send1=in_array1, &
+            recv2=out_array2, send2=in_array2, &
+            recv3=out_array3, send3=in_array3, &
+            recv4d=out_array4d, send4d=in_array4d, &
+            nshift=kshift)
+        ELSE IF (PRESENT(out_array2)) THEN
+          CALL exchange_data_mult( &
+            p_pat=comm_pattern, lacc=lzacc, &
+            nfields=nfields, ndim2tot=ndim2tot, &
+            recv1=out_array1, send1=in_array1, &
+            recv2=out_array2, send2=in_array2, &
+            recv4d=out_array4d, send4d=in_array4d, &
+            nshift=kshift)
+        ELSE IF (PRESENT(out_array1)) THEN
+          CALL exchange_data_mult( &
+            p_pat=comm_pattern, lacc=lzacc, &
+            nfields=nfields, ndim2tot=ndim2tot, &
+            recv1=out_array1, send1=in_array1, &
+            recv4d=out_array4d, send4d=in_array4d, &
+            nshift=kshift)
+        ELSE
+          CALL exchange_data_mult( &
+            p_pat=comm_pattern, lacc=lzacc, &
+            nfields=nfields, ndim2tot=ndim2tot, &
+            recv4d=out_array4d, send4d=in_array4d, &
+            nshift=kshift)
+        END IF
+      ELSE
+        IF (PRESENT(out_array7)) THEN
+          CALL exchange_data_mult( &
+            p_pat=comm_pattern, lacc=lzacc, &
+            nfields=nfields, ndim2tot=ndim2tot, &
+            recv1=out_array1, send1=in_array1, &
+            recv2=out_array2, send2=in_array2, &
+            recv3=out_array3, send3=in_array3, &
+            recv4=out_array4, send4=in_array4, &
+            recv5=out_array5, send5=in_array5, &
+            recv6=out_array6, send6=in_array6, &
+            recv7=out_array7, send7=in_array7, &
+            nshift=kshift)
+        ELSE IF (PRESENT(out_array6)) THEN
+          CALL exchange_data_mult( &
+            p_pat=comm_pattern, lacc=lzacc, &
+            nfields=nfields, ndim2tot=ndim2tot, &
+            recv1=out_array1, send1=in_array1, &
+            recv2=out_array2, send2=in_array2, &
+            recv3=out_array3, send3=in_array3, &
+            recv4=out_array4, send4=in_array4, &
+            recv5=out_array5, send5=in_array5, &
+            recv6=out_array6, send6=in_array6, &
+            nshift=kshift)
+        ELSE IF (PRESENT(out_array5)) THEN
+          CALL exchange_data_mult( &
+            p_pat=comm_pattern, lacc=lzacc, &
+            nfields=nfields, ndim2tot=ndim2tot, &
+            recv1=out_array1, send1=in_array1, &
+            recv2=out_array2, send2=in_array2, &
+            recv3=out_array3, send3=in_array3, &
+            recv4=out_array4, send4=in_array4, &
+            recv5=out_array5, send5=in_array5, &
+            nshift=kshift)
+        ELSE IF (PRESENT(out_array4)) THEN
+          CALL exchange_data_mult( &
+            p_pat=comm_pattern, lacc=lzacc, &
+            nfields=nfields, ndim2tot=ndim2tot, &
+            recv1=out_array1, send1=in_array1, &
+            recv2=out_array2, send2=in_array2, &
+            recv3=out_array3, send3=in_array3, &
+            recv4=out_array4, send4=in_array4, &
+            nshift=kshift)
+        ELSE IF (PRESENT(out_array3)) THEN
+          CALL exchange_data_mult( &
+            p_pat=comm_pattern, lacc=lzacc, &
+            nfields=nfields, ndim2tot=ndim2tot, &
+            recv1=out_array1, send1=in_array1, &
+            recv2=out_array2, send2=in_array2, &
+            recv3=out_array3, send3=in_array3, &
+            nshift=kshift)
+        ELSE IF (PRESENT(out_array2)) THEN
+          CALL exchange_data_mult( &
+            p_pat=comm_pattern, lacc=lzacc, &
+            nfields=nfields, ndim2tot=ndim2tot, &
+            recv1=out_array1, send1=in_array1, &
+            recv2=out_array2, send2=in_array2, &
+            nshift=kshift)
+        ELSE IF (PRESENT(out_array1)) THEN
+          CALL exchange_data_mult( &
+            p_pat=comm_pattern, lacc=lzacc, &
+            nfields=nfields, ndim2tot=ndim2tot, &
+            recv1=out_array1, send1=in_array1, &
+            nshift=kshift)
+        END IF
       END IF
       !$ACC END DATA
 
