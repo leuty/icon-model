@@ -15,9 +15,9 @@ unset CDPATH
 ulimit -c 0
 
 script_dir=$(cd "$(dirname "$0")"; pwd)
-icon_dir=$(cd "${script_dir}/../.."; pwd)
+icon_dir=$(cd "${script_dir}/../../.."; pwd)
 
-cmp_ver='3.5.1'
+cmp_ver='4.0.0'
 mpi_ver='3.2.0'
 
 modules="ve/ncc/${cmp_ver} ve/nfort/${cmp_ver} ve/mpi/${mpi_ver}"
@@ -46,8 +46,7 @@ BLAS_LAPACK_LIBS='-llapack -lblas_sequential'
 ECCODES_ROOT="/opt/dkrz/ve/eccodes/2.18.0_ncc-${cmp_ver}_serial_localdisk"
 ECCODES_LIBS='-leccodes_f90 -leccodes'
 
-# There is no installation for ${cmp_ver}:
-FYAML_ROOT='/opt/dkrz/ve/libfyaml/0.8-patch-23265a8_ncc-4.0.0'
+FYAML_ROOT="/opt/dkrz/ve/libfyaml/0.8-patch-23265a8_ncc-4.0.0"
 FYAML_LIBS='-lfyaml'
 
 XML2_ROOT="/opt/dkrz/ve/libxml2/2.9.14_ncc-${cmp_ver}"

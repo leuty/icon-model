@@ -15,13 +15,16 @@ unset CDPATH
 ulimit -c 0
 
 script_dir=$(cd "$(dirname "$0")"; pwd)
-icon_dir=$(cd "${script_dir}/../.."; pwd)
+icon_dir=$(cd "${script_dir}/../../.."; pwd)
 
 NVHPC_ROOT='/sw/spack-levante/nvhpc-24.11-qgwst6/Linux_x86_64/24.11'
 GCC_ROOT='/sw/spack-levante/gcc-11.2.0-bcn7mb'
 
 STDCPP_ROOT=${GCC_ROOT}
 STDCPP_LIBS='-lstdc++'
+
+CUDA_ROOT="${NVHPC_ROOT}/cuda/12.6"
+CUDA_LIBS='-lcudart -lcuda'
 
 MPI_ROOT='/sw/hpcx/hpcx-v2.21-gcc-doca_ofed-redhat8-cuda12-x86_64/hpcx_nvhpc-24.11_mt'
 
@@ -46,7 +49,7 @@ XML2_ROOT='/usr'
 XML2_LIBS='-lxml2'
 
 ##########################################
-BUILD_ENV="export LD_LIBRARY_PATH=\"${STDCPP_ROOT}/lib64:${HDF5_ROOT}/lib:${NETCDF_ROOT}/lib64:${NETCDFF_ROOT}/lib:${ECCODES_ROOT}/lib64:${FYAML_ROOT}/lib:\${LD_LIBRARY_PATH}\";"
+BUILD_ENV="export LD_LIBRARY_PATH=\"${STDCPP_ROOT}/lib64:${HDF5_ROOT}/lib:${NETCDF_ROOT}/lib64:${NETCDFF_ROOT}/lib:${ECCODES_ROOT}/lib64:${FYAML_ROOT}/lib:\${LD_LIBRARY_PATH}\"; export LIBRARY_PATH=\"${CUDA_ROOT}/lib64/stubs:\${LIBRARY_PATH}\"; export CUDAToolkit_ROOT='${CUDA_ROOT}';"
 
 CC="${MPI_ROOT}/bin/mpicc"
 CFLAGS='-g -O2'
@@ -66,7 +69,7 @@ FC="${MPI_ROOT}/bin/mpifort"
 FCFLAGS="-I${NETCDFF_ROOT}/include -g -O2 -Mrecursive -Mallocatable=03 -Mstack_arrays -Minfo=accel,inline -acc=gpu,verystrict -gpu=cc80,cuda12.6"
 
 LDFLAGS="-cuda -L${STDCPP_ROOT}/lib64 -L${HDF5_ROOT}/lib -L${NETCDF_ROOT}/lib64 -L${NETCDFF_ROOT}/lib -L${ECCODES_ROOT}/lib64 -L${FYAML_ROOT}/lib"
-LIBS="-Wl,--as-needed ${XML2_LIBS} ${FYAML_LIBS} ${ECCODES_LIBS} ${BLAS_LAPACK_LIBS} ${NETCDFF_LIBS} ${NETCDF_LIBS} ${HDF5_LIBS} ${STDCPP_LIBS}"
+LIBS="-Wl,--as-needed ${XML2_LIBS} ${FYAML_LIBS} ${ECCODES_LIBS} ${BLAS_LAPACK_LIBS} ${NETCDFF_LIBS} ${NETCDF_LIBS} ${HDF5_LIBS} ${CUDA_LIBS} ${STDCPP_LIBS}"
 
 MPI_LAUNCH="${MPI_ROOT}/bin/mpiexec"
 
