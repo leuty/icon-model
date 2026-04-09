@@ -109,18 +109,22 @@ MODULE mo_sea_ice_types
       & v_prog     (:,:)         ,   & ! Meridional velocity (prognostic, rotated)              [m/s]
       & u          (:,:)         ,   & ! Zonal velocity on cell centre (diagnostic)             [m/s]
       & v          (:,:)         ,   & ! Meridional velocity on cell centre (diagn.)            [m/s]
-      & vn_e       (:,:)         ,   &  ! Edge normal velocity(prognostic)                      [m/s]
+      & vn_e       (:,:)         ,   & ! Edge normal velocity(prognostic)                       [m/s]
       & vt_e       (:,:)         ,   & ! Edge tangential velocity prognostic                    [m/s]
       & delta      (:,:)         ,   & ! total deformation rate                                 [1/s]
-      & sigma_i    (:,:)         ,   & ! principal stress                                       [N/m^2]
-      & sigma_ii   (:,:)         ,   & ! principal stress                                       [N/m^2]
       & s11        (:,:)         ,   & ! normal stress component (sigma_11)                     [N/m^2]
       & s12        (:,:)         ,   & ! shear stress component (sigma_12)                      [N/m^2]
       & s22        (:,:)         ,   & ! normal stress component (sigma_22)                     [N/m^2]
       & e11        (:,:)         ,   & ! strain rate (eps11)                                    [s-1]
       & e12        (:,:)         ,   & ! strain rate (eps12)                                    [s-1]
-      & e22        (:,:)               ! strain rate (eps22)                                    [s-1]
-
+      & e22        (:,:)         ,   & ! strain rate (eps22)                                    [s-1]
+      ! stress diagnostics
+      & p0         (:,:)         ,   & ! ice strength                                           [N/m^1]
+      & p          (:,:)         ,   & ! replacement pressure                                   [N/m^1]
+      & sigma_1    (:,:)         ,   & ! maximum principal stress                               [N/m^1]
+      & sigma_2    (:,:)         ,   & ! minimum principal stress                               [N/m^1]
+      & sigma_i    (:,:)         ,   & ! normal stress                                          [N/m^1]
+      & sigma_ii   (:,:)               ! shear stress                                           [N/m^1]
 
     ! not currently used categorywise limiter
     REAL(wp), ALLOCATABLE :: hi_lim(:) ! Thickness limit                                        [m]

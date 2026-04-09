@@ -28,6 +28,9 @@ MODULE mo_ice_fem_types
   REAL(wp), ALLOCATABLE, DIMENSION(:)         :: mass_matrix
   REAL(wp), ALLOCATABLE, DIMENSION(:)         :: lmass_matrix
   REAL(wp), ALLOCATABLE, DIMENSION(:)         :: sigma11, sigma12, sigma22
+  REAL(wp), ALLOCATABLE, DIMENSION(:)         :: sigma_1, sigma_2
+  REAL(wp), ALLOCATABLE, DIMENSION(:)         :: sigma_i, sigma_ii
+  REAL(wp), ALLOCATABLE, DIMENSION(:)         :: p0_diag, p_diag
   REAL(wp), ALLOCATABLE, DIMENSION(:)         :: eps11, eps12, eps22
   REAL(wp), ALLOCATABLE, DIMENSION(:)         :: delta
   REAL(wp), ALLOCATABLE, DIMENSION(:)         :: si1, si2

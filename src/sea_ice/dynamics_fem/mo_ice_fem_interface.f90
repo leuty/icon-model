@@ -40,7 +40,7 @@ MODULE mo_ice_fem_interface
   USE mo_ocean_surface_types, ONLY: t_atmos_for_ocean, t_ocean_surface
   USE mo_physical_constants,  ONLY: grav, rho_ref, sfc_press_pascal
   USE mo_sea_ice_types,       ONLY: t_sea_ice, t_atmos_fluxes
-  USE mo_sea_ice_nml,         ONLY: i_ice_advec
+  USE mo_sea_ice_nml,         ONLY: i_ice_advec, seaice_stress_diag
   USE mo_ice_fem_advection,   ONLY: fct_ice_solve, ice_TG_rhs
   USE mo_math_types,          ONLY: t_cartesian_coordinates
   USE mo_math_utilities,      ONLY: gvec2cvec, cvec2gvec
@@ -82,7 +82,9 @@ CONTAINS
                                 atmos_fluxes, p_op_coeff, p_oce_sfc, lacc )
 
     USE mo_ice_fem_types,     ONLY: sigma11, sigma12, sigma22, &
-                                    delta, eps11, eps12, eps22, si1, si2
+                                    delta, eps11, eps12, eps22, si1, si2, &
+                                    sigma_1, sigma_2, sigma_i, sigma_ii, &
+                                    p0_diag, p_diag
     USE mo_ice_fem_evp,       ONLY: EVPdynamics
 #ifdef _OPENACC
     USE mo_ice_fem_icon_init, ONLY: c2v_wgt
@@ -223,11 +225,18 @@ CONTAINS
     CALL copy_femelem2iconcell(sigma12, p_ice%s12, lacc=lzacc)
     CALL copy_femelem2iconcell(sigma22, p_ice%s22, lacc=lzacc)
 
-    ! delta and principal stresses
-    CALL copy_femelem2iconcell(delta, p_ice%delta, lacc=lzacc)
-    CALL copy_femelem2iconcell(si1, p_ice%sigma_i, lacc=lzacc)
-    CALL copy_femelem2iconcell(si2, p_ice%sigma_ii,lacc=lzacc)
+    IF (seaice_stress_diag) THEN
+      ! delta and principal stresses
+      CALL copy_femelem2iconcell(delta, p_ice%delta, lacc=lzacc)
+      CALL copy_femelem2iconcell(sigma_1, p_ice%sigma_1, lacc=lzacc)
+      CALL copy_femelem2iconcell(sigma_2, p_ice%sigma_2, lacc=lzacc)
+      CALL copy_femelem2iconcell(sigma_i, p_ice%sigma_i, lacc=lzacc)
+      CALL copy_femelem2iconcell(sigma_ii, p_ice%sigma_ii, lacc=lzacc)
 
+      ! ice strength and replacement pressure
+      CALL copy_femelem2iconcell(p0_diag, p_ice%p0, lacc=lzacc)
+      CALL copy_femelem2iconcell(p_diag, p_ice%p, lacc=lzacc)
+    END IF
 
     ! check if these are needed ?
     !-----------------------------------------------------------------------
@@ -242,8 +251,13 @@ CONTAINS
     !CALL sync_patch_array(SYNC_C, p_patch, p_ice%s22, lacc=lzacc)
 
     !CALL sync_patch_array(SYNC_C, p_patch, p_ice%delta, lacc=lzacc)
+    !CALL sync_patch_array(SYNC_C, p_patch, p_ice%sigma_1, lacc=lzacc)
+    !CALL sync_patch_array(SYNC_C, p_patch, p_ice%sigma_2, lacc=lzacc)
     !CALL sync_patch_array(SYNC_C, p_patch, p_ice%sigma_i, lacc=lzacc)
     !CALL sync_patch_array(SYNC_C, p_patch, p_ice%sigma_ii, lacc=lzacc)
+
+    !CALL sync_patch_array(SYNC_C, p_patch, p_ice%p0, lacc=lzacc)
+    !CALL sync_patch_array(SYNC_C, p_patch, p_ice%p, lacc=lzacc)
 
     !$ACC DATA COPYIN(u_ice, v_ice) &
     !$ACC   COPY(u_w, v_w, stress_atmice_x, stress_atmice_y, elevation) IF(lzacc)

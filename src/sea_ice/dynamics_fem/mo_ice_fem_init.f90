@@ -25,7 +25,7 @@ module mo_ice_fem_init
 
   USE mo_kind,          ONLY: wp
   USE mo_run_config,    ONLY: dtime
-  USE mo_sea_ice_nml,   ONLY: Tevp_inv, i_ice_advec
+  USE mo_sea_ice_nml,   ONLY: Tevp_inv, i_ice_advec, seaice_stress_diag
 !  USE mo_ice_fem_evp_old,   ONLY: init_evp_solver_coeffs_old
   USE mo_ice_fem_evp,       ONLY: init_evp_solver_coeffs
   USE mo_ice_fem_advection, ONLY: fem_fct_ice_init
@@ -109,6 +109,11 @@ integer   :: k
  ALLOCATE(sigma11(elem2D), sigma12(elem2D), sigma22(elem2D), delta(elem2d))
  ALLOCATE(eps11(elem2D), eps12(elem2D), eps22(elem2D))
  ALLOCATE(si1(elem2D), si2(elem2D))
+ IF (seaice_stress_diag) THEN
+   ALLOCATE(sigma_1(elem2D), sigma_2(elem2D))
+   ALLOCATE(sigma_i(elem2D), sigma_ii(elem2D))
+   ALLOCATE(p0_diag(elem2D), p_diag(elem2D))
+ END IF
  allocate(rhs_m(nod2D), rhs_a(nod2D), rhs_u(nod2D), rhs_v(nod2D))
  allocate(rhs_mis(nod2D))
 
@@ -129,6 +134,14 @@ integer   :: k
  eps12 = 0.0_wp
  si1 = 0.0_wp
  si2 = 0.0_wp
+ IF (seaice_stress_diag) THEN
+   sigma_1 = 0.0_wp
+   sigma_2 = 0.0_wp
+   sigma_i = 0.0_wp
+   sigma_ii = 0.0_wp
+   p0_diag = 0.0_wp
+   p_diag = 0.0_wp
+ END IF
 
 ! Allocate memory used for coupling (Partly used for input, and partly
 ! for output of information)
@@ -148,7 +161,8 @@ END DO
 
 !$ACC ENTER DATA COPYIN(u_ice, v_ice, m_ice, m_snow, a_ice, elevation, u_w, v_w) &
 !$ACC   COPYIN(stress_atmice_x, stress_atmice_y, sigma11, sigma22, sigma12) &
-!$ACC   COPYIN(si1, si2, eps11, eps22, eps12, delta) &
+!$ACC   COPYIN(si1, si2, sigma_1, sigma_2, sigma_i, sigma_ii, eps11, eps22, eps12, delta) &
+!$ACC   COPYIN(p0_diag, p_diag) &
 !$ACC   COPYIN(rhs_m, rhs_mis, rhs_a, rhs_u, rhs_v, lmass_matrix)
 end subroutine array_setup_ice
 !==========================================================================
