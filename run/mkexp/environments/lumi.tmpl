@@ -11,7 +11,7 @@
 #
 # Setup for LUMI (SLURM)
 #
-# $Id: run/mkexp/environments/lumi.tmpl 1 2025-08-01 12:24:16Z k202204 $
+# $Id: run/mkexp/environments/lumi.tmpl 2 2026-04-01 13:33:26Z m221078 $
 #
 #SBATCH --job-name=%{EXP_ID}.run
 #% if calling_from_run is defined
@@ -46,17 +46,7 @@
 #%#
 #%  if JOB.job_type == 'parallel':
 # Environment variables for the target system
-
-#%    for var in JOB.env:
-#%      set val = JOB.env[var]
-#%      if val:
-#%        for line in JOB.env.comments[var]:
-%{line}
-#%        endfor
-#%        set inline_comment = JOB.env.inline_comments[var]
-export %{var}=%{'"'+val+'"' if ' ' in val else val}%{' '+inline_comment if inline_comment}
-#%      else:
-unset %{var}%{' '+inline_comment if inline_comment}
-#%      endif
-#%    endfor
+#%#
+#%-   set language = JOB.language|d("sh")
+#%    include 'mkexp/environments/DEFAULT.environment.'+language+'.tmpl'
 #%  endif
