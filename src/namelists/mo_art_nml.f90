@@ -102,6 +102,7 @@ MODULE mo_art_nml
   INTEGER :: iart_dust               !< Treatment of mineral dust aerosol
   INTEGER :: iart_anthro             !< Treatment of anthropogenic aerosol
   INTEGER :: iart_fire               !< Treatment of wildfire aerosol
+  INTEGER :: iart_gfas_dt_ovrwrite   !< Interval of overwriting biomass burning emissions
   INTEGER :: iart_volcano            !< Treatment of volcanic ash aerosol
   INTEGER :: iart_nonsph             !< Treatment of nonspherical particles
   INTEGER :: iart_isorropia          !< Treatment of aerosol gas partioning
@@ -160,7 +161,7 @@ MODULE mo_art_nml
 
   NAMELIST/art_nml/ cart_input_folder, lart_chem, lart_chemtracer, lart_mecca,          &
    &                cart_io_suffix, lart_pntSrc, lart_aerosol, iart_seasalt, iart_dust, &
-   &                iart_anthro, iart_fire, rart_shfl_fire, rart_qv_fire, iart_volcano, &
+   &                iart_anthro, iart_fire,iart_gfas_dt_ovrwrite, rart_shfl_fire, rart_qv_fire, iart_volcano, &
    &                cart_volcano_file, iart_fplume, iart_volc_numb, cart_fplume_inp,    &
    &                iart_radioact, cart_radioact_file, iart_pollen, iart_nonsph,        &
    &                iart_isorropia, iart_seas_water, lart_dusty_cirrus,                 &
@@ -251,6 +252,7 @@ CONTAINS
     iart_dust           = 0
     iart_anthro         = 0
     iart_fire           = 0
+    iart_gfas_dt_ovrwrite = 0
     iart_volcano        = 0
     cart_volcano_file   = ''
     iart_radioact       = 0
@@ -480,6 +482,7 @@ CONTAINS
       art_config(jg)%iart_dust           = iart_dust
       art_config(jg)%iart_anthro         = iart_anthro
       art_config(jg)%iart_fire           = iart_fire
+      art_config(jg)%iart_gfas_dt_ovrwrite = iart_gfas_dt_ovrwrite
       art_config(jg)%iart_volcano        = iart_volcano
       art_config(jg)%iart_nonsph         = iart_nonsph
       art_config(jg)%iart_isorropia      = iart_isorropia

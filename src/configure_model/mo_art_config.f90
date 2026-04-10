@@ -108,6 +108,7 @@ MODULE mo_art_config
     INTEGER :: iart_dust               !< Treatment of mineral dust aerosol
     INTEGER :: iart_anthro             !< Treatment of anthropogenic aerosol
     INTEGER :: iart_fire               !< Treatment of wildfire aerosol
+    INTEGER :: iart_gfas_dt_ovrwrite   !< Interval of overwriting biomass burning emissions
     INTEGER :: iart_volcano            !< Treatment of volcanic ash aerosol
     INTEGER :: iart_nonsph             !< Treatment of nonspherical particles
     INTEGER :: iart_isorropia          !< Treatment of gas aerosol partioning
