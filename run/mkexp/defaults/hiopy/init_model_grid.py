@@ -29,11 +29,20 @@ def init_data_request(
     end = datetime.fromisoformat(simulation_params["end_date"])
     total_simulated_hours = (end - start).total_seconds() / 3600
 
-    zarr_args = {
-        "compressors": zarr.codecs.BloscCodec(
-            cname="zstd", clevel=6, shuffle=zarr.codecs.BloscShuffle.shuffle
+    zarr_args = {}
+    if dataset.metadata.zarr_format == 3:
+        zarr_args["compressors"] = [
+            zarr.codecs.BloscCodec(
+                cname="zstd", clevel=6, shuffle=zarr.codecs.BloscShuffle.shuffle
+            )
+        ]
+    else:
+        import numcodecs
+
+        zarr_args["compressors"] = numcodecs.Blosc(
+            cname="zstd", clevel=6, shuffle=numcodecs.Blosc.SHUFFLE
         )
-    }
+        zarr_args["chunk_key_encoding"] = {"name": "v2", "separator": "/"}
 
     for data_group in data_request:
         try:
@@ -153,6 +162,10 @@ def init_data_request(
                         collection_selection,
                     )
                 if "oce" in hiopy_args["yac_source_comp"]:
+
+                    if zg.metadata.zarr_format == 3:
+                        zarr_args["chunks_per_shard"] = 1
+
                     if "ocean_frac_mask_sfc" not in zg:
                         hc.add_variable(
                             zg,
@@ -160,7 +173,6 @@ def init_data_request(
                             taxis=None,
                             chunk_shape=chunk_shape[-1:],
                             yac_name="valid_mask_sfc",
-                            chunks_per_shard=1,
                             **{**hiopy_args, "zaxis": None},
                             **zarr_args,
                         )
@@ -169,6 +181,9 @@ def init_data_request(
                         frac_mask_yac_name = "valid_mask"
                         if "half" in group_config["frac_mask"]:
                             frac_mask_yac_name = "valid_mask_half"
+
+                        if zg.metadata.zarr_format == 3:
+                            zarr_args["chunks_per_shard"] = 1
 
                         hc.add_variable(
                             zg,
@@ -180,7 +195,6 @@ def init_data_request(
                             ),
                             yac_name=frac_mask_yac_name,
                             zaxis=group_config.get("name_of_level", None),
-                            chunks_per_shard=1,
                             **hiopy_args,
                             **zarr_args,
                         )
@@ -197,6 +211,9 @@ def init_data_request(
                     if variable in dict_of_names:
                         hiopy_args["yac_name"] = dict_of_names[variable]
 
+                    if zg.metadata.zarr_format == 3:
+                        zarr_args["chunks_per_shard"] = chunks_per_shard
+
                     if variable not in zg:
                         hc.add_variable(
                             zg,
@@ -204,7 +221,6 @@ def init_data_request(
                             time_method=time_method,
                             chunk_shape=chunk_shape,
                             frac_mask=group_config.get("frac_mask", None),
-                            chunks_per_shard=chunks_per_shard,
                             zaxis=group_config.get("name_of_level", None),
                             **hiopy_args,
                             **zarr_args,

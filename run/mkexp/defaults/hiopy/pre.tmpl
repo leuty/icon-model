@@ -74,10 +74,10 @@ try:
                             endpoint_url="%{hiopy.storage.s3.endpoint_url}",
                             asynchronous=True)
     store = zarr.storage.FsspecStore(fs=fs, path=zarr_store_path)
-    dataset = zarr.open_group(store=store, zarr_format=3, mode="w")
+    dataset = zarr.open_group(store=store, zarr_format=%{hiopy.zarr_format | default(3)}, mode="w")
 #% else:
     zarr_store_path = "%{DATA_DIR}/%{hiopy.relative_path_to_dataset}"
-    dataset = zarr.open_group(zarr_store_path, zarr_format=3, mode="a")
+    dataset = zarr.open_group(zarr_store_path, zarr_format=%{hiopy.zarr_format | default(3)}, mode="a")
 #% endif
     logging.info(f"Initialized zarr store at {zarr_store_path}")
 
