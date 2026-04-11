@@ -92,6 +92,7 @@
 - Update of the script to equilibrate jsbach humus carbon pools
 - Fixing an error in the effect of supercooled water on plant water stress
 - Fix for jsbach simulations with natural and anthropogenic land cover change
+- Fixed finish message for invalid var name in output_nml with standalone model
 
 ### Externals
 
