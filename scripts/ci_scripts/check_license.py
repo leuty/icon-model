@@ -107,7 +107,7 @@ FileType = collections.namedtuple(
     [
         "name",
         "glob_patterns",
-        "line_comment_start",
+        "line_comment_starts",
         "re_license_prefix",
         "license_format_message",
     ],
@@ -117,7 +117,7 @@ FILE_TYPES = [
     FileType(
         name="Fortran",
         glob_patterns=["*.F90", "*.f90", "*.inc", "*.incf"],
-        line_comment_start="!",
+        line_comment_starts=["!"],
         re_license_prefix=None,
         license_format_message="must start on the first line of the file",
     ),
@@ -132,14 +132,14 @@ FILE_TYPES = [
             "*.hpp",
             "*.ipp",
         ],
-        line_comment_start="//",
+        line_comment_starts=["//"],
         re_license_prefix=None,
         license_format_message="must start on the first line of the file",
     ),
     FileType(
         name="Shell/Python",
         glob_patterns=["*.sh", "*.py"],
-        line_comment_start="#",
+        line_comment_starts=["#"],
         re_license_prefix=r"(?:#![^\n]+\n\n?)?",
         license_format_message="should start on the first line of the file but can be "
         "prefixes with a shebang and an empty line",
@@ -147,7 +147,22 @@ FILE_TYPES = [
     FileType(
         name="CMake/YAML",
         glob_patterns=["*/CMakeLists.txt", "*.cmake", "*.yml"],
-        line_comment_start="#",
+        line_comment_starts=["#"],
+        re_license_prefix=None,
+        license_format_message="must start on the first line of the file",
+    ),
+    FileType(
+        name="mkexp-jinja",
+        glob_patterns=["*.tmpl"],
+        line_comment_starts=["#%#-"],
+        re_license_prefix=r"^(?:(?:#!|#%# -\*-).*?\n)?",
+        license_format_message="should start on the first line of the file but can be "
+        "prefixed with a mode line",
+    ),
+    FileType(
+        name="mkexp-configs",
+        glob_patterns=["*.config"],
+        line_comment_starts=["#", "#-"],
         re_license_prefix=None,
         license_format_message="must start on the first line of the file",
     ),
@@ -164,27 +179,23 @@ def get_file_type(filepath):
     return None
 
 
-def get_license_header(file_type):
+def get_license_header(file_type, line_comment_start):
     return "\n".join(
-        (
-            f"{file_type.line_comment_start} {line}"
-            if line
-            else file_type.line_comment_start
-        )
+        (f"{line_comment_start} {line}" if line else line_comment_start)
         for line in ICON_LICENSE.split("\n")
     )
 
 
-def get_license_regexp(file_type):
+def get_license_regexp(file_type, line_comment_start):
     return "^{0}{1}".format(
         file_type.re_license_prefix or "",
-        re.escape(get_license_header(file_type)),
+        re.escape(get_license_header(file_type, line_comment_start)),
     )
 
 
-def get_forbidden_doxygen_regexp(file_type):
+def get_forbidden_doxygen_regexp(file_type, line_comment_start):
     return r"(?im)^\s*{0}.*@(?:par\s+revision\s+history|author).*$".format(
-        file_type.line_comment_start
+        line_comment_start
     )
 
 
@@ -227,11 +238,24 @@ def check_file(filepath):
     with open(filepath, "rb") as f:
         raw = f.read(-1)
         txt = raw.decode("utf-8", errors="replace")
+
+        license_match = False
+        for line_comment_start in file_type.line_comment_starts:
+            if bool(
+                re.match(get_license_regexp(file_type, line_comment_start), txt)
+            ):
+                license_match = True
+
         return (
             filepath,
             file_type.name,
-            bool(re.match(get_license_regexp(file_type), txt)),
-            re.findall(get_forbidden_doxygen_regexp(file_type), txt),
+            license_match,
+            re.findall(
+                get_forbidden_doxygen_regexp(
+                    file_type, file_type.line_comment_starts
+                ),
+                txt,
+            ),
         )
 
 
@@ -310,11 +334,14 @@ def main():
                     "\n".join(
                         textwrap.wrap(
                             f"the expected license header for {file_type.name} files "
-                            f"is ({file_type.license_format_message}):",
+                            f"is one of ({file_type.license_format_message}):",
                             width=80,
                         )
                     ),
-                    get_license_header(file_type),
+                    "\n\n".join(
+                        get_license_header(file_type, line_comment_start)
+                        for line_comment_start in file_type.line_comment_starts
+                    ),
                 ),
                 file=sys.stderr,
             )
