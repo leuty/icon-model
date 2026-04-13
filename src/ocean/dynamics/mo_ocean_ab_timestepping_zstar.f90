@@ -89,8 +89,7 @@ MODULE mo_ocean_ab_timestepping_zstar
    & solve_precon_none, solve_precon_jac, solve_cg_opt, solve_bcgs, solve_legacy_gmres, &
    & solve_trans_scatter, solve_trans_compact, solve_cell, solve_edge, solve_invalid
   USE mo_primal_flip_flop_lhs, ONLY: t_primal_flip_flop_lhs
-  USE mo_surface_height_lhs, ONLY: t_surface_height_lhs
-  USE mo_surface_height_lhs_zstar, ONLY: t_surface_height_lhs_zstar
+  USE mo_lhs_zstar, ONLY: t_lhs_zstar
   USE mo_ocean_surface_types,    ONLY: t_ocean_surface, t_atmos_for_ocean
   USE mo_sea_ice_types,          ONLY: t_atmos_fluxes, t_sea_ice
   USE mo_name_list_output_init,  ONLY: isRegistered
@@ -149,8 +148,7 @@ MODULE mo_ocean_ab_timestepping_zstar
 ! communication infrastructure object (free ocean surface)
   TYPE(t_trivial_transfer), TARGET :: free_sfc_solver_trans_triv
   TYPE(t_subset_transfer), TARGET :: free_sfc_solver_trans_sub
-
-  TYPE(t_surface_height_lhs_zstar), TARGET :: lhs_zstar
+  TYPE(t_lhs_zstar), TARGET :: lhs_zstar
 !
 
   !-------------------------------------------------------------------------
@@ -416,12 +414,11 @@ CONTAINS
 
 
   !! Init variables related to surface height elliptic solver
-  SUBROUTINE init_free_sfc(patch_3d, ocean_state, op_coeffs, solverCoeff_sp, str_e, lacc)
+  SUBROUTINE init_free_sfc(patch_3d, ocean_state, op_coeffs, solverCoeff_sp, lacc)
     TYPE(t_patch_3d ),POINTER, INTENT(in) :: patch_3d
     TYPE(t_hydro_ocean_state), TARGET, INTENT(INOUT) :: ocean_state
     TYPE(t_operator_coeff), INTENT(IN), TARGET :: op_coeffs
     TYPE(t_solverCoeff_singlePrecision), INTENT(in), TARGET :: solverCoeff_sp
-    REAL(wp), INTENT(IN), CONTIGUOUS :: str_e(:,:)
     LOGICAL, INTENT(IN), OPTIONAL :: lacc
     TYPE(t_patch), POINTER :: patch_2D
     TYPE(t_trivial_transfer), POINTER :: trans_triv
@@ -440,7 +437,7 @@ CONTAINS
     patch_2D => patch_3d%p_patch_2d(1)
 
     CALL lhs_zstar%construct(patch_3d, ocean_state%p_diag%thick_e, &
-      & op_coeffs, solverCoeff_sp, str_e, lacc=lzacc)
+      & op_coeffs, solverCoeff_sp, lacc=lzacc)
 
 !prepare init of solver
     CALL par%init(solve_precon_none, 1, 800, patch_2d%cells%in_domain%end_block, &
@@ -1342,11 +1339,10 @@ CONTAINS
       !! to this subroutine only hence leading to dangling pointer
       TYPE(t_operator_coeff), TARGET, INTENT(inout)      :: operators_coefficients
       TYPE(t_solvercoeff_singleprecision), INTENT(inout) :: solvercoeff_sp
-
       INTEGER , INTENT(IN   ) :: timestep
       REAL(wp), INTENT(IN   ) :: eta_c(nproma, patch_3d%p_patch_2d(1)%alloc_cell_blocks) !! sfc ht
       REAL(wp), INTENT(IN   ) :: stretch_c(nproma, patch_3d%p_patch_2d(1)%alloc_cell_blocks)
-      REAL(wp), INTENT(INOUT) :: stretch_e(nproma, patch_3d%p_patch_2d(1)%nblks_e) !! stretch factor
+      REAL(wp), INTENT(INOUT), TARGET :: stretch_e(nproma, patch_3d%p_patch_2d(1)%nblks_e) !! stretch factor
       REAL(wp), INTENT(INOUT) :: eta_c_new(nproma, patch_3d%p_patch_2d(1)%alloc_cell_blocks)
       REAL(wp), INTENT(INOUT) :: stretch_c_new(nproma, patch_3d%p_patch_2d(1)%alloc_cell_blocks)
       LOGICAL, INTENT(IN), OPTIONAL :: lacc
@@ -1379,15 +1375,16 @@ CONTAINS
       !------------------------------------------------------------------------
       ! solve for new free surface
       !------------------------------------------------------------------------
+      !! Update stretching co-efficient for LHS
+
+      lhs_zstar%stretch_e => stretch_e
 
       !! The RHS can be filled explicitly here, however, the LHS requires
       !! multiplying the Beta*Gamma term with (H+eta)/H
       !! The height goes in using map_edges2edges_viacell_2D
       !! init sfc solver related objects, if necessary
       IF (.NOT.free_sfc_solver%is_init) &
-        CALL init_free_sfc(patch_3d, ocean_state(1), operators_coefficients, solverCoeff_sp, &
-          & stretch_e, lacc=lzacc)
-
+        CALL init_free_sfc(patch_3d, ocean_state(1), operators_coefficients, solverCoeff_sp, lacc=lzacc)
       !---------DEBUG DIAGNOSTICS-------------------------------------------
       CALL dbg_print('test    : h var'   ,ocean_state(1)%p_prog(nold(1))%h ,str_module, 2, in_subset=owned_cells)
       CALL dbg_print('on entry: h-new'   ,eta_c_new                         ,str_module, 2, in_subset=owned_cells)
@@ -1405,11 +1402,7 @@ CONTAINS
       CALL fill_rhs4surface_eq_zstar(patch_3d, ocean_state(1), p_oce_sfc, &
         & operators_coefficients, stretch_e, eta_c, lacc=lzacc)
 
-      !! Update stretching co-efficient for LHS
-      CALL lhs_zstar%update(stretch_e, lacc=lzacc)
-
       ! Solve surface equation with solver
-
       !!ICON_OMP PARALLEL WORKSHARE
       !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
       free_sfc_solver%x_loc_wp(:,:) = eta_c(:, :)

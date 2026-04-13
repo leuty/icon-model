@@ -2621,9 +2621,8 @@ CONTAINS
       !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
       DO je = start_edge_index, end_edge_index
 
-        IF (patch_3d%p_patch_1d(1)%dolic_e(je,blockNo) < 1) CYCLE
-
         out_vn_e(je,blockNo) = 0.0_wp
+        IF (patch_3d%p_patch_1d(1)%dolic_e(je,blockNo) < 1) CYCLE
 
         ! get the two cells of the edge
         cell_1_index = patch_2d%edges%cell_idx(je,blockNo,1)

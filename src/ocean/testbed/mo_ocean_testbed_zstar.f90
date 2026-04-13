@@ -91,7 +91,7 @@ MODULE mo_ocean_testbed_zstar
    & solve_trans_scatter, solve_trans_compact, solve_cell, solve_edge, solve_invalid
   USE mo_primal_flip_flop_lhs, ONLY: t_primal_flip_flop_lhs
   USE mo_surface_height_lhs, ONLY: t_surface_height_lhs
-  USE mo_surface_height_lhs_zstar, ONLY: t_surface_height_lhs_zstar
+  USE mo_lhs_zstar, ONLY: t_lhs_zstar
   USE mo_ocean_surface_types,    ONLY: t_ocean_surface, t_atmos_for_ocean
   USE mo_sea_ice_types,          ONLY: t_atmos_fluxes, t_sea_ice
   USE mo_name_list_output_init,  ONLY: isRegistered
