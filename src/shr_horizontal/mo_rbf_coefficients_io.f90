@@ -41,6 +41,7 @@ MODULE mo_rbf_coefficients_io
   USE mo_util_uuid_types, ONLY: t_uuid, UUID_STRING_LENGTH
   USE mo_util_uuid, ONLY: uuid_parse, uuid_unparse, OPERATOR(==)
   USE mo_io_units, ONLY: filename_max
+  USE mo_util_floating_point, ONLY: is_fp_equivalent
 
   IMPLICIT NONE
 
@@ -268,19 +269,19 @@ CONTAINS
     rbf_read_status = 0
     IF (my_process_is_mpi_workroot()) THEN
       CALL nf(nf90_get_att(stream_id%file_id, NF90_GLOBAL, 'rbf_vec_scale_c', attrib_wp), "")
-      IF (attrib_wp /= rbf_vec_scale_c(jg)) THEN
+      IF (.NOT.is_fp_equivalent(attrib_wp, rbf_vec_scale_c(jg))) THEN
         rbf_read_status = -1
         CALL warning(routine, "rbf_vec_scale_c does not match input file")
       END IF
 
       CALL nf(nf90_get_att(stream_id%file_id, NF90_GLOBAL, 'rbf_vec_scale_e', attrib_wp), "")
-      IF (attrib_wp /= rbf_vec_scale_e(jg)) THEN
+      IF (.NOT.is_fp_equivalent(attrib_wp, rbf_vec_scale_e(jg))) THEN
         rbf_read_status = -1
         CALL warning(routine, "rbf_vec_scale_e does not match input file")
       END IF
 
       CALL nf(nf90_get_att(stream_id%file_id, NF90_GLOBAL, 'rbf_vec_scale_v', attrib_wp), "")
-      IF (attrib_wp /= rbf_vec_scale_v(jg)) THEN
+      IF (.NOT.is_fp_equivalent(attrib_wp, rbf_vec_scale_v(jg))) THEN
         rbf_read_status = -1
         CALL warning(routine, "rbf_vec_scale_v does not match input file")
       END IF

@@ -75,6 +75,7 @@
 - Added Memory Manager library 1.0.0 as external in externals/memman
 - Added Gravity waves parametrisation MS-GWaM as external in externals/msgwam
 - Switch to fortran-support 2.2.1
+- Switch to iconmath 1.3.0
 - Switch to probtest v3.1
 - Switch to YAC v3.14.0_p1
 - Switch to CDI v2.6.0

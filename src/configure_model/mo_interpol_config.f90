@@ -285,19 +285,15 @@ CONTAINS
 
     ENDDO
 
-    !AD (20 Sept 2013) Modification required for planar torus grid: the scale factor
-    !is based on the width of the Gaussian but very soon it will adapted in more
-    !analytical manner by Florian
-    !AD (19 Oct 2014) No update from Florian yet: For exp(0.5r^2/r0^2), the r0 (scale_factor)
-    !should be greater than the minimal distance between points, and rather less than the
-    !maximal distance. For now, for the default 2nd order cases, using r0=dual_edge_length
-    !for all scales but tesing is required
-
+    ! For planar geometry the RBF scale needs to be divided by sphere_radius
+    ! because arc_length_generic from libiconmath returns
+    ! planar_distance / sphere_radius
     DO jg = 1, n_dom
       geometry_type = geometry_info(jg)%geometry_type
 
       IF( geometry_type==planar_torus_geometry ) THEN
-        rbf_vec_scale_c(jg)  = geometry_info(jg)%mean_dual_edge_length
+        rbf_vec_scale_c(jg)  = geometry_info(jg)%mean_dual_edge_length /&
+            geometry_info(jg)%sphere_radius
         rbf_vec_scale_e(jg)  = rbf_vec_scale_c(jg)
         rbf_vec_scale_v(jg)  = rbf_vec_scale_c(jg)
         rbf_vec_scale_ll(jg) = rbf_vec_scale_c(jg)
