@@ -54,3 +54,33 @@ The use cases for NWP (Numerical Weather Prediction) are supported by Deutscher 
 [NWP Local (R19B07)](ref_buildrun_nwp_local):
 : This use case runs a limited-area (local) ICON application over Germany with a resolution of about 2 km (R19B07).
   It is comparable to DWD's operational application ICON-D2.
+
+
+## ART Use Cases
+
+The use cases for ART (Aerosol and Reactive Trace gases interactions) are available on the [DKRZ Swiftbrowser](https://swiftbrowser.dkrz.de/public/dkrz_4d992e1b-f237-4258-a2bc-138ca6a1cf59/icon-model-use-cases/).
+Each use case can be downloaded as a ZIP file containing input data and a README with setup and runtime instructions. Further information is provided in the [ART User guide](https://www.icon-art.kit.edu/userguide/index.php?title=Main_Page).
+
+art\_global\_r02b04\_NWP\_GASPHASE:
+: This use case simulates the global atmosphere with a resolution of approximately 160 km (R02B04) including ART. It includes detailed gas-phase chemistry for ozone, particularly the extended Chapman cycle.
+
+art\_global\_r02b05\_NWP\_LIFETIME:
+: This use case simulates the global atmosphere with a resolution of approximately 80 km (R02B05) including ART. It employs a simplified lifetime-based approach for most chemical tracers and a linearized ozone scheme. Regional tracers are also activated in this configuration.
+
+art\_global\_r02b05\_NWP\_OH\_CHEMISTRY:
+: This use case simulates the global atmosphere with a horizontal resolution of approximately 80 km (R02B05) including ART. It focuses on the representation of hydroxyl radical (OH) chemistry and its interactions with other reactive species.
+
+art\_global\_r02b06\_ALLAERO\_NORAD:
+: This use case simulates the global atmosphere with a resolution of approximately 40 km (R02B06) including ART. It incorporates various types of aerosols (dust, sea salt, wildfire) and their emissions, but does not consider their impact on radiation.
+
+art\_global\_r02b06\_DUST\_RAD:
+: This use case simulates the global atmosphere with a resolution of approximately 40 km (R02B06), utilizing a nested high-resolution region (20 km, R02B07) for specific areas. ART is activated. It focuses on dust, including its emissions and radiative effects.
+
+art\_global\_r02b06\_VOLAERO\_RAD:
+: This use case simulates the global atmosphere with a resolution of approximately 40 km (R02B06) including ART. It incorporates both chemical and aerosol tracers, enabling the simulation of volcanic eruptions and their atmospheric impact.
+
+art\_local\_LAM\_OEM:
+: This testcase demonstrates the ICON-ART Online Emission Module (OEM) coupled with the regional atmospheric model. The model calculates biogenic and anthropogenic CO2 fluxes using the Vegetation Photosynthesis and Respiration Model (VPRM), driven by dynamic emission factors, regional vegetation parameters, and meteorological input. The domain covers central Europe (focused on Switzerland) at a horizontal resolution of approximately 2.5 km (R19B09). Emissions are modulated in time using diurnal, weekly, and annual scaling factors defined by OEM input files. Boundary conditions are updated hourly to simulate realistic atmospheric transport of trace gases.
+
+art\_local\_POLLEN\_SPP:
+: This use case employs high-resolution local area mode (LAM) over Europe with a resolution of approximately 6.5 km (R03B08) including ART. It focuses on simulating different types of pollen and the radioactive isotope Cesium-137 (Cs-137).
