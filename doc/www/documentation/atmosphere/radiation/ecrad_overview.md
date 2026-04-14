@@ -103,19 +103,32 @@ Known limitations of the new 49R2 climatology include that the "far field" aeros
 The IFS is run with an additional artificial small constant background term to get the best results.
 :::
 
+### Aerosol options for simulations with transient climatologies
+
+For climate simulations, the aerosol interface can also handle optical properties prescribed by transient aerosol climatologies, which are used for CMIP-type simulations. Input data are available on `levante` (e.g., `/pool/data/icon-xpp/common` or `/pool/data/CLMcom/ICON-CLM/data/rcm_new`) and comprise
+- **tropospheric aerosol**: the full Kinne climatology ([MACv2](https://doi.org/10.5194/acp-19-10919-2019)) providing monthly fields for 1845--2100 or the simple plume version, which is modelling the full fields on the basis of nine spatial plumes associated with different major anthropogenic source regions  ([MACv2-SP](https://doi.org/10.5194/gmd-10-433-2017)). An update of the simple plume scheme is available for CMIP7 ([SPv2](https://zenodo.org/records/15283189); [Fiedler et al., 2025](https://doi.org/10.1029/2025MS005067)).
+- **stratospheric aerosol**: the version used for CMIP6, based on an extension of the Pinatubo aerosol data set ([Stenchikov et al., 1998](https://doi.org/10.1029/98JD00693)) to cover the entire period between 1850 and 2014 ([Stevens et al., 2019](https://doi.org/10.1002/jame.20015)). For CMIP7, input data was retrieved from the [input4MIPs project](https://input4mips-cvs.readthedocs.io/en/latest/dataset-overviews/stratospheric-volcanic-so2-emissions-aod/) and converted into a similar format. For the historical period, the years 1850--2023 are available, as well as a "background" climatology for 1850.
+
+The Kinne input data have to be interpolated offline onto the ICON grid used for the current simulation (an example script is provided at {{ '[`interpolate_KinneAero.sh`]({}/scripts/preprocessing/interpolate_KinneAero.sh)'.format(base_url) }}). An option for online interpolation using YAC is implemented as well, a corresponding description will be provided in an ICON report. The simple plume data are independent of the ICON grid so that while using these, only the Kinne background fields for the year 1850 have to be interpolated.\
+The stratospheric aerosols are provided as zonal averages and do not have to be regridded.
+
+The namelist switch **{term}`irad_aero``=12,13,14,15,18,19`** provides different combinations of the transient tropospheric and stratospheric climatologies. Most commonly used options are `irad_aero = 18` for historical simulations and `irad_aero = 19` for climate projection scenarios.
+
 (ref_atmosphere_ecrad_cdnc)=
 ## Cloud droplet number concentration (cdnc)
 
-Climatological data of cloud droplet number concentration from external parameter file can be used in ICON when namelist parameter icpl\_aero\_gscp is set to 3.
-The external parameter file must then contain the field **cdnc** and can be generated with **[Extpar](https://docs.icon-model.org/tools/tools.html#ref-tools-gridextpargui)**.
+MODIS retrievals of cloud droplet number concentration can be used in ICON when the namelist parameter `icpl_aero_gscp` is set to 3. This option was implemented and tested for the Kinne aerosols (i.e., the full climatology or the simple-plume version, see **{term}`irad_aero`**), as an alternative to the coupling between aerosols and clouds when using the Tegen aerosol climatology.
+The external parameter file must then contain the field **cdnc** and can be generated with **[Extpar](https://docs.icon-model.org/tools/tools.html#ref-tools-gridextpargui)** (option `enable_cdnc` in the `Expert` mode of Zonda).
 When using the external cdnc, it is advisable to set:
-- icpl\_aero\_conv=1: simple coupling between auto-conversion (in convection scheme) and aerosol
+- `icpl_aero_conv=1`: simple coupling between auto-conversion (in convection scheme) and aerosol
 
-The external climatological cdnc can be scaled when setting namelist parameter scale_cdnc_mode to 1 or 2, and providing the necessary input file for the Simple Plume model in the run directory:
+The external climatological cdnc can be scaled when setting namelist parameter `scale_cdnc_mode` to 1 or 2, and providing the necessary input file for the Simple Plume scheme in the run directory:
 
-- scale_cdnc_mode = 0 (default): no scaling, the cdnc used by ICON will be the same regardless of the simulation year.
-- scale_cdnc_mode = 1: apply year-dependent scaling of cdnc using the scale factor from Simple Plume model (e.g. for experiments in historical period after 1850 or climate projections).
-- scale_cdnc_mode = 2: apply constant scaling of cdnc to year 1850 (e.g. for pre-industrial experiment)
+- `scale_cdnc_mode = 0` (default): no scaling; the cdnc used by ICON will be the same regardless of the simulation year.
+- `scale_cdnc_mode = 1`: apply a yearly varying scaling of cdnc, which is derived from scaling factor of the Simple Plume scheme (e.g. for climate simulations for the historical period after 1850 or for climate projections).
+- `scale_cdnc_mode = 2`: apply a constant scaling of cdnc representative for the year 1850 (e.g. for pre-industrial experiment)
+
+Note that `scale_cdnc_mode = 1,2` is only possible in combination with `icpl_aero_gscp = 3`.
 
 (ref_atmosphere_ecrad_fsd)=
 ## Condensate heterogeneity - the FSD parameter
