@@ -105,6 +105,17 @@ Here is an example to include a figure, or better two figures, one for dark mode
 ```*Figure 1: Example figure*```
 :::
 
+### Namelist References
+
+Since the [Namelist Overview](ref_buildrun_nml) is part of [docs.icon-model.org](https://docs.icon-model.org),
+namelist parameters can be referenced from anywhere of [docs.icon-model.org](https://docs.icon-model.org), e.g.
+
+[iforcing](run_nml-iforcing)
+
+:::{dropdown} Show code
+```[iforcing](run_nml-iforcing)```
+:::
+
 ### Admonitions
 
 To highlight a short piece of information, the `admonition-icontheme` can be used

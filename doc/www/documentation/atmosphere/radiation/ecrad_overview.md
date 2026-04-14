@@ -17,11 +17,11 @@ The original source code is publicly available on [GitHub](https://github.com/ec
 ## Gas Input Options
 
 There are multiple options for the specification of several components of the gaseous composition of the atmosphere available.
-The corresponding namelist parameters are `irad_h2o` for water vapor, `irad_o3` for ozone, `irad_co2` for carbon dioxide, `irad_n2o` for nitrous oxide, `irad_ch4` for methane, `irad_o2` for oxygen, `irad_cfc11` for trichlorofluoromethane and `irad_cfc12` for dichlorodifluoromethane.
+The corresponding namelist parameters are [`irad_h2o`](radiation_nml-irad_) for water vapor, [`irad_o3`](radiation_nml-irad_) for ozone, [`irad_co2`](radiation_nml-irad_) for carbon dioxide, [`irad_n2o`](radiation_nml-irad_) for nitrous oxide, [`irad_ch4`](radiation_nml-irad_) for methane, [`irad_o2`](radiation_nml-irad_) for oxygen, [`irad_cfc11`](radiation_nml-irad_) for trichlorofluoromethane and [`irad_cfc12`](radiation_nml-irad_) for dichlorodifluoromethane.
 
 ### External specification
 
-For all of the above described gases, the option `-1` (e.g., `irad_h2o=-1`) allows for an external specification of the gaseous concentrations. A variable `<gas>rad_ext` (e.g., `h2orad_ext`) is created which can be filled with mass mixing ratios ({math}`kg\,kg^{-1}`) from an external source, for example via the [Community Interface **ComIn**](ref_tools_comin). There is no cross-check that the arrays contain meaningful values. This is left to the user.
+For all of the above described gases, the option `-1` (e.g., [`irad_h2o`](radiation_nml-irad_)`=-1`) allows for an external specification of the gaseous concentrations. A variable `<gas>rad_ext` (e.g., `h2orad_ext`) is created which can be filled with mass mixing ratios ({math}`kg\,kg^{-1}`) from an external source, for example via the [Community Interface **ComIn**](ref_tools_comin). There is no cross-check that the arrays contain meaningful values. This is left to the user.
 
 (ref_atmosphere_ecrad_aerosol)=
 ## Aerosol Input Options
@@ -29,7 +29,7 @@ For all of the above described gases, the option `-1` (e.g., `irad_h2o=-1`) allo
 (ref_atmosphere_ecrad_aerosol_tegen)=
 ### Tegen climatology
 
-Climatological aerosol based on the {term}`Tegen et al. 1997` climatology can be selected by choosing **{term}`irad_aero``=6`**.
+Climatological aerosol based on the {term}`Tegen et al. 1997` climatology can be selected by choosing **[`irad_aero`](radiation_nml-irad_aero)`=6`**.
 This options has the following characteristics:
 
 - Optical thicknesses at the wavelength 550 nm of the 5 species **Sea Salt**, **Soil Dust**, **Sulfate**, **Organic Carbon** and **Black Carbon** are provided in the [external parameter file](ref_buildrun_external_param).
@@ -48,7 +48,7 @@ ICON currently supports the use of either the CAMS 49R2 aerosol climatology, or 
 
 #### Using the 49R2 CAMS climatology
 
-ICON supports use of the recent (December 2024) CAMS climatology, version 49R2. This option is activated with the namelist parameter **{term}`irad_aero``=7`**.
+ICON supports use of the recent (December 2024) CAMS climatology, version 49R2. This option is activated with the namelist parameter **[`irad_aero`](radiation_nml-irad_aero)`=7`**.
 
 Older versions (43R3) are no longer supported. Aerosol mixing ratios are supplied monthly on 21 pressure surfaces.
 Aerosol species affected by human activity have an additional dimension `epoch` covering thirteen 5-year long periods from 1955 to 2015.
@@ -61,7 +61,7 @@ The CAMS climatology is based on reanalysis data from 2003-2014 ({term}`Bozzo et
 
 #### Using CAMS forecasts
 
-ICON can also use CAMS forecast aerosol fields on 137 model levels. This option is activated with the namelist parameter **{term}`irad_aero``=8`**.
+ICON can also use CAMS forecast aerosol fields on 137 model levels. This option is activated with the namelist parameter **[`irad_aero`](radiation_nml-irad_aero)`=8`**.
 
 CAMS forecast aerosol fields can be retrieved from ECMWF via MARS request. The ICON repository contains the script {{ '[`make_camsforc_onICONgrid.sh`]({}/scripts/preprocessing/make_camsforc_onICONgrid.sh)'.format(base_url) }} which then interpolates the CAMS forecast aerosol onto an ICON grid of the user’s choice.
 The script header contains more information on how to retrieve CAMS forecast aerosol from MARS.
@@ -112,23 +112,23 @@ For climate simulations, the aerosol interface can also handle optical propertie
 The Kinne input data have to be interpolated offline onto the ICON grid used for the current simulation (an example script is provided at {{ '[`interpolate_KinneAero.sh`]({}/scripts/preprocessing/interpolate_KinneAero.sh)'.format(base_url) }}). An option for online interpolation using YAC is implemented as well, a corresponding description will be provided in an ICON report. The simple plume data are independent of the ICON grid so that while using these, only the Kinne background fields for the year 1850 have to be interpolated.\
 The stratospheric aerosols are provided as zonal averages and do not have to be regridded.
 
-The namelist switch **{term}`irad_aero``=12,13,14,15,18,19`** provides different combinations of the transient tropospheric and stratospheric climatologies. Most commonly used options are `irad_aero = 18` for historical simulations and `irad_aero = 19` for climate projection scenarios.
+The namelist switch **[`irad_aero`](radiation_nml-irad_aero)`=12,13,14,15,18,19`** provides different combinations of the transient tropospheric and stratospheric climatologies. Most commonly used options are [`irad_aero`](radiation_nml-irad_aero)` = 18` for historical simulations and [`irad_aero`](radiation_nml-irad_aero)` = 19` for climate projection scenarios.
 
 (ref_atmosphere_ecrad_cdnc)=
 ## Cloud droplet number concentration (cdnc)
 
-MODIS retrievals of cloud droplet number concentration can be used in ICON when the namelist parameter `icpl_aero_gscp` is set to 3. This option was implemented and tested for the Kinne aerosols (i.e., the full climatology or the simple-plume version, see **{term}`irad_aero`**), as an alternative to the coupling between aerosols and clouds when using the Tegen aerosol climatology.
+MODIS retrievals of cloud droplet number concentration can be used in ICON when the namelist parameter [`icpl_aero_gscp`](nwp_phy_nml-icpl_aero_gscp) is set to 3. This option was implemented and tested for the Kinne aerosols (i.e., the full climatology or the simple-plume version, see **[`irad_aero`](radiation_nml-irad_aero)**), as an alternative to the coupling between aerosols and clouds when using the Tegen aerosol climatology.
 The external parameter file must then contain the field **cdnc** and can be generated with **[Extpar](https://docs.icon-model.org/tools/tools.html#ref-tools-gridextpargui)** (option `enable_cdnc` in the `Expert` mode of Zonda).
 When using the external cdnc, it is advisable to set:
-- `icpl_aero_conv=1`: simple coupling between auto-conversion (in convection scheme) and aerosol
+- [`icpl_aero_conv`](nwp_phy_nml-icpl_aero_conv)` = 1`: simple coupling between auto-conversion (in convection scheme) and aerosol
 
-The external climatological cdnc can be scaled when setting namelist parameter `scale_cdnc_mode` to 1 or 2, and providing the necessary input file for the Simple Plume scheme in the run directory:
+The external climatological cdnc can be scaled when setting namelist parameter [`scale_cdnc_mode`](nwp_phy_nml-scale_cdnc_mode) to 1 or 2, and providing the necessary input file for the Simple Plume scheme in the run directory:
 
-- `scale_cdnc_mode = 0` (default): no scaling; the cdnc used by ICON will be the same regardless of the simulation year.
-- `scale_cdnc_mode = 1`: apply a yearly varying scaling of cdnc, which is derived from scaling factor of the Simple Plume scheme (e.g. for climate simulations for the historical period after 1850 or for climate projections).
-- `scale_cdnc_mode = 2`: apply a constant scaling of cdnc representative for the year 1850 (e.g. for pre-industrial experiment)
+- [`scale_cdnc_mode`](nwp_phy_nml-scale_cdnc_mode)` = 0` (default): no scaling; the cdnc used by ICON will be the same regardless of the simulation year.
+- [`scale_cdnc_mode`](nwp_phy_nml-scale_cdnc_mode)` = 1`: apply a yearly varying scaling of cdnc, which is derived from scaling factor of the Simple Plume scheme (e.g. for climate simulations for the historical period after 1850 or for climate projections).
+- [`scale_cdnc_mode`](nwp_phy_nml-scale_cdnc_mode)` = 2`: apply a constant scaling of cdnc representative for the year 1850 (e.g. for pre-industrial experiment)
 
-Note that `scale_cdnc_mode = 1,2` is only possible in combination with `icpl_aero_gscp = 3`.
+Note that [`scale_cdnc_mode`](nwp_phy_nml-scale_cdnc_mode)` = 1,2` is only possible in combination with [`icpl_aero_gscp`](nwp_phy_nml-icpl_aero_gscp)` = 3`.
 
 (ref_atmosphere_ecrad_fsd)=
 ## Condensate heterogeneity - the FSD parameter
@@ -144,15 +144,15 @@ By default, ICON assumes that `FSD=1` everywhere, i.e. the normalised width of t
 
 To account for this effect, a regime-dependent parameterization for the FSD parameter can be used by setting the namelist parameter in the `radiation_nml`:
 
-{term}`lcalculate_fsd`` = .true.`
+[`lcalculate_fsd`](radiation_nml-lcalculate_fsd)` = .true.`
 
 This parameterization is based on the publications {term}`Ahlgrimm et al. 2016` and {term}`Ahlgrimm et al. 2017`, with some minor modifications documented in the ICON code. Broadly, the effect of using this parameterization is to make clouds appear more reflective in areas dominated by stratiform clouds (e.g. stratocumulus regions, extratropics) and less reflective in regions dominated by more convective cloud (e.g. trade cumulus regions, tropics).
 
 Two additional parameters may be set in the `radiation_nml`:
 
-{term}`fsd_background`` = 1` is the default value used when the parameterization is switched off entirely, or in cloud-free regions of the model atmosphere when the parameterization is active. When radiation is calculated on the reduced grid, the interpolation from the full grid to the reduced grid may interpolate between cloudy and cloud-free grid points, which therefore must be assigned a valid FSD value.
+[`fsd_background`](radiation_nml-fsd_background)` = 1` is the default value used when the parameterization is switched off entirely, or in cloud-free regions of the model atmosphere when the parameterization is active. When radiation is calculated on the reduced grid, the interpolation from the full grid to the reduced grid may interpolate between cloudy and cloud-free grid points, which therefore must be assigned a valid FSD value.
 
-{term}`fsd_gridlen`` = 80` is the assumed horizontal grid spacing of the ICON grid (by default set to 80km). Observations show that the unresolved condensate heterogeneity that must be parameterized should reduce as the resolution of the model increases. This means the parameterized FSD parameter becomes smaller (clouds become more homogeneous) for a finer grid resolution. However, ICON has been operating with a fixed FSD value of 1 at all resolutions for years, and produces a resolution-independent top-of-the-atmosphere radiation balance with this fixed value. Replacing this fixed value with a resolution-dependent FSD value (in the absence of compensating changes elsewhere) would produce a resolution-dependent TOA radiation balance, which is not desirable. Therefore, for the time being, it is recommended to use the fixed gridlength value of 80km at all resolutions, as this produces FSD values that average out to approximately 1 globally, maintaining the usual TOA radiation balance.
+[`fsd_gridlen`](radiation_nml-fsd_gridlen(max_dom))` = 80` is the assumed horizontal grid spacing of the ICON grid (by default set to 80km). Observations show that the unresolved condensate heterogeneity that must be parameterized should reduce as the resolution of the model increases. This means the parameterized FSD parameter becomes smaller (clouds become more homogeneous) for a finer grid resolution. However, ICON has been operating with a fixed FSD value of 1 at all resolutions for years, and produces a resolution-independent top-of-the-atmosphere radiation balance with this fixed value. Replacing this fixed value with a resolution-dependent FSD value (in the absence of compensating changes elsewhere) would produce a resolution-dependent TOA radiation balance, which is not desirable. Therefore, for the time being, it is recommended to use the fixed gridlength value of 80km at all resolutions, as this produces FSD values that average out to approximately 1 globally, maintaining the usual TOA radiation balance.
 
 Lastly, it should be mentioned that the FSD calculation for liquid clouds depends on the cloud fraction: High cloud fraction is a proxy for stratiform clouds, which are assigned lower FSD values. In cases where the model predicts an incorrect cloud fraction (e.g. prediction cloud fractions <50% in stratocumulus regions), the error in the cloud radiative effect may be enhanced when using the FSD parameterization. In this example, the parameterization would make clouds with fraction <50% less reflective in an area where cloud cover (and therefore cloud radiative effect) is already too low.
 
@@ -249,7 +249,7 @@ Lastly, it should be mentioned that the FSD calculation for liquid clouds depend
    | swflx_vis_sfc         |           | down      |                  |             | surface     | downward visible flux at surface |
 
 1. <a name="frad1"/>The grib2 names in the table refer to the short names resulting from the DWD grib definition files.<a href="#fradswback">{octicon}`undo;1em;pst-color-secondary`</a>
-2. <a name="frad2"/>Output variables starting with the letter `a` are likely "accumulated" since model start. Depending on the switch {term}`lflux_avg`, they contain either averages since model start (`lflux_avg=.true.`) or accumulated values.<a href="#fradswback">{octicon}`undo;1em;pst-color-secondary`</a>
+2. <a name="frad2"/>Output variables starting with the letter `a` are likely "accumulated" since model start. Depending on the switch [`lflux_avg`](io_nml-lflux_avg), they contain either averages since model start ([`lflux_avg`](io_nml-lflux_avg)`=.true.`) or accumulated values.<a href="#fradswback">{octicon}`undo;1em;pst-color-secondary`</a>
 3. <a name="frad3"/>The asterisk stands for the number of the surface tile.<a href="#fradswback">{octicon}`undo;1em;pst-color-secondary`</a>
 
 (ref_ecrad_implementation)=
@@ -260,12 +260,12 @@ Lastly, it should be mentioned that the FSD calculation for liquid clouds depend
 
 Radiation is one of the computationally expensive physical parameterizations.
 There are several possibilities to decrease the computational cost of radiation, e.g. by reducing the temporal, spatial or spectral resolution.
-By activating **{term}`lredgrid_phys``=.true.`** and specifying the corresponding grid file with **{term}`radiation_grid_filename`**, the radiation is calculated on a one grid level coarser domain to reduce the computational cost of the radiation by about a factor of 4.
+By activating **[`lredgrid_phys`](grid_nml-lredgrid_phys)`=.true.`** and specifying the corresponding grid file with **[`radiation_grid_filename`](grid_nml-radiation_grid_filename)**, the radiation is calculated on a one grid level coarser domain to reduce the computational cost of the radiation by about a factor of 4.
 
 **We highly recommend activating the reduced radiation grid option for the following reasons:**
 
 - It is computationally cheaper by a factor of 4, usually without a degradation of the results. Since the radiation is treated as a slow physics process, it is not called every time step anyways. A coarser horizontal grid thus fits better to the advective time scale.
-- Only for the reduced radiation grid, there is an additional option named **{term}`latm_above_top`** (see [here](ref_ecrad_atmabovetop)). This option adds an extra layer at the top to account for the incoming long-wave radiation. This reduces the biases at the model top significantly.
+- Only for the reduced radiation grid, there is an additional option named **[`latm_above_top`](nwp_phy_nml-latm_above_top)** (see [here](ref_ecrad_atmabovetop)). This option adds an extra layer at the top to account for the incoming long-wave radiation. This reduces the biases at the model top significantly.
 - For global domains, there is a load balancing for sunlit and shadowed parts of the earth for the reduced grid.
 
 For a more detailed description of the reduced radiation grid implementation, see {term}`ICON Tutorial`.
@@ -273,16 +273,16 @@ For a more detailed description of the reduced radiation grid implementation, se
 (ref_ecrad_atmabovetop)=
 ## Considering Atmosphere above the Model Top
 
-The namelist switch {term}`latm_above_top` is the only way in the ecRad implementation of ICON to take into account the layers above the top of the model ({term}`top_height`). In this case, an additional layer is added for the radiation calculations above the top of the model, which has 1.5 times the layer thickness of the layer below it (i.e., the top layer of the model).
+The namelist switch [`latm_above_top`](nwp_phy_nml-latm_above_top) is the only way in the ecRad implementation of ICON to take into account the layers above the top of the model ([`top_height`](sleve_nml-top_height)). In this case, an additional layer is added for the radiation calculations above the top of the model, which has 1.5 times the layer thickness of the layer below it (i.e., the top layer of the model).
 
-This additional layer primarily influences long-wave back radiation, which can lead to differences up to 20K in quasi-equilibrium. Not using {term}`latm_above_top` can lead to large biases. In addition, the values for ozone, aerosols, and clouds from the top model layer are copied to the additional layer (i.e., zero gradient condition). In practice, however, these are usually zero for aerosols and clouds.
+This additional layer primarily influences long-wave back radiation, which can lead to differences up to 20K in quasi-equilibrium. Not using [`latm_above_top`](nwp_phy_nml-latm_above_top) can lead to large biases. In addition, the values for ozone, aerosols, and clouds from the top model layer are copied to the additional layer (i.e., zero gradient condition). In practice, however, these are usually zero for aerosols and clouds.
 
 :::{admonition} Note on limited-area simulations
 :class: admonition-icontheme
-Obviously, there is a significant amount of ozone missing from the stratosphere, even when {term}`top_height` is taken into account. This manifests itself in increased heating rates in the top layer, which are partially compensated for by a corresponding lack of contributions from higher layers in the longwave back radiation.
+Obviously, there is a significant amount of ozone missing from the stratosphere, even when [`top_height`](sleve_nml-top_height) is taken into account. This manifests itself in increased heating rates in the top layer, which are partially compensated for by a corresponding lack of contributions from higher layers in the longwave back radiation.
 :::
 
-Vertically nested domains  can have significantly more additional layers via namelist setting. For ICON-EU, for example, {term}`nexlevs_rrg_vnest``=14`. In this case, atmospheric variables including trace gases are copied from the parent domain to the (equal-resolution) radiation grid of the nested domain. Note that in case of multiple vertical nesting, this mechanism does not work recursively. That is, the number of layers that can be added above a vertical nest interface is limited by the additional number of model levels the direct parent domain has.
+Vertically nested domains  can have significantly more additional layers via namelist setting. For ICON-EU, for example, [`nexlevs_rrg_vnest`](grid_nml-nexlevs_rrg_vnest)`=14`. In this case, atmospheric variables including trace gases are copied from the parent domain to the (equal-resolution) radiation grid of the nested domain. Note that in case of multiple vertical nesting, this mechanism does not work recursively. That is, the number of layers that can be added above a vertical nest interface is limited by the additional number of model levels the direct parent domain has.
 
 {material-regular}`warning;2em;pst-color-secondary` _If not using a reduced radiation grid, i.e. calculating radiation on the dynamics grid, neither longwave back radiation nor ozone absorption are taken into account above the model top. Especially for limited-area configurations with a model top in the lower stratosphere, this can lead to large biases._
 
@@ -302,39 +302,3 @@ Please note that the quality of this feature has not been evaluated for global
 applications (i.e., altitudes higher than 25 km).
 Users are therefore advised to run a benchmark simulation before using this
 combination.
-
-# Glossary of Namelist Parameters
-
-_Operational NWP setting marked by {material-regular}`settings;1em;pst-color-secondary`_
-
-:::{glossary}
-lredgrid_phys
-  (`&grid_nml`) If set to `.TRUE.`{material-regular}`settings;1em;pst-color-secondary` radiation is calculated on a coarser grid (i.e. one grid level coarser).
-
-radiation_grid_filename
-  (`&grid_nml`) Filename of the grid to be used for the radiation model. Must only be specified for the base domain, since for child domains the grid of the respective parent domain serves as radiation grid. An empty string is required, if radiation is computed on the full (non-reduced) grid.
-
-latm_above_top
-  (`&nwp_phy_nml`) Adds an extra layer at the model top to account for the incoming long-wave radiation if set to `.TRUE.`{material-regular}`settings;1em;pst-color-secondary`.
-
-lflux_avg
-  (`&io_nml`) If `.true.`, radiative fluxes are averaged since model start instead of accumulated. Default: `.true.`
-
-irad_aero
-  (`&radiation_nml`) Specify aerosol input for radiation. **0:** None, **3:** externally specified (e.g. [](ref_tools_comin)) **6:** {material-regular}`settings;1em;pst-color-secondary` Tegen climatology, **7:** CAMS 3D climatology, **8:** CAMS 3D forecasted, **9:** [](ref_atmosphere_art), **12:** tropospheric Kinne climatology (constant in time), **13:** tropospheric Kinne climatology (time-dependent), **14:** volcanic stratospheric aerosols for CMIP6 (time dependent), **15:** combination of 13 and 14, **18:** tropospheric natural Kinne climatology + volcanic stratospheric aerosols + anthropogenic 'simple plumes' (time-dependent), **19:** as 18 without volcanic stratospheric aerosols
-
-lcalculate_fsd
-  (`&radiation_nml`) Main switch to activate regime-dependent FSD parameterization (Default: `.FALSE.`{material-regular}`settings;1em;pst-color-secondary`)
-
-fsd_background
-  (`&radiation_nml`) Background value for assumed horizontal grid spacing in FSD parameterization.
-
-fsd_gridlen
-  (`&radiation_nml`) Value for assumed horizontal grid spacing in FSD parameterization.
-
-top_height
-  (`&sleve_nml`) Height of model top
-
-nexlevs_rrg_vnest
-  (`&grid_nml`) Maximum number of extra model layers used for calculating radiation if a reduced radiation grid is combined with vertical nesting
-:::

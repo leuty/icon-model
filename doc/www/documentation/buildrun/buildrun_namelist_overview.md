@@ -3462,8 +3462,8 @@ Defined and used in: {{ '[src/namelists/mo_gribout_nml.f90]({}/src/namelists/mo_
     lredgrid_phys = .TRUE., lvert_nest = .TRUE., latm_above_top = .TRUE.
   -
 
-* - (grid_nml-dynamics_grid_ filename)=
-    **dynamics_grid_ filename**
+* - (grid_nml-dynamics_grid_filename)=
+    **dynamics_grid_filename**
   - C
   -
   -
@@ -3478,8 +3478,8 @@ Defined and used in: {{ '[src/namelists/mo_gribout_nml.f90]({}/src/namelists/mo_
   - Array of the indexes of the parent grid filenames, as described by the dynamics_grid_filename array. Indexes start at 1, an index of 0 indicates no parent.  Specification of this namelist parameter is only required if more than one domain is in use _and_ the grid files are rather old s.t. they do not contain a `uuidOfParHGrid` global attribute.
   -
 
-* - (grid_nml-radiation_grid_ filename)=
-    **radiation_grid_ filename**
+* - (grid_nml-radiation_grid_filename)=
+    **radiation_grid_filename**
   - C
   -
   -
