@@ -54,7 +54,7 @@ MODULE mo_model_domimp_patches
   USE mo_run_config,         ONLY: grid_generatingCenter, grid_generatingSubcenter, &
     &                              number_of_grid_used, ICON_grid_file_uri,         &
     &                              msg_level, check_uuid_gracefully
-  USE mo_master_control,     ONLY: my_process_is_oceanic
+  USE mo_master_control,     ONLY: my_process_is_oceanic, my_process_is_jsbach
   USE mo_reshuffle,          ONLY: reshuffle
   USE mo_sync,               ONLY: disable_sync_checks, enable_sync_checks
   USE mo_communication,      ONLY: idx_no, blk_no, idx_1d, makeScatterPattern
@@ -573,7 +573,7 @@ CONTAINS
     END DO
 #endif
 
-    IF (.not. my_process_is_oceanic()) THEN
+    IF (.NOT. my_process_is_oceanic() .AND. .NOT. my_process_is_jsbach()) THEN
       DO jg = n_dom_start, n_dom
         ! Initialize the data for the quadrilateral cells
         ! formed by the two adjacent cells of an edge.

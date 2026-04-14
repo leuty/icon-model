@@ -168,7 +168,7 @@ CONTAINS
 
     CHARACTER(len=*), PARAMETER :: routine = modname//':get_blk_start'
 
-    get_blk_start = patch%cells%start_blk(grf_bdywidth_c + 1, 1)
+    get_blk_start = patch%cells%start_block(grf_bdywidth_c + 1)
 
   END FUNCTION get_blk_start
 
@@ -178,7 +178,7 @@ CONTAINS
 
     CHARACTER(len=*), PARAMETER :: routine = modname//':get_blk_end'
 
-    get_blk_end = patch%cells%end_blk(min_rlcell_int, MAX(1, patch%n_childdom))
+    get_blk_end = patch%cells%end_block(min_rlcell_int)
 
   END FUNCTION get_blk_end
 
@@ -295,15 +295,15 @@ CONTAINS
 END MODULE mo_jsb_namelist_iface
 
 !------------------------------------------------------------------------------------------------------------
-!> Contains interface to reading of generic ICON infrastructure namelists (for standalone JSBACH)
+!> Contains interface to reading of generic ICON infrastructure namelists (for standalone ICON-Land)
 !
 MODULE mo_read_namelists_iface
 
-  PUBLIC :: read_infrastructure_namelists_for_jsbach
+  PUBLIC :: read_infrastructure_namelists_for_icon_land, print_infrastructure_namelists_for_icon_land
 
 CONTAINS
 
-  SUBROUTINE read_infrastructure_namelists_for_jsbach(jsb_namelist_filename, shr_namelist_filename)
+  SUBROUTINE read_infrastructure_namelists_for_icon_land(jsb_namelist_filename, shr_namelist_filename)
 
     USE mo_time_nml,              ONLY: read_time_namelist
 
@@ -358,7 +358,54 @@ CONTAINS
     CALL process_aes_rad_nml             (jsb_namelist_filename)
     CALL read_nwp_phy_namelist           (jsb_namelist_filename)
 
-  END SUBROUTINE read_infrastructure_namelists_for_jsbach
+  END SUBROUTINE read_infrastructure_namelists_for_icon_land
+
+  !>
+  !! Print some configuration for ICON-Land standalone simulation
+  !!
+  !! Currently, only some relevant parameters from radiation config are printed
+  !!
+  SUBROUTINE print_infrastructure_namelists_for_icon_land(ng)
+
+    USE mo_exception,      ONLY: message, print_value
+    USE mo_aes_rad_config, ONLY: aes_rad_config
+
+    INTEGER, INTENT(in) :: ng
+
+    INTEGER :: jg
+    CHARACTER(LEN=2) :: cg
+
+    CALL message    ('','')
+    CALL message    ('','========================================================================')
+    CALL message    ('','')
+    CALL message    ('','ICON-Land radiation configuration')
+    CALL message    ('','=================================')
+    CALL message    ('','')
+
+    DO jg = 1,ng
+      !
+      WRITE(cg,'(i0)') jg
+      !
+      IF (ng > 1) THEN ! is only the case for site-level setup
+        CALL message    ('','For site '//cg)
+        CALL message    ('','------------')
+      END IF
+      CALL message    ('','')
+      CALL print_value('    aes_rad_config('//TRIM(cg)//')% l_orbvsop87   ',aes_rad_config(jg)% l_orbvsop87   )
+      CALL print_value('    aes_rad_config('//TRIM(cg)//')% cecc          ',aes_rad_config(jg)% cecc          )
+      CALL print_value('    aes_rad_config('//TRIM(cg)//')% cobld         ',aes_rad_config(jg)% cobld         )
+      CALL print_value('    aes_rad_config('//TRIM(cg)//')% clonp         ',aes_rad_config(jg)% clonp         )
+      CALL print_value('    aes_rad_config('//TRIM(cg)//')% lyr_perp      ',aes_rad_config(jg)% lyr_perp      )
+      CALL print_value('    aes_rad_config('//TRIM(cg)//')% yr_perp       ',aes_rad_config(jg)% yr_perp       )
+      CALL print_value('    aes_rad_config('//TRIM(cg)//')% nmonth        ',aes_rad_config(jg)% nmonth        )
+      CALL print_value('    aes_rad_config('//TRIM(cg)//')% icosmu0       ',aes_rad_config(jg)% icosmu0       )
+      CALL print_value('    aes_rad_config('//TRIM(cg)//')% ldiur         ',aes_rad_config(jg)% ldiur         )
+      CALL print_value('    aes_rad_config('//TRIM(cg)//')% l_sph_symm_irr',aes_rad_config(jg)% l_sph_symm_irr)
+      CALL message    ('','')
+
+    END DO
+
+  END SUBROUTINE
 
 END MODULE mo_read_namelists_iface
 
@@ -1958,40 +2005,43 @@ CONTAINS
     USE mtime,           ONLY: datetime
     USE mo_model_domain, ONLY: t_patch
 
-    TYPE(datetime), POINTER :: this_datetime
-    TYPE(t_patch), INTENT(in) :: patch
-    REAL(wp), INTENT(out) :: cos_zenith_angle(:,:)
+    TYPE(datetime), POINTER    :: this_datetime
+    TYPE(t_patch), INTENT(in)  :: patch
+    REAL(wp),      INTENT(out) :: cos_zenith_angle(:,:)
 
     REAL(wp) :: daylight_frc(SIZE(cos_zenith_angle,1),SIZE(cos_zenith_angle,2))
     REAL(wp), POINTER :: cecc, cobld, clonp
     LOGICAL,  POINTER :: l_orbvsop87
-    LOGICAL  :: lyr_perp
-    INTEGER  :: yr_perp
-    INTEGER  :: icosmu0
+    LOGICAL,  POINTER :: lyr_perp
+    INTEGER,  POINTER :: yr_perp
+    INTEGER,  POINTER :: icosmu0
+    LOGICAL,  POINTER :: ldiur, l_sph_symm_irr
     REAL(wp) :: dt_ext
-    LOGICAL  :: ldiur, l_sph_symm_irr
     REAL(wp) :: time_of_day, orbit_date, rasc_sun, decl_sun, dist_sun
+    INTEGER  :: jg
 
-    l_orbvsop87   => aes_rad_config(1)% l_orbvsop87 ! Default: .TRUE.
-    lyr_perp = .FALSE.
-    yr_perp  = -99999
+    jg = patch%id
+
+    l_orbvsop87   => aes_rad_config(jg)%l_orbvsop87 ! Default: .TRUE.
+    lyr_perp      => aes_rad_config(jg)%lyr_perp    ! Default: .FALSE.
+    yr_perp       => aes_rad_config(jg)%yr_perp     ! Default: -99999
     CALL get_orbit_times(l_orbvsop87, this_datetime, lyr_perp, yr_perp, & ! in
       &                  time_of_day, orbit_date)                         ! out
 
     IF (l_orbvsop87) THEN
       CALL orbit_vsop87(orbit_date, rasc_sun, decl_sun, dist_sun) ! in, out, out, out
     ELSE
-      cecc  => aes_rad_config(1)% cecc
-      cobld => aes_rad_config(1)% cobld
-      clonp => aes_rad_config(1)% clonp
+      cecc  => aes_rad_config(jg)%cecc   ! Default: 0.016715
+      cobld => aes_rad_config(jg)%cobld  ! Default: 23.441
+      clonp => aes_rad_config(jg)%clonp  ! Default: 282.7
       CALL orbit_kepler(cecc, cobld, clonp, orbit_date, & ! in
         &               rasc_sun, decl_sun, dist_sun)     ! out
     END IF
 
     dt_ext         = 0.0_wp
-    icosmu0        = 0        ! not used for dt_ext=0
-    ldiur          = .TRUE.
-    l_sph_symm_irr = .FALSE.
+    icosmu0        => aes_rad_config(jg)%icosmu0        ! Default: 3 ; not used for dt_ext=0
+    ldiur          => aes_rad_config(jg)%ldiur          ! Default: .TRUE.
+    l_sph_symm_irr => aes_rad_config(jg)%l_sph_symm_irr ! Default: .FALSE.
 
     CALL solar_parameters(decl_sun,         time_of_day,     & ! in
       &                   icosmu0,          dt_ext,          & ! in

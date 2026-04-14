@@ -82,7 +82,7 @@
   - Added interactive nitrogen and phosphorus flags in soil biogeochemistry
   - Remove QUINCY code parts not required in ICON-Land
   - Fix minor diagnostic issue when restarting using IQJ configuration
-  - Code cleanup removing depricated QUINCY SPP1685 project code
+  - Code cleanup removing deprecated QUINCY SPP1685 project code
   - Bugfix in soil nutrient vertical transport
   - Fix multiple issues in soil biogeochemistry langmuir kinetics
   - Improve vegetation Nitrogen uptake in high latitudes
@@ -93,6 +93,7 @@
 - Fixing an error in the effect of supercooled water on plant water stress
 - Fix for jsbach simulations with natural and anthropogenic land cover change
 - Fixed finish message for invalid var name in output_nml with standalone model
+- Enabled running ICON-Land standalone for one or more single sites
 
 ### Externals
 

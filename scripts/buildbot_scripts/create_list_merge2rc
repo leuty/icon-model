@@ -445,6 +445,8 @@ $addexp checksuite.icon-dev/check.atm_nwp_jsbach_test --builders "${jsbach_nwp_b
 # TODO: where should this actually be located in this list
 $addexp checksuite.icon-dev/check.land_quincy_canopy_test --builders 'levante_gpu_nvhpc' --list $listname
 $addexp checksuite.icon-dev/check.land_quincy_canopy_test --builders "levante_nag levante_gcc levante_intel_hybrid" --list $listname --runflags "queue=shared,compute ntasks=8 memory=32G"
+$addexp "checksuite.icon-dev/check.land_jsbach_sitelevel_test" --builders "levante_nag" --list $listname --runflags "ntasks=1 queue=shared"
+$addexp "checksuite.icon-dev/check.land_iqj_sitelevel_test" --builders "levante_nag" --list $listname --runflags "ntasks=1 queue=shared memory=2G"
 
 # aurora node at DKRZ - not in production,yet
 $addexp "checksuite.infrastructure/aurora/exp.aes_bubble_test.run" --builders "levante_aurora" --list $listname

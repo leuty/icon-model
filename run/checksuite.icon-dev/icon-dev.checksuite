@@ -97,7 +97,13 @@ function copy_experiment
                 if [ ${NDOM} -eq 1 ]; then
                     ln -sf ${EXP_ORI}_restart_${COMP}_${RESTART_DATE}.nc restart_${COMP}_DOM${DOM}.nc
                 else
-                    ln -sf ${EXP_ORI}_restart_${COMP}_DOM${DOM}_${RESTART_DATE}.nc restart_${COMP}_DOM${DOM}.nc
+                    # check for available restart files and applied naming convention
+                    #   - the restart files in the icon-land standalone sitelevel setup have a "SITE" instead of the "DOM" tag
+                    if [ -f ${EXP_ORI}_restart_${COMP}_DOM${DOM}_${RESTART_DATE}.nc ]; then
+                        ln -sf ${EXP_ORI}_restart_${COMP}_DOM${DOM}_${RESTART_DATE}.nc restart_${COMP}_DOM${DOM}.nc
+                    elif [ -f ${EXP_ORI}_restart_${COMP}_SITE${DOM}_${RESTART_DATE}.nc ]; then
+                        ln -sf ${EXP_ORI}_restart_${COMP}_SITE${DOM}_${RESTART_DATE}.nc restart_${COMP}_DOM${DOM}.nc
+                    fi
                 fi
                 DOM=$(( DOM + 1 ))
             done
