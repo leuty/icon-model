@@ -26,7 +26,7 @@ MODULE mo_wave_physics
   USE mo_physical_constants,  ONLY: grav
   USE mo_math_constants,      ONLY: dbl_eps, pi, pi2
   USE mo_fortran_tools,       ONLY: init
-  USE mo_wave_types,          ONLY: t_wave_diag, t_wesd
+  USE mo_wave_types,          ONLY: t_wave_diag_dyn, t_wave_diag_cpl, t_wesd
   USE mo_wave_config,         ONLY: t_wave_config
   USE mo_wave_constants,      ONLY: EPS1, EMIN
 
@@ -603,7 +603,7 @@ CONTAINS
     REAL(wp),                    INTENT(IN)    :: dir10m(:,:)
     REAL(vp),                    INTENT(IN)    :: sl(:,:,:,:)
     TYPE(t_wesd),                INTENT(IN)    :: wesd(:)
-    TYPE(t_wave_diag),           INTENT(INOUT) :: p_diag
+    TYPE(t_wave_diag_dyn),       INTENT(INOUT) :: p_diag
 
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
     INTEGER :: i_startidx, i_endidx
@@ -840,7 +840,7 @@ CONTAINS
   !! imparted to the ocean by wave breaking. The wave-to-ocean stress is the difference
   !! between \tau_a and the integral of sl/c, with sl the sum of all the source terms.
   !!
-  SUBROUTINE wave_stress_ocean(p_patch, wave_config, taua_x, taua_y, sl, p_diag)
+  SUBROUTINE wave_stress_ocean(p_patch, wave_config, taua_x, taua_y, sl, diag_dyn, diag_cpl)
      CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER ::  &
           &  routine = modname//'wave_stress_ocean'
 
@@ -849,7 +849,8 @@ CONTAINS
     REAL(wp),                    INTENT(IN)    :: taua_x(:,:)
     REAL(wp),                    INTENT(IN)    :: taua_y(:,:)
     REAL(vp),                    INTENT(IN)    :: sl(:,:,:,:)
-    TYPE(t_wave_diag),           INTENT(INOUT) :: p_diag
+    TYPE(t_wave_diag_dyn),       INTENT(IN)    :: diag_dyn
+    TYPE(t_wave_diag_cpl),       INTENT(INOUT) :: diag_cpl
 
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
     INTEGER :: i_startidx, i_endidx
@@ -885,23 +886,23 @@ CONTAINS
 
       DO jf = 1,wc%nfreqs
         DO jc = i_startidx, i_endidx
-          cm(jc,jf) = p_diag%wave_num_c(jc,jf,jb) * 1.0_wp/(pi2*wc%freqs(jf))
-          rhowgdfth(jc,jf) = MERGE(wc%rhowg_dfim(jf), 0.0_wp, jf <= p_diag%last_prog_freq_ind(jc,jb))
+          cm(jc,jf) = diag_dyn%wave_num_c(jc,jf,jb) * 1.0_wp/(pi2*wc%freqs(jf))
+          rhowgdfth(jc,jf) = MERGE(wc%rhowg_dfim(jf), 0.0_wp, jf <= diag_dyn%last_prog_freq_ind(jc,jb))
         ENDDO
       ENDDO
 
       DO jc = i_startidx, i_endidx
-        jf = p_diag%last_prog_freq_ind(jc,jb)
+        jf = diag_dyn%last_prog_freq_ind(jc,jb)
         IF (jf /= wc%nfreqs) rhowgdfth(jc,jf) = 0.5_wp * rhowgdfth(jc,jf)
 
         !initialisation
         xstress(jc) = taua_x(jc,jb)
         ystress(jc) = taua_y(jc,jb)
-        p_diag%phioc(jc,jb) = p_diag%phiaw(jc,jb)
+        diag_cpl%phioc(jc,jb) = diag_dyn%phiaw(jc,jb)
       END DO
 
       !sum
-      DO jf = 1, MAXVAL(p_diag%last_prog_freq_ind(i_startidx:i_endidx,jb))
+      DO jf = 1, MAXVAL(diag_dyn%last_prog_freq_ind(i_startidx:i_endidx,jb))
         DO jc = i_startidx, i_endidx
           sumt(jc) = 0._wp
           sumx(jc) = 0._wp
@@ -918,7 +919,7 @@ CONTAINS
         END DO
 
         DO jc = i_startidx, i_endidx
-          p_diag%phioc(jc,jb) =  p_diag%phioc(jc,jb) - sumt(jc)*rhowgdfth(jc,jf)
+          diag_cpl%phioc(jc,jb) =  diag_cpl%phioc(jc,jb) - sumt(jc)*rhowgdfth(jc,jf)
           cmrhowgdfth_rhoa = cm(jc,jf) * rhowgdfth(jc,jf)/roair
           xstress(jc) = xstress(jc) - sumx(jc)*cmrhowgdfth_rhoa
           ystress(jc) = ystress(jc) - sumy(jc)*cmrhowgdfth_rhoa
@@ -926,9 +927,9 @@ CONTAINS
       END DO  ! jf
 
       DO jc = i_startidx, i_endidx
-        p_diag%tauoc_x(jc,jb) = xstress(jc)
-        p_diag%tauoc_y(jc,jb) = ystress(jc)
-        p_diag%tauoc(jc,jb)   = SQRT(xstress(jc)**2 + ystress(jc)**2)
+        diag_cpl%tauoc_x(jc,jb) = xstress(jc)
+        diag_cpl%tauoc_y(jc,jb) = ystress(jc)
+        diag_cpl%tauoc(jc,jb)   = SQRT(xstress(jc)**2 + ystress(jc)**2)
       END DO
 
     END DO

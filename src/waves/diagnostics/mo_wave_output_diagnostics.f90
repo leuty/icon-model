@@ -9,33 +9,33 @@
 ! SPDX-License-Identifier: BSD-3-Clause
 ! ---------------------------------------------------------------
 
-! Computes diagnostic parameters and some diagnostics in the wave model
+! Computes output diagnostics for scientific analysis and visualization.
+! Fields have no impact on the wave solution.
+! updated at output time steps
 
 !----------------------------
 #include "omp_definitions.inc"
 !----------------------------
 
-MODULE mo_wave_diagnostics
+MODULE mo_wave_output_diagnostics
   USE mo_kind,                ONLY: wp
   USE mo_model_domain,        ONLY: t_patch
   USE mo_wave_config,         ONLY: t_wave_config
-  USE mo_wave_types,          ONLY: t_wave_diag, t_wesd
+  USE mo_wave_types,          ONLY: t_wave_diag_dyn, t_wave_diag_out, t_wesd
   USE mo_impl_constants,      ONLY: min_rlcell
   USE mo_loopindices,         ONLY: get_indices_c
   USE mo_physical_constants,  ONLY: grav
   USE mo_math_constants,      ONLY: pi2, rad2deg
   USE mo_parallel_config,     ONLY: nproma
-  USE mo_kind,                ONLY: wp
   USE mo_fortran_tools,       ONLY: init
   USE mo_wave_constants,      ONLY: EMIN
-  USE mo_wave_stokes,         ONLY: stokes_profile_spectrum, stokes_profile_breivik, &
-    &                               stokes_drift
+  USE mo_wave_common_diagnostics, ONLY: significant_wave_height
 
   IMPLICIT NONE
 
   PRIVATE
 
-  CHARACTER(LEN=*), PARAMETER :: modname = 'mo_wave_diagnostics'
+  CHARACTER(LEN=*), PARAMETER :: modname = 'mo_wave_output_diagnostics'
 
   PUBLIC :: calculate_output_diagnostics
 
@@ -43,73 +43,67 @@ CONTAINS
   !>
   !! Calculation of purely diagnostic parameters
   !!
-  SUBROUTINE calculate_output_diagnostics(p_patch, wave_config, sp10m, dir10m, depth, wesd, p_diag)
+  SUBROUTINE calculate_output_diagnostics(p_patch, wave_config, sp10m, dir10m, wesd, diag_dyn, diag_out)
 
     TYPE(t_patch),         INTENT(IN)    :: p_patch
     TYPE(t_wave_config),   INTENT(IN)    :: wave_config
     REAL(wp),              INTENT(IN)    :: sp10m(:,:)
     REAL(wp),              INTENT(IN)    :: dir10m(:,:)   ! wind direction in 10m [rad]
-    REAL(wp),              INTENT(IN)    :: depth(:,:)    ! water depth
     TYPE(t_wesd),          INTENT(IN)    :: wesd(:)       ! energy spectral bins
-    TYPE(t_wave_diag),     INTENT(INOUT) :: p_diag
+    TYPE(t_wave_diag_dyn), INTENT(IN)    :: diag_dyn
+    TYPE(t_wave_diag_out), INTENT(INOUT) :: diag_out
 
     CHARACTER(len=*), PARAMETER ::  &
-      &  routine = modname//':calculate_diagnostics'
+      &  routine = modname//':calculate_output_diagnostics'
 
     ! calculate swell separation mask
     !
     CALL swell_separation(p_patch = p_patch, &
       &               wave_config = wave_config, &
       &                    dir10m = dir10m, &
-      &                     ustar = p_diag%ustar, &
-      &                swell_mask = p_diag%swell_mask) ! OUT
+      &                     ustar = diag_dyn%ustar, &
+      &                swell_mask = diag_out%swell_mask) ! OUT
 
     ! separate total energy according to swell mask
     !
     CALL total_energy_sep(p_patch = p_patch, &
       &               wave_config = wave_config, &
       &                      wesd = wesd, &
-      &                      mask = p_diag%swell_mask, &
-      &                   emeanws = p_diag%emean_sea, & ! OUT
-      &                    emeans = p_diag%emean_swell) ! OUT
+      &                      mask = diag_out%swell_mask, &
+      &                   emeanws = diag_out%emean_sea,  & ! OUT
+      &                    emeans = diag_out%emean_swell)  ! OUT
 
     ! separate mean frequency energy according to swell mask
     !
     CALL mean_frequency_energy_sep(p_patch = p_patch, &
       &               wave_config = wave_config, &
       &                      wesd = wesd, &
-      &                      mask = p_diag%swell_mask, &
-      &                   emeanws = p_diag%emean_sea, &
-      &                    emeans = p_diag%emean_swell, &
-      &                  femeanws = p_diag%femean_sea, & ! OUT
-      &                   femeans = p_diag%femean_swell) ! OUT
+      &                      mask = diag_out%swell_mask, &
+      &                   emeanws = diag_out%emean_sea, &
+      &                    emeans = diag_out%emean_swell, &
+      &                  femeanws = diag_out%femean_sea, & ! OUT
+      &                   femeans = diag_out%femean_swell) ! OUT
 
-
-    ! calculate significant wave height from total wave energy
-    !
-    CALL significant_wave_height(p_patch = p_patch, &
-      &                          emean   = p_diag%emean(:,:), &
-      &                          hs      = p_diag%hs(:,:)) ! OUT
 
     ! calculate significant wave height from sea wave energy
     !
     CALL significant_wave_height(p_patch = p_patch, &
-      &                          emean   = p_diag%emean_sea(:,:), &
-      &                          hs      = p_diag%hs_sea(:,:)) ! OUT
+      &                          emean   = diag_out%emean_sea(:,:), &
+      &                          hs      = diag_out%hs_sea(:,:)) ! OUT
 
     ! calculate significant wave height from swell wave energy
     !
     CALL significant_wave_height(p_patch = p_patch, &
-      &                          emean   = p_diag%emean_swell(:,:), &
-      &                          hs      = p_diag%hs_swell(:,:)) ! OUT
+      &                          emean   = diag_out%emean_swell(:,:), &
+      &                          hs      = diag_out%hs_swell(:,:)) ! OUT
 
     ! calculate mean wave direction and directional wave spread
     !
     CALL mean_wave_direction_spread(p_patch = p_patch, &
       &                         wave_config = wave_config, &
       &                                wesd = wesd, &
-      &                            mean_dir = p_diag%hs_dir, & ! OUT
-      &                         mean_spread = p_diag%ds)       ! OUT
+      &                            mean_dir = diag_out%hs_dir, & ! OUT
+      &                         mean_spread = diag_out%ds)       ! OUT
 
     ! calculate mean wave direction and directional wave spread
     ! separately for sea and swell according to given swell mask.
@@ -117,159 +111,78 @@ CONTAINS
     CALL mean_wave_direction_spread_sep(p_patch = p_patch, &
       &                             wave_config = wave_config, &
       &                                    wesd = wesd, &
-      &                                    mask = p_diag%swell_mask, &
-      &                                  md_sea = p_diag%hs_sea_dir, &   ! OUT
-      &                                  ms_sea = p_diag%ds_sea, &       ! OUT
-      &                                md_swell = p_diag%hs_swell_dir, & ! OUT
-      &                                ms_swell = p_diag%ds_swell)       ! OUT
+      &                                    mask = diag_out%swell_mask, &
+      &                                  md_sea = diag_out%hs_sea_dir, &   ! OUT
+      &                                  ms_sea = diag_out%ds_sea, &       ! OUT
+      &                                md_swell = diag_out%hs_swell_dir, & ! OUT
+      &                                ms_swell = diag_out%ds_swell)       ! OUT
 
     ! calculate mean wave period from mean frequency wave energy
     !
     CALL mean_wave_period(p_patch = p_patch, &
-      &                    femean = p_diag%femean(:,:), &
-      &                        mp = p_diag%tmp(:,:)) ! OUT
+      &                    femean = diag_dyn%femean(:,:), &
+      &                        mp = diag_out%tmp(:,:)) ! OUT
 
     ! calculate mean wave period from wind sea mean frequency wave energy
     !
     CALL mean_wave_period(p_patch = p_patch, &
-      &                    femean = p_diag%femean_sea(:,:), &
-      &                        mp = p_diag%mp_sea(:,:)) ! OUT
+      &                    femean = diag_out%femean_sea(:,:), &
+      &                        mp = diag_out%mp_sea(:,:)) ! OUT
 
     ! calculate mean wave period from wind swell mean frequency wave energy
     !
     CALL mean_wave_period(p_patch = p_patch, &
-      &                    femean = p_diag%femean_swell(:,:), &
-      &                        mp = p_diag%mp_swell(:,:)) ! OUT
+      &                    femean = diag_out%femean_swell(:,:), &
+      &                        mp = diag_out%mp_swell(:,:)) ! OUT
 
     ! separate M1 and M2 periods according to swell mask
     !
-    CALL m1_m2_periods_sep(p_patch = p_patch,            &
-      &                wave_config = wave_config,        &
-      &                       wesd = wesd,               &
-      &                       mask = p_diag%swell_mask,  &
-      &                    emeanws = p_diag%emean_sea,   &
-      &                     emeans = p_diag%emean_swell, &
-      &                       m1ws = p_diag%m1_sea,      & ! OUT
-      &                        m1s = p_diag%m1_swell,    & ! OUT
-      &                       m2ws = p_diag%m2_sea,      & ! OUT
-      &                        m2s = p_diag%m2_swell,    & ! OUT
-      &                   f1meanws = p_diag%f1mean_sea,  & ! OUT
-      &                    f1means = p_diag%f1mean_swell)  ! OUT
+    CALL m1_m2_periods_sep(p_patch = p_patch,              &
+      &                wave_config = wave_config,          &
+      &                       wesd = wesd,                 &
+      &                       mask = diag_out%swell_mask,  &
+      &                    emeanws = diag_out%emean_sea,   &
+      &                     emeans = diag_out%emean_swell, &
+      &                       m1ws = diag_out%m1_sea,      & ! OUT
+      &                        m1s = diag_out%m1_swell,    & ! OUT
+      &                       m2ws = diag_out%m2_sea,      & ! OUT
+      &                        m2s = diag_out%m2_swell,    & ! OUT
+      &                   f1meanws = diag_out%f1mean_sea,  & ! OUT
+      &                    f1means = diag_out%f1mean_swell)  ! OUT
 
     ! calculate peak wave period and wavenumber
     !
     CALL peak_wave_period_wavenumber(p_patch = p_patch, &
       &               wave_config = wave_config,        &
       &                      wesd = wesd,               &
-      &                wave_num_c = p_diag%wave_num_c,  &
-      &                        pp = p_diag%tpp,         & ! OUT
-      &                        kp = p_diag%kp)            ! OUT
+      &                wave_num_c = diag_dyn%wave_num_c,  &
+      &                        pp = diag_out%tpp,       & ! OUT
+      &                        kp = diag_out%kp)          ! OUT
 
     ! Calculate peak wind sea and swell wave period and wavenumber according to swell mask
     !
-    CALL peak_wave_period_wavenumber_sep(p_patch = p_patch, &
-      &                   wave_config = wave_config,        &
-      &                          wesd = wesd,               &
-      &                    wave_num_c = p_diag%wave_num_c,  &
-      &                          mask = p_diag%swell_mask,  &
-      &                        pp_sea = p_diag%pp_sea,      & ! OUT
-      &                      pp_swell = p_diag%pp_swell,    & ! OUT
-      &                        kp_sea = p_diag%kp_sea,      & ! OUT
-      &                      kp_swell = p_diag%kp_swell)      ! OUT
+    CALL peak_wave_period_wavenumber_sep(p_patch = p_patch,  &
+      &                   wave_config = wave_config,         &
+      &                          wesd = wesd,                &
+      &                    wave_num_c = diag_dyn%wave_num_c,   &
+      &                          mask = diag_out%swell_mask, &
+      &                        pp_sea = diag_out%pp_sea,     & ! OUT
+      &                      pp_swell = diag_out%pp_swell,   & ! OUT
+      &                        kp_sea = diag_out%kp_sea,     & ! OUT
+      &                      kp_swell = diag_out%kp_swell)     ! OUT
 
     ! calculate wave drag coefficient and normalised stress
     !
     CALL wave_drag_stress_ch_par(p_patch = p_patch, &
-      &                     sp10m = sp10m, &
-      &                     ustar = p_diag%ustar, &
-      &                      tauw = p_diag%tauw, &
-      &                        z0 = p_diag%z0, &
-      &                      drag = p_diag%drag, &  ! OUT
-      &                     tauwn = p_diag%tauwn, & ! OUT
-      &                      beta = p_diag%beta)    ! OUT
-
-    ! calculate stokes drift velocities
-    !
-    ! surface values
-
-    CALL stokes_drift(p_patch = p_patch, &
-      &           wave_config = wave_config, &
-      &            wave_num_c = p_diag%wave_num_c, &
-      &                 depth = depth,  &
-      &                  wesd = wesd, &
-      &              u_stokes = p_diag%u_stokes, & ! OUT
-      &              v_stokes = p_diag%v_stokes)   ! OUT
-
-    ! vertical profile
-    IF (ASSOCIATED(p_diag%last_idx_depth) .AND. &
-      & ASSOCIATED(p_diag%u3d_stokes)     .AND. &
-      & ASSOCIATED(p_diag%v3d_stokes)) THEN
-
-      IF (wave_config%stokes_method == 1) THEN
-
-        CALL stokes_profile_spectrum(p_patch = p_patch, &
-          &           wave_config = wave_config, &
-          &            wave_num_c = p_diag%wave_num_c, &
-          &                 depth = depth,  &
-          &        last_idx_depth = p_diag%last_idx_depth, &
-          &                  wesd = wesd, &
-          &            u3d_stokes = p_diag%u3d_stokes, & ! OUT
-          &            v3d_stokes = p_diag%v3d_stokes)   ! OUT
-
-      ELSE
-
-        CALL stokes_profile_breivik(p_patch = p_patch, &
-          &           wave_config = wave_config, &
-          &            wave_num_c = p_diag%wave_num_c, &
-          &                 depth = depth,  &
-          &        last_idx_depth = p_diag%last_idx_depth, &
-          &                  wesd = wesd, &
-          &              u_stokes = p_diag%u_stokes, & !
-          &              v_stokes = p_diag%v_stokes, & !
-          &            u3d_stokes = p_diag%u3d_stokes, & ! OUT
-          &            v3d_stokes = p_diag%v3d_stokes)   ! OUT
-      END IF
-    END IF
+      &                     sp10m = sp10m,          &
+      &                     ustar = diag_dyn%ustar,   &
+      &                      tauw = diag_dyn%tauw,    &
+      &                        z0 = diag_dyn%z0,      &
+      &                      drag = diag_out%drag,  & ! OUT
+      &                     tauwn = diag_out%tauwn, & ! OUT
+      &                      beta = diag_out%beta)    ! OUT
 
   END SUBROUTINE calculate_output_diagnostics
-
-
-  !>
-  !! Calculation of total significant wave height
-  !! based on WAM 4.5 formulation
-  !!
-  SUBROUTINE significant_wave_height(p_patch, emean, hs)
-
-    TYPE(t_patch),     INTENT(IN)    :: p_patch
-    REAL(wp),          INTENT(IN)    :: emean(:,:)  !< total energy [m^2]
-    REAL(wp),          INTENT(INOUT) :: hs(:,:)     !< significant wave height [m]
-
-    CHARACTER(len=*), PARAMETER ::  &
-      &  routine = modname//':significant_wave_height'
-
-    INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
-    INTEGER :: i_startidx, i_endidx
-    INTEGER :: jc,jb
-
-
-    i_rlstart  = 1
-    i_rlend    = min_rlcell
-    i_startblk = p_patch%cells%start_block(i_rlstart)
-    i_endblk   = p_patch%cells%end_block(i_rlend)
-
-!$OMP PARALLEL
-!$OMP DO PRIVATE(jc,jb,i_startidx,i_endidx) ICON_OMP_DEFAULT_SCHEDULE
-    DO jb = i_startblk, i_endblk
-      CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,           &
-        &                 i_startidx, i_endidx, i_rlstart, i_rlend)
-      DO jc = i_startidx, i_endidx
-        hs(jc,jb) = 4.0_wp * SQRT(emean(jc,jb))
-      END DO
-    END DO
-!$OMP ENDDO NOWAIT
-!$OMP END PARALLEL
-  END SUBROUTINE significant_wave_height
-
 
   !>
   !! Separation of M1 and M2 periods according to swell mask
@@ -1135,4 +1048,4 @@ CONTAINS
 
   END SUBROUTINE mean_wave_direction_spread_sep
 
-END MODULE mo_wave_diagnostics
+END MODULE mo_wave_output_diagnostics

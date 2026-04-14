@@ -20,7 +20,7 @@ MODULE mo_wave_stokes
   USE mo_kind,                ONLY: wp
   USE mo_model_domain,        ONLY: t_patch
   USE mo_wave_config,         ONLY: t_wave_config
-  USE mo_wave_types,          ONLY: t_wave_diag, t_wesd
+  USE mo_wave_types,          ONLY: t_wesd
   USE mo_impl_constants,      ONLY: min_rlcell
   USE mo_loopindices,         ONLY: get_indices_c
   USE mo_physical_constants,  ONLY: grav

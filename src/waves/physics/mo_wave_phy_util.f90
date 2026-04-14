@@ -24,7 +24,7 @@ MODULE mo_wave_phy_util
   USE mo_impl_constants,       ONLY: MAX_CHAR_LENGTH, SUCCESS
   USE mo_math_constants,       ONLY: pi2, rad2deg
   USE mo_physical_constants,   ONLY: grav
-  USE mo_wave_types,           ONLY: t_wave_diag
+  USE mo_wave_types,           ONLY: t_wave_diag_dyn
   USE mo_wave_config,          ONLY: t_wave_config
 
   IMPLICIT NONE
@@ -170,7 +170,7 @@ CONTAINS
          &  routine = modname//':init_wave_nonlinear'
 
     TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
-    TYPE(t_wave_diag),           INTENT(INOUT) :: p_diag
+    TYPE(t_wave_diag_dyn),       INTENT(INOUT) :: p_diag
 
     TYPE(t_wave_config), POINTER :: wc => NULL()
 

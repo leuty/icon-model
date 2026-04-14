@@ -31,7 +31,7 @@ MODULE mo_wave_source
   USE mo_run_config,          ONLY: dtime
   USE mo_physical_constants,  ONLY: grav
   USE mo_math_constants,      ONLY: pi2
-  USE mo_wave_types,          ONLY: t_wave_source, t_wave_diag, t_wesd
+  USE mo_wave_types,          ONLY: t_wave_source, t_wave_diag_dyn, t_wesd
   USE mo_wave_config,         ONLY: t_wave_config
   USE mo_wave_constants,      ONLY: DELTA, CONSS
 
@@ -103,7 +103,7 @@ CONTAINS
 
     TYPE(t_patch),               INTENT(IN)    :: p_patch
     TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
-    TYPE(t_wave_diag),           INTENT(IN)    :: p_diag
+    TYPE(t_wave_diag_dyn),       INTENT(IN)    :: p_diag
     TYPE(t_wave_source),         INTENT(IN)    :: p_source
     REAL(wp),                    INTENT(IN)    :: sp10m(:,:)
     REAL(wp),                    INTENT(IN)    :: dir10m(:,:)
@@ -195,7 +195,7 @@ CONTAINS
     TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
     REAL(wp),                    INTENT(IN)    :: dir10m(:,:)
     TYPE(t_wesd),                INTENT(IN)    :: wesd(:)
-    TYPE(t_wave_diag),           INTENT(IN)    :: p_diag
+    TYPE(t_wave_diag_dyn),       INTENT(IN)    :: p_diag
     TYPE(t_wave_source),         INTENT(INOUT) :: p_source
 
     TYPE(t_wave_config), POINTER :: wc => NULL()
@@ -301,7 +301,7 @@ CONTAINS
     TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
     REAL(wp),                    INTENT(IN)    :: wave_num_c(:,:,:) !< wave number (1/m)
     TYPE(t_wesd),                INTENT(IN)    :: wesd(:)
-    TYPE(t_wave_diag),           INTENT(IN)    :: p_diag
+    TYPE(t_wave_diag_dyn),       INTENT(IN)    :: p_diag
     TYPE(t_wave_source),         INTENT(INOUT) :: p_source
 
     TYPE(t_wave_config), POINTER :: wc => NULL()
@@ -369,7 +369,7 @@ CONTAINS
     TYPE(t_wave_config), TARGET, INTENT(IN) :: wave_config
     REAL(wp),            INTENT(IN)         :: depth_c(:,:)
     TYPE(t_wesd),        INTENT(IN)         :: wesd(:)
-    TYPE(t_wave_diag),   INTENT(INOUT)      :: p_diag
+    TYPE(t_wave_diag_dyn),INTENT(INOUT)     :: p_diag
     TYPE(t_wave_source), INTENT(INOUT)      :: p_source
 
     TYPE(t_wave_config), POINTER :: wc => NULL()
@@ -595,7 +595,7 @@ CONTAINS
     TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
     REAL(wp),                    INTENT(IN)    :: depth(:,:)
     TYPE(t_wesd),                INTENT(IN)    :: wesd(:)
-    TYPE(t_wave_diag),           INTENT(IN)    :: p_diag
+    TYPE(t_wave_diag_dyn),       INTENT(IN)    :: p_diag
     TYPE(t_wave_source),         INTENT(INOUT) :: p_source
 
     ! local
