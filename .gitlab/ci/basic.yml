@@ -317,6 +317,15 @@ doc:html:check:
     url: ${ICON_CI_COMMON_HTML_ARTIFACT_URL}
   artifacts:
     expire_in: 1 week
+  cache:
+    - !reference [.common:html, cache]
+    - key:
+        prefix: ${ICON_CI_COMMON_HTML_MERGE2RC_SCRIPT_REL_PATH}
+        files:
+          # CI/CD variables are not supported, but the reference works:
+          - !reference [.common:html, variables, ICON_CI_COMMON_HTML_MERGE2RC_SCRIPT_REL_PATH]
+      paths:
+        - ${ICON_CI_COMMON_HTML_MERGE2RC_OUTPUT_REL_PATH}
   rules:
     - if: $CI_PROJECT_PATH == "icon/icon-model"
       when: never

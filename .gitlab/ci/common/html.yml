@@ -25,6 +25,8 @@ include:
     # Relative path (with respect to $CI_PROJECT_DIR) to store the output
     # (uploaded as an artifact):
     ICON_CI_COMMON_HTML_OUTPUT_REL_PATH: public
+    ICON_CI_COMMON_HTML_MERGE2RC_SCRIPT_REL_PATH: scripts/buildbot_scripts/create_list_merge2rc
+    ICON_CI_COMMON_HTML_MERGE2RC_OUTPUT_REL_PATH: scripts/buildbot_scripts/experiment_lists/merge2rc
 
     # Internal variables:
     ICON_CI_COMMON_HTML_ARTIFACT_URL: >-
@@ -39,11 +41,21 @@ include:
   script:
     - |
       # !reference [.common:html, script]
+      icon_ci_log_section_start 'Generating Buildbot experiment list' 'collapsed=false'
+      (
+        set -u
+        cache_path="${CI_PROJECT_DIR}/${ICON_CI_COMMON_HTML_MERGE2RC_OUTPUT_REL_PATH}"
+        test -f "${cache_path}" && {
+          icon_ci_log_info_msg "Using cached '${cache_path}'"
+        } || (
+          set -x
+          BB_NAME=all "${CI_PROJECT_DIR}/${ICON_CI_COMMON_HTML_MERGE2RC_SCRIPT_REL_PATH}"
+        )
+      ) 2>&1
+      icon_ci_log_section_end
       icon_ci_log_section_start 'Generating HTML pages' 'collapsed=false'
       (
         set -ux
-        # Generate Buildbot test tables:
-        BB_NAME=all ./scripts/buildbot_scripts/create_list_merge2rc
         python3 scripts/ci_scripts/generate_test_list.py
         # Append release notes to existing docs page
         python3 scripts/ci_scripts/collect_release_info.py
