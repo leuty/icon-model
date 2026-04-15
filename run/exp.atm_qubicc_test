@@ -194,7 +194,7 @@ fi # ${jsb_case}
 #
 if [ ${jsb_case} = "'jsbach_pfts'" ]
 then
-npft=11
+npft=12
 fract_filename="'bc_land_frac_${npft}pfts.nc'"
 use_alb_veg_simple=.FALSE.
 jsb_assimi_active=.TRUE.
@@ -472,7 +472,7 @@ fi # ${iforcing}
 # (3) Define the input: model constants, grid, initial state, boundary conditions
 
 # data directory for the input of this experiment
-datadir=${icon_data_rootFolder}/experiments/data.atm_qubicc_test.r2
+datadir=${icon_data_rootFolder}/experiments/data.atm_qubicc_test.r3
 if [ ! -d ${datadir} ]
 then
     echo "ERROR: input data directory ${datadir} not found"
@@ -521,7 +521,12 @@ do
     if [ -L ${file} ]                                # if this file is a symbolic links
     then
         source_file=$( readlink -f ${file} )         # the original file name
-	target_file=${expdir}/$( basename ${file} )  # the ICON file name
+        if [ $(echo $(basename ${file}) | cut -c1-5) == "link_" ] # if link name starts with "link_"
+        then
+            target_file=${expdir}/$( basename ${source_file} )  # identical name
+        else
+            target_file=${expdir}/$( basename ${file} )         # the ICON file name
+        fi
 	ln -s ${source_file} ${target_file}
     fi
 done

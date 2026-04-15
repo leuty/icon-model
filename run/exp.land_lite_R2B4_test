@@ -54,6 +54,7 @@ atmo_dyn_grids="'${grid_name}.nc',"
 grids_folder=${icon_data_poolFolder}/${grid_id}
 
 lnd_data_InputFolder=${icon_data_poolFolder}/${grid_id}/land/r0101
+hd_data_InputFolder=${icon_data_poolFolder}/${grid_id}/hd/r0101
 refyear=1979
 
 calendar="proleptic gregorian"  # '365 day year' or '360 day year' or 'proleptic gregorian'
@@ -384,6 +385,7 @@ add_link_file $datadir/bc_land_soil.nc                                  ./bc_lan
 add_link_file $datadir/bc_land_sso.nc                                   ./bc_land_sso.nc
 
 if [[ ${jsbach_with_hd} = yes ]]; then
+  datadir=${hd_data_InputFolder}
   add_link_file $datadir/hdpara_r2b4_0049_sc_hfrac_s_v1.nc              ./bc_land_hd.nc
 fi
 #

@@ -92,6 +92,7 @@
 - Update of the script to equilibrate jsbach humus carbon pools
 - Fixing an error in the effect of supercooled water on plant water stress
 - Fix for jsbach simulations with natural and anthropogenic land cover change
+- Hydrology: Removed old checks in initialization
 - Fixed finish message for invalid var name in output_nml with standalone model
 - Enabled running ICON-Land standalone for one or more single sites
 
@@ -136,6 +137,7 @@
 - make_runscripts: Experiment template for dycore testcase `jabw` (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1245)
 - mkexp: Add support for LUMI CPUs and GPUs (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/835)
 - mkexp: Additional comments giving examples in jsbach offline configuration (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1340)
+- Update several run scripts: use recent land data to allow running the current ICON-Land version
 - make_runscripts: Increase stacksize for default targets (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1363)
 
 #### Building

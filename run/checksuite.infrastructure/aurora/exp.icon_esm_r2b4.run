@@ -188,7 +188,7 @@ author_list="Monika Esch, Rene Redler, Daniel Klocke"
 # (0) Basic model configuration
 # -----------------------------
 
-atmos_gridID="0043"
+atmos_gridID="0049"
 atmos_refinement="R02B04"
 
 ocean_gridID="0036"
@@ -301,7 +301,7 @@ lcarbon=$([ "${jsbach_with_carbon:=yes}" == yes ] && echo .TRUE. || echo .FALSE.
 
 if [[ $jsbach_usecase == *pfts* ]]
 then
-  npft=11
+  npft=12
   pft_file_tag="${npft}pfts_"
 else
   npft=0
@@ -756,7 +756,7 @@ add_link_file ${datadir}/swflux_14band_cmip6_1850-2299-v3.2.nc             ./bc_
 #
 # - land parameters
 #
-datadir=${icon_data_poolFolder}/${atmos_gridID}-${ocean_gridID}/land/r0002
+datadir=${icon_data_poolFolder}/${atmos_gridID}-${ocean_gridID}/land/r0100
 #
 add_link_file ${datadir}/ic_land_soil_1979.nc                              ./ic_land_soil.nc
 add_link_file ${datadir}/bc_land_soil_1979.nc                              ./bc_land_soil.nc
@@ -770,12 +770,9 @@ add_link_file ${basedir}/externals/jsbach/data/lctlib_nlct21.def           ./lct
 #
 # - HD files
 #
-datadir=${atmo_data_InputFolder}/land/r0003
+datadir=${icon_data_poolFolder}/${atmos_gridID}-${ocean_gridID}/land/r0100
 #
-add_link_file ${datadir}/hdrestart_R02B04_013_G_210120_1334_with_grid_file_mask.nc ./ic_land_hd.nc
-add_link_file ${datadir}/hdpara_icon_r2b4_013_using_grid_lsmask.nc                 ./bc_land_hd.nc
-#add_link_file ${datadir}/hdpara_icon_r2b4_013_using_grid_lsmask.nc                ./hd_mask.nc
-add_link_file ${atmo_grid_folder}/${atmo_dyn_grid}                                 ./hd_mask.nc
+add_link_file ${datadir}/hdpara_r2b4_${atmos_gridID}_${ocean_gridID}_sc_hfrac_s_v1.nc ./bc_land_hd.nc
 #
 # - the atmosphere grid itself (the grid copy section below from $HGRIDDIR is ignored)
 #

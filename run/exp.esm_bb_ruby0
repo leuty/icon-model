@@ -54,7 +54,7 @@ author_list="Monika Esch, Rene Redler, Stephan Lorenz"
 # (0) Basic model configuration
 # -----------------------------
 
-atmos_gridID="0013"
+atmos_gridID="0049"
 atmos_refinement="R02B04"
 
 ocean_gridID="0035"
@@ -126,7 +126,7 @@ icon_data_poolFolder="$poolFolder_prefix/pool/data/ICON/grids/public/mpim"
 # ------------------
 atm_grid_name=icon_grid_${atmos_gridID}_${atmos_refinement}_G     #  global grid incl. land
 
-atmo_grid_folder=/pool/data/ICON/grids/public/mpim/${atmos_gridID}
+atmo_grid_folder=${icon_data_poolFolder}/${atmos_gridID}
 atmo_data_InputFolder=${icon_data_poolFolder}/${atmos_gridID}
 atmo_dyn_grid=${atm_grid_name}.nc
 
@@ -227,7 +227,7 @@ lcarbon=$([ "${jsbach_with_carbon:=yes}" == yes ] && echo .TRUE. || echo .FALSE.
 
 if [[ $jsbach_usecase == *pfts* ]]
 then
-  npft=11
+  npft=12
   pft_file_tag="${npft}pfts_"
 else
   npft=0
@@ -613,7 +613,7 @@ add_required_file ${basedir}/run/${dict_file}                           ./
 # initial conditions
 #
 # - atmosphere: ECMWF analysis, 1979-01-01T00:00:00Z
-datadir=${atmo_data_InputFolder}/initial_condition/r0002
+datadir=${atmo_data_InputFolder}/initial_condition/r0001
 add_link_file ${datadir}/ifs2icon_1979010100_${atmos_refinement}_G.nc   ./ifs2icon.nc
 #
 # - land initial data path same as land parameter path, see below (2021-07)
@@ -631,7 +631,7 @@ add_link_file $datadir/greenhouse_1pctCO2.nc                            ./bc_gre
 # - ozone
 # -- for irad_o3=2: ozone climatology (annual cycle, filename without year) of MPI
 #
-datadir=${atmo_data_InputFolder}/ozone/r0002
+datadir=${atmo_data_InputFolder}/ozone/r0001
 add_link_file ${datadir}/bc_ozone_picontrol.nc                          ./bc_ozone.nc
 #
 # - tropospheric anthropogenic aerosols, simple plumes (irad_aero=19)
@@ -642,7 +642,7 @@ add_link_file ${datadir}/bc_ozone_picontrol.nc                          ./bc_ozo
 #
 #   Here we use revised data (r0002) based on work by Sebastian Rast
 #
-datadir=${atmo_data_InputFolder}/aerosol_kinne/r0002
+datadir=${atmo_data_InputFolder}/aerosol_kinne/r0100
 add_link_file ${datadir}/bc_aeropt_kinne_lw_b16_coa.nc                  ./
 add_link_file ${datadir}/bc_aeropt_kinne_sw_b14_coa.nc                  ./
 #
@@ -651,7 +651,7 @@ add_link_file ${datadir}/bc_aeropt_kinne_sw_b14_fin_1850.nc             ./bc_aer
 #
 # - sst and sic - still needed for the first year if atmosphere is initialised (date must be 1979-2016)
 #
-datadir=${atmo_data_InputFolder}/sst_and_seaice/r0002
+datadir=${atmo_data_InputFolder}/sst_and_seaice/r0001
 add_link_file ${datadir}/bc_sic_1979_2016.nc                            ./bc_sic.nc
 add_link_file ${datadir}/bc_sst_1979_2016.nc                            ./bc_sst.nc
 #
@@ -666,30 +666,20 @@ add_link_file ${datadir}/bc_sst_1979_2016.nc                            ./bc_sst
 # - land parameters
 #
 # path for land data at 1850 / pre-industrial / 2021-07-28
-datadir=/pool/data/ICON/grids/private/jsbach/mpim/${atmos_gridID}-${ocean_gridID}/land/r0002
+datadir=${icon_data_poolFolder}/${atmos_gridID}-${ocean_gridID}/land/r0100
 add_link_file ${datadir}/bc_land_frac_${pft_file_tag}1850.nc            ./bc_land_frac.nc
-add_link_file ${datadir}/bc_land_phys_1850.nc                           ./bc_land_phys.nc
-add_link_file ${datadir}/bc_land_soil_1850.nc                           ./bc_land_soil.nc
-add_link_file ${datadir}/bc_land_sso_1850.nc                            ./bc_land_sso.nc
-add_link_file ${datadir}/ic_land_soil_1850.nc                           ./ic_land_soil.nc
-#
-#datadir=/work/mj0060/m212005/data/icon/ruby/0013-0031/land/r0001
-#datadir=/pool/data/ICON/grids/private/Stephan/mpim/${atmos_gridID}/land
+add_link_file ${datadir}/bc_land_phys.nc                                ./bc_land_phys.nc
+add_link_file ${datadir}/bc_land_soil.nc                                ./bc_land_soil.nc
+add_link_file ${datadir}/bc_land_sso.nc                                 ./bc_land_sso.nc
+add_link_file ${datadir}/ic_land_soil.nc                                ./ic_land_soil.nc
 #
 # - HD model input by Tom Riddick
 #
-datadir=/pool/data/ICON/grids/private/jsbach/mpim/${atmos_gridID}-${ocean_gridID}/land/r0002
-add_link_file $datadir/hdpara_r2b4_0013_0035_v3.nc                       ./bc_land_hd.nc
-#  prelinminary version not exactly at coastline
-#datadir=/pool/data/ICON/grids/private/Stephan/mpim/${atmos_gridID}/land
-#add_link_file $datadir/hdpara_icon_0013_R02B04_20200303_v2.nc            ./bc_land_hd.nc
+add_link_file ${datadir}/hdpara_r2b4_0049_0035_sc_hfrac_s_v1.nc         ./bc_land_hd.nc
 #
 # - lctlib file for JSBACH
 #
 add_link_file ${basedir}/externals/jsbach/data/lctlib_nlct21.def        ./lctlib_nlct21.def
-#
-# - HD mask for interpolation of runoff - reading only - no longer required
-#add_required_file ${atmo_grid_folder}/${atmo_dyn_grid}                  ./hd_mask.nc
 #
 # - the atmosphere grid itself (the grid copy section below from $HGRIDDIR is ignored)
 #
