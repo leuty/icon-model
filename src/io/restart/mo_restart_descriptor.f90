@@ -30,7 +30,7 @@ MODULE mo_restart_descriptor
   USE mo_restart_var_data,          ONLY: has_valid_time_level
   USE mo_var_list_register_utils,   ONLY: vlr_replicate
 #ifndef __NO_ICON_UPATMO__
-  USE mo_upatmo_flowevent_utils,    ONLY: t_upatmoRestartAttributes, upatmoRestartAttributesSet
+  USE mo_upatmo_interface,          ONLY: t_upatmoRestartAttributes, upatmoRestartAttributesSet
 #endif
   USE mo_cdi,                       ONLY: FILETYPE_NC2, FILETYPE_NC4
   USE mo_restart_patch_data, ONLY: t_restartPatchData

@@ -106,14 +106,14 @@ MODULE mo_upatmo_impl_const
   END TYPE t_ithr
   !
   ! ... for message output:
-  TYPE(t_ithr), PARAMETER :: imsg_thr = t_ithr(  8, &  !imsg_thr%low
-    &                                           10, &  !imsg_thr%med
-    &                                           15  )  !imsg_thr%high
+  TYPE(t_ithr), PARAMETER :: imsg_thr = t_ithr(8, &  !imsg_thr%low
+      &                                           10, &  !imsg_thr%med
+      &                                           15)  !imsg_thr%high
   !
   ! ... for timers:
-  TYPE(t_ithr), PARAMETER :: itmr_thr = t_ithr(  2, &  !itmr_thr%low
-    &                                            5, &  !itmr_thr%med
-    &                                            8  )  !itmr_thr%high
+  TYPE(t_ithr), PARAMETER :: itmr_thr = t_ithr(2, &  !itmr_thr%low
+      &                                            5, &  !itmr_thr%med
+      &                                            8)  !itmr_thr%high
 
   !-----------------------------------------------------
   !             Configuration status (nitem)
@@ -128,13 +128,13 @@ MODULE mo_upatmo_impl_const
     !
     INTEGER :: nitem        ! Number of identifiers
   END TYPE t_iUpatmoStat
-  TYPE(t_iUpatmoStat), PARAMETER :: iUpatmoStat = t_iUpatmoStat( 1, &  !iUpatmoStat%checked
-    &                                                            2, &  !iUpatmoStat%configured
-    &                                                            3, &  !iUpatmoStat%required
-    &                                                            4, &  !iUpatmoStat%message
-    &                                                            5, &  !iUpatmoStat%timer
-    !
-    &                                                            5  )  !iUpatmoStat%nitem
+  TYPE(t_iUpatmoStat), PARAMETER :: iUpatmoStat = t_iUpatmoStat(1, &  !iUpatmoStat%checked
+      &                                                            2, &  !iUpatmoStat%configured
+      &                                                            3, &  !iUpatmoStat%required
+      &                                                            4, &  !iUpatmoStat%message
+      &                                                            5, &  !iUpatmoStat%timer
+  !
+      &                                                            5)  !iUpatmoStat%nitem
 
   !-------------------------------------------------------------------------------
   !-------------------------------------------------------------------------------
@@ -153,11 +153,11 @@ MODULE mo_upatmo_impl_const
     !
     INTEGER :: nitem   ! Number of entries
   END TYPE t_isolvar
-  TYPE(t_isolvar), PARAMETER :: isolvar = t_isolvar( 1, &  !isolvar%norm
-    &                                                2, &  !isolvar%low
-    &                                                3, &  !isolvar%high
-    !
-    &                                                3  )  !isolvar%nitem
+  TYPE(t_isolvar), PARAMETER :: isolvar = t_isolvar(1, &  !isolvar%norm
+      &                                                2, &  !isolvar%low
+      &                                                3, &  !isolvar%high
+  !
+      &                                                3)  !isolvar%nitem
 
   !-----------------------------------------------------
   !             Solar activity data (nitem)
@@ -169,10 +169,10 @@ MODULE mo_upatmo_impl_const
     !
     INTEGER :: nitem     ! Number of entries
   END TYPE t_isolvardat
-  TYPE(t_isolvardat), PARAMETER :: isolvardat = t_isolvardat( 1, &  !isolvardat%rottman
-    &                                                         2, &  !isolvardat%lean
-    !
-    &                                                         2  )  !isolvardat%nitem
+  TYPE(t_isolvardat), PARAMETER :: isolvardat = t_isolvardat(1, &  !isolvardat%rottman
+      &                                                         2, &  !isolvardat%lean
+  !
+      &                                                         2)  !isolvardat%nitem
 
   !-----------------------------------------------------
   !                Orbit model (nitem)
@@ -184,10 +184,10 @@ MODULE mo_upatmo_impl_const
     !
     INTEGER :: nitem   ! Number of entries
   END TYPE t_iorbit
-  TYPE(t_iorbit), PARAMETER :: iorbit = t_iorbit( 1, &  !iorbit%vsop87
-    &                                             2, &  !iorbit%kepler
-    !
-    &                                             2  )  !iorbit%nitem
+  TYPE(t_iorbit), PARAMETER :: iorbit = t_iorbit(1, &  !iorbit%vsop87
+      &                                             2, &  !iorbit%kepler
+  !
+      &                                             2)  !iorbit%nitem
 
   !-----------------------------------------------------
   !                Solar cycle (nitem)
@@ -199,10 +199,10 @@ MODULE mo_upatmo_impl_const
     !
     INTEGER :: nitem   ! Number of entries
   END TYPE t_icycle
-  TYPE(t_icycle), PARAMETER :: icycle = t_icycle( 1, &  !icycle%std
-    &                                             2, &  !icycle%day27
-    !
-    &                                             2  )  !icycle%nitem
+  TYPE(t_icycle), PARAMETER :: icycle = t_icycle(1, &  !icycle%std
+      &                                             2, &  !icycle%day27
+  !
+      &                                             2)  !icycle%nitem
 
   !------------------------------------------------------
   !      Identifiers for physics processes (nitem)
@@ -221,17 +221,17 @@ MODULE mo_upatmo_impl_const
     !
     INTEGER :: nitem    ! Number of entries
   END TYPE t_iUpatmoPrcId
-  TYPE(t_iUpatmoPrcId), PARAMETER :: iUpatmoPrcId = t_iUpatmoPrcId( 1, &  !iUpatmoPrcId%vdfmol
-    &                                                               2, &  !iUpatmoPrcId%fric
-    &                                                               3, &  !iUpatmoPrcId%iondrag
-    &                                                               4, &  !iUpatmoPrcId%joule
-    &                                                               5, &  !iUpatmoPrcId%srbc
-    &                                                               6, &  !iUpatmoPrcId%nlte
-    &                                                               7, &  !iUpatmoPrcId%euv
-    &                                                               8, &  !iUpatmoPrcId%no
-    &                                                               9, &  !iUpatmoPrcId%chemheat
-    !
-    &                                                               9  )  !iUpatmoPrcId%nitem
+  TYPE(t_iUpatmoPrcId), PARAMETER :: iUpatmoPrcId = t_iUpatmoPrcId(1, &  !iUpatmoPrcId%vdfmol
+      &                                                               2, &  !iUpatmoPrcId%fric
+      &                                                               3, &  !iUpatmoPrcId%iondrag
+      &                                                               4, &  !iUpatmoPrcId%joule
+      &                                                               5, &  !iUpatmoPrcId%srbc
+      &                                                               6, &  !iUpatmoPrcId%nlte
+      &                                                               7, &  !iUpatmoPrcId%euv
+      &                                                               8, &  !iUpatmoPrcId%no
+      &                                                               9, &  !iUpatmoPrcId%chemheat
+  !
+      &                                                               9)  !iUpatmoPrcId%nitem
 
   !------------------------------------------------------
   !     Default start heights for physics processes
@@ -248,16 +248,16 @@ MODULE mo_upatmo_impl_const
     REAL(wp) :: no        ! For near-infrared heating by NO
     REAL(wp) :: chemheat  ! For chemical heating
   END TYPE t_startHeightDef
-  TYPE(t_startHeightDef), PARAMETER :: startHeightDef = t_startHeightDef( 75000._wp, &  ! (m) startHeightDef%vdfmol
-    &                                                                     85000._wp, &  ! (m) startHeightDef%fric
-    &                                                                     80000._wp, &  ! (m) startHeightDef%iondrag
-    &                                                                     80000._wp, &  ! (m) startHeightDef%joule =
-    !                                                                                         startHeightDef%iondrag !
-    &                                                                     50000._wp, &  ! (m) startHeightDef%srbc
-    &                                                                         0._wp, &  ! (m) startHeightDef%nlte
-    &                                                                     90000._wp, &  ! (m) startHeightDef%euv
-    &                                                                     60000._wp, &  ! (m) startHeightDef%no
-    &                                                                     70000._wp  )  ! (m) startHeightDef%chemheat
+  TYPE(t_startHeightDef), PARAMETER :: startHeightDef = t_startHeightDef(75000._wp, &  ! (m) startHeightDef%vdfmol
+      &                                                                     85000._wp, &  ! (m) startHeightDef%fric
+      &                                                                     80000._wp, &  ! (m) startHeightDef%iondrag
+      &                                                                     80000._wp, &  ! (m) startHeightDef%joule =
+  !                                                                                         startHeightDef%iondrag !
+      &                                                                     50000._wp, &  ! (m) startHeightDef%srbc
+      &                                                                         0._wp, &  ! (m) startHeightDef%nlte
+      &                                                                     90000._wp, &  ! (m) startHeightDef%euv
+      &                                                                     60000._wp, &  ! (m) startHeightDef%no
+      &                                                                     70000._wp)  ! (m) startHeightDef%chemheat
 
   !-----------------------------------------------------
   !    Identifiers of physics process groups (nitem)
@@ -269,10 +269,10 @@ MODULE mo_upatmo_impl_const
     !
     INTEGER :: nitem   ! Number of entries
   END TYPE t_iUpatmoGrpId
-  TYPE(t_iUpatmoGrpId), PARAMETER :: iUpatmoGrpId = t_iUpatmoGrpId( 1, &  !iUpatmoGrpId%imf
-    &                                                               2, &  !iUpatmoGrpId%rad
-    !
-    &                                                               2  )  !iUpatmoGrpId%nitem
+  TYPE(t_iUpatmoGrpId), PARAMETER :: iUpatmoGrpId = t_iUpatmoGrpId(1, &  !iUpatmoGrpId%imf
+      &                                                               2, &  !iUpatmoGrpId%rad
+  !
+      &                                                               2)  !iUpatmoGrpId%nitem
 
   !-----------------------------------------------------
   !     Identifiers for modes of physics process
@@ -287,15 +287,15 @@ MODULE mo_upatmo_impl_const
     !
     INTEGER :: startitem   ! Integer of firt list entry (since it differes from 1)
     INTEGER :: enditem     ! Integer of last list entry
-                           ! (not nitem, since it differs from number of entries)
+    ! (not nitem, since it differs from number of entries)
   END TYPE t_iUpatmoPrcMode
-  TYPE(t_iUpatmoPrcMode), PARAMETER :: iUpatmoPrcMode = t_iUpatmoPrcMode( -1, &  !iUpatmoPrcMode%unassigned
-    &                                                                      0, &  !iUpatmoPrcMode%off
-    &                                                                      1, &  !iUpatmoPrcMode%on
-    &                                                                      2, &  !iUpatmoPrcMode%offline
-    !
-    &                                                                     -1, &  !iUpatmoPrcMode%startitem
-    &                                                                      2  )  !iUpatmoPrcMode%enditem
+  TYPE(t_iUpatmoPrcMode), PARAMETER :: iUpatmoPrcMode = t_iUpatmoPrcMode(-1, &  !iUpatmoPrcMode%unassigned
+      &                                                                      0, &  !iUpatmoPrcMode%off
+      &                                                                      1, &  !iUpatmoPrcMode%on
+      &                                                                      2, &  !iUpatmoPrcMode%offline
+  !
+      &                                                                     -1, &  !iUpatmoPrcMode%startitem
+      &                                                                      2)  !iUpatmoPrcMode%enditem
 
   !-----------------------------------------------------
   !        Identifiers for variables for which
@@ -313,15 +313,15 @@ MODULE mo_upatmo_impl_const
     !
     INTEGER :: nitem_2  ! Number of entries up to here without 'nitem'
   END TYPE t_iUpatmoTendId
-  TYPE(t_iUpatmoTendId), PARAMETER :: iUpatmoTendId = t_iUpatmoTendId( 1, &  !iUpatmoTendId%temp
-    &                                                                  2, &  !iUpatmoTendId%wind_h
-    &                                                                  3, &  !iUpatmoTendId%qx
-    !
-    &                                                                  3, &  !iUpatmoTendId%nitem
-    !
-    &                                                                  4, &  !iUpatmoTendId%exner
-    !
-    &                                                                  4  )  !iUpatmoTendId%nitem_2
+  TYPE(t_iUpatmoTendId), PARAMETER :: iUpatmoTendId = t_iUpatmoTendId(1, &  !iUpatmoTendId%temp
+      &                                                                  2, &  !iUpatmoTendId%wind_h
+      &                                                                  3, &  !iUpatmoTendId%qx
+  !
+      &                                                                  3, &  !iUpatmoTendId%nitem
+  !
+      &                                                                  4, &  !iUpatmoTendId%exner
+  !
+      &                                                                  4)  !iUpatmoTendId%nitem_2
 
 
   !-----------------------------------------------------
@@ -338,13 +338,13 @@ MODULE mo_upatmo_impl_const
     !
     INTEGER :: nitem        ! Number of entries
   END TYPE t_iUpatmoPrcStat
-  TYPE(t_iUpatmoPrcStat), PARAMETER :: iUpatmoPrcStat = t_iUpatmoPrcStat( 1, &  !iUpatmoPrcStat%enabled
-    &                                                                     2, &  !iUpatmoPrcStat%offline
-    &                                                                     3, &  !iUpatmoPrcStat%initialized
-    &                                                                     4, &  !iUpatmoPrcStat%finalized
-    &                                                                     5, &  !iUpatmoPrcStat%afterActivePhase
-    !
-    &                                                                     5  )  !iUpatmoPrcStat%nitem
+  TYPE(t_iUpatmoPrcStat), PARAMETER :: iUpatmoPrcStat = t_iUpatmoPrcStat(1, &  !iUpatmoPrcStat%enabled
+      &                                                                     2, &  !iUpatmoPrcStat%offline
+      &                                                                     3, &  !iUpatmoPrcStat%initialized
+      &                                                                     4, &  !iUpatmoPrcStat%finalized
+      &                                                                     5, &  !iUpatmoPrcStat%afterActivePhase
+  !
+      &                                                                     5)  !iUpatmoPrcStat%nitem
 
   !-----------------------------------------------------
   !   Identifiers of radiatively active gases (nitem)
@@ -361,18 +361,18 @@ MODULE mo_upatmo_impl_const
     INTEGER :: nitem   ! Number of entries
     ! Selectors
     INTEGER :: diag    ! Which gas concentration might be computed
-                       ! diagnostically from all other gas concentrations
+    ! diagnostically from all other gas concentrations
   END TYPE t_iUpatmoGasId
-  TYPE(t_iUpatmoGasId), PARAMETER :: iUpatmoGasId = t_iUpatmoGasId( 1, &  !iUpatmoGasId%o3
-    &                                                               2, &  !iUpatmoGasId%o2
-    &                                                               3, &  !iUpatmoGasId%o
-    &                                                               4, &  !iUpatmoGasId%co2
-    &                                                               5, &  !iUpatmoGasId%no
-    &                                                               6, &  !iUpatmoGasId%n2
-    !
-    &                                                               6, &  !iUpatmoGasId%nitem
-    !
-    &                                                               6  )  !iUpatmoGasId%diag -> n2
+  TYPE(t_iUpatmoGasId), PARAMETER :: iUpatmoGasId = t_iUpatmoGasId(1, &  !iUpatmoGasId%o3
+      &                                                               2, &  !iUpatmoGasId%o2
+      &                                                               3, &  !iUpatmoGasId%o
+      &                                                               4, &  !iUpatmoGasId%co2
+      &                                                               5, &  !iUpatmoGasId%no
+      &                                                               6, &  !iUpatmoGasId%n2
+  !
+      &                                                               6, &  !iUpatmoGasId%nitem
+  !
+      &                                                               6)  !iUpatmoGasId%diag -> n2
 
   !-----------------------------------------------------
   !             Identifiers for gas mode
@@ -381,21 +381,21 @@ MODULE mo_upatmo_impl_const
   TYPE t_iUpatmoGasMode
     INTEGER :: zero        ! Zero gas concentration
     INTEGER :: const       ! Horizontally/vertically/temporally constant
-                           ! (single fixed value, read from namelist)
+    ! (single fixed value, read from namelist)
     INTEGER :: extdat      ! External data read from file
     INTEGER :: diag        ! (Only for N2): determine N2 as the residual of all other gases
     !
     INTEGER :: startitem   ! Integer of firt list entry (since it differes from 1)
     INTEGER :: enditem     ! Integer of last list entry
-                           ! (not nitem, since it differs from number of entries)
+    ! (not nitem, since it differs from number of entries)
   END TYPE t_iUpatmoGasMode
-  TYPE(t_iUpatmoGasMode), PARAMETER :: iUpatmoGasMode = t_iUpatmoGasMode( 0, &  !iUpatmoGasMode%zero
-    &                                                                     1, &  !iUpatmoGasMode%const
-    &                                                                     2, &  !iUpatmoGasMode%extdat
-    &                                                                     3, &  !iUpatmoGasMode%diag
-    !
-    &                                                                     0, &  !iUpatmoGasMode%startitem
-    &                                                                     3  )  !iUpatmoGasMode%enditem
+  TYPE(t_iUpatmoGasMode), PARAMETER :: iUpatmoGasMode = t_iUpatmoGasMode(0, &  !iUpatmoGasMode%zero
+      &                                                                     1, &  !iUpatmoGasMode%const
+      &                                                                     2, &  !iUpatmoGasMode%extdat
+      &                                                                     3, &  !iUpatmoGasMode%diag
+  !
+      &                                                                     0, &  !iUpatmoGasMode%startitem
+      &                                                                     3)  !iUpatmoGasMode%enditem
 
   !-----------------------------------------------------
   !         Identifiers for gas status (nitem)
@@ -408,11 +408,11 @@ MODULE mo_upatmo_impl_const
     !
     INTEGER :: nitem        ! Number of entries
   END TYPE t_iUpatmoGasStat
-  TYPE(t_iUpatmoGasStat), PARAMETER :: iUpatmoGasStat = t_iUpatmoGasStat( 1, &  !iUpatmoGasStat%enabled
-    &                                                                     2, &  !iUpatmoGasStat%initialized
-    &                                                                     3, &  !iUpatmoGasStat%finalized
-    !
-    &                                                                     3  )  !iUpatmoGasStat%nitem
+  TYPE(t_iUpatmoGasStat), PARAMETER :: iUpatmoGasStat = t_iUpatmoGasStat(1, &  !iUpatmoGasStat%enabled
+      &                                                                     2, &  !iUpatmoGasStat%initialized
+      &                                                                     3, &  !iUpatmoGasStat%finalized
+  !
+      &                                                                     3)  !iUpatmoGasStat%nitem
 
   !-----------------------------------------------------
   !       Identifiers of external data (nitem)
@@ -424,10 +424,10 @@ MODULE mo_upatmo_impl_const
     !
     INTEGER :: nitem      ! Number of entries
   END TYPE t_iUpatmoExtdatId
-  TYPE(t_iUpatmoExtdatId), PARAMETER :: iUpatmoExtdatId = t_iUpatmoExtdatId( 1, &  !iUpatmoExtdatId%gases
-    &                                                                        2, &  !iUpatmoExtdatId%chemheat
-    !
-    &                                                                        2  )  !iUpatmoExtdatId%nitem
+  TYPE(t_iUpatmoExtdatId), PARAMETER :: iUpatmoExtdatId = t_iUpatmoExtdatId(1, &  !iUpatmoExtdatId%gases
+      &                                                                        2, &  !iUpatmoExtdatId%chemheat
+  !
+      &                                                                        2)  !iUpatmoExtdatId%nitem
 
   !-----------------------------------------------------
   !        Identifiers of extdat status (nitem)
@@ -440,11 +440,11 @@ MODULE mo_upatmo_impl_const
     !
     INTEGER :: nitem      ! Number of entries
   END TYPE t_iUpatmoExtdatStat
-  TYPE(t_iUpatmoExtdatStat), PARAMETER :: iUpatmoExtdatStat = t_iUpatmoExtdatStat( 1, &  !iUpatmoExtdatStat%required
-    &                                                                              2, &  !iUpatmoExtdatStat%initialized
-    &                                                                              3, &  !iUpatmoExtdatStat%finalized
-    !
-    &                                                                              3  )  !iUpatmoExtdatStat%nitem
+  TYPE(t_iUpatmoExtdatStat), PARAMETER :: iUpatmoExtdatStat = t_iUpatmoExtdatStat(1, &  !iUpatmoExtdatStat%required
+      &                                                                              2, &  !iUpatmoExtdatStat%initialized
+      &                                                                              3, &  !iUpatmoExtdatStat%finalized
+  !
+      &                                                                              3)  !iUpatmoExtdatStat%nitem
 
   !------------------------------------------------------
   !   Identifiers of external data: latitude (nitem)
@@ -455,9 +455,9 @@ MODULE mo_upatmo_impl_const
     !
     INTEGER :: nitem      ! Number of entries
   END TYPE t_iUpatmoExtdatLatId
-  TYPE(t_iUpatmoExtdatLatId), PARAMETER :: iUpatmoExtdatLatId = t_iUpatmoExtdatLatId( 1, &  !iUpatmoExtdatLatId%deg
-    !
-    &                                                                                 1  )  !iUpatmoExtdatLatId%nitem
+  TYPE(t_iUpatmoExtdatLatId), PARAMETER :: iUpatmoExtdatLatId = t_iUpatmoExtdatLatId(1, &  !iUpatmoExtdatLatId%deg
+  !
+      &                                                                                 1)  !iUpatmoExtdatLatId%nitem
 
   !-----------------------------------------------------
   !    Identifiers of external data: level (nitem)
@@ -469,10 +469,10 @@ MODULE mo_upatmo_impl_const
     !
     INTEGER :: nitem      ! Number of entries
   END TYPE t_iUpatmoExtdatLevId
-  TYPE(t_iUpatmoExtdatLevId), PARAMETER :: iUpatmoExtdatLevId = t_iUpatmoExtdatLevId( 1, &  !iUpatmoExtdatLevId%p
-    &                                                                                 2, &  !iUpatmoExtdatLevId%z
-    !
-    &                                                                                 2  )  !iUpatmoExtdatLevId%nitem
+  TYPE(t_iUpatmoExtdatLevId), PARAMETER :: iUpatmoExtdatLevId = t_iUpatmoExtdatLevId(1, &  !iUpatmoExtdatLevId%p
+      &                                                                                 2, &  !iUpatmoExtdatLevId%z
+  !
+      &                                                                                 2)  !iUpatmoExtdatLevId%nitem
 
   !------------------------------------------------------
   !     Identifiers of external data: time (nitem)
@@ -483,9 +483,9 @@ MODULE mo_upatmo_impl_const
     !
     INTEGER :: nitem      ! Number of entries
   END TYPE t_iUpatmoExtdatTimeId
-  TYPE(t_iUpatmoExtdatTimeId), PARAMETER :: iUpatmoExtdatTimeId = t_iUpatmoExtdatTimeId( 1, &  !iUpatmoExtdatTimeId%month
-    !
-    &                                                                                    1  )  !iUpatmoExtdatTimeId%nitem
+  TYPE(t_iUpatmoExtdatTimeId), PARAMETER :: iUpatmoExtdatTimeId = t_iUpatmoExtdatTimeId(1, &  !iUpatmoExtdatTimeId%month
+  !
+      &                                                                                    1)  !iUpatmoExtdatTimeId%nitem
 
   !----------------------------------------------------------
   ! Identifiers of upper-atmosphere-affected tracers (nitem)
@@ -500,9 +500,9 @@ MODULE mo_upatmo_impl_const
     !
     INTEGER :: nitem      ! Number of entries
   END TYPE t_iUpatmoTracerId
-  TYPE(t_iUpatmoTracerId), PARAMETER :: iUpatmoTracerId = t_iUpatmoTracerId( 1, &  !iUpatmoTracerId%qv
-    !
-    &                                                                        1  )  !iUpatmoTracerId%nitem
+  TYPE(t_iUpatmoTracerId), PARAMETER :: iUpatmoTracerId = t_iUpatmoTracerId(1, &  !iUpatmoTracerId%qv
+  !
+      &                                                                        1)  !iUpatmoTracerId%nitem
 
   !----------------------------------------------------------
   !      Identifiers for thermodynamic coupling between
@@ -516,10 +516,10 @@ MODULE mo_upatmo_impl_const
     !
     INTEGER :: nitem      ! Number of entries
   END TYPE t_iThermdynCoupling
-  TYPE(t_iThermdynCoupling), PARAMETER :: iThermdynCoupling = t_iThermdynCoupling( 1, &  !iThermdynCoupling%isobaric
-    &                                                                              2, &  !iThermdynCoupling%isochoric
-    &                                                                              3, &  !iThermdynCoupling%entropic
-    !
-    &                                                                              3  )  !iThermdynCoupling%nitem
+  TYPE(t_iThermdynCoupling), PARAMETER :: iThermdynCoupling = t_iThermdynCoupling(1, &  !iThermdynCoupling%isobaric
+      &                                                                              2, &  !iThermdynCoupling%isochoric
+      &                                                                              3, &  !iThermdynCoupling%entropic
+  !
+      &                                                                              3)  !iThermdynCoupling%nitem
 
 END MODULE mo_upatmo_impl_const

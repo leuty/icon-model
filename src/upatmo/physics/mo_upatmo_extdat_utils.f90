@@ -21,16 +21,16 @@ MODULE mo_upatmo_extdat_utils
   USE mo_kind,                   ONLY: wp
   USE mo_exception,              ONLY: finish, message_text, message
   USE mo_impl_constants,         ONLY: SUCCESS, MAX_CHAR_LENGTH, &
-    &                                  min_rlcell_int
+      &                                  min_rlcell_int
   USE mo_impl_constants_grf,     ONLY: grf_bdywidth_c
   USE mo_math_constants,         ONLY: deg2rad, pi_2
   USE mo_upatmo_impl_const,      ONLY: iUpatmoExtdatLatId, iUpatmoExtdatLevId, &
-    &                                  iUpatmoExtdatTimeId
+      &                                  iUpatmoExtdatTimeId
   USE mo_model_domain,           ONLY: t_patch
   USE mo_upatmo_types,           ONLY: t_extdat_latlevtime
   USE mo_loopindices,            ONLY: get_indices_c
   USE mo_mpi,                    ONLY: my_process_is_stdio, p_io, p_bcast, &
-    &                                  p_comm_work
+      &                                  p_comm_work
   USE mo_netcdf_errhandler,      ONLY: nf
   USE mo_netcdf
   USE mo_upatmo_phy_chemheat,    ONLY: chem_heat_check, chem_heat_init
@@ -53,33 +53,33 @@ CONTAINS
   !! Read external gas data for the upper atmosphere
   !! under NWP forcing.
   !!
-  SUBROUTINE read_extdat_gas( gas,         &  !inout
-    &                         gasname,     &  !in
-    &                         vmr2mmr,     &  !in
-    &                         filename,    &  !in
-    &                         opt_lmessage )  !optin
+  SUBROUTINE read_extdat_gas(gas,         &  !inout
+      &                         gasname,     &  !in
+      &                         vmr2mmr,     &  !in
+      &                         filename,    &  !in
+      &                         opt_lmessage)  !optin
 
     ! In/out variables
     TYPE(t_extdat_latlevtime), INTENT(INOUT) :: gas
-    CHARACTER(LEN=*),          INTENT(IN)    :: gasname
-    REAL(wp),                  INTENT(IN)    :: vmr2mmr
-    CHARACTER(LEN=*),          INTENT(IN)    :: filename
-    LOGICAL, OPTIONAL,         INTENT(IN)    :: opt_lmessage
+    CHARACTER(LEN=*),          INTENT(IN) :: gasname
+    REAL(wp),                  INTENT(IN) :: vmr2mmr
+    CHARACTER(LEN=*),          INTENT(IN) :: filename
+    LOGICAL, OPTIONAL,         INTENT(IN) :: opt_lmessage
 
     ! Local variables
     INTEGER, ALLOCATABLE :: dimids(:)
-    INTEGER  :: ndims(3)
-    INTEGER  :: ncid
-    INTEGER  :: dimid_time, dimid_lev, dimid_lat
-    INTEGER  :: ntime, nlev, nlat, ndim
-    INTEGER  :: varid_time, varid_lev, varid_lat, varid_gas
-    INTEGER  :: i, istart, iend, istep, jlev, jlat, jtime
-    INTEGER  :: istat
-    INTEGER  :: mpi_comm
+    INTEGER :: ndims(3)
+    INTEGER :: ncid
+    INTEGER :: dimid_time, dimid_lev, dimid_lat
+    INTEGER :: ntime, nlev, nlat, ndim
+    INTEGER :: varid_time, varid_lev, varid_lat, varid_gas
+    INTEGER :: i, istart, iend, istep, jlev, jlat, jtime
+    INTEGER :: istat
+    INTEGER :: mpi_comm
 
-    LOGICAL  :: lstdioproc, lexist, lmessage
+    LOGICAL :: lstdioproc, lexist, lmessage
 
-    CHARACTER(LEN = :), ALLOCATABLE :: varunit, dimunit_lat, dimunit_lev, dimunit_time
+    CHARACTER(LEN=:), ALLOCATABLE :: varunit, dimunit_lat, dimunit_lev, dimunit_time
 
     CHARACTER(LEN=4),  PARAMETER :: levname  = 'plev'
     CHARACTER(LEN=3),  PARAMETER :: latname  = 'lat'
@@ -89,7 +89,7 @@ CONTAINS
     CHARACTER(LEN=15), PARAMETER :: timeunit = 'month_of_a_year'
     CHARACTER(LEN=9),  PARAMETER :: gasunit  = 'mol mol-1'
     CHARACTER(LEN=MAX_CHAR_LENGTH), PARAMETER ::  &
-      &  routine = modname//':read_extdat_gas'
+        &  routine = modname//':read_extdat_gas'
 
     !--------------------------------------------------------------
 
@@ -103,16 +103,16 @@ CONTAINS
       CALL finish(TRIM(routine), 'Levels have to be pressure levels.')
     ELSEIF (gas%time_id /= iUpatmoExtdatTimeId%month) THEN
       CALL finish(TRIM(routine), 'Dimension of time has to be: month .')
-    ENDIF
+    END IF
 
     IF (PRESENT(opt_lmessage)) THEN
       lmessage = opt_lmessage
     ELSE
       lmessage = .FALSE.
-    ENDIF
+    END IF
 
     IF (lmessage) CALL message(TRIM(routine), &
-      & 'Processing external data for gas '//TRIM(gasname))
+        & 'Processing external data for gas '//TRIM(gasname))
 
     ! Initializations
     ntime = -999
@@ -125,13 +125,13 @@ CONTAINS
     ! The reasons are not yet know (maybe it is related to numbers in strings).
     ! This is a workaround for the time being.)
     ALLOCATE(CHARACTER(LEN=LEN_TRIM(gasunit)) :: varunit, STAT=istat)
-    IF (istat/=SUCCESS) CALL finish (TRIM(routine), 'Allocation of varunit failed')
+    IF (istat/=SUCCESS) CALL finish(TRIM(routine), 'Allocation of varunit failed')
     ALLOCATE(CHARACTER(LEN=LEN_TRIM(latunit)) :: dimunit_lat, STAT=istat)
-    IF (istat/=SUCCESS) CALL finish (TRIM(routine), 'Allocation of dimunit_lat failed')
+    IF (istat/=SUCCESS) CALL finish(TRIM(routine), 'Allocation of dimunit_lat failed')
     ALLOCATE(CHARACTER(LEN=LEN_TRIM(levunit)) :: dimunit_lev, STAT=istat)
-    IF (istat/=SUCCESS) CALL finish (TRIM(routine), 'Allocation of dimunit_lev failed')
+    IF (istat/=SUCCESS) CALL finish(TRIM(routine), 'Allocation of dimunit_lev failed')
     ALLOCATE(CHARACTER(LEN=LEN_TRIM(timeunit)) :: dimunit_time, STAT=istat)
-    IF (istat/=SUCCESS) CALL finish (TRIM(routine), 'Allocation of dimunit_time failed')
+    IF (istat/=SUCCESS) CALL finish(TRIM(routine), 'Allocation of dimunit_time failed')
 
     ! Is this the standard I/O-process?
     lstdioproc = my_process_is_stdio()
@@ -146,10 +146,10 @@ CONTAINS
       !------------------
 
       INQUIRE(file=TRIM(filename), EXIST=lexist)
-      IF (.NOT. lexist) THEN
+      IF (.NOT.lexist) THEN
         message_text = 'Gas file '//TRIM(filename)//' does not exist.'
         CALL finish(TRIM(routine), TRIM(message_text))
-      ENDIF
+      END IF
 
       !-----------
       ! Open file
@@ -162,99 +162,99 @@ CONTAINS
       !---------------------
 
       ! Time
-      CALL get_dim( ncid    = ncid,         & !in
-        &           dimname = timename,     & !in
-        &           dimunit = dimunit_time, & !inout
-        &           dimid   = dimid_time,   & !inout
-        &           ndim    = ntime,        & !inout
-        &           varid   = varid_time    ) !inout
+      CALL get_dim(ncid=ncid,         & !in
+          &           dimname=timename,     & !in
+          &           dimunit=dimunit_time, & !inout
+          &           dimid=dimid_time,   & !inout
+          &           ndim=ntime,        & !inout
+          &           varid=varid_time) !inout
 
       ! Levels
-      CALL get_dim( ncid    = ncid,        & !in
-        &           dimname = levname,     & !in
-        &           dimunit = dimunit_lev, & !inout
-        &           dimid   = dimid_lev,   & !inout
-        &           ndim    = nlev,        & !inout
-        &           varid   = varid_lev    ) !inout
+      CALL get_dim(ncid=ncid,        & !in
+          &           dimname=levname,     & !in
+          &           dimunit=dimunit_lev, & !inout
+          &           dimid=dimid_lev,   & !inout
+          &           ndim=nlev,        & !inout
+          &           varid=varid_lev) !inout
 
       ! Latitudes
-      CALL get_dim( ncid    = ncid,        & !in
-        &           dimname = latname,     & !in
-        &           dimunit = dimunit_lat, & !inout
-        &           dimid   = dimid_lat,   & !inout
-        &           ndim    = nlat,        & !inout
-        &           varid   = varid_lat    ) !inout
+      CALL get_dim(ncid=ncid,        & !in
+          &           dimname=latname,     & !in
+          &           dimunit=dimunit_lat, & !inout
+          &           dimid=dimid_lat,   & !inout
+          &           ndim=nlat,        & !inout
+          &           varid=varid_lat) !inout
 
       ! Some checks
       IF (ntime < 1) THEN
         message_text = 'Size of time dimension in gas file '//TRIM(filename) &
-          & //' has to be > 0, but it is '// TRIM(int2string(ntime))
+            & //' has to be > 0, but it is '//TRIM(int2string(ntime))
         CALL finish(TRIM(routine), TRIM(message_text))
       ELSEIF (nlev < 1) THEN
         message_text = 'Size of level dimension in gas file '//TRIM(filename) &
-          & //' has to be > 0, but it is '// TRIM(int2string(nlev))
+            & //' has to be > 0, but it is '//TRIM(int2string(nlev))
         CALL finish(TRIM(routine), TRIM(message_text))
       ELSEIF (nlat < 1) THEN
         message_text = 'Size of latitude dimension in gas file '//TRIM(filename) &
-          & //' has to be > 0, but it is '// TRIM(int2string(nlat))
+            & //' has to be > 0, but it is '//TRIM(int2string(nlat))
         CALL finish(TRIM(routine), TRIM(message_text))
       ELSEIF (ntime /= 12) THEN
         message_text = 'Size of time dimension in gas file '//TRIM(filename) &
-          & //' has to be 12, but it is '// TRIM(int2string(ntime))
+            & //' has to be 12, but it is '//TRIM(int2string(ntime))
         CALL finish(TRIM(routine), TRIM(message_text))
       ELSEIF (TRIM(dimunit_time) /= timeunit) THEN
         message_text = 'Exclusively supportet time unit: '//timeunit &
-          & //' but unit in file is: '//TRIM(dimunit_time)
+            & //' but unit in file is: '//TRIM(dimunit_time)
         CALL finish(TRIM(routine), TRIM(message_text))
       ELSEIF (TRIM(dimunit_lev) /= levunit) THEN
         message_text = 'Exclusively supportet level unit: '//levunit &
-          & //' but unit in file is: '//TRIM(dimunit_lev)
+            & //' but unit in file is: '//TRIM(dimunit_lev)
         CALL finish(TRIM(routine), TRIM(message_text))
       ELSEIF (TRIM(dimunit_lat) /= latunit) THEN
         message_text = 'Exclusively supportet latitude unit: '//latunit &
-          & //' but unit in file is: '//TRIM(dimunit_lat)
+            & //' but unit in file is: '//TRIM(dimunit_lat)
         CALL finish(TRIM(routine), TRIM(message_text))
-      ENDIF
+      END IF
 
       ! Gas:
       ! If the variable could not be found, nf would call 'finish'
       CALL nf(nf90_inq_varid(ncid, TRIM(gasname), varid_gas), routine)
       ! Get number of variable dimensions
-      CALL nf(nf90_inquire_variable(ncid, varid_gas, ndims = ndim), routine)
+      CALL nf(nf90_inquire_variable(ncid, varid_gas, ndims=ndim), routine)
       ! Number of dimensions should be 3 (or maybe larger)
       IF (ndim < 3) THEN
         message_text = 'Gas '//TRIM(gasname)//' in gas file '//TRIM(filename) &
-          & //' has less than 3 dimensions.'
+            & //' has less than 3 dimensions.'
         CALL finish(TRIM(routine), TRIM(message_text))
-      ENDIF  !IF (ndim < 3)
+      END IF  !IF (ndim < 3)
       ALLOCATE(dimids(ndim), STAT=istat)
-      IF(istat /= SUCCESS) CALL finish(TRIM(routine), 'Allocation of dimids failed.')
-      CALL nf(nf90_inquire_variable(ncid, varid_gas, dimids = dimids), routine)
+      IF (istat /= SUCCESS) CALL finish(TRIM(routine), 'Allocation of dimids failed.')
+      CALL nf(nf90_inquire_variable(ncid, varid_gas, dimids=dimids), routine)
       ! Check, if variable varies in correct dimensions
       IF (dimids(ndim) /= dimid_time) THEN
         message_text = 'First dimension of gas '//TRIM(gasname) &
-          & //' in gas file '//TRIM(filename)//' needs to be time.'
+            & //' in gas file '//TRIM(filename)//' needs to be time.'
         CALL finish(TRIM(routine), TRIM(message_text))
-      ELSEIF (dimids(ndim-1) /= dimid_lev) THEN
+      ELSEIF (dimids(ndim - 1) /= dimid_lev) THEN
         message_text = 'Second dimension of gas '//TRIM(gasname) &
-          & //' in gas file '//TRIM(filename)//' needs to be level.'
+            & //' in gas file '//TRIM(filename)//' needs to be level.'
         CALL finish(TRIM(routine), TRIM(message_text))
-      ELSEIF (dimids(ndim-2) /= dimid_lat) THEN
+      ELSEIF (dimids(ndim - 2) /= dimid_lat) THEN
         message_text = 'Third dimension of gas '//TRIM(gasname) &
-          & //' in gas file '//TRIM(filename)//' needs to be latitude.'
+            & //' in gas file '//TRIM(filename)//' needs to be latitude.'
         CALL finish(TRIM(routine), TRIM(message_text))
-      ENDIF
+      END IF
       DEALLOCATE(dimids, STAT=istat)
-      IF(istat /= SUCCESS) CALL finish(TRIM(routine), 'Deallocation of dimids failed.')
+      IF (istat /= SUCCESS) CALL finish(TRIM(routine), 'Deallocation of dimids failed.')
       ! Check variable unit
       CALL nf(nf90_get_att(ncid, varid_gas, 'units', varunit), routine)
       IF (TRIM(varunit) /= gasunit) THEN
         message_text = 'Exclusively supportet gas unit: '//gasunit &
-          & //' but unit in file is: '//TRIM(varunit)
+            & //' but unit in file is: '//TRIM(varunit)
         CALL finish(TRIM(routine), TRIM(message_text))
-      ENDIF
+      END IF
 
-    ENDIF  !IF (lstdioproc)
+    END IF  !IF (lstdioproc)
 
     !---------------------------
     ! Broadcast dimension sizes
@@ -272,13 +272,13 @@ CONTAINS
     gas%ntime  = ntime
 
     ! Allocate fields in external data type
-    ALLOCATE( gas%data(nlat,nlev,ntime), &
-      &       gas%lat(nlat),             &
-      &       gas%lev(nlev),             &
-      &       gas%lev_half(nlev+1),      &
-      &       gas%time(ntime),           &
-      &       STAT=istat                 )
-    IF(istat /= SUCCESS) CALL finish(TRIM(routine), 'Allocation of gas failed.')
+    ALLOCATE(gas%data(nlat,nlev,ntime), &
+        &       gas%lat(nlat),             &
+        &       gas%lev(nlev),             &
+        &       gas%lev_half(nlev + 1),      &
+        &       gas%time(ntime),           &
+        &       STAT=istat)
+    IF (istat /= SUCCESS) CALL finish(TRIM(routine), 'Allocation of gas failed.')
 
     !-----------------
     ! Broadcast units
@@ -314,7 +314,7 @@ CONTAINS
 
       CALL nf(nf90_close(ncid), routine)
 
-    ENDIF  !IF (lstdioproc)
+    END IF  !IF (lstdioproc)
 
     !----------------
     ! Broadcast data
@@ -339,13 +339,13 @@ CONTAINS
       gas%istarttime = ntime
       gas%iendtime   = 1
       gas%isteptime  = -1
-    ENDIF
+    END IF
     ! Whatever the read-in times are,
     ! we overwrite it with 1, 2, 3, ..., 12
     istart = gas%istarttime
     iend   = gas%iendtime
     istep  = gas%isteptime
-    gas%time = (/ (REAL(i,wp),i=istart,iend,istep) /)
+    gas%time = (/(REAL(i,wp),i = istart,iend,istep) /)
     ! Latitudes from south to north
     IF (gas%lat(1) < gas%lat(nlat)) THEN
       gas%istartlat = 1
@@ -355,12 +355,12 @@ CONTAINS
       gas%istartlat = nlat
       gas%iendlat   = 1
       gas%isteplat  = -1
-    ENDIF
+    END IF
     ! Boundary check
     IF (MAXVAL(gas%lat) > 90._wp) &
-      & CALL finish(TRIM(routine), 'Max(lat) = '//TRIM(real2string(MAXVAL(gas%lat))))
+        & CALL finish(TRIM(routine), 'Max(lat) = '//TRIM(real2string(MAXVAL(gas%lat))))
     IF (MINVAL(gas%lat) < -90._wp) &
-      & CALL finish(TRIM(routine), 'Min(lat) = '//TRIM(real2string(MINVAL(gas%lat))))
+        & CALL finish(TRIM(routine), 'Min(lat) = '//TRIM(real2string(MINVAL(gas%lat))))
     ! Convert latitudes from degree north to radian
     gas%lat = gas%lat * deg2rad
     ! Pressure levels from model top to model bottom
@@ -372,7 +372,7 @@ CONTAINS
       gas%istartlev = nlev
       gas%iendlev   = 1
       gas%isteplev  = -1
-    ENDIF
+    END IF
 
     ! The half-level pressures, p(jk+-1/2),
     ! are defined:
@@ -387,20 +387,20 @@ CONTAINS
     !
     ! so we start with a corresponding bounary check of the read in full pressure levels.
     IF (MAXVAL(gas%lev) > 125000._wp) &
-      & CALL finish(TRIM(routine), 'Max(lev) = '//TRIM(real2string(MAXVAL(gas%lev))))
+        & CALL finish(TRIM(routine), 'Max(lev) = '//TRIM(real2string(MAXVAL(gas%lev))))
     IF (MINVAL(gas%lev) < 0._wp) &
-      & CALL finish(TRIM(routine), 'Min(lev) = '//TRIM(real2string(MINVAL(gas%lev))))
+        & CALL finish(TRIM(routine), 'Min(lev) = '//TRIM(real2string(MINVAL(gas%lev))))
 
     istep  = gas%isteplev
-    istart = gas%istartlev + ( 1 - istep ) / 2
-    iend   = gas%iendlev + ( 1 + istep ) / 2
+    istart = gas%istartlev + (1 - istep) / 2
+    iend   = gas%iendlev + (1 + istep) / 2
 
     gas%lev_half(istart) = 0._wp
     gas%lev_half(iend)   = 125000._wp
     DO jlev = istart + istep, iend - istep, istep
       ! Half-level pressure
-      gas%lev_half(jlev) = 0.5_wp *( gas%lev(jlev-1) + gas%lev(jlev) )
-    ENDDO  !jlev
+      gas%lev_half(jlev) = 0.5_wp * (gas%lev(jlev - 1) + gas%lev(jlev))
+    END DO  !jlev
 
     ! Convert gas unit from volume mixing ratio (mole fraction) [mol mol-1]
     ! into mass mixing ratio [kg kg-1]
@@ -408,9 +408,9 @@ CONTAINS
       DO jlev = gas%istartlev, gas%iendlev, gas%isteplev
         DO jlat = gas%istartlat, gas%iendlat, gas%isteplat
           gas%data(jlat,jlev,jtime) = vmr2mmr * gas%data(jlat,jlev,jtime)
-        ENDDO  !jlat
-      ENDDO  !jlev
-    ENDDO  !jtime
+        END DO  !jlat
+      END DO  !jlev
+    END DO  !jtime
 
     !------
     ! Info
@@ -418,27 +418,28 @@ CONTAINS
 
     IF (lmessage) THEN
       CALL message(TRIM(routine), 'istarttime, iendtime, isteptime: ' &
-        & //TRIM(int2string(gas%istarttime))//', '                    &
-        & //TRIM(int2string(gas%iendtime))//', '                      &
-        & //TRIM(int2string(gas%isteptime))                           )
+          & //TRIM(int2string(gas%istarttime))//', '                    &
+          & //TRIM(int2string(gas%iendtime))//', '                      &
+          & //TRIM(int2string(gas%isteptime)))
       CALL message(TRIM(routine), 'istartlat, iendlat, isteplat: ' &
-        & //TRIM(int2string(gas%istartlat))//', '                  &
-        & //TRIM(int2string(gas%iendlat))//', '                    &
-        & //TRIM(int2string(gas%isteplat))                         )
+          & //TRIM(int2string(gas%istartlat))//', '                  &
+          & //TRIM(int2string(gas%iendlat))//', '                    &
+          & //TRIM(int2string(gas%isteplat)))
       CALL message(TRIM(routine), 'istartlev, iendlev, isteplev: ' &
-        & //TRIM(int2string(gas%istartlev))//', '                  &
-        & //TRIM(int2string(gas%iendlev))//', '                    &
-        & //TRIM(int2string(gas%isteplev))                         )
-    ENDIF
+          & //TRIM(int2string(gas%istartlev))//', '                  &
+          & //TRIM(int2string(gas%iendlev))//', '                    &
+          & //TRIM(int2string(gas%isteplev)))
+    END IF
 
     !----------
     ! Clean-up
     !----------
 
     DEALLOCATE(varunit, dimunit_lat, dimunit_lev, dimunit_time, STAT=istat)
-    IF (istat/=SUCCESS) CALL finish (TRIM(routine), 'Deallocation of characters failed')
+    IF (istat/=SUCCESS) CALL finish(TRIM(routine), 'Deallocation of characters failed')
 
   END SUBROUTINE read_extdat_gas
+
 
   !====================================================================================
 
@@ -446,28 +447,28 @@ CONTAINS
   !! Read external gas data for the upper atmosphere
   !! under NWP forcing.
   !!
-  SUBROUTINE read_extdat_chemheat( chemheat,    &  !inout
-    &                              filename,    &  !in
-    &                              opt_lmessage )  !optin
+  SUBROUTINE read_extdat_chemheat(chemheat,    &  !inout
+      &                              filename,    &  !in
+      &                              opt_lmessage)  !optin
 
     ! In/out variables
     TYPE(t_extdat_latlevtime), INTENT(INOUT) :: chemheat
-    CHARACTER(LEN=*),          INTENT(IN)    :: filename
-    LOGICAL, OPTIONAL,         INTENT(IN)    :: opt_lmessage
+    CHARACTER(LEN=*),          INTENT(IN) :: filename
+    LOGICAL, OPTIONAL,         INTENT(IN) :: opt_lmessage
 
     ! Local variables
-    INTEGER  :: istat, i, istart, iend, istep
+    INTEGER :: istat, i, istart, iend, istep
 
     LOGICAL :: lmessage
 
-    CHARACTER(LEN = :), ALLOCATABLE :: varunit, dimunit_lat, dimunit_lev, dimunit_time
+    CHARACTER(LEN=:), ALLOCATABLE :: varunit, dimunit_lat, dimunit_lev, dimunit_time
 
     CHARACTER(LEN=1), PARAMETER :: levunit      = 'm'
     CHARACTER(LEN=3), PARAMETER :: latunit      = 'rad'
     CHARACTER(LEN=5), PARAMETER :: timeunit     = 'month'
     CHARACTER(LEN=5), PARAMETER :: chemheatunit = 'K s-1'
     CHARACTER(LEN=MAX_CHAR_LENGTH), PARAMETER ::  &
-      &  routine = modname//':read_extdat_chemheat'
+        &  routine = modname//':read_extdat_chemheat'
 
     !--------------------------------------------------------------
 
@@ -481,16 +482,16 @@ CONTAINS
       CALL finish(TRIM(routine), 'Levels have to be geometric heights.')
     ELSEIF (chemheat%time_id /= iUpatmoExtdatTimeId%month) THEN
       CALL finish(TRIM(routine), 'Dimension of time has to be: month .')
-    ENDIF
+    END IF
 
     IF (PRESENT(opt_lmessage)) THEN
       lmessage = opt_lmessage
     ELSE
       lmessage = .FALSE.
-    ENDIF
+    END IF
 
     IF (lmessage) CALL message(TRIM(routine), &
-      & 'Processing external data for chemical heating tendencies')
+        & 'Processing external data for chemical heating tendencies')
 
     !--------------------------
     ! Get dimensions and units
@@ -501,57 +502,57 @@ CONTAINS
     ! from the default file with the external data.
     ! The reasons are not yet know. This is a workaround for the time being.)
     ALLOCATE(CHARACTER(LEN=LEN_TRIM(chemheatunit)) :: varunit, STAT=istat)
-    IF (istat/=SUCCESS) CALL finish (TRIM(routine), 'Allocation of varunit failed')
+    IF (istat/=SUCCESS) CALL finish(TRIM(routine), 'Allocation of varunit failed')
     ALLOCATE(CHARACTER(LEN=LEN_TRIM(latunit)) :: dimunit_lat, STAT=istat)
-    IF (istat/=SUCCESS) CALL finish (TRIM(routine), 'Allocation of dimunit_lat failed')
+    IF (istat/=SUCCESS) CALL finish(TRIM(routine), 'Allocation of dimunit_lat failed')
     ALLOCATE(CHARACTER(LEN=LEN_TRIM(levunit)) :: dimunit_lev, STAT=istat)
-    IF (istat/=SUCCESS) CALL finish (TRIM(routine), 'Allocation of dimunit_lev failed')
+    IF (istat/=SUCCESS) CALL finish(TRIM(routine), 'Allocation of dimunit_lev failed')
     ALLOCATE(CHARACTER(LEN=LEN_TRIM(timeunit)) :: dimunit_time, STAT=istat)
-    IF (istat/=SUCCESS) CALL finish (TRIM(routine), 'Allocation of dimunit_time failed')
+    IF (istat/=SUCCESS) CALL finish(TRIM(routine), 'Allocation of dimunit_time failed')
 
-    CALL chem_heat_check( opt_filename     = filename,       & !optin
-      &                   opt_nlat         = chemheat%nlat,  & !optout
-      &                   opt_nlev         = chemheat%nlev,  & !optout
-      &                   opt_ntime        = chemheat%ntime, & !optout
-      &                   opt_unitchemheat = varunit,        & !optout
-      &                   opt_unitlat      = dimunit_lat,    & !optout
-      &                   opt_unitlev      = dimunit_lev,    & !optout
-      &                   opt_unittime     = dimunit_time    ) !optout
+    CALL chem_heat_check(opt_filename=filename,       & !optin
+        &                   opt_nlat=chemheat%nlat,  & !optout
+        &                   opt_nlev=chemheat%nlev,  & !optout
+        &                   opt_ntime=chemheat%ntime, & !optout
+        &                   opt_unitchemheat=varunit,        & !optout
+        &                   opt_unitlat=dimunit_lat,    & !optout
+        &                   opt_unitlev=dimunit_lev,    & !optout
+        &                   opt_unittime=dimunit_time) !optout
 
     ! Some checks
     IF (chemheat%ntime < 1) THEN
       message_text = 'Size of time dimension in chemheat file '//TRIM(filename) &
-        & //' has to be > 0, but it is '// TRIM(int2string(chemheat%ntime))
+          & //' has to be > 0, but it is '//TRIM(int2string(chemheat%ntime))
       CALL finish(TRIM(routine), TRIM(message_text))
     ELSEIF (chemheat%nlev < 1) THEN
       message_text = 'Size of level dimension in chemheat file '//TRIM(filename) &
-        & //' has to be > 0, but it is '// TRIM(int2string(chemheat%nlev))
+          & //' has to be > 0, but it is '//TRIM(int2string(chemheat%nlev))
       CALL finish(TRIM(routine), TRIM(message_text))
     ELSEIF (chemheat%nlat < 1) THEN
       message_text = 'Size of latitude dimension in chemheat file '//TRIM(filename) &
-        & //' has to be > 0, but it is '// TRIM(int2string(chemheat%nlat))
+          & //' has to be > 0, but it is '//TRIM(int2string(chemheat%nlat))
       CALL finish(TRIM(routine), TRIM(message_text))
     ELSEIF (chemheat%ntime /= 12) THEN
       message_text = 'Size of time dimension in chemheat file '//TRIM(filename) &
-        & //' has to be 12, but it is '// TRIM(int2string(chemheat%ntime))
+          & //' has to be 12, but it is '//TRIM(int2string(chemheat%ntime))
       CALL finish(TRIM(routine), TRIM(message_text))
     ELSEIF (dimunit_time /= timeunit) THEN
       message_text = 'Exclusively supportet time unit: '//timeunit &
-        & //' but unit in file is: '//TRIM(chemheat%unit_time)
+          & //' but unit in file is: '//TRIM(chemheat%unit_time)
       CALL finish(TRIM(routine), TRIM(message_text))
     ELSEIF (dimunit_lev /= levunit) THEN
       message_text = 'Exclusively supportet level unit: '//levunit &
-        & //' but unit in file is: '//TRIM(chemheat%unit_lev)
+          & //' but unit in file is: '//TRIM(chemheat%unit_lev)
       CALL finish(TRIM(routine), TRIM(message_text))
     ELSEIF (dimunit_lat /= latunit) THEN
       message_text = 'Exclusively supportet latitude unit: '//latunit &
-        & //' but unit in file is: '//TRIM(chemheat%unit_lat)
+          & //' but unit in file is: '//TRIM(chemheat%unit_lat)
       CALL finish(TRIM(routine), TRIM(message_text))
     ELSEIF (varunit /= chemheatunit) THEN
       message_text = 'Exclusively supportet gas unit: '//chemheatunit &
-        & //' but unit in file is: '//TRIM(chemheat%unit_data)
+          & //' but unit in file is: '//TRIM(chemheat%unit_data)
       CALL finish(TRIM(routine), TRIM(message_text))
-    ENDIF
+    END IF
 
     chemheat%unit_time = dimunit_time
     chemheat%unit_lev  = dimunit_lev
@@ -562,21 +563,21 @@ CONTAINS
     ! Allocate data fields
     !----------------------
 
-    ALLOCATE( chemheat%data(chemheat%nlat,chemheat%nlev,chemheat%ntime), &
-      &       chemheat%lat(chemheat%nlat),                               &
-      &       chemheat%lev(chemheat%nlev),                               &
-      &       chemheat%time(chemheat%ntime),                             &
-      &       STAT=istat                                                 )
-    IF(istat /= SUCCESS) CALL finish(TRIM(routine), 'Allocation of gas failed.')
+    ALLOCATE(chemheat%data(chemheat%nlat,chemheat%nlev,chemheat%ntime), &
+        &       chemheat%lat(chemheat%nlat),                               &
+        &       chemheat%lev(chemheat%nlev),                               &
+        &       chemheat%time(chemheat%ntime),                             &
+        &       STAT=istat)
+    IF (istat /= SUCCESS) CALL finish(TRIM(routine), 'Allocation of gas failed.')
 
     !----------
     ! Get data
     !----------
 
-    CALL chem_heat_init( opt_chemheat = chemheat%data, & !optout
-      &                  opt_lat      = chemheat%lat,  & !optout
-      &                  opt_lev      = chemheat%lev,  & !optout
-      &                  opt_time     = chemheat%time  ) !optout
+    CALL chem_heat_init(opt_chemheat=chemheat%data, & !optout
+        &                  opt_lat=chemheat%lat,  & !optout
+        &                  opt_lev=chemheat%lev,  & !optout
+        &                  opt_time=chemheat%time) !optout
 
     !----------------
     ! Postprocessing
@@ -592,13 +593,13 @@ CONTAINS
       chemheat%istarttime = chemheat%ntime
       chemheat%iendtime   = 1
       chemheat%isteptime  = -1
-    ENDIF
+    END IF
     ! Whatever the read-in times are,
     ! we overwrite it with 1, 2, 3, ..., 12
     istart = chemheat%istarttime
     iend   = chemheat%iendtime
     istep  = chemheat%isteptime
-    chemheat%time = (/ (REAL(i,wp),i=istart,iend,istep) /)
+    chemheat%time = (/(REAL(i,wp),i = istart,iend,istep) /)
     ! Latitudes from south to north
     IF (chemheat%lat(1) < chemheat%lat(chemheat%nlat)) THEN
       chemheat%istartlat = 1
@@ -608,12 +609,12 @@ CONTAINS
       chemheat%istartlat = chemheat%nlat
       chemheat%iendlat   = 1
       chemheat%isteplat  = -1
-    ENDIF
+    END IF
     ! Boundary check (latitudes are already in rad)
     IF (MAXVAL(chemheat%lat) > pi_2) &
-      & CALL finish(TRIM(routine), 'Max(lat) = '//TRIM(real2string(MAXVAL(chemheat%lat))))
+        & CALL finish(TRIM(routine), 'Max(lat) = '//TRIM(real2string(MAXVAL(chemheat%lat))))
     IF (MINVAL(chemheat%lat) < -pi_2) &
-      & CALL finish(TRIM(routine), 'Min(lat) = '//TRIM(real2string(MINVAL(chemheat%lat))))
+        & CALL finish(TRIM(routine), 'Min(lat) = '//TRIM(real2string(MINVAL(chemheat%lat))))
     ! Geometric height from top to bottom
     IF (chemheat%lev(1) > chemheat%lev(chemheat%nlev)) THEN
       chemheat%istartlev = 1
@@ -623,10 +624,10 @@ CONTAINS
       chemheat%istartlev = chemheat%nlev
       chemheat%iendlev   = 1
       chemheat%isteplev  = -1
-    ENDIF
+    END IF
     ! Boundary check
     IF (MINVAL(chemheat%lev) < 0._wp) &
-      & CALL finish(TRIM(routine), 'Min(lev) = '//TRIM(real2string(MINVAL(chemheat%lev))))
+        & CALL finish(TRIM(routine), 'Min(lev) = '//TRIM(real2string(MINVAL(chemheat%lev))))
 
     !------
     ! Info
@@ -634,40 +635,41 @@ CONTAINS
 
     IF (lmessage) THEN
       CALL message(TRIM(routine), 'istarttime, iendtime, isteptime: ' &
-        & //TRIM(int2string(chemheat%istarttime))//', '               &
-        & //TRIM(int2string(chemheat%iendtime))//', '                 &
-        & //TRIM(int2string(chemheat%isteptime))                      )
+          & //TRIM(int2string(chemheat%istarttime))//', '               &
+          & //TRIM(int2string(chemheat%iendtime))//', '                 &
+          & //TRIM(int2string(chemheat%isteptime)))
       CALL message(TRIM(routine), 'istartlat, iendlat, isteplat: ' &
-        & //TRIM(int2string(chemheat%istartlat))//', '             &
-        & //TRIM(int2string(chemheat%iendlat))//', '               &
-        & //TRIM(int2string(chemheat%isteplat))                    )
+          & //TRIM(int2string(chemheat%istartlat))//', '             &
+          & //TRIM(int2string(chemheat%iendlat))//', '               &
+          & //TRIM(int2string(chemheat%isteplat)))
       CALL message(TRIM(routine), 'istartlev, iendlev, isteplev: ' &
-        & //TRIM(int2string(chemheat%istartlev))//', '             &
-        & //TRIM(int2string(chemheat%iendlev))//', '               &
-        & //TRIM(int2string(chemheat%isteplev))                    )
-    ENDIF
+          & //TRIM(int2string(chemheat%istartlev))//', '             &
+          & //TRIM(int2string(chemheat%iendlev))//', '               &
+          & //TRIM(int2string(chemheat%isteplev)))
+    END IF
 
     !----------
     ! Clean-up
     !----------
 
     DEALLOCATE(varunit, dimunit_lat, dimunit_lev, dimunit_time, STAT=istat)
-    IF (istat/=SUCCESS) CALL finish (TRIM(routine), 'Deallocation of characters failed')
+    IF (istat/=SUCCESS) CALL finish(TRIM(routine), 'Deallocation of characters failed')
 
   END SUBROUTINE read_extdat_chemheat
 
+
   !====================================================================================
 
-  SUBROUTINE get_dim( ncid,    & !in
-    &                 dimname, & !in
-    &                 dimunit, & !inout
-    &                 dimid,   & !inout
-    &                 ndim,    & !inout
-    &                 varid    ) !inout
+  SUBROUTINE get_dim(ncid,    & !in
+      &                 dimname, & !in
+      &                 dimunit, & !inout
+      &                 dimid,   & !inout
+      &                 ndim,    & !inout
+      &                 varid) !inout
 
     ! In/out variables
-    INTEGER,          INTENT(IN)    :: ncid
-    CHARACTER(LEN=*), INTENT(IN)    :: dimname
+    INTEGER,          INTENT(IN) :: ncid
+    CHARACTER(LEN=*), INTENT(IN) :: dimname
     CHARACTER(LEN=*), INTENT(INOUT) :: dimunit
     INTEGER,          INTENT(INOUT) :: dimid
     INTEGER,          INTENT(INOUT) :: ndim
@@ -675,7 +677,7 @@ CONTAINS
 
     ! Local variables
     CHARACTER(LEN=MAX_CHAR_LENGTH), PARAMETER ::  &
-      &  routine = modname//':get_dim'
+        &  routine = modname//':get_dim'
 
     !--------------------------------------------------------------
 
@@ -687,12 +689,13 @@ CONTAINS
     ! Get id of dimension
     CALL nf(nf90_inq_dimid(ncid, dimname, dimid), routine)
     ! Get size of dimension
-    CALL nf(nf90_inquire_dimension(ncid, dimid, len = ndim), routine)
+    CALL nf(nf90_inquire_dimension(ncid, dimid, len=ndim), routine)
     ! Get dimension unit
     CALL nf(nf90_inq_varid(ncid, dimname, varid), routine)
     CALL nf(nf90_get_att(ncid, varid, 'units', dimunit), routine)
 
   END SUBROUTINE get_dim
+
 
   !====================================================================================
 
@@ -703,30 +706,30 @@ CONTAINS
   !! here, because the latitudes from which we interpolate
   !! (stored in lat_stzstl) are not equidistant in general.
   !!
-  SUBROUTINE construct_interpolation_lat( p_patch,    &  !in
-    &                                     lat_stzstl, &  !in
-    &                                     istart,     &  !in
-    &                                     iend,       &  !in
-    &                                     istep,      &  !in
-    &                                     intrpl_idx, &  !out
-    &                                     intrpl_wgt  )  !out
+  SUBROUTINE construct_interpolation_lat(p_patch,    &  !in
+      &                                     lat_stzstl, &  !in
+      &                                     istart,     &  !in
+      &                                     iend,       &  !in
+      &                                     istep,      &  !in
+      &                                     intrpl_idx, &  !out
+      &                                     intrpl_wgt)  !out
 
     ! In/out variables
-    TYPE(t_patch), TARGET, INTENT(IN)  :: p_patch
-    REAL(wp),              INTENT(IN)  :: lat_stzstl(:)       ! (nlat)
-    INTEGER,               INTENT(IN)  :: istart, iend, istep
+    TYPE(t_patch), TARGET, INTENT(IN) :: p_patch
+    REAL(wp),              INTENT(IN) :: lat_stzstl(:)       ! (nlat)
+    INTEGER,               INTENT(IN) :: istart, iend, istep
     INTEGER,               INTENT(OUT) :: intrpl_idx(:,:,:)   ! (2,nproma,nblks_c)
     REAL(wp),              INTENT(OUT) :: intrpl_wgt(:,:,:)   ! (2,nproma,nblks_c)
 
     ! Local variables
     REAL(wp) :: lat, scale
 
-    INTEGER  :: jc, jb, jlat
-    INTEGER  :: rl_start, rl_end
-    INTEGER  :: i_startblk, i_endblk
-    INTEGER  :: i_startidx, i_endidx
+    INTEGER :: jc, jb, jlat
+    INTEGER :: rl_start, rl_end
+    INTEGER :: i_startblk, i_endblk
+    INTEGER :: i_startidx, i_endidx
 
-    LOGICAL  :: lfound
+    LOGICAL :: lfound
 
     REAL(wp), PARAMETER :: eps_dlat = 1.e-10_wp
 
@@ -742,8 +745,8 @@ CONTAINS
     i_startblk = p_patch%cells%start_block(rl_start)
     i_endblk   = p_patch%cells%end_block(rl_end)
 
-!$OMP PARALLEL
-!$OMP DO PRIVATE(jb, jc, i_startidx, i_endidx, jlat, lat, scale, lfound) ICON_OMP_GUIDED_SCHEDULE
+    !$OMP PARALLEL
+    !$OMP DO PRIVATE(jb, jc, i_startidx, i_endidx, jlat, lat, scale, lfound) ICON_OMP_GUIDED_SCHEDULE
     DO jb = i_startblk, i_endblk
 
       CALL get_indices_c(p_patch, jb, i_startblk, i_endblk, i_startidx, i_endidx, rl_start, rl_end)
@@ -766,10 +769,10 @@ CONTAINS
             intrpl_wgt(2,jc,jb) = scale * ABS(lat - lat_stzstl(jlat))
             lfound = .TRUE.
             EXIT LAT_LOOP
-          ENDIF
-        ENDDO  LAT_LOOP
+          END IF
+        END DO  LAT_LOOP
 
-        IF (.NOT. lfound) THEN
+        IF (.NOT.lfound) THEN
           IF (lat < lat_stzstl(istart)) THEN
             intrpl_idx(1,jc,jb) = istart
             intrpl_idx(2,jc,jb) = istart
@@ -782,53 +785,54 @@ CONTAINS
             intrpl_wgt(1,jc,jb) = 0.5_wp
             intrpl_wgt(2,jc,jb) = 0.5_wp
             lfound = .TRUE.
-          ENDIF
-        ENDIF  !IF (.NOT. lfound)
+          END IF
+        END IF  !IF (.NOT. lfound)
 
-      ENDDO  !jc
+      END DO  !jc
 
-    ENDDO  !jb
-!$OMP END DO
-!$OMP END PARALLEL
+    END DO  !jb
+    !$OMP END DO
+    !$OMP END PARALLEL
 
   END SUBROUTINE construct_interpolation_lat
+
 
   !====================================================================================
 
   !>
   !! Determine auxiliary variables for vertical interpolation.
   !!
-  SUBROUTINE construct_interpolation_lev( p_patch,    &  !in
-    &                                     lev_stzstl, &  !in
-    &                                     istart,     &  !in
-    &                                     iend,       &  !in
-    &                                     istep,      &  !in
-    &                                     intrpl_idx, &  !out
-    &                                     intrpl_wgt, &  !out
-    &                                     vct_a       )  !(opt)in
+  SUBROUTINE construct_interpolation_lev(p_patch,    &  !in
+      &                                     lev_stzstl, &  !in
+      &                                     istart,     &  !in
+      &                                     iend,       &  !in
+      &                                     istep,      &  !in
+      &                                     intrpl_idx, &  !out
+      &                                     intrpl_wgt, &  !out
+      &                                     vct_a)  !(opt)in
     ! In/out variables
-    TYPE(t_patch), TARGET, INTENT(IN)  :: p_patch
-    REAL(wp),              INTENT(IN)  :: lev_stzstl(:)       ! (nlev_extdat)
-    INTEGER,               INTENT(IN)  :: istart, iend, istep
+    TYPE(t_patch), TARGET, INTENT(IN) :: p_patch
+    REAL(wp),              INTENT(IN) :: lev_stzstl(:)       ! (nlev_extdat)
+    INTEGER,               INTENT(IN) :: istart, iend, istep
     INTEGER,               INTENT(OUT) :: intrpl_idx(:,:)     ! (2,nlev)
     REAL(wp),              INTENT(OUT) :: intrpl_wgt(:,:)     ! (2,nlev)
-    REAL(wp),    OPTIONAL, INTENT(IN)  :: vct_a(:)            ! (nlev+1)
+    REAL(wp),    OPTIONAL, INTENT(IN) :: vct_a(:)            ! (nlev+1)
 
     ! Local variables
     REAL(wp) :: lev, scale
 
-    INTEGER  :: nlev, nshift_total
-    INTEGER  :: jk, jks, jlev, istart_dyn, istart_aux
+    INTEGER :: nlev, nshift_total
+    INTEGER :: jk, jks, jlev, istart_dyn, istart_aux
 
-    LOGICAL  :: lfound
+    LOGICAL :: lfound
 
     REAL(wp), PARAMETER :: eps_dz = 1.e-10_wp
     CHARACTER(LEN=MAX_CHAR_LENGTH), PARAMETER ::  &
-      &  routine = modname//':construct_interpolation_lev'
+        &  routine = modname//':construct_interpolation_lev'
 
     !--------------------------------------------------------------
 
-    IF (.NOT. PRESENT(vct_a)) CALL finish(TRIM(routine), 'vct_a has to be present.')
+    IF (.NOT.PRESENT(vct_a)) CALL finish(TRIM(routine), 'vct_a has to be present.')
 
     ! Initialization (because of INTENT(OUT)!)
     intrpl_idx(:,:) = -999
@@ -850,7 +854,7 @@ CONTAINS
       jks = jk + nshift_total
 
       ! Height of grid layer center
-      lev = 0.5_wp * ( vct_a(jks) + vct_a(jks + 1) )
+      lev = 0.5_wp * (vct_a(jks) + vct_a(jks + 1))
 
       ! Search height among heights,
       ! from which to interpolate
@@ -868,12 +872,12 @@ CONTAINS
           ! at the current position
           istart_aux = jlev
           EXIT LEV_EXT_LOOP
-        ENDIF
-      ENDDO LEV_EXT_LOOP
+        END IF
+      END DO LEV_EXT_LOOP
 
       istart_dyn = istart_aux
 
-      IF (.NOT. lfound) THEN
+      IF (.NOT.lfound) THEN
         IF (lev > lev_stzstl(istart)) THEN
           intrpl_idx(1,jk) = istart
           intrpl_idx(2,jk) = istart
@@ -886,13 +890,13 @@ CONTAINS
           intrpl_wgt(1,jk) = 0.5_wp
           intrpl_wgt(2,jk) = 0.5_wp
           lfound = .TRUE.
-        ENDIF
-      ENDIF  !IF (.NOT. lfound)
+        END IF
+      END IF  !IF (.NOT. lfound)
 
-      IF (.NOT. lfound) CALL finish(TRIM(routine), 'Height level '//TRIM(real2string(lev)) &
-        & //' not found among stuetzstellen')
+      IF (.NOT.lfound) CALL finish(TRIM(routine), 'Height level '//TRIM(real2string(lev)) &
+          & //' not found among stuetzstellen')
 
-    ENDDO  !jk
+    END DO  !jk
 
   END SUBROUTINE construct_interpolation_lev
 

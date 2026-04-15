@@ -130,7 +130,8 @@ MODULE mo_nh_interface_nwp
   USE mo_upatmo_impl_const,       ONLY: iUpatmoPrcStat, iUpatmoStat
   USE mo_upatmo_config,           ONLY: upatmo_config
 #ifndef __NO_ICON_UPATMO__
-  USE mo_nwp_upatmo_interface,    ONLY: nwp_upatmo_interface, nwp_upatmo_update
+  USE mo_upatmo_interface,        ONLY: nwp_upatmo_interface, nwp_upatmo_update
+  USE mo_upatmo_timer,            ONLY: timer_upatmo
 #endif
   USE mo_fortran_tools,           ONLY: set_acc_host_or_device, copy, init
 #ifdef HAVE_RADARFWO

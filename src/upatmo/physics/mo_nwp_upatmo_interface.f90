@@ -21,12 +21,12 @@ MODULE mo_nwp_upatmo_interface
   USE mo_kind,                   ONLY: wp, vp
   USE mo_exception,              ONLY: finish, message, message_text
   USE mo_impl_constants,         ONLY: SUCCESS, MAX_CHAR_LENGTH, &
-    &                                  min_rlcell_int, min_rledge_int
+      &                                  min_rlcell_int, min_rledge_int
   USE mo_physical_constants,     ONLY: rd_o_cpd, vtmpc1, cpd, cvd
   USE mo_math_constants,         ONLY: dbl_eps
   USE mo_upatmo_impl_const,      ONLY: iUpatmoStat, iUpatmoPrcStat, iUpatmoGrpId,   &
-    &                                  iUpatmoTendId, iUpatmoGasStat, iUpatmoGasId, &
-    &                                  iUpatmoTracerId, iUpatmoPrcId
+      &                                  iUpatmoTendId, iUpatmoGasStat, iUpatmoGasId, &
+      &                                  iUpatmoTracerId, iUpatmoPrcId
   USE mo_impl_constants_grf,     ONLY: grf_bdywidth_c, grf_bdywidth_e
   USE mo_model_domain,           ONLY: t_patch
   USE mo_intp_data_strc,         ONLY: t_int_state
@@ -40,14 +40,14 @@ MODULE mo_nwp_upatmo_interface
   USE mo_run_config,             ONLY: iqv
   USE mo_loopindices,            ONLY: get_indices_c, get_indices_e
   USE mo_sync,                   ONLY: sync_patch_array, sync_patch_array_mult, &
-    &                                  SYNC_C, SYNC_C1
+      &                                  SYNC_C, SYNC_C1
   USE mtime,                     ONLY: MAX_DATETIME_STR_LEN, &
-    &                                  datetime, datetimeToString
+      &                                  datetime, datetimeToString
   USE mo_phy_events,             ONLY: mtime_ctrl_physics
-  USE mo_timer,                  ONLY: timer_start, timer_stop,                    &
-    &                                  timer_upatmo_phy, timer_upatmo_phy_tend,    &
-    &                                  timer_upatmo_phy_imf, timer_upatmo_phy_rad, &
-    &                                  timer_upatmo_phy_acc
+  USE mo_timer,                  ONLY: timer_start, timer_stop
+  USE mo_upatmo_timer,           ONLY: timer_upatmo_phy, timer_upatmo_phy_tend,    &
+      &                                timer_upatmo_phy_imf, timer_upatmo_phy_rad, &
+      &                                timer_upatmo_phy_acc
   USE mo_upatmo_phy_iondrag,     ONLY: iondrag
   USE mo_upatmo_phy_vdfmol,      ONLY: vdf_mol
   USE mo_upatmo_phy_fric,        ONLY: fric_heat
@@ -70,11 +70,11 @@ MODULE mo_nwp_upatmo_interface
 
   ! For convenience
   INTEGER, PARAMETER :: ngrp       = iUpatmoGrpId%nitem    ! Number of upper-atmosphere physics groups,
-                                                           ! in which single processes are clusterd
+  ! in which single processes are clusterd
   INTEGER, PARAMETER :: nprc       = iUpatmoPrcId%nitem    ! Number of single processes
   INTEGER, PARAMETER :: ntnd       = iUpatmoTendId%nitem   ! Number of variables,
-                                                           ! for which tendencies are computed
-                                                           ! excluding the Exner pressure
+  ! for which tendencies are computed
+  ! excluding the Exner pressure
   INTEGER, PARAMETER :: ntnd_2     = iUpatmoTendId%nitem_2 ! --,,-- including the Exner pressure
   INTEGER, PARAMETER :: ngas       = iUpatmoGasId%nitem    ! Number of radiatively active gases
   INTEGER, PARAMETER :: ntrc       = iUpatmoTracerId%nitem ! Number of upatmo-affected tracers
@@ -97,75 +97,75 @@ CONTAINS
   !>
   !! Upper-atmosphere-to-NWP interface.
   !!
-  SUBROUTINE nwp_upatmo_interface( dt_loc,         &  !in
-    &                              mtime_datetime, &  !in
-    &                              p_patch,        &  !in
-    &                              p_int_state,    &  !in
-    &                              p_metrics,      &  !in
-    &                              p_prog,         &  !in
-    &                              p_prog_rcf,     &  !in
-    &                              p_diag,         &  !in
-    &                              prm_nwp_diag,   &  !in
-    &                              prm_nwp_tend,   &  !in
-    &                              kstart_moist    )  !in
+  SUBROUTINE nwp_upatmo_interface(dt_loc,         &  !in
+      &                              mtime_datetime, &  !in
+      &                              p_patch,        &  !in
+      &                              p_int_state,    &  !in
+      &                              p_metrics,      &  !in
+      &                              p_prog,         &  !in
+      &                              p_prog_rcf,     &  !in
+      &                              p_diag,         &  !in
+      &                              prm_nwp_diag,   &  !in
+      &                              prm_nwp_tend,   &  !in
+      &                              kstart_moist)  !in
 
     ! In/out variables
-    REAL(wp),                      INTENT(IN)    :: dt_loc          ! Advective time step
-    TYPE(datetime),       POINTER, INTENT(IN)    :: mtime_datetime  ! Date/time information
-    TYPE(t_patch),        TARGET,  INTENT(IN)    :: p_patch         ! Grid/patch info
-    TYPE(t_int_state),             INTENT(IN)    :: p_int_state     ! Horizontal interpolation weights
-    TYPE(t_nh_metrics),            INTENT(IN)    :: p_metrics       ! Vertical grid variables
-    TYPE(t_nh_prog),               INTENT(IN)    :: p_prog          ! Prognostic variables
-    TYPE(t_nh_prog),      TARGET,  INTENT(IN)    :: p_prog_rcf      ! Prognostic variables
-                                                                    ! with reduced calling frequency
-    TYPE(t_nh_diag),      TARGET,  INTENT(IN)    :: p_diag          ! Diagnostic variables
-    TYPE(t_nwp_phy_diag),          INTENT(IN)    :: prm_nwp_diag    ! Diag vars of NWP-physics
-    TYPE(t_nwp_phy_tend),          INTENT(IN)    :: prm_nwp_tend    ! NWP tendencies from slow physics
-    INTEGER,                       INTENT(IN)    :: kstart_moist    ! Index of grid layer above which
-                                                                    ! no condensed water phases exist in the model
+    REAL(wp),                      INTENT(IN) :: dt_loc          ! Advective time step
+    TYPE(datetime),       POINTER, INTENT(IN) :: mtime_datetime  ! Date/time information
+    TYPE(t_patch),        TARGET,  INTENT(IN) :: p_patch         ! Grid/patch info
+    TYPE(t_int_state),             INTENT(IN) :: p_int_state     ! Horizontal interpolation weights
+    TYPE(t_nh_metrics),            INTENT(IN) :: p_metrics       ! Vertical grid variables
+    TYPE(t_nh_prog),               INTENT(IN) :: p_prog          ! Prognostic variables
+    TYPE(t_nh_prog),      TARGET,  INTENT(IN) :: p_prog_rcf      ! Prognostic variables
+    ! with reduced calling frequency
+    TYPE(t_nh_diag),      TARGET,  INTENT(IN) :: p_diag          ! Diagnostic variables
+    TYPE(t_nwp_phy_diag),          INTENT(IN) :: prm_nwp_diag    ! Diag vars of NWP-physics
+    TYPE(t_nwp_phy_tend),          INTENT(IN) :: prm_nwp_tend    ! NWP tendencies from slow physics
+    INTEGER,                       INTENT(IN) :: kstart_moist    ! Index of grid layer above which
+    ! no condensed water phases exist in the model
 
     ! Local variables
     TYPE(t_upatmo), POINTER :: prm_upatmo           ! WS: Convenience pointer to keep previous code structure
 
     REAL(wp), POINTER :: ddt_temp_tot(:,:,:), &     ! (nproma,nlev,nblks_c) Pointer to accumulative temperature tendency
-      &                  ddt_vn_tot(:,:,:),   &     ! (nproma,nlev,nblks_e) Pointer to accumulative vn-wind tendency
-      &                  ddt_qx_tot(:,:,:),   &     ! (nproma,nlev,nblks_c) Pointer to accumulative tracer tendency
-      &                  ddt_exner_tot(:,:,:)       ! (nproma,nlev,nblks_c) Pointer to accumulative Exner pressure tendency
+        &                  ddt_vn_tot(:,:,:),   &     ! (nproma,nlev,nblks_e) Pointer to accumulative vn-wind tendency
+        &                  ddt_qx_tot(:,:,:),   &     ! (nproma,nlev,nblks_c) Pointer to accumulative tracer tendency
+        &                  ddt_exner_tot(:,:,:)       ! (nproma,nlev,nblks_c) Pointer to accumulative Exner pressure tendency
     REAL(wp), ALLOCATABLE :: ddt_u_tot(:,:,:), &    ! (nproma,nlev,nblks_c) Accumulative u-wind tendency
-      &                      ddt_v_tot(:,:,:)       ! (nproma,nlev,nblks_c) Accumulative v-wind tendency
+        &                      ddt_v_tot(:,:,:)       ! (nproma,nlev,nblks_c) Accumulative v-wind tendency
     ! (The 'gas_...' are allocatable, because they are
     ! not necessarily required in every call of this subroutine)
     REAL(wp), ALLOCATABLE :: gas_vmr(:,:,:,:),   &  ! (nproma,nlev,nblks_c,ngas) Gas volume mixing ratio
-      &                      gas_col(:,:,:,:),   &  ! (nproma,nlev,nblks_c,ngas) Gas column number density
-      &                      gas_cumcol(:,:,:,:)    ! (nproma,nlev,nblks_c,ngas) Gas accumulated column density
+        &                      gas_col(:,:,:,:),   &  ! (nproma,nlev,nblks_c,ngas) Gas column number density
+        &                      gas_cumcol(:,:,:,:)    ! (nproma,nlev,nblks_c,ngas) Gas accumulated column density
     REAL(wp) :: cecc, cobld, clonp
     REAL(wp) :: thermdyn_cpl_fac
 
     INTEGER, POINTER :: iidx(:,:,:), iblk(:,:,:)
-    INTEGER, ALLOCATABLE, TARGET :: sunlit_idx( :, : )
-    INTEGER, ALLOCATABLE         :: nsunlit( : )
-    INTEGER  :: iendlev_prc( nprc ), istartlev_prc( nprc )
-    INTEGER  :: iendlev_grp( ngrp ), istartlev_grp( ngrp )
-    INTEGER  :: ierror( nprc, p_patch%nblks_c )
-    INTEGER  :: iendlev_exner, istartlev_exner
-    INTEGER  :: iendlev_vn, istartlev_vn
-    INTEGER  :: jg, jb, jk, jc, je, jgrp, jprc, jtnd, jtrc
-    INTEGER  :: inewTemp, inewWind, inewQx, inewExner
-    INTEGER  :: nlev, nblks_c
-    INTEGER  :: rl_start, rl_end
-    INTEGER  :: i_startblk, i_endblk
-    INTEGER  :: i_startidx, i_endidx
-    INTEGER  :: orbit_type, solvar_type, solvar_data, solcyc_type, yr_perp
-    INTEGER  :: istat, error
+    INTEGER, ALLOCATABLE, TARGET :: sunlit_idx(:, :)
+    INTEGER, ALLOCATABLE :: nsunlit(:)
+    INTEGER :: iendlev_prc(nprc), istartlev_prc(nprc)
+    INTEGER :: iendlev_grp(ngrp), istartlev_grp(ngrp)
+    INTEGER :: ierror(nprc, p_patch%nblks_c)
+    INTEGER :: iendlev_exner, istartlev_exner
+    INTEGER :: iendlev_vn, istartlev_vn
+    INTEGER :: jg, jb, jk, jc, je, jgrp, jprc, jtnd, jtrc
+    INTEGER :: inewTemp, inewWind, inewQx, inewExner
+    INTEGER :: nlev, nblks_c
+    INTEGER :: rl_start, rl_end
+    INTEGER :: i_startblk, i_endblk
+    INTEGER :: i_startidx, i_endidx
+    INTEGER :: orbit_type, solvar_type, solvar_data, solcyc_type, yr_perp
+    INTEGER :: istat, error
 
-    LOGICAL  :: lcall_phy( ngrp )
-    LOGICAL  :: lgrp_enabled( ngrp )
-    LOGICAL  :: lgrp_offline( ngrp )
-    LOGICAL  :: lgrp_accumulate( ngrp)
-    LOGICAL  :: lupdate( ntnd_2 )
-    LOGICAL  :: lddt_tot( ntnd_2 )
-    LOGICAL  :: lmessage, ltimer, lupdate_gas, lyr_perp
-    LOGICAL  :: ldiss_from_heatdiff
+    LOGICAL :: lcall_phy(ngrp)
+    LOGICAL :: lgrp_enabled(ngrp)
+    LOGICAL :: lgrp_offline(ngrp)
+    LOGICAL :: lgrp_accumulate(ngrp)
+    LOGICAL :: lupdate(ntnd_2)
+    LOGICAL :: lddt_tot(ntnd_2)
+    LOGICAL :: lmessage, ltimer, lupdate_gas, lyr_perp
+    LOGICAL :: ldiss_from_heatdiff
 
     TYPE(t_upatmo_nwp_phy), POINTER :: upatmo_nwp
 
@@ -175,7 +175,7 @@ CONTAINS
     REAL(wp), PARAMETER :: inv_vtmpc1 = 1._wp / vtmpc1
     REAL(wp), PARAMETER :: cvd_o_cpd  = cvd / cpd
     CHARACTER(LEN=MAX_CHAR_LENGTH), PARAMETER ::  &
-      &  routine = modname//':nwp_upatmo_interface'
+        &  routine = modname//':nwp_upatmo_interface'
 
     !--------------------------------------------------------------
 
@@ -183,22 +183,22 @@ CONTAINS
     jg = p_patch%id
     prm_upatmo => prm_upatmo_vec(jg)   ! WS: set convenience pointer
 
-    ltimer = upatmo_config(jg)%l_status( iUpatmoStat%timer )
+    ltimer = upatmo_config(jg)%l_status(iUpatmoStat%timer)
 
     IF (ltimer) THEN
       CALL timer_start(timer_upatmo_phy)
       CALL timer_start(timer_upatmo_phy_tend)
-    ENDIF
+    END IF
 
     !---------------------------------------------------------------------
     !                              Checks
     !---------------------------------------------------------------------
 
-    IF (.NOT. upatmo_config(jg)%nwp_phy%l_phy_stat( iUpatmoPrcStat%initialized )) THEN
+    IF (.NOT.upatmo_config(jg)%nwp_phy%l_phy_stat(iUpatmoPrcStat%initialized)) THEN
       CALL finish(TRIM(routine), 'Initialization took not yet place')
     ELSEIF (ntrc > 1) THEN
       CALL finish(TRIM(routine), 'Not prepared for more than one tracer (water vapor)')
-    ENDIF
+    END IF
 
     !---------------------------------------------------------------------
     !                             Preparation
@@ -217,18 +217,18 @@ CONTAINS
     i_endblk   = p_patch%cells%end_block(rl_end)
 
     ! Message output desired?
-    lmessage = upatmo_config(jg)%l_status( iUpatmoStat%message )
+    lmessage = upatmo_config(jg)%l_status(iUpatmoStat%message)
 
     ! For messages and error handling
     CALL datetimeToString(mtime_datetime, datetime_str)
     dom_str = TRIM(int2string(jg))
 
-    ddt_temp_tot  => NULL()
-    ddt_vn_tot    => NULL()
-    ddt_qx_tot    => NULL()
+    ddt_temp_tot => NULL()
+    ddt_vn_tot => NULL()
+    ddt_qx_tot => NULL()
     ddt_exner_tot => NULL()
-    iidx          => NULL()
-    iblk          => NULL()
+    iidx => NULL()
+    iblk => NULL()
 
     ! For brevity
     upatmo_nwp => upatmo_config(jg)%nwp_phy
@@ -236,27 +236,27 @@ CONTAINS
     DO jgrp = 1, ngrp
       ! Which physics group is enabled for the simulation?
       ! (Required for flow point "Inactivation" below, too.)
-      lgrp_enabled( jgrp ) = upatmo_nwp%grp( jgrp )%l_stat( iUpatmoPrcStat%enabled )
+      lgrp_enabled(jgrp) = upatmo_nwp%grp(jgrp)%l_stat(iUpatmoPrcStat%enabled)
       ! Offline-mode?
       ! (Compute, but not apply tendencies.)
-      lgrp_offline( jgrp ) = upatmo_nwp%grp( jgrp )%l_stat( iUpatmoPrcStat%offline )
+      lgrp_offline(jgrp) = upatmo_nwp%grp(jgrp)%l_stat(iUpatmoPrcStat%offline)
       ! Accumulate tendencies from group?
-      lgrp_accumulate( jgrp ) = lgrp_enabled( jgrp ) .AND. (.NOT. lgrp_offline( jgrp )) .AND. &
-        &                       upatmo_nwp%grp( jgrp )%isInOpPhase( mtime_datetime )
+      lgrp_accumulate(jgrp) = lgrp_enabled(jgrp) .AND. (.NOT.lgrp_offline(jgrp)) .AND. &
+          &                       upatmo_nwp%grp(jgrp)%isInOpPhase(mtime_datetime)
       ! Get start and end indices of grid layer range,
       ! for which tendencies are computed
-      iendlev_grp( jgrp )   = upatmo_nwp%grp( jgrp )%iendlev
-      istartlev_grp( jgrp ) = upatmo_nwp%grp( jgrp )%istartlev
-    ENDDO  !jgrp
+      iendlev_grp(jgrp)   = upatmo_nwp%grp(jgrp)%iendlev
+      istartlev_grp(jgrp) = upatmo_nwp%grp(jgrp)%istartlev
+    END DO  !jgrp
 
     ! Which accumulative tendencies are available in general
     ! (e.g., not in offline-mode)?
-    lddt_tot( 1:ntnd ) = upatmo_nwp%l_any_update( 1:ntnd )
+    lddt_tot(1:ntnd) = upatmo_nwp%l_any_update(1:ntnd)
     ! 'l_any_update' is available for the basic tendencies only
     ! (i.e., for wind, temperature and water vapor tendencies).
     ! The Exner pressure tendency is derived form the temperature
     ! and water vapor tendencies.
-    lddt_tot( itendExner ) = lddt_tot( itendTemp ) .OR. lddt_tot( itendQx )
+    lddt_tot(itendExner) = lddt_tot(itendTemp) .OR. lddt_tot(itendQx)
 
     ! Check if model time is within the overall start-date-end-date interval
     ! of the upper-atmosphere physics.
@@ -269,34 +269,34 @@ CONTAINS
     !                 'before' -> 'in' -> 'after' the 'active' phase)
     !  * 'event'   -> A call of the process is triggered within its 'active' phase
     !                 (a "dynamic" state).)
-    IF (upatmo_nwp%isInOpPhase( mtime_datetime )) THEN
+    IF (upatmo_nwp%isInOpPhase(mtime_datetime)) THEN
 
       ! Check if a call of a physics group is due.
-      CALL mtime_ctrl_physics( phyProcs      = upatmo_nwp%event_mgmt_grp, & !in
-        &                      mtime_current = mtime_datetime,            & !in
-        &                      isInit        = .FALSE.,                   & !in
-        &                      lcall_phy     = lcall_phy                  ) !inout
+      CALL mtime_ctrl_physics(phyProcs=upatmo_nwp%event_mgmt_grp, & !in
+          &                      mtime_current=mtime_datetime,            & !in
+          &                      isInit=.FALSE.,                   & !in
+          &                      lcall_phy=lcall_phy) !inout
 
       ! The following should only be necessary, if any group is to be called at all
-      IF (ANY(lcall_phy( : ))) THEN
+      IF (ANY(lcall_phy(:))) THEN
 
         IF (lmessage) CALL message(TRIM(routine), &
-          & 'Start computation of tendencies from upper-atmosphere physics on domain '//dom_str)
+            & 'Start computation of tendencies from upper-atmosphere physics on domain '//dom_str)
 
         ! Determine which variables will have to be updated due to the current call (if any).
         ! (This information is required for the handling of the accumulative tendencies
         ! 'prm_upatmo%tend%ddt%<variable>%tot'.)
-        lupdate( 1:ntnd_2 ) = .FALSE.  ! Include Exner pressure (-> 'ntnd_2')
+        lupdate(1:ntnd_2) = .FALSE.  ! Include Exner pressure (-> 'ntnd_2')
         DO jgrp = 1, ngrp
-          IF (lcall_phy( jgrp )) THEN
+          IF (lcall_phy(jgrp)) THEN
             DO jtnd = 1, ntnd  ! Exclude Exner pressure (-> 'ntnd')
               ! 'l_update' contains the information on the offline mode
-              lupdate( jtnd ) = lupdate( jtnd ) .OR. upatmo_nwp%grp( jgrp )%l_update( jtnd )
-            ENDDO  !jtnd
-          ENDIF  !IF (lcall_phy( jgrp ))
-        ENDDO  !jgrp
+              lupdate(jtnd) = lupdate(jtnd) .OR. upatmo_nwp%grp(jgrp)%l_update(jtnd)
+            END DO  !jtnd
+          END IF  !IF (lcall_phy( jgrp ))
+        END DO  !jgrp
         ! Update of Exner pressure necessary?
-        lupdate( itendExner ) = lupdate( itendTemp ) .OR. lupdate( itendQx )
+        lupdate(itendExner) = lupdate(itendTemp) .OR. lupdate(itendQx)
 
         !---------------------------------------------------------------------
         !                      Update diagnostic variables
@@ -309,51 +309,51 @@ CONTAINS
 
         ! Update of radiatively active gases due?
         ! (They are only required for radiation, currently.)
-        lupdate_gas = upatmo_nwp%l_gas_stat( iUpatmoGasStat%enabled ) .AND. & ! Gases enabled?
-          &           lcall_phy( igrpRAD )                                    ! Call of radiation due?
+        lupdate_gas = upatmo_nwp%l_gas_stat(iUpatmoGasStat%enabled) .AND. & ! Gases enabled?
+            &           lcall_phy(igrpRAD)                                    ! Call of radiation due?
 
         IF (lupdate_gas) THEN
 
           ! Allocate the gas volume mixing ratio and gas-column-number-density-related variables
-          ALLOCATE( gas_vmr( nproma, nlev, nblks_c, ngas ),    &
-            &       gas_col( nproma, nlev, nblks_c, ngas ),    &
-            &       gas_cumcol( nproma, nlev, nblks_c, ngas ), &
-            &       STAT=istat                                 )
-          IF(istat /= SUCCESS) CALL finish(TRIM(routine), 'Allocation of gas_vmr/col/cumcol failed')
+          ALLOCATE(gas_vmr(nproma, nlev, nblks_c, ngas),    &
+              &       gas_col(nproma, nlev, nblks_c, ngas),    &
+              &       gas_cumcol(nproma, nlev, nblks_c, ngas), &
+              &       STAT=istat)
+          IF (istat /= SUCCESS) CALL finish(TRIM(routine), 'Allocation of gas_vmr/col/cumcol failed')
 
           ! Compute the diagnostic variables
-          CALL update_diagnostic_variables( mtime_datetime    = mtime_datetime,        & !in
-            &                               lupdate_gas       = lupdate_gas,           & !in
-            &                               p_patch           = p_patch,               & !in
-            &                               p_prog_rcf        = p_prog_rcf,            & !in
-            &                               p_diag            = p_diag,                & !in
-            &                               prm_upatmo_diag   = prm_upatmo%diag,       & !inout
-            &                               prm_upatmo_tend   = prm_upatmo%tend,       & !inout
-            &                               prm_upatmo_extdat = prm_upatmo%extdat,     & !inout
-            &                               upatmo_config     = upatmo_config(jg),     & !in
-            &                               upatmo_phy_config = upatmo_phy_config(jg), & !in
-            &                               nproma            = nproma,                & !in
-            &                               opt_kstart_moist  = kstart_moist,          & !optin
-            &                               opt_gas_vmr       = gas_vmr,               & !optinout
-            &                               opt_gas_col       = gas_col,               & !optinout
-            &                               opt_gas_cumcol    = gas_cumcol             ) !optinout
+          CALL update_diagnostic_variables(mtime_datetime=mtime_datetime,        & !in
+              &                               lupdate_gas=lupdate_gas,           & !in
+              &                               p_patch=p_patch,               & !in
+              &                               p_prog_rcf=p_prog_rcf,            & !in
+              &                               p_diag=p_diag,                & !in
+              &                               prm_upatmo_diag=prm_upatmo%diag,       & !inout
+              &                               prm_upatmo_tend=prm_upatmo%tend,       & !inout
+              &                               prm_upatmo_extdat=prm_upatmo%extdat,     & !inout
+              &                               upatmo_config=upatmo_config(jg),     & !in
+              &                               upatmo_phy_config=upatmo_phy_config(jg), & !in
+              &                               nproma=nproma,                & !in
+              &                               opt_kstart_moist=kstart_moist,          & !optin
+              &                               opt_gas_vmr=gas_vmr,               & !optinout
+              &                               opt_gas_col=gas_col,               & !optinout
+              &                               opt_gas_cumcol=gas_cumcol) !optinout
 
         ELSE
 
-          CALL update_diagnostic_variables( mtime_datetime    = mtime_datetime,        & !in
-            &                               lupdate_gas       = lupdate_gas,           & !in
-            &                               p_patch           = p_patch,               & !in
-            &                               p_prog_rcf        = p_prog_rcf,            & !in
-            &                               p_diag            = p_diag,                & !in
-            &                               prm_upatmo_diag   = prm_upatmo%diag,       & !inout
-            &                               prm_upatmo_tend   = prm_upatmo%tend,       & !inout
-            &                               prm_upatmo_extdat = prm_upatmo%extdat,     & !inout
-            &                               upatmo_config     = upatmo_config(jg),     & !in
-            &                               upatmo_phy_config = upatmo_phy_config(jg), & !in
-            &                               nproma            = nproma,                & !in
-            &                               opt_kstart_moist  = kstart_moist           ) !optin
+          CALL update_diagnostic_variables(mtime_datetime=mtime_datetime,        & !in
+              &                               lupdate_gas=lupdate_gas,           & !in
+              &                               p_patch=p_patch,               & !in
+              &                               p_prog_rcf=p_prog_rcf,            & !in
+              &                               p_diag=p_diag,                & !in
+              &                               prm_upatmo_diag=prm_upatmo%diag,       & !inout
+              &                               prm_upatmo_tend=prm_upatmo%tend,       & !inout
+              &                               prm_upatmo_extdat=prm_upatmo%extdat,     & !inout
+              &                               upatmo_config=upatmo_config(jg),     & !in
+              &                               upatmo_phy_config=upatmo_phy_config(jg), & !in
+              &                               nproma=nproma,                & !in
+              &                               opt_kstart_moist=kstart_moist) !optin
 
-        ENDIF  !Update of radiatively active gases due?
+        END IF  !Update of radiatively active gases due?
 
         !---------------------------------------------------------------------
         !                     Computation of tendencies
@@ -362,7 +362,7 @@ CONTAINS
         ! Loop over single processes
         DO jprc = 1, nprc
           ! Initialize error indicator
-          ierror( jprc, : ) = SUCCESS
+          ierror(jprc, :) = SUCCESS
           ! Get start and end indices of grid layer range,
           ! for which tendencies are computed.
           ! Please note that the start height of some processes
@@ -370,22 +370,22 @@ CONTAINS
           ! In this case 'istartlev=1 > iendlev=0',
           ! and the single process subroutines would return
           ! right after initializing the tendencies with zero.
-          istartlev_prc( jprc ) = upatmo_nwp%prc( jprc )%istartlev
-          iendlev_prc( jprc )   = upatmo_nwp%prc( jprc )%iendlev
-        ENDDO  !jprc
+          istartlev_prc(jprc) = upatmo_nwp%prc(jprc)%istartlev
+          iendlev_prc(jprc)   = upatmo_nwp%prc(jprc)%iendlev
+        END DO  !jprc
 
         ! Loop over groups
         DO jgrp = 1, ngrp
 
           ! Is group due?
-          IF (lcall_phy( jgrp )) THEN
+          IF (lcall_phy(jgrp)) THEN
 
             IF (lmessage) CALL message(TRIM(routine), &
-              & 'Start computation of '//TRIM(upatmo_nwp%grp( jgrp )%longname))
+                & 'Start computation of '//TRIM(upatmo_nwp%grp(jgrp)%longname))
 
-            SELECT CASE( jgrp )
+            SELECT CASE (jgrp)
 
-            CASE( igrpIMF )
+            CASE (igrpIMF)
 
               !---------------------------------------------------------------------
               !                  Tendencies from physics group:
@@ -404,8 +404,8 @@ CONTAINS
 
               ! (Index boundaries ('rl_start' etc.) from above should still apply)
 
-!$OMP PARALLEL
-!$OMP DO PRIVATE(jb, i_startidx, i_endidx, jprc, error) ICON_OMP_GUIDED_SCHEDULE
+              !$OMP PARALLEL
+              !$OMP DO PRIVATE(jb, i_startidx, i_endidx, jprc, error) ICON_OMP_GUIDED_SCHEDULE
               DO jb = i_startblk, i_endblk
 
                 CALL get_indices_c(p_patch, jb, i_startblk, i_endblk, i_startidx, i_endidx, rl_start, rl_end)
@@ -416,27 +416,27 @@ CONTAINS
 
                 jprc = iUpatmoPrcId%iondrag
 
-                CALL iondrag( jcs           = i_startidx,                             & !in
-                  &           jce           = i_endidx,                               & !in
-                  &           kbdim         = nproma,                                 & !in
-                  &           klev          = nlev,                                   & !in
-                  &           solvar_type   = solvar_type,                            & !in
-                  &           psteplen      = dt_loc,                                 & !in
-                  &           lat           = p_patch%cells%center(:,jb)%lat,         & !in
-                  &           pum1          = p_diag%u(:,:,jb),                       & !in
-                  &           pvm1          = p_diag%v(:,:,jb),                       & !in
-                  &           pqm1          = p_prog_rcf%tracer(:,:,jb,iqv),          & !in
-                  &           grav          = prm_upatmo%diag%grav(:,:,jb),           & !in
-                  &           pgeom1        = p_metrics%geopot_agl(:,:,jb),           & !in
-                  &           pcp           = prm_upatmo%diag%cpair(:,:,jb),          & !in
-                  &           pvom          = prm_upatmo%tend%ddt_u_iondrag(:,:,jb),  & !out
-                  &           pvol          = prm_upatmo%tend%ddt_v_iondrag(:,:,jb),  & !out
-                  &           ptte          = prm_upatmo%tend%ddt_temp_joule(:,:,jb), & !out
-                  &           opt_istartlev = istartlev_prc( jprc ),                  & !optin
-                  &           opt_iendlev   = iendlev_prc( jprc ),                    & !optin
-                  &           opt_error     = error                                   ) !optout
+                CALL iondrag(jcs=i_startidx,                             & !in
+                    &           jce=i_endidx,                               & !in
+                    &           kbdim=nproma,                                 & !in
+                    &           klev=nlev,                                   & !in
+                    &           solvar_type=solvar_type,                            & !in
+                    &           psteplen=dt_loc,                                 & !in
+                    &           lat=p_patch%cells%center(:,jb)%lat,         & !in
+                    &           pum1=p_diag%u(:,:,jb),                       & !in
+                    &           pvm1=p_diag%v(:,:,jb),                       & !in
+                    &           pqm1=p_prog_rcf%tracer(:,:,jb,iqv),          & !in
+                    &           grav=prm_upatmo%diag%grav(:,:,jb),           & !in
+                    &           pgeom1=p_metrics%geopot_agl(:,:,jb),           & !in
+                    &           pcp=prm_upatmo%diag%cpair(:,:,jb),          & !in
+                    &           pvom=prm_upatmo%tend%ddt_u_iondrag(:,:,jb),  & !out
+                    &           pvol=prm_upatmo%tend%ddt_v_iondrag(:,:,jb),  & !out
+                    &           ptte=prm_upatmo%tend%ddt_temp_joule(:,:,jb), & !out
+                    &           opt_istartlev=istartlev_prc(jprc),                  & !optin
+                    &           opt_iendlev=iendlev_prc(jprc),                    & !optin
+                    &           opt_error=error) !optout
 
-                IF (error /= SUCCESS) ierror( jprc, jb ) = error
+                IF (error /= SUCCESS) ierror(jprc, jb) = error
 
                 !---------------------
                 ! Molecular diffusion
@@ -451,30 +451,30 @@ CONTAINS
 
                 jprc = iUpatmoPrcId%vdfmol
 
-                CALL vdf_mol( jcs           = i_startidx,                                                & !in
-                  &           jce           = i_endidx,                                                  & !in
-                  &           kbdim         = nproma,                                                    & !in
-                  &           klev          = nlev,                                                      & !in
-                  &           ktracer       = ntrc,                                                      & !in
-                  &           psteplen      = dt_loc,                                                    & !in
-                  &           ptvm1         = p_diag%tempv(:,:,jb),                                      & !in
-                  &           ptm1          = p_diag%temp(:,:,jb),                                       & !in
-                  &           pqm1          = p_prog_rcf%tracer(:,:,jb,iqv:iqv),                         & !in
-                  &           pum1          = p_diag%u(:,:,jb),                                          & !in
-                  &           pvm1          = p_diag%v(:,:,jb),                                          & !in
-                  &           papm1         = p_diag%pres(:,:,jb),                                       & !in
-                  &           paphm1        = p_diag%pres_ifc(:,:,jb),                                   & !in
-                  &           grav          = prm_upatmo%diag%grav(:,:,jb),                              & !in
-                  &           amu           = prm_upatmo%diag%amd(:,:,jb),                               & !in
-                  &           ptte          = prm_upatmo%tend%ddt_temp_vdfmol(:,:,jb),                   & !out
-                  &           pvom          = prm_upatmo%tend%ddt_u_vdfmol(:,:,jb),                      & !out
-                  &           pvol          = prm_upatmo%tend%ddt_v_vdfmol(:,:,jb),                      & !out
-                  &           pqte          = prm_upatmo%tend%ddt_qx_vdfmol(:,:,jb,itracerQv:itracerQv), & !out
-                  &           opt_istartlev = istartlev_prc( jprc ),                                     & !optin
-                  &           opt_iendlev   = iendlev_prc( jprc ),                                       & !optin
-                  &           opt_error     = error                                                      ) !optout
+                CALL vdf_mol(jcs=i_startidx,                                                & !in
+                    &           jce=i_endidx,                                                  & !in
+                    &           kbdim=nproma,                                                    & !in
+                    &           klev=nlev,                                                      & !in
+                    &           ktracer=ntrc,                                                      & !in
+                    &           psteplen=dt_loc,                                                    & !in
+                    &           ptvm1=p_diag%tempv(:,:,jb),                                      & !in
+                    &           ptm1=p_diag%temp(:,:,jb),                                       & !in
+                    &           pqm1=p_prog_rcf%tracer(:,:,jb,iqv:iqv),                         & !in
+                    &           pum1=p_diag%u(:,:,jb),                                          & !in
+                    &           pvm1=p_diag%v(:,:,jb),                                          & !in
+                    &           papm1=p_diag%pres(:,:,jb),                                       & !in
+                    &           paphm1=p_diag%pres_ifc(:,:,jb),                                   & !in
+                    &           grav=prm_upatmo%diag%grav(:,:,jb),                              & !in
+                    &           amu=prm_upatmo%diag%amd(:,:,jb),                               & !in
+                    &           ptte=prm_upatmo%tend%ddt_temp_vdfmol(:,:,jb),                   & !out
+                    &           pvom=prm_upatmo%tend%ddt_u_vdfmol(:,:,jb),                      & !out
+                    &           pvol=prm_upatmo%tend%ddt_v_vdfmol(:,:,jb),                      & !out
+                    &           pqte=prm_upatmo%tend%ddt_qx_vdfmol(:,:,jb,itracerQv:itracerQv), & !out
+                    &           opt_istartlev=istartlev_prc(jprc),                                     & !optin
+                    &           opt_iendlev=iendlev_prc(jprc),                                       & !optin
+                    &           opt_error=error) !optout
 
-                IF (error /= SUCCESS) ierror( jprc, jb ) = error
+                IF (error /= SUCCESS) ierror(jprc, jb) = error
 
                 !--------------------
                 ! Frictional heating
@@ -482,31 +482,31 @@ CONTAINS
 
                 jprc = iUpatmoPrcId%fric
 
-                CALL fric_heat( jcs                     = i_startidx,                            & !in
-                  &             jce                     = i_endidx,                              & !in
-                  &             kbdim                   = nproma,                                & !in
-                  &             klev                    = nlev,                                  & !in
-                  &             ptm1                    = p_diag%temp(:,:,jb),                   & !in
-                  &             ptvm1                   = p_diag%tempv(:,:,jb),                  & !in
-                  &             pum1                    = p_diag%u(:,:,jb),                      & !in
-                  &             pvm1                    = p_diag%v(:,:,jb),                      & !in
-                  &             papm1                   = p_diag%pres(:,:,jb),                   & !in
-                  &             paphm1                  = p_diag%pres_ifc(:,:,jb),               & !in
-                  &             grav                    = prm_upatmo%diag%grav(:,:,jb),          & !in
-                  &             amu                     = prm_upatmo%diag%amd(:,:,jb),           & !in
-                  &             cp                      = prm_upatmo%diag%cpair(:,:,jb),         & !in
-                  &             ptte_fc                 = prm_upatmo%tend%ddt_temp_fric(:,:,jb), & !out
-                  &             opt_istartlev           = istartlev_prc( jprc ),                 & !optin
-                  &             opt_iendlev             = iendlev_prc( jprc ),                   & !optin
-                  &             opt_ldiss_from_heatdiff = ldiss_from_heatdiff                    ) !optin
+                CALL fric_heat(jcs=i_startidx,                            & !in
+                    &             jce=i_endidx,                              & !in
+                    &             kbdim=nproma,                                & !in
+                    &             klev=nlev,                                  & !in
+                    &             ptm1=p_diag%temp(:,:,jb),                   & !in
+                    &             ptvm1=p_diag%tempv(:,:,jb),                  & !in
+                    &             pum1=p_diag%u(:,:,jb),                      & !in
+                    &             pvm1=p_diag%v(:,:,jb),                      & !in
+                    &             papm1=p_diag%pres(:,:,jb),                   & !in
+                    &             paphm1=p_diag%pres_ifc(:,:,jb),               & !in
+                    &             grav=prm_upatmo%diag%grav(:,:,jb),          & !in
+                    &             amu=prm_upatmo%diag%amd(:,:,jb),           & !in
+                    &             cp=prm_upatmo%diag%cpair(:,:,jb),         & !in
+                    &             ptte_fc=prm_upatmo%tend%ddt_temp_fric(:,:,jb), & !out
+                    &             opt_istartlev=istartlev_prc(jprc),                 & !optin
+                    &             opt_iendlev=iendlev_prc(jprc),                   & !optin
+                    &             opt_ldiss_from_heatdiff=ldiss_from_heatdiff) !optin
 
-              ENDDO  !jb
-!$OMP END DO
-!$OMP END PARALLEL
+              END DO  !jb
+              !$OMP END DO
+              !$OMP END PARALLEL
 
               IF (ltimer) CALL timer_stop(timer_upatmo_phy_imf)
 
-            CASE ( igrpRAD )
+            CASE (igrpRAD)
 
               !---------------------------------------------------------------------
               !                  Tendencies from physics group:
@@ -534,17 +534,17 @@ CONTAINS
               ! Year, for which Earth orbit is perpetuated
               yr_perp = upatmo_phy_config(jg)%yr_perp
 
-              ALLOCATE(sunlit_idx( nproma, nblks_c ), nsunlit( nblks_c ), STAT=istat)
-              IF(istat /= SUCCESS) CALL finish(TRIM(routine), 'Allocation of sunlit_idx and nsunlit failed')
+              ALLOCATE(sunlit_idx(nproma, nblks_c), nsunlit(nblks_c), STAT=istat)
+              IF (istat /= SUCCESS) CALL finish(TRIM(routine), 'Allocation of sunlit_idx and nsunlit failed')
 
               ! Initialization
-              sunlit_idx( :, : ) = 0
-              nsunlit( : )       = 0
+              sunlit_idx(:, :) = 0
+              nsunlit(:)       = 0
 
               ! (Index boundaries ('rl_start' etc.) from above should still apply)
 
-!$OMP PARALLEL
-!$OMP DO PRIVATE(jb, jc, i_startidx, i_endidx) ICON_OMP_GUIDED_SCHEDULE
+              !$OMP PARALLEL
+              !$OMP DO PRIVATE(jb, jc, i_startidx, i_endidx) ICON_OMP_GUIDED_SCHEDULE
               DO jb = i_startblk, i_endblk
 
                 CALL get_indices_c(p_patch, jb, i_startblk, i_endblk, i_startidx, i_endidx, rl_start, rl_end)
@@ -608,12 +608,12 @@ CONTAINS
                   IF (prm_nwp_diag%cosmu0(jc,jb) > 0._wp) THEN
                     nsunlit(jb)                = nsunlit(jb) + 1
                     sunlit_idx(nsunlit(jb),jb) = jc
-                  ENDIF
-                ENDDO  !jc
-              ENDDO  !jb
-!$OMP END DO
+                  END IF
+                END DO  !jc
+              END DO  !jb
+              !$OMP END DO
 
-!$OMP DO PRIVATE(jb, jc, i_startidx, i_endidx, jprc, error) ICON_OMP_GUIDED_SCHEDULE
+              !$OMP DO PRIVATE(jb, jc, i_startidx, i_endidx, jprc, error) ICON_OMP_GUIDED_SCHEDULE
               DO jb = i_startblk, i_endblk
 
                 CALL get_indices_c(p_patch, jb, i_startblk, i_endblk, i_startidx, i_endidx, rl_start, rl_end)
@@ -630,26 +630,26 @@ CONTAINS
 
                 jprc = iUpatmoPrcId%srbc
 
-                CALL srbc_heating( jcs            = i_startidx,                            & !in
-                  &                jce            = i_endidx,                              & !in
-                  &                kbdim          = nproma,                                & !in
-                  &                klev           = nlev,                                  & !in
-                  &                ppf            = p_diag%pres(:,:,jb),                   & !in
-                  &                prmu0          = prm_nwp_diag%cosmu0(:,jb),             & !in
-                  &                am             = prm_upatmo%diag%amd(:,:,jb),           & !in
-                  &                cp             = prm_upatmo%diag%cpair(:,:,jb),         & !in
-                  &                zo2            = gas_vmr(:,:,jb,igasO2),                & !in
-                  &                tto2           = gas_col(:,:,jb,igasO2),                & !in
-                  &                heato2         = prm_upatmo%tend%ddt_temp_srbc(:,:,jb), & !out
-                  &                solvar_type    = solvar_type,                           & !in
-                  &                solvar_data    = solvar_data,                           & !in
-                  &                opt_sunlit_idx = sunlit_idx(:,jb),                      & !optin
-                  &                opt_nsunlit    = nsunlit(jb),                           & !optin
-                  &                opt_istartlev  = istartlev_prc( jprc ),                 & !optin
-                  &                opt_iendlev    = iendlev_prc( jprc ),                   & !optin
-                  &                opt_error      = error                                  ) !optout
+                CALL srbc_heating(jcs=i_startidx,                            & !in
+                    &                jce=i_endidx,                              & !in
+                    &                kbdim=nproma,                                & !in
+                    &                klev=nlev,                                  & !in
+                    &                ppf=p_diag%pres(:,:,jb),                   & !in
+                    &                prmu0=prm_nwp_diag%cosmu0(:,jb),             & !in
+                    &                am=prm_upatmo%diag%amd(:,:,jb),           & !in
+                    &                cp=prm_upatmo%diag%cpair(:,:,jb),         & !in
+                    &                zo2=gas_vmr(:,:,jb,igasO2),                & !in
+                    &                tto2=gas_col(:,:,jb,igasO2),                & !in
+                    &                heato2=prm_upatmo%tend%ddt_temp_srbc(:,:,jb), & !out
+                    &                solvar_type=solvar_type,                           & !in
+                    &                solvar_data=solvar_data,                           & !in
+                    &                opt_sunlit_idx=sunlit_idx(:,jb),                      & !optin
+                    &                opt_nsunlit=nsunlit(jb),                           & !optin
+                    &                opt_istartlev=istartlev_prc(jprc),                 & !optin
+                    &                opt_iendlev=iendlev_prc(jprc),                   & !optin
+                    &                opt_error=error) !optout
 
-                IF (error /= SUCCESS) ierror( jprc, jb ) = error
+                IF (error /= SUCCESS) ierror(jprc, jb) = error
 
                 !----------------------------------------------
                 ! Heating due to extreme ultraviolet radiation
@@ -657,36 +657,36 @@ CONTAINS
 
                 jprc = iUpatmoPrcId%euv
 
-                CALL euv_heating( jcs            = i_startidx,                           & !in
-                  &               jce            = i_endidx,                             & !in
-                  &               kbdim          = nproma,                               & !in
-                  &               klev           = nlev,                                 & !in
-                  &               prmu0          = prm_nwp_diag%cosmu0(:,jb),            & !in
-                  &               zo2            = gas_vmr(:,:,jb,igasO2),               & !in
-                  &               zn2            = gas_vmr(:,:,jb,igasN2),               & !in
-                  &               zo             = gas_vmr(:,:,jb,igasO),                & !in
-                  &               tto2           = gas_cumcol(:,:,jb,igasO2),            & !in
-                  &               ttn2           = gas_cumcol(:,:,jb,igasN2),            & !in
-                  &               ttox           = gas_cumcol(:,:,jb,igasO),             & !in
-                  &               amu            = prm_upatmo%diag%amd(:,:,jb),          & !in
-                  &               cp             = prm_upatmo%diag%cpair(:,:,jb),        & !in
-                  &               ptte           = prm_upatmo%tend%ddt_temp_euv(:,:,jb), & !out
-                  &               this_datetime  = mtime_datetime,                       & !in
-                  &               orbit_type     = orbit_type,                           & !in
-                  &               solvar_type    = solvar_type,                          & !in
-                  &               solcyc_type    = solcyc_type,                          & !in
-                  &               cecc           = cecc,                                 & !in
-                  &               cobld          = cobld,                                & !in
-                  &               clonp          = clonp,                                & !in
-                  &               lyr_perp       = lyr_perp,                             & !in
-                  &               yr_perp        = yr_perp,                              & !in
-                  &               opt_sunlit_idx = sunlit_idx(:,jb),                     & !optin
-                  &               opt_nsunlit    = nsunlit(jb),                          & !optin
-                  &               opt_istartlev  = istartlev_prc( jprc ),                & !optin
-                  &               opt_iendlev    = iendlev_prc( jprc ),                  & !optin
-                  &               opt_error      = error                                 ) !optout
+                CALL euv_heating(jcs=i_startidx,                           & !in
+                    &               jce=i_endidx,                             & !in
+                    &               kbdim=nproma,                               & !in
+                    &               klev=nlev,                                 & !in
+                    &               prmu0=prm_nwp_diag%cosmu0(:,jb),            & !in
+                    &               zo2=gas_vmr(:,:,jb,igasO2),               & !in
+                    &               zn2=gas_vmr(:,:,jb,igasN2),               & !in
+                    &               zo=gas_vmr(:,:,jb,igasO),                & !in
+                    &               tto2=gas_cumcol(:,:,jb,igasO2),            & !in
+                    &               ttn2=gas_cumcol(:,:,jb,igasN2),            & !in
+                    &               ttox=gas_cumcol(:,:,jb,igasO),             & !in
+                    &               amu=prm_upatmo%diag%amd(:,:,jb),          & !in
+                    &               cp=prm_upatmo%diag%cpair(:,:,jb),        & !in
+                    &               ptte=prm_upatmo%tend%ddt_temp_euv(:,:,jb), & !out
+                    &               this_datetime=mtime_datetime,                       & !in
+                    &               orbit_type=orbit_type,                           & !in
+                    &               solvar_type=solvar_type,                          & !in
+                    &               solcyc_type=solcyc_type,                          & !in
+                    &               cecc=cecc,                                 & !in
+                    &               cobld=cobld,                                & !in
+                    &               clonp=clonp,                                & !in
+                    &               lyr_perp=lyr_perp,                             & !in
+                    &               yr_perp=yr_perp,                              & !in
+                    &               opt_sunlit_idx=sunlit_idx(:,jb),                     & !optin
+                    &               opt_nsunlit=nsunlit(jb),                          & !optin
+                    &               opt_istartlev=istartlev_prc(jprc),                & !optin
+                    &               opt_iendlev=iendlev_prc(jprc),                  & !optin
+                    &               opt_error=error) !optout
 
-                IF (error /= SUCCESS) ierror( jprc, jb ) = error
+                IF (error /= SUCCESS) ierror(jprc, jb) = error
 
                 !--------------------------------------------
                 ! Non-LTE infrared cooling due to CO2 and O3
@@ -699,26 +699,26 @@ CONTAINS
 
                 jprc = iUpatmoPrcId%nlte
 
-                CALL nlte_heating( jcs            = i_startidx,                            & !in
-                  &                jce            = i_endidx,                              & !in
-                  &                kbdim          = nproma,                                & !in
-                  &                klev           = nlev,                                  & !in
-                  &                ppf            = p_diag%pres(:,:,jb),                   & !in
-                  &                ptf            = p_diag%temp(:,:,jb),                   & !in
-                  &                pco2           = gas_vmr(:,:,jb,igasCO2),               & !in
-                  &                pco2col        = gas_cumcol(:,:,jb,igasCO2),            & !in
-                  &                po3            = gas_vmr(:,:,jb,igasO3),                & !in
-                  &                po2            = gas_vmr(:,:,jb,igasO2),                & !in
-                  &                po             = gas_vmr(:,:,jb,igasO),                 & !in
-                  &                pn2            = gas_vmr(:,:,jb,igasN2),                & !in
-                  &                pam            = prm_upatmo%diag%amd(:,:,jb),           & !in
-                  &                pcp            = prm_upatmo%diag%cpair(:,:,jb),         & !in
-                  &                prmu0          = prm_nwp_diag%cosmu0(:,jb),             & !in
-                  &                phnlte         = prm_upatmo%tend%ddt_temp_nlte(:,:,jb), & !out
-                  &                sclrlw         = prm_upatmo%diag%sclrlw(:,:,jb),        & !out
-                  &                opt_sunlit_idx = sunlit_idx(:,jb),                      & !optin
-                  &                opt_nsunlit    = nsunlit(jb),                           & !optin
-                  &                opt_loffline   = lgrp_offline( jgrp )                   ) !optin
+                CALL nlte_heating(jcs=i_startidx,                            & !in
+                    &                jce=i_endidx,                              & !in
+                    &                kbdim=nproma,                                & !in
+                    &                klev=nlev,                                  & !in
+                    &                ppf=p_diag%pres(:,:,jb),                   & !in
+                    &                ptf=p_diag%temp(:,:,jb),                   & !in
+                    &                pco2=gas_vmr(:,:,jb,igasCO2),               & !in
+                    &                pco2col=gas_cumcol(:,:,jb,igasCO2),            & !in
+                    &                po3=gas_vmr(:,:,jb,igasO3),                & !in
+                    &                po2=gas_vmr(:,:,jb,igasO2),                & !in
+                    &                po=gas_vmr(:,:,jb,igasO),                 & !in
+                    &                pn2=gas_vmr(:,:,jb,igasN2),                & !in
+                    &                pam=prm_upatmo%diag%amd(:,:,jb),           & !in
+                    &                pcp=prm_upatmo%diag%cpair(:,:,jb),         & !in
+                    &                prmu0=prm_nwp_diag%cosmu0(:,jb),             & !in
+                    &                phnlte=prm_upatmo%tend%ddt_temp_nlte(:,:,jb), & !out
+                    &                sclrlw=prm_upatmo%diag%sclrlw(:,:,jb),        & !out
+                    &                opt_sunlit_idx=sunlit_idx(:,jb),                      & !optin
+                    &                opt_nsunlit=nsunlit(jb),                           & !optin
+                    &                opt_loffline=lgrp_offline(jgrp)) !optin
 
                 !------------
                 ! NO-heating
@@ -726,19 +726,19 @@ CONTAINS
 
                 jprc = iUpatmoPrcId%no
 
-                CALL no_heating( jcs           = i_startidx,                          & !in
-                  &              jce           = i_endidx,                            & !in
-                  &              kbdim         = nproma,                              & !in
-                  &              klev          = nlev,                                & !in
-                  &              zo            = gas_vmr(:,:,jb,igasO),               & !in
-                  &              zno           = gas_vmr(:,:,jb,igasNO),              & !in
-                  &              cp            = prm_upatmo%diag%cpair(:,:,jb),       & !in
-                  &              tm1           = p_diag%temp(:,:,jb),                 & !in
-                  &              apm1          = p_diag%pres(:,:,jb),                 & !in
-                  &              amu           = prm_upatmo%diag%amd(:,:,jb),         & !in
-                  &              ptte          = prm_upatmo%tend%ddt_temp_no(:,:,jb), & !out
-                  &              opt_istartlev = istartlev_prc( jprc ),               & !optin
-                  &              opt_iendlev   = iendlev_prc( jprc )                  ) !optin
+                CALL no_heating(jcs=i_startidx,                          & !in
+                    &              jce=i_endidx,                            & !in
+                    &              kbdim=nproma,                              & !in
+                    &              klev=nlev,                                & !in
+                    &              zo=gas_vmr(:,:,jb,igasO),               & !in
+                    &              zno=gas_vmr(:,:,jb,igasNO),              & !in
+                    &              cp=prm_upatmo%diag%cpair(:,:,jb),       & !in
+                    &              tm1=p_diag%temp(:,:,jb),                 & !in
+                    &              apm1=p_diag%pres(:,:,jb),                 & !in
+                    &              amu=prm_upatmo%diag%amd(:,:,jb),         & !in
+                    &              ptte=prm_upatmo%tend%ddt_temp_no(:,:,jb), & !out
+                    &              opt_istartlev=istartlev_prc(jprc),               & !optin
+                    &              opt_iendlev=iendlev_prc(jprc)) !optin
 
                 !------------------
                 ! Chemical heating
@@ -751,28 +751,28 @@ CONTAINS
                 ! has to be multiplied with, has been computed once in
                 ! 'src/upper_atmosphere/mo_upatmo_phy_setup: init_upatmo_phy_nwp'.
 
-              ENDDO  !jb
-!$OMP END DO
-!$OMP END PARALLEL
+              END DO  !jb
+              !$OMP END DO
+              !$OMP END PARALLEL
 
               DEALLOCATE(sunlit_idx, nsunlit, STAT=istat)
-              IF(istat /= SUCCESS) CALL finish(TRIM(routine), 'Deallocation of sunlit_idx and nsunlit failed')
+              IF (istat /= SUCCESS) CALL finish(TRIM(routine), 'Deallocation of sunlit_idx and nsunlit failed')
 
               IF (ltimer) CALL timer_stop(timer_upatmo_phy_rad)
 
             CASE DEFAULT
 
-              CALL finish (TRIM(routine), 'Please implement the new physics group into ' &
-                & //'src/upper_atmosphere/mo_nwp_upatmo_interface: nwp_upatmo_interface. Thank you!')
+              CALL finish(TRIM(routine), 'Please implement the new physics group into ' &
+                  & //'src/upper_atmosphere/mo_nwp_upatmo_interface: nwp_upatmo_interface. Thank you!')
 
             END SELECT  !Physics groups
 
             IF (lmessage) CALL message(TRIM(routine), &
-              & 'Finish computation of '//TRIM(upatmo_nwp%grp( jgrp )%longname))
+                & 'Finish computation of '//TRIM(upatmo_nwp%grp(jgrp)%longname))
 
-          ENDIF  !Is group due?
+          END IF  !Is group due?
 
-        ENDDO  !jgrp
+        END DO  !jgrp
 
         !---------------------------------------------------------------------
         !                         Check for errors
@@ -780,13 +780,13 @@ CONTAINS
 
         DO jb = 1, nblks_c
           DO jprc = 1, nprc
-            IF (ierror( jprc, jb ) /= SUCCESS) THEN
-              CALL finish(TRIM(routine), 'Process '//TRIM(upatmo_nwp%prc( jprc )%longname)            &
-                & //' on domain '//TRIM(dom_str)//' on block '//TRIM(int2string(jb))//' at time '     &
-                & //TRIM(datetime_str)//' reportet error code '//TRIM(int2string(ierror( jprc, jb ))) )
-            ENDIF
-          ENDDO  !jprc
-        ENDDO  !jb
+            IF (ierror(jprc, jb) /= SUCCESS) THEN
+              CALL finish(TRIM(routine), 'Process '//TRIM(upatmo_nwp%prc(jprc)%longname)            &
+                  & //' on domain '//TRIM(dom_str)//' on block '//TRIM(int2string(jb))//' at time '     &
+                  & //TRIM(datetime_str)//' reportet error code '//TRIM(int2string(ierror(jprc, jb))))
+            END IF
+          END DO  !jprc
+        END DO  !jb
 
         !---------------------------------------------------------------------
         !                       Accumulate tendencies
@@ -816,15 +816,15 @@ CONTAINS
         ! New wind tendencies to care about?
         !------------------------------------
 
-        IF (lupdate( itendWind )) THEN
+        IF (lupdate(itendWind)) THEN
 
-          ALLOCATE( ddt_u_tot( nproma, nlev, nblks_c ), &
-            &       ddt_v_tot( nproma, nlev, nblks_c ), &
-            &       STAT=istat                          )
-          IF(istat /= SUCCESS) CALL finish(TRIM(routine), 'Allocation of ddt_u/v_tot failed')
+          ALLOCATE(ddt_u_tot(nproma, nlev, nblks_c), &
+              &       ddt_v_tot(nproma, nlev, nblks_c), &
+              &       STAT=istat)
+          IF (istat /= SUCCESS) CALL finish(TRIM(routine), 'Allocation of ddt_u/v_tot failed')
 
-!$OMP PARALLEL
-!$OMP DO PRIVATE(jb, jk, jc, i_startidx, i_endidx) ICON_OMP_GUIDED_SCHEDULE
+          !$OMP PARALLEL
+          !$OMP DO PRIVATE(jb, jk, jc, i_startidx, i_endidx) ICON_OMP_GUIDED_SCHEDULE
           DO jb = i_startblk, i_endblk
 
             CALL get_indices_c(p_patch, jb, i_startblk, i_endblk, i_startidx, i_endidx, rl_start, rl_end)
@@ -841,32 +841,32 @@ CONTAINS
                 ddt_u_tot(jc,jk,jb) = 0._wp
                 ! Meridional wind component
                 ddt_v_tot(jc,jk,jb) = 0._wp
-              ENDDO  !jc
-            ENDDO  !jk
+              END DO  !jc
+            END DO  !jk
 
             ! From IMF
-            IF (lgrp_accumulate( igrpIMF )) THEN
+            IF (lgrp_accumulate(igrpIMF)) THEN
 
-              DO jk = istartlev_grp( igrpIMF ), iendlev_grp( igrpIMF )
+              DO jk = istartlev_grp(igrpIMF), iendlev_grp(igrpIMF)
                 DO jc = i_startidx, i_endidx
                   ! Zonal wind component
                   ddt_u_tot(jc,jk,jb) = ddt_u_tot(jc,jk,jb)                     &
-                    &                 + prm_upatmo%tend%ddt_u_vdfmol(jc,jk,jb)  &
-                    &                 + prm_upatmo%tend%ddt_u_iondrag(jc,jk,jb)
+                      &                 + prm_upatmo%tend%ddt_u_vdfmol(jc,jk,jb)  &
+                      &                 + prm_upatmo%tend%ddt_u_iondrag(jc,jk,jb)
                   ! Meridional wind component
                   ddt_v_tot(jc,jk,jb) = ddt_v_tot(jc,jk,jb)                     &
-                    &                 + prm_upatmo%tend%ddt_v_vdfmol(jc,jk,jb)  &
-                    &                 + prm_upatmo%tend%ddt_v_iondrag(jc,jk,jb)
-                ENDDO  !jc
-              ENDDO  !jk
+                      &                 + prm_upatmo%tend%ddt_v_vdfmol(jc,jk,jb)  &
+                      &                 + prm_upatmo%tend%ddt_v_iondrag(jc,jk,jb)
+                END DO  !jc
+              END DO  !jk
 
-            ENDIF  !IMF enabled?
+            END IF  !IMF enabled?
 
             ! No wind tendencies from RAD
 
-          ENDDO  !jb
-!$OMP END DO
-!$OMP END PARALLEL
+          END DO  !jb
+          !$OMP END DO
+          !$OMP END PARALLEL
 
           ! For the accumulation of the new wind tendencies
           ! into the corresponding NWP tendencies in 'nwp_upatmo_update' below,
@@ -875,14 +875,14 @@ CONTAINS
           CALL sync_patch_array_mult(SYNC_C1, p_patch, 2, lacc=.FALSE., f3din1=ddt_u_tot, f3din2=ddt_v_tot)
 
           ! Swap new and old states and get index of new state
-          CALL prm_upatmo%tend%ddt%state( itendWind )%swap()
-          inewWind = prm_upatmo%tend%ddt%state( itendWind )%inew()
-          ddt_vn_tot => prm_upatmo%tend%ddt%vn( inewWind )%tot
+          CALL prm_upatmo%tend%ddt%state(itendWind)%swap()
+          inewWind = prm_upatmo%tend%ddt%state(itendWind)%inew()
+          ddt_vn_tot => prm_upatmo%tend%ddt%vn(inewWind)%tot
 
           ! Get start and end indices for the grid layer range,
           ! for which wind tendencies are computed
-          istartlev_vn = prm_upatmo%tend%ddt%info( itendWind )%istartlev
-          iendlev_vn   = prm_upatmo%tend%ddt%info( itendWind )%iendlev
+          istartlev_vn = prm_upatmo%tend%ddt%info(itendWind)%istartlev
+          iendlev_vn   = prm_upatmo%tend%ddt%info(itendWind)%iendlev
 
           ! Indices of cells in the neighborhood of an edge
           iidx => p_patch%edges%cell_idx
@@ -894,12 +894,12 @@ CONTAINS
           i_startblk = p_patch%edges%start_block(rl_start)
           i_endblk   = p_patch%edges%end_block(rl_end)
 
-!$OMP PARALLEL
-!$OMP DO PRIVATE(jb, jk, je, i_startidx, i_endidx) ICON_OMP_GUIDED_SCHEDULE
+          !$OMP PARALLEL
+          !$OMP DO PRIVATE(jb, jk, je, i_startidx, i_endidx) ICON_OMP_GUIDED_SCHEDULE
           DO jb = i_startblk, i_endblk
 
-            CALL get_indices_e( p_patch, jb, i_startblk, i_endblk,     &
-              &                 i_startidx, i_endidx, rl_start, rl_end )
+            CALL get_indices_e(p_patch, jb, i_startblk, i_endblk,     &
+                &                 i_startidx, i_endidx, rl_start, rl_end)
 
             ! Interpolate edge-normal component of wind tendency
             ! from ddt_u_tot and ddt_v_tot.
@@ -909,40 +909,40 @@ CONTAINS
             DO jk = istartlev_vn, iendlev_vn
               DO je = i_startidx, i_endidx
                 ddt_vn_tot(je,jk,jb) = p_int_state%c_lin_e(je,1,jb) *                 &
-                  &                  ( ddt_u_tot(iidx(je,jb,1),jk,iblk(je,jb,1)) *    &
-                  &                    p_patch%edges%primal_normal_cell(je,jb,1)%v1   &
-                  &                  + ddt_v_tot(iidx(je,jb,1),jk,iblk(je,jb,1)) *    &
-                  &                    p_patch%edges%primal_normal_cell(je,jb,1)%v2 ) &
-                  &                  + p_int_state%c_lin_e(je,2,jb) *                 &
-                  &                  ( ddt_u_tot(iidx(je,jb,2),jk,iblk(je,jb,2)) *    &
-                  &                    p_patch%edges%primal_normal_cell(je,jb,2)%v1   &
-                  &                  + ddt_v_tot(iidx(je,jb,2),jk,iblk(je,jb,2)) *    &
-                  &                    p_patch%edges%primal_normal_cell(je,jb,2)%v2   )
-              ENDDO  !je
-            ENDDO  !jk
+                    &                  (ddt_u_tot(iidx(je,jb,1),jk,iblk(je,jb,1)) *    &
+                    &                    p_patch%edges%primal_normal_cell(je,jb,1)%v1   &
+                    &                  + ddt_v_tot(iidx(je,jb,1),jk,iblk(je,jb,1)) *    &
+                    &                    p_patch%edges%primal_normal_cell(je,jb,1)%v2) &
+                    &                  + p_int_state%c_lin_e(je,2,jb) *                 &
+                    &                  (ddt_u_tot(iidx(je,jb,2),jk,iblk(je,jb,2)) *    &
+                    &                    p_patch%edges%primal_normal_cell(je,jb,2)%v1   &
+                    &                  + ddt_v_tot(iidx(je,jb,2),jk,iblk(je,jb,2)) *    &
+                    &                    p_patch%edges%primal_normal_cell(je,jb,2)%v2)
+              END DO  !je
+            END DO  !jk
 
             DO jk = 1, istartlev_vn - 1
               DO je = i_startidx, i_endidx
                 ddt_vn_tot(je,jk,jb) = 0._wp
-              ENDDO  !je
-            ENDDO  !jk
+              END DO  !je
+            END DO  !jk
 
             DO jk = iendlev_vn + 1, nlev
               DO je = i_startidx, i_endidx
                 ddt_vn_tot(je,jk,jb) = 0._wp
-              ENDDO  !je
-            ENDDO  !jk
+              END DO  !je
+            END DO  !jk
 
-          ENDDO  !jb
-!$OMP END DO
-!$OMP END PARALLEL
+          END DO  !jb
+          !$OMP END DO
+          !$OMP END PARALLEL
 
           DEALLOCATE(ddt_u_tot, ddt_v_tot, STAT=istat)
-          IF(istat /= SUCCESS) CALL finish(TRIM(routine), 'Deallocation of ddt_u/v_tot failed')
+          IF (istat /= SUCCESS) CALL finish(TRIM(routine), 'Deallocation of ddt_u/v_tot failed')
 
           ddt_vn_tot => NULL()
-          iidx       => NULL()
-          iblk       => NULL()
+          iidx => NULL()
+          iblk => NULL()
 
           ! Reset loop boundaries to prognostic cells
           rl_start   = grf_bdywidth_c + 1
@@ -950,20 +950,20 @@ CONTAINS
           i_startblk = p_patch%cells%start_block(rl_start)
           i_endblk   = p_patch%cells%end_block(rl_end)
 
-        ENDIF  !IF (lupdate( itendWind ))
+        END IF  !IF (lupdate( itendWind ))
 
         !-------------------------------------------
         ! New temperature tendencies to care about?
         !-------------------------------------------
 
-        IF (lupdate( itendTemp )) THEN
+        IF (lupdate(itendTemp)) THEN
 
-          CALL prm_upatmo%tend%ddt%state( itendTemp )%swap()
-          inewTemp = prm_upatmo%tend%ddt%state( itendTemp )%inew()
-          ddt_temp_tot => prm_upatmo%tend%ddt%temp( inewTemp )%tot
+          CALL prm_upatmo%tend%ddt%state(itendTemp)%swap()
+          inewTemp = prm_upatmo%tend%ddt%state(itendTemp)%inew()
+          ddt_temp_tot => prm_upatmo%tend%ddt%temp(inewTemp)%tot
 
-!$OMP PARALLEL
-!$OMP DO PRIVATE(jb, jk, jc, i_startidx, i_endidx) ICON_OMP_GUIDED_SCHEDULE
+          !$OMP PARALLEL
+          !$OMP DO PRIVATE(jb, jk, jc, i_startidx, i_endidx) ICON_OMP_GUIDED_SCHEDULE
           DO jb = i_startblk, i_endblk
 
             CALL get_indices_c(p_patch, jb, i_startblk, i_endblk, i_startidx, i_endidx, rl_start, rl_end)
@@ -972,26 +972,26 @@ CONTAINS
             DO jk = 1, nlev
               DO jc = i_startidx, i_endidx
                 ddt_temp_tot(jc,jk,jb) = 0._wp
-              ENDDO  !jc
-            ENDDO  !jk
+              END DO  !jc
+            END DO  !jk
 
             ! From IMF
-            IF (lgrp_accumulate( igrpIMF )) THEN
+            IF (lgrp_accumulate(igrpIMF)) THEN
 
               ! Add tendencies from single processes
-              DO jk = istartlev_grp( igrpIMF ), iendlev_grp( igrpIMF )
+              DO jk = istartlev_grp(igrpIMF), iendlev_grp(igrpIMF)
                 DO jc = i_startidx, i_endidx
                   ddt_temp_tot(jc,jk,jb) = ddt_temp_tot(jc,jk,jb)                    &
-                    &                    + prm_upatmo%tend%ddt_temp_vdfmol(jc,jk,jb) &
-                    &                    + prm_upatmo%tend%ddt_temp_fric(jc,jk,jb)   &
-                    &                    + prm_upatmo%tend%ddt_temp_joule(jc,jk,jb)
-                ENDDO  !jc
-              ENDDO  !jk
+                      &                    + prm_upatmo%tend%ddt_temp_vdfmol(jc,jk,jb) &
+                      &                    + prm_upatmo%tend%ddt_temp_fric(jc,jk,jb)   &
+                      &                    + prm_upatmo%tend%ddt_temp_joule(jc,jk,jb)
+                END DO  !jc
+              END DO  !jk
 
-            ENDIF  !IMF enabled?
+            END IF  !IMF enabled?
 
             ! From RAD
-            IF (lgrp_accumulate( igrpRAD )) THEN
+            IF (lgrp_accumulate(igrpRAD)) THEN
 
               ! Please note that the upper-atmosphere radiation processing
               ! includes to modify the temperature tendencies
@@ -1025,46 +1025,46 @@ CONTAINS
               ! will take place during the transformation of 'ddt_temp_tot'
               ! into an Exner pressure tendency below.
 
-              DO jk = istartlev_grp( igrpRAD ), iendlev_grp( igrpRAD )
+              DO jk = istartlev_grp(igrpRAD), iendlev_grp(igrpRAD)
                 DO jc = i_startidx, i_endidx
                   ddt_temp_tot(jc,jk,jb) = ddt_temp_tot(jc,jk,jb)                            &
-                    &                    + prm_upatmo%tend%ddt_temp_srbc(jc,jk,jb)           &
-                    &                    + prm_upatmo%tend%ddt_temp_nlte(jc,jk,jb)           &
-                    &                    + prm_upatmo%tend%ddt_temp_euv(jc,jk,jb)            &
-                    &                    + prm_upatmo%tend%ddt_temp_no(jc,jk,jb)             &
-                    &                    + prm_upatmo%tend%ddt_temp_chemheat(jc,jk,jb)       &
-                    &                    + ( prm_upatmo%diag%effrsw(jc,jk,jb) - 1._wp ) *    &
-                    &                      cvd_o_cpd * prm_nwp_tend%ddt_temp_radsw(jc,jk,jb) &
-                    &                    + ( prm_upatmo%diag%sclrlw(jc,jk,jb) - 1._wp ) *    &
-                    &                      cvd_o_cpd * prm_nwp_tend%ddt_temp_radlw(jc,jk,jb)
-                ENDDO  !jc
-              ENDDO  !jk
+                      &                    + prm_upatmo%tend%ddt_temp_srbc(jc,jk,jb)           &
+                      &                    + prm_upatmo%tend%ddt_temp_nlte(jc,jk,jb)           &
+                      &                    + prm_upatmo%tend%ddt_temp_euv(jc,jk,jb)            &
+                      &                    + prm_upatmo%tend%ddt_temp_no(jc,jk,jb)             &
+                      &                    + prm_upatmo%tend%ddt_temp_chemheat(jc,jk,jb)       &
+                      &                    + (prm_upatmo%diag%effrsw(jc,jk,jb) - 1._wp) *    &
+                      &                      cvd_o_cpd * prm_nwp_tend%ddt_temp_radsw(jc,jk,jb) &
+                      &                    + (prm_upatmo%diag%sclrlw(jc,jk,jb) - 1._wp) *    &
+                      &                      cvd_o_cpd * prm_nwp_tend%ddt_temp_radlw(jc,jk,jb)
+                END DO  !jc
+              END DO  !jk
 
-            ENDIF  !RAD enabled?
+            END IF  !RAD enabled?
 
-          ENDDO  !jb
-!$OMP END DO
-!$OMP END PARALLEL
+          END DO  !jb
+          !$OMP END DO
+          !$OMP END PARALLEL
 
           ddt_temp_tot => NULL()
 
-        ENDIF  !IF (lupdate( itendTemp ))
+        END IF  !IF (lupdate( itendTemp ))
 
         !--------------------------------------
         ! New tracer tendencies to care about?
         !--------------------------------------
 
-        IF (lupdate( itendQx )) THEN
+        IF (lupdate(itendQx)) THEN
 
-          CALL prm_upatmo%tend%ddt%state( itendQx )%swap()
-          inewQx = prm_upatmo%tend%ddt%state( itendQx )%inew()
+          CALL prm_upatmo%tend%ddt%state(itendQx)%swap()
+          inewQx = prm_upatmo%tend%ddt%state(itendQx)%inew()
 
           DO jtrc = 1, ntrc
 
-            ddt_qx_tot => prm_upatmo%tend%ddt%qx( inewQx )%tot(:,:,:,jtrc)
+            ddt_qx_tot => prm_upatmo%tend%ddt%qx(inewQx)%tot(:,:,:,jtrc)
 
-!$OMP PARALLEL
-!$OMP DO PRIVATE(jb, jk, jc, i_startidx, i_endidx) ICON_OMP_GUIDED_SCHEDULE
+            !$OMP PARALLEL
+            !$OMP DO PRIVATE(jb, jk, jc, i_startidx, i_endidx) ICON_OMP_GUIDED_SCHEDULE
             DO jb = i_startblk, i_endblk
 
               CALL get_indices_c(p_patch, jb, i_startblk, i_endblk, i_startidx, i_endidx, rl_start, rl_end)
@@ -1073,52 +1073,52 @@ CONTAINS
               DO jk = 1, nlev
                 DO jc = i_startidx, i_endidx
                   ddt_qx_tot(jc,jk,jb) = 0._wp
-                ENDDO  !jc
-              ENDDO  !jk
+                END DO  !jc
+              END DO  !jk
 
               ! From IMF
-              IF (lgrp_accumulate( igrpIMF )) THEN
+              IF (lgrp_accumulate(igrpIMF)) THEN
 
-                DO jk = istartlev_grp( igrpIMF ), iendlev_grp( igrpIMF )
+                DO jk = istartlev_grp(igrpIMF), iendlev_grp(igrpIMF)
                   DO jc = i_startidx, i_endidx
                     ddt_qx_tot(jc,jk,jb) = ddt_qx_tot(jc,jk,jb) &
-                      &                  + prm_upatmo%tend%ddt_qx_vdfmol(jc,jk,jb,jtrc)
-                  ENDDO  !jc
-                ENDDO  !jk
+                        &                  + prm_upatmo%tend%ddt_qx_vdfmol(jc,jk,jb,jtrc)
+                  END DO  !jc
+                END DO  !jk
 
-              ENDIF  !IMF enabled?
+              END IF  !IMF enabled?
 
               ! No tracer tendencies from RAD
 
-            ENDDO  !jb
-!$OMP END DO
-!$OMP END PARALLEL
+            END DO  !jb
+            !$OMP END DO
+            !$OMP END PARALLEL
 
             ddt_qx_tot => NULL()
 
-          ENDDO  !jtrc
+          END DO  !jtrc
 
-        ENDIF  !IF (lupdate( itendQx ))
+        END IF  !IF (lupdate( itendQx ))
 
         !--------------------------------
         ! New Exner pressure tendencies?
         !--------------------------------
 
-        IF (lupdate( itendExner )) THEN
+        IF (lupdate(itendExner)) THEN
 
-          CALL prm_upatmo%tend%ddt%state( itendExner )%swap()
-          inewExner = prm_upatmo%tend%ddt%state( itendExner )%inew()
-          ddt_exner_tot => prm_upatmo%tend%ddt%exner( inewExner )%tot
-          IF (lddt_tot( itendTemp )) THEN
-            inewTemp = prm_upatmo%tend%ddt%state( itendTemp )%inew()
-            ddt_temp_tot => prm_upatmo%tend%ddt%temp( inewTemp )%tot
-          ENDIF
-          IF (lddt_tot( itendQx )) THEN
-            inewQx = prm_upatmo%tend%ddt%state( itendQx )%inew()
-            ddt_qx_tot => prm_upatmo%tend%ddt%qx( inewQx )%tot(:,:,:,itracerQv)
-          ENDIF
-          istartlev_exner = prm_upatmo%tend%ddt%info( itendExner )%istartlev
-          iendlev_exner   = prm_upatmo%tend%ddt%info( itendExner )%iendlev
+          CALL prm_upatmo%tend%ddt%state(itendExner)%swap()
+          inewExner = prm_upatmo%tend%ddt%state(itendExner)%inew()
+          ddt_exner_tot => prm_upatmo%tend%ddt%exner(inewExner)%tot
+          IF (lddt_tot(itendTemp)) THEN
+            inewTemp = prm_upatmo%tend%ddt%state(itendTemp)%inew()
+            ddt_temp_tot => prm_upatmo%tend%ddt%temp(inewTemp)%tot
+          END IF
+          IF (lddt_tot(itendQx)) THEN
+            inewQx = prm_upatmo%tend%ddt%state(itendQx)%inew()
+            ddt_qx_tot => prm_upatmo%tend%ddt%qx(inewQx)%tot(:,:,:,itracerQv)
+          END IF
+          istartlev_exner = prm_upatmo%tend%ddt%info(itendExner)%istartlev
+          iendlev_exner   = prm_upatmo%tend%ddt%info(itendExner)%iendlev
 
           ! For the conversion into an Exner pressure tendency,
           ! we use the formula:
@@ -1160,25 +1160,25 @@ CONTAINS
           ! by 'cvair' in the interfaces, where possible!
           thermdyn_cpl_fac = upatmo_nwp%thermdyn_cpl_fac
 
-!$OMP PARALLEL
-!$OMP DO PRIVATE(jb, jk, jc, i_startidx, i_endidx) ICON_OMP_GUIDED_SCHEDULE
+          !$OMP PARALLEL
+          !$OMP DO PRIVATE(jb, jk, jc, i_startidx, i_endidx) ICON_OMP_GUIDED_SCHEDULE
           DO jb = i_startblk, i_endblk
 
             CALL get_indices_c(p_patch, jb, i_startblk, i_endblk, i_startidx, i_endidx, rl_start, rl_end)
 
-            IF (lddt_tot( itendTemp ) .AND. lddt_tot( itendQx )) THEN
+            IF (lddt_tot(itendTemp) .AND. lddt_tot(itendQx)) THEN
 
               DO jk = istartlev_exner, iendlev_exner
                 DO jc = i_startidx, i_endidx
                   ddt_exner_tot(jc,jk,jb) = rd_o_cpd * p_prog%exner(jc,jk,jb) *              &
-                    &                     ( thermdyn_cpl_fac * ddt_temp_tot(jc,jk,jb) /      &
-                    &                       p_diag%temp(jc,jk,jb)                            &
-                    &                     + ddt_qx_tot(jc,jk,jb) /                           &
-                    &                       ( inv_vtmpc1 + p_prog_rcf%tracer(jc,jk,jb,iqv) ) )
-                ENDDO  !jc
-              ENDDO  !jk
+                      &                     (thermdyn_cpl_fac * ddt_temp_tot(jc,jk,jb) /      &
+                      &                       p_diag%temp(jc,jk,jb)                            &
+                      &                     + ddt_qx_tot(jc,jk,jb) /                           &
+                      &                       (inv_vtmpc1 + p_prog_rcf%tracer(jc,jk,jb,iqv)))
+                END DO  !jc
+              END DO  !jk
 
-            ELSEIF (lddt_tot( itendTemp )) THEN
+            ELSEIF (lddt_tot(itendTemp)) THEN
 
               ! Water vapor tendencies are in offline-mode,
               ! so we do not have to consider them here.
@@ -1186,11 +1186,11 @@ CONTAINS
               DO jk = istartlev_exner, iendlev_exner
                 DO jc = i_startidx, i_endidx
                   ddt_exner_tot(jc,jk,jb) = rd_o_cpd * p_prog%exner(jc,jk,jb) * thermdyn_cpl_fac * &
-                    &                       ddt_temp_tot(jc,jk,jb) / p_diag%temp(jc,jk,jb)
-                ENDDO  !jc
-              ENDDO  !jk
+                      &                       ddt_temp_tot(jc,jk,jb) / p_diag%temp(jc,jk,jb)
+                END DO  !jc
+              END DO  !jk
 
-            ELSEIF (lddt_tot( itendQx )) THEN
+            ELSEIF (lddt_tot(itendQx)) THEN
 
               ! Temperature tendencies are in offline-mode,
               ! so we do not have to consider them here.
@@ -1198,22 +1198,22 @@ CONTAINS
               DO jk = istartlev_exner, iendlev_exner
                 DO jc = i_startidx, i_endidx
                   ddt_exner_tot(jc,jk,jb) = rd_o_cpd * p_prog%exner(jc,jk,jb) * &
-                    &                       ddt_qx_tot(jc,jk,jb) /              &
-                    &                       ( inv_vtmpc1 + p_prog_rcf%tracer(jc,jk,jb,iqv) )
-                ENDDO  !jc
-              ENDDO  !jk
+                      &                       ddt_qx_tot(jc,jk,jb) /              &
+                      &                       (inv_vtmpc1 + p_prog_rcf%tracer(jc,jk,jb,iqv))
+                END DO  !jc
+              END DO  !jk
 
-            ENDIF
+            END IF
 
-          ENDDO  !jb
-!$OMP END DO
-!$OMP END PARALLEL
+          END DO  !jb
+          !$OMP END DO
+          !$OMP END PARALLEL
 
           ddt_exner_tot => NULL()
-          IF (lddt_tot( itendTemp )) ddt_temp_tot => NULL()
-          IF (lddt_tot( itendQx ))   ddt_qx_tot   => NULL()
+          IF (lddt_tot(itendTemp)) ddt_temp_tot => NULL()
+          IF (lddt_tot(itendQx))   ddt_qx_tot => NULL()
 
-        ENDIF  !IF (lupdate( itendExner ))
+        END IF  !IF (lupdate( itendExner ))
 
         !----------
         ! Clean-up
@@ -1221,41 +1221,41 @@ CONTAINS
 
         IF (ALLOCATED(gas_vmr)) THEN
           DEALLOCATE(gas_vmr, STAT=istat)
-          IF(istat /= SUCCESS) CALL finish(TRIM(routine), 'Deallocation of gas_vmr failed')
-        ENDIF
+          IF (istat /= SUCCESS) CALL finish(TRIM(routine), 'Deallocation of gas_vmr failed')
+        END IF
         IF (ALLOCATED(gas_col)) THEN
           DEALLOCATE(gas_col, STAT=istat)
-          IF(istat /= SUCCESS) CALL finish(TRIM(routine), 'Deallocation of gas_col failed')
-        ENDIF
+          IF (istat /= SUCCESS) CALL finish(TRIM(routine), 'Deallocation of gas_col failed')
+        END IF
         IF (ALLOCATED(gas_cumcol)) THEN
           DEALLOCATE(gas_cumcol, STAT=istat)
-          IF(istat /= SUCCESS) CALL finish(TRIM(routine), 'Deallocation of gas_cumcol failed')
-        ENDIF
+          IF (istat /= SUCCESS) CALL finish(TRIM(routine), 'Deallocation of gas_cumcol failed')
+        END IF
 
         IF (lmessage) CALL message(TRIM(routine), &
-          & 'Finish computation of tendencies from upper-atmosphere physics on domain '//dom_str)
+            & 'Finish computation of tendencies from upper-atmosphere physics on domain '//dom_str)
 
-      ENDIF  !Any physics group to be called at all?
+      END IF  !Any physics group to be called at all?
 
-    ENDIF  !In overall start-date-end-date interval?
+    END IF  !In overall start-date-end-date interval?
 
     ! The following information will be required for 'nwp_upatmo_update'
     DO jtnd = 1, ntnd  ! Exclude Exner pressure!
-      prm_upatmo%tend%ddt%info( jtnd )%linActivePhase = .FALSE.
+      prm_upatmo%tend%ddt%info(jtnd)%linActivePhase = .FALSE.
       DO jgrp = 1, ngrp
         ! (Both 'l_update' and 'lgrp_accumulate' contain
         ! the information on the offline mode)
-        IF (upatmo_nwp%grp( jgrp )%l_update( jtnd )) THEN
-          prm_upatmo%tend%ddt%info( jtnd )%linActivePhase =        &
-            & prm_upatmo%tend%ddt%info( jtnd )%linActivePhase .OR. &
-            & lgrp_accumulate( jgrp )
-        ENDIF
-      ENDDO  !jgrp
-    ENDDO  !jtnd
+        IF (upatmo_nwp%grp(jgrp)%l_update(jtnd)) THEN
+          prm_upatmo%tend%ddt%info(jtnd)%linActivePhase =        &
+              & prm_upatmo%tend%ddt%info(jtnd)%linActivePhase .OR. &
+              & lgrp_accumulate(jgrp)
+        END IF
+      END DO  !jgrp
+    END DO  !jtnd
     ! Exner pressure
-    prm_upatmo%tend%ddt%info( itendExner )%linActivePhase =       &
-      & prm_upatmo%tend%ddt%info( itendTemp )%linActivePhase .OR. &
-      & prm_upatmo%tend%ddt%info( itendQx )%linActivePhase
+    prm_upatmo%tend%ddt%info(itendExner)%linActivePhase =       &
+        & prm_upatmo%tend%ddt%info(itendTemp)%linActivePhase .OR. &
+        & prm_upatmo%tend%ddt%info(itendQx)%linActivePhase
 
     !---------------------------------------------------------------------
     !                           Inactivation
@@ -1279,26 +1279,26 @@ CONTAINS
     !   for reasons of a proper output.
 
     ! Initialize tendency-wise evaluation of information on inactivation
-    prm_upatmo%tend%ddt%info( : )%lafterActivePhase = lddt_tot( : )
+    prm_upatmo%tend%ddt%info(:)%lafterActivePhase = lddt_tot(:)
 
     ! Loop over groups
     DO jgrp = 1, ngrp
 
-      IF (lgrp_enabled( jgrp )) THEN
+      IF (lgrp_enabled(jgrp)) THEN
 
         ! Check if we have left the start-date-end-date intervall
-        IF ( upatmo_nwp%grp( jgrp )%isAfterOpPhase( mtime_datetime ) .AND. &
-          &  .NOT. upatmo_nwp%grp( jgrp )%l_stat( iUpatmoPrcStat%afterActivePhase ) ) THEN
+        IF (upatmo_nwp%grp(jgrp)%isAfterOpPhase(mtime_datetime) .AND. &
+            &  .NOT.upatmo_nwp%grp(jgrp)%l_stat(iUpatmoPrcStat%afterActivePhase)) THEN
 
-!$OMP PARALLEL
-!$OMP DO PRIVATE(jb, jk, jc, i_startidx, i_endidx, jtrc) ICON_OMP_GUIDED_SCHEDULE
+          !$OMP PARALLEL
+          !$OMP DO PRIVATE(jb, jk, jc, i_startidx, i_endidx, jtrc) ICON_OMP_GUIDED_SCHEDULE
           DO jb = i_startblk, i_endblk
 
             CALL get_indices_c(p_patch, jb, i_startblk, i_endblk, i_startidx, i_endidx, rl_start, rl_end)
 
-            SELECT CASE( jgrp )
+            SELECT CASE (jgrp)
 
-            CASE( igrpIMF )
+            CASE (igrpIMF)
 
               !---------------------------------------------------------------------
               !                     Inactivate physics group:
@@ -1317,8 +1317,8 @@ CONTAINS
                   ! Meridional wind component
                   prm_upatmo%tend%ddt_v_vdfmol(jc,jk,jb)  = 0._wp
                   prm_upatmo%tend%ddt_v_iondrag(jc,jk,jb) = 0._wp
-                ENDDO  !jc
-              ENDDO  !jk
+                END DO  !jc
+              END DO  !jk
               ! Tracer
               ! (The current loop order is inefficient,
               ! but a special treatment of the tracers
@@ -1329,11 +1329,11 @@ CONTAINS
                 DO jk = 1, nlev
                   DO jc = i_startidx, i_endidx
                     prm_upatmo%tend%ddt_qx_vdfmol(jc,jk,jb,jtrc) = 0._wp
-                  ENDDO  !jc
-                ENDDO  !jk
-              ENDDO  !jtrc
+                  END DO  !jc
+                END DO  !jk
+              END DO  !jtrc
 
-            CASE ( igrpRAD )
+            CASE (igrpRAD)
 
               !---------------------------------------------------------------------
               !                     Inactivate physics group:
@@ -1351,42 +1351,42 @@ CONTAINS
                   ! and the efficiency factor 'effrsw' from chemical heating are reset to 1
                   prm_upatmo%diag%sclrlw(jc,jk,jb) = 1._wp
                   prm_upatmo%diag%effrsw(jc,jk,jb) = 1._wp
-                ENDDO  !jc
-              ENDDO  !jk
+                END DO  !jc
+              END DO  !jk
 
             END SELECT !SELECT CASE( jgrp )
 
-          ENDDO  !jb
-!$OMP END DO
-!$OMP END PARALLEL
+          END DO  !jb
+          !$OMP END DO
+          !$OMP END PARALLEL
 
           ! Indicate that we have left the active phase
-          upatmo_nwp%grp( jgrp )%l_stat( iUpatmoPrcStat%afterActivePhase ) = .TRUE.
+          upatmo_nwp%grp(jgrp)%l_stat(iUpatmoPrcStat%afterActivePhase) = .TRUE.
 
-        ENDIF  !Left active phase?
+        END IF  !Left active phase?
 
-      ENDIF  !IF (lgrp_enabled( jgrp ))
+      END IF  !IF (lgrp_enabled( jgrp ))
 
       ! Evaluate information on inactivation tendency-wise
       ! (required for 'nwp_upatmo_update')
       DO jtnd = 1, ntnd  ! Exclude Exner pressure!
-        IF (upatmo_nwp%grp( jgrp )%l_update( jtnd )) THEN
-          prm_upatmo%tend%ddt%info( jtnd )%lafterActivePhase =         &
-            & prm_upatmo%tend%ddt%info( jtnd )%lafterActivePhase .AND. &
-            & upatmo_nwp%grp( jgrp )%l_stat( iUpatmoPrcStat%afterActivePhase )
-        ENDIF
-      ENDDO  !jtnd
+        IF (upatmo_nwp%grp(jgrp)%l_update(jtnd)) THEN
+          prm_upatmo%tend%ddt%info(jtnd)%lafterActivePhase =         &
+              & prm_upatmo%tend%ddt%info(jtnd)%lafterActivePhase .AND. &
+              & upatmo_nwp%grp(jgrp)%l_stat(iUpatmoPrcStat%afterActivePhase)
+        END IF
+      END DO  !jtnd
 
-    ENDDO  !jgrp
+    END DO  !jgrp
 
     ! Evaluate information on inactivation for Exner pressure
-    prm_upatmo%tend%ddt%info( itendExner )%lafterActivePhase =        &
-      & prm_upatmo%tend%ddt%info( itendTemp )%lafterActivePhase .AND. &
-      & prm_upatmo%tend%ddt%info( itendQx )%lafterActivePhase
+    prm_upatmo%tend%ddt%info(itendExner)%lafterActivePhase =        &
+        & prm_upatmo%tend%ddt%info(itendTemp)%lafterActivePhase .AND. &
+        & prm_upatmo%tend%ddt%info(itendQx)%lafterActivePhase
 
     DO jtnd = 1, ntnd_2  ! Include Exner pressure
-      IF ( prm_upatmo%tend%ddt%info( jtnd )%lafterActivePhase .AND. &
-        &  prm_upatmo%tend%ddt%state( jtnd )%lunlockable()          ) THEN
+      IF (prm_upatmo%tend%ddt%info(jtnd)%lafterActivePhase .AND. &
+          &  prm_upatmo%tend%ddt%state(jtnd)%lunlockable()) THEN
         ! If a tendency left its active phase, we do a final swap,
         ! in order to simplify a proper treatment of this event
         ! in 'nwp_upatmo_update' below.
@@ -1400,33 +1400,33 @@ CONTAINS
         !  * In general, 'lupdated()' returns .true. after a call of 'swap()'
         !    and until the next call of 'clear()'.
         !    The abovementioned argument, however, makes 'lupdated()' return .false.
-        CALL prm_upatmo%tend%ddt%state( jtnd )%swap(optFinal = .TRUE., optCountAsUpdate = .FALSE.)
-      ENDIF
-    ENDDO  !jtnd
+        CALL prm_upatmo%tend%ddt%state(jtnd)%swap(optFinal=.TRUE., optCountAsUpdate=.FALSE.)
+      END IF
+    END DO  !jtnd
 
     !---------------------------------------------------------------------
     !                 Inactivate accumulative tendencies
     !                 after all processes went to sleep
     !---------------------------------------------------------------------
 
-    IF (upatmo_nwp%l_phy_stat( iUpatmoPrcStat%enabled )) THEN
+    IF (upatmo_nwp%l_phy_stat(iUpatmoPrcStat%enabled)) THEN
 
-      IF ( upatmo_nwp%isAfterOpPhase( mtime_datetime ) .AND. &
-        &  .NOT. upatmo_nwp%l_phy_stat( iUpatmoPrcStat%afterActivePhase ) ) THEN
+      IF (upatmo_nwp%isAfterOpPhase(mtime_datetime) .AND. &
+          &  .NOT.upatmo_nwp%l_phy_stat(iUpatmoPrcStat%afterActivePhase)) THEN
 
         ! The accumulative tendencies cannot be output
         ! and there is no more call of 'nwp_upatmo_update'
         ! after the overall active phase,
         ! so currently there is no reason to set the accumulative tendencies to zero.
 
-        upatmo_nwp%l_phy_stat( iUpatmoPrcStat%afterActivePhase ) = .TRUE.
+        upatmo_nwp%l_phy_stat(iUpatmoPrcStat%afterActivePhase) = .TRUE.
 
         IF (lmessage) CALL message(TRIM(routine), &
-          & 'Upper-atmosphere physics shut down on domain '//dom_str)
+            & 'Upper-atmosphere physics shut down on domain '//dom_str)
 
-      ENDIF  !Left active phase?
+      END IF  !Left active phase?
 
-    ENDIF  !Any upatmo physics enabled?
+    END IF  !Any upatmo physics enabled?
 
     ! Clean-up
     upatmo_nwp => NULL()
@@ -1434,59 +1434,60 @@ CONTAINS
     IF (ltimer) THEN
       CALL timer_stop(timer_upatmo_phy_tend)
       CALL timer_stop(timer_upatmo_phy)
-    ENDIF
+    END IF
 
   END SUBROUTINE nwp_upatmo_interface
+
 
   !====================================================================================
 
   !>
   !! Interface to accumulate the upper-atmosphere physics tendencies.
   !!
-  SUBROUTINE nwp_upatmo_update( lslowphys,       &  !in
-    &                           lradheat,        &  !in
-    &                           lturb,           &  !in
-    &                           dt_loc,          &  !in
-    &                           p_patch,         &  !inout
-    &                           p_prog_rcf,      &  !inout
-    &                           p_diag           )  !inout
+  SUBROUTINE nwp_upatmo_update(lslowphys,       &  !in
+      &                           lradheat,        &  !in
+      &                           lturb,           &  !in
+      &                           dt_loc,          &  !in
+      &                           p_patch,         &  !inout
+      &                           p_prog_rcf,      &  !inout
+      &                           p_diag)  !inout
 
     ! In/out variables
-    LOGICAL,                     INTENT(IN)    :: lslowphys        ! Any slow physics called in NWP interface?
-    LOGICAL,                     INTENT(IN)    :: lradheat         ! Radiative heating called?
-    LOGICAL,                     INTENT(IN)    :: lturb            ! Turbulence scheme called?
-    REAL(wp),                    INTENT(IN)    :: dt_loc           ! Advective time step (fast-physics time step)
+    LOGICAL,                     INTENT(IN) :: lslowphys        ! Any slow physics called in NWP interface?
+    LOGICAL,                     INTENT(IN) :: lradheat         ! Radiative heating called?
+    LOGICAL,                     INTENT(IN) :: lturb            ! Turbulence scheme called?
+    REAL(wp),                    INTENT(IN) :: dt_loc           ! Advective time step (fast-physics time step)
     TYPE(t_patch),       TARGET, INTENT(INOUT) :: p_patch          ! Grid/patch info
     TYPE(t_nh_prog),             INTENT(INOUT) :: p_prog_rcf       ! Prog vars (with red. calling frequency for tracers)
     TYPE(t_nh_diag),             INTENT(INOUT) :: p_diag           ! Diagnostic variables
 
     ! Local variables
-    TYPE(t_upatmo_tend), POINTER               :: prm_upatmo_tend  ! Upper-atmosphere physics tendencies
-    REAL(wp) :: mv( nproma, p_patch%nlev), dmv( nproma, p_patch%nlev)
-    REAL(wp) :: sum_dmv( nproma ), mv_tot( nproma )
+    TYPE(t_upatmo_tend), POINTER :: prm_upatmo_tend  ! Upper-atmosphere physics tendencies
+    REAL(wp) :: mv(nproma, p_patch%nlev), dmv(nproma, p_patch%nlev)
+    REAL(wp) :: sum_dmv(nproma), mv_tot(nproma)
 
-    INTEGER  :: istartlev( ntnd_2 ), iendlev( ntnd_2 )
-    INTEGER  :: jg, jb, jk, jc, je, jtnd
-    INTEGER  :: nswap, inew, iold
-    INTEGER  :: rl_start, rl_end
-    INTEGER  :: i_startblk, i_endblk
-    INTEGER  :: i_startidx, i_endidx
+    INTEGER :: istartlev(ntnd_2), iendlev(ntnd_2)
+    INTEGER :: jg, jb, jk, jc, je, jtnd
+    INTEGER :: nswap, inew, iold
+    INTEGER :: rl_start, rl_end
+    INTEGER :: i_startblk, i_endblk
+    INTEGER :: i_startidx, i_endidx
 
-    LOGICAL  :: lupdated_upatmo( ntnd_2 ), linActivePhase( ntnd_2 )
-    LOGICAL  :: ladd( ntnd_2 ), lsubtract( ntnd_2 ), lafterActivePhase( ntnd_2 )
-    LOGICAL  :: lqvconstrained( p_patch%nblks_c )
-    LOGICAL  :: lmessage, ltimer, lupdated_nwp, lpassed
+    LOGICAL :: lupdated_upatmo(ntnd_2), linActivePhase(ntnd_2)
+    LOGICAL :: ladd(ntnd_2), lsubtract(ntnd_2), lafterActivePhase(ntnd_2)
+    LOGICAL :: lqvconstrained(p_patch%nblks_c)
+    LOGICAL :: lmessage, ltimer, lupdated_nwp, lpassed
 
     REAL(wp), POINTER :: ddt_exner_tot_old(:,:,:), ddt_exner_tot_new(:,:,:), &
-      &                  ddt_vn_tot_old(:,:,:), ddt_vn_tot_new(:,:,:),       &
-      &                  ddt_qv_tot(:,:,:)
+        &                  ddt_vn_tot_old(:,:,:), ddt_vn_tot_new(:,:,:),       &
+        &                  ddt_qv_tot(:,:,:)
 
-    CHARACTER(LEN=2)               :: dom_str
+    CHARACTER(LEN=2) :: dom_str
     CHARACTER(LEN=MAX_CHAR_LENGTH) :: sanity_check_msg
 
     REAL(wp), PARAMETER :: eps = ABS(dbl_eps) * 1000._wp
     CHARACTER(LEN=MAX_CHAR_LENGTH), PARAMETER ::  &
-      &  routine = modname//':nwp_upatmo_update'
+        &  routine = modname//':nwp_upatmo_update'
 
     !--------------------------------------------------------------
 
@@ -1524,32 +1525,32 @@ CONTAINS
     jg = p_patch%id
     prm_upatmo_tend => prm_upatmo_vec(jg)%tend
 
-    ltimer = upatmo_config(jg)%l_status( iUpatmoStat%timer )
+    ltimer = upatmo_config(jg)%l_status(iUpatmoStat%timer)
 
     IF (ltimer) THEN
       CALL timer_start(timer_upatmo_phy)
       CALL timer_start(timer_upatmo_phy_acc)
-    ENDIF
+    END IF
 
     ! Message output desired?
-    lmessage = upatmo_config(jg)%l_status( iUpatmoStat%message )
+    lmessage = upatmo_config(jg)%l_status(iUpatmoStat%message)
 
     ! For messages
     dom_str = TRIM(int2string(jg))
 
     IF (lmessage) CALL message(TRIM(routine), &
-      & 'Start integration of upatmo tendencies into NWP tendencies on domain '//dom_str)
+        & 'Start integration of upatmo tendencies into NWP tendencies on domain '//dom_str)
 
     ddt_exner_tot_old => NULL()
     ddt_exner_tot_new => NULL()
-    ddt_vn_tot_old    => NULL()
-    ddt_vn_tot_new    => NULL()
-    ddt_qv_tot        => NULL()
+    ddt_vn_tot_old => NULL()
+    ddt_vn_tot_new => NULL()
+    ddt_qv_tot => NULL()
 
     DO jtnd = 1, ntnd_2
 
       ! Is current time in time period, within which tendency experiences updates?
-      linActivePhase( jtnd ) = prm_upatmo_tend%ddt%info( jtnd )%linActivePhase
+      linActivePhase(jtnd) = prm_upatmo_tend%ddt%info(jtnd)%linActivePhase
 
       ! If the event of inactivation occured for a tendency,
       ! we may have to subtract previously integrated upper-atmosphere tendencies,
@@ -1562,15 +1563,15 @@ CONTAINS
       ! 'ddt%state%swap()' permanently (i.e., any further call of 'swap'
       ! will lead to a call of 'finish').
       ! (Please note that this information is not equivalent to '.NOT. linActivePhase')
-      lafterActivePhase( jtnd ) = prm_upatmo_tend%ddt%info( jtnd )%lafterActivePhase .AND. &
-        &                         prm_upatmo_tend%ddt%state( jtnd )%lfinal()
+      lafterActivePhase(jtnd) = prm_upatmo_tend%ddt%info(jtnd)%lafterActivePhase .AND. &
+          &                         prm_upatmo_tend%ddt%state(jtnd)%lfinal()
 
       ! Number of swaps up to now
-      nswap = prm_upatmo_tend%ddt%state( jtnd )%nswap()
+      nswap = prm_upatmo_tend%ddt%state(jtnd)%nswap()
 
       ! The total tendencies of which variables have been updated by upper-atmosphere physics?
       ! ('state%lupdated' has been set by the call of 'state%swap' in 'nwp_upatmo_interface' above.)
-      lupdated_upatmo( jtnd ) = prm_upatmo_tend%ddt%state( jtnd )%lupdated()
+      lupdated_upatmo(jtnd) = prm_upatmo_tend%ddt%state(jtnd)%lupdated()
 
       ! The total tendencies of which variables have been updated by NWP physics?
       lupdated_nwp = lslowphys
@@ -1578,36 +1579,36 @@ CONTAINS
       IF (jtnd == itendWind) lupdated_nwp = lupdated_nwp .AND. lturb
 
       ! Which tendencies have to be integrated or reintegrated into the total NWP tendencies?
-      ladd( jtnd ) = lupdated_upatmo( jtnd ) .OR. &
-        &            (linActivePhase( jtnd ) .AND. (nswap > 0) .AND. lupdated_nwp)
+      ladd(jtnd) = lupdated_upatmo(jtnd) .OR. &
+          &            (linActivePhase(jtnd) .AND. (nswap > 0) .AND. lupdated_nwp)
 
       ! Do we have to subtract upper-atmosphere tendencies
       ! previously integrated into the total NWP tendencies
       ! and still contained therein?
-      lsubtract( jtnd ) = (lupdated_upatmo( jtnd ) .OR. lafterActivePhase( jtnd )) .AND. &
-        &                 (nswap > 1) .AND. (.NOT. lupdated_nwp)
+      lsubtract(jtnd) = (lupdated_upatmo(jtnd) .OR. lafterActivePhase(jtnd)) .AND. &
+          &                 (nswap > 1) .AND. (.NOT.lupdated_nwp)
 
       ! Start and end indices of the grid layer range
       ! for which tendencies are computed
-      istartlev( jtnd ) = prm_upatmo_tend%ddt%info( jtnd )%istartlev
-      iendlev( jtnd )   = prm_upatmo_tend%ddt%info( jtnd )%iendlev
+      istartlev(jtnd) = prm_upatmo_tend%ddt%info(jtnd)%istartlev
+      iendlev(jtnd)   = prm_upatmo_tend%ddt%info(jtnd)%iendlev
 
-    ENDDO  !jtnd_2
+    END DO  !jtnd_2
 
     !---------------------------------------------------------------------
     !                         Wind tendencies
     !---------------------------------------------------------------------
 
-    IF (ladd( itendWind ) .OR. lsubtract( itendWind )) THEN
+    IF (ladd(itendWind) .OR. lsubtract(itendWind)) THEN
 
-      IF (lsubtract( itendWind )) THEN
-        iold = prm_upatmo_tend%ddt%state( itendWind )%iold()
-        ddt_vn_tot_old => prm_upatmo_tend%ddt%vn( iold )%tot
-      ENDIF
-      IF (ladd( itendWind )) THEN
-        inew = prm_upatmo_tend%ddt%state( itendWind )%inew()
-        ddt_vn_tot_new => prm_upatmo_tend%ddt%vn( inew )%tot
-      ENDIF
+      IF (lsubtract(itendWind)) THEN
+        iold = prm_upatmo_tend%ddt%state(itendWind)%iold()
+        ddt_vn_tot_old => prm_upatmo_tend%ddt%vn(iold)%tot
+      END IF
+      IF (ladd(itendWind)) THEN
+        inew = prm_upatmo_tend%ddt%state(itendWind)%inew()
+        ddt_vn_tot_new => prm_upatmo_tend%ddt%vn(inew)%tot
+      END IF
 
       ! Loop boundaries for prognostic domain.
       rl_start   = grf_bdywidth_e + 1
@@ -1615,51 +1616,51 @@ CONTAINS
       i_startblk = p_patch%edges%start_block(rl_start)
       i_endblk   = p_patch%edges%end_block(rl_end)
 
-!$OMP PARALLEL
-!$OMP DO PRIVATE(jb, jk, je, i_startidx, i_endidx) ICON_OMP_GUIDED_SCHEDULE
+      !$OMP PARALLEL
+      !$OMP DO PRIVATE(jb, jk, je, i_startidx, i_endidx) ICON_OMP_GUIDED_SCHEDULE
       DO jb = i_startblk, i_endblk
 
-        CALL get_indices_e( p_patch, jb, i_startblk, i_endblk,     &
-          &                 i_startidx, i_endidx, rl_start, rl_end )
+        CALL get_indices_e(p_patch, jb, i_startblk, i_endblk,     &
+            &                 i_startidx, i_endidx, rl_start, rl_end)
 
         !---------------------------------------------------------------------
         !                   Subtract old wind tendencies
         !---------------------------------------------------------------------
 
-        IF (lsubtract( itendWind )) THEN
+        IF (lsubtract(itendWind)) THEN
 
-          DO jk = istartlev( itendWind ), iendlev( itendWind )
+          DO jk = istartlev(itendWind), iendlev(itendWind)
             DO je = i_startidx, i_endidx
               p_diag%ddt_vn_phy(je,jk,jb) = p_diag%ddt_vn_phy(je,jk,jb) &
-                &                         - REAL(ddt_vn_tot_old(je,jk,jb), vp)
-            ENDDO  !je
-          ENDDO  !jk
+                  &                         - REAL(ddt_vn_tot_old(je,jk,jb), vp)
+            END DO  !je
+          END DO  !jk
 
-        ENDIF
+        END IF
 
         !---------------------------------------------------------------------
         !                      Add new wind tendencies
         !---------------------------------------------------------------------
 
-        IF (ladd( itendWind )) THEN
+        IF (ladd(itendWind)) THEN
 
-          DO jk = istartlev( itendWind ), iendlev( itendWind )
+          DO jk = istartlev(itendWind), iendlev(itendWind)
             DO je = i_startidx, i_endidx
               p_diag%ddt_vn_phy(je,jk,jb) = p_diag%ddt_vn_phy(je,jk,jb) &
-                &                         + REAL(ddt_vn_tot_new(je,jk,jb), vp)
-            ENDDO  !je
-          ENDDO  !jk
+                  &                         + REAL(ddt_vn_tot_new(je,jk,jb), vp)
+            END DO  !je
+          END DO  !jk
 
-        ENDIF
+        END IF
 
-      ENDDO  !jb
-!$OMP END DO
-!$OMP END PARALLEL
+      END DO  !jb
+      !$OMP END DO
+      !$OMP END PARALLEL
 
-      IF (lsubtract( itendWind )) ddt_vn_tot_old => NULL()
-      IF (ladd( itendWind ))      ddt_vn_tot_new => NULL()
+      IF (lsubtract(itendWind)) ddt_vn_tot_old => NULL()
+      IF (ladd(itendWind))      ddt_vn_tot_new => NULL()
 
-    ENDIF  !Process wind tendencies?
+    END IF  !Process wind tendencies?
 
     ! The rest of the tendencies live in cells
     rl_start   = grf_bdywidth_c + 1
@@ -1671,62 +1672,62 @@ CONTAINS
     !                     Exner pressure tendencies
     !---------------------------------------------------------------------
 
-    IF (ladd( itendExner ) .OR. lsubtract( itendExner )) THEN
+    IF (ladd(itendExner) .OR. lsubtract(itendExner)) THEN
 
-      IF (lsubtract( itendExner )) THEN
-        iold = prm_upatmo_tend%ddt%state( itendExner )%iold()
-        ddt_exner_tot_old => prm_upatmo_tend%ddt%exner( iold )%tot
-      ENDIF
-      IF (ladd( itendExner )) THEN
-        inew = prm_upatmo_tend%ddt%state( itendExner )%inew()
-        ddt_exner_tot_new => prm_upatmo_tend%ddt%exner( inew )%tot
-      ENDIF
+      IF (lsubtract(itendExner)) THEN
+        iold = prm_upatmo_tend%ddt%state(itendExner)%iold()
+        ddt_exner_tot_old => prm_upatmo_tend%ddt%exner(iold)%tot
+      END IF
+      IF (ladd(itendExner)) THEN
+        inew = prm_upatmo_tend%ddt%state(itendExner)%inew()
+        ddt_exner_tot_new => prm_upatmo_tend%ddt%exner(inew)%tot
+      END IF
 
-!$OMP PARALLEL
-!$OMP DO PRIVATE(jb, jk, jc, i_startidx, i_endidx) ICON_OMP_GUIDED_SCHEDULE
+      !$OMP PARALLEL
+      !$OMP DO PRIVATE(jb, jk, jc, i_startidx, i_endidx) ICON_OMP_GUIDED_SCHEDULE
       DO jb = i_startblk, i_endblk
 
-        CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,     &
-          &                 i_startidx, i_endidx, rl_start, rl_end )
+        CALL get_indices_c(p_patch, jb, i_startblk, i_endblk,     &
+            &                 i_startidx, i_endidx, rl_start, rl_end)
 
         !---------------------------------------------------------------------
         !               Subtract old Exner pressure tendencies
         !---------------------------------------------------------------------
 
-        IF (lsubtract( itendExner )) THEN
+        IF (lsubtract(itendExner)) THEN
 
-          DO jk = istartlev( itendExner ), iendlev( itendExner )
+          DO jk = istartlev(itendExner), iendlev(itendExner)
             DO jc = i_startidx, i_endidx
               p_diag%ddt_exner_phy(jc,jk,jb) = p_diag%ddt_exner_phy(jc,jk,jb) &
-                &                            - REAL(ddt_exner_tot_old(jc,jk,jb), vp)
-            ENDDO  !jc
-          ENDDO  !jk
+                  &                            - REAL(ddt_exner_tot_old(jc,jk,jb), vp)
+            END DO  !jc
+          END DO  !jk
 
-        ENDIF
+        END IF
 
         !---------------------------------------------------------------------
         !                  Add new Exner pressure tendencies
         !---------------------------------------------------------------------
 
-        IF (ladd( itendExner )) THEN
+        IF (ladd(itendExner)) THEN
 
-          DO jk = istartlev( itendExner ), iendlev( itendExner )
+          DO jk = istartlev(itendExner), iendlev(itendExner)
             DO jc = i_startidx, i_endidx
               p_diag%ddt_exner_phy(jc,jk,jb) = p_diag%ddt_exner_phy(jc,jk,jb) &
-                &                            + REAL(ddt_exner_tot_new(jc,jk,jb), vp)
-            ENDDO  !jc
-          ENDDO  !jk
+                  &                            + REAL(ddt_exner_tot_new(jc,jk,jb), vp)
+            END DO  !jc
+          END DO  !jk
 
-        ENDIF
+        END IF
 
-      ENDDO  !jb
-!$OMP END DO
-!$OMP END PARALLEL
+      END DO  !jb
+      !$OMP END DO
+      !$OMP END PARALLEL
 
-      IF (lsubtract( itendExner )) ddt_exner_tot_old => NULL()
-      IF (ladd( itendExner ))      ddt_exner_tot_new => NULL()
+      IF (lsubtract(itendExner)) ddt_exner_tot_old => NULL()
+      IF (ladd(itendExner))      ddt_exner_tot_new => NULL()
 
-    ENDIF  !Process Exner pressure tendencies?
+    END IF  !Process Exner pressure tendencies?
 
     !---------------------------------------------------------------------
     !                       Water vapor tendencies
@@ -1745,9 +1746,9 @@ CONTAINS
 
     ! Initialize switch that indicates,
     ! if one of the following constraints on qv took effect
-    lqvconstrained( : ) = .FALSE.
+    lqvconstrained(:) = .FALSE.
 
-    IF (linActivePhase( itendQx )) THEN
+    IF (linActivePhase(itendQx)) THEN
 
       ! Currently, water vapor tendencies may result from molecular diffusion
       ! (see 'vdf_mol' above). Neglecting advective (reversible) fluxes,
@@ -1812,83 +1813,83 @@ CONTAINS
       !   would contribute to ddt_qv_tot,
       ! - ... the Exner pressure tendency for efficiency reasons.
 
-      inew = prm_upatmo_tend%ddt%state( itendQx )%inew()
-      ddt_qv_tot => prm_upatmo_tend%ddt%qx( inew )%tot(:,:,:,itracerQv)
+      inew = prm_upatmo_tend%ddt%state(itendQx)%inew()
+      ddt_qv_tot => prm_upatmo_tend%ddt%qx(inew)%tot(:,:,:,itracerQv)
 
-!$OMP PARALLEL
-!$OMP DO PRIVATE(jb, jk, jc, i_startidx, i_endidx, mv, dmv, sum_dmv, mv_tot) ICON_OMP_GUIDED_SCHEDULE
+      !$OMP PARALLEL
+      !$OMP DO PRIVATE(jb, jk, jc, i_startidx, i_endidx, mv, dmv, sum_dmv, mv_tot) ICON_OMP_GUIDED_SCHEDULE
       DO jb = i_startblk, i_endblk
 
-        CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,     &
-          &                 i_startidx, i_endidx, rl_start, rl_end )
+        CALL get_indices_c(p_patch, jb, i_startblk, i_endblk,     &
+            &                 i_startidx, i_endidx, rl_start, rl_end)
 
         ! Initialize sum of changes in water vapor mass
         ! and total water vapor mass
         DO jc = i_startidx, i_endidx
           sum_dmv(jc) = 0._wp
           mv_tot(jc)  = 0._wp
-        ENDDO  !jc
+        END DO  !jc
 
         ! Change in water vapor mass
-        DO jk = istartlev( itendQx ), iendlev( itendQx )
+        DO jk = istartlev(itendQx), iendlev(itendQx)
           DO jc = i_startidx, i_endidx
             mv(jc,jk)   = p_prog_rcf%tracer(jc,jk,jb,iqv) * p_diag%airmass_new(jc,jk,jb)
             dmv(jc,jk)  = dt_loc * ddt_qv_tot(jc,jk,jb) * p_diag%airmass_new(jc,jk,jb)
             sum_dmv(jc) = sum_dmv(jc) + dmv(jc,jk)
-            mv_tot(jc)  = mv_tot(jc)  + mv(jc,jk)
+            mv_tot(jc)  = mv_tot(jc) + mv(jc,jk)
             IF (mv(jc,jk) < -dmv(jc,jk)) THEN
-              sum_dmv(jc)        = sum_dmv(jc) - ( mv(jc,jk) + dmv(jc,jk) )
+              sum_dmv(jc)        = sum_dmv(jc) - (mv(jc,jk) + dmv(jc,jk))
               dmv(jc,jk)         = -mv(jc,jk)
               lqvconstrained(jb) = .TRUE.
-            ENDIF
-          ENDDO  !jc
-        ENDDO  !jk
+            END IF
+          END DO  !jc
+        END DO  !jk
 
         ! Avoid division by zero
         DO jc = i_startidx, i_endidx
           IF (mv_tot(jc) < eps) mv_tot(jc) = eps
-        ENDDO  !jc
+        END DO  !jc
 
         ! Distribute the excess mass among the cells
         ! and compute the new value of specific humidity
-        DO jk = istartlev( itendQx ), iendlev( itendQx )
+        DO jk = istartlev(itendQx), iendlev(itendQx)
           DO jc = i_startidx, i_endidx
             dmv(jc,jk) = dmv(jc,jk) + mv(jc,jk) * sum_dmv(jc) / mv_tot(jc)
-            p_prog_rcf%tracer(jc,jk,jb,iqv) = ( mv(jc,jk) + dmv(jc,jk) ) / p_diag%airmass_new(jc,jk,jb)
-          ENDDO  !jc
-        ENDDO  !jk
+            p_prog_rcf%tracer(jc,jk,jb,iqv) = (mv(jc,jk) + dmv(jc,jk)) / p_diag%airmass_new(jc,jk,jb)
+          END DO  !jc
+        END DO  !jk
 
-      ENDDO  !jb
-!$OMP END DO
-!$OMP END PARALLEL
+      END DO  !jb
+      !$OMP END DO
+      !$OMP END PARALLEL
 
       ! 'lsanitycheck' can be set in 'src/namelists/mo_upatmo_nml'
       IF (upatmo_phy_config(jg)%lsanitycheck) THEN
 
         ! Is updated specific humidity still positive-definite?
-        CALL sanity_check ( p_patch     = p_patch,                      &  !in
-          &                 state       = p_prog_rcf%tracer(:,:,:,iqv), &  !in
-          &                 bound       = 0._wp,                        &  !in
-          &                 keys        = 'cell,lower',                 &  !in
-          &                 lpassed     = lpassed,                      &  !out
-          &                 opt_slev    = istartlev( itendQx ),         &  !optin
-          &                 opt_elev    = iendlev( itendQx ),           &  !optin
-          &                 opt_message = sanity_check_msg              )  !optout
+        CALL sanity_check(p_patch=p_patch,                      &  !in
+            &                 state=p_prog_rcf%tracer(:,:,:,iqv), &  !in
+            &                 bound=0._wp,                        &  !in
+            &                 keys='cell,lower',                 &  !in
+            &                 lpassed=lpassed,                      &  !out
+            &                 opt_slev=istartlev(itendQx),         &  !optin
+            &                 opt_elev=iendlev(itendQx),           &  !optin
+            &                 opt_message=sanity_check_msg)  !optout
 
-        IF (.NOT. lpassed) THEN
+        IF (.NOT.lpassed) THEN
           message_text = 'Updated specific humidity is not positive-definite: ' &
-            & //TRIM(sanity_check_msg)//' Please reconsider its computation.'
+              & //TRIM(sanity_check_msg)//' Please reconsider its computation.'
           CALL finish(TRIM(routine), TRIM(message_text))
-        ENDIF
+        END IF
 
-      ENDIF  !IF (upatmo_phy_config(jg)%lsanitycheck)
+      END IF  !IF (upatmo_phy_config(jg)%lsanitycheck)
 
       ! Update halo cells.
       ! (This call is the reason why 'p_patch' got the attribute 'INTENT(INOUT)'
       ! instead of 'INTENT(IN)', which would otherwise have been sufficient.)
       CALL sync_patch_array(SYNC_C, p_patch, p_prog_rcf%tracer(:,:,:,iqv), lacc=.FALSE.)
 
-    ENDIF  !Process water vapor tendencies?
+    END IF  !Process water vapor tendencies?
 
     !---------------------------------------------------------------------
     !                          Postprocessing
@@ -1899,24 +1900,24 @@ CONTAINS
       ! Unlock 'swap' for next call in 'nwp_upatmo_interface'
       ! - a step, without which the next call of 'swap' would lead to a call of 'finish' -
       ! or lock 'swap' permanently, if the active phase of a tendency is over
-      IF (lupdated_upatmo( jtnd ) .OR. lafterActivePhase( jtnd )) &
-        & CALL prm_upatmo_tend%ddt%state( jtnd )%clear()
+      IF (lupdated_upatmo(jtnd) .OR. lafterActivePhase(jtnd)) &
+          & CALL prm_upatmo_tend%ddt%state(jtnd)%clear()
 
-    ENDDO
+    END DO
 
     IF (lmessage) THEN
       message_text = 'Finish integration of upatmo tendencies into NWP tendencies on domain' &
-        & //TRIM(dom_str)
+          & //TRIM(dom_str)
       IF (ANY(lqvconstrained(:))) THEN
         message_text = TRIM(message_text)//' (constraint: qv + dqv_upatmo >=! 0 took effect!)'
-      ENDIF
+      END IF
       CALL message(TRIM(routine), TRIM(message_text))
-    ENDIF
+    END IF
 
     IF (ltimer) THEN
       CALL timer_stop(timer_upatmo_phy_acc)
       CALL timer_stop(timer_upatmo_phy)
-    ENDIF
+    END IF
 
   END SUBROUTINE nwp_upatmo_update
 

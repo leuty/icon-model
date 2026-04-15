@@ -241,11 +241,11 @@ MODULE mo_nh_stepping
   USE mo_upatmo_config,            ONLY: upatmo_config
   USE mo_upatmo_impl_const,        ONLY: iUpatmoPrcStat
 #ifndef __NO_ICON_UPATMO__
-  USE mo_upatmo_state,             ONLY: prm_upatmo
-  USE mo_upatmo_flowevent_utils,   ONLY: t_upatmoRestartAttributes,      &
-    &                                    upatmoRestartAttributesPrepare, &
-    &                                    upatmoRestartAttributesGet,     &
-    &                                    upatmoRestartAttributesDeallocate
+  USE mo_upatmo_interface,         ONLY: prm_upatmo,                     &
+                                         t_upatmoRestartAttributes,      &
+                                         upatmoRestartAttributesPrepare, &
+                                         upatmoRestartAttributesGet,     &
+                                         upatmoRestartAttributesDeallocate
 #endif
   USE mo_icon2dace,                ONLY: mec_Event, init_dace_op, run_dace_op, dace_op_init
   USE mo_extpar_config,            ONLY: generate_filename

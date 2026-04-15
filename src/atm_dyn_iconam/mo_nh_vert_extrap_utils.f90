@@ -53,8 +53,8 @@ MODULE mo_nh_vert_extrap_utils
   USE mo_loopindices,            ONLY: get_indices_c, get_indices_e
   USE mo_intp,                   ONLY: cells2edges_scalar, cells2verts_scalar
   USE mo_math_gradients,         ONLY: grad_fd_tang
-  USE mo_timer,                  ONLY: timers_level, timer_start, timer_stop, &
-    &                                  timer_expol
+  USE mo_timer,                  ONLY: timers_level, timer_start, timer_stop
+  USE mo_upatmo_timer,           ONLY: timer_expol
   USE mo_fortran_tools,          ONLY: init
   USE mo_util_string,            ONLY: int2string, real2string
   USE mo_mpi,                    ONLY: get_my_mpi_work_id,           &

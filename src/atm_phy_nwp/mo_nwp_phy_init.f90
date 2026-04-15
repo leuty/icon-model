@@ -123,13 +123,14 @@ MODULE mo_nwp_phy_init
   USE mo_bcs_time_interpolation, ONLY: t_time_interpolation_weights,         &
     &                                  calculate_time_interpolation_weights
   USE mo_timer,               ONLY: timers_level, timer_start, timer_stop,   &
-    &                               timer_init_nwp_phy, timer_phys_reff, timer_upatmo
+    &                               timer_init_nwp_phy, timer_phys_reff
   USE mo_bc_greenhouse_gases, ONLY: read_bc_greenhouse_gases
   USE mo_nwp_reff_interface,  ONLY: init_reff
   USE mo_upatmo_config,       ONLY: upatmo_config
   USE mo_upatmo_impl_const,   ONLY: iUpatmoPrcStat, iUpatmoStat
 #ifndef __NO_ICON_UPATMO__
-  USE mo_upatmo_phy_setup,    ONLY: init_upatmo_phy_nwp
+  USE mo_upatmo_interface,    ONLY: init_upatmo_phy_nwp
+  USE mo_upatmo_timer,        ONLY: timer_upatmo
 #endif
 
   USE mo_ape_params,          ONLY: ape_sst

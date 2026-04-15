@@ -23,14 +23,14 @@ MODULE mo_upatmo_nml
   USE mo_mpi,                     ONLY: my_process_is_stdio
   USE mo_master_control,          ONLY: use_restart_namelists
   USE mo_restart_nml_and_att,     ONLY: open_tmpfile, store_and_close_namelist, &
-    &                                   open_and_restore_namelist, close_tmpfile
+      &                                   open_and_restore_namelist, close_tmpfile
   USE mo_nml_annotate,            ONLY: temp_defaults, temp_settings
   USE mo_impl_constants,          ONLY: SUCCESS, MAX_CHAR_LENGTH, max_dom
   USE mo_util_string,             ONLY: int2string
   USE mo_upatmo_impl_const,       ONLY: isolvar, isolvardat, iorbit, icycle,              &
-    &                                   iUpatmoPrcMode, iUpatmoPrcId, iUpatmoGasMode,     &
-    &                                   iUpatmoGrpId, iUpatmoGasId, iUpatmoExtdatId,      &
-    &                                   iThermdynCoupling
+      &                                   iUpatmoPrcMode, iUpatmoPrcId, iUpatmoGasMode,     &
+      &                                   iUpatmoGrpId, iUpatmoGasId, iUpatmoExtdatId,      &
+      &                                   iThermdynCoupling
   USE mo_physical_constants,      ONLY: amd, amco2, amo2, amo3, amo, amno
   USE mtime,                      ONLY: MAX_DATETIME_STR_LEN
   USE mo_upatmo_utils,            ONLY: isInInterval
@@ -41,7 +41,7 @@ MODULE mo_upatmo_nml
 
   PUBLIC :: read_upatmo_namelist
 
-  CHARACTER(LEN = *), PARAMETER :: modname = 'mo_upatmo_nml'
+  CHARACTER(LEN=*), PARAMETER :: modname = 'mo_upatmo_nml'
 
   !------------------------------------------------------------
   !                    Namelist parameters
@@ -56,38 +56,38 @@ MODULE mo_upatmo_nml
   REAL(wp) :: expol_start_height     ! [m] Height above which extrapolation (blending) of initial data starts
   REAL(wp) :: expol_blending_scale   ! [m] Blending scale height
   REAL(wp) :: expol_vn_decay_scale   ! [m] Scale height for (exponential) decay of extrapolated
-                                     ! horizontal wind component (for stability reasons)
+  ! horizontal wind component (for stability reasons)
   REAL(wp) :: expol_temp_infty       ! [K] Climatological temperature of exosphere (z -> infinity)
-  LOGICAL  :: lexpol_sanitycheck     ! .TRUE. -> Apply sanity check to extrapolated fields
+  LOGICAL :: lexpol_sanitycheck     ! .TRUE. -> Apply sanity check to extrapolated fields
 
   !---------------
   !   Physics
   !---------------
 
-  INTEGER  :: orbit_type   ! Orbit model:
-                           ! * 1: vsop87 -> standard and accurate model (vsop87)
-                           ! * 2: kepler -> simple model, appropriate for idealized work
-  INTEGER  :: solvar_type  ! Solar activity:
-                           ! * 1: normal activity
-                           ! * 2: low --,,--
-                           ! * 3: high --,,--
-  INTEGER  :: solvar_data  ! Solar activity data type:
-                           ! * 1: G. Rottman data
-                           ! * 2: J. Lean data
-  INTEGER  :: solcyc_type  ! Solar cycle:
-                           ! * 1: standard cycle
-                           ! * 2: 27day cycle
+  INTEGER :: orbit_type   ! Orbit model:
+  ! * 1: vsop87 -> standard and accurate model (vsop87)
+  ! * 2: kepler -> simple model, appropriate for idealized work
+  INTEGER :: solvar_type  ! Solar activity:
+  ! * 1: normal activity
+  ! * 2: low --,,--
+  ! * 3: high --,,--
+  INTEGER :: solvar_data  ! Solar activity data type:
+  ! * 1: G. Rottman data
+  ! * 2: J. Lean data
+  INTEGER :: solcyc_type  ! Solar cycle:
+  ! * 1: standard cycle
+  ! * 2: 27day cycle
   ! The following parameters
   ! are not controllable by namelist
   ! for the time being
   REAL(wp) :: cecc         ! Eccentricity of orbit
   REAL(wp) :: cobld        ! Obliquity of Earth axis
   REAL(wp) :: clonp        ! Longitude of perihelion
-  LOGICAL  :: lyr_perp     ! .TRUE.: Earth orbit of year 'yr_perp'
-                           ! of the VSOP87 orbit model is perpetuated
-                           ! .FALSE.: transient Earth orbit following VSOP87
-  INTEGER  :: yr_perp      ! Year used for 'lyr_perp = .TRUE.'
-  LOGICAL  :: lsanitycheck ! Switch for applying sanity checks
+  LOGICAL :: lyr_perp     ! .TRUE.: Earth orbit of year 'yr_perp'
+  ! of the VSOP87 orbit model is perpetuated
+  ! .FALSE.: transient Earth orbit following VSOP87
+  INTEGER :: yr_perp      ! Year used for 'lyr_perp = .TRUE.'
+  LOGICAL :: lsanitycheck ! Switch for applying sanity checks
 
   !--------------------------------
 
@@ -125,11 +125,11 @@ MODULE mo_upatmo_nml
   ! dedicated for the namelist read-in, so for the time being start and end time apply to all domains.)
 
   TYPE t_nwp_prc_nml
-    INTEGER                             :: imode(max_dom)  ! Select mode of process group
-    REAL(wp)                            :: dt(max_dom)     ! Time step for process group
+    INTEGER :: imode(max_dom)  ! Select mode of process group
+    REAL(wp) :: dt(max_dom)     ! Time step for process group
     CHARACTER(LEN=MAX_DATETIME_STR_LEN) :: t_start         ! Start time of process group
     CHARACTER(LEN=MAX_DATETIME_STR_LEN) :: t_end           ! End time of process group
-    REAL(wp)                            :: start_height    ! Start height of process group
+    REAL(wp) :: start_height    ! Start height of process group
   END TYPE t_nwp_prc_nml
 
   TYPE(t_nwp_prc_nml) :: nwp_grp_imf  ! Ion drag (I), molecular diffusion (M) and frictional heating (F)
@@ -146,7 +146,7 @@ MODULE mo_upatmo_nml
   ! (No domain-dependence (-> 'max_dom') envisaged for the time being.)
 
   TYPE t_nwp_gas_nml
-    INTEGER  :: imode    ! Gas mode (corresponds to 'irad' in 'mo_radiation_config')
+    INTEGER :: imode    ! Gas mode (corresponds to 'irad' in 'mo_radiation_config')
     REAL(wp) :: vmr      ! Volume mixing ratio ((m3/m3), should be equal to mole fraction (mol/mol))
     REAL(wp) :: fscale   ! scaling factor for mixing ratio ('frad_<gas>' in 'mo_aes_rad_config')
   END TYPE t_nwp_gas_nml
@@ -166,7 +166,7 @@ MODULE mo_upatmo_nml
   ! (No domain-dependence envisaged for the time being.)
 
   TYPE t_nwp_extdat_nml
-    REAL(wp)                    :: dt        ! Update period for time interpolation
+    REAL(wp) :: dt        ! Update period for time interpolation
     CHARACTER(LEN=filename_max) :: filename  ! Name of the file containing the external data
   END TYPE t_nwp_extdat_nml
 
@@ -179,35 +179,35 @@ MODULE mo_upatmo_nml
   ! (These are "unofficial" namelist switches,
   ! i.e. they do not and shall not appear in Namelist_overview.pdf.)
   INTEGER :: nwp_thermdyn_cpl         ! Type of thermodynamic coupling of physics & dynamics:
-                                      ! * 1: isobaric coupling
-                                      ! * 2: isochoric coupling
-                                      ! * 3: entropic coupling
+  ! * 1: isobaric coupling
+  ! * 2: isochoric coupling
+  ! * 3: entropic coupling
   LOGICAL :: nwp_ldiss_from_heatdiff  ! Switch for considering heat source from heat diffusion
 
   !------------------------------------------------------------
 
   NAMELIST /upatmo_nml/ expol_start_height,     &
-    &                   expol_blending_scale,   &
-    &                   expol_vn_decay_scale,   &
-    &                   expol_temp_infty,       &
-    &                   lexpol_sanitycheck,     &
-    &                   orbit_type,             &
-    &                   solvar_type,            &
-    &                   solvar_data,            &
-    &                   solcyc_type,            &
-    &                   aes_start_height,       &
-    &                   nwp_grp_imf,            &
-    &                   nwp_grp_rad,            &
-    &                   nwp_gas_o3,             &
-    &                   nwp_gas_o2,             &
-    &                   nwp_gas_o,              &
-    &                   nwp_gas_co2,            &
-    &                   nwp_gas_no,             &
-    &                   nwp_extdat_gases,       &
-    &                   nwp_extdat_chemheat,    &
-    ! "unofficial" switches
-    &                   nwp_thermdyn_cpl,       &
-    &                   nwp_ldiss_from_heatdiff
+      &                   expol_blending_scale,   &
+      &                   expol_vn_decay_scale,   &
+      &                   expol_temp_infty,       &
+      &                   lexpol_sanitycheck,     &
+      &                   orbit_type,             &
+      &                   solvar_type,            &
+      &                   solvar_data,            &
+      &                   solcyc_type,            &
+      &                   aes_start_height,       &
+      &                   nwp_grp_imf,            &
+      &                   nwp_grp_rad,            &
+      &                   nwp_gas_o3,             &
+      &                   nwp_gas_o2,             &
+      &                   nwp_gas_o,              &
+      &                   nwp_gas_co2,            &
+      &                   nwp_gas_no,             &
+      &                   nwp_extdat_gases,       &
+      &                   nwp_extdat_chemheat,    &
+  ! "unofficial" switches
+      &                   nwp_thermdyn_cpl,       &
+      &                   nwp_ldiss_from_heatdiff
 
   !------------------------------------------------------------
 
@@ -230,7 +230,7 @@ CONTAINS !......................................................................
   !! - Stores the Namelist for restart
   !! - Fills the configuration state (partly)
   !!
-  SUBROUTINE read_upatmo_namelist( filename )
+  SUBROUTINE read_upatmo_namelist(filename)
 
     ! In/out variables
     CHARACTER(LEN=*), INTENT(IN) :: filename
@@ -238,13 +238,13 @@ CONTAINS !......................................................................
     ! Local variables
     REAL(wp) :: startheightall, startheightimf, startheightrad
     REAL(wp) :: sum_mmr
-    INTEGER  :: istat, funit
-    INTEGER  :: iunit
-    INTEGER  :: jg, igrp, igas, iext, istartitem, ienditem
-    LOGICAL  :: lvalid
+    INTEGER :: istat, funit
+    INTEGER :: iunit
+    INTEGER :: jg, igrp, igas, iext, istartitem, ienditem
+    LOGICAL :: lvalid
     REAL(wp), PARAMETER :: ramd = 1._wp / amd
     CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER ::  &
-      &  routine = modname//':read_upatmo_namelist'
+        &  routine = modname//':read_upatmo_namelist'
 
     !------------------------------------------------
 
@@ -268,9 +268,9 @@ CONTAINS !......................................................................
     expol_blending_scale = 10000.0_wp  ! (m) Blending scale height
     expol_vn_decay_scale = 10000.0_wp  ! (m) Horizontal wind decay scale height
     expol_temp_infty     = 400.0_wp    ! (K) Exospheric mean reference temperature
-                                       ! (e.g. climatological value from Hedin (1983) would be 1035 K)
+    ! (e.g. climatological value from Hedin (1983) would be 1035 K)
     lexpol_sanitycheck   = .FALSE.     ! No sanity check of extrapolated fields
-                                       ! (bacause it is computationally expensive)
+    ! (bacause it is computationally expensive)
 
     !---------------
     !    Physics
@@ -287,8 +287,8 @@ CONTAINS !......................................................................
     lyr_perp     = .FALSE.          ! --,,--
     yr_perp      = -99999           ! --,,--
     lsanitycheck = .FALSE.          ! .TRUE.: apply sanity checks (e.g.: Is mass of diagnostic gas N2 >=0 ?).
-                                    ! Switch on with care, these checks come along with significant additional
-                                    ! computational costs!
+    ! Switch on with care, these checks come along with significant additional
+    ! computational costs!
 
     ! ECHAM-specific settings:
 
@@ -300,9 +300,9 @@ CONTAINS !......................................................................
     aes_start_height%all      = -999._wp  ! (m) For all processes
     !
     aes_start_height%rad      = -999._wp  ! (m) For processes of the group RAD
-                                            ! (-> SRBC, EUV, NO, CHEMHEAT)
+    ! (-> SRBC, EUV, NO, CHEMHEAT)
     aes_start_height%imf      = -999._wp  ! (m) For processes of the group IMF
-                                            ! (-> IONDRAG, VDFMOL, FRIC, JOULE-HEATING)
+    ! (-> IONDRAG, VDFMOL, FRIC, JOULE-HEATING)
     ! For each process separately:
     aes_start_height%srbc     = -999._wp  ! (m) Heating due to Schumann-Runge bands and continuum of O2
     aes_start_height%euv      = -999._wp  ! (m) Extreme-ultraviolet heating
@@ -332,20 +332,20 @@ CONTAINS !......................................................................
     ! Process group: ion drag (I), molecular diffusion (M) and frictional heating (F):
     ! --------------------------------------------------------------------------------
     nwp_grp_imf%imode(:)     = iUpatmoPrcMode%unassigned  ! -1 -> This means that the group will be switched on
-                                                          ! on nests, if the following conditions are met:
-                                                          ! * lupatmo_phy(>1) = .TRUE.,
-                                                          !   which follows automatically, if the entry
-                                                          !   in the namelist file would be:
-                                                          !      &nwp_phy_nml
-                                                          !        lupatmo_phy = .TRUE.
-                                                          !      /
-                                                          ! * imode(1) = iUpatmoPrcMode%on = 1,
-                                                          !   which is the subsequent default setting
+    ! on nests, if the following conditions are met:
+    ! * lupatmo_phy(>1) = .TRUE.,
+    !   which follows automatically, if the entry
+    !   in the namelist file would be:
+    !      &nwp_phy_nml
+    !        lupatmo_phy = .TRUE.
+    !      /
+    ! * imode(1) = iUpatmoPrcMode%on = 1,
+    !   which is the subsequent default setting
     nwp_grp_imf%imode(1)     = iUpatmoPrcMode%on          ! 1 -> Switched on by default, if 'lupatmo_phy(1) = .TRUE.'
     !
     nwp_grp_imf%dt(:)        = -999._wp
     nwp_grp_imf%dt(1)        =  300._wp  ! (s) Default value for tendency update period.
-                                         ! The value for 'dt(1)' sets the upper bound for 'dt(>1)'!
+    ! The value for 'dt(1)' sets the upper bound for 'dt(>1)'!
     !
     nwp_grp_imf%t_start      = ' '       ! Start time is simulation start time
     nwp_grp_imf%t_end        = ' '       ! End time is simulation end time
@@ -398,7 +398,7 @@ CONTAINS !......................................................................
     ! External data: radiatively active gases
     ! ---------------------------------------
     nwp_extdat_gases%dt       = 86400._wp                   ! Update period for time interpolation
-                                                            ! of gas concentrations from external data: every day
+    ! of gas concentrations from external data: every day
     nwp_extdat_gases%filename = "upatmo_gases_chemheat.nc"  ! Name of file containing external data
 
     ! External data: chemical heating tendency
@@ -428,14 +428,14 @@ CONTAINS !......................................................................
     !------------------------------------------------------------
 
     CALL open_nml(TRIM(filename))
-    CALL position_nml ('upatmo_nml', status=istat)
+    CALL position_nml('upatmo_nml', status=istat)
     IF (my_process_is_stdio()) THEN
       iunit = temp_defaults()
       WRITE(iunit, upatmo_nml)    ! Write defaults to temporary text file
     END IF
     SELECT CASE (istat)
     CASE (POSITIONED)
-      READ (nnml, upatmo_nml)     ! Overwrite default settings
+      READ(nnml, upatmo_nml)     ! Overwrite default settings
       IF (my_process_is_stdio()) THEN
         iunit = temp_settings()
         WRITE(iunit, upatmo_nml)  ! Write settings to temporary text file
@@ -451,26 +451,26 @@ CONTAINS !......................................................................
     ! Extrapolation
     !---------------
 
-    IF( expol_start_height < 0._wp ) THEN
+    IF (expol_start_height < 0._wp) THEN
       ! The height above which the extrapolation starts
       ! has to be equal to or greater than zero
-      CALL finish( TRIM(routine), &
-        & 'Invalid value for expol_start_height, it has to be >= 0.' )
-    ELSEIF( expol_blending_scale < 0._wp ) THEN
+      CALL finish(TRIM(routine), &
+          & 'Invalid value for expol_start_height, it has to be >= 0.')
+    ELSEIF (expol_blending_scale < 0._wp) THEN
       ! The blending scale height has to be equal to
       ! or greater than zero
-      CALL finish( TRIM(routine), &
-        & 'Invalid value for expol_blending_scale, it has to be >= 0.' )
-    ELSEIF( expol_vn_decay_scale < 0._wp ) THEN
+      CALL finish(TRIM(routine), &
+          & 'Invalid value for expol_blending_scale, it has to be >= 0.')
+    ELSEIF (expol_vn_decay_scale < 0._wp) THEN
       ! Likewise the decay scale height for the horizontal wind
-      CALL finish( TRIM(routine), &
-        & 'Invalid value for expol_vn_decay_scale, it has to be >= 0.' )
-    ELSEIF( expol_temp_infty < 0._wp ) THEN
+      CALL finish(TRIM(routine), &
+          & 'Invalid value for expol_vn_decay_scale, it has to be >= 0.')
+    ELSEIF (expol_temp_infty < 0._wp) THEN
       ! The exospheric mean temperature has to be equal to
       ! or greater than zero
-      CALL finish( TRIM(routine), &
-        & 'Invalid value for expol_temp_infty, it has to be >= 0.' )
-    ENDIF
+      CALL finish(TRIM(routine), &
+          & 'Invalid value for expol_temp_infty, it has to be >= 0.')
+    END IF
 
     !---------------
     !    Physics
@@ -479,23 +479,23 @@ CONTAINS !......................................................................
     ! Check 'orbit_type'
     ! (Valid entries range from 1 to 'iorbit%nitem')
     lvalid = isInInterval(number=orbit_type, opt_clbnd=1, opt_cubnd=iorbit%nitem)
-    IF (.NOT. lvalid) CALL finish(TRIM(routine), 'Invalid orbit_type: ' &
-      & //TRIM(int2string(orbit_type)))
+    IF (.NOT.lvalid) CALL finish(TRIM(routine), 'Invalid orbit_type: ' &
+        & //TRIM(int2string(orbit_type)))
 
     ! Check 'solvar_type'
     lvalid = isInInterval(number=solvar_type, opt_clbnd=1, opt_cubnd=isolvar%nitem)
-    IF (.NOT. lvalid) CALL finish(TRIM(routine), 'Invalid solvar_type: ' &
-      & //TRIM(int2string(solvar_type)))
+    IF (.NOT.lvalid) CALL finish(TRIM(routine), 'Invalid solvar_type: ' &
+        & //TRIM(int2string(solvar_type)))
 
     ! Check 'solvar_data'
     lvalid = isInInterval(number=solvar_data, opt_clbnd=1, opt_cubnd=isolvardat%nitem)
-    IF (.NOT. lvalid) CALL finish(TRIM(routine), 'Invalid solvar_data: ' &
-      & //TRIM(int2string(solvar_data)))
+    IF (.NOT.lvalid) CALL finish(TRIM(routine), 'Invalid solvar_data: ' &
+        & //TRIM(int2string(solvar_data)))
 
     ! Check 'solcyc_type'
     lvalid = isInInterval(number=solcyc_type, opt_clbnd=1, opt_cubnd=icycle%nitem)
-    IF (.NOT. lvalid) CALL finish(TRIM(routine), 'Invalid solcyc_type: ' &
-      & //TRIM(int2string(solcyc_type)))
+    IF (.NOT.lvalid) CALL finish(TRIM(routine), 'Invalid solcyc_type: ' &
+        & //TRIM(int2string(solcyc_type)))
 
     ! Check mode of physics groups
     istartitem = iUpatmoPrcMode%startitem
@@ -505,28 +505,28 @@ CONTAINS !......................................................................
       ! ---
       lvalid = isInInterval(number=nwp_grp_imf%imode(jg), opt_clbnd=istartitem, opt_cubnd=ienditem)
       ! 'unassigned' is no valid option for the primary domain
-      IF (jg == 1) lvalid = lvalid .AND. .NOT. (nwp_grp_imf%imode(jg) == iUpatmoPrcMode%unassigned)
-      IF (.NOT. lvalid) CALL finish( TRIM(routine), &
-        & 'Invalid value for nwp_grp_imf%imode('//TRIM(int2string(jg))//').' )
+      IF (jg == 1) lvalid = lvalid .AND. .NOT.(nwp_grp_imf%imode(jg) == iUpatmoPrcMode%unassigned)
+      IF (.NOT.lvalid) CALL finish(TRIM(routine), &
+          & 'Invalid value for nwp_grp_imf%imode('//TRIM(int2string(jg))//').')
       ! RAD
       ! ---
       lvalid = isInInterval(number=nwp_grp_rad%imode(jg), opt_clbnd=istartitem, opt_cubnd=ienditem)
-      IF (jg == 1) lvalid = lvalid .AND. .NOT. (nwp_grp_rad%imode(jg) == iUpatmoPrcMode%unassigned)
-      IF (.NOT. lvalid) CALL finish( TRIM(routine), &
-        & 'Invalid value for nwp_grp_rad%imode('//TRIM(int2string(jg))//').' )
-    ENDDO  !jg
+      IF (jg == 1) lvalid = lvalid .AND. .NOT.(nwp_grp_rad%imode(jg) == iUpatmoPrcMode%unassigned)
+      IF (.NOT.lvalid) CALL finish(TRIM(routine), &
+          & 'Invalid value for nwp_grp_rad%imode('//TRIM(int2string(jg))//').')
+    END DO  !jg
 
     ! Check tendency update period on primary domain
     ! IMF
     ! ---
-    IF (.NOT. (nwp_grp_imf%dt(1) > 0._wp)) THEN
-      CALL finish( TRIM(routine), 'Invalid value for nwp_grp_imf%dt(1) (dt > 0 required).' )
-    ENDIF
+    IF (.NOT.(nwp_grp_imf%dt(1) > 0._wp)) THEN
+      CALL finish(TRIM(routine), 'Invalid value for nwp_grp_imf%dt(1) (dt > 0 required).')
+    END IF
     ! RAD
     ! ---
-    IF (.NOT. (nwp_grp_rad%dt(1) > 0._wp)) THEN
-      CALL finish( TRIM(routine), 'Invalid value for nwp_grp_rad%dt(1) (dt > 0 required).' )
-    ENDIF
+    IF (.NOT.(nwp_grp_rad%dt(1) > 0._wp)) THEN
+      CALL finish(TRIM(routine), 'Invalid value for nwp_grp_rad%dt(1) (dt > 0 required).')
+    END IF
 
     ! Check mode of radiatively active gases
     istartitem = iUpatmoGasMode%startitem
@@ -534,94 +534,94 @@ CONTAINS !......................................................................
     ! O3
     ! --
     lvalid = isInInterval(number=nwp_gas_o3%imode, opt_clbnd=istartitem, opt_cubnd=ienditem)
-    IF (.NOT. lvalid)  CALL finish( TRIM(routine), 'Invalid value for nwp_gas_o3%imode.' )
+    IF (.NOT.lvalid)  CALL finish(TRIM(routine), 'Invalid value for nwp_gas_o3%imode.')
     ! O2
     ! --
     lvalid = isInInterval(number=nwp_gas_o2%imode, opt_clbnd=istartitem, opt_cubnd=ienditem)
-    IF (.NOT. lvalid)  CALL finish( TRIM(routine), 'Invalid value for nwp_gas_o2%imode.' )
+    IF (.NOT.lvalid)  CALL finish(TRIM(routine), 'Invalid value for nwp_gas_o2%imode.')
     ! O
     ! -
     lvalid = isInInterval(number=nwp_gas_o%imode, opt_clbnd=istartitem, opt_cubnd=ienditem)
-    IF (.NOT. lvalid)  CALL finish( TRIM(routine), 'Invalid value for nwp_gas_o%imode.' )
+    IF (.NOT.lvalid)  CALL finish(TRIM(routine), 'Invalid value for nwp_gas_o%imode.')
     ! CO2
     ! ---
     lvalid = isInInterval(number=nwp_gas_co2%imode, opt_clbnd=istartitem, opt_cubnd=ienditem)
-    IF (.NOT. lvalid)  CALL finish( TRIM(routine), 'Invalid value for nwp_gas_co2%imode.' )
+    IF (.NOT.lvalid)  CALL finish(TRIM(routine), 'Invalid value for nwp_gas_co2%imode.')
     ! NO
     ! --
     lvalid = isInInterval(number=nwp_gas_no%imode, opt_clbnd=istartitem, opt_cubnd=ienditem)
-    IF (.NOT. lvalid)  CALL finish( TRIM(routine), 'Invalid value for nwp_gas_no%imode.' )
+    IF (.NOT.lvalid)  CALL finish(TRIM(routine), 'Invalid value for nwp_gas_no%imode.')
 
     ! Check volume mixing ratios (vmr >= 0 required, applies to 'const' mode only)
     ! O3
     ! --
     IF (nwp_gas_o3%imode == iUpatmoGasMode%const .AND. nwp_gas_o3%vmr < 0._wp)  THEN
-      CALL finish( TRIM(routine), 'Invalid value for nwp_gas_o3%vmr (vmr >= 0 required).' )
-    ENDIF
+      CALL finish(TRIM(routine), 'Invalid value for nwp_gas_o3%vmr (vmr >= 0 required).')
+    END IF
     ! O2
     ! --
     IF (nwp_gas_o2%imode == iUpatmoGasMode%const .AND. nwp_gas_o2%vmr < 0._wp)  THEN
-      CALL finish( TRIM(routine), 'Invalid value for nwp_gas_o2%vmr (vmr >= 0 required).' )
-    ENDIF
+      CALL finish(TRIM(routine), 'Invalid value for nwp_gas_o2%vmr (vmr >= 0 required).')
+    END IF
     ! O
     ! -
     IF (nwp_gas_o%imode == iUpatmoGasMode%const .AND. nwp_gas_o%vmr < 0._wp)  THEN
-      CALL finish( TRIM(routine), 'Invalid value for nwp_gas_o%vmr (vmr >= 0 required).' )
-    ENDIF
+      CALL finish(TRIM(routine), 'Invalid value for nwp_gas_o%vmr (vmr >= 0 required).')
+    END IF
     ! CO2
     ! ---
     IF (nwp_gas_co2%imode == iUpatmoGasMode%const .AND. nwp_gas_co2%vmr < 0._wp)  THEN
-      CALL finish( TRIM(routine), 'Invalid value for nwp_gas_co2%vmr (vmr >= 0 required).' )
-    ENDIF
+      CALL finish(TRIM(routine), 'Invalid value for nwp_gas_co2%vmr (vmr >= 0 required).')
+    END IF
     ! NO
     ! --
     IF (nwp_gas_no%imode == iUpatmoGasMode%const .AND. nwp_gas_no%vmr < 0._wp)  THEN
-      CALL finish( TRIM(routine), 'Invalid value for nwp_gas_no%vmr (vmr >= 0 required).' )
-    ENDIF
+      CALL finish(TRIM(routine), 'Invalid value for nwp_gas_no%vmr (vmr >= 0 required).')
+    END IF
 
     ! Check scaling factor for gas concentrations (fscale >= 0 required)
     ! O3
     ! --
     IF (nwp_gas_o3%fscale < 0._wp) THEN
-      CALL finish( TRIM(routine), 'Invalid value for nwp_gas_o3%fscale (fscale >= 0 required).' )
-    ENDIF
+      CALL finish(TRIM(routine), 'Invalid value for nwp_gas_o3%fscale (fscale >= 0 required).')
+    END IF
     ! O2
     ! --
     IF (nwp_gas_o2%fscale < 0._wp)  THEN
-      CALL finish( TRIM(routine), 'Invalid value for nwp_gas_o2%fscale (fscale >= 0 required).' )
-    ENDIF
+      CALL finish(TRIM(routine), 'Invalid value for nwp_gas_o2%fscale (fscale >= 0 required).')
+    END IF
     ! O
     ! -
     IF (nwp_gas_o%fscale < 0._wp)  THEN
-      CALL finish( TRIM(routine), 'Invalid value for nwp_gas_o%fscale (fscale >= 0 required).' )
-    ENDIF
+      CALL finish(TRIM(routine), 'Invalid value for nwp_gas_o%fscale (fscale >= 0 required).')
+    END IF
     ! CO2
     ! ---
     IF (nwp_gas_co2%fscale < 0._wp)  THEN
-      CALL finish( TRIM(routine), 'Invalid value for nwp_gas_co2%fscale (fscale >= 0 required).' )
-    ENDIF
+      CALL finish(TRIM(routine), 'Invalid value for nwp_gas_co2%fscale (fscale >= 0 required).')
+    END IF
     ! NO
     ! --
     IF (nwp_gas_no%fscale < 0._wp)  THEN
-      CALL finish( TRIM(routine), 'Invalid value for nwp_gas_no%fscale (fscale >= 0 required).' )
-    ENDIF
+      CALL finish(TRIM(routine), 'Invalid value for nwp_gas_no%fscale (fscale >= 0 required).')
+    END IF
 
     ! Check time interpolation update period for external data (dt > 0 required)
     ! gases
     ! -----
-    IF (.NOT. (nwp_extdat_gases%dt > 0._wp)) THEN
-      CALL finish( TRIM(routine), 'Invalid value for nwp_extdat_gases%dt (dt > 0 required).' )
-    ENDIF
+    IF (.NOT.(nwp_extdat_gases%dt > 0._wp)) THEN
+      CALL finish(TRIM(routine), 'Invalid value for nwp_extdat_gases%dt (dt > 0 required).')
+    END IF
     ! chemheat
     ! --------
-    IF (.NOT. (nwp_extdat_chemheat%dt > 0._wp)) THEN
-      CALL finish( TRIM(routine), 'Invalid value for nwp_extdat_chemheat%dt (dt > 0 required).' )
-    ENDIF
+    IF (.NOT.(nwp_extdat_chemheat%dt > 0._wp)) THEN
+      CALL finish(TRIM(routine), 'Invalid value for nwp_extdat_chemheat%dt (dt > 0 required).')
+    END IF
 
     ! Check "unofficial" switches
     lvalid = isInInterval(number=nwp_thermdyn_cpl, opt_clbnd=1, opt_cubnd=iThermdynCoupling%nitem)
-    IF (.NOT. lvalid) CALL finish(TRIM(routine), 'Invalid nwp_thermdyn_cpl: ' &
-      & //TRIM(int2string(nwp_thermdyn_cpl)))
+    IF (.NOT.lvalid) CALL finish(TRIM(routine), 'Invalid nwp_thermdyn_cpl: ' &
+        & //TRIM(int2string(nwp_thermdyn_cpl)))
 
     !------------------------------------------------------------
     !              Fill the configuration state
@@ -664,36 +664,36 @@ CONTAINS !......................................................................
       ! -----------------------
       ! Processes of group: IMF
       ! -----------------------
-      upatmo_phy_config(jg)%aes_start_height( iUpatmoPrcId%vdfmol )    =       &
-        & eval_start_height( start_height_process = aes_start_height%vdfmol,   &
-        &                    start_height_group   = startheightimf,            &
-        &                    start_height_all     = startheightall,            &
-        &                    detect_entry_by      = iNonNegVal                 )
+      upatmo_phy_config(jg)%aes_start_height(iUpatmoPrcId%vdfmol)    =       &
+          & eval_start_height(start_height_process=aes_start_height%vdfmol,   &
+          &                    start_height_group=startheightimf,            &
+          &                    start_height_all=startheightall,            &
+          &                    detect_entry_by=iNonNegVal)
       !
-      upatmo_phy_config(jg)%aes_start_height( iUpatmoPrcId%fric )    =         &
-        & eval_start_height(aes_start_height%fric, startheightimf, startheightall, iNonNegVal)
+      upatmo_phy_config(jg)%aes_start_height(iUpatmoPrcId%fric)    =         &
+          & eval_start_height(aes_start_height%fric, startheightimf, startheightall, iNonNegVal)
       !
-      upatmo_phy_config(jg)%aes_start_height( iUpatmoPrcId%iondrag ) =         &
-        & eval_start_height(aes_start_height%iondrag, startheightimf, startheightall, iNonNegVal)
+      upatmo_phy_config(jg)%aes_start_height(iUpatmoPrcId%iondrag) =         &
+          & eval_start_height(aes_start_height%iondrag, startheightimf, startheightall, iNonNegVal)
       ! Joule heating gets same start height as ion drag
-      upatmo_phy_config(jg)%aes_start_height( iUpatmoPrcId%joule )   =         &
-        & upatmo_phy_config(jg)%aes_start_height(iUpatmoPrcId%iondrag)
+      upatmo_phy_config(jg)%aes_start_height(iUpatmoPrcId%joule)   =         &
+          & upatmo_phy_config(jg)%aes_start_height(iUpatmoPrcId%iondrag)
       ! -----------------------
       ! Processes of group: RAD
       ! -----------------------
-      upatmo_phy_config(jg)%aes_start_height( iUpatmoPrcId%srbc )     =  &
-        & eval_start_height(aes_start_height%srbc, startheightrad, startheightall, iNonNegVal)
+      upatmo_phy_config(jg)%aes_start_height(iUpatmoPrcId%srbc)     =  &
+          & eval_start_height(aes_start_height%srbc, startheightrad, startheightall, iNonNegVal)
       !
-      upatmo_phy_config(jg)%aes_start_height( iUpatmoPrcId%euv )      =  &
-        & eval_start_height(aes_start_height%euv, startheightrad, startheightall, iNonNegVal)
+      upatmo_phy_config(jg)%aes_start_height(iUpatmoPrcId%euv)      =  &
+          & eval_start_height(aes_start_height%euv, startheightrad, startheightall, iNonNegVal)
       !
-      upatmo_phy_config(jg)%aes_start_height( iUpatmoPrcId%no )       =  &
-        & eval_start_height(aes_start_height%no, startheightrad, startheightall, iNonNegVal)
+      upatmo_phy_config(jg)%aes_start_height(iUpatmoPrcId%no)       =  &
+          & eval_start_height(aes_start_height%no, startheightrad, startheightall, iNonNegVal)
       !
-      upatmo_phy_config(jg)%aes_start_height( iUpatmoPrcId%chemheat ) =  &
-        & eval_start_height(aes_start_height%chemheat, startheightrad, startheightall, iNonNegVal)
+      upatmo_phy_config(jg)%aes_start_height(iUpatmoPrcId%chemheat) =  &
+          & eval_start_height(aes_start_height%chemheat, startheightrad, startheightall, iNonNegVal)
       ! NLTE is not modifiable with regard to the start height
-      upatmo_phy_config(jg)%aes_start_height( iUpatmoPrcId%nlte )     = -999._wp
+      upatmo_phy_config(jg)%aes_start_height(iUpatmoPrcId%nlte)     = -999._wp
       !
       ! NWP-specific:
       !
@@ -726,18 +726,18 @@ CONTAINS !......................................................................
         igrp = iUpatmoGrpId%imf
         IF (nwp_grp_imf%imode(jg) == iUpatmoPrcMode%unassigned) THEN
           ! No explicit namelist entry. Take value from previous domain
-          upatmo_phy_config(jg)%nwp_grp(igrp)%imode = upatmo_phy_config(jg-1)%nwp_grp(igrp)%imode
+          upatmo_phy_config(jg)%nwp_grp(igrp)%imode = upatmo_phy_config(jg - 1)%nwp_grp(igrp)%imode
         ELSE
           ! Explicit namelist entry
           upatmo_phy_config(jg)%nwp_grp(igrp)%imode = nwp_grp_imf%imode(jg)
-        ENDIF
-        IF (isInInterval(nwp_grp_imf%dt(jg), opt_olbnd=0._wp, opt_cubnd=nwp_grp_imf%dt(jg-1))) THEN
+        END IF
+        IF (isInInterval(nwp_grp_imf%dt(jg), opt_olbnd=0._wp, opt_cubnd=nwp_grp_imf%dt(jg - 1))) THEN
           ! Explicit (and valid) namelist entry
           upatmo_phy_config(jg)%nwp_grp(igrp)%dt = nwp_grp_imf%dt(jg)
         ELSE
           ! No explicit or valid namelist entry. Take value from prev. dom.
-          upatmo_phy_config(jg)%nwp_grp(igrp)%dt = upatmo_phy_config(jg-1)%nwp_grp(igrp)%dt
-        ENDIF
+          upatmo_phy_config(jg)%nwp_grp(igrp)%dt = upatmo_phy_config(jg - 1)%nwp_grp(igrp)%dt
+        END IF
         upatmo_phy_config(jg)%nwp_grp(igrp)%t_start      = nwp_grp_imf%t_start
         upatmo_phy_config(jg)%nwp_grp(igrp)%t_end        = nwp_grp_imf%t_end
         upatmo_phy_config(jg)%nwp_grp(igrp)%start_height = nwp_grp_imf%start_height
@@ -746,15 +746,15 @@ CONTAINS !......................................................................
         ! ------------------
         igrp = iUpatmoGrpId%rad
         IF (nwp_grp_rad%imode(jg) == iUpatmoPrcMode%unassigned) THEN
-          upatmo_phy_config(jg)%nwp_grp(igrp)%imode = upatmo_phy_config(jg-1)%nwp_grp(igrp)%imode
+          upatmo_phy_config(jg)%nwp_grp(igrp)%imode = upatmo_phy_config(jg - 1)%nwp_grp(igrp)%imode
         ELSE
           upatmo_phy_config(jg)%nwp_grp(igrp)%imode = nwp_grp_rad%imode(jg)
-        ENDIF
-        IF (isInInterval(nwp_grp_rad%dt(jg), opt_olbnd=0._wp, opt_cubnd=nwp_grp_rad%dt(jg-1))) THEN
+        END IF
+        IF (isInInterval(nwp_grp_rad%dt(jg), opt_olbnd=0._wp, opt_cubnd=nwp_grp_rad%dt(jg - 1))) THEN
           upatmo_phy_config(jg)%nwp_grp(igrp)%dt = nwp_grp_rad%dt(jg)
         ELSE
-          upatmo_phy_config(jg)%nwp_grp(igrp)%dt = upatmo_phy_config(jg-1)%nwp_grp(igrp)%dt
-        ENDIF
+          upatmo_phy_config(jg)%nwp_grp(igrp)%dt = upatmo_phy_config(jg - 1)%nwp_grp(igrp)%dt
+        END IF
         upatmo_phy_config(jg)%nwp_grp(igrp)%t_start      = nwp_grp_rad%t_start
         upatmo_phy_config(jg)%nwp_grp(igrp)%t_end        = nwp_grp_rad%t_end
         upatmo_phy_config(jg)%nwp_grp(igrp)%start_height = nwp_grp_rad%start_height
@@ -783,7 +783,7 @@ CONTAINS !......................................................................
 
       ELSE
         CALL finish(TRIM(routine), "Domain(s) jg < 0 not covered.")
-      ENDIF
+      END IF
 
       sum_mmr = 0._wp
       ! --------------------------
@@ -852,8 +852,8 @@ CONTAINS !......................................................................
       ! violate this constraint, we can stop here
       IF (sum_mmr > 1._wp) THEN
         CALL finish(TRIM(routine), 'Mass mixing ratios of gases sum up to >1, ' &
-          & //'please reconsider your settings for vmr and fscale in upatmo_nml.')
-      ENDIF
+            & //'please reconsider your settings for vmr and fscale in upatmo_nml.')
+      END IF
       igas = iUpatmoGasId%n2
       upatmo_phy_config(jg)%nwp_gas(igas)%imode  = iUpatmoGasMode%diag
       upatmo_phy_config(jg)%nwp_gas(igas)%vmr    = 0._wp
@@ -882,25 +882,26 @@ CONTAINS !......................................................................
       ! Change status
       upatmo_phy_config(jg)%lset = .TRUE.
 
-    ENDDO  !jg
+    END DO  !jg
 
     !------------------------------------------------------------
     !              Store the namelist for restart
     !------------------------------------------------------------
 
-    IF(my_process_is_stdio())  THEN
+    IF (my_process_is_stdio())  THEN
       funit = open_tmpfile()
       WRITE(funit,NML=upatmo_nml)
       CALL store_and_close_namelist(funit, 'upatmo_nml')
-    ENDIF
+    END IF
 
     !------------------------------------------------------------
     !     Write the contents of the namelist to an ASCII file
     !------------------------------------------------------------
 
-    IF(my_process_is_stdio()) WRITE(nnml_output,nml=upatmo_nml)
+    IF (my_process_is_stdio()) WRITE(nnml_output,nml=upatmo_nml)
 
   END SUBROUTINE read_upatmo_namelist
+
 
   !------------------------------------------------------------
 
@@ -909,10 +910,10 @@ CONTAINS !......................................................................
   !! above which the upper-atmosphere physics processes compute tendencies
   !! in case of ECHAM-forcing.
   !!
-  FUNCTION eval_start_height( start_height_process, &
-    &                         start_height_group,   &
-    &                         start_height_all,     &
-    &                         detect_entry_by       ) RESULT(start_height)
+  FUNCTION eval_start_height(start_height_process, &
+      &                         start_height_group,   &
+      &                         start_height_all,     &
+      &                         detect_entry_by) RESULT(start_height)
 
     ! In/out variables
     REAL(wp), INTENT(IN) :: start_height_process  ! Start height for single process
@@ -920,11 +921,11 @@ CONTAINS !......................................................................
     REAL(wp), INTENT(IN) :: start_height_all      ! Start height for all processes
     INTEGER,  INTENT(IN) :: detect_entry_by       ! How to detect a (valid) namelist entry
     !
-    REAL(wp)             :: start_height
+    REAL(wp) :: start_height
 
     ! Local variables
     CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER ::  &
-      &  routine = modname//':eval_start_height'
+        &  routine = modname//':eval_start_height'
 
     !------------------------------------------------
 
@@ -949,20 +950,20 @@ CONTAINS !......................................................................
     !                                         start_height_process
     !
 
-    SELECT CASE(detect_entry_by)
-    CASE(iNonNegVal)
+    SELECT CASE (detect_entry_by)
+    CASE (iNonNegVal)
 
       ! (Valid) namelist entries for the three start heights
       ! are detected by non-negative values
-      IF (.NOT. (start_height_process < 0._wp)) THEN
+      IF (.NOT.(start_height_process < 0._wp)) THEN
         start_height = start_height_process
-      ELSEIF (.NOT. (start_height_group < 0._wp)) THEN
+      ELSEIF (.NOT.(start_height_group < 0._wp)) THEN
         start_height = start_height_group
-      ELSEIF (.NOT. (start_height_all < 0._wp)) THEN
+      ELSEIF (.NOT.(start_height_all < 0._wp)) THEN
         start_height = start_height_all
       ELSE
         start_height = start_height_process
-      ENDIF
+      END IF
 
     CASE DEFAULT
       CALL finish(TRIM(routine), 'Invalid entry for detect_entry_by.')

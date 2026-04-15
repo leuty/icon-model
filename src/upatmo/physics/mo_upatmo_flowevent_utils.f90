@@ -28,7 +28,7 @@ MODULE mo_upatmo_flowevent_utils
   USE mo_packed_message,        ONLY: t_PackedMessage
   USE mo_util_string,           ONLY: int2string
   USE mo_fortran_tools,         ONLY: assign_if_present_allocatable, &
-    &                                 DO_DEALLOCATE
+      &                                 DO_DEALLOCATE
 
   IMPLICIT NONE
 
@@ -42,7 +42,7 @@ MODULE mo_upatmo_flowevent_utils
   PUBLIC :: upatmoRestartAttributesGet
   PUBLIC :: upatmoRestartAttributesDeallocate
 
-  CHARACTER(LEN = *), PARAMETER :: modname = 'mo_upatmo_flowevent_utils'
+  CHARACTER(LEN=*), PARAMETER :: modname = 'mo_upatmo_flowevent_utils'
 
   !====================================================================================
 
@@ -115,7 +115,7 @@ MODULE mo_upatmo_flowevent_utils
     MODULE PROCEDURE setRestartAttributes_R1D
     MODULE PROCEDURE setRestartAttributes_I1D
     MODULE PROCEDURE setRestartAttributes_L1D
-  END INTERFACE
+  END INTERFACE setRestartAttributes
 
 CONTAINS !..................................................................................
 
@@ -126,16 +126,16 @@ CONTAINS !......................................................................
   !!
   !! Called in: src/atm_dyn_iconam/mo_nh_stepping: perform_nh_timeloop
   !!
-  SUBROUTINE upatmoRestartAttributesPrepare( jg,                      & !in
-    &                                        upatmoRestartAttributes, & !inout
-    &                                        prm_upatmo,              & !inout
-    &                                        mtime_current            ) !in
+  SUBROUTINE upatmoRestartAttributesPrepare(jg,                      & !in
+      &                                        upatmoRestartAttributes, & !inout
+      &                                        prm_upatmo,              & !inout
+      &                                        mtime_current) !in
 
     ! In/out variables
-    INTEGER,                         INTENT(IN)    :: jg
+    INTEGER,                         INTENT(IN) :: jg
     TYPE(t_upatmoRestartAttributes), INTENT(INOUT) :: upatmoRestartAttributes
     TYPE(t_upatmo),                  INTENT(INOUT) :: prm_upatmo
-    TYPE(datetime), POINTER,         INTENT(IN)    :: mtime_current
+    TYPE(datetime), POINTER,         INTENT(IN) :: mtime_current
 
     ! Local variables
     TYPE(t_varstate_set) :: tendStateSet
@@ -143,17 +143,17 @@ CONTAINS !......................................................................
     LOGICAL :: lmessage
     CHARACTER(LEN=max_dom_dig10) :: domStr
     CHARACTER(LEN=*), PARAMETER ::  &
-      &  routine = modname//':upatmoRestartAttributesPrepare'
+        &  routine = modname//':upatmoRestartAttributesPrepare'
 
     !----------------------------------------------
 
     ! Message output desired?
     lmessage = upatmo_config(jg)%l_status(iUpatmoStat%message)
 
-    WRITE (domStr, '(i0)') jg
+    WRITE(domStr, '(i0)') jg
 
     IF (lmessage) CALL message(routine, &
-      & 'Start preparation of metadata for restart file on domain '//domStr)
+        & 'Start preparation of metadata for restart file on domain '//domStr)
 
     ! If the current simulation is a multi-domain application,
     ! the argument upatmoRestartAttributes may have been used several times
@@ -162,9 +162,9 @@ CONTAINS !......................................................................
 
     ! Event management object: get elapsed time since last trigger date
     CALL upatmo_config(jg)%nwp_phy%event_mgmt_grp%serialize(mtime_current, &
-      & upatmoRestartAttributes%elapsedTimePhy                             )
+        & upatmoRestartAttributes%elapsedTimePhy)
     CALL upatmo_config(jg)%nwp_phy%event_mgmt_extdat%serialize(mtime_current, &
-      & upatmoRestartAttributes%elapsedTimeExtdat                             )
+        & upatmoRestartAttributes%elapsedTimeExtdat)
 
     ! The restart mechanism can only be applied to upatmoRestartAttributes%tendStateSet_... for jg < 3.
     ! For jg >= 3, seemingly arbitrary entries of upatmoRestartAttributes%tendStateSet_... are missing
@@ -174,22 +174,22 @@ CONTAINS !......................................................................
       ! Get info about state of accumulative tendencies
       nsize = SIZE(prm_upatmo%tend%ddt%state)
       IF (nsize < 1) CALL finish(routine, 'SIZE(prm_upatmo%tend%ddt%state) < 1')
-      ALLOCATE( upatmoRestartAttributes%tendStateSet_i_old(nsize),             &
-        &       upatmoRestartAttributes%tendStateSet_i_new(nsize),             &
-        &       upatmoRestartAttributes%tendStateSet_n_swap(nsize),            &
-        &       upatmoRestartAttributes%tendStateSet_n_state(nsize),           &
-        &       upatmoRestartAttributes%tendStateSet_n_statep1(nsize),         &
-        &       upatmoRestartAttributes%tendStateSet_l_swapped(nsize),         &
-        &       upatmoRestartAttributes%tendStateSet_l_updated(nsize),         &
-        &       upatmoRestartAttributes%tendStateSet_l_locked(nsize),          &
-        &       upatmoRestartAttributes%tendStateSet_l_locking(nsize),         &
-        &       upatmoRestartAttributes%tendStateSet_l_unlockable(nsize),      &
-        &       upatmoRestartAttributes%tendStateSet_l_final(nsize),           &
-        &       upatmoRestartAttributes%tendStateSet_l_finish_on_error(nsize), &
-        &       upatmoRestartAttributes%tendStateSet_l_initialized(nsize),     &
-        &       STAT=istat                                                     )
-      IF(istat /= SUCCESS) CALL finish(routine, &
-        & 'Allocation of upatmoRestartAttributes%tendStateSet... failed')
+      ALLOCATE(upatmoRestartAttributes%tendStateSet_i_old(nsize),             &
+          &       upatmoRestartAttributes%tendStateSet_i_new(nsize),             &
+          &       upatmoRestartAttributes%tendStateSet_n_swap(nsize),            &
+          &       upatmoRestartAttributes%tendStateSet_n_state(nsize),           &
+          &       upatmoRestartAttributes%tendStateSet_n_statep1(nsize),         &
+          &       upatmoRestartAttributes%tendStateSet_l_swapped(nsize),         &
+          &       upatmoRestartAttributes%tendStateSet_l_updated(nsize),         &
+          &       upatmoRestartAttributes%tendStateSet_l_locked(nsize),          &
+          &       upatmoRestartAttributes%tendStateSet_l_locking(nsize),         &
+          &       upatmoRestartAttributes%tendStateSet_l_unlockable(nsize),      &
+          &       upatmoRestartAttributes%tendStateSet_l_final(nsize),           &
+          &       upatmoRestartAttributes%tendStateSet_l_finish_on_error(nsize), &
+          &       upatmoRestartAttributes%tendStateSet_l_initialized(nsize),     &
+          &       STAT=istat)
+      IF (istat /= SUCCESS) CALL finish(routine, &
+          & 'Allocation of upatmoRestartAttributes%tendStateSet... failed')
 
       DO i = 1, nsize
         tendStateSet = prm_upatmo%tend%ddt%state(i)%getSet(optWhichSet="set4use")
@@ -206,14 +206,15 @@ CONTAINS !......................................................................
         upatmoRestartAttributes%tendStateSet_l_final(i)           = tendStateSet%l_final
         upatmoRestartAttributes%tendStateSet_l_finish_on_error(i) = tendStateSet%l_finish_on_error
         upatmoRestartAttributes%tendStateSet_l_initialized(i)     = tendStateSet%l_initialized
-      ENDDO
+      END DO
 
-    ENDIF  !IF (jg <= domRestartLimit)
+    END IF  !IF (jg <= domRestartLimit)
 
     IF (lmessage) CALL message(routine, &
-      & 'Finish preparation of metadata for restart file on domain '//domStr)
+        & 'Finish preparation of metadata for restart file on domain '//domStr)
 
   END SUBROUTINE upatmoRestartAttributesPrepare
+
 
   !***************************************************************
 
@@ -222,16 +223,16 @@ CONTAINS !......................................................................
   !! src/io/restart/mo_restart_patch_description: restartPatchDescription_packer,
   !! from where it is called.
   !!
-  SUBROUTINE upatmoRestartAttributesPack( jg,                      & !in
-    &                                     upatmoRestartAttributes, & !inout
-    &                                     packedMessage,           & !inout
-    &                                     operation                ) !value
+  SUBROUTINE upatmoRestartAttributesPack(jg,                      & !in
+      &                                     upatmoRestartAttributes, & !inout
+      &                                     packedMessage,           & !inout
+      &                                     operation) !value
 
     ! In/out variables
-    INTEGER,                         INTENT(IN)    :: jg
+    INTEGER,                         INTENT(IN) :: jg
     TYPE(t_upatmoRestartAttributes), INTENT(INOUT) :: upatmoRestartAttributes
     TYPE(t_PackedMessage),           INTENT(INOUT) :: packedMessage
-    INTEGER,                         VALUE         :: operation
+    INTEGER,                         VALUE :: operation
 
     !----------------------------------------------
 
@@ -251,64 +252,66 @@ CONTAINS !......................................................................
       CALL packedMessage%packer(operation, upatmoRestartAttributes%tendStateSet_l_final)
       CALL packedMessage%packer(operation, upatmoRestartAttributes%tendStateSet_l_finish_on_error)
       CALL packedMessage%packer(operation, upatmoRestartAttributes%tendStateSet_l_initialized)
-    ENDIF
+    END IF
 
   END SUBROUTINE upatmoRestartAttributesPack
+
 
   !***************************************************************
 
   !>
   !! Called in: src/io/restart/mo_restart_patch_description: restartPatchDescription_update
   !!
-  SUBROUTINE upatmoRestartAttributesAssign( jg,                        & !in
-    &                                       upatmoRestartAttributes,   & !inout
-    &                                       optUpatmoRestartAttributes ) !optin
+  SUBROUTINE upatmoRestartAttributesAssign(jg,                        & !in
+      &                                       upatmoRestartAttributes,   & !inout
+      &                                       optUpatmoRestartAttributes) !optin
 
     ! In/out variables
-    INTEGER,                                   INTENT(IN)    :: jg
+    INTEGER,                                   INTENT(IN) :: jg
     TYPE(t_upatmoRestartAttributes),           INTENT(INOUT) :: upatmoRestartAttributes
-    TYPE(t_upatmoRestartAttributes), OPTIONAL, INTENT(IN)    :: optUpatmoRestartAttributes
+    TYPE(t_upatmoRestartAttributes), OPTIONAL, INTENT(IN) :: optUpatmoRestartAttributes
 
     !----------------------------------------------
 
     IF (PRESENT(optUpatmoRestartAttributes)) THEN
 
-      CALL assign_if_present_allocatable( upatmoRestartAttributes%elapsedTimePhy,   &
-        &                                 optUpatmoRestartAttributes%elapsedTimePhy )
-      CALL assign_if_present_allocatable( upatmoRestartAttributes%elapsedTimeExtdat,   &
-        &                                 optUpatmoRestartAttributes%elapsedTimeExtdat )
+      CALL assign_if_present_allocatable(upatmoRestartAttributes%elapsedTimePhy,   &
+          &                                 optUpatmoRestartAttributes%elapsedTimePhy)
+      CALL assign_if_present_allocatable(upatmoRestartAttributes%elapsedTimeExtdat,   &
+          &                                 optUpatmoRestartAttributes%elapsedTimeExtdat)
       IF (jg <= domRestartLimit) THEN
-        CALL assign_if_present_allocatable( upatmoRestartAttributes%tendStateSet_i_old,   &
-          &                                 optUpatmoRestartAttributes%tendStateSet_i_old )
-        CALL assign_if_present_allocatable( upatmoRestartAttributes%tendStateSet_i_new,   &
-          &                                 optUpatmoRestartAttributes%tendStateSet_i_new )
-        CALL assign_if_present_allocatable( upatmoRestartAttributes%tendStateSet_n_swap,   &
-          &                                 optUpatmoRestartAttributes%tendStateSet_n_swap )
-        CALL assign_if_present_allocatable( upatmoRestartAttributes%tendStateSet_n_state,   &
-          &                                 optUpatmoRestartAttributes%tendStateSet_n_state )
-        CALL assign_if_present_allocatable( upatmoRestartAttributes%tendStateSet_n_statep1,   &
-          &                                 optUpatmoRestartAttributes%tendStateSet_n_statep1 )
-        CALL assign_if_present_allocatable( upatmoRestartAttributes%tendStateSet_l_swapped,   &
-          &                                 optUpatmoRestartAttributes%tendStateSet_l_swapped )
-        CALL assign_if_present_allocatable( upatmoRestartAttributes%tendStateSet_l_updated,   &
-          &                                 optUpatmoRestartAttributes%tendStateSet_l_updated )
-        CALL assign_if_present_allocatable( upatmoRestartAttributes%tendStateSet_l_locked,   &
-          &                                 optUpatmoRestartAttributes%tendStateSet_l_locked )
-        CALL assign_if_present_allocatable( upatmoRestartAttributes%tendStateSet_l_locking,   &
-          &                                 optUpatmoRestartAttributes%tendStateSet_l_locking )
-        CALL assign_if_present_allocatable( upatmoRestartAttributes%tendStateSet_l_unlockable,   &
-          &                                 optUpatmoRestartAttributes%tendStateSet_l_unlockable )
-        CALL assign_if_present_allocatable( upatmoRestartAttributes%tendStateSet_l_final,   &
-          &                                 optUpatmoRestartAttributes%tendStateSet_l_final )
-        CALL assign_if_present_allocatable( upatmoRestartAttributes%tendStateSet_l_finish_on_error,   &
-          &                                 optUpatmoRestartAttributes%tendStateSet_l_finish_on_error )
-        CALL assign_if_present_allocatable( upatmoRestartAttributes%tendStateSet_l_initialized,   &
-          &                                 optUpatmoRestartAttributes%tendStateSet_l_initialized )
-      ENDIF
+        CALL assign_if_present_allocatable(upatmoRestartAttributes%tendStateSet_i_old,   &
+            &                                 optUpatmoRestartAttributes%tendStateSet_i_old)
+        CALL assign_if_present_allocatable(upatmoRestartAttributes%tendStateSet_i_new,   &
+            &                                 optUpatmoRestartAttributes%tendStateSet_i_new)
+        CALL assign_if_present_allocatable(upatmoRestartAttributes%tendStateSet_n_swap,   &
+            &                                 optUpatmoRestartAttributes%tendStateSet_n_swap)
+        CALL assign_if_present_allocatable(upatmoRestartAttributes%tendStateSet_n_state,   &
+            &                                 optUpatmoRestartAttributes%tendStateSet_n_state)
+        CALL assign_if_present_allocatable(upatmoRestartAttributes%tendStateSet_n_statep1,   &
+            &                                 optUpatmoRestartAttributes%tendStateSet_n_statep1)
+        CALL assign_if_present_allocatable(upatmoRestartAttributes%tendStateSet_l_swapped,   &
+            &                                 optUpatmoRestartAttributes%tendStateSet_l_swapped)
+        CALL assign_if_present_allocatable(upatmoRestartAttributes%tendStateSet_l_updated,   &
+            &                                 optUpatmoRestartAttributes%tendStateSet_l_updated)
+        CALL assign_if_present_allocatable(upatmoRestartAttributes%tendStateSet_l_locked,   &
+            &                                 optUpatmoRestartAttributes%tendStateSet_l_locked)
+        CALL assign_if_present_allocatable(upatmoRestartAttributes%tendStateSet_l_locking,   &
+            &                                 optUpatmoRestartAttributes%tendStateSet_l_locking)
+        CALL assign_if_present_allocatable(upatmoRestartAttributes%tendStateSet_l_unlockable,   &
+            &                                 optUpatmoRestartAttributes%tendStateSet_l_unlockable)
+        CALL assign_if_present_allocatable(upatmoRestartAttributes%tendStateSet_l_final,   &
+            &                                 optUpatmoRestartAttributes%tendStateSet_l_final)
+        CALL assign_if_present_allocatable(upatmoRestartAttributes%tendStateSet_l_finish_on_error,   &
+            &                                 optUpatmoRestartAttributes%tendStateSet_l_finish_on_error)
+        CALL assign_if_present_allocatable(upatmoRestartAttributes%tendStateSet_l_initialized,   &
+            &                                 optUpatmoRestartAttributes%tendStateSet_l_initialized)
+      END IF
 
-    ENDIF
+    END IF
 
   END SUBROUTINE upatmoRestartAttributesAssign
+
 
   !***************************************************************
 
@@ -316,24 +319,24 @@ CONTAINS !......................................................................
   !! Called in: src/io/restart/mo_restart_patch_description: restartPatchDescription_setRestartAttributes
   !! and src/io/restart/mo_sync_restart: syncRestartDescriptor_defineRestartAttributes
   !!
-  SUBROUTINE upatmoRestartAttributesSet( jg,                      & !in
-    &                                    upatmoRestartAttributes, & !in
-    &                                    restartAttributes        ) !inout
+  SUBROUTINE upatmoRestartAttributesSet(jg,                      & !in
+      &                                    upatmoRestartAttributes, & !in
+      &                                    restartAttributes) !inout
 
     ! In/out variables
-    INTEGER,                         INTENT(IN)    :: jg
-    TYPE(t_upatmoRestartAttributes), INTENT(IN)    :: upatmoRestartAttributes
+    INTEGER,                         INTENT(IN) :: jg
+    TYPE(t_upatmoRestartAttributes), INTENT(IN) :: upatmoRestartAttributes
     TYPE(t_key_value_store),    INTENT(INOUT) :: restartAttributes
 
     ! Local variables
     CHARACTER(LEN=max_dom_dig10) :: domStr
     CHARACTER(LEN=LEN(domstr)&
-         + MAX(LEN(keyStrElapsedTimeSuffix), LEN(keyStrTendStateSetSuffix))) ::&
-         keyStr
+        + MAX(LEN(keyStrElapsedTimeSuffix), LEN(keyStrTendStateSetSuffix))) ::&
+        keyStr
 
     !----------------------------------------------
 
-    WRITE (domStr, '(i2.2)') jg
+    WRITE(domStr, '(i2.2)') jg
 
     ! elapsedTimePhy:
     keyStr = domStr//keyStrElapsedTimeSuffix
@@ -344,73 +347,74 @@ CONTAINS !......................................................................
       keyStr = domStr//keyStrTendStateSetSuffix
       ! i_old:
       CALL setRestartAttributes(restartAttributes, &
-           upatmoRestartAttributes%tendStateSet_i_old, &
-           keyStrTendStateSet_i_old//keyStr)
+          upatmoRestartAttributes%tendStateSet_i_old, &
+          keyStrTendStateSet_i_old//keyStr)
       ! i_new:
       CALL setRestartAttributes(restartAttributes, &
-           upatmoRestartAttributes%tendStateSet_i_new, &
-           keyStrTendStateSet_i_new//keyStr)
+          upatmoRestartAttributes%tendStateSet_i_new, &
+          keyStrTendStateSet_i_new//keyStr)
       ! n_swap:
       CALL setRestartAttributes(restartAttributes, &
-           upatmoRestartAttributes%tendStateSet_n_swap, &
-           keyStrTendStateSet_n_swap//keyStr)
+          upatmoRestartAttributes%tendStateSet_n_swap, &
+          keyStrTendStateSet_n_swap//keyStr)
       ! n_state:
       CALL setRestartAttributes(restartAttributes, &
-           upatmoRestartAttributes%tendStateSet_n_state, &
-           keyStrTendStateSet_n_state//keyStr)
+          upatmoRestartAttributes%tendStateSet_n_state, &
+          keyStrTendStateSet_n_state//keyStr)
       ! n_statep1:
       CALL setRestartAttributes(restartAttributes, &
-           upatmoRestartAttributes%tendStateSet_n_statep1, &
-           keyStrTendStateSet_n_statep1//keyStr)
+          upatmoRestartAttributes%tendStateSet_n_statep1, &
+          keyStrTendStateSet_n_statep1//keyStr)
       ! l_swapped:
       CALL setRestartAttributes(restartAttributes, &
-           upatmoRestartAttributes%tendStateSet_l_swapped, &
-           keyStrTendStateSet_l_swapped//keyStr)
+          upatmoRestartAttributes%tendStateSet_l_swapped, &
+          keyStrTendStateSet_l_swapped//keyStr)
       ! l_updated:
       CALL setRestartAttributes(restartAttributes, &
-           upatmoRestartAttributes%tendStateSet_l_updated, &
-           keyStrTendStateSet_l_updated//keyStr)
+          upatmoRestartAttributes%tendStateSet_l_updated, &
+          keyStrTendStateSet_l_updated//keyStr)
       ! l_locked:
       CALL setRestartAttributes(restartAttributes, &
-           upatmoRestartAttributes%tendStateSet_l_locked, &
-           keyStrTendStateSet_l_locked//keyStr)
+          upatmoRestartAttributes%tendStateSet_l_locked, &
+          keyStrTendStateSet_l_locked//keyStr)
       ! l_locking:
       CALL setRestartAttributes(restartAttributes, &
-           upatmoRestartAttributes%tendStateSet_l_locking, &
-           keyStrTendStateSet_l_locking//keyStr)
+          upatmoRestartAttributes%tendStateSet_l_locking, &
+          keyStrTendStateSet_l_locking//keyStr)
       ! l_unlockable:
       CALL setRestartAttributes(restartAttributes, &
-           upatmoRestartAttributes%tendStateSet_l_unlockable, &
-           keyStrTendStateSet_l_unlockable//keyStr)
+          upatmoRestartAttributes%tendStateSet_l_unlockable, &
+          keyStrTendStateSet_l_unlockable//keyStr)
       ! l_final:
       CALL setRestartAttributes(restartAttributes, &
-           upatmoRestartAttributes%tendStateSet_l_final, &
-           keyStrTendStateSet_l_final//keyStr)
+          upatmoRestartAttributes%tendStateSet_l_final, &
+          keyStrTendStateSet_l_final//keyStr)
       ! l_finish_on_error:
       CALL setRestartAttributes(restartAttributes, &
-           upatmoRestartAttributes%tendStateSet_l_finish_on_error, &
-           keyStrTendStateSet_l_finish_on_error//keyStr)
+          upatmoRestartAttributes%tendStateSet_l_finish_on_error, &
+          keyStrTendStateSet_l_finish_on_error//keyStr)
       ! l_initialized:
       CALL setRestartAttributes(restartAttributes, &
-           upatmoRestartAttributes%tendStateSet_l_initialized, &
-           keyStrTendStateSet_l_initialized//keyStr)
-    ENDIF
+          upatmoRestartAttributes%tendStateSet_l_initialized, &
+          keyStrTendStateSet_l_initialized//keyStr)
+    END IF
 
   END SUBROUTINE upatmoRestartAttributesSet
+
 
   !***************************************************************
 
   !>
   !! Called in: src/atm_dyn_iconam/mo_nh_stepping: allocate_nh_stepping
   !!
-  SUBROUTINE upatmoRestartAttributesGet( jg,           & !in
-    &                                    prm_upatmo,   & !inout
-    &                                    mtime_current ) !in
+  SUBROUTINE upatmoRestartAttributesGet(jg,           & !in
+      &                                    prm_upatmo,   & !inout
+      &                                    mtime_current) !in
 
     ! In/out variables
-    INTEGER,                 INTENT(IN)    :: jg
+    INTEGER,                 INTENT(IN) :: jg
     TYPE(t_upatmo),          INTENT(INOUT) :: prm_upatmo
-    TYPE(datetime), POINTER, INTENT(IN)    :: mtime_current
+    TYPE(datetime), POINTER, INTENT(IN) :: mtime_current
 
     ! Local variables
     TYPE(t_key_value_store), POINTER :: restartAttributes
@@ -423,17 +427,17 @@ CONTAINS !......................................................................
 
     !----------------------------------------------
 
-    IF (.NOT. ALLOCATED(prm_upatmo%tend%ddt%state)) THEN
+    IF (.NOT.ALLOCATED(prm_upatmo%tend%ddt%state)) THEN
       CALL finish(routine, 'prm_upatmo%tend%ddt%state is not allocated')
-    ENDIF
+    END IF
 
     ! Message output desired?
-    lmessage = upatmo_config(jg)%l_status( iUpatmoStat%message )
+    lmessage = upatmo_config(jg)%l_status(iUpatmoStat%message)
 
     domStr = int2string(jg, '(i2.2)')
 
     IF (lmessage) CALL message(routine, &
-      & 'Start to get metadata from restart file on domain '//domStr)
+        & 'Start to get metadata from restart file on domain '//domStr)
 
     ! Event management object
     CALL upatmo_config(jg)%nwp_phy%event_mgmt_grp%deserialize(mtime_current, optAttnamePrefix=keyStrElapsedTimePhy)
@@ -477,24 +481,25 @@ CONTAINS !......................................................................
         CALL restartAttributes%get(keyStrTendStateSet_l_initialized//keyStr, tendStateSet%l_initialized)
         !
         CALL prm_upatmo%tend%ddt%state(i)%reset(optSet4Reset=tendStateSet)
-      ENDDO
+      END DO
 
-    ENDIF
+    END IF
 
     ! In case of jg > domRestartLimit the initial values of prm_upatmo%tend%ddt%state(i),
     ! set in src/upper_atmosphere/mo_upatmo_state: new_upatmo_tend_list, remain.
 
     IF (lmessage) CALL message(routine, &
-      & 'Finish to get metadata from restart file on domain '//domStr)
+        & 'Finish to get metadata from restart file on domain '//domStr)
 
   END SUBROUTINE upatmoRestartAttributesGet
+
 
   !***************************************************************
 
   !>
   !! Called in: src/atm_dyn_iconam/mo_nh_stepping: perform_nh_timeloop
   !!
-  SUBROUTINE upatmoRestartAttributesDeallocate( upatmoRestartAttributes )
+  SUBROUTINE upatmoRestartAttributesDeallocate(upatmoRestartAttributes)
 
     ! In/out variables
     TYPE(t_upatmoRestartAttributes), INTENT(INOUT) :: upatmoRestartAttributes
@@ -534,17 +539,18 @@ CONTAINS !......................................................................
 
   END SUBROUTINE upatmoRestartAttributesDeallocate
 
+
   !***************************************************************
 
   !>
   !! Auxiliary subroutine.
   !!
-  SUBROUTINE setRestartAttributes_R1D( restartAttributes, attribute, key )
+  SUBROUTINE setRestartAttributes_R1D(restartAttributes, attribute, key)
 
     ! In/out variables
     TYPE(t_key_value_store), INTENT(INOUT) :: restartAttributes
-    REAL(wp), ALLOCATABLE,        INTENT(IN)    :: attribute(:)
-    CHARACTER(*),             INTENT(IN)    :: key
+    REAL(wp), ALLOCATABLE,        INTENT(IN) :: attribute(:)
+    CHARACTER(*),             INTENT(IN) :: key
 
     ! Local variables
     INTEGER :: i
@@ -556,22 +562,23 @@ CONTAINS !......................................................................
     IF (ALLOCATED(attribute)) THEN
       DO i = 1, SIZE(attribute)
         CALL restartAttributes%put(TRIM(key)//TRIM(int2string(i, '(i2.2)')), attribute(i))
-      ENDDO
-    ENDIF
+      END DO
+    END IF
 
   END SUBROUTINE setRestartAttributes_R1D
+
 
   !***************************************************************
 
   !>
   !! Auxiliary subroutine.
   !!
-  SUBROUTINE setRestartAttributes_I1D( restartAttributes, attribute, key )
+  SUBROUTINE setRestartAttributes_I1D(restartAttributes, attribute, key)
 
     ! In/out variables
     TYPE(t_key_value_store), INTENT(INOUT) :: restartAttributes
-    INTEGER, ALLOCATABLE,         INTENT(IN)    :: attribute(:)
-    CHARACTER(LEN=*),             INTENT(IN)    :: key
+    INTEGER, ALLOCATABLE,         INTENT(IN) :: attribute(:)
+    CHARACTER(LEN=*),             INTENT(IN) :: key
 
     ! Local variables
     INTEGER :: i, l
@@ -584,22 +591,23 @@ CONTAINS !......................................................................
     IF (ALLOCATED(attribute)) THEN
       DO i = 1, SIZE(attribute)
         CALL restartAttributes%put(key(1:l)//TRIM(int2string(i, '(i2.2)')), attribute(i))
-      ENDDO
-    ENDIF
+      END DO
+    END IF
 
   END SUBROUTINE setRestartAttributes_I1D
+
 
   !***************************************************************
 
   !>
   !! Auxiliary subroutine.
   !!
-  SUBROUTINE setRestartAttributes_L1D( restartAttributes, attribute, key )
+  SUBROUTINE setRestartAttributes_L1D(restartAttributes, attribute, key)
 
     ! In/out variables
     TYPE(t_key_value_store), INTENT(INOUT) :: restartAttributes
-    LOGICAL, ALLOCATABLE,         INTENT(IN)    :: attribute(:)
-    CHARACTER(LEN=*),             INTENT(IN)    :: key
+    LOGICAL, ALLOCATABLE,         INTENT(IN) :: attribute(:)
+    CHARACTER(LEN=*),             INTENT(IN) :: key
 
     ! Local variables
     INTEGER :: i, l
@@ -612,10 +620,11 @@ CONTAINS !......................................................................
     IF (ALLOCATED(attribute)) THEN
       DO i = 1, SIZE(attribute)
         CALL restartAttributes%put(key(1:l)//TRIM(int2string(i, '(i2.2)')), attribute(i))
-      ENDDO
-    ENDIF
+      END DO
+    END IF
 
   END SUBROUTINE setRestartAttributes_L1D
+
 
   !***************************************************************
 
@@ -627,7 +636,7 @@ CONTAINS !......................................................................
   !! into the interface DO_DEALLOCATE.
   !! The latter is too critical infrastructure.
   !!
-  SUBROUTINE DO_DEALLOCATE_l1D( object )
+  SUBROUTINE DO_DEALLOCATE_l1D(object)
 
     ! In/out variables
     LOGICAL, ALLOCATABLE, INTENT(INOUT) :: object(:)

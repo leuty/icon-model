@@ -51,23 +51,23 @@ MODULE mo_upatmo_types
 
     REAL(wp), POINTER, CONTIGUOUS :: &
 
-     gas(:,:,:,:),     &  ! Gas mass mixing ratio
-                          ! (nproma,nlev,nblks_c,ngas) [kg/kg]
-     mdry(:,:,:),      &  ! Dry air mass
-                          ! (nproma,nlev,nblks_c) [kg/m2]
-     amd(:,:,:),       &  ! Molar mass of dry air
-                          ! (nproma,nlev,nblks_c) [g/mol]
-     cpair(:,:,:),     &  ! Heat capacity of (moist) air at constant pressure
-                          ! (nproma,nlev,nblks_c) [J/K/kg]
-     grav(:,:,:),      &  ! Gravitational acceleration
-                          ! (nproma,nlev,nblks_c) [m/s2]
-     sclrlw(:,:,:),    &  ! Scaling factor for heating rate
-                          ! from "standard" long-wave radiation
-                          ! (nproma,nlev,nblks_c) [1]
-     effrsw(:,:,:)     &  ! Efficiency factor for heating rate
-                          ! from "standard" short-wave radiation
-                          ! (nproma,nlev,nblks_c) [1]
-     => NULL()
+        gas(:,:,:,:),     &  ! Gas mass mixing ratio
+    ! (nproma,nlev,nblks_c,ngas) [kg/kg]
+        mdry(:,:,:),      &  ! Dry air mass
+    ! (nproma,nlev,nblks_c) [kg/m2]
+        amd(:,:,:),       &  ! Molar mass of dry air
+    ! (nproma,nlev,nblks_c) [g/mol]
+        cpair(:,:,:),     &  ! Heat capacity of (moist) air at constant pressure
+    ! (nproma,nlev,nblks_c) [J/K/kg]
+        grav(:,:,:),      &  ! Gravitational acceleration
+    ! (nproma,nlev,nblks_c) [m/s2]
+        sclrlw(:,:,:),    &  ! Scaling factor for heating rate
+    ! from "standard" long-wave radiation
+    ! (nproma,nlev,nblks_c) [1]
+        effrsw(:,:,:)     &  ! Efficiency factor for heating rate
+    ! from "standard" short-wave radiation
+    ! (nproma,nlev,nblks_c) [1]
+        => NULL()
 
     TYPE(t_ptr_2d3d), ALLOCATABLE :: gas_ptr(:)   ! Pointer for gas container
 
@@ -122,11 +122,11 @@ MODULE mo_upatmo_types
   !---------------------------
 
   TYPE t_ddt_tot_info
-    INTEGER  :: nstate            = -999
-    INTEGER  :: istartlev         = 1
-    INTEGER  :: iendlev           = 0
-    LOGICAL  :: linActivePhase    = .FALSE.
-    LOGICAL  :: lafterActivePhase = .FALSE.
+    INTEGER :: nstate            = -999
+    INTEGER :: istartlev         = 1
+    INTEGER :: iendlev           = 0
+    LOGICAL :: linActivePhase    = .FALSE.
+    LOGICAL :: lafterActivePhase = .FALSE.
     CHARACTER(LEN=MAX_CHAR_LENGTH) :: name     = " "
     CHARACTER(LEN=MAX_CHAR_LENGTH) :: longname = " "
     CHARACTER(LEN=MAX_CHAR_LENGTH) :: unit     = " "
@@ -148,40 +148,40 @@ MODULE mo_upatmo_types
 
   TYPE t_upatmo_tend
 
-    REAL(wp), POINTER , CONTIGUOUS ::                           &  ! Tendencies of ...
+    REAL(wp), POINTER, CONTIGUOUS ::                           &  ! Tendencies of ...
 
-     ddt_temp_srbc(:,:,:),        &  ! temperature due to SRBC heating by O2
-                                     ! (nproma,nlev,nblks_c) [K/s]
-     ddt_temp_nlte(:,:,:),        &  ! temperature due to Non-LTE heating
-                                     ! (nproma,nlev,nblks_c) [K/s]
-     ddt_temp_euv(:,:,:),         &  ! temperature due to EUV heating
-                                     ! (nproma,nlev,nblks_c) [K/s]
-     ddt_temp_vdfmol(:,:,:),      &  ! temperature due to molecular diffusion
-                                     ! (nproma,nlev,nblks_c) [K/s]
-     ddt_temp_fric(:,:,:),        &  ! temperature due to frictional heating
-                                     ! (nproma,nlev,nblks_c) [K/s]
-     ddt_temp_no(:,:,:),          &  ! temperature due to NO NIR heating
-                                     ! (nproma,nlev,nblks_c) [K/s]
-     ddt_temp_chemheat(:,:,:),    &  ! temperature due to chemical heating
-                                     ! (nproma,nlev,nblks_c) [K/s]
-     ddt_temp_joule(:,:,:),       &  ! temperature due to Joule heating
-                                     ! (nproma,nlev,nblks_c) [K/s]
-     ddt_u_vdfmol(:,:,:),         &  ! zonal wind component due to molecular diffusion
-                                     ! (nproma,nlev,nblks_c) [m/s2]
-     ddt_u_iondrag(:,:,:),        &  ! zonal wind component due to ion drag
-                                     ! (nproma,nlev,nblks_c) [m/s2]
-     ddt_v_vdfmol(:,:,:),         &  ! meridional wind component due to molecular diffusion
-                                     ! (nproma,nlev,nblks_c) [m/s2]
-     ddt_v_iondrag(:,:,:),        &  ! meridional wind component due to ion drag
-                                     ! (nproma,nlev,nblks_c) [m/s2]
-     ddt_qx_vdfmol(:,:,:,:)       &  ! tracer due to molecular diffusion
-                                     ! (currently, only specific humidity, [:,:,:,iqv])
-                                     ! (nproma,nlev,nblks_c,1)
-     => NULL()
+        ddt_temp_srbc(:,:,:),        &  ! temperature due to SRBC heating by O2
+    ! (nproma,nlev,nblks_c) [K/s]
+        ddt_temp_nlte(:,:,:),        &  ! temperature due to Non-LTE heating
+    ! (nproma,nlev,nblks_c) [K/s]
+        ddt_temp_euv(:,:,:),         &  ! temperature due to EUV heating
+    ! (nproma,nlev,nblks_c) [K/s]
+        ddt_temp_vdfmol(:,:,:),      &  ! temperature due to molecular diffusion
+    ! (nproma,nlev,nblks_c) [K/s]
+        ddt_temp_fric(:,:,:),        &  ! temperature due to frictional heating
+    ! (nproma,nlev,nblks_c) [K/s]
+        ddt_temp_no(:,:,:),          &  ! temperature due to NO NIR heating
+    ! (nproma,nlev,nblks_c) [K/s]
+        ddt_temp_chemheat(:,:,:),    &  ! temperature due to chemical heating
+    ! (nproma,nlev,nblks_c) [K/s]
+        ddt_temp_joule(:,:,:),       &  ! temperature due to Joule heating
+    ! (nproma,nlev,nblks_c) [K/s]
+        ddt_u_vdfmol(:,:,:),         &  ! zonal wind component due to molecular diffusion
+    ! (nproma,nlev,nblks_c) [m/s2]
+        ddt_u_iondrag(:,:,:),        &  ! zonal wind component due to ion drag
+    ! (nproma,nlev,nblks_c) [m/s2]
+        ddt_v_vdfmol(:,:,:),         &  ! meridional wind component due to molecular diffusion
+    ! (nproma,nlev,nblks_c) [m/s2]
+        ddt_v_iondrag(:,:,:),        &  ! meridional wind component due to ion drag
+    ! (nproma,nlev,nblks_c) [m/s2]
+        ddt_qx_vdfmol(:,:,:,:)       &  ! tracer due to molecular diffusion
+    ! (currently, only specific humidity, [:,:,:,iqv])
+    ! (nproma,nlev,nblks_c,1)
+        => NULL()
 
     TYPE(t_ptr_2d3d), ALLOCATABLE :: ddt_qx_vdfmol_ptr(:) ! Pointer for tracer tendencies
 
-    TYPE(t_upatmo_tend_tot)       :: ddt                  ! Accumulative tendencies
+    TYPE(t_upatmo_tend_tot) :: ddt                  ! Accumulative tendencies
 
     ! Status
     LOGICAL :: linitialized = .FALSE.
@@ -220,24 +220,24 @@ MODULE mo_upatmo_types
     REAL(wp), ALLOCATABLE :: lev_half(:) ! Half levels (nlev+1)
     REAL(wp), ALLOCATABLE :: time(:)     ! Times (ntime)
     !
-    INTEGER               :: nlat        ! Number of latitudes
-    INTEGER               :: nlev        ! Number of levels
-    INTEGER               :: ntime       ! Number of times
+    INTEGER :: nlat        ! Number of latitudes
+    INTEGER :: nlev        ! Number of levels
+    INTEGER :: ntime       ! Number of times
     !
-    INTEGER               :: istartlat   ! Start index of latitudes
-    INTEGER               :: iendlat     ! End index of latitudes
-    INTEGER               :: isteplat    ! Loop step for latitudes
-    INTEGER               :: istartlev   ! Start index of full levels
-    INTEGER               :: iendlev     ! End index of full levels
-    INTEGER               :: isteplev    ! Loop step for full levels
-    INTEGER               :: istarttime  ! Start index of times
-    INTEGER               :: iendtime    ! End index of times
-    INTEGER               :: isteptime   ! Loop step for times
+    INTEGER :: istartlat   ! Start index of latitudes
+    INTEGER :: iendlat     ! End index of latitudes
+    INTEGER :: isteplat    ! Loop step for latitudes
+    INTEGER :: istartlev   ! Start index of full levels
+    INTEGER :: iendlev     ! End index of full levels
+    INTEGER :: isteplev    ! Loop step for full levels
+    INTEGER :: istarttime  ! Start index of times
+    INTEGER :: iendtime    ! End index of times
+    INTEGER :: isteptime   ! Loop step for times
     !
-    INTEGER               :: data_id     ! Identifier for data
-    INTEGER               :: lat_id      ! Identifier for type of latitudes
-    INTEGER               :: lev_id      ! Identifier for type of levels
-    INTEGER               :: time_id     ! Identifier for type of times
+    INTEGER :: data_id     ! Identifier for data
+    INTEGER :: lat_id      ! Identifier for type of latitudes
+    INTEGER :: lev_id      ! Identifier for type of levels
+    INTEGER :: time_id     ! Identifier for type of times
     !
     CHARACTER(LEN=MAX_CHAR_LENGTH) :: unit_data = " " ! Unit of external data
     CHARACTER(LEN=MAX_CHAR_LENGTH) :: unit_lat  = " " ! Unit of latitudes
@@ -245,7 +245,7 @@ MODULE mo_upatmo_types
     CHARACTER(LEN=MAX_CHAR_LENGTH) :: unit_mass = " " ! Unit of mass
     CHARACTER(LEN=MAX_CHAR_LENGTH) :: unit_time = " " ! Unit of times
     !
-    TYPE(t_extdat_intrpl)          :: intrpl          ! For interpolation
+    TYPE(t_extdat_intrpl) :: intrpl          ! For interpolation
   END TYPE t_extdat_latlevtime
 
   !---------------------------
@@ -253,14 +253,14 @@ MODULE mo_upatmo_types
   TYPE t_upatmo_extdat
 
     TYPE(t_extdat_latlevtime), ALLOCATABLE :: gas(:)           ! External data for radiatively active gases (ngas)
-    TYPE(t_extdat_latlevtime)                 chemheat         ! External data for chemical heating tendencies
+    TYPE(t_extdat_latlevtime) :: chemheat         ! External data for chemical heating tendencies
 
-    INTEGER                                :: ngas             ! Number of gases
+    INTEGER :: ngas             ! Number of gases
     INTEGER,                   ALLOCATABLE :: mapgasid2indx(:) ! Map global gas id to local gas index
     INTEGER,                   ALLOCATABLE :: mapgasindx2id(:) ! Map local gas index to global gas id
 
     TYPE(t_ptr_3d_wp),         ALLOCATABLE :: gas_interm(:)    ! Gas on horizontal grid of ICON,
-                                                               ! but still on pressure levels of external data (ngas)
+    ! but still on pressure levels of external data (ngas)
     ! Status
     LOGICAL :: linitialized = .FALSE.
 
@@ -273,13 +273,13 @@ MODULE mo_upatmo_types
   TYPE t_upatmo
 
     ! Diagnostic variables
-    TYPE(t_upatmo_diag)   :: diag
+    TYPE(t_upatmo_diag) :: diag
 
     ! Tendencies
-    TYPE(t_upatmo_tend)   :: tend
+    TYPE(t_upatmo_tend) :: tend
 
     ! External data
-    type(t_upatmo_extdat) :: extdat
+    TYPE(t_upatmo_extdat) :: extdat
 
   END TYPE t_upatmo
 
