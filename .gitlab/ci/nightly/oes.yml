@@ -14,7 +14,7 @@ include:
   - local: .gitlab/ci/utils/icon.yml
   - local: .gitlab/ci/common/any-image.yml
 
-.nightly:ocean:validation:build:
+.nightly:oes:validation:cpu:build:
   extends:
     - .common:dkrz:levante
     - .utils:icon:build
@@ -25,15 +25,16 @@ include:
     ICON_CI_COMMON_DKRZ_SLURM_TIMELIMIT: "20:00"
     ICON_CI_UTILS_GIT_CLONE_PATH: ${ICON_CI_COMMON_DKRZ_SHMEM_PATH}/icon
     ICON_CI_UTILS_ICON_SOURCE_PATH: ${ICON_CI_UTILS_GIT_CLONE_PATH}
-    ICON_CI_UTILS_ICON_BUILD_JOB_COUNT: ${ICON_CI_COMMON_DKRZ_SLURM_NTASKS}
     LVECTOR_SWITCH: "no"
-    ICON_CI_UTILS_GIT_SPARSE_PATTERNS: >-
-      /configure /utils/ /*.in /run/ /src/ /support/ /ragnarok/ /config/
+    FCFLAGS: -Minfo=inline -Mnofma
+    ICON_CI_UTILS_ICON_CONFIG_REL_PATH: config/dkrz/levante.cpu.nvhpc-24.7
     ICON_CI_UTILS_ICON_CONFIG_EXTRA_ARGS: >-
+      --disable-bundled-python
       --enable-ocean
       --enable-lvector=${LVECTOR_SWITCH}
       FCFLAGS="-I/sw/spack-levante/netcdf-fortran-4.6.1-y65bmi/include -g -O2 -Mrecursive -Mallocatable=03 -Mstack_arrays ${FCFLAGS}"
       PYTHON='/fastdata/mh0156/buildbot/venv/bin/python3'
+    ICON_CI_UTILS_ICON_BUILD_JOB_COUNT: ${ICON_CI_COMMON_DKRZ_SLURM_NTASKS}
   before_script:
     - !reference [.common:dkrz:levante, before_script]
     - !reference [.utils:icon:build, before_script]
@@ -43,24 +44,34 @@ include:
     - !reference [.common:dkrz:levante, rules]
     - when: on_success
 
-.nightly:ocean:validation:run:
-  extends:
-    - .common:dkrz:levante
+.nightly:oes:validation:gpu:build:
+  extends: .nightly:oes:validation:cpu:build
+  variables:
+    FCFLAGS: >-
+      -Minfo=accel,inline -acc=gpu,verystrict -Mnofma -gpu=cc80,cuda12.5,math_uniform
+    ICON_CI_UTILS_ICON_CONFIG_REL_PATH: config/dkrz/levante.gpu.nvhpc-24.7
+
+.nightly:oes:validation:cpu:run:
+  extends: .common:dkrz:levante
   stage: system
   needs: []
   variables:
-    ICON_CI_COMMON_DKRZ_SLURM_TIMELIMIT: "15:00"
-    ICON_CI_COMMON_DKRZ_SLURM_EXTRA_PARAMETERS: --mem=40G
-    ICON_CI_UTILS_GIT_SPARSE_PATTERNS: /run/
     GIT_SUBMODULE_STRATEGY: none
+    ICON_CI_COMMON_DKRZ_SLURM_PARTITION: shared,compute
+    ICON_CI_COMMON_DKRZ_SLURM_NTASKS: 4
+    ICON_CI_COMMON_DKRZ_SLURM_TIMELIMIT: "10:00"
+    ICON_CI_UTILS_GIT_SPARSE_PATTERNS: /run/
     HDF5_PLUGIN_PATH: /sw/spack-levante/netcdf-c-main-bdxvs5/plugins
+    # The runscripts call srun with the --cpus-per-task argument which prevents
+    # MPI processes from getting access to all allocated memory:
+    SLURM_MEM_PER_CPU: 0
   before_script:
     - !reference [.common:dkrz:levante, before_script]
     - export PATH="/sw/spack-levante/cdo-2.2.2-4z4icb/bin:${PATH}"
     - export PATH="/fastdata/mh0156/buildbot/venv/bin:${PATH}"
   script:
     - |
-      # !reference [.nightly:ocean:validation:run, script]
+      # !reference [.nightly:oes:validation:cpu:run, script]
       icon_ci_log_section_start "Running experiment '${CI_JOB_NAME}'" 'collapsed=false'
       (
         set -ux
@@ -81,16 +92,25 @@ include:
     - !reference [.common:dkrz:levante, rules]
     - when: on_success
 
-.nightly:ocean:validation:analyze:
+.nightly:oes:validation:gpu:run:
+  extends: .nightly:oes:validation:cpu:run
+  variables:
+    ICON_CI_COMMON_DKRZ_SLURM_PARTITION: gpu
+    ICON_CI_COMMON_DKRZ_SLURM_NTASKS: 2
+    ICON_CI_COMMON_DKRZ_SLURM_GPUS_PER_NODE: 2
+    # Levante GPU run wrapper does not handle non-exclusive allocations:
+    ICON_CI_COMMON_DKRZ_SLURM_EXTRA_PARAMETERS: --exclusive
+
+.nightly:oes:validation:analyze:
   extends: .common:any-image
   stage: system
   needs: []
   image: registry.gitlab.dkrz.de/icon/containers/icon-ci-analyze:f6633645
   variables:
-    GIT_CHECKOUT: false
+    GIT_STRATEGY: none
   script:
     - |
-      # !reference [.nightly:ocean:validation:analyze, script]
+      # !reference [.nightly:oes:validation:analyze, script]
       (
         set -u
         for f in 'cpurun_lvec' 'gpurun' 'gpurun_lvec'; do
@@ -102,98 +122,74 @@ include:
           )
         done
       )
-  rules: !reference [.nightly:ocean:validation:run, rules]
+  rules: !reference [.nightly:oes:validation:cpu:run, rules]
 
 oes:omip:validation:cpu:build:
-  extends: .nightly:ocean:validation:build
-  variables:
-    ICON_CI_UTILS_ICON_CONFIG_REL_PATH: config/dkrz/levante.cpu.nvhpc-24.7
-    FCFLAGS: -Minfo=inline -Mnofma
+  extends: .nightly:oes:validation:cpu:build
 
 oes:omip:validation:cpu:lvec:build:
-  extends: .nightly:ocean:validation:build
+  extends: .nightly:oes:validation:cpu:build
   variables:
-    ICON_CI_UTILS_ICON_CONFIG_REL_PATH: config/dkrz/levante.cpu.nvhpc-24.7
-    FCFLAGS: -Minfo=inline -Mnofma
     LVECTOR_SWITCH: "bitid"
 
 oes:omip:validation:gpu:build:
-  extends: .nightly:ocean:validation:build
-  variables:
-    ICON_CI_UTILS_ICON_CONFIG_REL_PATH: config/dkrz/levante.gpu.nvhpc-24.7
-    FCFLAGS: >-
-      -Minfo=accel,inline -acc=gpu,verystrict -Mnofma -gpu=cc80,cuda12.5,math_uniform
+  extends: .nightly:oes:validation:gpu:build
 
 oes:omip:validation:gpu:lvec:build:
-  extends: .nightly:ocean:validation:build
+  extends: .nightly:oes:validation:gpu:build
   variables:
-    ICON_CI_UTILS_ICON_CONFIG_REL_PATH: config/dkrz/levante.gpu.nvhpc-24.7
-    FCFLAGS: >-
-      -Minfo=accel,inline -acc=gpu,verystrict -Mnofma -gpu=cc80,cuda12.5,math_uniform
     LVECTOR_SWITCH: "bitid"
 
 oes:omip:validation:cpu:V0:run:
-  extends: .nightly:ocean:validation:run
+  extends: .nightly:oes:validation:cpu:run
   needs: [oes:omip:validation:cpu:build]
   variables:
-    ICON_CI_COMMON_DKRZ_SLURM_PARTITION: compute
     VAL_EXPERIMENT: ocean_omip_R2B4_V0_GM0_cpurun
 
 oes:omip:validation:cpu:V1:run:
-  extends: .nightly:ocean:validation:run
+  extends: .nightly:oes:validation:cpu:run
   needs: [oes:omip:validation:cpu:build]
   variables:
-    ICON_CI_COMMON_DKRZ_SLURM_PARTITION: compute
     VAL_EXPERIMENT: ocean_omip_R2B4_V1_GM0_cpurun
 
 oes:omip:validation:cpu:V0:lvec:run:
-  extends: .nightly:ocean:validation:run
+  extends: .nightly:oes:validation:cpu:run
   needs: [oes:omip:validation:cpu:lvec:build]
   variables:
-    ICON_CI_COMMON_DKRZ_SLURM_PARTITION: compute
     VAL_EXPERIMENT: ocean_omip_R2B4_V0_GM0_cpurun_lvec
 
 oes:omip:validation:cpu:V1:lvec:run:
-  extends: .nightly:ocean:validation:run
+  extends: .nightly:oes:validation:cpu:run
   needs: [oes:omip:validation:cpu:lvec:build]
   variables:
-    ICON_CI_COMMON_DKRZ_SLURM_PARTITION: compute
     VAL_EXPERIMENT: ocean_omip_R2B4_V1_GM0_cpurun_lvec
 
 oes:omip:validation:gpu:V0:run:
-  extends: .nightly:ocean:validation:run
+  extends: .nightly:oes:validation:gpu:run
   needs: [oes:omip:validation:gpu:build]
   variables:
-    ICON_CI_COMMON_DKRZ_SLURM_PARTITION: gpu
-    ICON_CI_COMMON_DKRZ_SLURM_GPUS_PER_NODE: 4
     VAL_EXPERIMENT: ocean_omip_R2B4_V0_GM0_gpurun
 
 oes:omip:validation:gpu:V1:run:
-  extends: .nightly:ocean:validation:run
+  extends: .nightly:oes:validation:gpu:run
   needs: [oes:omip:validation:gpu:build]
   variables:
-    ICON_CI_COMMON_DKRZ_SLURM_PARTITION: gpu
-    ICON_CI_COMMON_DKRZ_SLURM_GPUS_PER_NODE: 4
     VAL_EXPERIMENT: ocean_omip_R2B4_V1_GM0_gpurun
 
 oes:omip:validation:gpu:V0:lvec:run:
-  extends: .nightly:ocean:validation:run
+  extends: .nightly:oes:validation:gpu:run
   needs: [oes:omip:validation:gpu:lvec:build]
   variables:
-    ICON_CI_COMMON_DKRZ_SLURM_PARTITION: gpu
-    ICON_CI_COMMON_DKRZ_SLURM_GPUS_PER_NODE: 4
     VAL_EXPERIMENT: ocean_omip_R2B4_V0_GM0_gpurun_lvec
 
 oes:omip:validation:gpu:V1:lvec:run:
-  extends: .nightly:ocean:validation:run
+  extends: .nightly:oes:validation:gpu:run
   needs: [oes:omip:validation:gpu:lvec:build]
   variables:
-    ICON_CI_COMMON_DKRZ_SLURM_PARTITION: gpu
-    ICON_CI_COMMON_DKRZ_SLURM_GPUS_PER_NODE: 4
     VAL_EXPERIMENT: ocean_omip_R2B4_V1_GM0_gpurun_lvec
 
 oes:omip:validation:V0:analyze:
-  extends: .nightly:ocean:validation:analyze
+  extends: .nightly:oes:validation:analyze
   needs:
     - oes:omip:validation:cpu:V0:run
     - oes:omip:validation:cpu:V0:lvec:run
@@ -203,7 +199,7 @@ oes:omip:validation:V0:analyze:
     COMPARISON_VARIANT: V0
 
 oes:omip:validation:V1:analyze:
-  extends: .nightly:ocean:validation:analyze
+  extends: .nightly:oes:validation:analyze
   needs:
     - oes:omip:validation:cpu:V1:run
     - oes:omip:validation:cpu:V1:lvec:run
