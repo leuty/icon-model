@@ -156,6 +156,7 @@
 - Configure YAC and YAXT in parallel when possible (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1198)
 - Fix usage of configure option --enable-async-io-rma=no (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/2035)
 - Added option `--enable-lvector` to control optimizations for vector engines in the ocean component of ICON
+- Refactored ICON-Land model version and release handling following ICON OSR naming scheme
 
 #### Miscellaneous
 
