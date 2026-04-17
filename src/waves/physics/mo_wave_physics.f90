@@ -40,7 +40,6 @@ MODULE mo_wave_physics
   PUBLIC :: tm1_tm2_periods_and_wm1_wm2_wavenumber
   PUBLIC :: update_wind_stress, wave_stress
   PUBLIC :: mean_frequency_and_total_energy
-  PUBLIC :: wave_stress_ocean
   PUBLIC :: compute_wave_number
   PUBLIC :: compute_group_velocity, wave_group_velocity_nt
   PUBLIC :: set_energy2emin
@@ -594,7 +593,7 @@ CONTAINS
   !!       G. KOMEN, S. HASSELMANN AND K. HASSELMANN, JPO, 1984.
   !!       P. JANSSEN, JPO, 1985
   !!
-  SUBROUTINE wave_stress(p_patch, wave_config, dir10m, sl, wesd, p_diag)
+  SUBROUTINE wave_stress(p_patch, wave_config, dir10m, sl, wesd, diag_dyn)
      CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER ::  &
           &  routine = modname//'wave_stress'
 
@@ -603,7 +602,7 @@ CONTAINS
     REAL(wp),                    INTENT(IN)    :: dir10m(:,:)
     REAL(vp),                    INTENT(IN)    :: sl(:,:,:,:)
     TYPE(t_wesd),                INTENT(IN)    :: wesd(:)
-    TYPE(t_wave_diag_dyn),       INTENT(INOUT) :: p_diag
+    TYPE(t_wave_diag_dyn),       INTENT(INOUT) :: diag_dyn
 
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
     INTEGER :: i_startidx, i_endidx
@@ -641,7 +640,7 @@ CONTAINS
     roair = MAX(wc%roair,1._wp)
 
 !$OMP PARALLEL
-    CALL init(p_diag%phiaw, lacc=.FALSE.)
+    CALL init(diag_dyn%phiaw, lacc=.FALSE.)
 !$OMP BARRIER
 !$OMP DO PRIVATE(jb,jc,jf,jd,jf_lp,i_startidx,i_endidx,cm,const1,const2,       &
 !$OMP            rhowgdfth,sinplus,sumt,sumx,sumy,cmrhowgdfth,xstress,ystress, &
@@ -652,14 +651,14 @@ CONTAINS
 
       DO jf = 1,wc%nfreqs
         DO jc = i_startidx, i_endidx
-          cm(jc,jf) = p_diag%wave_num_c(jc,jf,jb) * 1.0_wp/(pi2*wc%freqs(jf))
-          rhowgdfth(jc,jf) = MERGE(wc%rhowg_dfim(jf), 0.0_wp, jf <= p_diag%last_prog_freq_ind(jc,jb))
+          cm(jc,jf) = diag_dyn%wave_num_c(jc,jf,jb) * 1.0_wp/(pi2*wc%freqs(jf))
+          rhowgdfth(jc,jf) = MERGE(wc%rhowg_dfim(jf), 0.0_wp, jf <= diag_dyn%last_prog_freq_ind(jc,jb))
         ENDDO
       ENDDO
 
       DO jc = i_startidx, i_endidx
 
-        jf = p_diag%last_prog_freq_ind(jc,jb)
+        jf = diag_dyn%last_prog_freq_ind(jc,jb)
         IF (jf /= wc%nfreqs) rhowgdfth(jc,jf) = 0.5_wp * rhowgdfth(jc,jf)
 
         !initialisation
@@ -669,7 +668,7 @@ CONTAINS
       END DO
 
       !sum
-      DO jf = 1, MAXVAL(p_diag%last_prog_freq_ind(i_startidx:i_endidx,jb))
+      DO jf = 1, MAXVAL(diag_dyn%last_prog_freq_ind(i_startidx:i_endidx,jb))
         DO jc = i_startidx, i_endidx
           sumt(jc) = 0._wp
           sumx(jc) = 0._wp
@@ -686,7 +685,7 @@ CONTAINS
         END DO
 
         DO jc = i_startidx, i_endidx
-          p_diag%phiaw(jc,jb) =  p_diag%phiaw(jc,jb) + sumt(jc)*rhowgdfth(jc,jf)
+          diag_dyn%phiaw(jc,jb) =  diag_dyn%phiaw(jc,jb) + sumt(jc)*rhowgdfth(jc,jf)
           cmrhowgdfth = cm(jc,jf) * rhowgdfth(jc,jf)
           xstress(jc) = xstress(jc) + sumx(jc)*cmrhowgdfth
           ystress(jc) = ystress(jc) + sumy(jc)*cmrhowgdfth
@@ -701,13 +700,13 @@ CONTAINS
       DO jc = i_startidx, i_endidx
         temp1(jc)  = 0._wp
         temp2(jc)  = 0._wp
-        const1(jc) = const * wc%freqs(p_diag%last_prog_freq_ind(jc,jb))**5 * gm1
-        const2(jc) = roair * const * wc%freqs(p_diag%last_prog_freq_ind(jc,jb))**5
+        const1(jc) = const * wc%freqs(diag_dyn%last_prog_freq_ind(jc,jb))**5 * gm1
+        const2(jc) = roair * const * wc%freqs(diag_dyn%last_prog_freq_ind(jc,jb))**5
       ENDDO
 
       DO jd = 1, wc%ndirs
         DO jc = i_startidx, i_endidx
-          jf_lp = p_diag%last_prog_freq_ind(jc,jb)
+          jf_lp = diag_dyn%last_prog_freq_ind(jc,jb)
 
           cosw = MAX(COS(wc%dirs(jd)-dir10m(jc,jb)),0.0_wp)
           temp1(jc) = temp1(jc) + wesd(jf_lp)%ptr(jc,jd,jb) * cosw**3
@@ -715,28 +714,28 @@ CONTAINS
         END DO
       END DO
 
-      CALL high_frequency_stress(wave_config        = wave_config,                     & !IN
-        &                        i_startidx         = i_startidx,                      & !IN
-        &                        i_endidx           = i_endidx,                        & !IN
-        &                        last_prog_freq_ind = p_diag%last_prog_freq_ind(:,jb), & !IN
-        &                        ustar              = p_diag%ustar(:,jb),              & !IN
-        &                        z0                 = p_diag%z0(:,jb),                 & !IN
-        &                        xlevtail           = xlevtail(:),                     & !IN
-        &                        tauhf1             = tauhf1(:),                       & !INOUT
-        &                        phihf1             = phihf1(:) )                        !INOUT
+      CALL high_frequency_stress(wave_config        = wave_config,                      & !IN
+        &                        i_startidx         = i_startidx,                       & !IN
+        &                        i_endidx           = i_endidx,                         & !IN
+        &                        last_prog_freq_ind = diag_dyn%last_prog_freq_ind(:,jb),& !IN
+        &                        ustar              = diag_dyn%ustar(:,jb),             & !IN
+        &                        z0                 = diag_dyn%z0(:,jb),                & !IN
+        &                        xlevtail           = xlevtail(:),                      & !IN
+        &                        tauhf1             = tauhf1(:),                        & !INOUT
+        &                        phihf1             = phihf1(:) )                         !INOUT
 
       DO jc = i_startidx, i_endidx
-        p_diag%tauhf(jc,jb) = const1(jc)*temp1(jc)*tauhf1(jc)
-        p_diag%phihf(jc,jb) = const2(jc)*temp2(jc)*phihf1(jc)
+        diag_dyn%tauhf(jc,jb) = const1(jc)*temp1(jc)*tauhf1(jc)
+        diag_dyn%phihf(jc,jb) = const2(jc)*temp2(jc)*phihf1(jc)
 
-        p_diag%phiaw(jc,jb) = p_diag%phiaw(jc,jb) + p_diag%phihf(jc,jb)
+        diag_dyn%phiaw(jc,jb) = diag_dyn%phiaw(jc,jb) + diag_dyn%phihf(jc,jb)
 
-        xstress_tot = xstress(jc)/roair + p_diag%tauhf(jc,jb)*SIN(dir10m(jc,jb))
-        ystress_tot = ystress(jc)/roair + p_diag%tauhf(jc,jb)*COS(dir10m(jc,jb))
+        xstress_tot = xstress(jc)/roair + diag_dyn%tauhf(jc,jb)*SIN(dir10m(jc,jb))
+        ystress_tot = ystress(jc)/roair + diag_dyn%tauhf(jc,jb)*COS(dir10m(jc,jb))
 
-        p_diag%tauw(jc,jb) = SQRT(xstress_tot**2+ystress_tot**2)
-        p_diag%tauw(jc,jb) = MIN(p_diag%tauw(jc,jb),p_diag%ustar(jc,jb)**2 - EPS1)
-        p_diag%tauw(jc,jb) = MAX(p_diag%tauw(jc,jb),0.0_wp)
+        diag_dyn%tauw(jc,jb) = SQRT(xstress_tot**2+ystress_tot**2)
+        diag_dyn%tauw(jc,jb) = MIN(diag_dyn%tauw(jc,jb),diag_dyn%ustar(jc,jb)**2 - EPS1)
+        diag_dyn%tauw(jc,jb) = MAX(diag_dyn%tauw(jc,jb),0.0_wp)
       END DO
 
     END DO
@@ -829,114 +828,6 @@ CONTAINS
     END DO
 
   END SUBROUTINE high_frequency_stress
-
-  !>
-  !! Calculation of wave-to-ocean stress and energy flux
-  !!
-  !! Adaptation of WAM 4.5 code STRESSO.f90
-  !! When coupled to waves, the ocean experiences the 'wave-to-ocean' stress
-  !! \tau_oc = \tau_a - (\tau_w + \tau_ds)
-  !! i.e. atmospheric stress minus stress which contributes to wave growth, plus stress
-  !! imparted to the ocean by wave breaking. The wave-to-ocean stress is the difference
-  !! between \tau_a and the integral of sl/c, with sl the sum of all the source terms.
-  !!
-  SUBROUTINE wave_stress_ocean(p_patch, wave_config, taua_x, taua_y, sl, diag_dyn, diag_cpl)
-     CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER ::  &
-          &  routine = modname//'wave_stress_ocean'
-
-    TYPE(t_patch),               INTENT(IN)    :: p_patch
-    TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
-    REAL(wp),                    INTENT(IN)    :: taua_x(:,:)
-    REAL(wp),                    INTENT(IN)    :: taua_y(:,:)
-    REAL(vp),                    INTENT(IN)    :: sl(:,:,:,:)
-    TYPE(t_wave_diag_dyn),       INTENT(IN)    :: diag_dyn
-    TYPE(t_wave_diag_cpl),       INTENT(INOUT) :: diag_cpl
-
-    INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
-    INTEGER :: i_startidx, i_endidx
-    INTEGER :: jc,jb,jf,jd
-
-    REAL(wp) :: stotplus, cmrhowgdfth_rhoa
-    REAL(wp) :: rhowgdfth(nproma,wave_config%nfreqs)
-    REAL(wp) :: cm(nproma,wave_config%nfreqs)
-    REAL(wp) :: sumt(nproma), sumx(nproma), sumy(nproma)
-    REAL(wp) :: xstress(nproma), ystress(nproma)
-    REAL(wp) :: roair    ! air density
-
-    TYPE(t_wave_config), POINTER :: wc => NULL()
-
-    i_rlstart  = 1
-    i_rlend    = min_rlcell
-    i_startblk = p_patch%cells%start_block(i_rlstart)
-    i_endblk   = p_patch%cells%end_block(i_rlend)
-
-    ! save some paperwork
-    wc => wave_config
-
-    roair = MAX(wc%roair,1._wp)
-
-
-!$OMP PARALLEL
-!$OMP DO PRIVATE(jb,jc,jf,jd,i_startidx,i_endidx,cm,sumt,sumx,sumy,   &
-!$OMP            stotplus,rhowgdfth,cmrhowgdfth_rhoa,xstress,ystress) ICON_OMP_DEFAULT_SCHEDULE
-    DO jb = i_startblk, i_endblk
-      CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,          &
-        &                 i_startidx, i_endidx, i_rlstart, i_rlend)
-
-
-      DO jf = 1,wc%nfreqs
-        DO jc = i_startidx, i_endidx
-          cm(jc,jf) = diag_dyn%wave_num_c(jc,jf,jb) * 1.0_wp/(pi2*wc%freqs(jf))
-          rhowgdfth(jc,jf) = MERGE(wc%rhowg_dfim(jf), 0.0_wp, jf <= diag_dyn%last_prog_freq_ind(jc,jb))
-        ENDDO
-      ENDDO
-
-      DO jc = i_startidx, i_endidx
-        jf = diag_dyn%last_prog_freq_ind(jc,jb)
-        IF (jf /= wc%nfreqs) rhowgdfth(jc,jf) = 0.5_wp * rhowgdfth(jc,jf)
-
-        !initialisation
-        xstress(jc) = taua_x(jc,jb)
-        ystress(jc) = taua_y(jc,jb)
-        diag_cpl%phioc(jc,jb) = diag_dyn%phiaw(jc,jb)
-      END DO
-
-      !sum
-      DO jf = 1, MAXVAL(diag_dyn%last_prog_freq_ind(i_startidx:i_endidx,jb))
-        DO jc = i_startidx, i_endidx
-          sumt(jc) = 0._wp
-          sumx(jc) = 0._wp
-          sumy(jc) = 0._wp
-        END DO
-
-        DO jd = 1, wc%ndirs
-          DO jc = i_startidx, i_endidx
-            stotplus = MAX(sl(jc,jd,jf,jb),0._wp)
-            sumt(jc) = sumt(jc) + stotplus
-            sumx(jc) = sumx(jc) + stotplus * wc%sin_dir(jd)
-            sumy(jc) = sumy(jc) + stotplus * wc%cos_dir(jd)
-          END DO
-        END DO
-
-        DO jc = i_startidx, i_endidx
-          diag_cpl%phioc(jc,jb) =  diag_cpl%phioc(jc,jb) - sumt(jc)*rhowgdfth(jc,jf)
-          cmrhowgdfth_rhoa = cm(jc,jf) * rhowgdfth(jc,jf)/roair
-          xstress(jc) = xstress(jc) - sumx(jc)*cmrhowgdfth_rhoa
-          ystress(jc) = ystress(jc) - sumy(jc)*cmrhowgdfth_rhoa
-        END DO
-      END DO  ! jf
-
-      DO jc = i_startidx, i_endidx
-        diag_cpl%tauoc_x(jc,jb) = xstress(jc)
-        diag_cpl%tauoc_y(jc,jb) = ystress(jc)
-        diag_cpl%tauoc(jc,jb)   = SQRT(xstress(jc)**2 + ystress(jc)**2)
-      END DO
-
-    END DO
-!$OMP ENDDO NOWAIT
-!$OMP END PARALLEL
-
-  END SUBROUTINE wave_stress_ocean
 
 
   !>

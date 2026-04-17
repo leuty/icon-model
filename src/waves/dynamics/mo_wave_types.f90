@@ -23,6 +23,7 @@ MODULE mo_wave_types
 
   PUBLIC :: t_wave_prog
   PUBLIC :: t_wave_source
+  PUBLIC :: t_wave_const
   PUBLIC :: t_wave_diag_dyn
   PUBLIC :: t_wave_diag_out
   PUBLIC :: t_wave_diag_cpl
@@ -70,8 +71,6 @@ MODULE mo_wave_types
     REAL(wp), POINTER, CONTIGUOUS :: &
       &  gv_c(:,:,:),         & ! group velocity                             (nproma,nfreqs,nblks_c)  (m/s)
       &  gv_e(:,:,:),         & ! group velocity                             (nproma,nfreqs,nblks_e)  (m/s)
-      &  flminfr_tab(:,:),    & ! minimum value of energy for a given
-                                ! frequency and wind speed bin               (jmax,nfreqs)
       &  wave_num_c(:,:,:),   & ! wave number at cell centers as a function
                                 ! of circular frequency and water depth      (nproma,nfreqs,nblks_c) (1/m)
       &  wave_num_e(:,:,:),   & ! wave number at cell edges as a function of
@@ -96,18 +95,8 @@ MODULE mo_wave_types
       &  hrms_frac(:,:),      & ! square ratio (Hrms / Hmax)**2              (nproma,nblks_c) (-)
       &  wbr_frac(:,:)          ! fraction of breaking waves                 (nproma,nblks_c) (-)
 
-    REAL(vp), POINTER, CONTIGUOUS :: &
-      &  AF11(:),             & ! for discrete approximation of nonlinear transfer (nfreqs+4) (-)
-      &  FKLAP(:), FKLAP1(:), & ! --//-- (nfreqs+4) (-)
-      &  FKLAM(:), FKLAM1(:)    ! --//-- (nfreqs+4) (-)
-
     INTEGER, POINTER, CONTIGUOUS ::  &
-      &  last_prog_freq_ind(:,:), & ! last frequency index of the prognostic range (nproma,nblks_c) (-)
-      &  ikp(:), ikp1(:),         & ! for discrete approximation of nonlinear transfer (nfreqs+4) (-)
-      &  ikm(:), ikm1(:),         & ! --//-- (nfreqs+4) (-)
-      &  k1w(:,:), k2w(:,:),      & ! --//-- (ndirs, 2) (-)
-      &  k11w(:,:), k21w(:,:),    & ! --//-- (ndirs, 2) (-)
-      &  ja1(:,:), ja2(:,:)         ! --//-- (ndirs, 2) (-)
+      &  last_prog_freq_ind(:,:)! last frequency index of the prognostic range (nproma,nblks_c) (-)
 
   END type t_wave_diag_dyn
 
@@ -194,6 +183,26 @@ MODULE mo_wave_types
   END TYPE t_wave_diag_cpl
 
 
+  ! time independent fields and coefficients which are calculated once
+  ! during initialization.
+  !
+  TYPE t_wave_const
+    REAL(wp), POINTER, CONTIGUOUS :: &
+      &  flminfr_tab(:,:)       ! minimum value of energy for a given
+                                ! frequency and wind speed bin                     (jmax,nfreqs)
+
+    REAL(vp), POINTER, CONTIGUOUS :: &
+      &  AF11(:),                 & ! for discrete approximation of nonlinear transfer (nfreqs+4) (-)
+      &  FKLAP(:), FKLAP1(:),     & ! --//-- (nfreqs+4) (-)
+      &  FKLAM(:), FKLAM1(:)        ! --//-- (nfreqs+4) (-)
+
+    INTEGER, POINTER, CONTIGUOUS ::  &
+      &  ikp(:), ikp1(:),         & ! for discrete approximation of nonlinear transfer (nfreqs+4) (-)
+      &  ikm(:), ikm1(:),         & ! --//-- (nfreqs+4) (-)
+      &  k1w(:,:), k2w(:,:),      & ! --//-- (ndirs, 2) (-)
+      &  k11w(:,:), k21w(:,:),    & ! --//-- (ndirs, 2) (-)
+      &  ja1(:,:), ja2(:,:)         ! --//-- (ndirs, 2) (-)
+  END TYPE t_wave_const
 
   !
   ! Grouping of diagnostic fields
@@ -207,6 +216,7 @@ MODULE mo_wave_types
   !          |  optional: at   |                 |                            | optional: output schedule
   !          |  output         |                 |                            |
   ! diag_out |  at output      |       no        |       no                   | output schedule
+  ! const    |  always         |       yes       |       no                   | at initialization step
 
   TYPE t_wave_state
     !
@@ -215,6 +225,10 @@ MODULE mo_wave_types
     !
     ! < source function state vector
     TYPE(t_wave_source)               :: source
+    !
+    !< coefficients for model integration
+    !  computed once during model initialization
+    TYPE(t_wave_const)                :: const
     !
     !< diagnostics required for time integration (affect solution)
     TYPE(t_wave_diag_dyn)             :: diag_dyn
@@ -233,6 +247,7 @@ MODULE mo_wave_types
     ! array of prognostic state lists at different timelevels
     TYPE(t_var_list_ptr), ALLOCATABLE :: prog_list(:)  !< shape: (timelevels)
     TYPE(t_var_list_ptr)              :: source_list
+    TYPE(t_var_list_ptr)              :: const_list
     TYPE(t_var_list_ptr)              :: diag_dyn_list
     TYPE(t_var_list_ptr)              :: diag_cpl_list
     TYPE(t_var_list_ptr)              :: diag_out_list
