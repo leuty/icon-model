@@ -1245,7 +1245,11 @@ CONTAINS
 
       !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
       DO je = start_edge_index, end_edge_index
+#if defined(__INTEL_COMPILER) || defined(__INTEL_LLVM_COMPILER)
+!$OMP SIMD
+#else
 !DIR$ SIMD
+#endif
         DO jk = 1, patch_3d%p_patch_1d(1)%dolic_e(je,blockNo)
           z_vn_ab(je,jk,blockNo)=ab_gam * ocean_state%p_diag%vn_pred(je,jk,blockNo) &
             & + (1.0_wp -ab_gam) * ocean_state%p_prog(nold(1))%vn(je,jk,blockNo)
