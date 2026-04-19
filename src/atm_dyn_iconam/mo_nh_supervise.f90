@@ -684,6 +684,69 @@ CONTAINS
 
   !-------------------------------------------------------------------------
   !>
+  !! Computation of maximum wind speed for each vertical level
+  !!
+  SUBROUTINE calculate_maxwind_per_level(u, max_u, nlev, i_startidx, i_endidx, jb, lacc)
+
+    REAL(wp), INTENT(IN)    :: u(:,:,:)
+    REAL(wp), INTENT(INOUT) :: max_u(:,:)
+    INTEGER,  INTENT(IN)    :: nlev, i_startidx, i_endidx, jb
+    LOGICAL,  INTENT(IN), OPTIONAL :: lacc ! If true, use openacc
+
+    INTEGER :: jk, jec, jec_start, jec_end
+    INTEGER, PARAMETER :: chunk_size = 2048
+    REAL(wp) :: u_aux_tmp
+
+    LOGICAL :: lzacc ! non-optional version of lacc
+
+    !-----------------------------------------------------------------------
+    CALL set_acc_host_or_device(lzacc, lacc)
+
+#ifdef _OPENACC
+
+    !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+    !$ACC LOOP GANG COLLAPSE(2) PRIVATE(u_aux_tmp)
+    DO jk = 1, nlev
+      DO jec_start = i_startidx, i_endidx, chunk_size
+        jec_end = MIN(jec_start + chunk_size - 1, nproma)
+#ifndef _CRAYFTN
+        ! Cray doesn't like CACHE directive withing GANG loop
+        !$ACC CACHE(u(jec_start:jec_end,jk,jb))
+#endif
+        u_aux_tmp = 0._wp
+        !$ACC LOOP VECTOR REDUCTION(MAX: u_aux_tmp)
+        DO jec = jec_start, jec_end
+          u_aux_tmp = MAX(u_aux_tmp, ABS(u(jec,jk,jb)))
+        ENDDO
+
+        !$ACC ATOMIC
+        max_u(jb,jk) = MAX(max_u(jb,jk), u_aux_tmp)
+        !$ACC END ATOMIC
+      ENDDO
+    ENDDO
+    !$ACC END PARALLEL
+
+#else
+
+!$NEC novector
+    DO jk = 1, nlev
+#if defined( __INTEL_COMPILER ) || defined (__SX__)
+      u_aux_tmp = 0._wp
+      DO jec = i_startidx,i_endidx
+        u_aux_tmp = MAX(u_aux_tmp, -u(jec,jk,jb), u(jec,jk,jb))
+      ENDDO
+      max_u(jb,jk) = u_aux_tmp
+#else
+      max_u(jb,jk) = MAXVAL(ABS(u(i_startidx:i_endidx,jk,jb)))
+#endif
+    ENDDO
+
+#endif
+
+  END SUBROUTINE calculate_maxwind_per_level
+
+  !-------------------------------------------------------------------------
+  !>
   !! Computation of maximum horizontal and vertical wind speed for runtime diagnostics
   !! Was included in mo_nh_stepping before
   !!
@@ -706,13 +769,11 @@ CONTAINS
     REAL(wp) :: w_aux (patch%cells%end_blk(min_rlcell_int,MAX(1,patch%n_childdom)),patch%nlevp1)
 #endif
 
-    REAL(wp) :: vn_aux_lev(patch%nlev), w_aux_lev(patch%nlevp1), vmax(2), vn_aux_tmp, w_aux_tmp
+    REAL(wp) :: vn_aux_lev(patch%nlev), w_aux_lev(patch%nlevp1), vmax(2)
 
     INTEGER  :: istartblk_c, istartblk_e, iendblk_c, iendblk_e, i_startidx, i_endidx
     INTEGER  :: jb, jk, jg
-#if defined( __INTEL_COMPILER ) || defined( _OPENACC ) || defined (__SX__)
-    INTEGER  :: jec
-#endif
+
     INTEGER  :: proc_id(2), keyval(2)
     LOGICAL :: lzacc ! non-optional version of lacc
 
@@ -740,62 +801,27 @@ CONTAINS
       !$ACC END KERNELS
     ENDIF
 
-!$OMP PARALLEL
-#if defined( __INTEL_COMPILER ) || defined (__SX__)
-!$OMP DO PRIVATE(jb, jk, jec, i_startidx, i_endidx, vn_aux_tmp) ICON_OMP_DEFAULT_SCHEDULE
-#else
-!$OMP DO PRIVATE(jb, jk, i_startidx, i_endidx) ICON_OMP_DEFAULT_SCHEDULE
+#ifdef _OPENACC
+    !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+    vn_aux(:,:) = 0._wp
+    w_aux (:,:) = 0._wp
+    !$ACC END KERNELS
 #endif
-    DO jb = istartblk_e, iendblk_e
 
+!$OMP PARALLEL
+!$OMP DO PRIVATE(jb, jk, i_startidx, i_endidx) ICON_OMP_DEFAULT_SCHEDULE
+    DO jb = istartblk_e, iendblk_e
       CALL get_indices_e(patch, jb, istartblk_e, iendblk_e, i_startidx, i_endidx, &
                          grf_bdywidth_e+1, min_rledge_int)
-
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-      !$ACC LOOP GANG PRIVATE(vn_aux_tmp)
-!$NEC novector
-      DO jk = 1, patch%nlev
-#if defined( __INTEL_COMPILER ) || defined( _OPENACC ) || defined (__SX__)
-        vn_aux_tmp = 0._wp
-        !$ACC LOOP VECTOR REDUCTION(MAX: vn_aux_tmp)
-        DO jec = i_startidx,i_endidx
-          vn_aux_tmp = MAX(vn_aux_tmp, -vn(jec,jk,jb), vn(jec,jk,jb))
-        ENDDO
-        vn_aux(jb,jk) = vn_aux_tmp
-#else
-        vn_aux(jb,jk) = MAXVAL(ABS(vn(i_startidx:i_endidx,jk,jb)))
-#endif
-      ENDDO
-      !$ACC END PARALLEL
+      CALL calculate_maxwind_per_level(vn, vn_aux, patch%nlev, i_startidx, i_endidx, jb, lacc)
     END DO
 !$OMP END DO
 
-#if defined( __INTEL_COMPILER ) || defined (__SX__)
-!$OMP DO PRIVATE(jb, jk, jec, i_startidx, i_endidx, w_aux_tmp) ICON_OMP_DEFAULT_SCHEDULE
-#else
 !$OMP DO PRIVATE(jb, jk, i_startidx, i_endidx) ICON_OMP_DEFAULT_SCHEDULE
-#endif
     DO jb = istartblk_c, iendblk_c
-
       CALL get_indices_c(patch, jb, istartblk_c, iendblk_c, i_startidx, i_endidx, &
                          grf_bdywidth_c+1, min_rlcell_int)
-
-      !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-      !$ACC LOOP GANG PRIVATE(w_aux_tmp)
-!$NEC novector
-      DO jk = 1, patch%nlevp1
-#if defined( __INTEL_COMPILER ) || defined( _OPENACC ) || defined (__SX__)
-        w_aux_tmp = 0._wp
-        !$ACC LOOP VECTOR REDUCTION(MAX: w_aux_tmp)
-        DO jec = i_startidx,i_endidx
-          w_aux_tmp = MAX(w_aux_tmp, -w(jec,jk,jb), w(jec,jk,jb))
-        ENDDO
-        w_aux(jb,jk) = w_aux_tmp
-#else
-        w_aux(jb,jk) = MAXVAL(ABS(w(i_startidx:i_endidx,jk,jb)))
-#endif
-      ENDDO
-      !$ACC END PARALLEL
+      CALL calculate_maxwind_per_level(w, w_aux, patch%nlevp1, i_startidx, i_endidx, jb, lacc)
     END DO
 !$OMP END DO
 
