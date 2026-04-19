@@ -94,6 +94,7 @@
 - Fix for jsbach simulations with natural and anthropogenic land cover change
 - Hydrology: Removed old checks in initialization
 - Hydrology: added new routine to simplify reading soil boundary condition data
+- Fixed freeing of some leftover memory when reading initial data
 - Fixed finish message for invalid var name in output_nml with standalone model
 - Enabled running ICON-Land standalone for one or more single sites
 

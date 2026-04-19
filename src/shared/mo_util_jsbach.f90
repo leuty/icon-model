@@ -940,7 +940,7 @@ MODULE mo_jsb_io_netcdf_iface
   USE mo_io_units,           ONLY: filename_max
   USE mo_jsb_domain_iface,   ONLY: t_patch
   USE mo_jsb_parallel_iface, ONLY: my_process_is_mpi_parallel, my_process_is_stdio, p_bcast, p_io, mpi_comm
-  USE mo_read_interface,     ONLY: read_1D, read_2D, read_2D_time, read_2D_1lev_1time, read_2D_extdim, read_2D_int, &
+  USE mo_read_interface,     ONLY: read_1D, read_2D, read_3D, read_2D_time, read_2D_1lev_1time, read_2D_extdim, read_2D_int, &
     &                              openInputFile, closeFile, on_cells, t_stream_id, read_netcdf_broadcast_method
   USE mo_netcdf_errhandler,  ONLY: nf
   USE mo_netcdf
@@ -958,6 +958,7 @@ MODULE mo_jsb_io_netcdf_iface
     PROCEDURE :: Close          => netcdf_close_file
     PROCEDURE :: Read_1d        => netcdf_read_real_1d
     PROCEDURE :: Read_2d        => netcdf_read_real_2d
+    PROCEDURE :: Read_3d        => netcdf_read_real_3d
     PROCEDURE :: Read_2d_time   => netcdf_read_real_2d_time
     PROCEDURE :: Read_2d_1lev_1time   => netcdf_read_real_2d_1lev_1time
     PROCEDURE :: Read_2d_extdim => netcdf_read_real_2d_extdim
@@ -1062,6 +1063,7 @@ CONTAINS
         CALL read_1D(input_file%file_id, TRIM(variable_name), alloc_array=arr)
         ALLOCATE(netcdf_read_real_1d(SIZE(arr, 1)))
         netcdf_read_real_1d(:) = arr(:)
+        DEALLOCATE(arr)
       END IF
     ELSE IF (input_file%type == 2) THEN
       CALL finish(TRIM(routine), 'Incompatible input file type')
@@ -1091,6 +1093,7 @@ CONTAINS
         CALL read_2D(input_file%stream_id, on_cells, TRIM(variable_name), alloc_array=arr)
         ALLOCATE(netcdf_read_real_2d(SIZE(arr, 1), SIZE(arr, 2)))
         netcdf_read_real_2d(:,:) = arr(:,:)
+        DEALLOCATE(arr)
       END IF
     ELSE IF (input_file%type == 2) THEN
       CALL finish(TRIM(routine), 'Incompatible input file type')
@@ -1099,6 +1102,36 @@ CONTAINS
     END IF
 
   END FUNCTION netcdf_read_real_2d
+
+  FUNCTION netcdf_read_real_3d(input_file, variable_name, fill_array)
+
+    CLASS(t_input_file), INTENT(inout) :: input_file
+    CHARACTER(LEN=*),   INTENT(in)    :: variable_name
+    REAL(wp), TARGET, OPTIONAL        :: fill_array(:,:,:)
+    REAL(wp), POINTER                 :: netcdf_read_real_3d(:,:,:)
+
+    CHARACTER(len=*), PARAMETER :: routine = modname//':netcdf_read_real_2d'
+    REAL(wp), ALLOCATABLE :: arr(:,:,:)
+
+    NULLIFY(netcdf_read_real_3d)
+
+    IF (input_file%type == 1) THEN
+      IF (PRESENT(fill_array)) THEN
+        CALL read_3D(input_file%stream_id, on_cells, TRIM(variable_name), fill_array)
+        netcdf_read_real_3d => fill_array
+      ELSE
+        CALL read_3D(input_file%stream_id, on_cells, TRIM(variable_name), alloc_array=arr)
+        ALLOCATE(netcdf_read_real_3d(SIZE(arr, 1), SIZE(arr, 2), SIZE(arr, 3)))
+        netcdf_read_real_3d(:,:,:) = arr(:,:,:)
+        DEALLOCATE(arr)
+      END IF
+    ELSE IF (input_file%type == 2) THEN
+      CALL finish(TRIM(routine), 'Incompatible input file type')
+    ELSE
+      CALL finish(TRIM(routine), 'Input file type not recognized.')
+    END IF
+
+  END FUNCTION netcdf_read_real_3d
 
   FUNCTION netcdf_read_real_2d_time(input_file, variable_name, fill_array, &
     start_time_step, end_time_step)
@@ -1134,6 +1167,7 @@ CONTAINS
       CALL read_2D_1lev_1time(input_file%stream_id, on_cells, TRIM(variable_name), alloc_array=arr)
       ALLOCATE(netcdf_read_real_2d_1lev_1time(SIZE(arr, 1), SIZE(arr, 2)))
       netcdf_read_real_2d_1lev_1time(:,:) = arr(:,:)
+      DEALLOCATE(arr)
     END IF
 
   END FUNCTION netcdf_read_real_2d_1lev_1time
@@ -1163,6 +1197,7 @@ CONTAINS
                             start_extdim=start_extdim, end_extdim=end_extdim, extdim_name=extdim_name)
         ALLOCATE(netcdf_read_real_2d_extdim(SIZE(arr, 1), SIZE(arr, 2), SIZE(arr, 3)))
         netcdf_read_real_2d_extdim(:,:,:) = arr(:,:,:)
+        DEALLOCATE(arr)
       END IF
     ELSE IF (input_file%type == 2) THEN
       CALL finish(TRIM(routine), 'Incompatible input file type')
@@ -1192,6 +1227,7 @@ CONTAINS
         CALL read_2D_int(input_file%stream_id, on_cells, TRIM(variable_name), alloc_array=arr)
         ALLOCATE(netcdf_read_int_2d(SIZE(arr, 1), SIZE(arr, 2)))
         netcdf_read_int_2d(:,:) = arr(:,:)
+        DEALLOCATE(arr)
       END IF
     ELSE IF (input_file%type == 2) THEN
       CALL finish(TRIM(routine), 'Incompatible input file type')
