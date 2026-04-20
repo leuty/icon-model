@@ -27,6 +27,7 @@ MODULE mo_nwp_vdiff_types
   USE mo_zaxis_type, ONLY: ZA_REFERENCE, ZA_SURFACE
   USE mo_fortran_tools,      ONLY: assert_acc_device_only
   USE mo_run_config, ONLY: ico2
+  USE mo_ccycle_config, ONLY: ccycle_config, CCYCLE_MODE_INTERACTIVE
 
   USE mtime, ONLY: datetime
 
@@ -237,12 +238,13 @@ MODULE mo_nwp_vdiff_types
 CONTAINS
 
   !> Initialize a `t_nwp_vdiff_state` structure, adding the variables to the given varlist.
-  SUBROUTINE nwp_vdiff_state_init (self, nproma, nlev, nblks_c, varlist)
+  SUBROUTINE nwp_vdiff_state_init (self, nproma, nlev, nblks_c, id, varlist)
 
     CLASS(t_nwp_vdiff_state), INTENT(OUT) :: self !< Object to initialize.
     INTEGER, INTENT(IN) :: nproma !< Block size.
     INTEGER, INTENT(IN) :: nlev !< Number of levels.
     INTEGER, INTENT(IN) :: nblks_c !< Number of cell blocks.
+    INTEGER, INTENT(IN) :: id !< ID of domain
     TYPE(t_var_list_ptr), INTENT(INOUT) :: varlist !< Varlist to append variables.
 
     TYPE(t_cf_var) :: cf_desc
@@ -257,6 +259,7 @@ CONTAINS
     INTEGER :: shape2d_sfc(3) !< Shape of 2D fields with surface-class index.
 
     INTEGER :: i
+    INTEGER :: iccycle
 
     REAL(wp), POINTER :: p2d(:,:)
 
@@ -371,11 +374,14 @@ CONTAINS
 
     ! self%fco2ant(nproma,nblks_c)
     IF (ico2 > 0) THEN
+      ! Setting iccycle for lrestart_cont (lrestart_cont == TRUE if iccycle == 1)
+      iccycle = ccycle_config(id)%iccycle
       cf_desc = t_cf_var('fco2ant', 'kg m-2 s-1', 'Anthropogenic CO2 flux', datatype_flt)
       grib2_desc = grib2_var(255, 255, 255, grib2_bits, GRID_UNSTRUCTURED, GRID_CELL)
       CALL add_var(varlist, 'fco2ant', self%fco2ant, &
           & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc, &
           & ldims=shape2d, isteptype=TSTEP_INSTANT, lopenacc=.TRUE., &
+          & lrestart_cont=(iccycle == CCYCLE_MODE_INTERACTIVE), &
           & lrestart=.TRUE., in_group=groups('vdiff') &
         )
     !$ACC ENTER DATA ASYNC(1) ATTACH(self%fco2ant)

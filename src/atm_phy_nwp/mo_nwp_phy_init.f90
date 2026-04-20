@@ -20,7 +20,7 @@ MODULE mo_nwp_phy_init
   USE mo_kind,                ONLY: wp
   USE mo_math_constants,      ONLY: rad2deg
   USE mo_physical_constants,  ONLY: grav, rd_o_cpd, cpd, p0ref, rd, p0sl_bg,         &
-    &                               dtdz_standardatm, lh_v=>alv, o3mr2gg
+    &                               dtdz_standardatm, lh_v=>alv, o3mr2gg, amd, amco2
   USE mo_nwp_phy_types,       ONLY: t_nwp_phy_diag,t_nwp_phy_tend
   USE mo_nwp_lnd_types,       ONLY: t_lnd_prog, t_wtr_prog, t_lnd_diag
   USE mo_ext_data_types,      ONLY: t_external_data
@@ -38,8 +38,9 @@ MODULE mo_nwp_phy_init
   USE mo_impl_constants_grf,  ONLY: grf_bdywidth_c
   USE mo_loopindices,         ONLY: get_indices_c
   USE mo_parallel_config,     ONLY: nproma
-  USE mo_fortran_tools,       ONLY: copy
-  USE mo_run_config,          ONLY: ltestcase, iqv, iqc, inccn, ininpot, msg_level, dtime
+  USE mo_fortran_tools,       ONLY: copy, init
+  USE mo_run_config,          ONLY: ltestcase, iqv, iqc, inccn, ininpot, msg_level,  &
+    &                               dtime, ico2
   USE mo_atm_phy_nwp_config,  ONLY: atm_phy_nwp_config, lrtm_filename,               &
     &                               cldopt_filename, icpl_aero_conv, icpl_aero_ice,  &
     &                               i2daero_dust, i2daero_seas, i2daero_anthro, spg_num
@@ -56,8 +57,8 @@ MODULE mo_nwp_phy_init
     &                               ssi_radt, tsi_radt,irad_o3, rad_csalbw,           &
     &                               ghg_filename, irad_co2, irad_cfc11, irad_cfc12,   &
     &                               irad_n2o, irad_ch4, isolrad, lcalculate_fsd,      &
-    &                               fsd_gridlen
-  USE mo_ccycle_config,       ONLY: ccycle_config, update_ccycle_config
+    &                               fsd_gridlen, vmr_co2
+  USE mo_ccycle_config,       ONLY: ccycle_config, update_ccycle_config, CCYCLE_MODE_INTERACTIVE
   USE mo_nwp_aerosol,         ONLY: nwp_aerosol_init
   USE mo_srtm_config,         ONLY: setup_srtm, ssi_amip, ssi_coddington
   USE mo_aerosol_util,        ONLY: init_aerosol_props_tegen_rrtm,                  &
@@ -1906,6 +1907,16 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
   IF(ccycle_config(jg)% C4MIP_FLAG /= 'none') THEN
     CALL update_ccycle_config
   ENDIF
+
+  ! CO2 tracer field intialization
+  IF (ccycle_config(jg)%iccycle == CCYCLE_MODE_INTERACTIVE) THEN
+    IF (ASSOCIATED(p_prog_now%tracer_ptr(ico2)%p_3d)) THEN
+!$OMP PARALLEL
+      CALL init(p_prog_now%tracer_ptr(ico2)%p_3d, vmr_co2*amco2/amd, lacc=.FALSE.)
+!$OMP END PARALLEL
+    END IF
+  END IF
+
   ! read time-dependent boundary conditions from file
   ! well mixed greenhouse gases, horizontally constant
   IF(ANY((/irad_co2,irad_cfc11,irad_cfc12,irad_n2o,irad_ch4/) == 4) .OR. ccycle_config(jg)% ico2conc == 4 ) THEN

@@ -41,7 +41,6 @@ USE mo_run_config,           ONLY: dtime,                & !    namelist paramet
   &                                lvert_nest, ntracer,  &
   &                                ldass_lhn, msg_level, &
   &                                iqc, iqt,             &
-  &                                ico2, io3,            &
   &                                number_of_grid_used
 USE mo_lnd_nwp_config,       ONLY: lseaice
 USE mo_initicon_config,      ONLY: pinit_seed, pinit_amplitude, init_mode, iterate_iau
@@ -118,7 +117,7 @@ USE mo_art_init_interface,   ONLY: art_init_atmo_tracers_nwp
 #endif
 
 ! AES physics
-USE mo_aes_phy_config,      ONLY: aes_phy_tc, dt_zero, aes_phy_config
+USE mo_aes_phy_config,      ONLY: aes_phy_config
 USE mo_aes_rad_config,      ONLY: aes_rad_config
 USE mo_aes_vdf_config,      ONLY: aes_vdf_config
 #ifndef __NO_AES__
@@ -164,7 +163,6 @@ USE mo_rttov_interface,     ONLY: rttov_finalize, rttov_initialize
 USE mo_synsat_config,       ONLY: lsynsat
 USE mo_mpi,                 ONLY: my_process_is_stdio, p_comm_work_only, my_process_is_work_only
 USE mo_var_list_register_utils, ONLY: vlr_print_groups
-USE mo_sync,                ONLY: sync_patch_array, sync_c
 USE mo_nudging_config,      ONLY: l_global_nudging
 USE mo_random_util,         ONLY: add_random_noise_3d, add_random_noise_2d
 
@@ -733,64 +731,6 @@ CONTAINS
           CALL duplicate_prog_state(p_nh_state(jg)%prog(nnow(jg)), p_nh_state(jg)%prog(nnew(jg)))
         ENDDO
       ENDIF
-
-      !
-      ! Initialize tracers which are not available in the analysis file,
-      ! but may be used with AES/NWP physics, for real cases or test cases.
-      !
-      IF (iforcing == inwp ) THEN
-#ifdef __NO_NWP__
-        CALL finish (routine, 'Error: remove --disable-nwp and reconfigure')
-#else
-        DO jg = 1,n_dom
-          IF ( ico2 /= 0 ) THEN
-!$OMP PARALLEL
-            CALL init(p_nh_state(jg)%prog(nnow_rcf(jg))%tracer(:,:,:,ico2), vmr_co2*amco2/amd, lacc=.FALSE.)
-!$OMP END PARALLEL
-          END IF
-        END DO
-#endif
-      END IF
-      IF (iforcing == iaes ) THEN
-#ifdef __NO_AES__
-        CALL finish (routine, 'Error: remove --disable-aes and reconfigure')
-#else
-        DO jg = 1,n_dom
-          IF (.NOT. p_patch(jg)%ldom_active) CYCLE
-          !
-          ! CO2 tracer
-          IF ( iqt <= ico2 .AND. ico2 <= ntracer) THEN
-!$OMP PARALLEL
-            CALL init(p_nh_state(jg)%prog(nnow_rcf(jg))%tracer(:,:,:,ico2),aes_rad_config(jg)% vmr_co2*amco2/amd, lacc=.FALSE.)
-!$OMP END PARALLEL
-            CALL print_value('CO2 tracer initialized with constant vmr', &
-              &              aes_rad_config(jg)% vmr_co2*amco2/amd,    &
-              &              routine=routine)
-          END IF
-          !
-          ! O3 tracer
-          IF ( iqt <= io3 .AND. io3 <= ntracer) THEN
-            IF (aes_phy_tc(jg)%dt_car > dt_zero) THEN
-              CALL init_o3_lcariolle( time_config%tc_current_date                          ,&
-                &                     p_patch(jg)                                          ,&
-                &                     p_nh_state(jg)%diag% pres               (:,:,:)      ,&
-                &                     p_nh_state(jg)%prog(nnow_rcf(jg))%tracer(:,:,:,io3)  )
-              CALL sync_patch_array ( sync_c,p_patch(jg)                                   ,&
-                &                     p_nh_state(jg)%prog(nnow_rcf(jg))%tracer(:,:,:,io3), lacc=.FALSE.)
-              CALL message(routine,'o3 tracer is initialized by the Cariolle lin. o3 scheme')
-            ELSE
-!$OMP PARALLEL
-              CALL init(p_nh_state(jg)%prog(nnow_rcf(jg))%tracer(:,:,:,io3),0.0_wp, lacc=.FALSE.)
-!$OMP END PARALLEL
-              CALL message(routine,'o3 tracer is initialized to zero, check setup')
-            END IF
-          END IF
-          !
-        END DO
-        !
-#endif
-      END IF
-      !
     END IF ! isRestart()
 
 
@@ -810,7 +750,9 @@ CONTAINS
       ! prepare fields of the physics state, real and test case
       DO jg = 1,n_dom
         CALL init_aes_phy_field( p_patch(jg)                       ,&
-          &                      p_nh_state(jg)% diag% temp(:,:,:) )
+          &                      p_nh_state(jg)% diag% temp(:,:,:) ,&
+          &                      p_nh_state(jg)% diag% pres(:,:,:) ,&
+          &                      p_nh_state(jg)% prog(nnow_rcf(jg)) )
       END DO
       !
 #endif

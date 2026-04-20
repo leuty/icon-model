@@ -6303,7 +6303,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
 
     ! Initialize JSBACH + VDIFF state.
     IF (atm_phy_nwp_config(k_jg)%inwp_surface == LSS_JSBACH .OR. atm_phy_nwp_config(k_jg)%inwp_turb == ivdiff) THEN
-      CALL diag%nwp_vdiff_state%init(nproma, p_patch(k_jg)%nlev, p_patch(k_jg)%nblks_c, diag_list)
+      CALL diag%nwp_vdiff_state%init(nproma, p_patch(k_jg)%nlev, p_patch(k_jg)%nblks_c, p_patch(k_jg)%id, diag_list)
     END IF
 
     CALL message('mo_nwp_phy_state:construct_nwp_phy_diag', &
