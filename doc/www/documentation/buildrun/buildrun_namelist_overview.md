@@ -8172,7 +8172,7 @@ time step it is automatically rounded to the next higher integer multiple of the
       - please note that "skipping" domains is currently not possible, i.e. lupatmo_phy = .TRUE., .FALSE., .TRUE. is transformed into lupatmo_phy = .TRUE., .FALSE., .FALSE.
     See [upatmo_nml](ref_buildrun_nml_upatmo_nml) for configuration of the upper-atmosphere physics parameterizations.
   - [iforcing](run_nml-iforcing) = inwp
-    init_mode < 4
+    init_mode = 1, 2, 3, or 7
     inwp_turb > 0
     inwp_radiation > 0
 

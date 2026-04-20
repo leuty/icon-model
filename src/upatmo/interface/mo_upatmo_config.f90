@@ -19,7 +19,7 @@ MODULE mo_upatmo_config
   USE mo_exception,                ONLY: message, message_text, finish
   USE mo_impl_constants,           ONLY: max_dom,                    &
       &                                    MODE_IFSANA, MODE_COMBINED, &
-      &                                    MODE_DWDANA, inoforcing,    &
+      &                                    MODE_DWDANA, MODE_ICONVREMAP, inoforcing,    &
       &                                    SUCCESS, inwp, iaes,        &
       &                                    ivexpol
   USE mo_model_domain,             ONLY: t_patch
@@ -765,7 +765,7 @@ CONTAINS !......................................................................
         WRITE(message_text, '(a,i0)') "nwp_phy_nml: lupatmo_phy only &
             &available, if run_nml: iforcing = inwp = ", inwp
         CALL finish(routine, message_text)
-      ELSEIF (.NOT.ANY((/MODE_DWDANA, MODE_IFSANA, MODE_COMBINED/) == init_mode)) THEN
+      ELSEIF (.NOT.ANY((/MODE_DWDANA, MODE_IFSANA, MODE_COMBINED, MODE_ICONVREMAP/) == init_mode)) THEN
         ! ... only initialization with IFS or DWD analyses is allowed
         ! (it has not yet been figured out, how to include the upper-atmosphere physics into the IAU-infrastructure)
         WRITE(message_text, '(3(a,i0))') "NWP + upper-atmosphere physics &
