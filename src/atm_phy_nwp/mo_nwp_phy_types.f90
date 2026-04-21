@@ -482,7 +482,7 @@ MODULE mo_nwp_phy_types
 
 
     !> (Optional:) Additional diagnostic fields:
-    REAL(wp), POINTER ::   &
+    REAL(wp), POINTER, CONTIGUOUS ::   &
       rh(:,:,:),           & !> relative humidity
       pv(:,:,:),           & !> potential vorticity
       sdi2(:,:),           & !> supercell detection index (SDI2)
@@ -540,7 +540,15 @@ MODULE mo_nwp_phy_types
       srh(:,:,:),          & !< Storm relative helicity with right-moving storm motion after Bunkers et al. (2000)
       tot_pr_max(:,:),     & !< Time maximum total precipitation rate
       hpbl(:,:),           & !< Boundary layer height  (m)
-      aod_550nm(:,:)         !< aerosol optical depth visible 550 nm (spectral band 25)
+      aod_550nm(:,:),      & !< aerosol optical depth visible 550 nm (spectral band 25)
+      dm_hail(:,:,:),      & !< mean mass diameter of hail                    (m)
+      dm_hail_s(:,:),      & !< mean mass diameter of hail at surface         (m)
+      dm_hail_max_s(:,:),  & !< time maximum of mean mass diameter of hail at surface (m)
+      demax_hail_s(:,:),   & !< estimated max. diameter of hail at surface    (m)
+      demax_hail_tmax_s(:,:),&!< time maximum of estimated max. diameter of hail at surface (m)
+      kef_hail_s(:,:),     & !< hail kinetic energy flux at surface           (J/m2/s)
+      kef_hail_max_s(:,:), & !< time maximum of hail kinetic energy flux at surface (J/m2/s)
+      ke_hail_s(:,:)         !< hail kinetic energy at surface, flux accumulated over time (J/m2)
 
     ! Buffer field needed when vertical nesting is combined with a reduced radiation
     ! grid and latm_above_top = .TRUE.

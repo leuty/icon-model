@@ -1941,8 +1941,8 @@ CONTAINS
     INTEGER, INTENT(IN) :: idtop(:), kctop(:), kcbot(:)
     INTEGER, INTENT(INOUT) :: ktype(:)
 
-    REAL(KIND=JPRB), INTENT(OUT) :: heat_cgw(:,:), tupd_cgw(:,:), test_cgw(:,:)
-    INTEGER, INTENT(OUT) :: ktype_cgw(:), kctop_cgw(:), kcbot_cgw(:)
+    REAL(KIND=JPRB), INTENT(INOUT) :: heat_cgw(:,:), tupd_cgw(:,:), test_cgw(:,:)
+    INTEGER, INTENT(INOUT) :: ktype_cgw(:), kctop_cgw(:), kcbot_cgw(:)
     REAL(KIND=JPRB), INTENT(OUT) :: plude_expl(:,:)
     REAL(KIND=jprb) ::  zalv, zdz, zmfa
     INTEGER(KIND=jpim) :: jk, ik, jl

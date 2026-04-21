@@ -35,8 +35,8 @@ MODULE mo_util_phys
        &                              iqm_max, nqtendphy, lart, iqnc, iqnr, iqns, iqb_last, iqbin
 
 #ifndef __NO_ICON_LES__
-  USE mo_ls_forcing_nml,        ONLY: is_ls_forcing, is_nudging_tq, &
-       &                              nudge_start_height, nudge_full_height, dt_relax
+  USE mo_ls_forcing_nml,        ONLY: is_ls_forcing
+  USE mo_ls_forcing,            ONLY: apply_ls_forc_nudge_qv
 #endif
   USE mo_loopindices,           ONLY: get_indices_c
   USE mo_atm_phy_nwp_config,    ONLY: atm_phy_nwp_config
@@ -819,38 +819,20 @@ CONTAINS
 #ifndef __NO_ICON_LES__
     ! Add LS forcing to moisture variable including nudging
     IF(is_ls_forcing)THEN
-      CALL assert_acc_host_only("tracer_add_phytend is_ls_forcing", lacc)
-      DO jt=1, nqtendphy  ! qv,qc,qi
-        DO jk = kstart_moist(jg), kend
-!DIR$ IVDEP
-          DO jc = i_startidx, i_endidx
+      CALL apply_ls_forc_nudge_qv(                                & !IN
+        & i_startidx           = i_startidx                     , & !IN
+        & i_endidx             = i_endidx                       , & !IN
+        & dt_loc               = dt_loc                         , & !IN
+        & nqtendphy            = nqtendphy                      , & !IN
+        & pdtime               = pdtime                         , & !IN
+        & kstart_moist         = kstart_moist(jg)               , & !IN
+        & kend                 = kend                           , & !IN
+        & geopot_agl           = p_metrics%geopot_agl(:,:,jb)   , & !IN
+        & ddt_tracer_ls        = prm_nwp_tend%ddt_tracer_ls(:,:), & !IN
+        & q_nudge              = prm_nwp_tend%q_nudge(:,:)      , & !IN
+        & tracer               = pt_prog_rcf%tracer(:,:,jb,:)   , & !INOUT
+        & lacc                 = lacc )                             !IN, optional
 
-            ! add q nudging (T, U, V nudging is in mo_nh_interface_nwp)
-            IF ( is_nudging_tq ) THEN
-
-              ! linear nudging profile between "start" and "full" heights - prevent sfc layer instability
-              IF ( nudge_full_height == nudge_start_height ) THEN
-                nudgecoeff = 1.0_wp
-              ELSE
-                nudgecoeff = ( p_metrics%geopot_agl(jc,jk,jb)/grav - nudge_start_height ) / &
-                           & ( nudge_full_height                   - nudge_start_height )
-                nudgecoeff = MAX( MIN( nudgecoeff, 1.0_wp ), 0.0_wp )
-              END IF
-              ! analytic implicit: (q,n+1 - q,n) / dt = (q,nudge - q,n) / dt_relax * exp(-dt/dt_relax)
-              z_ddt_q_nudge =                                                          &
-                &  - ( pt_prog_rcf%tracer(jc,jk,jb,jt) - prm_nwp_tend%q_nudge(jk,jt) ) &
-                &  / dt_relax * exp(-dt_loc/dt_relax) * nudgecoeff
-            ELSE
-              z_ddt_q_nudge = 0.0_wp
-            END IF
-
-            pt_prog_rcf%tracer(jc,jk,jb,jt) = MAX(0._wp, pt_prog_rcf%tracer(jc,jk,jb,jt)   &
-              &                                 + pdtime*prm_nwp_tend%ddt_tracer_ls(jk,jt) &
-              &                                 + pdtime*z_ddt_q_nudge)
-
-          ENDDO
-        ENDDO
-      END DO
     ENDIF  ! is_ls_forcing
 #endif
 

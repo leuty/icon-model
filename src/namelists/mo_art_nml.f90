@@ -45,6 +45,7 @@ MODULE mo_art_nml
   INTEGER :: iart_init_gas(1:max_dom)           !< Initialization of gaseous species
   INTEGER :: iart_fplume             !< run FPlume model (Volcanic Plumes)
   INTEGER :: iart_volc_numb          !< number of volcanoes
+  INTEGER :: iart_solvar_type        !< type of solar variability
   CHARACTER(LEN=IART_PATH_LEN)  :: cart_fplume_inp
                                      !< path to FPlume input files (use without file extension)
   LOGICAL :: lart_diag_out           !< Enable output of diagnostic fields
@@ -101,6 +102,7 @@ MODULE mo_art_nml
   INTEGER :: iart_dust               !< Treatment of mineral dust aerosol
   INTEGER :: iart_anthro             !< Treatment of anthropogenic aerosol
   INTEGER :: iart_fire               !< Treatment of wildfire aerosol
+  INTEGER :: iart_gfas_dt_ovrwrite   !< Interval of overwriting biomass burning emissions
   INTEGER :: iart_volcano            !< Treatment of volcanic ash aerosol
   INTEGER :: iart_nonsph             !< Treatment of nonspherical particles
   INTEGER :: iart_isorropia          !< Treatment of aerosol gas partioning
@@ -136,6 +138,15 @@ MODULE mo_art_nml
   ! Restart-DEBUG: Write DEBUG-Restartfile
   LOGICAL :: lart_debugRestart
 
+  ! MieAI (internal mixing)
+  INTEGER :: iart_MieAI
+  CHARACTER(LEN=IART_PATH_LEN)  :: &
+    &  cart_MieAI_files              !< Path to MieAI model files like ANN model parameters,
+                                     ! quantile mapping parmaters and min/max values
+                                     ! used for preprocessing
+  CHARACTER(LEN=IART_PATH_LEN)  :: &
+    &  cart_ri                       !< Path to Directory containing refractive indices data
+
   ! Time interval over which maximum of air concentration of radionuclides is taken
   REAL(wp):: radioact_maxtint(1:max_dom)
 
@@ -150,7 +161,7 @@ MODULE mo_art_nml
 
   NAMELIST/art_nml/ cart_input_folder, lart_chem, lart_chemtracer, lart_mecca,          &
    &                cart_io_suffix, lart_pntSrc, lart_aerosol, iart_seasalt, iart_dust, &
-   &                iart_anthro, iart_fire, rart_shfl_fire, rart_qv_fire, iart_volcano, &
+   &                iart_anthro, iart_fire,iart_gfas_dt_ovrwrite, rart_shfl_fire, rart_qv_fire, iart_volcano, &
    &                cart_volcano_file, iart_fplume, iart_volc_numb, cart_fplume_inp,    &
    &                iart_radioact, cart_radioact_file, iart_pollen, iart_nonsph,        &
    &                iart_isorropia, iart_seas_water, lart_dusty_cirrus,                 &
@@ -164,7 +175,9 @@ MODULE mo_art_nml
    &                cart_chemtracer_xml, cart_mecca_xml, cart_aerosol_xml,              &
    &                cart_modes_xml, cart_pntSrc_xml, cart_diagnostics_xml,              &
    &                lart_psc, cart_coag_xml, cart_aero_emiss_xml, cart_opt_props_nc,    &
-   &                cart_type_sedim, lart_debugRestart, radioact_maxtint, irad_multicall
+   &                cart_type_sedim, lart_debugRestart, radioact_maxtint,               &
+   &                irad_multicall, iart_solvar_type, iart_MieAI, cart_MieAI_files,     &
+   &                cart_ri
 
 CONTAINS
   !-------------------------------------------------------------------------
@@ -207,6 +220,7 @@ CONTAINS
     cart_io_suffix(1:max_dom)  = 'grid-number'
     iart_fplume                = 0
     iart_volc_numb             = 0
+    iart_solvar_type           = 1    ! fixed from input file FJX_spec.dat
     cart_fplume_inp            = ''
 
     ! Atmospheric Chemistry (Details: cf. Tab. 2.2 ICON-ART User Guide)
@@ -238,6 +252,7 @@ CONTAINS
     iart_dust           = 0
     iart_anthro         = 0
     iart_fire           = 0
+    iart_gfas_dt_ovrwrite = 0
     iart_volcano        = 0
     cart_volcano_file   = ''
     iart_radioact       = 0
@@ -271,6 +286,11 @@ CONTAINS
 
     ! Write DEBUG-Restartfile
     lart_debugRestart   = .FALSE.
+
+    ! MieAI (internal mixing)
+    iart_MieAI          = 0
+    cart_MieAI_files    = ''
+    cart_ri             = ''
 
     ! Time interval over which maximum of air concentration of radionuclides is taken
     radioact_maxtint(:) = 3600._wp
@@ -389,6 +409,27 @@ CONTAINS
         IF (iart_volc_numb==0) iart_volc_numb = 1
       END IF
 
+      ! MieAI data path
+      IF (iart_MieAI>=1) THEN
+        IF (iart_MieAI>=2) THEN
+          CALL finish('mo_art_nml:read_art_namelist','namelist parameter iart_MieAI >= 2' &
+                    //' has not been implemented yet.')
+        END IF
+
+        IF(TRIM(cart_MieAI_files) == '') THEN
+          CALL finish('mo_art_nml:read_art_namelist','namelist parameter cart_MieAI_files' &
+                    //' has to be given for iart_MieAI>=1. Also, please ensure that ' &
+                    //' MieAI.txt, mlp_min_max.csv and quantile_transform.csv files ' &
+                    //' are present in that directory.')
+        END IF
+
+        IF(TRIM(cart_ri) == '') THEN
+          CALL finish('mo_art_nml:read_art_namelist','namelist parameter cart_ri' &
+                    //' has to be given for iart_MieAI>=1. Also, please ensure that ' &
+                    //' all 6 refractive indices datasets are present in that directory.')
+        END IF
+      END IF
+
     END IF  ! lart
 
 
@@ -409,6 +450,7 @@ CONTAINS
       art_config(jg)%cart_io_suffix       = TRIM(cart_io_suffix(jg))
       art_config(jg)%iart_fplume          = iart_fplume
       art_config(jg)%iart_volc_numb       = iart_volc_numb
+      art_config(jg)%iart_solvar_type     = iart_solvar_type
       art_config(jg)%cart_fplume_inp      = TRIM(cart_fplume_inp)
 
       ! Atmospheric Chemistry (Details: cf. Tab. 2.2 ICON-ART User Guide)
@@ -440,6 +482,7 @@ CONTAINS
       art_config(jg)%iart_dust           = iart_dust
       art_config(jg)%iart_anthro         = iart_anthro
       art_config(jg)%iart_fire           = iart_fire
+      art_config(jg)%iart_gfas_dt_ovrwrite = iart_gfas_dt_ovrwrite
       art_config(jg)%iart_volcano        = iart_volcano
       art_config(jg)%iart_nonsph         = iart_nonsph
       art_config(jg)%iart_isorropia      = iart_isorropia
@@ -473,6 +516,11 @@ CONTAINS
 
       ! Write DEBUG-Restartfile
       art_config(jg)%lart_debugRestart   = lart_debugRestart
+
+      ! MieAI (internal mixing)
+      art_config(jg)%iart_MieAI          = iart_MieAI
+      art_config(jg)%cart_MieAI_files    = cart_MieAI_files
+      art_config(jg)%cart_ri             = cart_ri
 
       ! Time interval over which maximum of air concentration of radionuclides is taken
       art_config(jg)%radioact_maxtint    = radioact_maxtint(jg)

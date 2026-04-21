@@ -41,7 +41,6 @@ USE mo_run_config,           ONLY: dtime,                & !    namelist paramet
   &                                lvert_nest, ntracer,  &
   &                                ldass_lhn, msg_level, &
   &                                iqc, iqt,             &
-  &                                ico2, io3,            &
   &                                number_of_grid_used
 USE mo_lnd_nwp_config,       ONLY: lseaice
 USE mo_initicon_config,      ONLY: pinit_seed, pinit_amplitude, init_mode, iterate_iau
@@ -118,7 +117,7 @@ USE mo_art_init_interface,   ONLY: art_init_atmo_tracers_nwp
 #endif
 
 ! AES physics
-USE mo_aes_phy_config,      ONLY: aes_phy_tc, dt_zero, aes_phy_config
+USE mo_aes_phy_config,      ONLY: aes_phy_config
 USE mo_aes_rad_config,      ONLY: aes_rad_config
 USE mo_aes_vdf_config,      ONLY: aes_vdf_config
 #ifndef __NO_AES__
@@ -139,17 +138,15 @@ USE mo_interface_aes_tmx,   ONLY: init_tmx
   USE mo_jsb_model_init,    ONLY: jsbach_init_after_restart
 #endif
 
-! Needed for upper atmosphere configuration
+#ifndef __NO_ICON_UPATMO__
 USE mo_sleve_config,        ONLY: flat_height
 USE mo_io_units,            ONLY: filename_max
 USE mo_vertical_coord_table,ONLY: vct_a
 USE mo_upatmo_impl_const,   ONLY: iUpatmoPrcStat
 USE mo_upatmo_config,       ONLY: upatmo_config, upatmo_phy_config, &
     &                             configure_upatmo, destruct_upatmo
-#ifndef __NO_ICON_UPATMO__
-USE mo_upatmo_state,        ONLY: construct_upatmo_state, &
-    &                             destruct_upatmo_state
-USE mo_upatmo_phy_setup,    ONLY: finalize_upatmo_phy_nwp
+USE mo_upatmo_interface,    ONLY: construct_upatmo_state, destruct_upatmo_state, &
+                                  finalize_upatmo_phy_nwp
 #endif
 
 USE mo_util_mtime,          ONLY: getElapsedSimTimeInSeconds
@@ -166,7 +163,6 @@ USE mo_rttov_interface,     ONLY: rttov_finalize, rttov_initialize
 USE mo_synsat_config,       ONLY: lsynsat
 USE mo_mpi,                 ONLY: my_process_is_stdio, p_comm_work_only, my_process_is_work_only
 USE mo_var_list_register_utils, ONLY: vlr_print_groups
-USE mo_sync,                ONLY: sync_patch_array, sync_c
 USE mo_nudging_config,      ONLY: l_global_nudging
 USE mo_random_util,         ONLY: add_random_noise_3d, add_random_noise_2d
 
@@ -331,7 +327,9 @@ CONTAINS
     TYPE(t_sim_step_info) :: sim_step_info
     REAL(wp) :: sim_time, dt_loc
     TYPE(t_key_value_store), POINTER :: restartAttributes
+#ifndef __NO_ICON_UPATMO__
     CHARACTER(LEN=filename_max) :: model_base_dir
+#endif
     INTEGER :: seed_size, i
     INTEGER, ALLOCATABLE :: seed(:)
 
@@ -462,8 +460,7 @@ CONTAINS
 #endif
     END IF
 
-! Upper atmosphere
-
+#ifndef __NO_ICON_UPATMO__
     model_base_dir = getModelBaseDir()
 
     CALL configure_upatmo( n_dom_start, n_dom, p_patch(n_dom_start:), isRestart(), atm_phy_nwp_config(:)%lupatmo_phy,      &
@@ -473,8 +470,6 @@ CONTAINS
       &                    aes_rad_config(:)%clonp, aes_rad_config(:)%lyr_perp, aes_rad_config(:)%yr_perp, model_base_dir, &
       &                    msg_level, vct_a )
 
-#ifndef __NO_ICON_UPATMO__
-! Create state only if enabled
     CALL construct_upatmo_state( n_dom, nproma, p_patch(1:), upatmo_config(1:), upatmo_phy_config(1:), vct_a )
 #endif
 
@@ -567,6 +562,15 @@ CONTAINS
     ! Prepare initial conditions for time integration.
     !------------------------------------------------------------------
     !
+
+#ifndef __NO_ICON_LES__
+    ! LS forcing for idealised SCM and LES cases must be called for both restart and non-restart runs
+    ! because forcing arrays are not stored in restart files.
+    IF (is_ls_forcing .OR. is_nudging) THEN
+      CALL init_ls_forcing(p_nh_state(1)%metrics)
+    END IF
+#endif
+
     IF (isRestart()) THEN
       !
       ! This is a resumed integration. Read model state from restart file(s).
@@ -592,14 +596,14 @@ CONTAINS
         END IF
       END DO
 #endif
-      !
+
     ELSE
       !
       ! This is a new integration.
       !
       IF (ltestcase) THEN
         !
-        ! Initialize testcase analytically
+        ! Initialize testcases
         !
         IF (l_scm_mode) THEN
           CALL init_nh_testcase_scm(p_patch(1:)     ,&
@@ -615,12 +619,6 @@ CONTAINS
             &                       ext_data        ,&
             &                       ntl=2           )
         ENDIF
-        !
-#ifndef __NO_ICON_LES__
-        IF(is_ls_forcing .OR. is_nudging) &
-          CALL init_ls_forcing(p_nh_state(1)%metrics)
-#endif
-        !
       ELSE
         !
         ! Initialize with real atmospheric data
@@ -734,64 +732,6 @@ CONTAINS
           CALL duplicate_prog_state(p_nh_state(jg)%prog(nnow(jg)), p_nh_state(jg)%prog(nnew(jg)))
         ENDDO
       ENDIF
-
-      !
-      ! Initialize tracers which are not available in the analysis file,
-      ! but may be used with AES/NWP physics, for real cases or test cases.
-      !
-      IF (iforcing == inwp ) THEN
-#ifdef __NO_NWP__
-        CALL finish (routine, 'Error: remove --disable-nwp and reconfigure')
-#else
-        DO jg = 1,n_dom
-          IF ( ico2 /= 0 ) THEN
-!$OMP PARALLEL
-            CALL init(p_nh_state(jg)%prog(nnow_rcf(jg))%tracer(:,:,:,ico2), vmr_co2*amco2/amd, lacc=.FALSE.)
-!$OMP END PARALLEL
-          END IF
-        END DO
-#endif
-      END IF
-      IF (iforcing == iaes ) THEN
-#ifdef __NO_AES__
-        CALL finish (routine, 'Error: remove --disable-aes and reconfigure')
-#else
-        DO jg = 1,n_dom
-          IF (.NOT. p_patch(jg)%ldom_active) CYCLE
-          !
-          ! CO2 tracer
-          IF ( iqt <= ico2 .AND. ico2 <= ntracer) THEN
-!$OMP PARALLEL
-            CALL init(p_nh_state(jg)%prog(nnow_rcf(jg))%tracer(:,:,:,ico2),aes_rad_config(jg)% vmr_co2*amco2/amd, lacc=.FALSE.)
-!$OMP END PARALLEL
-            CALL print_value('CO2 tracer initialized with constant vmr', &
-              &              aes_rad_config(jg)% vmr_co2*amco2/amd,    &
-              &              routine=routine)
-          END IF
-          !
-          ! O3 tracer
-          IF ( iqt <= io3 .AND. io3 <= ntracer) THEN
-            IF (aes_phy_tc(jg)%dt_car > dt_zero) THEN
-              CALL init_o3_lcariolle( time_config%tc_current_date                          ,&
-                &                     p_patch(jg)                                          ,&
-                &                     p_nh_state(jg)%diag% pres               (:,:,:)      ,&
-                &                     p_nh_state(jg)%prog(nnow_rcf(jg))%tracer(:,:,:,io3)  )
-              CALL sync_patch_array ( sync_c,p_patch(jg)                                   ,&
-                &                     p_nh_state(jg)%prog(nnow_rcf(jg))%tracer(:,:,:,io3), lacc=.FALSE.)
-              CALL message(routine,'o3 tracer is initialized by the Cariolle lin. o3 scheme')
-            ELSE
-!$OMP PARALLEL
-              CALL init(p_nh_state(jg)%prog(nnow_rcf(jg))%tracer(:,:,:,io3),0.0_wp, lacc=.FALSE.)
-!$OMP END PARALLEL
-              CALL message(routine,'o3 tracer is initialized to zero, check setup')
-            END IF
-          END IF
-          !
-        END DO
-        !
-#endif
-      END IF
-      !
     END IF ! isRestart()
 
 
@@ -811,7 +751,9 @@ CONTAINS
       ! prepare fields of the physics state, real and test case
       DO jg = 1,n_dom
         CALL init_aes_phy_field( p_patch(jg)                       ,&
-          &                      p_nh_state(jg)% diag% temp(:,:,:) )
+          &                      p_nh_state(jg)% diag% temp(:,:,:) ,&
+          &                      p_nh_state(jg)% diag% pres(:,:,:) ,&
+          &                      p_nh_state(jg)% prog(nnow_rcf(jg)) )
       END DO
       !
 #endif
@@ -1106,7 +1048,6 @@ CONTAINS
     !---------------------------------------------------------------------
 
     CALL destruct_upatmo_state( n_dom, upatmo_config(1:) )
-#endif
 
     !---------------------------------------------------------------------
     !          Destruct the upper-atmosphere configuration type
@@ -1114,6 +1055,7 @@ CONTAINS
 
     ! After the following call, 'upatmo_config' cannot be used anymore!
     CALL destruct_upatmo( n_dom_start, n_dom )
+#endif
 
     ! call close name list prefetch
     IF ((l_limited_area .OR. l_global_nudging) .AND. latbc_config%itype_latbc > 0) THEN

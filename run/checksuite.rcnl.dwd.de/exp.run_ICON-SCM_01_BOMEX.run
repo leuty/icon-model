@@ -11,14 +11,19 @@
 # ------------------------------------------
 
 # ----------------------------------------------------------------------------
+# SCM run script for BOMEX case:
+#
+# Martin Koehler, Jan. 2022
+# ----------------------------------------------------------------------------
+#PBS -S /bin/bash
 #PBS -q sx_norm
 #PBS -v NE=1,CPE=8
 #PBS -v NMPI_MALLOC_HEAP_EXPANSION_SIZE=512
 #PBS -v NMPI_MALLOC_MMAP_THRESHOLD=512
 #PBS -v MPI_IB_VBUF_TOTAL_SIZE=131072
 #PBS -l elapstim_req=00:40:00
-#PBS --venode=${NE}
-#PBS --venum-lhost=1     # Number of VE per logical host
+#PBS --venode=${NE}          # NE: number VE nodes, CPE: number cores on each VE
+#PBS --venum-lhost=1         # Number of VE per logical host
 #PBS -l cpunum_job=1
 #PBS -l coresz_prc=0
 #PBS -T necmpi_hydra
@@ -26,17 +31,15 @@
 #PBS -j o
 #PBS -o LOG.exp.run_ICON-SCM_01_BOMEX.run.run.o
 # ----------------------------------------------------------------------------
-# ============================================================================
-#
-date
 
+date
 set -x
 . /etc/profile
 
 # OpenMP settings
 export OMP_SCHEDULE="static"
 export OMP_DYNAMIC="false"
-export OMP_NUM_THREADS=1
+export OMP_NUM_THREADS=1                   # check total number of requested cores!
 
 # Run information
 let PPN=${CPE}*${NE}/${OMP_NUM_THREADS}         # no. of MPI procs. per NQS job
@@ -60,28 +63,31 @@ module list
 # specifiy experiment (idealized simulation)
 # ----------------------------------------------------------------------------
 EXPNAME=SCM_BOMEX
-EDIR=exp_01
+
 # ----------------------------------------------------------------------------
 # path definitions
 # ----------------------------------------------------------------------------
-
 if [[ -n ${PBS_O_WORKDIR} ]] ; then
   cd ${PBS_O_WORKDIR}
 fi
+
+# base directory for ICON sources and binary:
 ICONDIR=${PBS_O_WORKDIR}/..
 
-# base directory
-
-# ROUTINE PATHS>>>
+# directory with input grids:
 GRIDDIR=/hpc/rwork0/routfor/test/icon/buildbot_data/nwp/Checksuite_data/${EXPNAME}
 INITDIR=${GRIDDIR}
-MODEL=${ICONDIR}/vector/bin/icon
-MODEL_SCAL=${ICONDIR}/host/bin/icon
-#MODEL=${ICONDIR}/build/VE/bin/icon
-#MODEL_SCAL=${ICONDIR}/build/VH/bin/icon
 
+# absolute path to output directory for results:
 EXPDIR=${TMPDIR}/${EXPNAME}
+
+# optional output testing reference data
 REFDIR=${INITDIR}
+
+# path to model binary, including the executable:
+MODEL_VH=${ICONDIR}/host/bin/icon
+MODEL_VE=${ICONDIR}/vector/bin/icon
+
 
 # ----------------------------------------------------------------------------
 # copy input data: grids, external parameters, model
@@ -99,16 +105,14 @@ ln -sf ${ICONDIR}/data/rrtmg_lw.nc .
 # APE BCs
 ln -sf ${ICONDIR}/data/external/ape_o3_R2B04_1Pa_spr0.90-cell.nc o3_icon_DOM01.nc
 
-
-#-----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 # model timing
-#-----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 
 # 0.4 s for 70 m res., 0.5 for 100 m; 30 s for 2.5 km?
 dtime=60
 dt_checkpoint=`expr 36 \* 3600`  # write restart file every hours (when lrestart = TRUE)
 nhours=2
-#nhours=1
 nsteps=`expr ${nhours} \* 3600 / ${dtime}`
 
 start_date="1969-06-26T00:00:00Z"
@@ -142,7 +146,7 @@ done
 
 ln -sf ${GRIDDIR}/${atmo_dyn_grids} .
 
-#forcings
+# initial condition and forcing
 ln -sf ${INITDIR}/init_${EXPNAME}.nc init_SCM.nc
 
 # ----------------------------------------------------------------------------
@@ -151,12 +155,9 @@ ln -sf ${INITDIR}/init_${EXPNAME}.nc init_SCM.nc
 
 cat > icon_master.namelist << EOF
 
-! master_nml: ----------------------------------------------------------------
 &master_nml
  lrestart                    =                     .FALSE.        ! .TRUE.=current experiment is resumed
 /
-
-! master_model_nml: repeated for each model ----------------------------------
 &master_model_nml
  model_type                  =                          1         ! identifies which component to run (atmosphere,ocean,...)
  model_name                  =                      "ATMO"        ! character string for naming this component.
@@ -173,7 +174,6 @@ cat > icon_master.namelist << EOF
 /
 
 EOF
-
 
 # ----------------------------------------------------------------------------
 # model namelists
@@ -194,21 +194,21 @@ cat > NAMELIST_${EXPNAME} << EOF
  dynamics_grid_filename = "${atmo_dyn_grids}",
  corio_lat      = 14.94
  is_plane_torus = .TRUE.
- l_scm_mode     = .TRUE.
-/
+ l_scm_mode     = .TRUE.     ! main logical to turn on SCM mode
+/                            ! note: if ldynamics on this transitions to LES or CRM
 
-&SCM_nml
- i_scm_netcdf  = 1           ! read initial profiles and forcings from netcdf
- lscm_read_tke = .TRUE.      ! read initial tke from netcdf
- lscm_read_z0  = .FALSE.     ! read initial z0 from netcdf
- scm_sfc_mom   = 2           ! prescribed u*
- scm_sfc_temp  = 2           ! prescribed sensible heat flux at surface
- scm_sfc_qv    = 2           ! prescribed latent heat flux at surface
+&scm_nml
+ i_scm_netcdf   = 1          ! read initial profiles and forcings from netcdf
+ lscm_read_tke  = .TRUE.     ! read initial tke from netcdf
+ lscm_read_z0   = .FALSE.    ! read initial z0 from netcdf
+ scm_sfc_mom    = 2          ! prescribed u*
+ scm_sfc_temp   = 2          ! prescribed sensible heat flux at surface
+ scm_sfc_qv     = 2          ! prescribed latent heat flux at surface
 /
 
 &io_nml
  dt_checkpoint  = ${dt_checkpoint}
- lkeep_in_sync    = .true.
+ lkeep_in_sync  = .true.
 /
 
 &run_nml
@@ -259,7 +259,8 @@ cat > NAMELIST_${EXPNAME} << EOF
  is_rad_forcing       = .FALSE.
  is_nudging           = .FALSE.
  is_nudging_uv        = .FALSE.
- is_nudging_tq        = .FALSE.
+ is_nudging_t         = .FALSE.
+ is_nudging_q         = .FALSE.
 /
 
 &turbdiff_nml
@@ -331,6 +332,9 @@ cat > NAMELIST_${EXPNAME} << EOF
 
 EOF
 
+# ----------------------------------------------------------------------------
+# run the model!
+# ----------------------------------------------------------------------------
 
 ###  BEGIN: special environment  ###
  set -x
@@ -351,7 +355,14 @@ EOF
 
 tic=$(date)
 
-/opt/nec/ve/mpi/3.5.0/bin/runtime/mpirun -v   -x -venode -node 0-${NE1} -np ${PPN} -env OMP_NUM_THREADS 1 ${MODEL}
+
+# --- VE with openMP only (PPN = 1!)
+#/opt/nec/ve/mpi/3.5.0/bin/runtime/mpirun -v -x -venode -node 0-${NE1} -np ${PPN} -env OMP_NUM_THREADS 1 ${MODEL_VE}
+#/opt/nec/ve/mpi/3.5.0/bin/runtime/mpiexec -v -x -venode -np ${PPN} ${MODEL_VE}
+
+# --- VH only
+/opt/nec/ve/mpi/3.5.0/bin/runtime/mpiexec -v -vh -node 0 -np 1 ${MODEL_VH}
+
 
 toc=$(date)
 echo 'tic: ' $tic
@@ -374,4 +385,4 @@ echo 'toc: ' $toc
 # fi
 ###-- Other test, e.g. diurnal cycle, mean states, and other physical consistencies
 # exit $EXIT_STATUS
-###-- Done and RETURN
+###---- Done and RETURN

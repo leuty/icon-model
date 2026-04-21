@@ -5,12 +5,12 @@ icon_data_rootFolder: /scratch/mch/jenkins/icon/pool/data/ICON
 builder: balfrin_cpu_nvidia_mixed
 # The list below maps each experiment to its current experiment_hash
 # merge2rc
-"c2sm_clm_r13b03_seaice": c4ff3b3507a2250be27b2a1173e158de5d084cee
-"mch_icon-ch1_small": e3e9a69a972634c92e81f2841c03c6042f04a727
-"mch_icon-ch2_small": 8f12f3cab58341a68e08dd55daec0bd412234d92
-"mch_kenda-ch1_small": 10fc076dd4b6642fd2592877a3860cfbb77531b0
-"mch_opr_r04b07_sstice_inst": 720c083ec66fbcbb180163e4708d2aa115e7cc1b
-"mch_opr_r19b07_midnight": 98e250d8c949934031348aa2ef1cebaf57bd9187
-"mch_pollen_test": 06e23bf9130a87e8cb3c1f6ea7dea8887dd58bad
+"c2sm_clm_r13b03_seaice": ec3e904119ecfaf0eef82d569d815cfbb03970ea
+"mch_icon-ch1_small": 54381da016aa735494915c284d696a88223cabf0
+"mch_icon-ch2_small": fd129bace943c0f3fa72e78980dcb9ea944ece1f
+"mch_kenda-ch1_small": 428f3307dbd5bd330688e1a3efc62c211e556bda
+"mch_opr_r04b07_sstice_inst": 510912ab7f907bb28fb66f9452d99045c5c59639
+"mch_opr_r19b07_midnight": 5105abdddebc34eec7d0fc4f01a9d92221af961a
+"mch_pollen_test": bc70e81bb2bd693f909d09c3cca6148498f9aed4
 # mch_opr
-"mch_kenda-ch1": 1e24bd433e7e2fb958d5c370bdf688679f520c78
+"mch_kenda-ch1": 3fcb0257c5b29d8edf75aac271e3f1a156ac1f2b

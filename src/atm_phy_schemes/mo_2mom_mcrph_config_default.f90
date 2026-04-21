@@ -93,6 +93,7 @@ MODULE mo_2mom_mcrph_config_default
        &            -999.99_wp, & ! bgeo_h for hail, D = ageo*x^bgeo - in this case the background value in mo_2mom_mcrph_main.f90 will win
        &            -999.99_wp, & ! avel_h for hail, v = avel*x^bvel - in this case the background value in mo_2mom_mcrph_main.f90 will win
        &            -999.99_wp, & ! bvel_h for hail, v = avel*x^bvel - in this case the background value in mo_2mom_mcrph_main.f90 will win
+       &            -999.99_wp, & ! x_max [kg] for hail - in this case the background value 5.00d-03 in mo_2mom_mcrph_main.f90 will win
        &            1.0_wp, &     ! melt_h_tune_fac: factor multiplying melting rate of hail
 
        !------------------------------------------

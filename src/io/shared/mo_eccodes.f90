@@ -18,7 +18,7 @@
 !   * Encapsulate error handling
 !   * Bundle ecCodes GRIB keys in groups
 !     (mainly, but not exclusively, in terms of the sections, in which GRIB metadata are subdivided)
-!   * Confine "GRIBAPI-ifdefing" to this one module
+!   * Confine "HAVE_ECCODES-ifdefing" to this one module
 !
 ! - Certain sequences of subroutine calls repeat themselves again and again
 !   inside the wrappers below. Nevertheless, they are not wrapped into auxiliary subroutines,
@@ -43,7 +43,7 @@ MODULE mo_eccodes
   USE mo_kind,           ONLY: i4, i8, sp, dp, wp
   USE mo_impl_constants, ONLY: SUCCESS
   USE mo_exception,      ONLY: finish, warning, message_text
-#if (defined(GRIBAPI))
+#ifdef HAVE_ECCODES
   USE eccodes,           ONLY: kindOfInt, kindOfLong, kindOfFloat,                               &
     &                          CODES_SUCCESS, CODES_NULL, CODES_NULL_HANDLE, CODES_END_OF_FILE,  &
     &                          codes_get_error_string, codes_open_file, codes_close_file,        &
@@ -87,7 +87,7 @@ MODULE mo_eccodes
   CHARACTER(LEN=*), PARAMETER :: modname = 'mo_eccodes'
 
   !> Error message: ecCodes is not enabled
-  CHARACTER(LEN=*), PARAMETER :: ECC_ERROR_MESSAGE_NO_API = "ecCodes is not enabled"
+  CHARACTER(LEN=*), PARAMETER :: ECC_ERROR_MESSAGE_NO_API = "The Fortran interface of ecCodes is not enabled"
 
   !> Maximum length of value of ecCodes concept key: shortName
   INTEGER, PARAMETER :: ECC_MAX_SHORTNAME_LENGTH = 50
@@ -97,7 +97,7 @@ MODULE mo_eccodes
   INTEGER, PARAMETER :: ECC_GRID_ELEMENT_VERTEX = 2
   INTEGER, PARAMETER :: ECC_GRID_ELEMENT_EDGE   = 3
 
-#if (defined(GRIBAPI))
+#ifdef HAVE_ECCODES
   !> Eccodes: kind of standard integer
   INTEGER, PARAMETER :: ECC_kindOfInt = kindOfInt
   !> Eccodes: kind of long integer
@@ -161,7 +161,7 @@ CONTAINS
 
     !----------------------------
 
-#if (defined(GRIBAPI))
+#ifdef HAVE_ECCODES
 
     ! Get error message from ecCodes that corresponds to error identifier
     CALL codes_get_error_string(error=error, error_message=message_text, status=ecc_status)
@@ -239,7 +239,7 @@ CONTAINS
       CALL finish(modname//routine, message_text)
     END IF
 
-#if (defined(GRIBAPI))
+#ifdef HAVE_ECCODES
 
     CALL codes_open_file(ifile=ecc_ifile_local, filename=grib_filename(1:grib_filename_length), &
       &                  mode=ecc_mode(1:1), status=ecc_status)
@@ -282,7 +282,7 @@ CONTAINS
 
     !----------------------------
 
-#if (defined(GRIBAPI))
+#ifdef HAVE_ECCODES
 
     CALL codes_close_file(ifile=INT(ecc_ifile, KIND=ECC_kindOfInt), status=ecc_status)
 
@@ -344,7 +344,7 @@ CONTAINS
     ecc_record_length = 0
     ecc_eof           = .FALSE.
 
-#if (defined(GRIBAPI))
+#ifdef HAVE_ECCODES
 
     ! Initially assumed size of record in bytes
     ecc_nbytes_local = INT(ecc_nbytes, KIND=ECC_kindOfInt)
@@ -413,7 +413,7 @@ CONTAINS
     ! Initialize intent-out argument
     ecc_msgid = ECC_NULL_HANDLE
 
-#if (defined(GRIBAPI))
+#ifdef HAVE_ECCODES
 
     CALL codes_new_from_message_int4(msgid=ecc_msgid_local, message=ecc_record, status=ecc_status)
 
@@ -456,7 +456,7 @@ CONTAINS
 
     !----------------------------
 
-#if (defined(GRIBAPI))
+#ifdef HAVE_ECCODES
 
     CALL codes_release(msgid=INT(ecc_msgid, KIND=ECC_kindOfInt), status=ecc_status)
 
@@ -537,7 +537,7 @@ CONTAINS
     ecc_shortName_length  = 0
     ecc_successful        = .FALSE.
 
-#if (defined(GRIBAPI))
+#ifdef HAVE_ECCODES
 
     ecc_msgid_local = INT(ecc_msgid, KIND=ECC_kindOfInt)
 
@@ -704,7 +704,7 @@ CONTAINS
     ecc_dataDateTime_length     = 0
     ecc_validityDateTime_length = 0
 
-#if (defined(GRIBAPI))
+#ifdef HAVE_ECCODES
 
     ecc_msgid_local = INT(ecc_msgid, KIND=ECC_kindOfInt)
 
@@ -849,7 +849,7 @@ CONTAINS
     ecc_uuidOfHGrid(:)               = ' '
     ecc_successful                   = .FALSE.
 
-#if (defined(GRIBAPI))
+#ifdef HAVE_ECCODES
 
     ecc_msgid_local = INT(ecc_msgid, KIND=ECC_kindOfInt)
 
@@ -1021,7 +1021,7 @@ CONTAINS
     ecc_is_nlev_defined        = ECC_NULL
     ecc_is_uuidOfVGrid_defined = ECC_NULL
 
-#if (defined(GRIBAPI))
+#ifdef HAVE_ECCODES
 
     ecc_msgid_local = INT(ecc_msgid, KIND=ECC_kindOfInt)
 
@@ -1252,7 +1252,7 @@ CONTAINS
     ecc_subCentre  = ECC_NULL
     ecc_successful = .FALSE.
 
-#if (defined(GRIBAPI))
+#ifdef HAVE_ECCODES
 
     ecc_msgid_local = INT(ecc_msgid, KIND=ECC_kindOfInt)
 
@@ -1340,7 +1340,7 @@ CONTAINS
     ecc_generatingProcessIdentifier = ECC_NULL
     ecc_successful                  = .FALSE.
 
-#if (defined(GRIBAPI))
+#ifdef HAVE_ECCODES
 
     ecc_msgid_local = INT(ecc_msgid, KIND=ECC_kindOfInt)
 
@@ -1483,7 +1483,7 @@ CONTAINS
     ecc_referenceValue = -999.0_dp
     ecc_successful     = .FALSE.
 
-#if (defined(GRIBAPI))
+#ifdef HAVE_ECCODES
 
     ecc_msgid_local = INT(ecc_msgid, KIND=ECC_kindOfInt)
 
@@ -1658,7 +1658,7 @@ CONTAINS
       RETURN
     ENDIF
 
-#if (defined(GRIBAPI))
+#ifdef HAVE_ECCODES
 
     ecc_msgid_local = INT(ecc_msgid, KIND=ECC_kindOfInt)
 
@@ -1820,7 +1820,7 @@ CONTAINS
     ecc_localNumberOfExperiment = ECC_NULL
     ecc_successful              = .FALSE.
 
-#if (defined(GRIBAPI))
+#ifdef HAVE_ECCODES
 
     ecc_msgid_local = INT(ecc_msgid, KIND=ECC_kindOfInt)
 
@@ -1955,7 +1955,7 @@ CONTAINS
     ! This means that ecc_values will not contain the uniform value (ecc_uniformValue)!
     ! This is for reasons of efficiency.
 
-#if (defined(GRIBAPI))
+#ifdef HAVE_ECCODES
 
     ecc_msgid_local = INT(ecc_msgid, KIND=ECC_kindOfInt)
 

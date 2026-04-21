@@ -55,6 +55,7 @@ USE mo_impl_constants,      ONLY: success, &
   &                               TASK_COMPUTE_MCONV,                 &
   &                               TASK_COMPUTE_SRH,                   &
   &                               TASK_COMPUTE_INVERSION,             &
+  &                               TASK_COMPUTE_DMH,                   &
   &                               ivdiff,                             &
   &                               LSS_JSBACH,                         &
   &                               HINTP_TYPE_LONLAT_NNB,              &
@@ -484,6 +485,14 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       &     diag%reff_qi, &
       &     diag%reff_qr, &
       &     diag%reff_qs, &
+      &     diag%dm_hail, &
+      &     diag%dm_hail_s, &
+      &     diag%dm_hail_max_s, &
+      &     diag%demax_hail_s, &
+      &     diag%demax_hail_tmax_s, &
+      &     diag%kef_hail_s, &
+      &     diag%kef_hail_max_s, &
+      &     diag%ke_hail_s, &
       &     diag%rh, &
       &     diag%rlamh_fac_t, &
       &     diag%rlamh_varfac_t, &
@@ -4924,6 +4933,102 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
     END IF
 
 
+    ! Estimated maximum hail diameter at the surface from the 2-moment microphysics.
+    IF (var_in_output%demax_hail_s) THEN
+      cf_desc    = t_cf_var('demax_hail_s', 'm', 'estimated maximum hail diameter at surface', datatype_flt)
+      grib2_desc = grib2_var(0, 1, 171, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( diag_list,                                               &
+           & "demax_hail_s", diag%demax_hail_s,                              &
+           & GRID_UNSTRUCTURED_CELL, ZA_SURFACE,                             &
+           & cf_desc, grib2_desc,                                            &
+           & ldims=shape2d,                                                  &
+           & lrestart=.FALSE., isteptype=TSTEP_INSTANT,                      &
+           & hor_interp=create_hor_interp_metadata(                          &
+           &                      hor_intp_type=HINTP_TYPE_LONLAT_NNB),      &
+           & lopenacc = .TRUE. )
+      __acc_attach(diag%demax_hail_s)
+    END IF
+
+    IF (var_in_output%demax_hail_tmax_s) THEN
+      celltracks_int(:) = ' '
+      CALL getPTStringFromMS(NINT(1000._wp*celltracks_interval(k_jg), i8), celltracks_int)
+      cf_desc    = t_cf_var('demax_hail_tmax_s', 'm',                              &
+           &                 'estim. max. hail diam. at surface, maximum since end of previous full '// &
+                             TRIM(celltracks_int(3:))//' interval synchronized to model start', datatype_flt)
+      grib2_desc = grib2_var( 0, 1, 171, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( diag_list, 'demax_hail_tmax_s', diag%demax_hail_tmax_s,  &
+           & GRID_UNSTRUCTURED_CELL, ZA_SURFACE,                             &
+           & cf_desc, grib2_desc,                                            &
+           & ldims=shape2d,                                                  &
+           & lrestart=.TRUE., isteptype=TSTEP_MAX,                           &
+           & hor_interp=create_hor_interp_metadata(                          &
+           &                      hor_intp_type=HINTP_TYPE_LONLAT_NNB),      &
+           & resetval=0.0_wp, initval=0.0_wp,                                &
+           & action_list=actions( new_action( ACTION_RESET, celltracks_int ) ), &
+           & lopenacc=.TRUE.)
+      __acc_attach(diag%demax_hail_tmax_s)
+    END IF
+
+    ! Hail kinetic energy flux at the surface from the 2-moment microphysics.
+    IF ( var_in_output%kef_hail_s .OR. var_in_output%kef_hail_max_s .OR. &
+         var_in_output%ke_hail_s  .OR. var_in_output%demax_hail_s   .OR. &
+         var_in_output%demax_hail_tmax_s ) THEN
+      cf_desc    = t_cf_var('kef_hail_s', 'J m-2 s-1', 'hail kinetic energy flux at surface', datatype_flt)
+      grib2_desc = grib2_var(0, 19, 52, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( diag_list,                                               &
+           & "kef_hail_s", diag%kef_hail_s,                                  &
+           & GRID_UNSTRUCTURED_CELL, ZA_SURFACE,                             &
+           & cf_desc, grib2_desc,                                            &
+           & ldims=shape2d,                                                  &
+           & lrestart=.FALSE., isteptype=TSTEP_INSTANT,                      &
+           & hor_interp=create_hor_interp_metadata(                          &
+           &      hor_intp_type=HINTP_TYPE_LONLAT_BCTR,                      &
+           &      fallback_type=HINTP_TYPE_LONLAT_NNB),                      &
+           & lopenacc = .TRUE. )
+      __acc_attach(diag%kef_hail_s)
+    END IF
+
+    IF (var_in_output%kef_hail_max_s) THEN
+      celltracks_int(:) = ' '
+      CALL getPTStringFromMS(NINT(1000._wp*celltracks_interval(k_jg), i8), celltracks_int)
+      cf_desc    = t_cf_var('kef_hail_max_s', 'J m-2 s-1',                   &
+           &                 'hail kinetic energy flux at surface, maximum since end of previous full '// &
+                             TRIM(celltracks_int(3:))//' interval synchronized to model start', datatype_flt)
+      grib2_desc = grib2_var( 0, 19, 52, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( diag_list, 'kef_hail_max_s', diag%kef_hail_max_s,        &
+           & GRID_UNSTRUCTURED_CELL, ZA_SURFACE,                             &
+           & cf_desc, grib2_desc,                                            &
+           & ldims=shape2d,                                                  &
+           & lrestart=.TRUE., isteptype=TSTEP_MAX,                           &
+           & hor_interp=create_hor_interp_metadata(                          &
+           &      hor_intp_type=HINTP_TYPE_LONLAT_BCTR,                      &
+           &      fallback_type=HINTP_TYPE_LONLAT_NNB),                      &
+           & resetval=0.0_wp, initval=0.0_wp,                                &
+           & action_list=actions( new_action( ACTION_RESET, celltracks_int ) ), &
+           & lopenacc=.TRUE.)
+      __acc_attach(diag%kef_hail_max_s)
+    END IF
+
+    IF (var_in_output%ke_hail_s) THEN
+      cf_desc    = t_cf_var('ke_hail_s', 'J m-2',                            &
+           &                 'hail kinetic energy (flux accumulated over time) at surface', datatype_flt)
+      grib2_desc = grib2_var( 0, 19, 52, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( diag_list, 'ke_hail_s', diag%ke_hail_s,                  &
+           & GRID_UNSTRUCTURED_CELL, ZA_SURFACE,                             &
+           & cf_desc, grib2_desc,                                            &
+           & ldims=shape2d,                                                  &
+           & lrestart=.TRUE., isteptype=TSTEP_ACCUM,                         &
+           & hor_interp=create_hor_interp_metadata(                          &
+           &      hor_intp_type=HINTP_TYPE_LONLAT_BCTR,                      &
+           &      fallback_type=HINTP_TYPE_LONLAT_NNB),                      &
+           & resetval=0.0_wp, initval=0.0_wp,                                &
+           & action_list=actions( new_action( ACTION_RESET,precip_interval(k_jg) ) ), &
+           & lopenacc=.TRUE.)
+      __acc_attach(diag%ke_hail_s)
+    END IF
+
+
+    ! Lightning potential index LPI:
     IF (var_in_output%lpi) THEN
       cf_desc    = t_cf_var('lpi', 'J kg-1', 'lightning potential index (LPI)', datatype_flt)
       grib2_desc = grib2_var(0, 17, 192, ibits, GRID_UNSTRUCTURED, GRID_CELL)
@@ -5653,6 +5758,55 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
       __acc_attach(diag%cin_mu)
     END IF
 
+    IF (var_in_output%dm_hail) THEN
+      cf_desc     = t_cf_var('dm_hail', 'm',  'mean mass diameter of hail', datatype_flt)
+      grib2_desc  = grib2_var(0, 1, 170, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( diag_list, 'dm_hail', diag%dm_hail,                         &
+        & GRID_UNSTRUCTURED_CELL, ZA_REFERENCE, cf_desc, grib2_desc,            &
+        & ldims=shape3d, lrestart=.FALSE.,                                      &
+        & vert_interp=create_vert_interp_metadata(                              &
+        &             vert_intp_type=vintp_types("P","Z","I"),                  &
+        &             vert_intp_method=VINTP_METHOD_LIN,                        &
+        &             l_loglin=.FALSE.,                                         &
+        &             l_extrapol=.FALSE., l_pd_limit=.FALSE.,                   &
+        &             lower_limit=0._wp ),                                      &
+        & hor_interp=create_hor_interp_metadata(                                &
+        &                      hor_intp_type=HINTP_TYPE_LONLAT_NNB),            &
+        & l_pp_scheduler_task=TASK_COMPUTE_DMH,                                 &
+        & lopenacc=.TRUE.                                                       )
+      __acc_attach(diag%dm_hail)
+    END IF
+
+    IF (var_in_output%dm_hail_max_s) THEN
+
+      celltracks_int(:) = ' '
+      CALL getPTStringFromMS(NINT(1000._wp*celltracks_interval(k_jg), i8), celltracks_int)
+      cf_desc    = t_cf_var('dm_hail_max_s', 'm',                               &
+           &                'mean mass diameter of hail at surface, maximum since end of previous full '// &
+                             TRIM(celltracks_int(3:))//' interval synchronized to model start', datatype_flt)
+      grib2_desc = grib2_var(0, 1, 170, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( diag_list, 'dm_hail_max_s', diag%dm_hail_max_s,             &
+                  & GRID_UNSTRUCTURED_CELL, ZA_SURFACE,                         &
+                  & cf_desc, grib2_desc,                                        &
+                  & ldims=shape2d,                                              &
+                  & lrestart=.TRUE., isteptype=TSTEP_MAX,                       &
+                  & hor_interp=create_hor_interp_metadata(                      &
+                  &               hor_intp_type=HINTP_TYPE_LONLAT_NNB),         &
+                  & resetval=0.0_wp, initval=0.0_wp,                            &
+                  & action_list=actions( new_action( ACTION_RESET, celltracks_int ) ), &
+                  & lopenacc=.TRUE.)
+      __acc_attach(diag%dm_hail_max_s)
+
+      ! internal memory for dm_hail(:,nlev,:) at the surface, needed for
+      !  computation of the time maximum dm_hail_max_s independently of 3D dm_hail:
+      cf_desc    = t_cf_var('dm_hail_s', 'm', 'mean mass diameter of hail at surface', datatype_flt)
+      grib2_desc = grib2_var(255, 255, 255, ibits, GRID_UNSTRUCTURED, GRID_CELL)
+      CALL add_var( diag_list, 'dm_hail_s', diag%dm_hail_s,                    &
+                & GRID_UNSTRUCTURED_CELL, ZA_SURFACE, cf_desc, grib2_desc,     &
+                & ldims=shape2d, lrestart=.FALSE., lopenacc=.TRUE.             )
+      __acc_attach(diag%dm_hail_s)
+
+    END IF
 
     IF (var_in_output%dbz .OR. var_in_output%dbz850 .OR. var_in_output%dbzcmax .OR. var_in_output%dbzctmax .OR. &
          var_in_output%dbzlmx_low .OR. var_in_output%echotop .OR. var_in_output%echotopinm) THEN
@@ -6149,7 +6303,7 @@ SUBROUTINE new_nwp_phy_diag_list( k_jg, klev, klevp1, kblks,    &
 
     ! Initialize JSBACH + VDIFF state.
     IF (atm_phy_nwp_config(k_jg)%inwp_surface == LSS_JSBACH .OR. atm_phy_nwp_config(k_jg)%inwp_turb == ivdiff) THEN
-      CALL diag%nwp_vdiff_state%init(nproma, p_patch(k_jg)%nlev, p_patch(k_jg)%nblks_c, diag_list)
+      CALL diag%nwp_vdiff_state%init(nproma, p_patch(k_jg)%nlev, p_patch(k_jg)%nblks_c, p_patch(k_jg)%id, diag_list)
     END IF
 
     CALL message('mo_nwp_phy_state:construct_nwp_phy_diag', &

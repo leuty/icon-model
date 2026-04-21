@@ -25,7 +25,7 @@ MODULE mo_gribout_nml
     &                               open_and_restore_namelist, close_tmpfile
   USE mo_gribout_config,      ONLY: gribout_config, GRIB_UNDEFVAL, GRIB_NOTINUSEVAL,   &
     &                               GRIB_LIB_COMPAT_ECC_2_31_0, GRIB_MAX_NUM_MOD_COMP, &
-    &                               GRIB_MAX_STR_LEN_MOD_COMP
+    &                               GRIB_MAX_STR_LEN_MOD_COMP, have_gribout_nml
   USE mo_grib2_tile,          ONLY: grib2_keys_tile
   USE mo_nml_annotate,        ONLY: temp_defaults, temp_settings
   USE mo_util_string,         ONLY: int2string, tolower, one_of
@@ -271,6 +271,8 @@ CONTAINS
     END IF
     SELECT CASE (istat)
     CASE (POSITIONED)
+      have_gribout_nml = .TRUE.
+
       READ (nnml, gribout_nml)                                      ! overwrite default settings
       ! Preset values, when main switch is provided.
       CALL preset_namelist()

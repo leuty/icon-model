@@ -21,6 +21,7 @@ MODULE mo_turbulent_diagnostic
   USE mo_kind,               ONLY: wp
   USE mo_impl_constants_grf, ONLY: grf_bdywidth_c
   USE mo_loopindices,        ONLY: get_indices_c
+  USE mo_ext_data_types,     ONLY: t_external_data
   USE mo_exception,          ONLY: message, message_text, finish
   USE mo_model_domain,       ONLY: t_patch
   USE mo_run_config,         ONLY: msg_level, iqv, iqc, iqi, iqr, iqs, iqg, iqh, dtime
@@ -34,7 +35,7 @@ MODULE mo_turbulent_diagnostic
   USE mo_mpi,                ONLY: my_process_is_stdio
   USE mo_write_netcdf,       ONLY: open_nc, addvar_nc, writevar_nc, close_nc
   USE mo_impl_constants,     ONLY: min_rlcell_int
-  USE mo_physical_constants, ONLY: cpd, grav, alv, vtmpc1
+  USE mo_physical_constants, ONLY: cpd, grav, alv, vtmpc1, rd_o_cpd, p0ref
   USE mo_atm_phy_nwp_config, ONLY: atm_phy_nwp_config
   USE mo_thdyn_functions,    ONLY: sat_pres_water, spec_humi
   USE mtime,                 ONLY: datetime
@@ -43,6 +44,8 @@ MODULE mo_turbulent_diagnostic
   USE mo_opt_nwp_diagnostics,ONLY: cal_cape_cin
   USE mo_nwp_parameters,     ONLY: t_phy_params
   USE mo_ls_forcing_nml,     ONLY: is_ls_forcing
+  USE mo_gme_turbdiff,       ONLY: nearsfc
+  USE mo_turbdiff_config,    ONLY: turbdiff_config, t_turbdiff_config
 
   IMPLICIT NONE
 
@@ -80,17 +83,21 @@ CONTAINS
   !! Most of the diagnostics are from mo_nwp_diagnosis/nwp_diag_for_output
   !! routine. Some of them which were very specific to NWP have been deleted.
   !!
+  !! Martin Koehler, 26 Jan 2022, new diagnostics (T2m, Td2m, qv2m, u10m, v10m)
+  !!
   SUBROUTINE les_cloud_diag(  kstart_moist,               & !in
                             & ih_clch, ih_clcm,           & !in
                             & phy_params,                 & !in
                             & p_patch, p_metrics,         & !in
                             & p_prog,                     & !in
                             & p_prog_rcf,                 & !in
+                            & p_prog_land,                & !in
                             & p_diag,                     & !in
+                            & p_diag_land,                & !in
+                            & ext_data,                   & !in
                             & prm_diag                    ) !inout
 
-    !>
-    ! !INPUT PARAMETERS:
+    ! INPUT PARAMETERS:
     INTEGER                , INTENT(in)   :: kstart_moist
     INTEGER                , INTENT(IN)   :: ih_clch, ih_clcm
     TYPE(t_phy_params)     , INTENT(IN)   :: phy_params
@@ -101,7 +108,12 @@ CONTAINS
     TYPE(t_nh_prog), TARGET, INTENT(in)   :: p_prog     !<the prognostic variables
     TYPE(t_nh_metrics), INTENT(in)        :: p_metrics
     TYPE(t_nwp_phy_diag)   , INTENT(inout):: prm_diag
+    TYPE(t_lnd_prog)       , INTENT(in)   :: p_prog_land
+    TYPE(t_lnd_diag)       , INTENT(in)   :: p_diag_land
+    TYPE(t_external_data)  , INTENT(in)   :: ext_data   !<external data (for fr_land)
 
+    ! LOCAL PARAMETERS:
+    TYPE(t_turbdiff_config), POINTER      :: tdc  ! turbdiff configuration state
 
     REAL(wp), PARAMETER :: qc_min = 1.e-8_wp
     REAL(wp), PARAMETER :: grav_o_cpd = grav/cpd
@@ -134,10 +146,12 @@ CONTAINS
     ! minimum top index for dry convection
     mtop_min = (ih_clch+ih_clcm)/2
 
+    tdc => turbdiff_config(jg)
 
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jb,jc,jk,i_startidx,i_endidx,found_cltop,found_clbas,ri_no,&
-!$OMP            mlab,ztp,zqp,zbuoy,zqsat,zcond) ICON_OMP_DEFAULT_SCHEDULE
+!$OMP            mlab,ztp,zqp,zbuoy,zqsat,zcond &
+!$OMP            ) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = i_startblk,i_endblk
        CALL get_indices_c(p_patch, jb, i_startblk, i_endblk, &
                           i_startidx, i_endidx, rl_start, rl_end)
@@ -269,15 +283,6 @@ CONTAINS
            prm_diag%htop_dc(jc,jb) = MIN( 0._wp, p_metrics%z_ifc(jc,nlev+1,jb) )
          END IF
        ENDDO
-       !
-       ! Compute wind speed in 10m
-       !
-       IF (atm_phy_nwp_config(jg)%inwp_turb > 0 ) THEN
-         DO jc = i_startidx, i_endidx
-           prm_diag%sp_10m(jc,jb) = SQRT(prm_diag%u_10m(jc,jb)**2 &
-             &                    +      prm_diag%v_10m(jc,jb)**2 )
-         ENDDO
-       ENDIF
 
        !
        !Extended diagnostics for HDCP2
@@ -299,13 +304,13 @@ CONTAINS
          END IF
        ENDDO  ! jc
 
-      !
-      !  CAPE and CIN of mean surface layer parcel
-      !
-      !  start level (kmoist) is limited to pressure heights above p=60hPa,
-      !  in order to avoid unphysically low test parcel temperature.
-      !  Otherwise computation crashes in sat_pres_water
-      CALL cal_cape_cin( i_startidx, i_endidx,                     &
+       !
+       !  CAPE and CIN of mean surface layer parcel
+       !
+       !  start level (kmoist) is limited to pressure heights above p=60hPa,
+       !  in order to avoid unphysically low test parcel temperature.
+       !  Otherwise computation crashes in sat_pres_water
+       CALL cal_cape_cin( i_startidx, i_endidx,                     &
         &                kmoist  = MAX(kstart_moist,phy_params%k060), & !in
         &                te      = p_diag%temp(:,:,jb)          , &   !in
         &                qve     = p_prog_rcf%tracer(:,:,jb,iqv), &   !in
@@ -313,6 +318,54 @@ CONTAINS
         &                hhl     = p_metrics%z_ifc(:,:,jb)       , &  !in
         &                cape_ml = prm_diag%cape_ml(:,jb)        , &  !out
         &                cin_ml  = prm_diag%cin_ml(:,jb)         )  !out
+
+       !
+       !  t_2m, td_2m, qv_2m, u_10m, v_10m diagnostic
+       !  using GME surface layer formulation (compatible with Louis scheme used in LES)
+       !
+       ! Note: fr_land from ext_data distinguishes land (1) from ocean (0) surfaces
+       !       In nearsfc, fr_land > 0.5 activates the advanced MO formulation
+       !
+       CALL nearsfc(                                             &
+         & tdc     = tdc,                                        &
+         & t       = p_diag%temp(:,:,jb),                        &
+         & qv      = p_prog_rcf%tracer(:,:,jb,iqv),              &
+         & u       = p_diag%u(:,:,jb),                           &
+         & v       = p_diag%v(:,:,jb),                           &
+         & zf      = p_metrics%z_mc(:,:,jb),                     &
+         & ps      = p_diag%pres_sfc(:,jb),                      &
+         & t_g     = p_prog_land%t_g(:,jb),                      &
+         & tcm     = prm_diag%tcm(:,jb),                         &
+         & tch     = prm_diag%tch(:,jb),                         &
+         & gz0     = prm_diag%gz0(:,jb),                         &
+         & shfl_s  = prm_diag%shfl_s(:,jb),                      &
+         & lhfl_s  = prm_diag%lhfl_s(:,jb),                      &
+         & umfl_s  = prm_diag%umfl_s(:,jb),                      &
+         & vmfl_s  = prm_diag%vmfl_s(:,jb),                      &
+         & zsurf   = p_metrics%z_ifc(:,nlev+1,jb),               &
+         & fr_land = ext_data%atm%fr_land(:,jb),                 &
+         & pf1     = p_diag%pres(:,nlev,jb),                     &
+         & qv_s    = p_diag_land%qv_s(:,jb),                     &
+         & ie      = nproma,                                     &
+         & ke      = nlev,                                       &
+         & i_startidx = i_startidx,                              &
+         & i_endidx   = i_endidx,                                &
+         & t_2m    = prm_diag%t_2m(:,jb),                        &
+         & qv_2m   = prm_diag%qv_2m(:,jb),                       &
+         & td_2m   = prm_diag%td_2m(:,jb),                       &
+         & rh_2m   = prm_diag%rh_2m(:,jb),                       &
+         & u_10m   = prm_diag%u_10m(:,jb),                       &
+         & v_10m   = prm_diag%v_10m(:,jb)                        )
+
+       !
+       ! Compute wind speed in 10m
+       !
+       IF (atm_phy_nwp_config(jg)%inwp_turb > 0 ) THEN
+         DO jc = i_startidx, i_endidx
+           prm_diag%sp_10m(jc,jb) = SQRT(prm_diag%u_10m(jc,jb)**2 &
+             &                    +      prm_diag%v_10m(jc,jb)**2 )
+         ENDDO
+       ENDIF
 
     ENDDO  ! jb
 !$OMP END DO
@@ -437,6 +490,10 @@ CONTAINS
        ALLOCATE(wmean(1:nlev))
        CALL levels_horizontal_mean(w_mc, p_patch%cells%area, p_patch%cells%owned, outvar(1:nlev))
        wmean = outvar(1:nlev)
+
+     CASE('ta')
+
+       CALL levels_horizontal_mean(p_diag%temp, p_patch%cells%area, p_patch%cells%owned, outvar(1:nlev))
 
      CASE('thv')
 
@@ -630,6 +687,28 @@ CONTAINS
 
        CALL levels_horizontal_mean(var3df, p_patch%cells%area, p_patch%cells%owned, outvar(1:nlev))
 
+     CASE('www')
+
+       IF(ALLOCATED(wmean))THEN
+!$OMP PARALLEL
+!$OMP DO PRIVATE(jb,jc,jk,i_startidx,i_endidx)
+        DO jb = i_startblk,i_endblk
+          CALL get_indices_c(p_patch, jb, i_startblk, i_endblk, &
+                             i_startidx, i_endidx, rl_start, rl_end)
+          DO jk = 1 , nlev
+            DO jc = i_startidx, i_endidx
+             var3df(jc,jk,jb) = (w_mc(jc,jk,jb)-wmean(jk))**3
+            END DO
+          END DO
+        END DO
+!$OMP END DO NOWAIT
+!$OMP END PARALLEL
+       ELSE
+         CALL finish(routine,'put <www> after <w> in the namelist')
+       END IF
+
+       CALL levels_horizontal_mean(var3df, p_patch%cells%area, p_patch%cells%owned, outvar(1:nlev))
+
      CASE('thth')
 
        IF(ALLOCATED(thmean))THEN
@@ -736,6 +815,28 @@ CONTAINS
 !$OMP END PARALLEL
        ELSE
          CALL finish(routine,'put <vv> after <v> in the namelist')
+       END IF
+
+       CALL levels_horizontal_mean(var3df, p_patch%cells%area, p_patch%cells%owned, outvar(1:nlev))
+
+     CASE('gstke')
+
+       IF(ALLOCATED(vmean).AND.ALLOCATED(umean).AND.ALLOCATED(wmean))THEN
+!$OMP PARALLEL
+!$OMP DO PRIVATE(jb,jc,jk,i_startidx,i_endidx)
+        DO jb = i_startblk,i_endblk
+          CALL get_indices_c(p_patch, jb, i_startblk, i_endblk, &
+                             i_startidx, i_endidx, rl_start, rl_end)
+          DO jk = 1 , nlev
+            DO jc = i_startidx, i_endidx
+             var3df(jc,jk,jb) = 0.5_wp*((p_diag%v(jc,jk,jb)-vmean(jk))**2+(p_diag%u(jc,jk,jb)-umean(jk))**2 +(w_mc(jc,jk,jb)-wmean(jk))**2 )
+            END DO
+          END DO
+        END DO
+!$OMP END DO NOWAIT
+!$OMP END PARALLEL
+       ELSE
+         CALL finish(routine,'put <gstke> after <v> and <u> and <w> in the namelist')
        END IF
 
        CALL levels_horizontal_mean(var3df, p_patch%cells%area, p_patch%cells%owned, outvar(1:nlev))
@@ -915,6 +1016,10 @@ CONTAINS
        CALL levels_horizontal_mean(p_diag_land%qv_s, p_patch%cells%area, p_patch%cells%owned, outvar0d)
      CASE('hbl')
        CALL levels_horizontal_mean(prm_diag%z_pbl, p_patch%cells%area, p_patch%cells%owned, outvar0d)
+     CASE('tqc')
+       CALL levels_horizontal_mean(p_diag%tracer_vi(:,:,iqc), p_patch%cells%area, p_patch%cells%owned, outvar0d)
+     CASE('tqr')
+       CALL levels_horizontal_mean(p_diag%tracer_vi(:,:,iqr), p_patch%cells%area, p_patch%cells%owned, outvar0d)
      CASE('tke')
        CALL levels_horizontal_mean(p_prog_rcf%tke(:,nlev,:), p_patch%cells%area, p_patch%cells%owned, outvar0d)
      CASE('psfc')
@@ -957,6 +1062,8 @@ CONTAINS
          CALL levels_horizontal_mean(prm_diag%ice_gsp_rate, p_patch%cells%area, p_patch%cells%owned, outvar0d)
          outvar0d = outvar0d * day_sec
        END IF
+     CASE('invhgt')
+       CALL levels_horizontal_mean(prm_diag%inversion_height, p_patch%cells%area, p_patch%cells%owned, outvar0d)
      END SELECT
 
      prm_diag%turb_diag_0dvar(n) = outvar0d
@@ -1093,6 +1200,9 @@ CONTAINS
      CASE('w')
       longname = 'vertical wind'
       unit     = 'm/s'
+     CASE('ta')
+      longname = 'temperature'
+      unit     = 'K'
      CASE('th') !theta mean
       longname = 'potential temperature'
       unit     = 'K'
@@ -1132,6 +1242,9 @@ CONTAINS
      CASE('ww')
        longname = 'resolved vertical velocity variance'
        unit     = 'm2/s2'
+     CASE('www')
+       longname = 'resolved vertical velocity skewness'
+       unit     = 'm3/s3'
      CASE('thth')
        longname = 'resolved potential temperature variance'
        unit     = 'K2'
@@ -1146,6 +1259,9 @@ CONTAINS
        unit     = 'm2/s2'
      CASE('vv')
        longname = 'resolved meridional wind variance'
+       unit     = 'm2/s2'
+     CASE('gstke')
+       longname = 'resolved grid scale TKE'
        unit     = 'm2/s2'
      CASE('kh')
        longname = 'mass weighted eddy diffusivity'
@@ -1366,6 +1482,15 @@ CONTAINS
      CASE('precp_i')
        longname = 'gridscale ice rate'
        unit     = 'mm/day'
+     CASE('tqc')
+       longname = 'cloud water path'
+       unit     = 'kg/m2'
+     CASE('tqr')
+       longname = 'rain water path'
+       unit     = 'kg/m2'
+     CASE('invhgt')
+       longname = 'inversion height'
+       unit     = 'm'
      CASE DEFAULT
        WRITE(message_text,'(3a)') 'Variable ', &
             TRIM(turb_tseries_list(n)), &

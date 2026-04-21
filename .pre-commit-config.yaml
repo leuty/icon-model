@@ -86,7 +86,8 @@ repos:
           (?x)^(
             # Apply to selected directories only:
             ragnarok |
-            test/unit-tests
+            test/unit-tests |
+            src/upatmo
           )/.*\.([fF]\d*|incf?)$ |
           ^(
             # Apply to selected files only:

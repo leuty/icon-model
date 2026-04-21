@@ -330,7 +330,8 @@ cat > NAMELIST_${EXPNAME} << EOF
  is_rad_forcing       = .FALSE.
  is_nudging           = .FALSE.
  is_nudging_uv        = .FALSE.
- is_nudging_tq        = .FALSE.
+ is_nudging_t         = .FALSE.
+ is_nudging_q         = .FALSE.
  is_theta             = .FALSE.
 /
 
@@ -391,8 +392,6 @@ cat > NAMELIST_${EXPNAME} << EOF
  ivctype        = 2          ! sleve vertical coordinate
  damp_height    = 44000.     ! top_height-damp_height should be about 15km
  ndyn_substeps  = ${ndyn_substeps}
- l_open_ubc     = .false.   ! top open upper boundary condition. might help to go higher
- rayleigh_type   = 1
  rayleigh_coeff = 0.5 !0.0
  htop_moist_proc= 22500.
  hbot_qvsubstep	= 16000.    ! Default: 22500  ! M. Koehler: 19000; at leas as large as htop_moist_proc
@@ -401,7 +400,6 @@ cat > NAMELIST_${EXPNAME} << EOF
  itime_scheme                 = 4
  exner_expol                  = 0.333
  vwind_offctr                 = 0.2         ! 0.2 for R2B6 and higher resolution, 0.3 for lower resolution
- lhdiff_rcf                   = .true.
  divdamp_order                = 24          ! 2 ass, 24 fc
  divdamp_type                 = 32          ! optional: 2 assimilation cycle, 32 forecast
  divdamp_fac                  = 0.004       ! 0.004 for R2B6; recommendation for R3B7: 0.003
@@ -432,8 +430,6 @@ cat > NAMELIST_${EXPNAME} << EOF
 /
 
 &dynamics_nml
- iequations     = 3       ! equation system
- idiv_method    = 1
  divavg_cntrwgt = 0.50
  lcoriolis      = .TRUE.  ! SCM attention: .TRUE. distroys U-profile!!
 /

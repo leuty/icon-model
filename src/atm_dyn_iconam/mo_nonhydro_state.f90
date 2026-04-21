@@ -94,6 +94,7 @@ MODULE mo_nonhydro_state
   USE mo_aes_vdf_config,       ONLY: aes_vdf_config
   USE mo_turb_vdiff_params,    ONLY: VDIFF_TURB_3DSMAGORINSKY
   USE mo_loopindices,          ONLY: get_indices_c
+  USE mo_ccycle_config,        ONLY: ccycle_config, CCYCLE_MODE_INTERACTIVE
 
 #include "add_var_acc_macro.inc"
 
@@ -445,6 +446,7 @@ MODULE mo_nonhydro_state
 
     INTEGER              :: iqb
     LOGICAL :: ingroup(MAX_GROUPS)
+    INTEGER              :: iccycle
     !**
     !--------------------------------------------------------------
 
@@ -1084,6 +1086,8 @@ MODULE mo_nonhydro_state
 
         !CO2
         IF ( ico2 /= 0 ) THEN
+          ! Setting iccycle for lrestart_cont (lrestart_cont == TRUE if iccycle == 1)
+          iccycle = ccycle_config(p_patch%id)%iccycle
           tlen = LEN_TRIM(advconf%tracer_names(ico2))
           tracer_name = vname_prefix(1:vntl)//advconf%tracer_names(ico2)(1:tlen)//suffix
           CALL add_ref( p_prog_list, tracer_container_name,                            &
@@ -1095,6 +1099,7 @@ MODULE mo_nonhydro_state
             &           ref_idx=ico2,                                                  &
             &           ldims=shape3d_c,                                               &
             &           tlev_source=TLEV_NNOW_RCF,                                     & ! output from nnow_rcf slice
+            &           lrestart_cont=(iccycle == CCYCLE_MODE_INTERACTIVE),            &
             &           tracer_info=create_tracer_metadata(lis_tracer=.TRUE.,          &
             &                       name        = tracer_name,                         &
             &                       ihadv_tracer=advconf%ihadv_tracer(ico2),           &

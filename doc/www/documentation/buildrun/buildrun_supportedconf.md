@@ -84,3 +84,9 @@ art\_local\_LAM\_OEM:
 
 art\_local\_POLLEN\_SPP:
 : This use case employs high-resolution local area mode (LAM) over Europe with a resolution of approximately 6.5 km (R03B08) including ART. It focuses on simulating different types of pollen and the radioactive isotope Cesium-137 (Cs-137).
+
+
+## ICON SCM and LES
+
+[ICON-SCM/LES documentation](ref_buildrun_icon_scm_les):
+: ICON can be run in a single column model (SCM) and large-eddy simulation (LES) mode.

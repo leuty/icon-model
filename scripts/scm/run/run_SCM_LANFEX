@@ -176,11 +176,11 @@ cat > NAMELIST_${EXPNAME} << EOF
 /
 
 &grid_nml
- !cell_type = 3            ! triangular cells
+ !cell_type             = 3            ! triangular cells
  dynamics_grid_filename = "${atmo_dyn_grids}",
- corio_lat = 52.1         ! Cardington UK, 0.42W 52.1M
- is_plane_torus = .TRUE.
- l_scm_mode = .TRUE.       ! main logical to turn on SCM mode
+ corio_lat              = 52.1         ! Cardington UK, 0.42W 52.1M
+ is_plane_torus         = .TRUE.
+ l_scm_mode             = .TRUE.       ! main logical to turn on SCM mode
 /
 
 
@@ -256,7 +256,8 @@ cat > NAMELIST_${EXPNAME} << EOF
  is_rad_forcing       = .FALSE.
  is_nudging           = .FALSE.
  is_nudging_uv        = .FALSE.
- is_nudging_tq        = .FALSE.
+ is_nudging_t         = .FALSE.
+ is_nudging_q         = .FALSE.
  is_theta             = .FALSE.
 /
 

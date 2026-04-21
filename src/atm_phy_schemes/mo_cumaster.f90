@@ -48,7 +48,6 @@ MODULE mo_cumaster
   USE mo_stoch_explicit,       ONLY: shallow_stoch_explicit
   USE mo_stoch_deep,           ONLY: deep_stoch_sde
   USE mo_nwp_phy_types,        ONLY: t_ptr_cloud_ensemble
-  USE mo_run_config,           ONLY: lmsgwam
 
   IMPLICIT NONE
 
@@ -56,6 +55,14 @@ MODULE mo_cumaster
 
 
   PUBLIC :: cumastrn
+
+#ifdef __MSGWAM
+  PUBLIC :: t_msgwam_fields
+  TYPE t_msgwam_fields
+    INTEGER, POINTER, CONTIGUOUS    :: ktype_cgw(:), kcbot_cgw(:), kctop_cgw(:)
+    REAL(JPRB), POINTER, CONTIGUOUS :: heat_cgw(:,:),tupd_cgw(:,:), test_cgw(:,:)
+  END TYPE t_msgwam_fields
+#endif
 
 CONTAINS
 
@@ -82,8 +89,7 @@ SUBROUTINE cumastrn &
  & pcen, ptenrhoc,                               &
  & l_lpi, l_lfd, lpi, mlpi, koi, lfd, peis,      &
 #ifdef __MSGWAM
- & nsrc_cgw, ktype_cgw, kcbot_cgw, kctop_cgw,    &
- & heat_cgw, tupd_cgw, test_cgw,                 &
+ & nsrc_cgw, msgwam_fields, lmsgwam,             &
 #endif
  & pertb,                                        &
  & lspinup, k650,k700, temp_s,                   &
@@ -418,13 +424,9 @@ REAL(KIND=jprb)   ,OPTIONAL, INTENT(inout)   :: lfd(:)
 REAL(KIND=jprb)            , INTENT(inout)   :: peis(:)
 LOGICAL                    , INTENT(in)      :: lacc
 #ifdef __MSGWAM
-INTEGER(KIND=jpim),INTENT(in)  :: nsrc_cgw
-INTEGER(KIND=jpim),INTENT(out) :: ktype_cgw(:)
-INTEGER(KIND=jpim),INTENT(out) :: kcbot_cgw(:)
-INTEGER(KIND=jpim),INTENT(out) :: kctop_cgw(:)
-REAL(KIND=jprb)   ,INTENT(out) :: heat_cgw (:,:)
-REAL(KIND=jprb)   ,INTENT(out) :: tupd_cgw (:,:)
-REAL(KIND=jprb)   ,INTENT(out) :: test_cgw (:,:)
+INTEGER(KIND=jpim),INTENT(in)     :: nsrc_cgw
+TYPE(t_msgwam_fields), INTENT(in) :: msgwam_fields
+LOGICAL, INTENT(IN)               :: lmsgwam
 #endif
 
 !*UPG change to operations
@@ -1845,7 +1847,7 @@ ENDDO
 ! To calculate our heating explicitly even if this cumulus scheme solves
 ! it implicitly (rmfsoltq /= 0), 'plude' has to be saved here before it is
 ! modified due to rmfsoltq /= 0.
-IF ( ANY(lmsgwam) ) THEN
+IF ( lmsgwam ) THEN
   IF (nsrc_cgw > 0 .AND. rmfsoltq /= 0.0_JPRB) THEN
     plude_expl(:,:) = plude(:,:)
   END IF
@@ -1935,11 +1937,11 @@ DO jk=ktdia+1,klev
 ENDDO
 
 #ifdef __MSGWAM
-IF (ANY(lmsgwam)) &
+IF ( lmsgwam ) &
 CALL compute_msgwam_heating( &
   & nsrc_cgw, rmfsoltq, kidia, kfdia, ktdia, klev, itopm2,  &
-  & heat_cgw, tupd_cgw, test_cgw,                          &
-  & ktype_cgw, kctop_cgw, kcbot_cgw,                       &
+  & msgwam_fields%heat_cgw, msgwam_fields%tupd_cgw, msgwam_fields%test_cgw,                          &
+  & msgwam_fields%ktype_cgw, msgwam_fields%kctop_cgw, msgwam_fields%kcbot_cgw,                       &
   & plude_expl, plude, zmfdq, llddraf, idtop,              &
   & ldcum, kctop, kcbot, paph, pten,                       &
   & ptu, zmful, zdmfup, psnde, zlglac, zdpmel,             &

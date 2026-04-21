@@ -810,6 +810,20 @@ cat > ${wave_namelist} <<EOF
  output_grid          =                      .TRUE.      ! flag whether grid information is added to output.
  ml_varlist           = 'z0','group:wave_forcing','group:wave_short','drag','beta','tauwn','ustar'
 /
+!----------------------------------------------------------------
+! WAVE first guess output in GRIB2
+!----------------------------------------------------------------
+&output_nml
+ filetype             =                          2       ! output format: 2=GRIB2, 4=NETCDFv2
+ dom                  =                         -1       ! write all domains
+ output_bounds        =        0., 10000000.,21600.      ! start, end, increment
+ steps_per_file       =                          1
+ mode                 =                          1       ! 1: forecast mode (relative t-axis), 2: climate mode (absolute t-axis)
+ include_last         =                      .FALSE.     ! flag whether to include the last time step
+ output_filename      =                   'WAVE_FG'      ! file name base
+ output_grid          =                      .TRUE.      ! flag whether grid information is added to output.
+ ml_varlist           = 'group:wave_spectrum'
+/
 EOF
 
 

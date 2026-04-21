@@ -143,10 +143,10 @@ MODULE mo_surface_les
 
     SELECT CASE(les_config(jg)%isrfc_type)
 
+
     !Default case with TERRA
     !Most of what follows has been taken from mo_nwp_turbtrans_interface
     !for COSMO turbulence
-
     CASE(1)
 
       !For now the LES scheme uses the surface fluxes from land directly. Exchange coefficients
@@ -166,16 +166,17 @@ MODULE mo_surface_les
       END DO
       !$ACC END PARALLEL
 
-      !Prescribed latent/sensible heat fluxes: get ustar and surface temperature / moisture
-      !Ideally, one should do an iteration to get ustar corresponding to given fluxes
 
-    !Fixed surface pressure to be comparable to incompressible LES models. Pseudo density
-    !(constant in time) that is used here is fixed to the initial value so that the flux
-    !is fixed in density units.
+    !Prescribed latent/sensible heat fluxes: get ustar and surface temperature / moisture
+    !Ideally, one should do an iteration to get ustar corresponding to given fluxes
     CASE(2)
 #ifdef _OPENACC
       CALL finish ('mo_surface_les:', 'isrfc_type=2: OpenACC version currently not implemented')
 #endif
+
+      !Fixed surface pressure to be comparable to incompressible LES models. Pseudo density
+      !(constant in time) that is used here is fixed to the initial value so that the flux
+      !is fixed in density units.
 
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jc,jb,i_startidx,i_endidx,exner,zrough,mwind,z_mc,RIB,rhos, &
@@ -242,6 +243,7 @@ MODULE mo_surface_les
       END DO
 !$OMP END DO NOWAIT
 !$OMP END PARALLEL
+
 
     !Prescribed buoyancy flux and transfer coefficient at surface to get a uniform SST (Stevens 2007 JAS)
     !It uses fixed transfer coefficient and assumes that q_s is saturated
@@ -352,7 +354,8 @@ MODULE mo_surface_les
 !$OMP END DO
 !$OMP END PARALLEL
 
-   !Rico case
+
+    !Rico case
     CASE(4)
 #ifdef _OPENACC
       CALL finish ('mo_surface_les:', 'isrfc_type=4: OpenACC version currently not implemented')
@@ -389,28 +392,29 @@ MODULE mo_surface_les
         END DO
       END DO
 
+
     !Fix SST case
     CASE(5)
 #ifdef _OPENACC
       CALL finish ('mo_surface_les:', 'isrfc_type=5: OpenACC version currently not implemented')
 #endif
 
-!   Get roughness length * grav
-    IF(turbdiff_config(jg)%lconst_z0 .AND. turbdiff_config(jg)%const_z0 <= 0._wp)THEN
-      DO jb = i_startblk,i_endblk
-        CALL get_indices_c(p_patch, jb, i_startblk, i_endblk, &
-                           i_startidx, i_endidx, rl_start, rl_end)
-        DO jc = i_startidx, i_endidx
-           mwind = MAX( les_config(jg)%min_sfc_wind, SQRT(p_nh_diag%u(jc,jk,jb)**2+p_nh_diag%v(jc,jk,jb)**2) )
-           var(jc,jb) = SQRT( MAX(0._wp,prm_diag%tcm(jc,jb)) ) * mwind
+!     Get roughness length * grav
+      IF(turbdiff_config(jg)%lconst_z0 .AND. turbdiff_config(jg)%const_z0 <= 0._wp)THEN
+        DO jb = i_startblk,i_endblk
+          CALL get_indices_c(p_patch, jb, i_startblk, i_endblk, &
+                             i_startidx, i_endidx, rl_start, rl_end)
+          DO jc = i_startidx, i_endidx
+             mwind = MAX( les_config(jg)%min_sfc_wind, SQRT(p_nh_diag%u(jc,jk,jb)**2+p_nh_diag%v(jc,jk,jb)**2) )
+             var(jc,jb) = SQRT( MAX(0._wp,prm_diag%tcm(jc,jb)) ) * mwind
+          END DO
         END DO
-      END DO
 
-      WHERE(.NOT.p_patch%cells%decomp_info%owner_mask(:,:)) var(:,:) = 0._wp
-      ustar_mean =  global_sum_array(var)/REAL(p_patch%n_patch_cells_g,wp)
+        WHERE(.NOT.p_patch%cells%decomp_info%owner_mask(:,:)) var(:,:) = 0._wp
+        ustar_mean =  global_sum_array(var)/REAL(p_patch%n_patch_cells_g,wp)
 
-      prm_diag%gz0(:,:) = MAX(0.001_wp,0.016_wp*ustar_mean**2)
-    END IF
+        prm_diag%gz0(:,:) = MAX(0.001_wp,0.016_wp*ustar_mean**2)
+      END IF
 
 
 !$OMP PARALLEL
@@ -475,6 +479,7 @@ MODULE mo_surface_les
 !$OMP END DO NOWAIT
 !$OMP END PARALLEL
 
+
     ! Added by Christopher Moseley:
     ! Time varying SST and qv_s case with prescribed roughness length: semi-idealized setups
     CASE(6)
@@ -482,59 +487,59 @@ MODULE mo_surface_les
       CALL finish ('mo_surface_les:', 'isrfc_type=6: OpenACC version currently not implemented')
 #endif
 
-    IF(dt_interval==0._wp)THEN
+      IF(dt_interval==0._wp)THEN
 
-      prm_diag%tcm(:,:) = 0._wp
+        prm_diag%tcm(:,:) = 0._wp
 
-      !Open formatted file to read BC data
-      iunit = find_next_free_unit(10,20)
-      OPEN (unit=iunit,file='sfc_forcing.dat',access='SEQUENTIAL', &
-            form='FORMATTED', action='READ', status='OLD', IOSTAT=ist)
+        !Open formatted file to read BC data
+        iunit = find_next_free_unit(10,20)
+        OPEN (unit=iunit,file='sfc_forcing.dat',access='SEQUENTIAL', &
+              form='FORMATTED', action='READ', status='OLD', IOSTAT=ist)
 
-      IF(ist/=success)THEN
-        CALL finish (TRIM(routine), 'open sfc_forcing.dat failed')
-      ENDIF
+        IF(ist/=success)THEN
+          CALL finish (TRIM(routine), 'open sfc_forcing.dat failed')
+        ENDIF
 
-      !Read the input file til end. The order of file assumed is:
-      !Ts(K) - qvs(kg/kg)
+        !Read the input file til end. The order of file assumed is:
+        !Ts(K) - qvs(kg/kg)
 
-      !Skip the first line
-      READ(iunit,*,IOSTAT=ist)            !skip
+        !Skip the first line
+        READ(iunit,*,IOSTAT=ist)            !skip
 
-      !Read the second line with information about time levels
-      READ(iunit,*,IOSTAT=ist)stime,dt_interval,etime
+        !Read the second line with information about time levels
+        READ(iunit,*,IOSTAT=ist)stime,dt_interval,etime
 
-      IF(ist/=success)CALL finish (TRIM(routine), 'Must provide time level info in the bc file')
+        IF(ist/=success)CALL finish (TRIM(routine), 'Must provide time level info in the bc file')
 
-      nt = INT(etime/dt_interval)+1
+        nt = INT(etime/dt_interval)+1
 
-      ALLOCATE( ts(nt), qvs(nt) )
-      DO n = 1 , nt
-        READ(iunit,*,IOSTAT=ist)ts(n),qvs(n)
-        IF(ist/=success) CALL finish (TRIM(routine), 'something wrong in sfc_forcing.dat')
-      END DO
+        ALLOCATE( ts(nt), qvs(nt) )
+        DO n = 1 , nt
+          READ(iunit,*,IOSTAT=ist)ts(n),qvs(n)
+          IF(ist/=success) CALL finish (TRIM(routine), 'something wrong in sfc_forcing.dat')
+        END DO
 
-      CLOSE(iunit)
+        CLOSE(iunit)
 
-      WRITE(message_text,*)dt_interval
-      CALL message('Time varying surface forcing read in:',message_text)
+        WRITE(message_text,*)dt_interval
+        CALL message('Time varying surface forcing read in:',message_text)
 
-    END IF
+      END IF
 
-    !Find where in the array of sfc bc current time stands
-    !and do linear interpolation in time
-    n_curr = FLOOR(p_sim_time/dt_interval)+1
-    n_next = n_curr+1
-    int_weight = p_sim_time/dt_interval-n_curr+1
+      !Find where in the array of sfc bc current time stands
+      !and do linear interpolation in time
+      n_curr = FLOOR(p_sim_time/dt_interval)+1
+      n_next = n_curr+1
+      int_weight = p_sim_time/dt_interval-n_curr+1
 
-    ! Christopher: temporary catch
-    IF (int_weight.LT.0 .OR.int_weight.GT.1) THEN
-      WRITE(message_text,*)n_curr,n_next,int_weight,dt_interval,p_sim_time
-      CALL message('INTERPOLATION ERROR in surface:',message_text)
-    END IF
+      ! Christopher: temporary catch
+      IF (int_weight.LT.0 .OR.int_weight.GT.1) THEN
+        WRITE(message_text,*)n_curr,n_next,int_weight,dt_interval,p_sim_time
+        CALL message('INTERPOLATION ERROR in surface:',message_text)
+      END IF
 
-    p_prog_lnd_new%t_g(:,:) = ts(n_curr)*(1.-int_weight)+ts(n_next)*int_weight
-    p_diag_lnd%qv_s(:,:)    = qvs(n_curr)*(1.-int_weight)+qvs(n_next)*int_weight
+      p_prog_lnd_new%t_g(:,:) = ts(n_curr)*(1.-int_weight)+ts(n_next)*int_weight
+      p_diag_lnd%qv_s(:,:)    = qvs(n_curr)*(1.-int_weight)+qvs(n_next)*int_weight
 
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jc,jb,i_startidx,i_endidx,zrough,theta_sfc,mwind,z_mc,       &
@@ -654,22 +659,22 @@ MODULE mo_surface_les
               prm_diag%tcm(jc,jb) = inv_bus_mom * inv_bus_mom
            END DO
 
-            !Now diagnose friction velocity (ustar)
-            IF(les_config(jg)%ufric<0._wp)THEN
-              !Bulk Richardson no at first model level
-              RIB = grav * (theta(jc,jk,jb)-theta_sfc)*(z_mc-zrough)/(theta_sfc*mwind**2)
-              !first guess
-              ustar = SQRT( diag_ustar_sq(z_mc,zrough,RIB,mwind) )
-              DO itr = 1 , 5
-                !"-" sign in the begining because ustar*thstar = -shflx
-                obukhov_length = - theta_sfc*ustar**3/(akt*grav*les_config(jg)%shflx)
-                ustar = mwind / businger_mom(zrough,z_mc,obukhov_length)
-              END DO
+           !Now diagnose friction velocity (ustar)
+           IF(les_config(jg)%ufric<0._wp)THEN
+             !Bulk Richardson no at first model level
+             RIB = grav * (theta(jc,jk,jb)-theta_sfc)*(z_mc-zrough)/(theta_sfc*mwind**2)
+             !first guess
+             ustar = SQRT( diag_ustar_sq(z_mc,zrough,RIB,mwind) )
+             DO itr = 1 , 5
+               !"-" sign in the begining because ustar*thstar = -shflx
+               obukhov_length = - theta_sfc*ustar**3/(akt*grav*les_config(jg)%shflx)
+               ustar = mwind / businger_mom(zrough,z_mc,obukhov_length)
+             END DO
 
-            ELSE
-              ustar = les_config(jg)%ufric
-              obukhov_length = -theta_sfc*ustar**3/(akt*grav*les_config(jg)%shflx)
-            END IF
+           ELSE
+             ustar = les_config(jg)%ufric
+             obukhov_length = -theta_sfc*ustar**3/(akt*grav*les_config(jg)%shflx)
+           END IF
 
            !Get surface fluxes
            IF( les_config(jg)%isrfc_type == 7 ) THEN
@@ -696,24 +701,24 @@ MODULE mo_surface_les
 !$OMP END DO NOWAIT
 !$OMP END PARALLEL
 
-    !prescribed fluxes aka SCM
+
+    !prescribed fluxes as for SCM - if necessary calculated after Louis (1979)
     CASE(10)
 #ifdef _OPENACC
       CALL finish ('mo_surface_les:', 'isrfc_type=10: OpenACC version currently not implemented')
 #endif
-    !Fluxes are already setup in mo_sgs_turbulence.f90
-     !change sign of surface fluxes
-     prm_diag%shfl_s  = - prm_diag%shfl_s
-     prm_diag%lhfl_s  = - prm_diag%lhfl_s
-     prm_diag%umfl_s  = - prm_diag%umfl_s
-     prm_diag%vmfl_s  = - prm_diag%vmfl_s
+      !Change sign of surface fluxes (fluxes set in mo_sgs_turbulence.f90: CALL set_scm_bnd)
+      prm_diag%shfl_s  = - prm_diag%shfl_s
+      prm_diag%lhfl_s  = - prm_diag%lhfl_s
+      prm_diag%umfl_s  = - prm_diag%umfl_s
+      prm_diag%vmfl_s  = - prm_diag%vmfl_s
+
 
     !No fluxes
     CASE(0)
 #ifdef _OPENACC
       CALL finish ('mo_surface_les:', 'isrfc_type=0: OpenACC version currently not implemented')
 #endif
-
       prm_diag%shfl_s  = 0._wp
       prm_diag%lhfl_s  = 0._wp
       prm_diag%umfl_s  = 0._wp
@@ -773,7 +778,8 @@ MODULE mo_surface_les
      END IF
 
   END FUNCTION businger_heat
-  !-----------------------------------------------------------------------------
+
+
   !-----------------------------------------------------------------------------
   FUNCTION phi_heat(z1, L) RESULT(factor)
      REAL(wp), INTENT(IN) :: z1, L
@@ -839,7 +845,7 @@ MODULE mo_surface_les
      END IF
 
   END FUNCTION businger_mom
-  !-----------------------------------------------------------------------------
+
   !-----------------------------------------------------------------------------
   FUNCTION phi_mom(z1, L) RESULT(factor)
      REAL(wp), INTENT(IN) :: z1, L
@@ -936,6 +942,7 @@ MODULE mo_surface_les
      END IF
 
   END FUNCTION stability_function_mom
+
   !>
   !! stability_function_heat
   !!------------------------------------------------------------------------

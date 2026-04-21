@@ -497,29 +497,33 @@ CONTAINS
         ENDIF
       ENDIF
 
+      ! provide surface fluxes and surface conditions from SCM input file
       IF ( ltestcase .AND. l_scm_mode .AND. &
-        &  ((scm_sfc_mom >= 2) .OR. (scm_sfc_temp >= 2) .OR. (scm_sfc_qv >= 2)) ) THEN
-        CALL set_scm_bnd( nvec=nproma, ivstart=i_startidx, ivend=i_endidx, &
-          & vel_min      = tdc%vel_min,                                    & !in
-          & u_s          = p_diag%u(:,nlev,jb),                            & !in
-          & v_s          = p_diag%v(:,nlev,jb),                            & !in
-          & th_b         = p_diag%temp(:,nlev,jb)/p_prog%exner(:,nlev,jb), & !in
-          & qv_b         = p_prog_rcf%tracer(:,nlev,jb,iqv),               & !in
-          & pres_sfc     = p_diag%pres_sfc(:,jb),                          & !in
-          & dz_bs=p_metrics%z_mc(:,nlev,jb)-p_metrics%z_ifc(:,nlevp1,jb),  & !in
-          & z0m=prm_diag%gz0(:,jb)/grav,                                   & !in
+        &  ((scm_sfc_mom >= 2) .OR. (scm_sfc_temp >= 2) .OR. (scm_sfc_qv >= 2)) &
+        &  .AND. (scm_sfc_temp /= 3) ) THEN
+
+        CALL set_scm_bnd( ivstart=i_startidx, ivend=i_endidx,                     &
+          & vel_min      = tdc%vel_min,                                           & !in
+          & u_s          = p_diag%u            (:,nlev,jb),                       & !in
+          & v_s          = p_diag%v            (:,nlev,jb),                       & !in
+          & th_b         = p_diag%temp(:,nlev,jb) / p_prog%exner(:,nlev,jb),      & !in
+          & qv_b         = p_prog_rcf%tracer(:,nlev,jb,iqv),                      & !in
+          & pres_sfc     = p_diag%pres_sfc     (:,jb),                            & !in
+          & dz_bs        = p_metrics%z_mc(:,nlev,jb)-p_metrics%z_ifc(:,nlevp1,jb),& !in
           !for noq z0m is assumed to be equal to z0h - GABLS1
-          & z0h=prm_diag%gz0(:,jb)/grav,                                   & !in
-          & prm_nwp_tend = prm_nwp_tend,                                   & !in
-          & tvm          = prm_diag%tvm(:,jb),                             & !inout
-          & tvh          = prm_diag%tvh(:,jb),                             & !inout
-          & shfl_s       = prm_diag%shfl_s(:,jb),                          & !out
-          & qhfl_s       = prm_diag%qhfl_s(:,jb),                          & !out
-          & lhfl_s       = prm_diag%lhfl_s(:,jb),                          & !out
-          & umfl_s       = prm_diag%umfl_s(:,jb),                          & !out
-          & vmfl_s       = prm_diag%vmfl_s(:,jb),                          & !out
-          & qv_s         = lnd_diag%qv_s(:,jb),                            & !out
-          & t_g          = lnd_prog_now%t_g(:,jb) )                          !out
+          & z0m          = prm_diag%gz0        (:,jb)/grav,                       & !in
+          & z0h          = prm_diag%gz0        (:,jb)/grav,                       & !in
+          & prm_nwp_tend = prm_nwp_tend,                                          & !in
+          & tvm          = prm_diag%tvm        (:,jb),                            & !inout
+          & tvh          = prm_diag%tvh        (:,jb),                            & !inout
+          & shfl_s       = prm_diag%shfl_s     (:,jb),                            & !out
+          & qhfl_s       = prm_diag%qhfl_s     (:,jb),                            & !out
+          & lhfl_s       = prm_diag%lhfl_s     (:,jb),                            & !out
+          & umfl_s       = prm_diag%umfl_s     (:,jb),                            & !out
+          & vmfl_s       = prm_diag%vmfl_s     (:,jb),                            & !out
+          & qv_s         = lnd_diag%qv_s       (:,jb),                            & !out
+          & t_g          = lnd_prog_now%t_g    (:,jb) )                             !out
+
       ENDIF
 
       !should be dependent on location in future!

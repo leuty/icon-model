@@ -88,7 +88,7 @@ MODULE mo_read_namelists
   USE mo_impl_constants      ,ONLY: iaes, ILDF_ECHAM, INWP
   USE mo_assimilation_nml    ,ONLY: read_assimilation_namelist
   USE mo_nudging_nml         ,ONLY: read_nudging_namelist
-  USE mo_upatmo_nml          ,ONLY: read_upatmo_namelist
+  USE mo_upatmo_interface    ,ONLY: read_upatmo_namelist
   USE mo_ser_nml             ,ONLY: read_ser_namelist
 
   USE mo_sppt_nml            ,ONLY: read_sppt_namelist

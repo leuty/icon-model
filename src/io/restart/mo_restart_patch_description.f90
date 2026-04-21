@@ -24,7 +24,7 @@ MODULE mo_restart_patch_description
                   & my_process_is_mpi_workroot, p_comm_work_2_restart
   USE mo_packed_message, ONLY: t_PackedMessage, kPackOp, kUnpackOp
 #ifndef __NO_ICON_UPATMO__
-  USE mo_upatmo_flowevent_utils, ONLY: t_upatmoRestartAttributes, upatmoRestartAttributesAssign, upatmoRestartAttributesPack
+  USE mo_upatmo_interface, ONLY: t_upatmoRestartAttributes, upatmoRestartAttributesAssign, upatmoRestartAttributesPack
 #endif
   USE mo_restart_util, ONLY: restartBcastRoot
 

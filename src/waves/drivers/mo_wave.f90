@@ -21,7 +21,6 @@ MODULE mo_wave
   USE mo_wave_state,            ONLY: construct_wave_state, destruct_wave_state, p_wave_state
   USE mo_wave_ext_data_state,   ONLY: wave_ext_data
   USE mo_intp_data_strc,        ONLY: p_int_state
-  USE mo_wave_init_interface,   ONLY: init_wave
   USE mo_time_config,           ONLY: time_config
   USE mo_util_mtime,            ONLY: getElapsedSimTimeInSeconds
   USE mo_output_event_types,    ONLY: t_sim_step_info
@@ -36,6 +35,9 @@ MODULE mo_wave
   USE mo_wave_events,           ONLY: create_wave_events
   USE mo_opt_diagnostics,       ONLY: construct_opt_diag, destruct_opt_diag
   USE mo_pp_scheduler,          ONLY: pp_scheduler_init, pp_scheduler_finalize
+  ! init
+  USE mo_wave_init_interface,   ONLY: init_wave
+  USE mo_wave_phy_init,         ONLY: init_wave_phy
   ! forcing
   USE mo_wave_forcing_state,    ONLY: construct_wave_forcing_state, destruct_wave_forcing_state, &
     &                                 wave_forcing_state
@@ -188,6 +190,15 @@ CONTAINS
         ENDDO
       ENDIF
     ENDIF
+
+
+    !------------------------------------------------------------------
+    ! Initialize wave physics
+    ! by computing time-constant index-arrays and weights
+    !------------------------------------------------------------------
+    DO jg=1, n_dom
+      CALL init_wave_phy(wave_config(jg), p_wave_state(jg)%const)
+    ENDDO
 
     !------------------------------------------------------------------
     ! Prepare output file

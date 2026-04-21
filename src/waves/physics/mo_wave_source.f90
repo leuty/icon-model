@@ -31,7 +31,7 @@ MODULE mo_wave_source
   USE mo_run_config,          ONLY: dtime
   USE mo_physical_constants,  ONLY: grav
   USE mo_math_constants,      ONLY: pi2
-  USE mo_wave_types,          ONLY: t_wave_source, t_wave_diag, t_wesd
+  USE mo_wave_types,          ONLY: t_wave_source, t_wave_const, t_wave_diag_dyn, t_wesd
   USE mo_wave_config,         ONLY: t_wave_config
   USE mo_wave_constants,      ONLY: DELTA, CONSS
 
@@ -97,14 +97,16 @@ CONTAINS
   !!
   !! Adaptation of WAM 4.5 code.
   !!
-  SUBROUTINE integrate_in_time_src(p_patch, wave_config, p_diag, p_source, sp10m, dir10m, wesd)
+  SUBROUTINE integrate_in_time_src(p_patch, wave_config, diag_dyn, p_source, flminfr_tab, &
+    &                              sp10m, dir10m, wesd)
     CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER ::  &
          &  routine = 'integrate_in_time_src'
 
     TYPE(t_patch),               INTENT(IN)    :: p_patch
     TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
-    TYPE(t_wave_diag),           INTENT(IN)    :: p_diag
+    TYPE(t_wave_diag_dyn),       INTENT(IN)    :: diag_dyn
     TYPE(t_wave_source),         INTENT(IN)    :: p_source
+    REAL(wp),                    INTENT(IN)    :: flminfr_tab(:,:) ! minimum energy value
     REAL(wp),                    INTENT(IN)    :: sp10m(:,:)
     REAL(wp),                    INTENT(IN)    :: dir10m(:,:)
     TYPE(t_wesd),                INTENT(INOUT) :: wesd(:)
@@ -149,13 +151,13 @@ CONTAINS
         delfl = 5.0E-07_wp * grav / wc%freqs(jf)**4 * dtime
 
         DO jc = i_startidx, i_endidx
-          flminfr(jc) = p_diag%flminfr_tab(ju(jc),jf)
+          flminfr(jc) = flminfr_tab(ju(jc),jf)
         END DO
 
         DO jd = 1,wc%ndirs
           DO jc = i_startidx, i_endidx
-            temp_2 = p_diag%ustar(jc,jb) * delfl &
-                 &  * MAX(p_diag%femeanws(jc,jb),p_diag%femean(jc,jb))
+            temp_2 = diag_dyn%ustar(jc,jb) * delfl &
+                 &  * MAX(diag_dyn%femeanws(jc,jb),diag_dyn%femean(jc,jb))
 
             temp_1 = dtime * p_source%sl(jc,jd,jf,jb) &
               &   / MAX(1._wp, 1._wp -  dtime * wc%impl_fac * p_source%fl(jc,jd,jf,jb))
@@ -187,7 +189,7 @@ CONTAINS
   !! P. Janssen, JPO, 1989.
   !! P. Janssen, JPO., 1991.
   !!
-  SUBROUTINE src_wind_input(p_patch, wave_config, dir10m, wesd, p_diag, p_source)
+  SUBROUTINE src_wind_input(p_patch, wave_config, dir10m, wesd, diag_dyn, p_source)
     CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER :: &
          & routine =  modname//'src_wind_input'
 
@@ -195,7 +197,7 @@ CONTAINS
     TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
     REAL(wp),                    INTENT(IN)    :: dir10m(:,:)
     TYPE(t_wesd),                INTENT(IN)    :: wesd(:)
-    TYPE(t_wave_diag),           INTENT(IN)    :: p_diag
+    TYPE(t_wave_diag_dyn),       INTENT(IN)    :: diag_dyn
     TYPE(t_wave_source),         INTENT(INOUT) :: p_source
 
     TYPE(t_wave_config), POINTER :: wc => NULL()
@@ -234,17 +236,17 @@ CONTAINS
         const = fac * wc%xeps * wc%betamax / (wc%xkappa*wc%xkappa)
 
         DO jc = i_startidx, i_endidx
-          zcn(jc) = LOG(p_diag%wave_num_c(jc,jf,jb)*p_diag%z0(jc,jb))
+          zcn(jc) = LOG(diag_dyn%wave_num_c(jc,jf,jb)*diag_dyn%z0(jc,jb))
         ENDDO
 
         DIR:DO jd = 1,wc%ndirs
           DO jc = i_startidx, i_endidx
-            xk = p_diag%wave_num_c(jc,jf,jb)
+            xk = diag_dyn%wave_num_c(jc,jf,jb)
             cm = xk / fac
-            ucn = p_diag%ustar(jc,jb) * cm + wc%zalp
+            ucn = diag_dyn%ustar(jc,jb) * cm + wc%zalp
             sh = fac*fac / (grav * xk)
             cnsn = const * sh
-            xv1d = -1.0_wp / (p_diag%ustar(jc,jb) / wc%xkappa * zcn(jc) * cm)
+            xv1d = -1.0_wp / (diag_dyn%ustar(jc,jb) / wc%xkappa * zcn(jc) * cm)
             zbeta1 = const3 * (temp(jc,jd) - xv1d) * ucn*ucn
 
             IF (temp(jc,jd) > 0.01_wp) THEN
@@ -293,7 +295,7 @@ CONTAINS
   !! G.Komen, S. Hasselmann And K. Hasselmann, On The Existence
   !!          Of A Fully Developed Windsea Spectrum, JGR, 1984.
   !!
-  SUBROUTINE src_dissipation(p_patch, wave_config, wave_num_c, wesd, p_diag, p_source)
+  SUBROUTINE src_dissipation(p_patch, wave_config, wave_num_c, wesd, diag_dyn, p_source)
     CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER :: &
          & routine =  modname//'src_dissipation'
 
@@ -301,7 +303,7 @@ CONTAINS
     TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
     REAL(wp),                    INTENT(IN)    :: wave_num_c(:,:,:) !< wave number (1/m)
     TYPE(t_wesd),                INTENT(IN)    :: wesd(:)
-    TYPE(t_wave_diag),           INTENT(IN)    :: p_diag
+    TYPE(t_wave_diag_dyn),       INTENT(IN)    :: diag_dyn
     TYPE(t_wave_source),         INTENT(INOUT) :: p_source
 
     TYPE(t_wave_config), POINTER :: wc => NULL()
@@ -327,13 +329,13 @@ CONTAINS
            &                 i_startidx, i_endidx, i_rlstart, i_rlend)
 
       DO jc = i_startidx, i_endidx
-        sds(jc) = CONSS * p_diag%f1mean(jc,jb) * p_diag%emean(jc,jb)**2 * p_diag%xkmean(jc,jb)**4
+        sds(jc) = CONSS * diag_dyn%f1mean(jc,jb) * diag_dyn%emean(jc,jb)**2 * diag_dyn%xkmean(jc,jb)**4
       ENDDO
 
       DO jf = 1,wc%nfreqs
         DO jd = 1, wc%ndirs
           DO jc = i_startidx, i_endidx
-            temp = wave_num_c(jc,jf,jb) / p_diag%xkmean(jc,jb)
+            temp = wave_num_c(jc,jf,jb) / diag_dyn%xkmean(jc,jb)
             temp = sds(jc) * ((1.0_wp - DELTA) * temp +  DELTA * temp**2)
             sdiss = temp * wesd(jf)%ptr(jc,jd,jb)
 
@@ -361,7 +363,7 @@ CONTAINS
   !! Reference
   !! Battjes & Janssen (Coastal Engineering, 1978)
   !!
-  SUBROUTINE src_wave_breaking(p_patch, wave_config, depth_c, wesd, p_diag, p_source)
+  SUBROUTINE src_wave_breaking(p_patch, wave_config, depth_c, wesd, diag_dyn, p_source)
     CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER :: &
          & routine =  modname//'src_wave_breaking'
 
@@ -369,7 +371,7 @@ CONTAINS
     TYPE(t_wave_config), TARGET, INTENT(IN) :: wave_config
     REAL(wp),            INTENT(IN)         :: depth_c(:,:)
     TYPE(t_wesd),        INTENT(IN)         :: wesd(:)
-    TYPE(t_wave_diag),   INTENT(INOUT)      :: p_diag
+    TYPE(t_wave_diag_dyn),INTENT(INOUT)     :: diag_dyn
     TYPE(t_wave_source), INTENT(INOUT)      :: p_source
 
     TYPE(t_wave_config), POINTER :: wc => NULL()
@@ -389,9 +391,9 @@ CONTAINS
     i_startblk = p_patch%cells%start_block(i_rlstart)
     i_endblk   = p_patch%cells%end_block(i_rlend)
 
-    CALL breaking_waves_frac(p_patch, p_diag%emean, depth_c, & ! IN
-      &                      p_diag%hrms_frac, & !OUT
-      &                      p_diag%wbr_frac)    !OUT
+    CALL breaking_waves_frac(p_patch, diag_dyn%emean, depth_c, & ! IN
+      &                      diag_dyn%hrms_frac, & !OUT
+      &                      diag_dyn%wbr_frac)    !OUT
 
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jc,jb,jf,jd,i_startidx,i_endidx,qb,sbr,dsbr) ICON_OMP_DEFAULT_SCHEDULE
@@ -401,17 +403,17 @@ CONTAINS
 
       DO jc = i_startidx, i_endidx
 
-        qb = MIN(1.0_wp,p_diag%wbr_frac(jc,jb))
+        qb = MIN(1.0_wp,diag_dyn%wbr_frac(jc,jb))
 
-        sbr(jc) = -alpha*2.0_wp * p_diag%f1mean(jc,jb)
+        sbr(jc) = -alpha*2.0_wp * diag_dyn%f1mean(jc,jb)
 
-        IF (p_diag%hrms_frac(jc,jb) <= 1.0_wp) THEN
-          sbr(jc) = sbr(jc)*qb/p_diag%hrms_frac(jc,jb)
+        IF (diag_dyn%hrms_frac(jc,jb) <= 1.0_wp) THEN
+          sbr(jc) = sbr(jc)*qb/diag_dyn%hrms_frac(jc,jb)
         END IF
 
-        IF ( (p_diag%hrms_frac(jc,jb) < 1.0_wp             ) .AND. &
-          &  (ABS(p_diag%hrms_frac(jc,jb)-qb) > 0.0_wp ) ) THEN
-          dsbr(jc) = sbr(jc) * (1.0_wp - qb) / (p_diag%hrms_frac(jc,jb) - qb)
+        IF ( (diag_dyn%hrms_frac(jc,jb) < 1.0_wp             ) .AND. &
+          &  (ABS(diag_dyn%hrms_frac(jc,jb)-qb) > 0.0_wp ) ) THEN
+          dsbr(jc) = sbr(jc) * (1.0_wp - qb) / (diag_dyn%hrms_frac(jc,jb) - qb)
         ELSE
           dsbr(jc) = 0.0_wp
         END IF
@@ -587,15 +589,16 @@ CONTAINS
   !! H. Guenther  GKSS  February 2002   FT 90
   !! E. Myklebust       February 2005   optimization
   !!
-  SUBROUTINE src_nonlinear_transfer(p_patch, wave_config, depth, wesd, p_diag, p_source)
+  SUBROUTINE src_nonlinear_transfer(p_patch, wave_config, const, depth, wesd, akmean, p_source)
     CHARACTER(len=MAX_CHAR_LENGTH), PARAMETER :: &
          & routine =  modname//'src_nonlinear_transfer'
 
     TYPE(t_patch),               INTENT(IN)    :: p_patch
     TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
+    TYPE(t_wave_const),          INTENT(IN)    :: const
     REAL(wp),                    INTENT(IN)    :: depth(:,:)
     TYPE(t_wesd),                INTENT(IN)    :: wesd(:)
-    TYPE(t_wave_diag),           INTENT(IN)    :: p_diag
+    REAL(wp),                    INTENT(IN)    :: akmean(:,:)
     TYPE(t_wave_source),         INTENT(INOUT) :: p_source
 
     ! local
@@ -642,17 +645,17 @@ CONTAINS
        CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,           &
             &                 i_startidx, i_endidx, i_rlstart, i_rlend)
        DO jc = i_startidx, i_endidx
-          ENHFR = MAX(0.75_wp*depth(jc,jb)*p_diag%AKMEAN(jc,jb), 0.5_wp)
+          ENHFR = MAX(0.75_wp*depth(jc,jb)*akmean(jc,jb), 0.5_wp)
           ENHFR = 1.0_vp + (5.5_vp/ENHFR) * (1.0_wp-0.833_vp*ENHFR) &
                &                * EXP(-1.25_vp*ENHFR)
           enh(jc) = ENHFR
        END DO
 
       FRE4: DO jf = 1,nfreqs+4
-        MP  = p_diag%IKP (jf)
-        MP1 = p_diag%IKP1(jf)
-        MM  = p_diag%IKM (jf)
-        MM1 = p_diag%IKM1(jf)
+        MP  = const%IKP (jf)
+        MP1 = const%IKP1(jf)
+        MM  = const%IKM (jf)
+        MM1 = const%IKM1(jf)
         FFACP  = 1._vp
         FFACP1 = 1._vp
         FFACM1 = 1._vp
@@ -679,8 +682,8 @@ CONTAINS
           END IF
         END IF
 
-        FKLAMP  = p_diag%FKLAP(jf)
-        FKLAMP1 = p_diag%FKLAP1(jf)
+        FKLAMP  = const%FKLAP(jf)
+        FKLAMP1 = const%FKLAP1(jf)
         GW2 = FKLAMP1*FFACP*wc%DAL1
         GW1 = GW2*wc%CL11
         GW2 = GW2*wc%ACL1
@@ -695,8 +698,8 @@ CONTAINS
         FKLAPB2 = FKLAMPB**2
         FKLAP12 = FKLAMP1**2
         FKLAP22 = FKLAMP2**2
-        FKLAMM  = p_diag%FKLAM(jf)
-        FKLAMM1 = p_diag%FKLAM1(jf)
+        FKLAMM  = const%FKLAM(jf)
+        FKLAMM1 = const%FKLAM1(jf)
         GW6 = FKLAMM1*wc%DAL2
         GW5 = GW6*wc%CL21
         GW6 = GW6*wc%ACL2
@@ -729,10 +732,10 @@ CONTAINS
                       !     2.1 LOOP FOR ANLULAR SYMMETRY.                            !
                       MIR2: DO KH = 1,2
 
-                         K1  = p_diag%K1W (K,KH)
-                         K2  = p_diag%K2W (K,KH)
-                         K11 = p_diag%K11W(K,KH)
-                         K21 = p_diag%K21W(K,KH)
+                         K1  = const%K1W (K,KH)
+                         K2  = const%K2W (K,KH)
+                         K11 = const%K11W(K,KH)
+                         K21 = const%K21W(K,KH)
 
                          SAP = &
                               GW1*wesd(IP )%ptr(jc,K1 ,jb) + &
@@ -745,7 +748,7 @@ CONTAINS
                               GW7*wesd(IM1)%ptr(jc,K2 ,jb) + &
                               GW8*wesd(IM1)%ptr(jc,K21,jb)
 
-                         FTEMP = p_diag%AF11(jf) * enh(jc)
+                         FTEMP = const%AF11(jf) * enh(jc)
                          FIJ = wesd(IC)%ptr(jc,K,jb)*FTAIL
                          FAD1 = FIJ*(SAP+SAM)
                          FAD2 = FAD1-2._wp*SAP*SAM
@@ -794,10 +797,10 @@ CONTAINS
                       !     3.1 LOOP FOR ANGULAR SYMMETRY.                          !
                       MIR3: DO KH = 1,2
 
-                        K1  = p_diag%K1W (K,KH)
-                        K2  = p_diag%K2W (K,KH)
-                        K11 = p_diag%K11W(K,KH)
-                        K21 = p_diag%K21W(K,KH)
+                        K1  = const%K1W (K,KH)
+                        K2  = const%K2W (K,KH)
+                        K11 = const%K11W(K,KH)
+                        K21 = const%K21W(K,KH)
 
                         SAP = &
                              GW1*wesd(IP )%ptr(jc,K1 ,jb) + &
@@ -810,7 +813,7 @@ CONTAINS
                              GW7*wesd(IM1)%ptr(jc,K2 ,jb) + &
                              GW8*wesd(IM1)%ptr(jc,K21,jb)
 
-                        FTEMP = p_diag%AF11(jf) * enh(jc)
+                        FTEMP = const%AF11(jf) * enh(jc)
                         FIJ = wesd(IC)%ptr(jc,K,jb)*FTAIL
                         FAD1 = FIJ*(SAP+SAM)
                         FAD2 = FAD1-2._wp*SAP*SAM
@@ -855,10 +858,10 @@ CONTAINS
                     !     4.1 LOOP FOR ANGULAR SYMMETRY.
                     MIR4: DO KH = 1,2
 
-                      K1  = p_diag%K1W (K,KH)
-                      K2  = p_diag%K2W (K,KH)
-                      K11 = p_diag%K11W(K,KH)
-                      K21 = p_diag%K21W(K,KH)
+                      K1  = const%K1W (K,KH)
+                      K2  = const%K2W (K,KH)
+                      K11 = const%K11W(K,KH)
+                      K21 = const%K21W(K,KH)
 
                       SAP = &
                            GW1*wesd(IP )%ptr(jc,K1 ,jb) + &
@@ -871,7 +874,7 @@ CONTAINS
                            GW7*wesd(IM1)%ptr(jc,K2 ,jb) + &
                            GW8*wesd(IM1)%ptr(jc,K21,jb)
 
-                      FTEMP = p_diag%AF11(jf) * enh(jc)
+                      FTEMP = const%AF11(jf) * enh(jc)
                       FIJ = wesd(IC)%ptr(jc,K,jb)*FTAIL
                       FAD1 = FIJ*(SAP+SAM)
                       FAD2 = FAD1-2._wp*SAP*SAM
@@ -911,10 +914,10 @@ CONTAINS
                   !     5.1 LOOP FOR ANLULAR SYMMETRY.                              !
                   MIR5: DO KH = 1,2
 
-                    K1  = p_diag%K1W (K,KH)
-                    K2  = p_diag%K2W (K,KH)
-                    K11 = p_diag%K11W(K,KH)
-                    K21 = p_diag%K21W(K,KH)
+                    K1  = const%K1W (K,KH)
+                    K2  = const%K2W (K,KH)
+                    K11 = const%K11W(K,KH)
+                    K21 = const%K21W(K,KH)
 
                     SAP = &
                          GW1*wesd(IP )%ptr(jc,K1 ,jb) + &
@@ -927,7 +930,7 @@ CONTAINS
                          GW7*wesd(IM1)%ptr(jc,K2 ,jb) + &
                          GW8*wesd(IM1)%ptr(jc,K21,jb)
 
-                    FTEMP = p_diag%AF11(jf) * enh(jc)
+                    FTEMP = const%AF11(jf) * enh(jc)
                     FIJ = wesd(IC)%ptr(jc,K,jb)*FTAIL
                     FAD1 = FIJ*(SAP+SAM)
                     FAD2 = FAD1-2._wp*SAP*SAM
@@ -964,10 +967,10 @@ CONTAINS
                 !     6.1 LOOP FOR ANGULAR SYMMETRY.                          !
                 MIR6: DO KH = 1,2
 
-                  K1  = p_diag%K1W (K,KH)
-                  K2  = p_diag%K2W (K,KH)
-                  K11 = p_diag%K11W(K,KH)
-                  K21 = p_diag%K21W(K,KH)
+                  K1  = const%K1W (K,KH)
+                  K2  = const%K2W (K,KH)
+                  K11 = const%K11W(K,KH)
+                  K21 = const%K21W(K,KH)
 
                   SAP = &
                        GW1*wesd(IP )%ptr(jc,K1 ,jb) + &
@@ -980,7 +983,7 @@ CONTAINS
                        GW7*wesd(IM1)%ptr(jc,K2 ,jb) + &
                        GW8*wesd(IM1)%ptr(jc,K21,jb)
 
-                  FTEMP = p_diag%AF11(jf) * enh(jc)
+                  FTEMP = const%AF11(jf) * enh(jc)
                   FIJ = wesd(IC)%ptr(jc,K,jb)*FTAIL
                   FAD1 = FIJ*(SAP+SAM)
                   FAD2 = FAD1-2._wp*SAP*SAM
@@ -1012,10 +1015,10 @@ CONTAINS
               !     7.1 LOOP FOR ANGULAR SYMMETRY.                                     !
               MIR7: DO KH = 1,2
 
-                K1  = p_diag%K1W (K,KH)
-                K2  = p_diag%K2W (K,KH)
-                K11 = p_diag%K11W(K,KH)
-                K21 = p_diag%K21W(K,KH)
+                K1  = const%K1W (K,KH)
+                K2  = const%K2W (K,KH)
+                K11 = const%K11W(K,KH)
+                K21 = const%K21W(K,KH)
 
                 SAP = &
                      GW1*wesd(IP )%ptr(jc,K1 ,jb) + &
@@ -1023,7 +1026,7 @@ CONTAINS
                      GW3*wesd(IP1)%ptr(jc,K1 ,jb) + &
                      GW4*wesd(IP1)%ptr(jc,K11,jb)
 
-                FTEMP = p_diag%AF11(jf) * enh(jc)
+                FTEMP = const%AF11(jf) * enh(jc)
                 FIJ = wesd(IC)%ptr(jc,K,jb)
                 FAD2 = FIJ*SAP
                 FAD1 = 2._wp*FAD2

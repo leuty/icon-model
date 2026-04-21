@@ -241,11 +241,11 @@ MODULE mo_nh_stepping
   USE mo_upatmo_config,            ONLY: upatmo_config
   USE mo_upatmo_impl_const,        ONLY: iUpatmoPrcStat
 #ifndef __NO_ICON_UPATMO__
-  USE mo_upatmo_state,             ONLY: prm_upatmo
-  USE mo_upatmo_flowevent_utils,   ONLY: t_upatmoRestartAttributes,      &
-    &                                    upatmoRestartAttributesPrepare, &
-    &                                    upatmoRestartAttributesGet,     &
-    &                                    upatmoRestartAttributesDeallocate
+  USE mo_upatmo_interface,         ONLY: prm_upatmo,                     &
+                                         t_upatmoRestartAttributes,      &
+                                         upatmoRestartAttributesPrepare, &
+                                         upatmoRestartAttributesGet,     &
+                                         upatmoRestartAttributesDeallocate
 #endif
   USE mo_icon2dace,                ONLY: mec_Event, init_dace_op, run_dace_op, dace_op_init
   USE mo_extpar_config,            ONLY: generate_filename
@@ -549,7 +549,7 @@ MODULE mo_nh_stepping
 
         IF (.NOT. p_patch(jg)%ldom_active) CYCLE
 
-          ! diagnostics which are only required for output
+        ! diagnostics which are only required for output
         CALL nwp_diag_for_output(mtime_current, kstart_moist(jg),             & !in
                &                      ih_clch(jg), ih_clcm(jg),               & !in
                &                      phy_params(jg),                         & !in
@@ -565,22 +565,25 @@ MODULE mo_nh_stepping
                &                      prm_diag(jg),                           & !inout
                &                      lacc=.TRUE.                             ) !in
 
-
 #ifndef __NO_ICON_LES__
-        IF( ANY( (/ismag,iprog/)==atm_phy_nwp_config(jg)%inwp_turb) ) THEN
-           !LES specific diagnostics only for output
+        IF( ANY( (/ismag,iprog/)==atm_phy_nwp_config(jg)%inwp_turb).AND.les_config(jg)%ldiag_les_out ) THEN
+           ! LES specific diagnostics only for output
            CALL les_cloud_diag    ( kstart_moist(jg),                       & !in
              &                      ih_clch(jg), ih_clcm(jg),               & !in
              &                      phy_params(jg),                         & !in
              &                      p_patch(jg),                            & !in
              &                      p_nh_state(jg)%metrics,                 & !in
-             &                      p_nh_state(jg)%prog(nnow(jg)),          & !in  !nnow or nnew?
-             &                      p_nh_state(jg)%prog(nnow_rcf(jg)),      & !in  !nnow or nnew?
+             &                      p_nh_state(jg)%prog(nnow(jg)),          & !in    !nnow or nnew?
+             &                      p_nh_state(jg)%prog(nnow_rcf(jg)),      & !in    !nnow or nnew?
+             &                      p_lnd_state(jg)%prog_lnd(nnow_rcf(jg)), & !inout !nnow or nnew?
              &                      p_nh_state(jg)%diag,                    & !in
+             &                      p_lnd_state(jg)%diag_lnd,               & !in
+             &                      ext_data(jg),                           & !in
              &                      prm_diag(jg)                            ) !inout
 
-         END IF
+        END IF
 #endif
+
       ENDDO!jg
 
       ! Compute synthetic satellite images if requested
@@ -1440,45 +1443,48 @@ MODULE mo_nh_stepping
 #ifndef __NO_NWP__
       CALL nwp_opt_diagnostics(p_patch(1:), p_patch_local_parent, p_int_state_local_parent, &
                                ext_data, p_nh_state, p_int_state(1:), prm_diag, &
-                               l_nml_output_dom, nnow, nnow_rcf, lpi_max_Event, celltracks_Event,  &
+                               l_nml_output_dom, nnow, nnow_rcf, kstart_moist, lpi_max_Event, celltracks_Event, &
                                dbz_Event, hail_max_Event, mtime_current, time_config%tc_dt_model, lacc=.TRUE.)
 
       DO jg = 1, n_dom
 #ifndef __NO_ICON_LES__
-        IF(ANY( (/ismag,iprog/)==atm_phy_nwp_config(jg)%inwp_turb).AND.les_config(jg)%ldiag_les_out)THEN
+        IF(ANY( (/ismag,iprog/)==atm_phy_nwp_config(jg)%inwp_turb).AND.les_config(jg)%ldiag_les_out ) THEN
 #ifdef _OPENACC
-              CALL finish ('perform_nh_timeloop', &
-                &  'LES cloud diagnostics: OpenACC version currently not implemented')
+          CALL finish ('perform_nh_timeloop', &
+            &  'LES cloud diagnostics: OpenACC version currently not implemented')
 #endif
-            !LES specific diagnostics only for output
-            CALL les_cloud_diag    ( kstart_moist(jg),                       & !in
-              &                      ih_clch(jg), ih_clcm(jg),               & !in
-              &                      phy_params(jg),                         & !in
-              &                      p_patch(jg),                            & !in
-              &                      p_nh_state(jg)%metrics,                 & !in
-              &                      p_nh_state(jg)%prog(nnow(jg)),          & !in  !nnow or nnew?
-              &                      p_nh_state(jg)%prog(nnow_rcf(jg)),      & !in  !nnow or nnew?
-              &                      p_nh_state(jg)%diag,                    & !in
-              &                      prm_diag(jg)                            ) !inout
+          !LES specific diagnostics only for output
+          CALL les_cloud_diag    ( kstart_moist(jg),                       & !in
+            &                      ih_clch(jg), ih_clcm(jg),               & !in
+            &                      phy_params(jg),                         & !in
+            &                      p_patch(jg),                            & !in
+            &                      p_nh_state(jg)%metrics,                 & !in
+            &                      p_nh_state(jg)%prog(nnow(jg)),          & !in  !nnow or nnew?
+            &                      p_nh_state(jg)%prog(nnow_rcf(jg)),      & !in  !nnow or nnew?
+            &                      p_lnd_state(jg)%prog_lnd(nnow_rcf(jg)), & !inout !nnow or nnew?
+            &                      p_nh_state(jg)%diag,                    & !in
+            &                      p_lnd_state(jg)%diag_lnd,               & !in
+            &                      ext_data(jg),                           & !in
+            &                      prm_diag(jg)                            ) !inout
 
-              IF(MOD(jstep,NINT(les_config(jg)%sampl_freq_sec/dtime))==0)THEN
-                 CALL calculate_turbulent_diagnostics(                        &
-                                    & p_patch(jg),                            & !in
-                                    & p_nh_state(jg)%prog(nnow(jg)),          & !in
-                                    & p_nh_state(jg)%prog(nnow_rcf(jg)),      & !in
-                                    & p_nh_state(jg)%diag,                    & !in
-                                    & p_lnd_state(jg)%prog_lnd(nnow_rcf(jg)), & !in
-                                    & p_lnd_state(jg)%diag_lnd,               & !in
-                                    & prm_nwp_tend(jg),                       & !in
-                                    & prm_diag(jg)               )              !inout
+          IF(MOD(jstep,NINT(les_config(jg)%sampl_freq_sec/dtime))==0)THEN
+             CALL calculate_turbulent_diagnostics(                        &
+                                & p_patch(jg),                            & !in
+                                & p_nh_state(jg)%prog(nnow(jg)),          & !in
+                                & p_nh_state(jg)%prog(nnow_rcf(jg)),      & !in
+                                & p_nh_state(jg)%diag,                    & !in
+                                & p_lnd_state(jg)%prog_lnd(nnow_rcf(jg)), & !in
+                                & p_lnd_state(jg)%diag_lnd,               & !in
+                                & prm_nwp_tend(jg),                       & !in
+                                & prm_diag(jg)               )              !inout
 
-                 CALL write_time_series(prm_diag(jg)%turb_diag_0dvar, mtime_current)
-              END IF
+             CALL write_time_series(prm_diag(jg)%turb_diag_0dvar, mtime_current)
+          END IF
 
-              IF(MOD(jstep,NINT(les_config(jg)%avg_interval_sec/dtime))==0)THEN
-                 CALL write_vertical_profiles(prm_diag(jg)%turb_diag_1dvar, mtime_current)
-                prm_diag(jg)%turb_diag_1dvar = 0._wp
-              END IF
+          IF(MOD(jstep,NINT(les_config(jg)%avg_interval_sec/dtime))==0)THEN
+             CALL write_vertical_profiles(prm_diag(jg)%turb_diag_1dvar, mtime_current)
+             prm_diag(jg)%turb_diag_1dvar = 0._wp
+          END IF
 
         END IF
 #endif

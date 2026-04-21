@@ -28,10 +28,12 @@ MODULE mo_ls_forcing_nml
 
   IMPLICIT NONE
   PRIVATE
-  PUBLIC :: read_ls_forcing_namelist, is_ls_forcing, is_subsidence_moment, is_subsidence_heat, &
-            is_advection, is_advection_uv,is_advection_tq,is_geowind, is_rad_forcing, is_theta,&
-            is_nudging, is_nudging_uv, is_nudging_tq, nudge_start_height, nudge_full_height,   &
-            dt_relax, is_sim_rad
+  PUBLIC :: read_ls_forcing_namelist, is_ls_forcing, is_subsidence_moment, is_subsidence_heat,   &
+            is_advection, is_advection_uv, is_advection_tq, is_geowind, is_rad_forcing, is_theta,&
+            is_nudging, is_nudging_uv, is_nudging_t, is_nudging_q, is_ls_coriolis,               &
+            is_sim_rad, dt_relax_uv, dt_relax_t, dt_relax_q,                                     &
+            nudge_start_height_uv, nudge_start_height_q, nudge_start_height_t,                   &
+            nudge_full_height_uv, nudge_full_height_q, nudge_full_height_t, theta_nudging
 
   LOGICAL  :: is_ls_forcing         !true if any forcing is on
   LOGICAL  :: is_subsidence_moment  !true if subsidence is on for u and v
@@ -44,16 +46,26 @@ MODULE mo_ls_forcing_nml
   LOGICAL  :: is_theta              !true is forcings are in terms of theta
   LOGICAL  :: is_nudging            !true if nudging applied
   LOGICAL  :: is_nudging_uv         !true if nudging applied to u and v
-  LOGICAL  :: is_nudging_tq         !true if nudging applied to temperature and moisture
+  LOGICAL  :: is_nudging_t          !true if nudging applied to temperature
+  LOGICAL  :: is_nudging_q          !true if nudging applied to moisture
   LOGICAL  :: is_sim_rad            !true if simplified radiation scheme should be used
-  REAL(wp) :: nudge_start_height    !height where nudging starts                [m]
-  REAL(wp) :: nudge_full_height     !height where nudging reaches full strength [m]
-  REAL(wp) :: dt_relax              !time scale for nudging                     [s]
+  LOGICAL  :: is_ls_coriolis        !true if Coriolis term is calculated based on domain-average winds as part of LS forcing
+  LOGICAL  :: theta_nudging         ! true if nudging towards theta_nud, false if nudging towards ta_nud from DEPHY file
+  REAL(wp) :: nudge_start_height_uv !height where nudging starts, winds         [m]
+  REAL(wp) :: nudge_start_height_t  !height where nudging starts, temperature   [m]
+  REAL(wp) :: nudge_start_height_q  !height where nudging starts, humidity      [m]
+  REAL(wp) :: nudge_full_height_uv  !height where nudging reaches full strength [m]
+  REAL(wp) :: nudge_full_height_t   !height where nudging reaches full strength [m]
+  REAL(wp) :: nudge_full_height_q   !height where nudging reaches full strength [m]
+  REAL(wp) :: dt_relax_uv           !time scale for nudging, winds              [s]
+  REAL(wp) :: dt_relax_t            !time scale for nudging, temperature        [s]
+  REAL(wp) :: dt_relax_q            !time scale for nudging, humidity           [s]
 
-  NAMELIST/ls_forcing_nml/ is_subsidence_moment, is_subsidence_heat, is_advection,is_advection_uv,is_advection_tq, &
-                           is_geowind, is_rad_forcing, is_theta, is_nudging,is_nudging_uv, is_nudging_tq, &
-                           nudge_start_height, nudge_full_height, dt_relax, is_sim_rad
-
+  NAMELIST/ls_forcing_nml/ is_subsidence_moment, is_subsidence_heat, is_advection,is_advection_uv,is_advection_tq,     &
+                           is_geowind, is_rad_forcing, is_theta, is_nudging,is_nudging_uv, is_nudging_t, is_nudging_q, &
+                           is_sim_rad, dt_relax_uv, dt_relax_t, dt_relax_q,                                            &
+                           nudge_start_height_uv, nudge_start_height_q, nudge_start_height_t,                          &
+                           nudge_full_height_uv,nudge_full_height_q,nudge_full_height_t, is_ls_coriolis, theta_nudging
 CONTAINS
   !-------------------------------------------------------------------------
   !! Read Namelist for LS forcing
@@ -89,11 +101,20 @@ CONTAINS
     is_theta             = .FALSE.
     is_nudging           = .FALSE.
     is_nudging_uv        = .TRUE.
-    is_nudging_tq        = .TRUE.
+    is_nudging_t         = .TRUE.
+    is_nudging_q         = .TRUE.
     is_sim_rad           = .FALSE.
-    nudge_start_height   = 1000.0_wp
-    nudge_full_height    = 2000.0_wp
-    dt_relax             = 3600.0_wp
+    is_ls_coriolis       = .FALSE.
+    theta_nudging        = .TRUE.
+    nudge_start_height_uv= 0.0_wp
+    nudge_full_height_uv = 0.0_wp
+    nudge_start_height_t = 0.0_wp
+    nudge_full_height_t  = 0.0_wp
+    nudge_start_height_q = 0.0_wp
+    nudge_full_height_q  = 0.0_wp
+    dt_relax_uv          = 3600.0_wp
+    dt_relax_t           = 3600.0_wp
+    dt_relax_q           = 3600.0_wp
 
     !------------------------------------------------------------------
     ! 2. If this is a resumed integration, overwrite the defaults above

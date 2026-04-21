@@ -159,6 +159,7 @@ MODULE mo_pp_scheduler
     &                                   TASK_COMPUTE_TWATER, TASK_COMPUTE_Q_SEDIM,          &
     &                                   TASK_COMPUTE_DBZ850, TASK_COMPUTE_DBZCMAX,          &
     &                                   TASK_COMPUTE_DBZLMX_LOW,                            &
+    &                                   TASK_COMPUTE_DMH,                                   &
     &                                   TASK_COMPUTE_CEILING, TASK_COMPUTE_VIS,             &
     &                                   TASK_COMPUTE_WSHEAR_U, TASK_COMPUTE_WSHEAR_V,       &
     &                                   TASK_COMPUTE_LAPSERATE, TASK_COMPUTE_MCONV,         &
@@ -265,6 +266,7 @@ CONTAINS
           &   TASK_COMPUTE_HTOP_SC, TASK_COMPUTE_TWATER,  TASK_COMPUTE_Q_SEDIM, &
           &   TASK_COMPUTE_DBZ850,  TASK_COMPUTE_DBZCMAX, TASK_COMPUTE_SMI,     &
           &   TASK_COMPUTE_DBZLMX_LOW, TASK_COMPUTE_SDI2, TASK_COMPUTE_VIS,     &
+          &   TASK_COMPUTE_DMH,                                                 &
           &   TASK_COMPUTE_INVERSION, TASK_COMPUTE_LAPSERATE, TASK_COMPUTE_MCONV )
           CALL pp_scheduler_register(name=elem%info%name, jg=jg, p_out_var=elem, &
             &    l_init_prm_diag=l_init_prm_diag, job_type=elem%info%l_pp_scheduler_task )
@@ -1416,6 +1418,7 @@ CONTAINS
         &    TASK_COMPUTE_LPI, TASK_COMPUTE_CEILING, TASK_COMPUTE_HBAS_SC, TASK_COMPUTE_HTOP_SC,   &
         &    TASK_COMPUTE_TWATER, TASK_COMPUTE_Q_SEDIM, TASK_COMPUTE_DBZ850, TASK_COMPUTE_DBZCMAX, &
         &    TASK_COMPUTE_DBZLMX_LOW, TASK_COMPUTE_SMI, TASK_COMPUTE_WSHEAR_U,                     &
+        &    TASK_COMPUTE_DMH,                                                                     &
         &    TASK_COMPUTE_WSHEAR_V, TASK_COMPUTE_SRH, TASK_COMPUTE_LAPSERATE, TASK_COMPUTE_VIS,    &
         &    TASK_COMPUTE_INVERSION, TASK_COMPUTE_MCONV)
         IF (timers_level >= 5) CALL timer_start(timer_opt_diag_atmo)

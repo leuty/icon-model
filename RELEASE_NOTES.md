@@ -19,22 +19,34 @@
 
 #### NWP Physics
 
-- Gravity waves parametrisation MS-GWaM (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1647)
+- Gravity waves parametrisation MS-GWaM (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1647, https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/2000)
 - Revision of diagnostics for ceiling and visibility (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1881)
 - Tuning options to improve 10m-winds in mountainous regions (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1890)
 - Modified cloud fraction for two-moment cloud ice microphysics (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1769, https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1922)
+- Change default setting for init_latbc_from_fg to TRUE (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/2063)
 - ecRad updates (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1869)
 - Coupling CAMS aerosols with Segal and Khain cloud droplets activation scheme (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1555)
 - Update of dace_icon and changes in data assimilation interfaces (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/2001)
+- upgrades to Single Column and LES Mode (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/555)
 - EMVORADO:
   - reduce memory usage of emvorado and remove MODE_IAU_OLD (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/2024)
   - Replace netcdf77 procedures by netcdf90 procedures in mo_fdbk_emvorado.f90 (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/2028)
+- ART:
+  - GPU optimization of OEM and VPRM (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1945)
+  - prepared art_nml for varying solar irradiances (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1983)
+  - new namelist switch for MieAI (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1855)
+  - enable overwriting of GFAS data at selected time intervals via iart_gfas_dt_ovrwrite (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/2045)
+  - TLEV_UPDATE_ADVECTION group for ART tracers (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/2082)
+- Upper atmosphere physics:
+  - encapsulation and consolidation (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/2070, https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/2091)
 - New diagnostic output fields
   - accumulated freezing rain (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1989)
   - new optional turbulence diagnostics (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1993)
+  - new hail diagnostics for the 2-moment microphysics (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/2016)
 - Fixes
   - fix for parallel GRIB decoding (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1947)
-- cleanup:
+  - fix for soil ice content exceeding total soil water content (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/2052)
+- cleanup
   - remove init mode iau old (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1962)
   - Deprecate RRTM radiation and associated ozone option (irad_o3 = 6) (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1897)
 
@@ -56,11 +68,12 @@
 
 - netcdf reader for initial conditions (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1867)
 - Restructure analytic wave spectrum initialization (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1875)
-- revise wave propagation testcase (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/2014)
+- revise swell propagation testcase (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/2014, https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/2047)
 - Improve memory layout of 4D wave fields (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1904, https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1901)
-- Enable grib2 encoding of wave energy spectra (part1) (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1931)
+- Enable grib2 encoding of wave energy spectra (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1931, https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1876)
 - ocean-wave coupling (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1902)
-- new diagnostics (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1739)
+- technical separation between active and passive diagnostic quantities in the code (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/2068, https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/2086)
+- new diagnostics (wave steepness, kurtosis, Benjamin-Feir index, peak frequency and direction)  (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1739)
 - Fixes
   - fix boundary condition for wave group velocity at ocean-land boundary edges (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1951)
   - Fix units and descriptions for wave-specific fields (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1995)
@@ -124,6 +137,7 @@
 - Configure YAC and YAXT in parallel when possible (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1198)
 - Fix usage of configure option --enable-async-io-rma=no (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/2035)
 - Fetch DACE from the private repository at build time when `--enable-dace`.
+- Fix inconsistent usage of the GRIBAPI macro (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/2002)
 
 #### Miscellaneous
 

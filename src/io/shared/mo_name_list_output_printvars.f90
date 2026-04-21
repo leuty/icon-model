@@ -16,9 +16,8 @@ MODULE mo_name_list_output_printvars
   USE, INTRINSIC :: ISO_C_BINDING, ONLY: c_char
 
 ! enable the following line to print out data on the GRIB2 shortName:
-! #define GRIBAPI
 
-#ifdef GRIBAPI
+#ifdef HAVE_CDI_GRIB2
   USE mo_cdi,                               ONLY: streamOpenWrite, FILETYPE_GRB2, gridCreate,                &
     &                                             GRID_UNSTRUCTURED, TAXIS_ABSOLUTE,                         &
     &                                             vlistDestroy, streamClose, streamDefVlist,                 &
@@ -31,12 +30,14 @@ MODULE mo_name_list_output_printvars
   USE mo_name_list_output_zaxes_types,      ONLY: t_verticalAxisList, t_verticalAxis
   USE mo_level_selection_types,             ONLY: t_level_selection
   USE mo_name_list_output_zaxes,            ONLY: setup_ml_axes_atmo, setup_zaxes_oce
-  USE mo_master_control,                    ONLY: my_process_is_atmo, my_process_is_ocean, my_process_is_jsbach, &
+  USE mo_master_control,                    ONLY: my_process_is_atmo, my_process_is_oceanic, my_process_is_jsbach, &
     &                                             my_process_is_waves
+  USE mo_gribout_config,                    ONLY: have_gribout_nml
 #ifndef __NO_ICON_WAVES__
   USE mo_waves_vertical_axes,               ONLY: setup_zaxes_waves
 #endif
 #ifndef __NO_JSBACH__
+  USE mo_aes_phy_config,                    ONLY: aes_phy_config
   USE mo_atm_phy_nwp_config,                ONLY: atm_phy_nwp_config
   USE mo_grid_config,                       ONLY: n_dom
   USE mo_impl_constants,                    ONLY: LSS_JSBACH
@@ -124,7 +125,7 @@ CONTAINS
     END FUNCTION is_number
   END FUNCTION get_var_basename
 
-#ifdef GRIBAPI
+#ifdef HAVE_CDI_GRIB2
   !------------------------------------------------------------------------------------------------
   !> @return GRIB2 short name of a given variable.
   !
@@ -197,7 +198,9 @@ CONTAINS
 
   !------------------------------------------------------------------------------------------------
   !> Print list of all output variables (LaTeX table formatting).
-  !
+  !!
+  !! Also prints GRIB2 short names if CDI GRIB2 support is enabled and gribout_nml is present.
+  !!
   SUBROUTINE print_var_list(out_varnames_dict, print_patch_id, gribout_config, &
     &                       i_lctype)
     TYPE(t_dictionary),     INTENT(IN) :: out_varnames_dict
@@ -211,7 +214,7 @@ CONTAINS
     CHARACTER(*), PARAMETER :: descrprefix = "\vardescr{"
     CHARACTER(*), PARAMETER :: unitprefix = "\varunit{"
     INTEGER,      PARAMETER :: PREF = LEN_TRIM(varprefix) + 1
-#ifdef GRIBAPI
+#ifdef HAVE_CDI_GRIB2
     TYPE(t_level_selection),  POINTER              :: tmp_level_selection => NULL()
     TYPE(t_verticalAxisList), TARGET               :: tmp_verticalAxisList
     TYPE(t_verticalAxisList), POINTER              :: it
@@ -226,32 +229,37 @@ CONTAINS
     TYPE(t_vl_register_iter) :: vl_iter
     ! ---------------------------------------------------------------------------
 
-#ifdef GRIBAPI
-    IF (my_process_is_ocean()) THEN
-      CALL setup_zaxes_oce(tmp_verticalAxisList, tmp_level_selection)
+#ifdef HAVE_CDI_GRIB2
+    IF (have_gribout_nml) THEN
+      IF (my_process_is_oceanic()) THEN
+        CALL setup_zaxes_oce(tmp_verticalAxisList, tmp_level_selection)
 
-    ELSE IF (my_process_is_atmo()) THEN
-      CALL setup_ml_axes_atmo(tmp_verticalAxisList, tmp_level_selection, print_patch_id)
+      ELSE IF (my_process_is_atmo()) THEN
+        CALL setup_ml_axes_atmo(tmp_verticalAxisList, tmp_level_selection, print_patch_id)
 #ifndef __NO_JSBACH__
-      IF (ANY(atm_phy_nwp_config(1:n_dom)%inwp_surface == LSS_JSBACH)) &
-          & CALL setup_zaxes_jsbach(tmp_verticalAxisList)
+        IF (ANY(aes_phy_config(1:n_dom)%ljsb .OR. atm_phy_nwp_config(1:n_dom)%inwp_surface == LSS_JSBACH)) &
+            & CALL setup_zaxes_jsbach(tmp_verticalAxisList)
 #endif
-    ELSE IF (my_process_is_jsbach()) THEN
+      ELSE IF (my_process_is_jsbach()) THEN
 #ifndef __NO_JSBACH__
-      CALL setup_zaxes_jsbach(tmp_verticalAxisList)
+        CALL setup_zaxes_jsbach(tmp_verticalAxisList)
 #endif
-    ELSE IF (my_process_is_waves()) THEN
+      ELSE IF (my_process_is_waves()) THEN
 #ifndef __NO_ICON_WAVES__
-      CALL setup_zaxes_waves(tmp_verticalAxisList, tmp_level_selection, print_patch_id)
+        CALL setup_zaxes_waves(tmp_verticalAxisList, tmp_level_selection, print_patch_id)
 #endif
-    ENDIF
-    it => tmp_verticalAxisList
-    DO
-      IF (.NOT. ASSOCIATED(it%axis)) CALL finish(routine, "Internal error!")
-      CALL it%axis%cdiZaxisCreate()
-      IF (.NOT. ASSOCIATED(it%next)) EXIT
-      it => it%next
-    END DO
+      ENDIF
+
+      IF (ASSOCIATED(tmp_verticalAxisList%axis)) THEN
+        it => tmp_verticalAxisList
+        DO
+          IF (.NOT. ASSOCIATED(it%axis)) CALL finish(routine, "Internal error!")
+          CALL it%axis%cdiZaxisCreate()
+          IF (.NOT. ASSOCIATED(it%next)) EXIT
+          it => it%next
+        END DO
+      END IF
+    END IF
 #endif
 
     ! count the no. of output variables:
@@ -290,15 +298,19 @@ CONTAINS
             IF (elem%ref_to%info%ncontained > 0) this_cf => elem%ref_to%info%cf
           END IF
         END IF
-#ifdef GRIBAPI
-        CALL identify_grb2_shortname(info, vname, tmp_verticalAxisList,     &
-          &                          gribout_config, i_lctype,       &
-          &                          out_varnames_dict)
+#ifdef HAVE_CDI_GRIB2
+        IF (have_gribout_nml) THEN
+          CALL identify_grb2_shortname(info, vname, tmp_verticalAxisList, &
+            &                          gribout_config, i_lctype, &
+            &                          out_varnames_dict)
+        ELSE
+          vname = info%name
+        END IF
 #else
         vname = info%name
 #endif
         vname = tolower(vname)
-        IF ((vname(1:3) == "var") .OR. (vname(1:5) == "param")) THEN
+        IF (vname(1:3) == "var" .OR. vname(1:5) == "param" .OR. vname(1:4) == "code") THEN
           vname = ""
         ELSE
           vname = varprefix//TRIM(vname)//"}"
@@ -321,7 +333,7 @@ CONTAINS
          & TRIM(vname), ' & ', descrprefix, TRIM(descr_string), "} & ", TRIM(unit_string)
       ENDDO
     ENDDO
-#ifdef GRIBAPI
+#ifdef HAVE_CDI_GRIB2
     CALL tmp_verticalAxisList%finalize()
 #endif
     ! sort and remove duplicates

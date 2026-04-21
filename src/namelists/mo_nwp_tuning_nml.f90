@@ -104,7 +104,12 @@ MODULE mo_nwp_tuning_nml
     &                               config_tune_dursun_scaling   => tune_dursun_scaling,   &
     &                               config_tune_sbmccn           => tune_sbmccn,           &
     &                               config_tune_urbahf           => tune_urbahf,           &
-    &                               config_tune_urbisa           => tune_urbisa
+    &                               config_tune_urbisa           => tune_urbisa,           &
+    &                               config_tune_demax_hail_s     => tune_demax_hail_s,     &
+    &                               config_prhthresh_demax_hail_s=> prhthresh_demax_hail_s,&
+    &                               config_kefthresh_demax_hail_s=> kefthresh_demax_hail_s,&
+    &                               config_qnhthresh_demax_hail_s=> qnhthresh_demax_hail_s,&
+    &                               config_lwindeffect_kef_hail_s=> lwindeffect_kef_hail_s
 
   IMPLICIT NONE
   PRIVATE
@@ -360,6 +365,20 @@ MODULE mo_nwp_tuning_nml
   REAL(wp) :: &                    !< lower and upper bound for variable ISA paraeterization
        &  tune_urbisa(2)           !< depending on smoothed urban fraction
 
+  REAL(wp) :: &                    !< scaling factor to compute estim. max. hail diam.
+       &  tune_demax_hail_s        !< at surface from mean mass diameter of hail
+
+  REAL(wp) :: &                    !< prh (= precip rate hail = hail_gscp_rate kg/(m**2 s)) threshold above to compute
+       &  prhthresh_demax_hail_s   !< estim. max. hail diam. at surface from mean mass diameter of hail
+
+  REAL(wp) :: &                    !< kef (= hail kinetic energy flux = kef_hail_s W/(m**2)) threshold above to compute
+       &  kefthresh_demax_hail_s   !< estim. max. hail diam. at surface from mean mass diameter of hail
+
+  REAL(wp) :: &                    !< qnh (= hail number density 1/m**3) threshold above to compute
+       &  qnhthresh_demax_hail_s   !< estim. max. hail diam. at surface from mean mass diameter of hail
+
+  LOGICAL :: &                     !< switch for taking into account effects of near-surface winds (u,v,w)
+       lwindeffect_kef_hail_s      !< on the kinetic energy flux of hail stones in an approximate way
 
   NAMELIST/nwp_tuning_nml/ tune_gkwake, tune_gkdrag, tune_gfluxlaun, tune_gcstar, &
     &                      tune_zceff_min, tune_v0snow, tune_zvz0i, tune_zcsg,    &
@@ -386,7 +405,10 @@ MODULE mo_nwp_tuning_nml
     &                      tune_urbahf, tune_urbisa, tune_box_ice, tune_supsat_limfac,  &
     &                      tune_grzdc_offset, itune_vis_diag, tune_entrainment_profile, &
     &                      tune_tau_shallow, tune_tau_mid, tune_tau_deep,               &
-    &                      tune_ssolim_sfcfric, itune_ceiling_diag, tune_reff_qi, tune_cdnc
+    &                      tune_ssolim_sfcfric, itune_ceiling_diag, tune_reff_qi, tune_cdnc, &
+    &                      prhthresh_demax_hail_s, kefthresh_demax_hail_s,        &
+    &                      qnhthresh_demax_hail_s, tune_demax_hail_s,             &
+    &                      lwindeffect_kef_hail_s
 
 CONTAINS
 
@@ -599,6 +621,12 @@ CONTAINS
     tune_urbahf = (/0._wp,2._wp,2._wp,50._wp/)   ! anthropogenic heat flux; base values and gradients for heating and cooling; upper limit
     tune_urbisa = (/0.6_wp,1._wp/)        ! lower and upper bound for variable ISA parameterization depending on smoothed urban fraction
 
+    tune_demax_hail_s = 1.6_wp       ! for now, we set the factor between max. and mean hail size to 1.0; subject to change after crowd data analysis
+    prhthresh_demax_hail_s = 5e-4_wp ! prh (=hail_gsp_rate in kg/(m**2 s)) threshold above to compute estim. max. hail diam.; subject to change after crowd data analysis
+    kefthresh_demax_hail_s = 1.5e-1_wp ! kef (=kef_hail_s in W/m**2) threshold above to compute estim. max. hail diam.; subject to change after crowd data analysis
+    qnhthresh_demax_hail_s = 1.5e-2_wp ! qnh (=hail number density in 1/m**3) threshold above to compute estim. max. hail diam.; subject to change after crowd data analysis
+    lwindeffect_kef_hail_s = .FALSE.
+
     IF (my_process_is_stdio()) THEN
       iunit = temp_defaults()
       WRITE(iunit, nwp_tuning_nml)   ! write defaults to temporary text file
@@ -761,11 +789,19 @@ CONTAINS
     config_tune_sbmccn           = tune_sbmccn
     config_tune_urbisa           = tune_urbisa
     config_tune_urbahf           = tune_urbahf
+    config_tune_demax_hail_s     = tune_demax_hail_s
+    config_prhthresh_demax_hail_s= prhthresh_demax_hail_s
+    config_kefthresh_demax_hail_s= kefthresh_demax_hail_s
+    config_qnhthresh_demax_hail_s= qnhthresh_demax_hail_s
+    config_lwindeffect_kef_hail_s= lwindeffect_kef_hail_s
 
     !$ACC UPDATE DEVICE(config_tune_gust_factor, config_itune_gust_diag, config_itune_vis_diag, config_tune_gustsso_lim) ASYNC(1)
     !$ACC UPDATE DEVICE(config_tune_gustlim_agl, config_tune_gustlim_fac, config_tune_albedo_wso, config_tune_supsat_limfac) ASYNC(1)
     !$ACC UPDATE DEVICE(config_itune_ceiling_diag, config_tune_reff_qi) ASYNC(1)
     !$ACC UPDATE DEVICE(config_tune_tau_shallow, config_tune_tau_mid, config_tune_tau_deep) ASYNC(1)
+    !$ACC UPDATE DEVICE(config_tune_demax_hail_s, config_prhthresh_demax_hail_s) ASYNC(1)
+    !$ACC UPDATE DEVICE(config_kefthresh_demax_hail_s, config_qnhthresh_demax_hail_s) ASYNC(1)
+    !$ACC UPDATE DEVICE(config_lwindeffect_kef_hail_s) ASYNC(1)
 
     !-----------------------------------------------------
     ! 6. Store the namelist for restart

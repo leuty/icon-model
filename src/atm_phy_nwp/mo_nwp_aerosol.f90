@@ -20,7 +20,7 @@ MODULE mo_nwp_aerosol
   USE mo_kind,                    ONLY: wp, rp
   USE mo_exception,               ONLY: finish, message, message_text
   USE mo_model_domain,            ONLY: t_patch
-  USE mo_grid_config,             ONLY: n_dom, nroot
+  USE mo_grid_config,             ONLY: n_dom, nroot, l_scm_mode
   USE mo_ext_data_types,          ONLY: t_external_data
   USE mo_nonhydro_types,          ONLY: t_nh_diag
   USE mo_nwp_phy_types,           ONLY: t_nwp_phy_diag
@@ -30,6 +30,7 @@ MODULE mo_nwp_aerosol
                                     &   iss, iorg, ibc, iso4, idu, n_camsaermr
   USE mo_impl_constants_grf,      ONLY: grf_bdywidth_c
   USE mo_physical_constants,      ONLY: rd, grav, cpd, rdv, o_m_rdv
+  USE mo_math_constants,          ONLY: pi
   USE mo_reader_cams,             ONLY: t_cams_reader
   USE mo_interpolate_time,        ONLY: t_time_intp, t_time_intp_monthlyclim, t_time_intp_transient
   USE mo_io_units,                ONLY: filename_max
@@ -62,6 +63,7 @@ MODULE mo_nwp_aerosol
   USE mo_aerosol_util,            ONLY: tegen_scal_factors
   USE mo_art_radiation_interface, ONLY: art_rad_aero_interface
 #endif
+  USE mo_scm_nml,                 ONLY: lat_scm
 
   IMPLICIT NONE
 
@@ -341,7 +343,12 @@ CONTAINS
           !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
           !$ACC LOOP GANG VECTOR
           DO jc = i_startidx,i_endidx
-            latitude(jc) = pt_patch%cells%center(jc,jb)%lat
+            ! SCM: fixed latitude/longitude
+            IF ( l_scm_mode ) THEN
+              latitude(jc) = lat_scm * pi/180._wp
+            ELSE
+              latitude(jc) = pt_patch%cells%center(jc,jb)%lat
+            ENDIF
           ENDDO
           !$ACC END PARALLEL
 

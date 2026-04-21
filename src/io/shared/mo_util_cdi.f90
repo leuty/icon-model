@@ -14,7 +14,7 @@
 
 MODULE mo_util_cdi
 
-  USE ISO_C_BINDING,         ONLY: C_INT, C_CHAR
+  USE ISO_C_BINDING,         ONLY: C_INT, C_CHAR, C_DOUBLE, C_NULL_CHAR
   USE mo_kind,               ONLY: wp, sp, dp, i8
   USE mo_exception,          ONLY: finish
   USE mo_communication,      ONLY: t_scatterPattern
@@ -84,6 +84,37 @@ MODULE mo_util_cdi
   END INTERFACE
 
 
+  ! C bindings, temporarily replacing the broken CDI interfaces from mo_cdi
+  !
+  INTERFACE
+    !==================================================================
+    ! C binding interface for the actual CDI integer array routine
+    !==================================================================
+    SUBROUTINE lib_vlistDefVarIntArrKey(vlistID, varID, name, values, nvalues) &
+        bind(C, name="vlistDefVarIntArrKey")
+      IMPORT :: c_char, c_int
+      INTEGER(c_int), VALUE :: vlistID
+      INTEGER(c_int), VALUE :: varID
+      CHARACTER(KIND=c_char) :: name(*)
+      INTEGER(c_int) :: values(*)
+      INTEGER(c_int), VALUE :: nvalues
+    END SUBROUTINE lib_vlistDefVarIntArrKey
+
+    !========================================================
+    ! C binding interface for the actual CDI double array routine
+    !========================================================
+    SUBROUTINE lib_vlistDefVarDblArrKey(vlistID, varID, name, values, nvalues) &
+        BIND(C, NAME="vlistDefVarDblArrKey")
+      IMPORT :: c_char, c_int, c_double
+      INTEGER(c_int), VALUE :: vlistID
+      INTEGER(c_int), VALUE :: varID
+      CHARACTER(KIND=c_char) :: name(*)
+      REAL(c_double) :: values(*)
+      INTEGER(c_int), VALUE :: nvalues
+    END SUBROUTINE lib_vlistDefVarDblArrKey
+  END INTERFACE
+
+
   TYPE t_tileinfo
     TYPE(t_tileinfo_grb2), ALLOCATABLE :: tile(:)  !< variable specific
     !tile indices > CDI internal, one-dimensional index for the list
@@ -120,6 +151,80 @@ MODULE mo_util_cdi
   END TYPE
 
 CONTAINS
+
+  ! Fortran wrappers, temporarily replacing the broken CDI wrappers from mo_cdi
+  !
+  !==================================================================
+  ! Fortran wrapper for vlistDefVarIntArrKey with null-terminated string
+  !==================================================================
+  SUBROUTINE vlistDefVarIntArrKey(vlistID, varID, name, values, nvalues)
+    INTEGER(c_int), VALUE :: vlistID
+    INTEGER(c_int), VALUE :: varID
+    CHARACTER(len=*), INTENT(IN) :: name          ! Fortran string
+    INTEGER(c_int), INTENT(IN) :: values(:)       ! Fortran integer array
+    INTEGER(c_int), VALUE :: nvalues
+
+    ! Local variables
+    CHARACTER(kind=c_char), ALLOCATABLE :: name_temp(:)
+    INTEGER(c_int), ALLOCATABLE :: values_contig(:)
+    INTEGER :: keylen, i
+
+    ! --- Prepare null-terminated C string ---
+    keylen = len_trim(name)
+    ALLOCATE(name_temp(0:keylen))        ! +1 for null terminator
+    DO i = 1, keylen
+      name_temp(i-1) = transfer(name(i:i), name_temp(0))
+    END DO
+    name_temp(keylen) = c_null_char
+
+    ! --- Ensure integer array is contiguous ---
+    ALLOCATE(values_contig(nvalues))
+    values_contig = values(1:nvalues)
+
+    ! --- Call the actual C routine ---
+    CALL lib_vlistDefVarIntArrKey(vlistID, varID, name_temp, values_contig, nvalues)
+
+    ! Clean up
+    DEALLOCATE(name_temp)
+    DEALLOCATE(values_contig)
+  END SUBROUTINE vlistDefVarIntArrKey
+
+  !==================================================================
+  ! Fortran wrapper for vlistDefVarDblArrKey with null-terminated string
+  !==================================================================
+  SUBROUTINE vlistDefVarDblArrKey(vlistID, varID, name, values, nvalues)
+    INTEGER(c_int), VALUE :: vlistID
+    INTEGER(c_int), VALUE :: varID
+    CHARACTER(LEN=*), INTENT(IN) :: name
+    REAL(c_double), INTENT(IN) :: values(:)
+    INTEGER(c_int), VALUE :: nvalues
+
+    ! Local variables
+    CHARACTER(KIND=c_char), ALLOCATABLE :: name_temp(:)
+    REAL(c_double), ALLOCATABLE :: values_contig(:)
+    INTEGER :: keylen, i
+
+    ! --- Null-terminated C string ---
+    keylen = LEN_TRIM(name)
+    ALLOCATE(name_temp(0:keylen))          ! +1 for null terminator
+    DO i = 1, keylen
+      name_temp(i-1) = TRANSFER(name(i:i), name_temp(0))
+    END DO
+    name_temp(keylen) = c_null_char
+
+    ! --- Contiguous real array ---
+    ALLOCATE(values_contig(nvalues))
+    values_contig = values(1:nvalues)
+
+    ! --- Call the actual C routine ---
+    CALL lib_vlistDefVarDblArrKey(vlistID, varID, name_temp, values_contig, nvalues)
+
+    ! Clean up
+    DEALLOCATE(name_temp)
+    DEALLOCATE(values_contig)
+  END SUBROUTINE vlistDefVarDblArrKey
+
+
 
   !> Provides a common interface to all NetCDF flavors used within
   !> ICON.
@@ -1302,6 +1407,19 @@ CONTAINS
           &                    info%grib2%additional_keys%dbl_key(i)%val)
       END DO
 
+      ! Set additional integer array keys
+      DO i=1,info%grib2%additional_keys%nintarr_keys
+        nval = info%grib2%additional_keys%intarr_key(i)%arr_len
+        CALL vlistDefVarIntArrKey(vlistID, varID, TRIM(info%grib2%additional_keys%intarr_key(i)%key), &
+          &                    info%grib2%additional_keys%intarr_key(i)%vals(1:nval),nval)
+      ENDDO
+
+      ! Set additional double array keys
+      DO i=1,info%grib2%additional_keys%ndblarr_keys
+        nval = info%grib2%additional_keys%dblarr_key(i)%arr_len
+        CALL vlistDefVarDblArrKey(vlistID, varID, TRIM(info%grib2%additional_keys%dblarr_key(i)%key), &
+          &                    info%grib2%additional_keys%dblarr_key(i)%vals(1:nval),nval)
+      ENDDO
 
       ! Adjustments for compensating non-backward-compatible
       ! metadata changes after version updates of the GRIB library.

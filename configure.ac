@@ -1174,6 +1174,9 @@ AS_VAR_IF([enable_mpi_gpu], [yes],
 AS_VAR_IF([icon_gpu_secondary], [hip],
   [AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}__HIP__"])])
 
+AS_VAR_IF([enable_grib2], [yes],
+  [AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}HAVE_CDI_GRIB2"])])
+
 AS_VAR_IF([enable_parallel_netcdf], [yes],
   [AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}HAVE_PARALLEL_NETCDF"])])
 
@@ -1921,7 +1924,7 @@ interface of YAXT library: either disable the YAXT data exchange dnl
 (--disable-cdi-pio) or use the bundled version of YAXT library dnl
 (--without-external-yaxt), or set FCFLAGS, LDFLAGS and LIBS accordingly])])])])
 
-AS_VAR_IF([enable_emvorado], [yes],
+AS_IF([test x"$enable_grib2" = xyes || test x"$enable_emvorado" = xyes],
   [AC_CACHE_CHECK([whether the Fortran 90 interfaces of ECCODES library is dnl
 available], [icon_cv_have_eccodes],
      [icon_cv_have_eccodes=no
@@ -1931,11 +1934,18 @@ available], [icon_cv_have_eccodes],
       integer :: igrib, ierr
       call codes_open_file(igrib, 'conftest.grb', 'w', ierr)
       if (ierr  /= GRIB_SUCCESS) igrib = 0]])],
-        [icon_cv_have_eccodes=yes])])
-   AS_VAR_IF([icon_cv_have_eccodes], [yes],
+        [icon_cv_have_eccodes=yes])])])
+AS_VAR_IF([enable_emvorado], [yes],
+  [AS_VAR_IF([icon_cv_have_eccodes], [yes],
      [AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}GRIBAPI"])],
      [AC_MSG_FAILURE([unable to link a test program using the Fortran 90 dnl
-interfaces of ECCODES library: set FCFLAGS, LDFLAGS and LIBS accordingly])])])
+interfaces of ECCODES library: either disable the radar forward operator dnl
+EMVORADO (--disable-emvorado) or set FCFLAGS, LDFLAGS and LIBS accordingly])])])
+AS_VAR_IF([enable_grib2], [yes],
+  [AS_VAR_IF([icon_cv_have_eccodes], [yes],
+     [AS_VAR_APPEND([FCFLAGS], [" ${FC_PP_DEF}HAVE_ECCODES"])],
+     [AC_MSG_WARN([the Fortran 90 interface of ECCODES library is not dnl
+available: the respective features are disabled])])])
 
 AS_VAR_IF([with_external_cdi], [yes],
   [AC_CACHE_CHECK(

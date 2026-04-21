@@ -29,7 +29,7 @@ MODULE mo_les_nml
   PUBLIC :: read_les_namelist
   PUBLIC :: turb_profile_list, turb_tseries_list
 
-  CHARACTER(LEN=7) :: turb_tseries_list(19), turb_profile_list(52) !list of variables
+  CHARACTER(LEN=7) :: turb_tseries_list(21), turb_profile_list(55) !list of variables
                                 !added profiles of LS forcing tendencies (45-51)
 
 CONTAINS
@@ -134,13 +134,13 @@ CONTAINS
       'wud    ','wvd    ','wthsfs ','rh     ','clc    ','qi     ','qs     ',   & !29-35
       'qr     ','qg     ','qh     ','lwf    ','swf    ','dt_t_sw','dt_t_lw',   & !36-42
       'dt_t_tb','dt_t_mc','dthls_w','dqls_w ','dthls_h','dqls_h ','nt_thl ',   & !43-49
-      'nt_qt  ','wfls   ','tke    ' /)                                           !50-52
+      'nt_qt  ','wfls   ','tke    ','gstke  ','www    ','ta     '/)              !50-55
 
     turb_tseries_list = (/                                          &
       'ccover ','shflx  ','lhflx  ','ustress','vstress','tsfc   ',  & !1-6
       'qsfc   ','hbl    ','psfc   ','swf_tom','lwf_tom','swf_sfc',  & !7-12
       'lwf_sfc','precp_t','precp_r','precp_s','precp_g','precp_h',  & !13-18
-      'precp_i' /)                                                    !19
+      'precp_i','tqc    ','tqr    ' /)                               !19-21
 
     ! grid metric terms in the les diffusion
     les_metric = .FALSE.

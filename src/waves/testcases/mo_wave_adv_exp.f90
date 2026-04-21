@@ -17,6 +17,7 @@ MODULE mo_wave_adv_exp
   USE mo_model_domain,         ONLY: t_patch
   USE mo_wave_forcing_types,   ONLY: t_wave_forcing
   USE mo_wave_config,          ONLY: t_wave_config
+  USE mo_physical_constants,   ONLY: earth_radius
   USE mo_math_constants,       ONLY: pi, pi2, deg2rad, dbl_eps
   USE mo_impl_constants,       ONLY: MAX_CHAR_LENGTH, min_rlcell
   USE mo_loopindices,          ONLY: get_indices_c
@@ -59,18 +60,19 @@ CONTAINS
     INTEGER :: jc, jb
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
     INTEGER :: i_startidx, i_endidx
-    REAL(wp):: sin_tmp, cos_tmp, zlat, zlon, d1, r
-    REAL(wp):: theta_w  ! wind direction measured clockwise from true north in radians
 
-    REAL(wp):: lambda0, phi0  ! coordinates of center point
-    REAL(wp), PARAMETER :: RR = 1._wp/5._wp ! horizontal half width on a unit sphere
+    REAL(wp) :: sin_tmp, cos_tmp, zlat, zlon, d1, r
 
+    REAL(wp) :: theta_w  ! wind direction measured clockwise from true north in radians
+    REAL(wp) :: lambda0, phi0  ! coordinates of center point
+    REAL(wp) :: RR ! horizontal half width on a unit sphere
 
     wc => wave_config
 
     lambda0 = wc%peak_lon  * deg2rad
     phi0    = wc%peak_lat  * deg2rad
     theta_w = wc%dir_wsp10 * deg2rad
+    RR      = wave_config%r_wsp10 / earth_radius
 
     i_rlstart  = 1
     i_rlend    = min_rlcell

@@ -43,7 +43,7 @@ MODULE mo_aes_phy_init
   ! test cases
   USE mo_nh_testcases_nml,     ONLY: nh_test_name, ape_sst_case, th_cbl, tpe_temp
   USE mo_ape_params,           ONLY: ape_sst
-  USE mo_physical_constants,   ONLY: tmelt, albedoW, amd, amo3, zemiss_def
+  USE mo_physical_constants,   ONLY: tmelt, albedoW, amd, amo3, zemiss_def, amco2
 
   USE mo_sea_ice_nml,          ONLY: albi, Tf
 
@@ -70,7 +70,7 @@ MODULE mo_aes_phy_init
   USE mo_ext_data_types,       ONLY: t_external_data
 
   ! carbon cycle
-  USE mo_ccycle_config,        ONLY: print_ccycle_config, ccycle_config
+  USE mo_ccycle_config,        ONLY: print_ccycle_config, ccycle_config, CCYCLE_MODE_INTERACTIVE
 
   ! cumulus convection
   USE mo_convect_tables,       ONLY: init_convect_tables
@@ -108,6 +108,10 @@ MODULE mo_aes_phy_init
 #endif
   USE mo_lcariolle,            ONLY: lcariolle_init_o3, lcariolle_init, &
     &l_cariolle_initialized_o3, t_avi, t_time_interpolation
+  USE mo_time_config,          ONLY: time_config
+  USE mo_sync,                 ONLY: sync_patch_array, sync_c
+  USE mo_fortran_tools,        ONLY: init
+  USE mo_nonhydro_types,       ONLY: t_nh_prog
 
   IMPLICIT NONE
 
@@ -776,17 +780,23 @@ CONTAINS
   !! of the state vectors "prm_field" and "prm_tend".
   !!
   SUBROUTINE init_aes_phy_field( p_patch        ,&
-    &                              temp           )
+    &                              temp         ,&
+    &                              pres         ,&
+    &                              p_prog_now_rcf  )
 
 !FIXME: PGI + OpenMP produce error in this routine... check correctness of parallel code
 
-    TYPE(t_patch)    ,INTENT(in) :: p_patch
-    REAL(wp)         ,INTENT(in) :: temp          (:,:,:)
+    TYPE(t_patch)    ,INTENT(in)    :: p_patch
+    REAL(wp)         ,INTENT(in)    :: temp       (:,:,:)
+    REAL(wp)         ,INTENT(in)    :: pres       (:,:,:)
+    TYPE(t_nh_prog)  ,INTENT(inout) :: p_prog_now_rcf
 
     ! local variables and pointers
 
     INTEGER  :: jg, ncd, rls, rle, jb, jbs, jbe, jc, jcs, jce
     REAL(wp) :: zlat
+
+    CHARACTER(len=*), PARAMETER :: routine = modname//':init_aes_phy_field'
 
     TYPE(t_aes_phy_field),POINTER :: field => NULL()
     TYPE(t_aes_phy_tend) ,POINTER :: tend  => NULL()
@@ -932,6 +942,41 @@ CONTAINS
         END IF
         !
       END IF
+      IF (.NOT. isrestart() .AND. p_patch%ldom_active) THEN
+        ! CO2 and O3 tracer fields intialization
+        IF (ccycle_config(jg)%iccycle == CCYCLE_MODE_INTERACTIVE) THEN
+          IF (ASSOCIATED(p_prog_now_rcf%tracer_ptr(ico2)%p_3d)) THEN
+            !
+            ! CO2 tracer
+            IF ( iqt <= ico2 .AND. ico2 <= ntracer) THEN
+  !$OMP PARALLEL
+              CALL init(p_prog_now_rcf%tracer(:,:,:,ico2),aes_rad_config(jg)% vmr_co2*amco2/amd, lacc=.FALSE.)
+  !$OMP END PARALLEL
+              CALL print_value('CO2 tracer initialized with constant vmr', &
+                &              aes_rad_config(jg)% vmr_co2*amco2/amd,    &
+                &              routine=routine)
+            END IF
+          END IF
+        END IF
+        !
+        ! O3 tracer
+        IF ( iqt <= io3 .AND. io3 <= ntracer) THEN
+          IF (aes_phy_tc(jg)%dt_car > dt_zero) THEN
+            CALL init_o3_lcariolle( time_config%tc_current_date                          ,&
+              &                     p_patch                                              ,&
+              &                     pres ,&
+              &                     p_prog_now_rcf%tracer(:,:,:,io3)  )
+            CALL sync_patch_array ( sync_c,p_patch                                       ,&
+              &                     p_prog_now_rcf%tracer(:,:,:,io3), lacc=.FALSE.)
+            CALL message(routine,'o3 tracer is initialized by the Cariolle lin. o3 scheme')
+          ELSE
+  !$OMP PARALLEL
+            CALL init(p_prog_now_rcf%tracer(:,:,:,io3),0.0_wp, lacc=.FALSE.)
+  !$OMP END PARALLEL
+            CALL message(routine,'o3 tracer is initialized to zero, check setup')
+          END IF
+        END IF
+      END IF ! isrestart()
 
       ! For idealized test cases
 

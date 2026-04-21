@@ -53,11 +53,13 @@ MODULE mo_nwp_diagnosis
   USE mo_util_phys,            ONLY: nwp_dyn_gust
   USE mo_opt_nwp_diagnostics,ONLY: calsnowlmt, cal_cape_cin, cal_cape_cin_mu, cal_cape_cin_mu_COSMO, &
                                    cal_si_sli_swiss, cal_cloudtop, &
-                                   maximize_field_lpi, compute_field_tcond_max, &
+                                   maximize_field_lpi, compute_field_tcond_max, maximize_field,      &
                                    compute_field_uh_max, compute_field_vorw_ctmax, compute_field_w_ctmax, &
-                                   compute_field_dbz3d_lin, maximize_field_dbzctmax,                      &
+                                   compute_field_dbz3d_lin, &
                                    compute_field_echotop, compute_field_echotopinm, compute_field_dursun, &
-                                   compute_field_twater, compute_hail_statistics, compute_updraft_duration
+                                   compute_field_twater, compute_hail_statistics, compute_updraft_duration, &
+                                   compute_field_kef_2mom_surf, &
+                                   compute_field_dmhail_2mom_surf, compute_field_demaxhail_2mom_surf
   USE mo_nwp_ww,             ONLY: ww_diagnostics, ww_datetime
   USE mtime,                 ONLY: datetime, timeDelta, getTimeDeltaFromDateTime,  &
     &                              deallocateTimedelta, newTimeDelta, event
@@ -68,7 +70,10 @@ MODULE mo_nwp_diagnosis
   USE mo_ext_data_types,     ONLY: t_external_data
   USE mo_nwp_parameters,     ONLY: t_phy_params
   USE mo_time_config,        ONLY: time_config
-  USE mo_nwp_tuning_config,  ONLY: lcalib_clcov, max_calibfac_clcl, itune_gust_diag, tune_gustlim_fac
+  USE mo_nwp_tuning_config,  ONLY: lcalib_clcov, max_calibfac_clcl, itune_gust_diag, tune_gustlim_fac, &
+    &                              tune_demax_hail_s, prhthresh_demax_hail_s, &
+    &                              kefthresh_demax_hail_s, qnhthresh_demax_hail_s, &
+    &                              lwindeffect_kef_hail_s
   USE mo_mpi,                ONLY: p_io, p_comm_work, p_bcast
   USE mo_fortran_tools,      ONLY: assert_acc_host_only, set_acc_host_or_device, assert_acc_device_only, init
   USE mo_radiation_config,   ONLY: decorr_pole, decorr_equator, islope_rad
@@ -306,6 +311,16 @@ CONTAINS
           !$ACC END PARALLEL
         END IF
 
+        IF (var_in_output(jg)%kef_hail_max_s) THEN
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+          !$ACC LOOP GANG VECTOR
+          DO jc = i_startidx, i_endidx
+            ! set to instantaneous values
+            prm_diag%kef_hail_max_s(jc,jb)  = prm_diag%kef_hail_s(jc,jb)
+          ENDDO
+          !$ACC END PARALLEL
+        END IF
+
       ENDDO  ! jb
 !$OMP END DO
 
@@ -352,6 +367,26 @@ CONTAINS
           DO jc = i_startidx, i_endidx
             ! time max total precipitation rate
             prm_diag%tot_pr_max(jc,jb)  = MAX ( prm_diag%tot_pr_max(jc,jb), prm_diag%tot_prec_rate(jc,jb) )
+          ENDDO
+          !$ACC END PARALLEL
+        END IF
+
+        IF (var_in_output(jg)%kef_hail_max_s) THEN
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+          !$ACC LOOP GANG VECTOR
+          DO jc = i_startidx, i_endidx
+            ! time max hail kinetic energy flux
+            prm_diag%kef_hail_max_s(jc,jb)  = MAX ( prm_diag%kef_hail_max_s(jc,jb), prm_diag%kef_hail_s(jc,jb) )
+          ENDDO
+          !$ACC END PARALLEL
+        END IF
+
+        IF (var_in_output(jg)%ke_hail_s) THEN
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+          !$ACC LOOP GANG VECTOR
+          DO jc = i_startidx, i_endidx
+            ! hail kinetic energy = time-accumulated kinetic energy flux
+            prm_diag%ke_hail_s(jc,jb)  = prm_diag%ke_hail_s(jc,jb) + prm_diag%kef_hail_s(jc,jb)*dt_phy_jg(itfastphy)
           ENDDO
           !$ACC END PARALLEL
         END IF
@@ -2079,7 +2114,7 @@ CONTAINS
   !! Moved from nh_stepping for better code structure
   !!
   SUBROUTINE nwp_opt_diagnostics(p_patch, p_patch_lp, p_int_lp, ext_data, p_nh, p_int, prm_diag, &
-     l_output, nnow, nnow_rcf, &
+     l_output, nnow, nnow_rcf, kstart_moist, &
      lpi_max_Event, celltracks_Event, dbz_Event, hail_max_Event, mtime_current,  plus_slack, lacc)
 
     TYPE(t_patch)        ,INTENT(IN)   :: p_patch(:), p_patch_lp(:)  ! patches and their local parents
@@ -2094,11 +2129,11 @@ CONTAINS
     TYPE(timedelta), POINTER, INTENT(IN   ) :: plus_slack
 
     LOGICAL, INTENT(IN) :: l_output(:)
-    INTEGER, INTENT(IN) :: nnow(:), nnow_rcf(:)
+    INTEGER, INTENT(IN) :: nnow(:), nnow_rcf(:), kstart_moist(:)
     LOGICAL, INTENT(IN), OPTIONAL :: lacc ! If true, use openacc
 
     LOGICAL :: l_active(4), l_lpimax_event_active, l_celltracks_event_active, l_dbz_event_active, l_hail_event_active, &
-               l_need_dbz3d, l_need_temp, l_need_pres, l_need_wup
+               l_need_dbz3d, l_need_temp, l_need_pres, l_need_wup, l_need_kef_hail, l_need_demax_hail
     INTEGER :: jg, k
 
     CALL assert_acc_device_only("nwp_opt_diagnostics", lacc)
@@ -2216,6 +2251,41 @@ CONTAINS
       END IF
 
 
+      ! update of dm_hail_max_s (time maximum of mean mass diameter of hail at the surface)
+      IF ( var_in_output(jg)%dm_hail_max_s .AND. (l_output(jg) .OR. l_celltracks_event_active ) ) THEN
+        CALL compute_field_dmhail_2mom_surf( p_patch(jg), p_nh(jg)%prog(nnow(jg)), p_nh(jg)%prog(nnow_rcf(jg)), &
+             &                               prm_diag(jg)%dm_hail_s, lacc=.TRUE.)
+        CALL maximize_field( p_patch(jg), prm_diag(jg)%dm_hail_s, prm_diag(jg)%dm_hail_max_s, lacc=.TRUE.)
+      END IF
+
+      ! check if computations of demax_hail_s and kef_hail_s are needed.
+      ! demax_hail_s depends on kef_hail_s, and kef_hail_s might have been computed already
+      ! beforehand in mo_nwp_nh_interface.f90 SR nwp_opt_diagnostics_2():
+      l_need_demax_hail = ( var_in_output(jg)%demax_hail_s      .AND.   l_output(jg) ) .OR. &
+           &              ( var_in_output(jg)%demax_hail_tmax_s .AND. ( l_output(jg) .OR. l_celltracks_event_active ) )
+      l_need_kef_hail = ( var_in_output(jg)%kef_hail_s .AND. l_output(jg) ) .OR. l_need_demax_hail
+      l_need_kef_hail = l_need_kef_hail .AND. &
+           &            .NOT.( var_in_output(jg)%kef_hail_max_s .OR. var_in_output(jg)%ke_hail_s)
+      IF ( l_need_kef_hail ) THEN
+        CALL compute_field_kef_2mom_surf( p_patch(jg), p_nh(jg)%prog(nnow(jg)), p_nh(jg)%prog(nnow_rcf(jg)), &
+           &                              p_nh(jg)%diag, prm_diag(jg), lwindeffect_kef_hail_s, &
+           &                              prm_diag(jg)%kef_hail_s, lacc=.TRUE. )
+      END IF
+
+      ! compute demax_hail_s (estimated maximum diameter of hail at the surface), which depends on kef_hail_s:
+      IF ( l_need_demax_hail ) THEN
+        CALL compute_field_demaxhail_2mom_surf( p_patch(jg), p_nh(jg)%prog(nnow(jg)), &
+             p_nh(jg)%prog(nnow_rcf(jg)), prm_diag(jg), &
+             tune_demax_hail_s, prhthresh_demax_hail_s, kefthresh_demax_hail_s, qnhthresh_demax_hail_s, &
+             prm_diag(jg)%demax_hail_s, lacc=.TRUE.)
+      END IF
+
+      ! update of demax_hail_tmax_s (time maximum of estimated maximum diameter of hail at the surface)
+      IF ( var_in_output(jg)%demax_hail_tmax_s .AND. (l_output(jg) .OR. l_celltracks_event_active ) ) THEN
+        CALL maximize_field( p_patch(jg), prm_diag(jg)%demax_hail_s, prm_diag(jg)%demax_hail_tmax_s, lacc=.TRUE.)
+      END IF
+
+
       ! Compute diagnostic 3D radar reflectivity (in linear units) for a specific domain
       ! if some derived output variables are present in any namelist
       ! for this domain, or if it is needed for statistical variables between output time steps on this domain.
@@ -2228,7 +2298,7 @@ CONTAINS
 
       ! output of dbz_ctmax (column maximum reflectivity during a time interval (namelist param. celltracks_interval) is required
       IF ( var_in_output(jg)%dbzctmax .AND. (l_output(jg) .OR. l_dbz_event_active ) ) THEN
-        CALL maximize_field_dbzctmax( p_patch(jg), jg, prm_diag(jg)%dbz3d_lin, prm_diag(jg)%dbz_ctmax, lacc=.TRUE.)
+        CALL maximize_field( p_patch(jg), prm_diag(jg)%dbz3d_lin, kstart_moist(jg), prm_diag(jg)%dbz_ctmax, lacc=.TRUE.)
       END IF
 
       ! output of echotop (minimum pressure where reflectivity exceeds threshold(s)
@@ -2251,6 +2321,7 @@ CONTAINS
         CALL compute_hail_statistics( p_patch(jg), p_nh(jg)%metrics, p_nh(jg)%prog(nnow(jg)), &
                                    p_nh(jg)%prog(nnow_rcf(jg)), p_nh(jg)%diag, prm_diag(jg), ext_data(jg)%atm%topography_c )
       END IF
+
     END DO
 
     IF (ltimer) CALL timer_stop(timer_nh_diagnostics)
@@ -2334,6 +2405,11 @@ CONTAINS
         CALL finish('nwp_opt_diagnostics_2', 'itype_dursun can only have the value 0 or 1.')
       ENDIF
     ENDIF
+
+    IF (var_in_output(jg)%kef_hail_max_s .OR. var_in_output(jg)%ke_hail_s) THEN
+      CALL compute_field_kef_2mom_surf( p_patch, p_prog, p_prog_rcf, p_diag, prm_diag, &
+           &                            lwindeffect_kef_hail_s, prm_diag%kef_hail_s, lacc=lzacc )
+    END IF
 
     IF (ltimer) CALL timer_stop(timer_nh_diagnostics)
     !$ACC WAIT

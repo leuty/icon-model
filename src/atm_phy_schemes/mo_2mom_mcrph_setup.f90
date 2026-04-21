@@ -47,6 +47,7 @@ MODULE mo_2mom_mcrph_setup
        & particle, atmosphere, &
        & aerosol_ccn, &
        & particle_coeffs, collection_coeffs, rain_riming_coeffs, dep_imm_coeffs, &
+       & t_diag_coeffs_2mom, &
        & coll_coeffs_ir_pm ! , lookupt_1D, lookupt_4D
   USE mo_fortran_tools,      ONLY: init
   USE mo_2mom_mcrph_config,  ONLY: t_cfg_2mom
@@ -83,7 +84,7 @@ MODULE mo_2mom_mcrph_setup
   PUBLIC :: particle_mass, particle_meanmass, particle_diameter, particle_normdiameter
   PUBLIC :: particle_velocity, particle_lwf_idx
   PUBLIC :: rain_mue_dm_relation
-  PUBLIC :: moment_gamma
+  PUBLIC :: moment_gamma, fracmoment_gamma_explog
   PUBLIC :: coll_delta_11, coll_delta_12
   PUBLIC :: coll_theta_11, coll_theta_12
   ! Setup of processes
@@ -92,6 +93,7 @@ MODULE mo_2mom_mcrph_setup
   PUBLIC :: setup_particle_collection_type1, setup_particle_collection_type2
   PUBLIC :: setup_particle_coll_pm_type1, setup_particle_coll_pm_type1_bfull
   PUBLIC :: set_ccn_cloud_type
+  PUBLIC :: setup_diag_coeffs
   ! Constants
   PUBLIC :: n_f, N_sc
   PUBLIC :: cloud_type_default_gscp4, ccn_type_gscp4, cloud_type_default_gscp5, ccn_type_gscp5
@@ -255,6 +257,17 @@ CONTAINS
     fracmoment_gamma  = GAMMA((fexp+p%nu+1.0_wp)/p%mu) / GAMMA((p%nu+1.0_wp)/p%mu)        &
          &          * ( GAMMA((     p%nu+1.0_wp)/p%mu) / GAMMA((p%nu+2.0_wp)/p%mu) )**fexp
   END FUNCTION fracmoment_gamma
+
+  REAL(wp) FUNCTION fracmoment_gamma_explog(p,fexp)
+    IMPLICIT NONE
+    REAL(wp), INTENT(in) :: fexp
+    CLASS(particle), INTENT(in)   :: p
+
+    ! Computation of log() is safe, because p%nu >= -2/3, p%mu > 0 and therefore GAMMA((p%nu+1.0_wp)/p%mu) > 0
+    fracmoment_gamma_explog  = EXP ( fexp * LOG( GAMMA((p%nu+1.0_wp)/p%mu) / GAMMA((p%nu+2.0_wp)/p%mu) ) )
+    fracmoment_gamma_explog  = GAMMA((fexp+p%nu+1.0_wp)/p%mu) / GAMMA((p%nu+1.0_wp)/p%mu)        &
+         &                     * fracmoment_gamma_explog
+  END FUNCTION fracmoment_gamma_explog
 
   ! coefficient for slope of PSD, i.e., for lambda in Eq. (80) of SB2006
   REAL(wp) FUNCTION lambda_gamma(p,x)
@@ -994,5 +1007,19 @@ CONTAINS
     END SELECT
 
   END SUBROUTINE set_ccn_cloud_type
+
+  SUBROUTINE setup_diag_coeffs (hail, diag_coeffs)
+    TYPE(particle),           INTENT(in)  :: hail
+    TYPE(t_diag_coeffs_2mom), INTENT(out) :: diag_coeffs
+
+    ! .. For hail kinetic energy flux including horizontal transport:
+    diag_coeffs%coeff_v3_kef_hail = hail%a_vel**3 * 0.5_wp * &
+                                    fracmoment_gamma_explog(hail, 3.0_wp*hail%b_vel+1.0_wp)
+    diag_coeffs%coeff_v2_kef_hail = 3.0_wp * hail%a_vel**2 * 0.5_wp * &
+                                    fracmoment_gamma_explog(hail, 2.0_wp*hail%b_vel+1.0_wp)
+    diag_coeffs%coeff_v1_kef_hail = 3.0_wp * hail%a_vel * 0.5_wp * &
+                                    fracmoment_gamma_explog(hail,        hail%b_vel+1.0_wp)
+
+  END SUBROUTINE setup_diag_coeffs
 
 END MODULE mo_2mom_mcrph_setup

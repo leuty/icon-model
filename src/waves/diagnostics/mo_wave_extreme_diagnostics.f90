@@ -22,13 +22,14 @@ MODULE mo_wave_extreme_diagnostics
   USE mo_kind,                ONLY: wp
   USE mo_model_domain,        ONLY: t_patch
   USE mo_wave_config,         ONLY: t_wave_config
-  USE mo_wave_types,          ONLY: t_wave_diag, t_wesd
+  USE mo_wave_types,          ONLY: t_wave_diag_dyn, t_wave_diag_out, t_wesd
   USE mo_impl_constants,      ONLY: min_rlcell
   USE mo_loopindices,         ONLY: get_indices_c
   USE mo_math_constants,      ONLY: pi, pi2
   USE mo_parallel_config,     ONLY: nproma
   USE mo_kind,                ONLY: wp
   USE mo_wave_constants,      ONLY: EMIN
+  USE mo_wave_common_diagnostics,    ONLY: significant_wave_height
 
   IMPLICIT NONE
 
@@ -42,56 +43,57 @@ CONTAINS
   !>
   !! Calculation of extreme-wave diagnostic parameters
   !!
-  SUBROUTINE calculate_extreme_diagnostics(p_patch, wave_config, depth, wesd, p_diag)
+  SUBROUTINE calculate_extreme_diagnostics(p_patch, wave_config, depth, wesd, diag_dyn, diag_out)
 
     TYPE(t_patch),                 INTENT(IN)    :: p_patch
     TYPE(t_wave_config), TARGET,   INTENT(IN)    :: wave_config
     REAL(wp),                      INTENT(IN)    :: depth(:,:)    ! water depth
     TYPE(t_wesd),                  INTENT(IN)    :: wesd(:)       ! energy spectral bins
-    TYPE(t_wave_diag),             INTENT(INOUT) :: p_diag
+    TYPE(t_wave_diag_dyn),         INTENT(IN)    :: diag_dyn
+    TYPE(t_wave_diag_out),         INTENT(INOUT) :: diag_out
 
     CHARACTER(len=*), PARAMETER ::  &
       &  routine = modname//':calculate_extreme_parameters'
 
     ! calculate peak direction and width of 1D freq. and dir. spectral peaks
     !
-    CALL peak_approx(p_patch = p_patch,         &
-      &          wave_config = wave_config,     &
-      &                 wesd = wesd,            &
-      &              thp_adj = p_diag%thp_adj,  & ! OUT
-      &              sigma_f = p_diag%sigma_f,  & ! OUT
-      &              qp_goda = p_diag%qp_goda,  & ! OUT
-      &             sigma_th = p_diag%sigma_th)   ! OUT
+    CALL peak_approx(p_patch = p_patch,           &
+      &          wave_config = wave_config,       &
+      &                 wesd = wesd,              &
+      &              thp_adj = diag_out%thp_adj,  & ! OUT
+      &              sigma_f = diag_out%sigma_f,  & ! OUT
+      &              qp_goda = diag_out%qp_goda,  & ! OUT
+      &             sigma_th = diag_out%sigma_th)   ! OUT
 
     ! calculate steepness, BFI, LH broadbandedness, relative width, kurtosis
     !
-    CALL wave_kurtosis(p_patch = p_patch,            &
-      &                  depth = depth,              &
-      &                  emean = p_diag%emean,       &
-      &               sigma_th = p_diag%sigma_th,    & ! IN
-      &                    tm1 = p_diag%tm1,         & ! IN
-      &                    tm2 = p_diag%tm2,         & ! IN
-      &                sigma_f = p_diag%sigma_f,     & ! IN
-      &                     kp = p_diag%kp,          & ! IN
-      &              steepness = p_diag%steepness,   & ! OUT
-      &                nu_f_LH = p_diag%nu_f_LH,     & ! OUT
-      &                   bfis = p_diag%bfis,        & ! OUT
-      &               relw_fth = p_diag%relw_fth,    & ! OUT
-      &               kurtosis = p_diag%kurtosis)      ! OUT
+    CALL wave_kurtosis(p_patch = p_patch,              &
+      &                  depth = depth,                &
+      &                  emean = diag_dyn%emean,       &
+      &               sigma_th = diag_out%sigma_th,    & ! IN
+      &                    tm1 = diag_dyn%tm1,         & ! IN
+      &                    tm2 = diag_dyn%tm2,         & ! IN
+      &                sigma_f = diag_out%sigma_f,     & ! IN
+      &                     kp = diag_out%kp,          & ! IN
+      &              steepness = diag_out%steepness,   & ! OUT
+      &                nu_f_LH = diag_out%nu_f_LH,     & ! OUT
+      &                   bfis = diag_out%bfis,        & ! OUT
+      &               relw_fth = diag_out%relw_fth,    & ! OUT
+      &               kurtosis = diag_out%kurtosis)      ! OUT
 
     ! calculate maximum wave height and maximum wave period
     !
     CALL max_wave_height(p_patch = p_patch,       &
       &        wave_config = wave_config,         &
-      &          steepness = p_diag%steepness,    &
-      &           kurtosis = p_diag%kurtosis,     &
-      &            nu_f_LH = p_diag%nu_f_LH,      &
-      &                tpp = p_diag%tpp,          &
-      &                 hs = p_diag%hs,           &
-      &                tm1 = p_diag%tm1,          &
-      &              hmaxn = p_diag%hmaxn,        & ! OUT
-      &               hmax = p_diag%hmax,         & ! OUT
-      &               Tmax = p_diag%Tmax)           ! OUT
+      &          steepness = diag_out%steepness,  &
+      &           kurtosis = diag_out%kurtosis,   &
+      &            nu_f_LH = diag_out%nu_f_LH,    &
+      &                tpp = diag_out%tpp,        &
+      &              emean = diag_dyn%emean,      &
+      &                tm1 = diag_dyn%tm1,        &
+      &              hmaxn = diag_out%hmaxn,      & ! OUT
+      &               hmax = diag_out%hmax,       & ! OUT
+      &               Tmax = diag_out%Tmax)         ! OUT
 
   END SUBROUTINE calculate_extreme_diagnostics
 
@@ -354,7 +356,7 @@ CONTAINS
   !! Value for skewness and bound-wave kurtosis are from ECMWF IFS 2016
   !!
   SUBROUTINE max_wave_height(p_patch, wave_config, steepness, kurtosis,    &
-           &  nu_f_LH, tpp, hs, tm1, hmaxn, hmax, Tmax)
+           &  nu_f_LH, tpp, emean, tm1, hmaxn, hmax, Tmax)
 
     TYPE(t_patch),               INTENT(IN)    :: p_patch
     TYPE(t_wave_config), TARGET, INTENT(IN)    :: wave_config
@@ -362,7 +364,7 @@ CONTAINS
     REAL(wp),                    INTENT(IN)    :: kurtosis(:,:)
     REAL(wp),                    INTENT(IN)    :: nu_f_LH(:,:)
     REAL(wp),                    INTENT(IN)    :: tpp(:,:)
-    REAL(wp),                    INTENT(IN)    :: hs(:,:)
+    REAL(wp),                    INTENT(IN)    :: emean(:,:)
     REAL(wp),                    INTENT(IN)    :: tm1(:,:)
     REAL(wp),                    INTENT(INOUT) :: hmaxn(:,:)    ! OUT
     REAL(wp),                    INTENT(INOUT) :: hmax(:,:)     ! OUT
@@ -374,6 +376,8 @@ CONTAINS
     INTEGER :: i_rlstart, i_rlend, i_startblk, i_endblk
     INTEGER :: i_startidx, i_endidx
     INTEGER :: jc,jb
+    REAL(wp):: alpha, beta, z0h, argh, zh, c3, zeps
+    REAL(wp):: hs(SIZE(emean,1),SIZE(emean,2))   ! significant wave height
 
     REAL(wp), PARAMETER :: sq_2pi = 2._wp/SQRT(pi2)
     REAL(wp), PARAMETER :: gammaE = 0.57721566_wp ! Euler gamma constant
@@ -382,7 +386,11 @@ CONTAINS
     REAL(wp), PARAMETER :: G1 = -gammaE
     REAL(wp), PARAMETER :: G2 = (G1**2+pi**2/6._wp)
     REAL(wp), PARAMETER :: G3 = -2._wp*zeta_3+G1**3+0.5_wp*G1*pi**2
-    REAL(wp) :: alpha, beta, z0h, argh, zh, c3, zeps
+
+
+    CALL significant_wave_height(p_patch = p_patch,    &
+      &                          emean   = emean(:,:), &
+      &                          hs      = hs(:,:))    ! OUT
 
     i_rlstart  = 1
     i_rlend    = min_rlcell
@@ -391,7 +399,6 @@ CONTAINS
 
 !$OMP PARALLEL
 !$OMP DO PRIVATE(jc,jb,i_startidx,i_endidx,c3,z0h,alpha,beta,argh,zh,zeps) ICON_OMP_DEFAULT_SCHEDULE
-
     DO jb = i_startblk, i_endblk
       CALL get_indices_c( p_patch, jb, i_startblk, i_endblk,           &
         &                 i_startidx, i_endidx, i_rlstart, i_rlend)

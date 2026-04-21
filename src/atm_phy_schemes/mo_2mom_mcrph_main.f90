@@ -77,7 +77,7 @@ MODULE mo_2mom_mcrph_main
        & particle, atmosphere, &
        & aerosol_ccn, aerosol_in, &
        & particle_coeffs, collection_coeffs, rain_riming_coeffs, dep_imm_coeffs, &
-       & coll_coeffs_ir_pm, &
+       & coll_coeffs_ir_pm, t_diag_coeffs_2mom, &
        & ltabdminwgg, ltabdminwgh, ltab_estick_ice, ltab_estick_snow, ltab_estick_parti
   USE mo_2mom_mcrph_util, ONLY: &
        & gamlookuptable,             &  ! For look-up table of incomplete Gamma function
@@ -108,7 +108,8 @@ MODULE mo_2mom_mcrph_main
        &  setup_graupel_selfcollection,                                      &
        &  setup_particle_collection_type1,                                   &
        &  setup_particle_collection_type2,                                   &
-       &  setup_particle_coll_pm_type1_bfull
+       &  setup_particle_coll_pm_type1_bfull,                                &
+       &  setup_diag_coeffs
 USE mo_atm_phy_nwp_config,  ONLY: atm_phy_nwp_config
 
   USE mo_timer, ONLY: timers_level, timer_start, timer_stop, timer_phys_2mom_wetgrowth
@@ -445,10 +446,13 @@ USE mo_atm_phy_nwp_config,  ONLY: atm_phy_nwp_config
   TYPE(coll_coeffs_ir_pm), SAVE :: gshedr_coeffs ! graupel shedding during rain riming
   TYPE(coll_coeffs_ir_pm), SAVE :: hshedr_coeffs ! hail shedding during rain riming
 
+  TYPE(t_diag_coeffs_2mom) :: diag_coeffs_2mom
+
   PUBLIC :: init_2mom_types_base, init_2mom_scheme, init_2mom_scheme_once, clouds_twomoment
   PUBLIC :: rain_coeffs, ice_coeffs, snow_coeffs, graupel_coeffs, hail_coeffs, &
        &    ccn_coeffs, in_coeffs, cloud_coeffs
   PUBLIC :: qnc_const
+  PUBLIC :: get_diag_coeffs_2mom
 
   ! DR: The following block is necessarily public as these parameters/coefficients
   !     are required by the ART code
@@ -798,6 +802,7 @@ CONTAINS
     IF (cfg_params % bgeo_h > -900.0_wp) hail%b_geo = cfg_params%bgeo_h
     IF (cfg_params % avel_h > -900.0_wp) hail%a_vel = cfg_params%avel_h
     IF (cfg_params % bvel_h > -900.0_wp) hail%b_vel = cfg_params%bvel_h
+    IF (cfg_params % xmax_h > -900.0_wp) hail%x_max = cfg_params%xmax_h
 
   END SUBROUTINE init_2mom_scheme
 
@@ -1400,10 +1405,14 @@ CONTAINS
       ENDIF
     END IF
 
+    ! Init coefficients for some diagnostics:
+    CALL setup_diag_coeffs (hail, diag_coeffs_2mom)
+
     !$ACC ENTER DATA COPYIN(rain_coeffs, ice_coeffs, snow_coeffs, graupel_coeffs, hail_coeffs, cloud_coeffs) &
     !$ACC   COPYIN(sic_coeffs, gic_coeffs, gsc_coeffs, hic_coeffs, hsc_coeffs, scr_coeffs, srr_coeffs) &
     !$ACC   COPYIN(irr_coeffs, icr_coeffs, hrr_coeffs, grr_coeffs, hcr_coeffs, gcr_coeffs) &
-    !$ACC   COPYIN(gshedc_coeffs, gshedr_coeffs, hshedc_coeffs, hshedr_coeffs)
+    !$ACC   COPYIN(gshedc_coeffs, gshedr_coeffs, hshedc_coeffs, hshedr_coeffs) &
+    !$ACC   COPYIN(diag_coeffs_2mom)
 
     !$ACC ENTER DATA COPYIN(ltab_estick_ice)
     !$ACC ENTER DATA COPYIN(ltab_estick_ice%x1, ltab_estick_ice%ltable)
@@ -1477,6 +1486,14 @@ CONTAINS
     !$ACC ENTER DATA COPYIN(hshedr_ltab_thr_04%x, hshedr_ltab_thr_04%xhr, hshedr_ltab_thr_04%igf, hshedr_ltab_thr_04%igfhr)
 
   END SUBROUTINE init_2mom_scheme_once
+
+  ! .. Getter function for coefficients needed for diagnostics outside the 2-moment scheme scope,
+  !    which have been precomputed during initialization stage and stored in type diag_coeffs_2mom.
+  !    Can be used on CPU and GPU during time stepping:
+  FUNCTION get_diag_coeffs_2mom () RESULT (c)
+    TYPE(t_diag_coeffs_2mom) :: c
+    c = diag_coeffs_2mom
+  END FUNCTION get_diag_coeffs_2mom
 
   SUBROUTINE check(ik_slice, mtxt, cloud, rain, ice, snow, graupel, hail)
     ! start and end indices for 2D slices
