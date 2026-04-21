@@ -54,3 +54,9 @@ The use cases for NWP (Numerical Weather Prediction) are supported by Deutscher 
 [NWP Local (R19B07)](ref_buildrun_nwp_local):
 : This use case runs a limited-area (local) ICON application over Germany with a resolution of about 2 km (R19B07).
   It is comparable to DWD's operational application ICON-D2.
+
+
+## ICON SCM and LES
+
+[ICON-SCM/LES documentation](ref_buildrun_icon_scm_les):
+: ICON can be run in a single column model (SCM) and large-eddy simulation (LES) mode.

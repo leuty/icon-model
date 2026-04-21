@@ -139,7 +139,7 @@ MODULE mo_nwp_phy_init
   USE mo_grid_config,         ONLY: l_scm_mode
   USE mo_scm_nml,             ONLY: i_scm_netcdf, lscm_read_tke, lscm_read_z0, &
                                     scm_sfc_temp, scm_sfc_qv
-  USE mo_nh_torus_exp,        ONLY: read_soil_profile_nc
+  USE mo_nh_torus_exp,        ONLY: read_soil_profile_nc, read_soil_profile_nc_uf
 
   USE mo_cover_koe,           ONLY: cover_koe_config
   USE mo_bc_aeropt_kinne,     ONLY: read_bc_aeropt_kinne
@@ -279,6 +279,12 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
     lturb_init = .TRUE.
   ELSE
     linit_mode = .NOT. isRestart()
+  ENDIF
+
+  ! Also for SCM model new initialization needed for restarts.
+  IF (l_scm_mode) THEN
+    linit_mode = .TRUE.
+    lturb_init = .TRUE.
   ENDIF
 
   IF (PRESENT(lreset)) THEN
@@ -501,7 +507,7 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
         ELSEIF (l_scm_mode .AND. (atm_phy_nwp_config(jg)%inwp_surface == 1) .AND. &
       &          (i_scm_netcdf == 1)) THEN
 
-          !IF (i_scm_netcdf==2) THEN !unified format
+          !IF (i_scm_netcdf==2) THEN    ! DEPHY unified SCM format
           ! CALL read_soil_profile_nc_uf(w_so_profile,t_so_profile,t_g_in)
           !ELSE
            CALL read_soil_profile_nc(w_so_profile,t_so_profile,t_g_in)
@@ -557,10 +563,15 @@ SUBROUTINE init_nwp_phy ( p_patch, p_metrics,             &
             END DO
           END DO
 
-        ELSEIF ( l_scm_mode .AND. (atm_phy_nwp_config(jg)%inwp_surface == 0) .AND. &
-      &          (scm_sfc_temp==1) .AND. (scm_sfc_qv==3) .AND. (i_scm_netcdf > 0) ) THEN
+        ELSEIF ( l_scm_mode .AND. (atm_phy_nwp_config(jg)%inwp_surface == 0) .AND. (i_scm_netcdf > 0) &
+          &      .AND. ((scm_sfc_temp==1) .OR. (scm_sfc_temp==5) &
+          &        .OR. (scm_sfc_qv  ==3) .OR. (scm_sfc_qv  ==6))  ) THEN
 
-          CALL read_soil_profile_nc(t_g_in=t_g_in)
+          IF (i_scm_netcdf==2) THEN        ! DEPHY unified SCM format
+            CALL read_soil_profile_nc_uf(t_g_in=t_g_in)
+          ELSE
+            CALL read_soil_profile_nc(t_g_in=t_g_in)
+          ENDIF
 
       	  ! set T_G
           DO jc = i_startidx, i_endidx

@@ -564,6 +564,15 @@ CONTAINS
     ! Prepare initial conditions for time integration.
     !------------------------------------------------------------------
     !
+
+#ifndef __NO_ICON_LES__
+    ! LS forcing for idealised SCM and LES cases must be called for both restart and non-restart runs
+    ! because forcing arrays are not stored in restart files.
+    IF (is_ls_forcing .OR. is_nudging) THEN
+      CALL init_ls_forcing(p_nh_state(1)%metrics)
+    END IF
+#endif
+
     IF (isRestart()) THEN
       !
       ! This is a resumed integration. Read model state from restart file(s).
@@ -589,14 +598,14 @@ CONTAINS
         END IF
       END DO
 #endif
-      !
+
     ELSE
       !
       ! This is a new integration.
       !
       IF (ltestcase) THEN
         !
-        ! Initialize testcase analytically
+        ! Initialize testcases
         !
         IF (l_scm_mode) THEN
           CALL init_nh_testcase_scm(p_patch(1:)     ,&
@@ -612,12 +621,6 @@ CONTAINS
             &                       ext_data        ,&
             &                       ntl=2           )
         ENDIF
-        !
-#ifndef __NO_ICON_LES__
-        IF(is_ls_forcing .OR. is_nudging) &
-          CALL init_ls_forcing(p_nh_state(1)%metrics)
-#endif
-        !
       ELSE
         !
         ! Initialize with real atmospheric data

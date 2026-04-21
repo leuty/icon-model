@@ -173,36 +173,48 @@ MODULE mo_sgs_turbulence
     CALL vert_intp_full2half_cell_3d(p_patch, p_nh_metrics, p_nh_prog%rho, rho_ic, &
                                      2, min_rlcell_int-2)
 
-    IF( les_config(jg)%isrfc_type.EQ.10) THEN
-     IF ( ltestcase .AND. l_scm_mode .AND. &
-      &  ((scm_sfc_mom .GE. 2) .AND. (scm_sfc_temp .GE. 2) .AND. (scm_sfc_qv .GE. 2))) THEN
-     DO jb = i_startblk,i_endblk
-      CALL set_scm_bnd( nvec=nproma, ivstart=i_startidx, ivend=i_endidx,      &
-        & vel_min      = turbdiff_config(jg)%vel_min,                         & !in
-        & u_s          = p_nh_diag%u(:,nlev,jb),                              & !in
-        & v_s          = p_nh_diag%v(:,nlev,jb),                              & !in
-        & th_b         = p_nh_diag%temp(:,nlev,jb)/p_nh_prog%exner(:,nlev,jb),& !in
-        & qv_b         = p_nh_prog_rcf%tracer(:,nlev,jb,iqv),                 & !in
-        & pres_sfc     = p_nh_diag%pres_sfc(:,jb),                            & !in
-        & dz_bs=p_nh_metrics%z_mc(:,nlev,jb)-p_nh_metrics%z_ifc(:,nlevp1,jb) ,& !in
-        & z0m=prm_diag%gz0(:,jb)/grav,                                        & !in
-        !for noq z0m is assumed to be equal to z0h - GABLS1
-        & z0h=prm_diag%gz0(:,jb)/grav,                                        & !in
-        & prm_nwp_tend = prm_nwp_tend,                                        & !in
-        & tvm          = prm_diag%tvm(:,jb),                                  & !inout
-        & tvh          = prm_diag%tvh(:,jb),                                  & !inout
-        & shfl_s       = prm_diag%shfl_s(:,jb),                               & !out
-        & qhfl_s       = prm_diag%qhfl_s(:,jb),                               & !out
-        & lhfl_s       = prm_diag%lhfl_s(:,jb),                               & !out
-        & umfl_s       = prm_diag%umfl_s(:,jb),                               & !out
-        & vmfl_s       = prm_diag%vmfl_s(:,jb),                               & !out
-        & qv_s         = p_diag_lnd%qv_s(:,jb),                               & !out
-        & t_g          = p_prog_lnd_now%t_g(:,jb) )                             !out
-     END DO
-    ELSE
-     CALL finish(TRIM(inmodule),'Surface conditions can not be setup in this combination for LEM')
+    ! surface fluxes and conditions from SCM intput file
+    ! Attention: when only surface conditions available
+    !            scm_sfc_*** cases are switched to use Louis (1979) fluxes
+    !            see: mo_nwl_crosscheck.f90
+
+    IF ( les_config(jg)%isrfc_type == 10 ) THEN
+      IF ( ltestcase .AND. l_scm_mode .AND.                                                &
+        &  (scm_sfc_temp .GE. 2) .AND. (scm_sfc_qv .GE. 1) .AND. (scm_sfc_qv .NE. 3) .AND. &
+        &  (scm_sfc_mom  .GE. 2)) THEN
+
+        DO jb = i_startblk,i_endblk
+          CALL get_indices_c(p_patch, jb, i_startblk, i_endblk, &
+                             i_startidx, i_endidx, rl_start, rl_end)
+
+          CALL set_scm_bnd( ivstart=i_startidx, ivend=i_endidx,                     &
+            & vel_min      = turbdiff_config(jg)%vel_min,                           & !in
+            & u_s          = p_nh_diag%u         (:,nlev,jb),                       & !in
+            & v_s          = p_nh_diag%v         (:,nlev,jb),                       & !in
+            & th_b         = theta               (:,nlev,jb),                       & !in
+            & qv_b         = p_nh_prog_rcf%tracer(:,nlev,jb,iqv),                   & !in
+            & pres_sfc     = p_nh_diag%pres_sfc  (:,jb),                            & !in
+            & dz_bs = p_nh_metrics%z_mc(:,nlev,jb)-p_nh_metrics%z_ifc(:,nlevp1,jb), & !in
+            !for noq z0m is assumed to be equal to z0h - GABLS1
+            & z0m          = prm_diag%gz0        (:,jb)/grav,                       & !in
+            & z0h          = prm_diag%gz0        (:,jb)/grav,                       & !in
+            & prm_nwp_tend = prm_nwp_tend,                                          & !in
+            & tvm          = prm_diag%tvm        (:,jb),                            & !inout
+            & tvh          = prm_diag%tvh        (:,jb),                            & !inout
+            & shfl_s       = prm_diag%shfl_s     (:,jb),                            & !out
+            & qhfl_s       = prm_diag%qhfl_s     (:,jb),                            & !out
+            & lhfl_s       = prm_diag%lhfl_s     (:,jb),                            & !out
+            & umfl_s       = prm_diag%umfl_s     (:,jb),                            & !out
+            & vmfl_s       = prm_diag%vmfl_s     (:,jb),                            & !out
+            & qv_s         = p_diag_lnd%qv_s     (:,jb),                            & !out
+            & t_g          = p_prog_lnd_now%t_g  (:,jb) )                             !out
+
+        END DO
+
+      ELSE
+        CALL finish(TRIM(inmodule),'Surface conditions can not be setup in this combination for LES')
+      ENDIF
     ENDIF
-   ENDIF
 
     CALL surface_conditions(p_nh_metrics, p_patch, p_nh_diag, p_prog_lnd_now, p_prog_lnd_new,     &
                             p_diag_lnd, prm_diag, theta, p_nh_prog%tracer(:,:,:,iqv), p_sim_time)

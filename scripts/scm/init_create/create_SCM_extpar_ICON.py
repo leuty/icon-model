@@ -43,7 +43,7 @@ lat_scm = float(sys.argv[1])
 lon_scm = float(sys.argv[2])
 
 # select location
-# Lindenberg  Ocean
+#                      # Lindenberg  Ocean
 # lat_scm = 52.21      # 52.209722   -60.0
 # lon_scm = 14.12      # 14.118889   120.0    (lon between -180 and 180!!)
 
@@ -52,13 +52,13 @@ location = "lat" + "{:.1f}".format(lat_scm) + "_lon" + "{:.1f}".format(lon_scm)
 # number of points
 
 npts = 32  # 32 minimum points for SCM
-nt = 12  # 12 month for climatologies
+nt = 12  #   12 month for climatologies
 
 # Set the input/output directories
 
 icon_dir = "../../../"
 data_dir = "scripts/scm/init_create/"
-grid_dir = "/hpc/uwork/mkoehler/scm/data/grid_data/"
+grid_dir = "/hpc/uwork/mkoehler/scm/data/grid/"
 ext_dir = "/hpc/rhome/routfor/routfox/icon/grids/public/edzw/"
 
 file_ext_icon = ext_dir + "icon_extpar_0024_R02B06_G_20180209_tiles.nc"
@@ -154,8 +154,9 @@ LU_CLASS_FRACTION = nc_eid.variables["LU_CLASS_FRACTION"][:, index_near]
 # write data into netcdf file
 
 print("... write to SCM extpar netCDF file \n ", file_ext_scm)
-# nc_tid = Dataset(file_temp,mode='w',format='NETCDF4_CLASSIC')
-nc_tid = Dataset(file_ext_scm, mode="w", format="NETCDF4_CLASSIC")
+nc_tid = Dataset(
+    file_ext_scm, mode="w", format="NETCDF4"
+)  # format='NETCDF4_CLASSIC' not working
 
 nlu = size = LU_CLASS_FRACTION.size
 

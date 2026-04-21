@@ -13,7 +13,8 @@
 
 # prepare SCM/LES input and forcing data from ICON native netCDF file
 #
-# runs as: python3 get_SCM_data_ICON.py lat lon   (lon between -180 and 180!!)
+# runs as: python3 get_SCM_data_ICON.py lat lon inidate   (lon between -180 and 180!!)
+#          python3 get_SCM_data_ICON.py 52.2 14.1 2020112400
 #
 # work flow SCM from ICON input:
 #  - ICON ini:   read_icon_ana_oper_mem1_40km.s
@@ -42,6 +43,7 @@ print("Number of arguments:", len(sys.argv), "arguments.")
 print("Argument List:      ", str(sys.argv))
 lat_scm = float(sys.argv[1])
 lon_scm = float(sys.argv[2])
+inidate = str(sys.argv[3])
 
 # -------------------------------------------------------------------
 # setup

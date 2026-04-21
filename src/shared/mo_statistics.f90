@@ -784,7 +784,13 @@ CONTAINS
     ALLOCATE( sum_weight(allocated_levels) )
     !$ACC DATA PRESENT(values, weights, total_sum, mean) &
     !$ACC   CREATE(sum_weight) IF(lzacc)
-    sum_weight = 0.0_wp
+    !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
+    DO level = 1, allocated_levels
+      total_sum(level) = 0.0_wp
+      sum_weight(level) = 0.0_wp
+    END DO
+    !$ACC END PARALLEL LOOP
+    !$ACC WAIT(1)
 
     IF (PRESENT(start_level)) THEN
       start_vertical = start_level

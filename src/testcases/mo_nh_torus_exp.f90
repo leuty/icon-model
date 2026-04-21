@@ -38,15 +38,15 @@ MODULE mo_nh_torus_exp
   USE mo_nh_wk_exp,           ONLY: bub_amp, bub_ver_width, bub_hor_width, bubctr_z
   USE mo_model_domain,        ONLY: t_patch
   USE mo_math_constants,      ONLY: rad2deg, pi_2
-  USE mo_loopindices,         ONLY: get_indices_e
+  USE mo_loopindices,         ONLY: get_indices_c, get_indices_e
   USE mo_nonhydro_types,      ONLY: t_nh_prog, t_nh_diag, t_nh_metrics, t_nh_ref
   USE mo_nwp_phy_types,       ONLY: t_nwp_phy_tend
   USE mo_intp_data_strc,      ONLY: t_int_state
   USE mo_parallel_config,     ONLY: nproma
   USE mo_math_utilities,      ONLY: plane_torus_distance
-  USE mo_sync,                ONLY: sync_patch_array, SYNC_C
+  USE mo_sync,                ONLY: sync_patch_array, SYNC_C, global_sum_array
   USE mo_nh_init_utils,       ONLY: init_w
-  USE mo_run_config,          ONLY: iqv, iqc
+  USE mo_run_config,          ONLY: iqv, iqc, msg_level
   USE mo_impl_constants_grf,  ONLY: grf_bdywidth_e
   USE mo_thdyn_functions,     ONLY: spec_humi, sat_pres_water
   USE mo_les_config,          ONLY: les_config
@@ -380,14 +380,18 @@ MODULE mo_nh_torus_exp
     INTEGER  :: nlen
 
     REAL(wp), DIMENSION(ptr_patch%nlev)   :: theta_in, thetav_in, exner_in, rho_in, &
-                                          &  qv_in, qc_in, qi_in, u_in, v_in, o3_in
+                                          &  qv_in, qc_in, qi_in, u_in, v_in, o3_in, &
+                                          &  mean1_qv_z ,mean0_qv_z
     REAL(wp), DIMENSION(ptr_patch%nlev+1) :: tke_in, w_in
     REAL(wp) :: zvn1, zvn2, zu, zv, psfc_in, ex_sfc
     REAL(wp) :: z_exner_h(1:nproma, ptr_patch%nlev+1), z_help(1:nproma)
+    REAL(wp) :: var(nproma,ptr_patch%nblks_c)
 
     CHARACTER(len=*), PARAMETER :: &
        &  routine = 'mo_nh_torus_exp:init_torus_netcdf_sounding'
     !-------------------------------------------------------------------------
+
+    IF (msg_level >= 15)  CALL message(TRIM(routine), 'initialisation from SCM')
 
     ! Read the sounding file
 
@@ -395,7 +399,7 @@ MODULE mo_nh_torus_exp
 
     SELECT CASE (i_scm_netcdf)
     CASE (2)
-      !read unified netcdf file
+      !read DEPHY unified SCM netcdf file
       CALL read_ext_profile_nc_uf (ptr_metrics%z_mc(1,:,1), ptr_metrics%z_ifc(1,:,1),    &
          & theta_in, thetav_in, exner_in, rho_in, qv_in, qc_in, qi_in, u_in, v_in, w_in, &
          & tke_in, psfc_in, o3_in)
@@ -494,6 +498,40 @@ MODULE mo_nh_torus_exp
       END IF
 
     ENDDO !jb
+
+    IF (nh_test_name .eq. 'cp-mip') THEN
+
+      ! calculate domain-average qv - this must be conserved
+      mean0_qv_z(:)=0._wp
+      DO jk = 1, nlev
+         var(:,:) = ptr_nh_prog%tracer(:,jk,:,iqv)
+         WHERE(.NOT.ptr_patch%cells%decomp_info%owner_mask(:,:)) var(:,:) = 0._wp
+         mean0_qv_z(jk) =  global_sum_array(var)/REAL(ptr_patch%n_patch_cells_g,wp)
+      ENDDO
+
+      ! apply qv bubble perturbation
+      CALL init_cp_mip_bubble(ptr_patch, ptr_nh_prog, ptr_nh_diag, ptr_metrics)
+
+      ! calculate domain-average qv after perturbation is applied
+      mean1_qv_z(:)=0._wp
+      DO jk = 1, nlev
+        var(:,:) = ptr_nh_prog%tracer(:,jk,:,iqv)
+        WHERE(.NOT.ptr_patch%cells%decomp_info%owner_mask(:,:)) var(:,:) = 0._wp
+        mean1_qv_z(jk) =  global_sum_array(var)/REAL(ptr_patch%n_patch_cells_g,wp)
+      ENDDO
+
+      ! normalise perturbed qv field so that original domain-average is restored
+      DO jb = 1, nblks_c
+        IF (jb /= nblks_c) THEN
+          nlen = nproma
+        ELSE
+          nlen = npromz_c
+        ENDIF
+        DO jk = 1, nlev
+          ptr_nh_prog%tracer(1:nlen,jk,jb,iqv)=ptr_nh_prog%tracer(1:nlen,jk,jb,iqv)-(mean1_qv_z(jk)-mean0_qv_z(jk))
+        ENDDO
+      ENDDO
+    ENDIF
 
     !Mean wind
     DO jb = 1 , nblks_e
@@ -883,7 +921,7 @@ MODULE mo_nh_torus_exp
   ! z(m) theta(k) qv(kg/kg) u(m/s) v(m/s)
   ! where the top row is close to surface/or surface and bottom row
   ! is near the top
-  ! IBD: read from netcdf file
+  ! IBD: read from netcdf file - normal format including real ICON-NWP forcing
   !
 
   SUBROUTINE  read_ext_profile_nc(z_in, zifc_in, theta_in, thetav_in, exner_in, rho_in, &
@@ -931,7 +969,7 @@ MODULE mo_nh_torus_exp
     CALL nf (nf90_inq_dimid(fileid, 'nt', dimid), routine)
     CALL nf (nf90_inquire_dimension(fileid, dimid, len = nt) , routine)
 
-    WRITE(message_text,'(a,i6,a,i6)') 'SCM read_ext_profile_nc: klev, ', klev, ', nt ', nt
+    WRITE(message_text,'(a,i6,a,i6)') 'SCM read_ext_profile_nc: klev=', klev, ', nt=', nt
     CALL message (routine,message_text)
 
     !now allocate
@@ -984,12 +1022,12 @@ MODULE mo_nh_torus_exp
     CALL nf (nf90_get_var   (fileid, varid, psurfs) , routine)
     psfc_in=psurfs(1)
 
-    nf_status  = nf90_inq_varid (fileid, 'o3IN', varid)
-    nf_status2 = nf90_get_var   (fileid, varid , tempf)
+    nf_status = nf90_inq_varid (fileid, 'o3IN', varid)
     IF (nf_status /= nf90_noerr) THEN
       CALL message (routine,'O3 not available in SCM init file.  It will be set to 0.')
       o3s=0.0_wp
     ELSE
+      nf_status2 = nf90_get_var(fileid, varid , tempf)
       o3s=tempf(:,1)
     END IF
 
@@ -1083,8 +1121,10 @@ MODULE mo_nh_torus_exp
   !-------------------------------------------------------------------------
   !>
   ! read sounding from external file and then interpolate
-  ! to model levels (unified SCM format)
+  ! to model levels (DEPHY unified SCM format)
   !
+  ! Note: Case lscm_icon_ini to read input variables specific to ICON4SCM
+  !       is in read_ext_profile_nc
 
   SUBROUTINE  read_ext_profile_nc_uf(z_in, zifc_in, theta_in, thetav_in, exner_in, rho_in, &
     qv_in, qc_in, qi_in, u_in, v_in, w_in, tke_in, psfc_in, o3_in)
@@ -1105,15 +1145,15 @@ MODULE mo_nh_torus_exp
     REAL(wp),  INTENT(OUT) :: psfc_in
     REAL(wp),  INTENT(OUT) :: o3_in(:)
 
-    REAL(wp), ALLOCATABLE, DIMENSION(:)       :: zs, zs_ifc, ths, thvs, exners, rhos, qvs, qcs, qis, &
+    REAL(wp), ALLOCATABLE, DIMENSION(:)   :: zs, zs_ifc, ths, thvs, exners, rhos, qvs, qcs, qis, &
          &    us, vs, ws, tkes, o3s
-    REAL(wp), ALLOCATABLE, DIMENSION(:,:,:,:) :: tempf, tempf1
-    REAL(wp), ALLOCATABLE, DIMENSION(:,:,:)   :: tempf_s
+    REAL(wp), ALLOCATABLE, DIMENSION(:,:) :: tempf, tempf1
+    REAL(wp), ALLOCATABLE, DIMENSION(:)   :: tempf_s, temps
     CHARACTER(len=max_char_length),PARAMETER  :: routine  = &
          &   'mo_nh_torus_exp:read_ext_profile_nc_uf'
 
     INTEGER :: klev,nt
-    INTEGER :: lat,lon,t0
+    INTEGER :: t0
     INTEGER :: varid
     INTEGER :: fileid     !< id number of netcdf file
     INTEGER :: dimid      !< id number of dimension
@@ -1121,7 +1161,7 @@ MODULE mo_nh_torus_exp
 
     !-------------------------------------------------------------------------
 
-    CALL message(routine, 'READING FROM SOUNDING!')
+    CALL message(routine, 'READING FROM SOUNDING - DEPHY file!')
 
     !open netcdf
     CALL nf (nf90_open(TRIM(scm_init_filename), NF90_NOWRITE, fileid), &
@@ -1129,12 +1169,6 @@ MODULE mo_nh_torus_exp
 
     CALL nf (nf90_inq_dimid(fileid, 'lev', dimid), routine)
     CALL nf (nf90_inquire_dimension(fileid, dimid, len = klev), routine)
-
-    CALL nf (nf90_inq_dimid(fileid, 'lat', dimid), routine)
-    CALL nf (nf90_inquire_dimension(fileid, dimid, len = lat) , routine)
-
-    CALL nf (nf90_inq_dimid(fileid, 'lon', dimid), routine)
-    CALL nf (nf90_inquire_dimension(fileid, dimid, len = lon) , routine)
 
     CALL nf (nf90_inq_dimid(fileid, 't0', dimid), routine)
     CALL nf (nf90_inquire_dimension(fileid, dimid, len = t0) , routine)
@@ -1146,8 +1180,8 @@ MODULE mo_nh_torus_exp
 
     !now allocate
     ALLOCATE(zs(klev), zs_ifc(klev), ths(klev), thvs(klev), exners(klev), rhos(klev), us(klev), vs(klev), &
-      & ws(klev), qvs(klev), qcs(klev), qis(klev), tkes(klev),o3s(klev),                                &
-      & tempf(lon,lat,klev,t0), tempf1(lon,lat,klev,t0), tempf_s(lon,lat,t0) )
+      & ws(klev), qvs(klev), qcs(klev), qis(klev), tkes(klev), o3s(klev),                                 &
+      & tempf(klev,t0), tempf1(klev,nt), tempf_s(t0),temps(nt) )
 
     !initialize to 0
     zs     = 0._wp
@@ -1166,79 +1200,68 @@ MODULE mo_nh_torus_exp
     psfc_in= 0._wp
     o3s    = 0._wp
 
-    CALL nf (nf90_inq_varid (fileid, 'height', varid), routine)
-    CALL nf (nf90_get_var   (fileid, varid, tempf)   , routine)
-    zs=tempf(1,1,klev:1:-1,1)
+    CALL nf (nf90_inq_varid (fileid, 'zh', varid)  , routine)
+    CALL nf (nf90_get_var   (fileid, varid, tempf) , routine)
+    zs = tempf(klev:1:-1,1)
 
-    CALL nf (nf90_inq_varid (fileid, 'u', varid)  , routine)
-    CALL nf (nf90_get_var   (fileid, varid, tempf), routine)
-    us=tempf(1,1,klev:1:-1,1)
+    CALL nf (nf90_inq_varid (fileid, 'theta',varid), routine)
+    CALL nf (nf90_get_var   (fileid, varid,tempf)  , routine)
+    ths = tempf(klev:1:-1,1)
 
-    CALL nf (nf90_inq_varid (fileid, 'v', varid)  , routine)
-    CALL nf (nf90_get_var   (fileid, varid, tempf), routine)
-    vs=tempf(1,1,klev:1:-1,1)
+    CALL nf (nf90_inq_varid (fileid, 'ua', varid)  , routine)
+    CALL nf (nf90_get_var   (fileid, varid, tempf) , routine)
+    us = tempf(klev:1:-1,1)
 
-    CALL nf (nf90_inq_varid (fileid, 'qv', varid) , routine)
-    CALL nf (nf90_get_var   (fileid, varid, tempf), routine)
-    qvs=tempf(1,1,klev:1:-1,1)
+    CALL nf (nf90_inq_varid (fileid, 'va', varid)  , routine)
+    CALL nf (nf90_get_var   (fileid, varid, tempf) , routine)
+    vs = tempf(klev:1:-1,1)
 
-    CALL nf (nf90_inq_varid (fileid, 'ql', varid) , routine)
-    CALL nf (nf90_get_var   (fileid, varid, tempf), routine)
-    qcs=tempf(1,1,klev:1:-1,1)
+    CALL nf (nf90_inq_varid (fileid, 'qv', varid)  , routine)
+    CALL nf (nf90_get_var   (fileid, varid, tempf) , routine)
+    qvs = tempf(klev:1:-1,1)
 
-    CALL nf (nf90_inq_varid (fileid, 'ps', varid)   , routine)
-    CALL nf (nf90_get_var   (fileid, varid, tempf_s), routine)
-    psfc_in=tempf_s(1,1,1)
+    CALL nf (nf90_inq_varid (fileid, 'ql', varid)  , routine)
+    CALL nf (nf90_get_var   (fileid, varid, tempf) , routine)
+    qcs = tempf(klev:1:-1,1)
 
-    nf_status  = nf90_inq_varid (fileid, 'o3', varid)
-    nf_status2 = nf90_get_var   (fileid, varid , tempf)
+    CALL nf (nf90_inq_varid (fileid, 'qi', varid)  , routine)
+    CALL nf (nf90_get_var   (fileid, varid,tempf)  , routine)
+    qis = tempf(klev:1:-1,1)
+
+    CALL nf (nf90_inq_varid (fileid, 'ps', varid)  , routine)
+    CALL nf (nf90_get_var   (fileid, varid,tempf_s), routine)
+    psfc_in = tempf_s(1)
+
+    CALL nf (nf90_inq_varid (fileid, 'tke', varid) , routine)
+    CALL nf (nf90_get_var   (fileid, varid, tempf) , routine)
+    tkes(1:klev) = tempf(klev:1:-1,1)
+
+    nf_status  = nf90_inq_varid     (fileid, 'wa'  , varid)
     IF (nf_status /= nf90_noerr) THEN
-      CALL message (routine,'O3 not available in SCM init file.  It will be set to 0.')
-      o3s=0.0_wp
+      CALL message (routine,'WA not available in init_SCM.nc.  It will be set to 0.')
+      ws = 0.0_wp
     ELSE
-      o3s=tempf(1,1,klev:1:-1,1)
+      nf_status2 = nf90_get_var(fileid, varid , tempf1)
+      ws = tempf1(klev:1:-1,1)
     END IF
 
-    !read input variables specific to ICON4SCM
-    IF (lscm_icon_ini) THEN
-      zs_ifc=zs
-
-      CALL nf (nf90_inq_varid (fileid, 'w', varid), routine)
-      CALL nf (nf90_get_var   (fileid, varid, tempf1, count = [klev, nt]), routine)
-      ws     = tempf1(1,1,klev:1:-1,1)
-
-      CALL nf (nf90_inq_varid (fileid, 'qi', varid), routine)
-      CALL nf (nf90_get_var(fileid, varid, tempf), routine)
-      qis    = tempf(1,1,klev:1:-1,1)
-
-      CALL nf (nf90_inq_varid (fileid, 'thetav', varid), routine)
-      CALL nf (nf90_get_var   (fileid, varid, tempf), routine)
-      thvs   = tempf(1,1,klev:1:-1,1)
-
-      CALL nf (nf90_inq_varid (fileid, 'exner', varid), routine)
-      CALL nf (nf90_get_var   (fileid, varid, tempf), routine)
-      exners = tempf(1,1,klev:1:-1,1)
-
-      CALL nf (nf90_inq_varid (fileid, 'rho', varid), routine)
-      CALL nf (nf90_get_var   (fileid, varid, tempf), routine)
-      rhos   = tempf(1,1,klev:1:-1,1)
-
-      CALL nf (nf90_inq_varid (fileid, 'tke', varid), routine)
-      CALL nf (nf90_get_var   (fileid, varid, tempf1, count = [klev, nt]), routine)
-      tkes   = tempf1(1,1,klev:1:-1,1)
-
+    nf_status  = nf90_inq_varid     (fileid, 'o3'  , varid)
+    IF (nf_status /= nf90_noerr) THEN
+      CALL message (routine,'O3 not available in init_SCM.nc.  It will be set to 0.')
+      o3s = 0.0_wp
     ELSE
-      zs_ifc = zs
-
-      CALL nf (nf90_inq_varid (fileid, 'theta', varid), routine)
-      CALL nf (nf90_get_var (fileid, varid,tempf), routine)
-      ths    = tempf(1,1,klev:1:-1,1)
-
-      CALL nf (nf90_inq_varid (fileid, 'tke', varid), routine)
-      CALL nf (nf90_get_var (fileid, varid, tempf), routine)
-      tkes(1:klev) = tempf(1,1,klev:1:-1,1)
-
+      nf_status2 = nf90_get_var(fileid, varid , tempf)
+      o3s = tempf(klev:1:-1,1)
     END IF
+
+    ! DEPHY forcing comes on "height above ground" variable, with lowest level at 0m.
+    ! Add height of topography to height coordinate, so that interpolation to ICON
+    ! coordinate with lowest z_ifc level = orog works properly
+    CALL nf (nf90_inq_varid (fileid, 'orog', varid ), routine)
+    CALL nf (nf90_get_var   (fileid, varid,  temps), routine)
+    zs(:) = zs(:) + temps(1)
+
+    zs_ifc = zs
 
 !   diagnostic output
 !   write(*,*) '==SCM input file data=='
@@ -1284,7 +1307,7 @@ MODULE mo_nh_torus_exp
 !   write(*,*) '==SCM input file data interpolated to SCM vertical levels=='
 !   write(*,*) '-- o3_in --'    , o3_in
 
-    DEALLOCATE(zs, ths, thvs, exners, rhos, qvs, qcs, qis, us, vs, ws, tkes, &
+    DEALLOCATE(zs, zs_ifc, ths, thvs, exners, rhos, qvs, qcs, qis, us, vs, ws, tkes, &
     & o3s, tempf, tempf1, tempf_s)
 
     CALL nf (nf90_close(fileid), routine)
@@ -1724,22 +1747,69 @@ MODULE mo_nh_torus_exp
 
 
   !--------------------------------------------------
-  ! read initial soil profiles and T_G from SCM netCDF file (unified format)
+  ! read initial soil profiles and T_G from SCM netCDF file
+  ! (DEPHY unified SCM format)
 
-  SUBROUTINE  read_soil_profile_nc_uf(w_so_in, t_so_in, t_g_in)
+  SUBROUTINE  read_soil_profile_nc_uf(t_g_in)
 
-    REAL(wp), INTENT(OUT) :: w_so_in(nlev_soil)
-    REAL(wp), INTENT(OUT) :: t_so_in(nlev_soil+1)
     REAL(wp), INTENT(OUT), OPTIONAL :: t_g_in
 
     ! Local variables
+    REAL(wp), ALLOCATABLE, DIMENSION(:) :: bnd_ts, bnd_tg, tempf_sf
+
+    INTEGER :: varid
+    INTEGER :: fileid                 !< id number of netcdf file
+    INTEGER :: dimid                  !< id number of dimension
+    INTEGER :: nf_status, nf_status2  !< return status of netcdf function
+    INTEGER :: nt
+
     CHARACTER(len=max_char_length),PARAMETER :: routine  = &
           &   'mo_nh_torus_exp:read_soil_profile_nc_uf'
 
     !--------------------------------------------------
 
     CALL message(routine, &
-    'READING INITIAL SOIL PROFILE not implemented for unified format')
+    'READING INITIAL SOIL PROFILE: partially implemented for DEPHY unified SCM format')
+
+    CALL nf (nf90_open('init_SCM.nc', NF90_NOWRITE, fileid), &
+      & TRIM(routine)//'   File init_SCM.nc cannot be opened (soil)')
+
+    CALL nf (nf90_inq_dimid (fileid, 'time', dimid), routine)
+    CALL nf (nf90_inquire_dimension(fileid, dimid, len = nt), routine)
+
+    IF (PRESENT(t_g_in)) THEN
+      ALLOCATE(bnd_ts(nt), bnd_tg(nt), tempf_sf(nt))
+
+      nf_status  = nf90_inq_varid     (fileid, 'ts_forc', varid)
+      IF (nf_status /= nf90_noerr) THEN
+        CALL message(routine,'bnd_ts not available in init_SCM.nc.  It will be set to 400.')
+        bnd_ts=400.0_wp
+      ELSE
+        nf_status2 = nf90_get_var(fileid, varid, tempf_sf)
+        bnd_ts=tempf_sf(:)
+      END IF
+!     write(*,*) 'bnd_ts',bnd_ts(:)
+
+      nf_status  = nf90_inq_varid     (fileid, 'tskin', varid)
+      IF (nf_status /= nf90_noerr) THEN
+        CALL message(routine,'bnd_tg not available in init_SCM.nc.  It will be set to 400.')
+        bnd_tg=400.0_wp
+      ELSE
+        nf_status2 = nf90_get_var(fileid, varid, tempf_sf)
+        bnd_tg=tempf_sf(:)
+      END IF
+!     write(*,*) 'bnd_tg',bnd_tg(:)
+
+      ! Use either ts_forc or tskin as inputs for the variables bnd_tg and bnd_ts
+      IF ( bnd_ts(1) == 400.0_wp )  bnd_ts = bnd_tg
+      IF ( bnd_tg(1) == 400.0_wp )  bnd_tg = bnd_ts
+
+      t_g_in    = bnd_tg(1)
+!     write(*,*) 't_g_in', t_g_in
+      DEALLOCATE(bnd_ts, bnd_tg, tempf_sf)
+    ENDIF
+
+    CALL nf (nf90_close(fileid), routine)
 
   END SUBROUTINE read_soil_profile_nc_uf
 
@@ -1773,7 +1843,7 @@ MODULE mo_nh_torus_exp
     CALL nf (nf90_get_var(fileid, varid,tmp_nf) , routine)
     lon_scm = tmp_nf(1)
 
-    WRITE(message_text,'(a,f7.4,a,f7.4)') 'lat_scm, ', lat_scm, ', lon_scm, ',lon_scm
+    WRITE(message_text,'(a,f9.4,a,f9.4)') 'lat_scm, ', lat_scm, ', lon_scm, ',lon_scm
     CALL message (routine,message_text)
 
     CALL nf (nf90_close(fileid), routine)
@@ -1782,47 +1852,48 @@ MODULE mo_nh_torus_exp
 
 
   !--------------------------------------------------
-  ! read lat lon from SCM netCDF file (unified format)
+  ! read lat lon from SCM netCDF file
+  ! (DEPHY unified SCM format)
+  !
+  ! Note: lat/lon are provided for each time step.  We are only taking the initial step!
 
-  SUBROUTINE  read_latlon_scm_nc_uf(lat_scm,lon_scm) !unified format
+  SUBROUTINE  read_latlon_scm_nc_uf(lat_scm,lon_scm)
 
     REAL(wp),  INTENT(OUT) :: lat_scm
     REAL(wp),  INTENT(OUT) :: lon_scm
-    REAL(wp), ALLOCATABLE, DIMENSION(:)  :: lats, lons
 
     ! Local variables
+    REAL(wp), ALLOCATABLE, DIMENSION(:)  :: lats, lons
+
     CHARACTER(len=max_char_length),PARAMETER :: routine  = &
           &   'mo_nh_torus_exp:read_latlon_scm_nc_uf'
 
     INTEGER :: varid
     INTEGER :: fileid     !< id number of netcdf file
     INTEGER :: dimid      !< id number of dimension
-    INTEGER :: lat,lon
+    INTEGER :: nt
 
     !--------------------------------------------------
 
-    CALL message(routine, 'READING lat/lon FOR SCM')
+    CALL message(routine, 'READING lat/lon for SCM')
 
     CALL nf (nf90_open(TRIM(scm_init_filename), NF90_NOWRITE, fileid), &
       & TRIM(routine)//'   SCM init file cannot be opened (lat/lon)')
 
-    CALL nf (nf90_inq_dimid(fileid, 'lat', dimid), routine)
-    CALL nf (nf90_inquire_dimension(fileid, dimid, len = lat), routine)
+    CALL nf (nf90_inq_dimid(fileid, 'time', dimid), routine)
+    CALL nf (nf90_inquire_dimension(fileid, dimid, len = nt), routine)
 
-    CALL nf (nf90_inq_dimid(fileid, 'lon', dimid), routine)
-    CALL nf (nf90_inquire_dimension(fileid, dimid, len = lon), routine)
-
-    ALLOCATE(lats(lat),lons(lon))
+    ALLOCATE(lats(nt),lons(nt))
 
     CALL nf (nf90_inq_varid(fileid, 'lat', varid), routine)
-    CALL nf (nf90_get_var(fileid, varid,lats), routine)
+    CALL nf (nf90_get_var  (fileid, varid,lats), routine)
     lat_scm=lats(1)
 
     CALL nf (nf90_inq_varid(fileid, 'lon', varid), routine)
-    CALL nf (nf90_get_var(fileid, varid,lons), routine)
+    CALL nf (nf90_get_var  (fileid, varid,lons), routine)
     lon_scm=lons(1)
 
-    WRITE(message_text,'(a,f7.4,a,f7.4)') 'lat_scm, ', lat_scm, ', lon_scm, ',lon_scm
+    WRITE(message_text,'(a,f9.4,a,f9.4)') 'lat_scm, ', lat_scm, ', lon_scm, ' ,lon_scm
     CALL message (routine,message_text)
 
     CALL nf (nf90_close(fileid), routine)
@@ -1848,13 +1919,12 @@ MODULE mo_nh_torus_exp
     REAL(wp), INTENT(OUT) :: topo_scm         ! height above sea level
     REAL(wp), INTENT(OUT) :: emis_rad_scm     ! emisivity
     REAL(wp), INTENT(OUT) :: lu_class_fr(:)   ! land use classes fractions
-    INTEGER :: nCLU
 
+    ! Local variables
+    INTEGER :: nCLU
     INTEGER :: varid
     INTEGER :: fileid     !< id number of netcdf file
     INTEGER :: dimid      !< id number of dimension
-
-    ! Local variables
     CHARACTER(len=max_char_length),PARAMETER :: routine  = 'mo_nh_torus_exp:read_ext_SCM_nc'
     REAL(wp) :: tmp_nf(1)
 
@@ -1927,11 +1997,12 @@ MODULE mo_nh_torus_exp
 
 
   !--------------------------------------------------
-  ! read external parameters from SCM netCDF file (unified format)
+  ! read external parameters from SCM netCDF file
+  ! (DEPHY unified SCM format)
 
   SUBROUTINE read_ext_scm_nc_uf (num_lcc,soiltyp_scm,fr_land_scm,plcov_mx_scm,lai_mx_scm, &
-                              rootdp_scm,rsmin_scm,z0_scm,topo_scm,emis_rad_scm,&
-                              lu_class_fr,lctype_scm)
+                                 rootdp_scm,rsmin_scm,z0_scm,topo_scm,emis_rad_scm,       &
+                                 lu_class_fr)
 
     INTEGER , INTENT(IN)  :: num_lcc          ! number of landcover classes
     INTEGER , INTENT(OUT) :: soiltyp_scm      ! soil type
@@ -1944,23 +2015,25 @@ MODULE mo_nh_torus_exp
     REAL(wp), INTENT(OUT) :: topo_scm         ! height above sea level
     REAL(wp), INTENT(OUT) :: emis_rad_scm     ! emisivity
     REAL(wp), INTENT(OUT) :: lu_class_fr(:)   ! land use classes fractions
-    CHARACTER(len=max_char_length),INTENT(OUT) ::lctype_scm !data source for land use
 
+    ! Local variables
     INTEGER :: nCLU
-
+    INTEGER :: dimid      ! id number of dimension
     INTEGER :: varid      ! id number of variable (or attribute variable)
     INTEGER :: attid      ! id number of attribute associated to variable (not useful)
     INTEGER :: fileid     ! id number of netcdf file
+    INTEGER :: nt
+    CHARACTER(len=10) :: surface_type   ! 'land' or 'ocean'
 
-    ! Local variables
     CHARACTER(len=max_char_length),PARAMETER :: routine  = 'mo_nh_torus_exp:read_ext_SCM_nc_uf'
+
+    REAL(wp), ALLOCATABLE, DIMENSION(:)  :: tmp_nf
 
     !------------------------------------------------
 
     CALL message(routine, &
-      'READING EXTERNAL DATA FOR SCM not implemented for unified format')
+      'READING EXTERNAL DATA FOR SCM not implemented for DEPHY unified SCM format')
 
-    lctype_scm= "GLOBCOVER2009"
 !    topo_scm  = 314._wp
 !    z0_scm    = 0.035_wp
 
@@ -1968,26 +2041,42 @@ MODULE mo_nh_torus_exp
     CALL nf (nf90_open(TRIM(scm_init_filename), NF90_NOWRITE, fileid), &
       & TRIM(routine)//'   SCM init file cannot be opened (external)')
 
-    CALL nf (nf90_inquire_attribute(fileid, varid, 'z0', attnum = attid), routine)
-    CALL nf (nf90_get_att(fileid, varid, 'z0', z0_scm), routine)
+    CALL nf (nf90_inq_dimid(fileid, 'time', dimid), routine)
+    CALL nf (nf90_inquire_dimension(fileid, dimid, len = nt), routine)
 
-    CALL nf (nf90_inquire_attribute(fileid, varid, 'zorog', attnum = attid), routine)
-    CALL nf (nf90_get_att(fileid, varid, 'zorog', topo_scm), routine)
+    ALLOCATE(tmp_nf(nt))
+
+    CALL nf (nf90_inquire_attribute(fileid, NF90_GLOBAL, 'surface_type', attnum = attid), routine)
+    CALL nf (nf90_get_att          (fileid, NF90_GLOBAL, 'surface_type', surface_type),   routine)
+
+    IF (surface_type == 'ocean') THEN
+      fr_land_scm = 0.0_wp
+      z0_scm      = 0.01_wp     ! default value, should be overwritten by Charnock formula
+    ELSE
+      fr_land_scm = 1.0_wp
+      CALL nf (nf90_inq_varid (fileid, 'z0',   varid ), routine)
+      CALL nf (nf90_get_var   (fileid, varid,  tmp_nf), routine)
+      z0_scm = tmp_nf(1)
+    ENDIF
+
+    CALL nf (nf90_inq_varid (fileid, 'orog', varid ), routine)
+    CALL nf (nf90_get_var   (fileid, varid,  tmp_nf), routine)
+    topo_scm = tmp_nf(1)
 
 
     IF ( get_my_global_mpi_id() == 0 ) THEN
       print *,TRIM(routine),'  printing external surface parameters for SCM'
       print *,'  fr_land_scm =',   fr_land_scm
-      print *,'  plcov_mx_scm=',   plcov_mx_scm
-      print *,'  lai_mx_scm  =',   lai_mx_scm
-      print *,'  rootdp_scm  =',   rootdp_scm
-      print *,'  rsmin_scm   =',   rsmin_scm
-      print *,'  soiltyp_scm =',   soiltyp_scm
       print *,'  z0_scm      =',   z0_scm
       print *,'  topo_scm    =',   topo_scm
-      print *,'  emis_rad_scm=',   emis_rad_scm
-      print *,'  lu_class_fr =',   lu_class_fr
-      print *,'  nCLU        =',   nCLU
+!     print *,'  plcov_mx_scm=',   plcov_mx_scm
+!     print *,'  lai_mx_scm  =',   lai_mx_scm
+!     print *,'  rootdp_scm  =',   rootdp_scm
+!     print *,'  rsmin_scm   =',   rsmin_scm
+!     print *,'  soiltyp_scm =',   soiltyp_scm
+!     print *,'  emis_rad_scm=',   emis_rad_scm
+!     print *,'  lu_class_fr =',   lu_class_fr
+!     print *,'  nCLU        =',   nCLU
     END IF
 
   END SUBROUTINE read_ext_scm_nc_uf
@@ -1996,11 +2085,10 @@ MODULE mo_nh_torus_exp
   !-----------------------------------------------------
   !set boundary conditions for SCM
 
-  SUBROUTINE  set_scm_bnd( nvec, ivstart, ivend, vel_min,u_s, v_s, th_b, qv_b, pres_sfc, dz_bs,z0m,z0h,&
-    & prm_nwp_tend, tvm, tvh, shfl_s, qhfl_s, lhfl_s,umfl_s,vmfl_s, qv_s, t_g )
+  SUBROUTINE set_scm_bnd ( ivstart, ivend, vel_min, u_s, v_s, th_b, qv_b, pres_sfc, dz_bs, &
+    & z0m, z0h, prm_nwp_tend, tvm, tvh, shfl_s, qhfl_s, lhfl_s, umfl_s, vmfl_s, qv_s, t_g )
 
     INTEGER,        INTENT(IN) :: &
-    nvec,         & ! nproma
     ivstart,      & ! start index in the nproma vector
     ivend           ! end index in the nproma vector
 
@@ -2050,46 +2138,56 @@ MODULE mo_nh_torus_exp
     REAL(KIND=wp) :: cnh(ivstart:ivend) !drag coefficient for heat/moist. at neutrality
     REAL(KIND=wp) :: b_louis,cm_louis,ch_louis,d_louis,ricr
 
-    b_louis=5.0_wp
+    !--------------------------------------------------------------------------
+
+    IF (msg_level >= 15) &
+         CALL message(TRIM(routine), 'setting boundary conditions for SCM')
+
+    b_louis =5.0_wp
     cm_louis=5.0_wp
     ch_louis=5.0_wp
-    d_louis=5.0_wp
-    ricr=1.0_wp
+    d_louis =5.0_wp
+    ricr    =1.0_wp
 
     ! if apply_ls_forcing has not been called so far the
     ! variables in prm_nwp_tend% are not defined
-    IF (.not. lscm_ls_forcing_ini) RETURN
+    IF (.NOT. lscm_ls_forcing_ini) THEN
+      IF (msg_level >= 15) &
+         CALL message(TRIM(routine), 'return: apply_ls_forcing not yet called to read SCM forcing')
+      RETURN
+    END IF
 
-    DO i=ivstart, ivend
-      velo(i)=MAX( vel_min, SQRT(u_s(i)**2+v_s(i)**2) )
-      tempv_sfc(i) = t_g(i) * (1._wp + vtmpc1*qv_b(i))
-      rho_sfc(i)   = pres_sfc(i)/(rd*tempv_sfc(i))
-      !write(*,*) "rhos:",i,velo(i),tempv_sfc(i),rho_sfc(i),u_s(i),v_s(i),&
-      !&t_g(i),qv_b(i),pres_sfc(i)
-    ENDDO
+    IF ( scm_sfc_temp .GE. 1) THEN
+      DO i=ivstart, ivend
+        velo(i)      = MAX( vel_min, SQRT(u_s(i)**2+v_s(i)**2) )
+        tempv_sfc(i) = prm_nwp_tend%fc_tg * (1._wp + vtmpc1*qv_b(i))
+        rho_sfc(i)   = pres_sfc(i)/(rd*tempv_sfc(i))
+       !write(*,*) "rhos:", i, velo(i), tempv_sfc(i), rho_sfc(i), u_s(i), v_s(i), &
+       !  & prm_nwp_tend%fc_tg, qv_b(i), pres_sfc(i)
+      ENDDO
+    ENDIF
 
-    !GABLS1
-    !dry, should be improved to virtual temperature for other cases
-    !also, th_surf/[th_surf,qv_surf] must be prescribed
-    IF((scm_sfc_temp.eq.5)) then
+    ! Louis (1979) transfer functions
+    ! dry, should be improved to virtual temperature for other cases
+    ! also, th_surf/[th_surf,qv_surf] must be prescribed
+    IF ( scm_sfc_temp == 5 .OR. scm_sfc_qv == 5 .OR. scm_sfc_qv == 6 .OR. scm_sfc_mom == 5 ) then
       DO i=ivstart, ivend
         cnm(i) =(0.4_wp/log(1.0_wp+dz_bs(i)/z0m(i)))**2
         cnh(i) =0.4_wp**2/(log(1.0_wp+dz_bs(i)/z0m(i))*log(1.0_wp+dz_bs(i)/z0h(i)))
-        rib(i) =grav*(th_b(i)-prm_nwp_tend%fc_ts)/th_b(i)*dz_bs(i)/velo(i)**2
+        rib(i) =grav*(th_b(i)-prm_nwp_tend%fc_ts*(p0ref/pres_sfc(i))**rd_o_cpd)/ &
+              & th_b(i)*dz_bs(i)/velo(i)**2
         ribm(i) = rib(i)/(1.0_wp+rib(i)/ricr)
         ribh(i) = rib(i)/(1.0_wp+3.0_wp*rib(i)/ricr)**(0.333_wp)
         IF (rib(i).ge.0.0_wp) THEN
           !stable stratification
-          fm(i) =(1.0_wp/(1.0_wp+2.0_wp*b_louis*ribm(i)/sqrt(1.0_wp+d_louis*ribm(i))))
-          fh(i) =(1.0_wp/(1.0_wp+3.0_wp*b_louis*ribh(i)*sqrt(1.0_wp+d_louis*ribh(i))))
+          fm(i) = (1.0_wp/(1.0_wp+2.0_wp*b_louis*ribm(i)/sqrt(1.0_wp+d_louis*ribm(i))))
+          fh(i) = (1.0_wp/(1.0_wp+3.0_wp*b_louis*ribh(i)*sqrt(1.0_wp+d_louis*ribh(i))))
         ELSE
           !unstable stratification
-          fm(i) =(1.0_wp-2.0_wp*b_louis*rib(i)/&
-          & (1.0_wp+3.0_wp*b_louis*cm_louis*cnm(i)*&
-          & sqrt(-rib(i)*(1.0_wp+dz_bs(i)/z0m(i)))))
-          fh(i) =(1.0_wp-3.0_wp*b_louis*rib(i)/&
-          & (1.0_wp+3.0_wp*b_louis*ch_louis*cnh(i)*&
-          & sqrt(-rib(i)*(1.0_wp+dz_bs(i)/z0h(i)))))
+          fm(i) = (1.0_wp-2.0_wp*b_louis*rib(i)/(1.0_wp+3.0_wp*b_louis*cm_louis*cnm(i)* &
+                & sqrt(-rib(i)*(1.0_wp+dz_bs(i)/z0m(i)))))
+          fh(i) = (1.0_wp-3.0_wp*b_louis*rib(i)/(1.0_wp+3.0_wp*b_louis*ch_louis*cnh(i)*&
+                & sqrt(-rib(i)*(1.0_wp+dz_bs(i)/z0h(i)))))
         END IF
       ENDDO
     ENDIF
@@ -2098,29 +2196,31 @@ MODULE mo_nh_torus_exp
 
     SELECT CASE(scm_sfc_temp)
     CASE (0) ! no prescribed t_g and shfl_s
-       !t_g(i)    = prm_nwp_tend%fc_tg !for radiation and transfer scheme
+
     CASE (1)
       DO i=ivstart, ivend
         t_g(i)    = prm_nwp_tend%fc_tg !for radiation and transfer scheme
       ENDDO
     CASE (2) ! prescribed fluxes
       DO i=ivstart, ivend
-        t_g(i)    =   prm_nwp_tend%fc_tg !for radiation and transfer scheme
-        shfl_s(i) = - prm_nwp_tend%fc_sfc_sens_flx
+        t_g(i)    = prm_nwp_tend%fc_tg !for radiation and transfer scheme
+        shfl_s(i) = prm_nwp_tend%fc_sfc_sens_flx
       ENDDO
     CASE (4) ! prescribed drag coefficient
       DO i=ivstart, ivend
         t_g(i)    = prm_nwp_tend%fc_tg !for radiation and transfer scheme
        !tvh(i)    = prm_nwp_tend%fc_Ch*velo(i)
-        shfl_s(i) = rho_sfc(i)*prm_nwp_tend%fc_Ch*(th_b(i)-prm_nwp_tend%fc_ts)*velo(i)*cpd
+        shfl_s(i) = rho_sfc(i) * prm_nwp_tend%fc_Ch * (th_b(i)-prm_nwp_tend%fc_ts* &
+                 & (p0ref/pres_sfc(i))**rd_o_cpd) * velo(i) * cpd
       ENDDO
-    CASE(5) ! Louis scheme - GABLS1
+    CASE(5) ! Louis scheme (for example for GABLS1 or LES)
       DO i=ivstart, ivend
         t_g(i)    = prm_nwp_tend%fc_tg !for radiation and transfer scheme
-        shfl_s(i) = rho_sfc(i)*cnh(i)*fh(i)*(th_b(i)-prm_nwp_tend%fc_ts)*velo(i)*cpd
+        shfl_s(i) = rho_sfc(i) * cnh(i) * fh(i) * (th_b(i)-prm_nwp_tend%fc_ts* &
+                 & (p0ref/pres_sfc(i))**rd_o_cpd) * velo(i) * cpd
       ENDDO
     CASE DEFAULT
-      call finish(routine,' Value for scm_sfc_temp not known!')
+      CALL finish(routine,' Value for scm_sfc_temp not known!')
     END SELECT
 
 ! surface moisture and latent heat flux
@@ -2133,9 +2233,9 @@ MODULE mo_nh_torus_exp
       ENDDO
     CASE (2) ! prescribed flux
       DO i=ivstart, ivend
-        qv_s(i)   =   prm_nwp_tend%fc_qvs
-        lhfl_s(i) = - prm_nwp_tend%fc_sfc_lat_flx
-        qhfl_s(i) = - prm_nwp_tend%fc_sfc_lat_flx/lh_v
+        qv_s(i)   = prm_nwp_tend%fc_qvs
+        lhfl_s(i) = prm_nwp_tend%fc_sfc_lat_flx
+        qhfl_s(i) = prm_nwp_tend%fc_sfc_lat_flx/lh_v
       ENDDO
     CASE (3) ! qv_s based on saturation
       DO i=ivstart, ivend
@@ -2146,13 +2246,19 @@ MODULE mo_nh_torus_exp
         !qv_s(i)  = prm_nwp_tend%fc_qvs
         !!tvh(i)  = prm_nwp_tend%fc_Cq*velo(i) !no tvq, hence Ch is used for both moisture and temperature
         !tvh(i)   = prm_nwp_tend%fc_Ch*velo(i) !no tvq, hence Ch is used for both moisture and temperature
-        qhfl_s(i) = rho_sfc(i)*prm_nwp_tend%fc_Ch*(qv_b(i)-prm_nwp_tend%fc_qvs)*velo(i)
-        lhfl_s(i) = qhfl_s(i)*lh_v
+        qhfl_s(i) = rho_sfc(i) * prm_nwp_tend%fc_Ch * (qv_b(i)-prm_nwp_tend%fc_qvs) * velo(i)
+        lhfl_s(i) = qhfl_s(i) * lh_v
       ENDDO
-    CASE(5) ! Louis scheme - GABLS1
+    CASE(5) ! Louis scheme with qv_s input from SCM file (for example for GABLS1 or LES)
       DO i=ivstart, ivend
-        qhfl_s(i) = rho_sfc(i)*cnh(i)*fh(i)*(qv_b(i)-prm_nwp_tend%fc_qvs)*velo(i)
-        lhfl_s(i) = qhfl_s(i)*lh_v
+        qhfl_s(i) = rho_sfc(i) * cnh(i) * fh(i) * (qv_b(i)-prm_nwp_tend%fc_qvs) * velo(i)
+        lhfl_s(i) = qhfl_s(i) * lh_v
+      ENDDO
+    CASE(6) ! Louis scheme with qv_s based on saturation (for example for GABLS1 or LES)
+      DO i=ivstart, ivend
+        qv_s(i)   = spec_humi( sat_pres_water(t_g(i)) , pres_sfc(i) )
+        qhfl_s(i) = rho_sfc(i) * cnh(i) * fh(i) * (qv_b(i)-qv_s(i)) * velo(i)
+        lhfl_s(i) = qhfl_s(i) * lh_v
       ENDDO
     CASE DEFAULT
       CALL finish(routine,' Value for scm_sfc_qv not known!')
@@ -2174,31 +2280,132 @@ MODULE mo_nh_torus_exp
         umfl_s(i) = -rho_sfc(i)*tvm(i)*u_s(i)
         vmfl_s(i) = -rho_sfc(i)*tvm(i)*v_s(i)
      ENDDO
-    CASE (5) ! Louis scheme - GABLS1
+    CASE (5) ! Louis scheme (for example for GABLS1 or LES)
       DO i=ivstart, ivend
         tvm(i)    = cnm(i)*fm(i)*velo(i)
         umfl_s(i) = -rho_sfc(i)*tvm(i)*u_s(i)
         vmfl_s(i) = -rho_sfc(i)*tvm(i)*v_s(i)
       ENDDO
     CASE DEFAULT
-       CALL finish(routine,' Value for scm_sfc_mom not known!')
+      CALL finish(routine,' Value for scm_sfc_mom not known!')
     END SELECT
 
 
-   !IF ( get_my_global_mpi_id() == 0 ) THEN
-   !  WRITE(*,*) TRIM(routine),'  printing surface boundary parameters for SCM'
-   !  WRITE(*,*) "   tvm",    tvm(1)
-   !  WRITE(*,*) "   tvh",    tvh(1)
-   !  WRITE(*,*) "shfl_s", shfl_s(1)
-   !  WRITE(*,*) "qhfl_s", qhfl_s(1)
-   !  WRITE(*,*) "lhfl_s", lhfl_s(1)
-   !  WRITE(*,*) "umfl_s", umfl_s(1)
-   !  WRITE(*,*) "vmfl_s", vmfl_s(1)
-   !  WRITE(*,*) "  qv_s",   qv_s(1)
-   !  WRITE(*,*) "   t_g",    t_g(1)
-   !END IF
+    IF ( get_my_global_mpi_id() == 1 .AND. msg_level >= 15) THEN
+      WRITE(0,*) TRIM(routine),'  printing surface boundary parameters for SCM'
+      WRITE(0,*) "   tvm",    tvm(1)
+      WRITE(0,*) "   tvh",    tvh(1)
+      WRITE(0,*) "shfl_s", shfl_s(1)
+      WRITE(0,*) "qhfl_s", qhfl_s(1)
+      WRITE(0,*) "lhfl_s", lhfl_s(1)
+      WRITE(0,*) "umfl_s", umfl_s(1)
+      WRITE(0,*) "vmfl_s", vmfl_s(1)
+      WRITE(0,*) "  qv_s",   qv_s(1)
+      WRITE(0,*) "   t_g",    t_g(1)
+      WRITE(0,*) " fc_tg", prm_nwp_tend%fc_tg
+    END IF
+
 
   END SUBROUTINE set_scm_bnd
 
+  !>
+  !! Initialization of moisture anomaly for cold pool model intercomparison
+  !! case on a torus. Perturbation as prescribed by MIP setup.
+  !!
+  SUBROUTINE init_cp_mip_bubble( ptr_patch, ptr_nh_prog, ptr_nh_diag, ptr_metrics)
+
+    TYPE(t_patch),TARGET,  INTENT(IN)   ::  ptr_patch
+    TYPE(t_nh_prog),       INTENT(INOUT)::  ptr_nh_prog
+    TYPE(t_nh_diag),       INTENT(IN)   ::  ptr_nh_diag
+    TYPE(t_nh_metrics),    INTENT(IN)   ::  ptr_metrics
+
+    REAL(wp) :: z_exner_h(1:nproma,ptr_patch%nlev+1), z_help(1:nproma)
+    REAL(wp) :: x_loc(3), x_c(3), dis
+    REAL(wp) :: qv_new,base,top,rrr
+    REAL(wp), DIMENSION(ptr_patch%nlev) :: qv_in
+    INTEGER  :: jc,jk,jb   !< loop indices
+    INTEGER  :: nblks_c,npromz_c
+    INTEGER  :: nlev, nlevp1
+    INTEGER  :: nlen, jg, itr
+
+    REAL(wp), DIMENSION(3) :: x_bubble
+    CHARACTER(len=*),PARAMETER :: routine  = &
+         &   'mo_nh_torus_exp:init_cp_mip_bubble'
+    !-------------------------------------------------------------------------
+
+    !-------------------------------------------------------------------------
+    !Note that this souding is created from a matlab code that
+    !iterates through the Eqs. 25,26,and 34 of Bryan and Fritsch's paper
+    !given theta_e, qt, and surface pressure. The source code is
+    !in icon-aes-and/scripts/preprocessing/ named init.f90 and findzero.m
+    !which creates a sound_** file that is then used to read in below
+    !
+    !One can also use the fortran source code from Bryan's website to generate
+    !the initial condition
+    !-------------------------------------------------------------------------
+    !Read the sounding file
+
+    ! values for the blocking
+    nblks_c  = ptr_patch%nblks_c
+    npromz_c = ptr_patch%npromz_c
+
+    ! number of vertical levels
+    nlev   = ptr_patch%nlev
+    nlevp1 = ptr_patch%nlevp1
+
+    !patch id
+    jg = ptr_patch%id
+
+    qv_in(1:nlev)=ptr_nh_prog%tracer(1,1:nlev,1,iqv)
+
+    !--------------------------------------------------------------------------
+    !Add perturbation to theta_v and iterate to get balanced thermodynamic state
+    !--------------------------------------------------------------------------
+    base     = 0.0_wp     ! m
+    top      = 1100.0_wp  ! m
+    bubctr_x = 0.0_wp ! m
+    bubctr_y = 0.0_wp ! m
+    bubctr_z = 0.5*(top-base) !m
+    bub_ver_width = top-base
+    bub_amp       = 0.001_wp   ! kg kg-1
+
+    !Bubble center, note that torus domain has center in the middle
+    !Uses bubctr_lon and bubctr_lat to represent x,y in torus
+    x_bubble = (/bubctr_x,bubctr_y,bubctr_z/)
+
+    !First non-dimensionalize bubble center
+    x_c(1) = x_bubble(1) / bub_hor_width
+    x_c(2) = x_bubble(2) / bub_hor_width
+    x_c(3) = x_bubble(3) / bub_ver_width
+
+    DO jb = 1, nblks_c
+      IF (jb /= nblks_c) THEN
+         nlen = nproma
+      ELSE
+         nlen = npromz_c
+      ENDIF
+      DO jc = 1 , nlen
+        DO jk = 1 , nlev
+          x_loc(1) = ptr_patch%cells%cartesian_center(jc,jb)%x(1)/bub_hor_width
+          x_loc(2) = ptr_patch%cells%cartesian_center(jc,jb)%x(2)/bub_hor_width
+          x_loc(3) = ptr_metrics%z_mc(jc,jk,jb)/bub_ver_width
+
+          x_c(3)   = x_loc(3)
+
+          dis = plane_torus_distance(x_loc,x_c,ptr_patch%geometry_info)
+
+          IF(dis < 1._wp .and. (ptr_metrics%z_mc(jc,jk,jb).ge.base) .and. (ptr_metrics%z_mc(jc,jk,jb).lt.top))THEN
+             rrr = cos( pi_2 * dis )**2.0_wp
+            qv_new = qv_in(jk) + bub_amp*rrr
+
+            !assign values to proper prog vars
+            ptr_nh_prog%tracer(jc,jk,jb,iqv) = qv_new
+           END IF
+
+        END DO
+      END DO
+    END DO
+
+  END SUBROUTINE init_cp_mip_bubble
 
 END MODULE mo_nh_torus_exp

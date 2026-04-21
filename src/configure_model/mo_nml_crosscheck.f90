@@ -20,7 +20,7 @@ MODULE mo_nml_crosscheck
   USE mo_exception,                ONLY: message, message_text, finish
   USE mo_impl_constants,           ONLY: inwp, tracer_only,                                &
     &                                    iaes, ildf_echam, RAYLEIGH_CLASSIC, INOFORCING,   &
-    &                                    icosmo, MODE_IAU, max_echotop, max_wshear,        &
+    &                                    ismag, icosmo, MODE_IAU, max_echotop, max_wshear, &
     &                                    max_srh, LSS_JSBACH, ivdiff, IHELDSUAREZ, ILDF_DRY
   USE mo_time_config,              ONLY: time_config, dt_restart
   USE mo_extpar_config,            ONLY: itopo
@@ -38,7 +38,7 @@ MODULE mo_nml_crosscheck
     &                                    ltransport, ltestcase, ltimer, ldynamics,         &
     &                                    activate_sync_timers, timers_level, lart,         &
     &                                    msg_level, luse_radarfwo, lmemman
-  USE mo_dynamics_config,          ONLY: ldeepatmo, lmoist_thdyn
+  USE mo_dynamics_config,          ONLY: ldeepatmo, lmoist_thdyn, lcoriolis
   USE mo_advection_config,         ONLY: advection_config
   USE mo_nonhydrostatic_config,    ONLY: itime_scheme_nh => itime_scheme,                  &
     &                                    rayleigh_type, ivctype, iadv_rhotheta
@@ -94,8 +94,9 @@ MODULE mo_nml_crosscheck
 
   USE mo_assimilation_config,      ONLY: assimilation_config
   USE mo_scm_nml,                  ONLY: i_scm_netcdf, scm_sfc_temp, scm_sfc_qv, scm_sfc_mom
+  USE mo_les_config,               ONLY: les_config
 #ifndef __NO_ICON_LES__
-  USE mo_ls_forcing_nml,           ONLY: is_ls_forcing
+  USE mo_ls_forcing_nml,           ONLY: is_ls_forcing, is_ls_coriolis
 #endif
 #ifdef __ICON_ART
   USE mo_grid_config,              ONLY: lredgrid_phys
@@ -255,14 +256,15 @@ CONTAINS
     ! SCM single column model
     !--------------------------------------------------------------------
     IF (l_scm_mode) THEN
-      ! data read from 0: ASCII, 1: normal netcdf file, 2: DEPHY unified format
+
+      ! data read from 0: ASCII, 1: normal netcdf file, 2: DEPHY unified SCM format
       IF ( (i_scm_netcdf /= 1) .AND. (i_scm_netcdf /= 2) ) &
         CALL finish(routine, 'i_scm_netcdf not valid for SCM, only 1 or 2 allowed')
       ltestcase      = .TRUE.
       is_plane_torus = .TRUE.
       CALL message( routine, 'l_scm_mode: ltestcase and is_plane_torus has been set to TRUE')
 
-      !if time dependent surface BD conditions then use ls_forcing
+      !if time dependent surface boundary conditions then use ls_forcing
       !routines for interpolation in time
       IF ( (scm_sfc_temp .GE. 1) .OR. (scm_sfc_qv .GE. 1) .OR. (scm_sfc_mom .GE. 1) ) THEN
 #ifndef __NO_ICON_LES__
@@ -273,6 +275,48 @@ CONTAINS
 #endif
       END IF
 
+      ! LES run on idealistic case (such as RICO)
+      ! fluxes are required to be calculated external (in set_scm_bnd)
+      IF (atm_phy_nwp_config(1)%inwp_turb == ismag) THEN
+        IF (atm_phy_nwp_config(1)%inwp_surface == 0 .AND. (les_config(1)%isrfc_type /= 10)) THEN
+          CALL finish(routine, 'idealized LES runs with inwp_surface = 0 require isrfc_type = 10')
+        END IF
+
+        SELECT CASE (scm_sfc_temp)
+          CASE (0)
+            IF (atm_phy_nwp_config(1)%inwp_surface == 0) THEN
+              CALL finish(routine, 'scm_sfc_temp=0 not possible when no surface scheme')
+            END IF
+          CASE (1)                       ! 1: prescribed Ts
+            scm_sfc_temp = 5             ! 5: prescribed Ts and fluxes from Louis (1979)
+            CALL message( routine, 'switch scm_sfc_temp from 1 to 5 for LES with Louis fluxes')
+          CASE default
+        END SELECT
+
+        SELECT CASE (scm_sfc_qv)
+          CASE (0)
+            IF (atm_phy_nwp_config(1)%inwp_surface == 0) THEN
+              CALL finish(routine, 'scm_sfc_qv=0 not possible when no surface scheme')
+            END IF
+          CASE (1)                       ! 1: prescribed qv_s
+            scm_sfc_qv = 5               ! 5: prescribed qv_s and fluxes from Louis (1979)
+            CALL message( routine, 'switch scm_sfc_qv from 1 to 5 for LES with Louis fluxes')
+          CASE (3)                       ! 3: qv_s based on saturation
+            scm_sfc_qv = 6               ! 6: qv_s based on saturation and fluxes from Louis (1979)
+            CALL message( routine, 'switch scm_sfc_qv from 3 to 6 for LES with Louis fluxes')
+          CASE default
+        END SELECT
+
+        SELECT CASE (scm_sfc_mom)
+          CASE (0)                       ! 0: prescribed Ts
+            IF (atm_phy_nwp_config(1)%inwp_surface == 0) THEN
+              scm_sfc_mom = 5            ! 5: prescribed Ts and fluxes from Louis (1979)
+              CALL message( routine, 'switch scm_sfc_mom from 0 to 5 for LES with Louis fluxes')
+            END IF
+          CASE default
+        END SELECT
+      ENDIF
+
       ! SHS production terms in turbdiff cannot be calculated in SCM mode.
       ! However, if LES is run in "idealised" mode with l_scm_mode and ldynamics=T,
       ! the shear terms could be optional
@@ -282,6 +326,14 @@ CONTAINS
         turbdiff_config(1:n_dom)%a_hshr  = 0
         turbdiff_config(1:n_dom)%itype_sher = 0
       ENDIF
+
+#ifndef __NO_ICON_LES__
+      IF (lcoriolis .and. is_ls_coriolis) THEN
+        is_ls_coriolis=.false.
+        CALL message( routine, 'is_ls_coriolis has been set to .false. to avoid double counting when lcoriolis=T')
+      ENDIF
+#endif
+
     ELSE
       i_scm_netcdf   = 0
     END IF

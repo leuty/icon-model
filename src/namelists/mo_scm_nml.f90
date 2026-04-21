@@ -56,7 +56,7 @@ MODULE mo_scm_nml
   INTEGER  :: i_scm_netcdf ! data read from
                            ! 0: ASCII
                            ! 1: normal netcdf file
-                           ! 2: DEPHY unified format
+                           ! 2: DEPHY unified SCM format
   LOGICAL  :: lscm_read_tke
   LOGICAL  :: lscm_read_z0
   LOGICAL  :: lscm_icon_ini

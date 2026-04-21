@@ -31,17 +31,19 @@ varname = "u"  # theta_v, temp, u, qv, tot_qv_dia
 metgrm_nvar = 6  # 5:theta_v, 6:u, 7:v, 12:qv, 18:tot_qv_dia ICON_global
 metgrm_nvar2 = 6  # 5:theta_v, 6:u, 7:v, 10:qv                LEM-LAM
 varname_axis = "zonal wind speed"  # '$\mathit{wind speed}$'  q_v, wind speed, $\mathit{\\theta_v}$
+ylim = 4000
 
-# steps   = (0,)                  # time step (0 is 1st step)
-# steps    = (0,3,6,9,12,15,18,21,24)   # time step (0 is 1st step)
-# steps    = (0,24,48,72,96)   # time step (0 is 1st step)
+# time step (0 is 1st step)
+# steps    = (0,)
+# steps    = (0,3,6,9,12,15,18,21,24)
+# steps    = (0,24,48,72,96)
 # steps_mtg= (0,12,24,36,48)
-# steps    = (0,4,8,12)   # time step (0 is 1st step)
+# steps    = (0,4,8,12)
 # steps_mtg= (0,2,4,6)
 
 # 15UTC for 3 days
 # hours_plot = np.array([15,15+24,15+48])
-# steps    = hours_plot * 4   # time step (0 is 1st step)
+# steps    = hours_plot * 4
 # steps_mtg= hours_plot * 2
 # steps4   = hours_plot / 3
 
@@ -189,13 +191,13 @@ fig.subplots_adjust(bottom=0.15, left=0.2)
 ax.set_title("(c)", fontsize=16, fontweight="bold", loc="right")
 ax.set_xlabel(xtitle).set_fontsize(18)
 ax.set_ylabel(ytitle).set_fontsize(18)
-# ax.set_xlim([285,300])  # theta_v
-# ax.set_xlim([290,304])  # theta_v
-# ax.set_xlim([0.0,0.007])  # qv
-# ax.set_xlim([0,10])     # u
-# ax.set_xlim([-10,2])   # v
+# ax.set_xlim([285,300])   # theta_v
+# ax.set_xlim([290,304])   # theta_v
+# ax.set_xlim([0.0,0.007]) # qv
+# ax.set_xlim([0,10])      # u
+# ax.set_xlim([-10,2])     # v
 ax.set_xlim([0, 10])  # speed
-ax.set_ylim([0, 4000])
+ax.set_ylim([0, ylim])
 
 plt.setp(ax.get_xticklabels(), fontsize=14)  # xtick labels fontsize
 plt.setp(ax.get_yticklabels(), fontsize=14)  # ytick labels fontsize
@@ -229,8 +231,8 @@ for ns in steps:
 ax2 = ax.twinx()  # second axes
 ax2.set_yticks(datay)
 ax2.tick_params(axis="y", labelright=False)
-# ax2.tick_params(axis='y')
 ax2.set_ylabel(ytitle_right).set_fontsize(14)
+ax2.set_ylim(0, ylim)
 
 # plot LES lines
 

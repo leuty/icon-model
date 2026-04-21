@@ -401,8 +401,15 @@ CONTAINS
         ELSE
           CALL finish(routine,'Unknown landcover data source')
         ENDIF
+
+      ELSE IF (i_scm_netcdf==2) THEN     ! DEPHY format doesn't have lctype data
+
+        i_lctype = GLOBCOVER2009
+
       ELSE
+
         i_lctype = -1
+
       ENDIF
     ENDIF ! my_process_is_mpi_workroot()
 

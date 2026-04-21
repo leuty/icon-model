@@ -35,6 +35,8 @@ steps = (0, 3, 6, 9, 12, 15, 18, 21, 24)  # time step (0 is 1st step)
 # npoints = range(32)             # plot all 32 points
 npoints = (-1,)  # mean of 32 points
 
+ylim = 5000
+
 # nc_file = '/hpc/uwork/mkoehler/run-icon/scm/SCM_GoAmazon_OP1/scm_GASS_out_PL_20140220T000000Z.nc'
 nc_file = (
     "/hpc/uwork/mkoehler/run-icon/scm/SCM_ICON/scm_out_ML_20200101T000000Z.nc"
@@ -75,6 +77,7 @@ fig.subplots_adjust(bottom=0.15, left=0.2)
 ax.set_title(title)
 ax.set_xlabel(xtitle)
 ax.set_ylabel(ytitle)
+x.set_ylim([0, ylim])
 
 grav = 9.80665
 
@@ -96,11 +99,15 @@ for ns in steps:
 ax2 = ax.twinx()  # second axes
 ax2.set_yticks(datay)
 ax2.tick_params(axis="y", labelright=False)
+ax2.set_ylabel("model levels")
+ax2.set_ylim(0, ylim)
 
 # label for each line
 
 ax.legend()
 
-fig.savefig("var_z_" + varname + ".png")  # png
-# fig.savefig('var_z'+varname+'.pdf')      # pdf
+fig.savefig(
+    "var_z_" + varname + "_" + location + "_" + str(num_dates[0]) + ".png"
+)  # png
+# fig.savefig('var_z'+varname+'.pdf')                                      # pdf
 plt.show()  # to screen

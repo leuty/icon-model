@@ -102,9 +102,11 @@ MODULE mo_nh_testcases_nml
   REAL(wp) :: qv_max                 ! limit of maximum specific humidity in the tropics [kg/kg]
   REAL(wp) :: tpe_moist              ! initial total moisture content for terra planet [kg/m2]
   REAL(wp) :: tpe_psfc               ! initial surface pressure for terra planet [Pa]
-  REAL(wp) :: tpe_temp               ! initial atmospheric temperature for terra planet [K], in the case of RCE_Tprescr this is the surface temperature
+  REAL(wp) :: tpe_temp               ! initial atmospheric temperature for terra planet [K],
+                                     ! in the case of RCE_Tprescr this is the surface temperature
   REAL(wp) :: t0                     ! RCE_Tprescr: initial atmospheric temperature in lowest model layer [K]
-  REAL(wp) :: z0                     ! RCE_Tprescr: altitude above surface up to which temperature increases with lapse rate gamma0 [m]
+  REAL(wp) :: z0                     ! RCE_Tprescr: altitude above surface up to which temperature increases
+                                     ! with lapse rate gamma0 [m]
   REAL(wp) :: gamma0                 ! RCE_Tprescr: lapse rate of temperature between surface and z0 [K/m]
   REAL(wp) :: gamma1                 ! RCE_Tprescr: lapse rate of temperature above z0 [K/m]
   LOGICAL  :: RCE_Tprescr_noise      ! RCE_Tprescr_noise: .TRUE. for adding

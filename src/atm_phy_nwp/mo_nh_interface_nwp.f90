@@ -112,9 +112,9 @@ MODULE mo_nh_interface_nwp
 #endif
   USE mo_var_list,                ONLY: t_var_list_ptr
 #ifndef __NO_ICON_LES__
-  USE mo_ls_forcing_nml,          ONLY: is_ls_forcing, is_nudging_uv, is_nudging_tq, is_sim_rad, &
-    &                                   nudge_start_height, nudge_full_height, dt_relax
-  USE mo_ls_forcing,              ONLY: apply_ls_forcing
+  USE mo_ls_forcing_nml,          ONLY: is_ls_forcing, is_sim_rad
+  USE mo_ls_forcing,              ONLY: apply_ls_forcing, apply_ls_forc_nudge_uvt, &
+                                     &  apply_ls_sfc_forcing
   USE mo_les_turb_interface,      ONLY: les_turbulence
   USE mo_les_config,              ONLY: les_config
 #endif
@@ -321,9 +321,6 @@ CONTAINS
     REAL(wp) :: p_sim_time      !< elapsed simulation time on this grid level
 
     LOGICAL :: lcalc_inv
-
-    ! SCM Nudging
-    REAL(wp) :: nudgecoeff
 
     ! parameterized FSD
     REAL(wp), POINTER :: cloud_fsd_2d(:,:) => NULL()
@@ -601,6 +598,47 @@ CONTAINS
         ENDDO
       ENDDO
       !$ACC END PARALLEL
+
+
+#ifndef __NO_ICON_LES__
+      !-------------------------------------------------------------------------
+      ! Martin Koehler (Jan 2022), updated 2026
+      ! Call to apply_ls_sfc_forcing to read surface conditions (tg, qvs, fluxes).
+      ! Surface conditions are required for set_scm_bnd (see mo_nh_torus_exp) that is
+      ! called within mo_sgs_turbulence to set surface conditions for idealised LES.
+      !-------------------------------------------------------------------------
+      IF ( is_ls_forcing .AND. (lcall_phy_jg(itturb) .OR. linit) ) THEN
+
+        IF (msg_level >= 15) &
+          &  CALL message('mo_nh_interface_nwp:', 'LS forcing: read surface conditions')
+
+        IF (timers_level > 3) CALL timer_start(timer_ls_forcing)
+
+        ! exclude boundary interpolation zone of nested domains
+        rl_start = grf_bdywidth_c+1
+        rl_end   = min_rlcell_int
+
+        ! Only output of time interpolated surface variables
+        CALL apply_ls_sfc_forcing ( pt_patch,                         & !>in
+          &                     p_metrics,                        & !>in
+          &                     p_sim_time,                       & !>in
+          &                     rl_start,                         & !>in
+          &                     rl_end,                           & !>in
+          &                     prm_nwp_tend%fc_sfc_lat_flx,      & !>output
+          &                     prm_nwp_tend%fc_sfc_sens_flx,     & !>output
+          &                     prm_nwp_tend%fc_ts,               & !>output
+          &                     prm_nwp_tend%fc_tg,               & !>output
+          &                     prm_nwp_tend%fc_qvs,              & !>output
+          &                     prm_nwp_tend%fc_Ch,               & !>output
+          &                     prm_nwp_tend%fc_Cq,               & !>output
+          &                     prm_nwp_tend%fc_Cm,               & !>output
+          &                     prm_nwp_tend%fc_ustar )             !>output
+
+        IF (timers_level > 3) CALL timer_stop(timer_ls_forcing)
+
+      ENDIF ! apply_ls_sfc_forcing
+#endif
+
 
       !!-------------------------------------------------------------------------
       !> Initial saturation adjustment (a second one follows at the end of the microphysics)
@@ -2239,7 +2277,7 @@ CONTAINS
     IF(is_ls_forcing)THEN
 
       IF (msg_level >= 15) &
-        &  CALL message('mo_nh_interface:', 'LS forcing')
+        &  CALL message('mo_nh_interface:', 'LS forcing: apply')
 
       IF (timers_level > 3) CALL timer_start(timer_ls_forcing)
 
@@ -2270,15 +2308,6 @@ CONTAINS
         &                     prm_nwp_tend%ddt_u_adv_ls,        & !>out
         &                     prm_nwp_tend%ddt_v_adv_ls,        & !>out
         &                     prm_nwp_tend%wsub,                & !>out
-        &                     prm_nwp_tend%fc_sfc_lat_flx,      & !>out
-        &                     prm_nwp_tend%fc_sfc_sens_flx,     & !>out
-        &                     prm_nwp_tend%fc_ts,               & !>out
-        &                     prm_nwp_tend%fc_tg,               & !>out
-        &                     prm_nwp_tend%fc_qvs,              & !>out
-        &                     prm_nwp_tend%fc_Ch,               & !>out
-        &                     prm_nwp_tend%fc_Cq,               & !>out
-        &                     prm_nwp_tend%fc_Cm,               & !>out
-        &                     prm_nwp_tend%fc_ustar,            & !>out
         &                     prm_nwp_tend%temp_nudge,          & !>out
         &                     prm_nwp_tend%u_nudge,             & !>out
         &                     prm_nwp_tend%v_nudge,             & !>out
@@ -2372,7 +2401,7 @@ CONTAINS
       i_endblk   = pt_patch%cells%end_block(rl_end)
 
 !$OMP PARALLEL
-!$OMP DO PRIVATE(jb,jk,jc,i_startidx,i_endidx,z_qsum,z_ddt_temp,z_ddt_temp_drag,z_ddt_alpha,vabs,nudgecoeff,&
+!$OMP DO PRIVATE(jb,jk,jc,i_startidx,i_endidx,z_qsum,z_ddt_temp,z_ddt_temp_drag,z_ddt_alpha,vabs,&
 !$OMP  rfric_fac,zddt_u_raylfric,zddt_v_raylfric,sqrt_ri,n2,dvdz2,wfac) ICON_OMP_DEFAULT_SCHEDULE
 !
       DO jb = i_startblk, i_endblk
@@ -2598,79 +2627,32 @@ CONTAINS
         !>  accumulate tendencies of slow_physics when LS forcing is ON
         !-------------------------------------------------------------------------
         IF (is_ls_forcing) THEN
-          DO jk = 1, nlev
-            DO jc = i_startidx, i_endidx
 
-              ! add u/v/T forcing tendency
-              z_ddt_u_tot(jc,jk,jb)   = z_ddt_u_tot(jc,jk,jb)       &
-                &                     + prm_nwp_tend%ddt_u_ls(jk)
-
-              z_ddt_v_tot(jc,jk,jb)   = z_ddt_v_tot(jc,jk,jb)       &
-                &                     + prm_nwp_tend%ddt_v_ls(jk)
-
-              z_ddt_temp(jc,jk)       = z_ddt_temp(jc,jk)           &
-                                      + prm_nwp_tend%ddt_temp_ls(jk)
-
-              ! simplified radiation scheme
-              IF(is_sim_rad) THEN
-                z_ddt_temp(jc,jk)     = z_ddt_temp(jc,jk)           &
-                                      + prm_nwp_tend%ddt_temp_sim_rad(jc,jk,jb)
-              ENDIF
-
-              ! linear nudging profile between "start" and "full" heights - prevent sfc layer instability
-              IF ( nudge_full_height == nudge_start_height ) THEN
-                nudgecoeff = 1.0_wp
-              ELSE
-                nudgecoeff = ( p_metrics%geopot_agl(jc,jk,jb)/grav - nudge_start_height ) / &
-                           & ( nudge_full_height                   - nudge_start_height )
-                nudgecoeff = MAX( MIN( nudgecoeff, 1.0_wp ), 0.0_wp )
-              END IF
-
-              ! add u/v/T nudging
-              IF ( is_nudging_uv ) THEN
-                ! explicit:          (u,n+1 - u,n) / dt = (u,nudge - u,n)   / dt_relax
-
-                ! implicit:          (u,n+1 - u,n) / dt = (u,nudge - u,n+1) / dt_relax
-
-                ! analytic implicit: (u,n+1 - u,n) / dt = (u,nudge - u,n)   / dt_relax * exp(-dt/dt_relax)
-                z_ddt_u_tot(jc,jk,jb) = z_ddt_u_tot(jc,jk,jb)       &
-                  &  - ( pt_diag%u(jc,jk,jb) - prm_nwp_tend%u_nudge(jk) ) / dt_relax * exp(-dt_loc/dt_relax) &
-                  &  * nudgecoeff
-
-                z_ddt_v_tot(jc,jk,jb) = z_ddt_v_tot(jc,jk,jb)       &
-                  &  - ( pt_diag%v(jc,jk,jb) - prm_nwp_tend%v_nudge(jk) ) / dt_relax * exp(-dt_loc/dt_relax) &
-                  &  * nudgecoeff
-
-              END IF
-
-              ! attention: T nudging results in dt-step oscillation/instability!
-              ! q nudging done in tracer_add_phytend in mo_util_phys
-
-              IF ( is_nudging_tq ) THEN
-                ! explicit:          (T,n+1 - T,n) / dt = (T,nudge - T,n)   / dt_relax
-
-                ! implicit:          (T,n+1 - T,n) / dt = (T,nudge - T,n+1) / dt_relax
-
-                ! analytic implicit: (T,n+1 - T,n) / dt = (T,nudge - T,n)   / dt_relax * exp(-dt/dt_relax)
-                z_ddt_temp(jc,jk)     = z_ddt_temp(jc,jk)           &
-                  &  - ( pt_diag%temp(jc,jk,jb) - prm_nwp_tend%temp_nudge(jk) ) / dt_relax &
-                  &  * exp(-dt_loc/dt_relax) * nudgecoeff
-              END IF
-
-              ! Convert temperature tendency into Exner function tendency
-              z_ddt_alpha(jc,jk) = z_ddt_alpha(jc,jk)                          &
-                &                + vtmpc1 * prm_nwp_tend%ddt_tracer_ls(jk,iqv) &
-                &                - prm_nwp_tend%ddt_tracer_ls(jk,iqc)          &
-                &                - prm_nwp_tend%ddt_tracer_ls(jk,iqi)
-
-              pt_diag%ddt_exner_phy(jc,jk,jb) = rd_o_cpd / pt_prog%theta_v(jc,jk,jb)           &
-                &                             * (z_ddt_temp(jc,jk)                             &
-                &                             *(1._wp + vtmpc1*pt_prog_rcf%tracer(jc,jk,jb,iqv)&
-                &                             - z_qsum(jc,jk))                                 &
-                &                             + pt_diag%temp(jc,jk,jb) * z_ddt_alpha(jc,jk) )
-
-            END DO  ! jc
-          END DO  ! jk
+          CALL apply_ls_forc_nudge_uvt( &
+               & i_startidx       = i_startidx                            , & !IN
+               & i_endidx         = i_endidx                              , & !IN
+               & nlev             = nlev                                  , & !IN
+               & ddt_u_ls         = prm_nwp_tend%ddt_u_ls(:)              , & !IN
+               & ddt_v_ls         = prm_nwp_tend%ddt_v_ls(:)              , & !IN
+               & ddt_temp_ls      = prm_nwp_tend%ddt_temp_ls(:)           , & !IN
+               & temp             = pt_diag%temp(:,:,jb)                  , & !IN
+               & theta_v          = pt_prog%theta_v(:,:,jb)               , & !IN
+               & u                = pt_diag%u(:,:,jb)                     , & !IN
+               & v                = pt_diag%v(:,:,jb)                     , & !IN
+               & qv               = pt_prog_rcf%tracer(:,:,jb,iqv)        , & !IN
+               & z_qsum           = z_qsum(:,:)                           , & !IN
+               & ddt_tracer_ls    = prm_nwp_tend%ddt_tracer_ls(:,:)       , & !IN
+               & temp_nudge       = prm_nwp_tend%temp_nudge(:)            , & !IN
+               & u_nudge          = prm_nwp_tend%u_nudge(:)               , & !IN
+               & v_nudge          = prm_nwp_tend%v_nudge(:)               , & !IN
+               & geopot_agl       = p_metrics%geopot_agl(:,:,jb)          , & !IN
+               & ddt_temp_sim_rad = prm_nwp_tend%ddt_temp_sim_rad(:,:,jb) , & !IN
+               & dt_loc           = dt_loc                                , & !IN
+               & ddt_exner_phy    = pt_diag%ddt_exner_phy(:,:,jb)         , & !INOUT
+               & z_ddt_u_tot      = z_ddt_u_tot(:,:,jb)                   , & !INOUT
+               & z_ddt_v_tot      = z_ddt_v_tot(:,:,jb)                   , & !INOUT
+               & z_ddt_temp       = z_ddt_temp(:,:)                       , & !INOUT
+               & z_ddt_alpha      = z_ddt_alpha(:,:))                         !INOUT
 
         ENDIF ! END of LS forcing tendency accumulation
 #endif

@@ -5701,7 +5701,9 @@ Parameters for LES turbulence scheme, valid for inwp_turb=5.
     - 3: fixed buoyancy fluxes
     - 4: RICO test case
     - 5: fixed SST
-    - 6: time varying SST and qv_s case with prescribed roughness length for semi-idealized setups
+    - 6: time varying SST and qv_s with prescribed roughness length for semi-idealized setups
+    - 7,8,9: various fixed fluxed options
+    - 10: surface conditions as used for SCM
   -
 
 * - (les_nml-ufric)=
@@ -6621,12 +6623,20 @@ Parameters for large-scale forcing, valid for torus geometry, is_plane_torus=.TR
   - switch for enabling LS horizontal advection for u and v
   - is_advection=.TRUE.
 
-* - (ls_forcing_nml-is_advection_tq)=
-    **is_advection_tq**
+* - (ls_forcing_nml-is_advection_t)=
+    **is_advection_t**
   - L
   - .TRUE.
   -
-  - switch for enabling LS horizontal advection for temperature and moisture
+  - switch for enabling LS horizontal advection for temperature
+  - is_advection=.TRUE.
+
+* - (ls_forcing_nml-is_advection_q)=
+    **is_advection_q**
+  - L
+  - .TRUE.
+  -
+  - switch for enabling LS horizontal advection for moisture
   - is_advection=.TRUE.
 
 * - (ls_forcing_nml-is_nudging)=
@@ -6653,28 +6663,76 @@ Parameters for large-scale forcing, valid for torus geometry, is_plane_torus=.TR
   - switch for enabling LS Newtonian relaxation (nudging) for temperature and specific humidity only
   - is_nudging=.TRUE.
 
-* - (ls_forcing_nml-nudge_start_height)=
-    **nudge_start_height**
+* - (ls_forcing_nml-nudge_start_height_uv)=
+    **nudge_start_height_uv**
   - R
   - 1000.0
   - m
-  - height where nudging starts
+  - height where nudging starts for winds
   - is_nudging=.TRUE.
 
-* - (ls_forcing_nml-nudge_full_height)=
-    **nudge_full_height**
+* - (ls_forcing_nml-nudge_start_height_t)=
+    **nudge_start_height_t**
+  - R
+  - 1000.0
+  - m
+  - height where nudging starts for temperature
+  - is_nudging=.TRUE.
+
+* - (ls_forcing_nml-nudge_start_height_q)=
+    **nudge_start_height_q**
+  - R
+  - 1000.0
+  - m
+  - height where nudging starts for moisture
+  - is_nudging=.TRUE.
+
+* - (ls_forcing_nml-nudge_full_height_uv)=
+    **nudge_full_height_uv**
   - R
   - 2000.0
   - m
-  - height where nudging reaches full strength
+  - height where nudging reaches full strength for winds
   - is_nudging=.TRUE.
 
-* - (ls_forcing_nml-dt_relax)=
-    **dt_relax**
+* - (ls_forcing_nml-nudge_full_height_t)=
+    **nudge_full_height_t**
+  - R
+  - 2000.0
+  - m
+  - height where nudging reaches full strength for temperature
+  - is_nudging=.TRUE.
+
+* - (ls_forcing_nml-nudge_full_height_q)=
+    **nudge_full_height_q**
+  - R
+  - 2000.0
+  - m
+  - height where nudging reaches full strength for moisture
+  - is_nudging=.TRUE.
+
+* - (ls_forcing_nml-dt_relax_uv)=
+    **dt_relax_uv**
   - R
   - 3600.0
   - s
-  - relaxation time scale for the nudging
+  - relaxation time scale for the nudging for winds
+  - is_nudging=.TRUE.
+
+* - (ls_forcing_nml-dt_relax_t)=
+    **dt_relax_t**
+  - R
+  - 3600.0
+  - s
+  - relaxation time scale for the nudging for temperature
+  - is_nudging=.TRUE.
+
+* - (ls_forcing_nml-dt_relax_q)=
+    **dt_relax_q**
+  - R
+  - 3600.0
+  - s
+  - relaxation time scale for the nudging for moisture
   - is_nudging=.TRUE.
 
 * - (ls_forcing_nml-is_geowind)=
@@ -6683,6 +6741,14 @@ Parameters for large-scale forcing, valid for torus geometry, is_plane_torus=.TR
   - .FALSE.
   -
   - switch for enabling geostrophic wind
+  -
+
+* - (ls_forcing_nml-is_ls_coriolis)=
+    **is_ls_coriolis**
+  - L
+  - .FALSE.
+  -
+  - Coriolis term for SCM or LES calculated based on domain average winds as part of large-scale forcing
   -
 
 * - (ls_forcing_nml-is_rad_forcing)=

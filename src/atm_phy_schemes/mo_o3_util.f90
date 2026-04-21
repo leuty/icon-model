@@ -53,6 +53,9 @@ MODULE mo_o3_util
        &                             deallocateTimedelta, deallocateDatetime
   USE mo_bcs_time_interpolation, ONLY: t_time_interpolation_weights, &
        &                               calculate_time_interpolation_weights
+  USE mo_math_types,           ONLY: t_geographical_coordinates
+  USE mo_scm_nml,              ONLY: lat_scm,lon_scm
+  USE mo_grid_config,          ONLY: l_scm_mode
   USE mo_fortran_tools,        ONLY: set_acc_host_or_device, init
 
   IMPLICIT NONE
@@ -1093,10 +1096,13 @@ CONTAINS
   !!
   SUBROUTINE calc_o3_gems(pt_patch,mtime_datetime,p_diag,prm_diag,o3,use_acc)
 
-    TYPE(t_patch),           INTENT(in)    :: pt_patch    ! Patch
+    TYPE(t_patch), TARGET,   INTENT(in)    :: pt_patch    ! Patch
     TYPE(datetime), POINTER, INTENT(in)    :: mtime_datetime
     TYPE(t_nh_diag),         INTENT(in)    :: p_diag  !!the diagostic variables
     TYPE(t_nwp_phy_diag),    INTENT(in)    :: prm_diag
+    TYPE(t_geographical_coordinates), TARGET, ALLOCATABLE :: scm_center(:,:)
+    TYPE(t_geographical_coordinates), POINTER             :: ptr_center(:,:)
+
     REAL(wp),                INTENT(inout) :: o3(:,:,:)  !! ozone
 
     LOGICAL, OPTIONAL, INTENT(in) :: use_acc
@@ -1154,7 +1160,7 @@ CONTAINS
     LOGICAL  :: l_found(nproma)
 
     ! local scalars
-    INTEGER  :: jk,jkk,jkkk,jk1,jl,jc,jb !loop indices
+    INTEGER  :: jk,jkk,jkkk,jk1,jl,jc,jb, ie !loop indices
     INTEGER  :: idy,im,imn,im1,im2,jk_start,i_startidx,i_endidx,i_nchdom,i_startblk,i_endblk
     INTEGER  :: rl_start,rl_end,k375,k100,ktp
     REAL(wp) :: ztimi,zxtime,zjl,zlatint,zint,zadd_o3,tuneo3_1(nlev_gems),tuneo3_2(nlev_gems),&
@@ -1173,6 +1179,22 @@ CONTAINS
     else
       lacc = .false.
     end if
+
+    ! SCM: read lat/lon for horizontally uniform zenith angle
+    IF ( l_scm_mode ) THEN
+#ifdef _OPENACC
+      IF (lacc) CALL finish('calc_o3_gems','l_scm_mode not ported to gpu')
+#endif
+      ALLOCATE(scm_center(SIZE(pt_patch%cells%center,1),SIZE(pt_patch%cells%center,2)))
+      DO jb = 1,pt_patch%nblks_c
+        ie = MERGE(nproma, pt_patch%npromz_c, jb /= pt_patch%nblks_c)
+        scm_center(1:ie,jb)%lat = lat_scm * pi/180._wp
+        scm_center(1:ie,jb)%lon = lon_scm * pi/180._wp
+      ENDDO
+      ptr_center => scm_center
+    ELSE
+      ptr_center => pt_patch%cells%center
+    ENDIF
 
     ! Option-dependent factors for ozone tuning
     SELECT CASE (itune_o3)
@@ -1513,7 +1535,7 @@ CONTAINS
 
         DO jc=i_startidx,i_endidx
 
-          zjl=1._wp+(rad2deg*pt_patch%cells%center(jc,jb)%lat+90._wp-.5_wp*zlatint)/zlatint
+          zjl=1._wp+(rad2deg*ptr_center(jc,jb)%lat+90._wp-.5_wp*zlatint)/zlatint
 
           !just select nearest value
           !zo3(jc,jkk,jb) = zozn(NINT(zjl),jkk)
@@ -1522,7 +1544,7 @@ CONTAINS
           zo3(jc,jkk) = zozn(INT(zjl),jkk) &
             & + (zozn(INT(zjl)+1,jkk)-zozn(INT(zjl),jkk)) &
             &  /  (zlat(INT(zjl)) - zlat(INT(zjl)+1)) &
-            &  * (zlat(INT(zjl)) - pt_patch%cells%center(jc,jb)%lat)
+            &  * (zlat(INT(zjl)) - ptr_center(jc,jb)%lat)
 
         ENDDO !jc
 
@@ -1656,7 +1678,7 @@ CONTAINS
         !$ACC   PRIVATE(k100, wfac2, jkk, o3_clim) REDUCTION(.OR.: lk100_less_than_0)
         DO jc = i_startidx,i_endidx
           l_found(jc) = .FALSE.
-          IF (ABS(pt_patch%cells%center(jc,jb)%lat)*rad2deg > 25._wp) THEN
+          IF (ABS(ptr_center(jc,jb)%lat)*rad2deg > 25._wp) THEN
             ! Determine thermal tropopause according to WMO definition and 375 hPa level
             k375  = prm_diag%k850(jc,jb)          ! initialization to be safe over very high mountains
             !$ACC LOOP SEQ
@@ -1682,7 +1704,7 @@ CONTAINS
                 ! the component depending on the tropopause sharpness increases from 0 to 1 between 2.5 K/km and 7.5 K/km
                 ktp = jk
                 tpshp = 0.5_wp*(dtdz(jc,jk-1)+dtdz(jc,jk-2)) - 0.5_wp*(dtdz(jc,jk)+dtdz(jc,jk+1))
-                wfac = MIN(1._wp,0.2_wp*(ABS(pt_patch%cells%center(jc,jb)%lat)*rad2deg-25._wp)) * &
+                wfac = MIN(1._wp,0.2_wp*(ABS(ptr_center(jc,jb)%lat)*rad2deg-25._wp)) * &
                   MIN(1._wp,200._wp*MAX(0._wp,tpshp-2.5e-3_wp))
                 EXIT
               ENDIF

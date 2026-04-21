@@ -78,7 +78,7 @@ MODULE mo_ext_data_init
   USE mo_coupling_config,    ONLY: is_coupled_to_ocean
   USE mo_grid_config,        ONLY: l_scm_mode
   USE mo_scm_nml,            ONLY: i_scm_netcdf
-  USE mo_nh_torus_exp,       ONLY: read_ext_scm_nc
+  USE mo_nh_torus_exp,       ONLY: read_ext_scm_nc, read_ext_scm_nc_uf
 
   IMPLICIT NONE
 
@@ -165,85 +165,96 @@ CONTAINS
       ! are not read in from file.
       IF ( iforcing == inwp ) THEN
 
+        DO jg = 1, n_dom
+          ext_data(jg)%atm%fr_land(:,:)     = 0._wp       ! land fraction
+          ext_data(jg)%atm%llsm_atm_c(:,:)  = .FALSE.     ! land-sea mask
+          ext_data(jg)%atm%llake_c(:,:)     = .FALSE.     ! lake mask
+          ext_data(jg)%atm%urb_isa(:,:)     = 0._wp       ! impervious surface area fraction of the urban canopy
+          IF (lterra_urb) THEN
+            ext_data(jg)%atm%urb_ai(:,:)      = 2._wp       ! surface area index of the urban canopy
+            ext_data(jg)%atm%urb_alb_red(:,:) = 0.9_wp      ! albedo reduction factor for the urban canopy
+            ext_data(jg)%atm%urb_fr_bld(:,:)  = 0.667_wp    ! building area fraction with respect to urban tile
+            ext_data(jg)%atm%urb_h2w(:,:)     = 1.5_wp      ! street canyon H/W ratio
+            ext_data(jg)%atm%urb_h_bld(:,:)   = 15._wp      ! building height
+            ext_data(jg)%atm%urb_alb_th(:,:)  = 0.14_wp     ! thermal albedo of urban material
+            ext_data(jg)%atm%urb_alb_so(:,:)  = 0.101_wp    ! solar albedo of urban material
+            ext_data(jg)%atm%urb_hcap(:,:)    = 1250000._wp ! volumetric heat capacity of urban material
+            ext_data(jg)%atm%urb_hcon(:,:)    = 0.767_wp    ! thermal conductivity of urban material
+            ext_data(jg)%atm%ahf(:,:)         = 0._wp       ! anthropogenic heat flux
+          ENDIF
+          ext_data(jg)%atm%plcov_mx(:,:)    = 0.5_wp      ! plant cover
+          ext_data(jg)%atm%lai_mx(:,:)      = 3._wp       ! max Leaf area index
+          ext_data(jg)%atm%rootdp(:,:)      = 1._wp       ! root depth
+          ext_data(jg)%atm%skinc(:,:)       = 30._wp      ! skin conductivity
+          ext_data(jg)%atm%rsmin(:,:)       = 150._wp     ! minimal stomata resistence
+          ext_data(jg)%atm%soiltyp(:,:)     = 8           ! soil type
+          ext_data(jg)%atm%z0(:,:)          = 0.001_wp    ! roughness length
+          ext_data(jg)%atm%topography_c(:,:)= 0.0_wp      ! topographic height
+          ext_data(jg)%atm%emis_rad(:,:)    = zemiss_def ! longwave surface emissivity
+
+          ! Special setup for tiles
+          ext_data(jg)%atm%soiltyp_t(:,:,:) = 8           ! soil type
+          ext_data(jg)%atm%frac_t(:,:,:)    = 0._wp       ! set all tiles to 0
+          ext_data(jg)%atm%frac_t(:,:,isub_water) = 1._wp ! set only ocean to 1
+          ext_data(jg)%atm%lc_class_t(:,:,:) = 1          ! land cover class
+        END DO
+
         ! SCM netcdf input or surface parameters
-        IF ( l_scm_mode .AND. (i_scm_netcdf==1) ) THEN
+        IF ( l_scm_mode ) THEN
 
-          !read external parameters from netCDF file
-          ! TODO: read external parameters for unified SCM formal 'uf'
-          CALL read_ext_scm_nc(num_lcc,soiltyp_scm,fr_land_scm,plcov_mx_scm,lai_mx_scm,rootdp_scm, &
-            &                  rsmin_scm,z0_scm,topo_scm,emis_rad_scm,lu_class_fr_scm)
-          DO jg = 1, n_dom
-            !set external parameters
-            ext_data(jg)%atm%fr_land(:,:)     = fr_land_scm  ! land fraction
-            IF (fr_land_scm >= 0.5_wp ) THEN
-              ext_data(jg)%atm%llsm_atm_c(:,:)= .TRUE.       ! land-sea mask
-            ELSE
-              ext_data(jg)%atm%llsm_atm_c(:,:)= .FALSE.
-            ENDIF
-            ext_data(jg)%atm%llake_c(:,:)     = .FALSE.      ! lake mask
-            ext_data(jg)%atm%plcov_mx(:,:)    = plcov_mx_scm ! plant cover
-            ext_data(jg)%atm%lai_mx(:,:)      = lai_mx_scm   ! max Leaf area index
-            ext_data(jg)%atm%rootdp(:,:)      = rootdp_scm   ! root depth
-            ext_data(jg)%atm%rsmin(:,:)       = rsmin_scm    ! minimal stomata resistence
-            ext_data(jg)%atm%soiltyp(:,:)     = soiltyp_scm  ! soil type
-            ext_data(jg)%atm%z0(:,:)          = z0_scm       ! roughness length
-            ext_data(jg)%atm%topography_c(:,:)= topo_scm     ! topographic height
-            ext_data(jg)%atm%emis_rad(:,:)    = emis_rad_scm ! emissivity
-            !
-            DO ilcc=1, num_lcc
-              ext_data(jg)%atm%lu_class_fraction(:,:,ilcc) = lu_class_fr_scm(ilcc) ! fraction of LU class
-            ENDDO
+          IF ( i_scm_netcdf==1 ) THEN
 
-            !Special setup for tiles
-            ext_data(jg)%atm%soiltyp_t(:,:,:) = soiltyp_scm ! soil type
-            ext_data(jg)%atm%frac_t(:,:,:)    = 0._wp       ! set all tiles to 0
-            ext_data(jg)%atm%frac_t(:,:,isub_water) = 1._wp ! set only ocean to 1
-            ext_data(jg)%atm%lc_class_t(:,:,:) = 1          ! land cover class
-          END DO
+            !read external parameters from netCDF file
+            CALL read_ext_scm_nc(num_lcc,soiltyp_scm,fr_land_scm,plcov_mx_scm,lai_mx_scm,rootdp_scm, &
+              &                  rsmin_scm,z0_scm,topo_scm,emis_rad_scm,lu_class_fr_scm)
+            DO jg = 1, n_dom
+              !set external parameters
+              ext_data(jg)%atm%fr_land(:,:)     = fr_land_scm  ! land fraction
+              IF (fr_land_scm >= 0.5_wp ) THEN
+                ext_data(jg)%atm%llsm_atm_c(:,:)= .TRUE.       ! land-sea mask
+              ELSE
+                ext_data(jg)%atm%llsm_atm_c(:,:)= .FALSE.
+              ENDIF
+              ext_data(jg)%atm%llake_c(:,:)     = .FALSE.      ! lake mask
+              ext_data(jg)%atm%plcov_mx(:,:)    = plcov_mx_scm ! plant cover
+              ext_data(jg)%atm%lai_mx(:,:)      = lai_mx_scm   ! max Leaf area index
+              ext_data(jg)%atm%rootdp(:,:)      = rootdp_scm   ! root depth
+              ext_data(jg)%atm%rsmin(:,:)       = rsmin_scm    ! minimal stomata resistence
+              ext_data(jg)%atm%soiltyp(:,:)     = soiltyp_scm  ! soil type
+              ext_data(jg)%atm%z0(:,:)          = z0_scm       ! roughness length
+              ext_data(jg)%atm%topography_c(:,:)= topo_scm     ! topographic height
+              ext_data(jg)%atm%emis_rad(:,:)    = emis_rad_scm ! emissivity
 
-        ELSE
-          DO jg = 1, n_dom
-            ext_data(jg)%atm%fr_land(:,:)     = 0._wp       ! land fraction
-            ext_data(jg)%atm%llsm_atm_c(:,:)  = .FALSE.     ! land-sea mask
-            ext_data(jg)%atm%llake_c(:,:)     = .FALSE.     ! lake mask
-            ext_data(jg)%atm%urb_isa(:,:)     = 0._wp       ! impervious surface area fraction of the urban canopy
-            IF (lterra_urb) THEN
-              ext_data(jg)%atm%urb_ai(:,:)      = 2._wp       ! surface area index of the urban canopy
-              ext_data(jg)%atm%urb_alb_red(:,:) = 0.9_wp      ! albedo reduction factor for the urban canopy
-              ext_data(jg)%atm%urb_fr_bld(:,:)  = 0.667_wp    ! building area fraction with respect to urban tile
-              ext_data(jg)%atm%urb_h2w(:,:)     = 1.5_wp      ! street canyon H/W ratio
-              ext_data(jg)%atm%urb_h_bld(:,:)   = 15._wp      ! building height
-              ext_data(jg)%atm%urb_alb_th(:,:)  = 0.14_wp     ! thermal albedo of urban material
-              ext_data(jg)%atm%urb_alb_so(:,:)  = 0.101_wp    ! solar albedo of urban material
-              ext_data(jg)%atm%urb_hcap(:,:)    = 1250000._wp ! volumetric heat capacity of urban material
-              ext_data(jg)%atm%urb_hcon(:,:)    = 0.767_wp    ! thermal conductivity of urban material
-              ext_data(jg)%atm%ahf(:,:)         = 0._wp       ! anthropogenic heat flux
-            ENDIF
-            ext_data(jg)%atm%plcov_mx(:,:)    = 0.5_wp      ! plant cover
-            ext_data(jg)%atm%lai_mx(:,:)      = 3._wp       ! max Leaf area index
-            ext_data(jg)%atm%rootdp(:,:)      = 1._wp       ! root depth
-            ext_data(jg)%atm%skinc(:,:)       = 30._wp      ! skin conductivity
-            ext_data(jg)%atm%rsmin(:,:)       = 150._wp     ! minimal stomata resistence
-            ext_data(jg)%atm%soiltyp(:,:)     = 8           ! soil type
-            ext_data(jg)%atm%z0(:,:)          = 0.001_wp    ! roughness length
-            ext_data(jg)%atm%topography_c(:,:)= 0.0_wp      ! topographic height
+              DO ilcc=1, num_lcc
+                ext_data(jg)%atm%lu_class_fraction(:,:,ilcc) = lu_class_fr_scm(ilcc) ! fraction of LU class
+              ENDDO
 
-            ! Special setup for tiles
-            ext_data(jg)%atm%soiltyp_t(:,:,:) = 8           ! soil type
-            ext_data(jg)%atm%frac_t(:,:,:)    = 0._wp       ! set all tiles to 0
-            ext_data(jg)%atm%frac_t(:,:,isub_water) = 1._wp ! set only ocean to 1
-            ext_data(jg)%atm%lc_class_t(:,:,:) = 1          ! land cover class
-          END DO
-        ENDIF
+              !Special setup for tiles
+              ext_data(jg)%atm%soiltyp_t(:,:,:) = soiltyp_scm ! soil type
+              ext_data(jg)%atm%frac_t(:,:,:)    = 0._wp       ! set all tiles to 0
+              ext_data(jg)%atm%frac_t(:,:,isub_water) = 1._wp ! set only ocean to 1
+              ext_data(jg)%atm%lc_class_t(:,:,:)= 1           ! land cover class
+            END DO
 
-        IF (l_scm_mode) THEN
+          ELSEIF ( i_scm_netcdf==2 ) THEN
+
+            ! read external parameters for DEPHY unified SCM format
+            ! TODO: defaults (ocean) for many variables - see above
+            CALL read_ext_scm_nc_uf(num_lcc,soiltyp_scm,fr_land_scm,plcov_mx_scm,lai_mx_scm,rootdp_scm, &
+              &                     rsmin_scm,z0_scm,topo_scm,emis_rad_scm,lu_class_fr_scm)
+            DO jg = 1, n_dom
+              ext_data(jg)%atm%fr_land(:,:)     = fr_land_scm  ! land fraction
+              ext_data(jg)%atm%z0(:,:)          = z0_scm       ! roughness length
+              ext_data(jg)%atm%topography_c(:,:)= topo_scm     ! topographic height
+            END DO
+
+          ENDIF
+
           ! initialize landuse-related parameters from lookup table
           CALL init_landuse_params(ext_data)
-        ENDIF
 
-        DO jg = 1,n_dom
-          ext_data(jg)%atm%emis_rad(:,:)    = zemiss_def ! longwave surface emissivity
-        END DO
+        ENDIF  ! l_scm_mode
+
 
         ! call read_ext_data_atm to read O3
         IF ( irad_o3 == io3_clim .OR. irad_o3 == io3_ape .OR. sstice_mode == SSTICE_CLIM) THEN
