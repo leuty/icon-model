@@ -35,7 +35,7 @@ MODULE mo_ocean_velocity_diffusion
   USE mo_grid_subset,         ONLY: t_subset_range, get_index_range
   USE mo_sync,                ONLY: sync_c, sync_e, sync_v, sync_patch_array, sync_patch_array_mult
   USE mo_exception,           ONLY: finish !, message_text, message
-  USE mo_fortran_tools,       ONLY: set_acc_host_or_device
+  USE mo_fortran_tools,       ONLY: set_acc_host_or_device,init
 
   IMPLICIT NONE
 
@@ -558,10 +558,12 @@ CONTAINS
     start_level = 1
     end_level = n_zlev
 
-    z_grad_u_normal    (1:nproma,1:n_zlev,1:patch_3D%p_patch_2d(1)%nblks_e)          =0.0_wp
-    z_grad_u_normal_ptp(1:nproma,1:n_zlev,1:patch_3D%p_patch_2d(1)%nblks_e)          =0.0_wp
-    grad_div_e         (1:nproma,1:n_zlev,1:patch_3D%p_patch_2d(1)%nblks_e)          =0.0_wp
-    div_c              (1:nproma,1:n_zlev,1:patch_3D%p_patch_2d(1)%alloc_cell_blocks)=0.0_wp
+    !ICON_OMP PARALLEL
+    CALL init(z_grad_u_normal    (1:nproma,1:n_zlev,1:patch_3D%p_patch_2d(1)%nblks_e)          ,lacc=.false.)
+    CALL init(z_grad_u_normal_ptp(1:nproma,1:n_zlev,1:patch_3D%p_patch_2d(1)%nblks_e)          ,lacc=.false.)
+    CALL init(grad_div_e         (1:nproma,1:n_zlev,1:patch_3D%p_patch_2d(1)%nblks_e)          ,lacc=.false.)
+    CALL init(div_c              (1:nproma,1:n_zlev,1:patch_3D%p_patch_2d(1)%alloc_cell_blocks),lacc=.false.)
+    !ICON_OMP END PARALLEL
 
 !#ifdef NAGFOR
 !     z_div_grad_u(:,:,:)%x(1) = 0.0_wp

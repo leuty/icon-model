@@ -274,7 +274,7 @@ CONTAINS
 
 
     IF (no_tracer > 0) THEN
-!ICON_OMP_PARALLEL_DO PRIVATE(i_startidx_c, i_endidx_c, jc,zunderice_old) SCHEDULE(dynamic)
+!ICON_OMP_PARALLEL_DO PRIVATE(i_startidx_c, i_endidx_c, jc,zunderice_old) ICON_OMP_DEFAULT_SCHEDULE
       DO jb = all_cells%start_block, all_cells%end_block
         CALL get_index_range(all_cells, jb, i_startidx_c, i_endidx_c)
         DO jc = i_startidx_c, i_endidx_c
@@ -1042,6 +1042,7 @@ CONTAINS
 #endif
 
         ! apply net surface heat flux in W/m2 for OMIP case, since these fluxes are calculated in calc_omip_budgets_oce
+        !ICON_OMP PARALLEL DO PRIVATE(i_startidx_c, i_endidx_c,jc) ICON_OMP_DEFAULT_SCHEDULE
         DO jb = all_cells%start_block, all_cells%end_block
           CALL get_index_range(all_cells, jb, i_startidx_c, i_endidx_c)
           !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
@@ -1064,6 +1065,7 @@ CONTAINS
           END DO
           !$ACC END PARALLEL LOOP
         END DO
+        !ICON_OMP END PARALLEL DO
         !$ACC WAIT(1)
 
       ENDIF
@@ -1071,6 +1073,7 @@ CONTAINS
       ! c) wind stress is assigned in calc_omip_budgets_oce
       !    over ice: stress_x, stress_y; and over open water: stress_xw, stress_yw
       ! d) freshwater fluxes from p_as
+      !ICON_OMP PARALLEL DO PRIVATE(i_startidx_c, i_endidx_c,jc) ICON_OMP_DEFAULT_SCHEDULE
       DO jb = all_cells%start_block, all_cells%end_block
         CALL get_index_range(all_cells, jb, i_startidx_c, i_endidx_c)
         !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
@@ -1103,7 +1106,7 @@ CONTAINS
         !$ACC END PARALLEL LOOP
       END DO
       !$ACC WAIT(1)
-
+      !ICON_OMP END PARALLEL DO
     CASE (Coupled_FluxFromAtmo)
 
 #ifdef _OPENACC
@@ -1114,7 +1117,7 @@ CONTAINS
       !  nothing to be done, atmospheric fluxes are provided at the end of time stepping
       !  atmospheric fluxes drive the ocean; fluxes are calculated by atmospheric model
       !  use atmospheric fluxes directly, i.e. no bulk formula as for OMIP is applied
-
+      !ICON_OMP PARALLEL DO PRIVATE(i_startidx_c, i_endidx_c,jc) ICON_OMP_DEFAULT_SCHEDULE
       DO jb = all_cells%start_block, all_cells%end_block
         CALL get_index_range(all_cells, jb, i_startidx_c, i_endidx_c)
         !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
@@ -1156,6 +1159,7 @@ CONTAINS
         END DO
         !$ACC END PARALLEL LOOP
       END DO
+      !ICON_OMP END PARALLEL DO
       !$ACC WAIT(1)
 
     CASE DEFAULT
@@ -1170,7 +1174,7 @@ CONTAINS
 #ifdef _OPENACC
       IF (lzacc) CALL finish(routine, 'OpenACC version for zero_freshwater_flux currently not tested/validated')
 #endif
-
+      !ICON_OMP PARALLEL DO PRIVATE(jc,i_startidx_c, i_endidx_c) ICON_OMP_DEFAULT_SCHEDULE
       DO jb = all_cells%start_block, all_cells%end_block
         CALL get_index_range(all_cells, jb, i_startidx_c, i_endidx_c)
         !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
@@ -1188,6 +1192,7 @@ CONTAINS
         END DO
         !$ACC END PARALLEL LOOP
       END DO
+      !ICON_OMP END PARALLEL DO
       !$ACC WAIT(1)
 
     ENDIF

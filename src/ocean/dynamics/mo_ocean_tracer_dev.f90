@@ -187,10 +187,12 @@ CONTAINS
     !---------------------------------------------------------------------
 
     ! these are probably not necessary
-    div_diff_flx_vert = 0.0_wp
-    div_adv_flux_vert = 0.0_wp
-    div_adv_flux_horz = 0.0_wp
-    div_diff_flux_horz = 0.0_wp
+    !ICON_OMP PARALLEL
+    CALL init(div_diff_flx_vert  ,lacc=.false.)
+    CALL init(div_adv_flux_vert  ,lacc=.false.)
+    CALL init(div_adv_flux_horz  ,lacc=.false.)
+    CALL init(div_diff_flux_horz ,lacc=.false.)
+    !ICON_OMP END PARALLEL
     !---------------------------------------------------------------------
 !
     !---------DEBUG DIAGNOSTICS-------------------------------------------
@@ -244,8 +246,10 @@ CONTAINS
         & div_diff_flx_vert)
 
       IF (typeOfTracers == "ocean" )THEN
-        p_os%p_diag%GMRedi_flux_horz(:,:,:,tracer_index) = GMRedi_flux_horz
-        p_os%p_diag%GMRedi_flux_vert(:,:,:,tracer_index)  = GMRedi_flux_vert
+        !ICON_OMP PARALLEL
+        CALL copy(GMRedi_flux_horz, p_os%p_diag%GMRedi_flux_horz(:,:,:,tracer_index),lacc=.false.)
+        CALL copy(GMRedi_flux_vert, p_os%p_diag%GMRedi_flux_vert(:,:,:,tracer_index),lacc=.false.)
+        !ICON_OMP END PARALLEL
       ENDIF
 
       IF(GMREDI_COMBINED_DIAGNOSTIC .AND. typeOfTracers == "ocean" )THEN
@@ -482,7 +486,9 @@ CONTAINS
       ! start by_nils ts_budget
       ! save tracer values temporarily
       IF (new_tracer%diagnostics%is_activated) THEN
-        new_tracer%diagnostics%idf(:,:,:) = new_tracer%concentration(:,:,:)
+        !ICON_OMP PARALLEL
+        CALL copy(new_tracer%concentration,new_tracer%diagnostics%idf,lacc=.false.)
+        !ICON_OMP END PARALLEL
       ENDIF
       ! end by_nils ts_budget
 
@@ -496,11 +502,28 @@ CONTAINS
       ! tendency from impl. diffusion and impl. Redi part
       ! zlev
       IF (new_tracer%diagnostics%is_activated) THEN
-        dz_new(:,:,:) = patch_3d%p_patch_1D(1)%prism_thick_flat_sfc_c(:,:,:)
-        dz_new(:,1,:) = dz_new(:,1,:) + p_os%p_prog(nnew(1))%h(:,:)
-        new_tracer%diagnostics%idf(:,:,:) = &
-          & (new_tracer%concentration(:,:,:) - new_tracer%diagnostics%idf(:,:,:)) &
-          & / dtime * dz_new(:,:,:)
+        !ICON_OMP PARALLEL
+        CALL copy(patch_3d%p_patch_1D(1)%prism_thick_flat_sfc_c,dz_new,lacc=.false.)
+        !ICON_OMP BARRIER
+        !ICON_OMP DO COLLAPSE(2) ICON_OMP_DEFAULT_SCHEDULE
+        DO jb = 1, SIZE(dz_new,3)
+          DO jc = 1, nproma
+            dz_new(jc,1,jb) = dz_new(jc,1,jb) + p_os%p_prog(nnew(1))%h(jc,jb)
+          END DO
+        END DO
+        !ICON_OMP END DO
+        !ICON_OMP DO COLLAPSE(3) ICON_OMP_DEFAULT_SCHEDULE
+        DO jb = 1, SIZE(dz_new,3)
+          DO level = 1, SIZE(dz_new,2)
+            DO jc = 1, nproma
+             new_tracer%diagnostics%idf(jc,level,jb) = &
+               & (new_tracer%concentration(jc,level,jb) - new_tracer%diagnostics%idf(jc,level,jb)) &
+               & / dtime * dz_new(jc,level,jb)
+            END DO
+          END DO
+        END DO
+        !ICON_OMP END DO NOWAIT
+        !ICON_OMP END PARALLEL
       ENDIF
       ! end by_nils ts_budget
 
@@ -540,46 +563,38 @@ CONTAINS
       ENDIF!IF(GMREDI_COMBINED_DIAGNOSTIC)THEN
 
       IF (typeOfTracers == "ocean") THEN
-	IF(tracer_index == 1 ) THEN
-	!ICON_OMP_PARALLEL_DO PRIVATE(start_cell_index, end_cell_index, jc, &
-  !ICON_OMP level ) ICON_OMP_DEFAULT_SCHEDULE
-	  DO jb = cells_in_domain%start_block, cells_in_domain%end_block
-	    CALL get_index_range(cells_in_domain, jb, start_cell_index, end_cell_index)
-	    DO jc = start_cell_index, end_cell_index
+        IF(tracer_index == 1 ) THEN
+          !ICON_OMP_PARALLEL_DO PRIVATE(start_cell_index, end_cell_index, jc, &
+          !ICON_OMP level ) ICON_OMP_DEFAULT_SCHEDULE
+          DO jb = cells_in_domain%start_block, cells_in_domain%end_block
+            CALL get_index_range(cells_in_domain, jb, start_cell_index, end_cell_index)
+            DO jc = start_cell_index, end_cell_index
+              DO level = 1, patch_3d%p_patch_1d(1)%dolic_c(jc,jb)
 
-	      DO level = 1, patch_3d%p_patch_1d(1)%dolic_c(jc,jb)
-
-		p_os%p_diag%opottemptend(jc,level,jb)&
-		&=(new_tracer%concentration(jc,level,jb)&
-		&- old_tracer%concentration(jc,level,jb))/dtime
-	      END DO
-	    END DO
-	  ENDDO
-  !ICON_OMP_END_PARALLEL_DO
-
-	ELSEIF(tracer_index == 2) THEN
-      !ICON_OMP_PARALLEL_DO PRIVATE(start_cell_index, end_cell_index, jc, &
-  !ICON_OMP level ) ICON_OMP_DEFAULT_SCHEDULE
-	  DO jb = cells_in_domain%start_block, cells_in_domain%end_block
-	    CALL get_index_range(cells_in_domain, jb, start_cell_index, end_cell_index)
-	    DO jc = start_cell_index, end_cell_index
-
-	      DO level = 1, patch_3d%p_patch_1d(1)%dolic_c(jc,jb)
-
-		p_os%p_diag%osalttend(jc,level,jb)&
-		&=(new_tracer%concentration(jc,level,jb)&
-		&- old_tracer%concentration(jc,level,jb))/dtime
-	      END DO
-	    END DO
-	  ENDDO
-  !ICON_OMP_END_PARALLEL_DO
-
-	ENDIF!IF(tracer_index == 1)
-
+                p_os%p_diag%opottemptend(jc,level,jb)    &
+                &=(new_tracer%concentration(jc,level,jb) &
+                &- old_tracer%concentration(jc,level,jb))/dtime
+              END DO
+            END DO
+          ENDDO
+         !ICON_OMP_END_PARALLEL_DO
+        ELSEIF(tracer_index == 2) THEN
+          !ICON_OMP_PARALLEL_DO PRIVATE(start_cell_index, end_cell_index, jc, &
+          !ICON_OMP level ) ICON_OMP_DEFAULT_SCHEDULE
+          DO jb = cells_in_domain%start_block, cells_in_domain%end_block
+            CALL get_index_range(cells_in_domain, jb, start_cell_index, end_cell_index)
+            DO jc = start_cell_index, end_cell_index
+              DO level = 1, patch_3d%p_patch_1d(1)%dolic_c(jc,jb)
+                p_os%p_diag%osalttend(jc,level,jb)&
+                &=(new_tracer%concentration(jc,level,jb)&
+                &- old_tracer%concentration(jc,level,jb))/dtime
+              END DO
+            END DO
+          ENDDO
+          !ICON_OMP_END_PARALLEL_DO
+        ENDIF!IF(tracer_index == 1)
       ENDIF ! ocean tracers
-
     ENDIF!IF ( l_with_vert_tracer_diffusion )
-
 
     CALL sync_patch_array(sync_c, patch_2D, new_tracer%concentration, lacc=.FALSE.)
 
@@ -625,21 +640,6 @@ CONTAINS
     TYPE(t_hydro_ocean_state), TARGET :: p_os
     TYPE(t_ho_params),        INTENT(inout) :: p_param
     TYPE(t_operator_coeff),INTENT(inout) :: p_op_coeff
-    !
-    !Local variables
-    INTEGER :: startLevel, fin_level
-    INTEGER :: start_cell_index, end_cell_index
-    INTEGER :: start_edge_index, end_edge_index
-    INTEGER :: je, level, jb,jc         !< index of edge, vert level, block
-    INTEGER :: edge_cell_index(2), edge_cell_block(2)
-!     INTEGER :: edge_vert_index(2), edge_vert_block(2)
-    INTEGER :: upwind_index
-    REAL(wp) :: delta_z, half_time
-    INTEGER, DIMENSION(:,:,:), POINTER :: iilc,iibc
-    TYPE(t_cartesian_coordinates):: flux_sum
-    !-------------------------------------------------------------------------------
-    TYPE(t_patch), POINTER :: patch_2d
-    TYPE(t_subset_range), POINTER :: edges_in_domain, all_cells
     !-------------------------------------------------------------------------------
 !     patch_2d        => patch_3d%p_patch_2d(1)
 !     all_cells       => patch_2d%cells%all
@@ -705,15 +705,11 @@ CONTAINS
 
     !calculation of isopycnical slopes and tapering
     IF(GMRedi_configuration/=Cartesian_Mixing)THEN
-
       CALL prepare_GMRedi(patch_3d, &
         & p_os,    &
         & p_param, &
         & p_op_coeff)
-
     ENDIF
-
-  !  ENDIF
   END SUBROUTINE prepare_tracer_transport_GMRedi
   !-------------------------------------------------------------------------
 
@@ -736,20 +732,7 @@ CONTAINS
     REAL(wp), INTENT(IN)         :: stretch_c(nproma, patch_3d%p_patch_2d(1)%alloc_cell_blocks)
     !
     !Local variables
-    INTEGER :: startLevel, fin_level
-    INTEGER :: start_cell_index, end_cell_index
-    INTEGER :: start_edge_index, end_edge_index
-    INTEGER :: je, level, jb,jc         !< index of edge, vert level, block
-    INTEGER :: edge_cell_index(2), edge_cell_block(2)
 !     INTEGER :: edge_vert_index(2), edge_vert_block(2)
-    INTEGER :: upwind_index
-    REAL(wp) :: delta_z, half_time
-    INTEGER, DIMENSION(:,:,:), POINTER :: iilc,iibc
-    TYPE(t_cartesian_coordinates):: flux_sum
-    !-------------------------------------------------------------------------------
-    TYPE(t_patch), POINTER :: patch_2d
-    TYPE(t_subset_range), POINTER :: edges_in_domain, all_cells
-    !-------------------------------------------------------------------------------
 !    patch_2d        => patch_3d%p_patch_2d(1)
 !    all_cells       => patch_2d%cells%all
 !    edges_in_domain => patch_2d%edges%in_domain
@@ -790,8 +773,6 @@ CONTAINS
       & p_param, &
       & p_op_coeff, stretch_c)
 
-
-  !  ENDIF
   END SUBROUTINE prepare_tracer_transport_GMRedi_zstar
   !-------------------------------------------------------------------------
 
@@ -803,24 +784,19 @@ CONTAINS
     REAL(wp), INTENT(in) :: min_tracer, max_tracer
     CHARACTER(*) :: tracer_name
     TYPE(t_subset_range), POINTER :: in_subset
-
-!     INTEGER  :: level
     REAL(wp) :: minmaxmean(3)
-!     REAL(wp) :: lon, lat
 
-      minmaxmean(:) = global_minmaxmean(values = tracer(:,:,:), in_subset=in_subset)
-        IF (minmaxmean(1) < min_tracer) THEN
-          WRITE(0,*) TRIM(tracer_name), ' too low:', minmaxmean(1)
-          CALL print_value_location(tracer(:,:,:), minmaxmean(1), in_subset)
-          CALL finish(TRIM(info_text), 'tracer below threshold')
-        ENDIF
-
-        IF (minmaxmean(2) > max_tracer) THEN
-          WRITE(0,*) TRIM(tracer_name), ' too high:', minmaxmean(2)
-          CALL print_value_location(tracer(:,:,:), minmaxmean(2), in_subset)
-          CALL finish(TRIM(info_text), 'tracer above threshold')
-        ENDIF
-
+    minmaxmean(:) = global_minmaxmean(values = tracer(:,:,:), in_subset=in_subset)
+    IF (minmaxmean(1) < min_tracer) THEN
+      WRITE(0,*) TRIM(tracer_name), ' too low:', minmaxmean(1)
+      CALL print_value_location(tracer(:,:,:), minmaxmean(1), in_subset)
+      CALL finish(TRIM(info_text), 'tracer below threshold')
+    ENDIF
+    IF (minmaxmean(2) > max_tracer) THEN
+      WRITE(0,*) TRIM(tracer_name), ' too high:', minmaxmean(2)
+      CALL print_value_location(tracer(:,:,:), minmaxmean(2), in_subset)
+      CALL finish(TRIM(info_text), 'tracer above threshold')
+    ENDIF
   END SUBROUTINE check_min_max_tracer
   !-------------------------------------------------------------------------
 
@@ -841,6 +817,7 @@ CONTAINS
     cells_in_domain => patch%cells%in_domain
     !-------------------------------------------------------------------------------
     content = 0.0_wp
+    !ICON_OMP PARALLEL DO ICON_OMP_DEFAULT_SCHEDULE PRIVATE(start_cell_index, end_cell_index,jc,level) REDUCTION(+:content)
     DO jb = cells_in_domain%start_block, cells_in_domain%end_block
       CALL get_index_range(cells_in_domain, jb, start_cell_index, end_cell_index)
       DO jc = start_cell_index, end_cell_index
@@ -849,6 +826,7 @@ CONTAINS
         END DO
       END DO
     END DO
+    !ICON_OMP END PARALLEL DO
   END FUNCTION tracer_content
   !-------------------------------------------------------------------------
 
@@ -970,12 +948,12 @@ CONTAINS
     !---------------------------------------------------------------------
 
     ! these are probably not necessary
-!ICON_OMP_PARALLEL
+    !ICON_OMP PARALLEL
     CALL init(div_diff_flx_vert, lacc=.FALSE.)
     CALL init(div_adv_flux_vert, lacc=.FALSE.)
     CALL init(div_adv_flux_horz, lacc=.FALSE.)
     CALL init(div_diff_flux_horz, lacc=.FALSE.)
-!ICON_OMP_END_PARALLEL
+    !ICON_OMP END PARALLEL
     !---------------------------------------------------------------------
     !---------DEBUG DIAGNOSTICS-------------------------------------------
     idt_src=2  ! output print level (1-5, fix)
@@ -1051,8 +1029,8 @@ CONTAINS
 
     IF (typeOfTracers == "ocean" )THEN
 !ICON_OMP_PARALLEL
-      CALL copy(GMRedi_flux_horz, p_os%p_diag%GMRedi_flux_horz(:,:,:,tracer_index), lacc=.FALSE.)
-      CALL copy(GMRedi_flux_vert, p_os%p_diag%GMRedi_flux_vert(:,:,:,tracer_index), lacc=.FALSE.)
+      CALL copy(GMRedi_flux_horz(:,:,:), p_os%p_diag%GMRedi_flux_horz(:,:,:,tracer_index), lacc=.FALSE.)
+      CALL copy(GMRedi_flux_vert(:,:,:), p_os%p_diag%GMRedi_flux_vert(:,:,:,tracer_index), lacc=.FALSE.)
 !ICON_OMP_END_PARALLEL
     ENDIF
 
