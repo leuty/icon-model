@@ -16,6 +16,8 @@ include:
   stage: external
   needs: []
   extends: .common:any-image
+  tags:
+    - docker-any-image-long-small
   variables:
     GIT_STRATEGY: none
     CSCS_CI_COMMIT_SHA: ${CI_COMMIT_SHA}
