@@ -43,6 +43,7 @@
 # ensure that their runtime environments enable the git command.
 #
 .utils:git:clone_any_path:
+  extends: .utils:git:ignore
   variables:
     # Path to the directory to clone the repository in (does not have to exist
     # before running the script, but must be empty if it does):
@@ -83,14 +84,15 @@
         test recursive = "${GIT_SUBMODULE_STRATEGY}" && \
           submodule_recursive_flag='--recursive' || \
           submodule_recursive_flag=
+        artifacts_backup_path="${ICON_CI_UTILS_GIT_IGNORE_PATH}/artifacts"
 
-        # Sanity checks:
         test none = "${GIT_STRATEGY}" && {
           icon_ci_log_info_msg 'Skipping Git repository setup'
           GIT_SUBMODULE_STRATEGY=none
           GIT_CHECKOUT=false
           ICON_CI_UTILS_GIT_SPARSE_PATTERNS=
         } || {
+          # Sanity checks:
           git --version 2>/dev/null || {
             icon_ci_log_error_msg 'ERROR: git command is not available'
             exit 1
@@ -102,9 +104,28 @@
             icon_ci_log_error_msg "ERROR: '${ICON_CI_UTILS_GIT_CLONE_PATH}' is an existing git repository"
             exit 1
           }
+          test ! -d "${artifacts_backup_path}" || {
+            icon_ci_log_error_msg "ERROR: '${artifacts_backup_path}' unexpectedly exists"
+            exit 1
+          }
 
           icon_ci_log_section_start \
             "Cloning '${ICON_CI_UTILS_GIT_REPOSITORY_URL}' to '${ICON_CI_UTILS_GIT_CLONE_PATH}'"
+
+          # If we clone to $CI_PROJECT_DIR and it is not empty, we assume the
+          # the contents are artifacts. To avoid collisions when cloning, we
+          # temporarily move artifacts to a subdirectory:
+          test "${ICON_CI_UTILS_GIT_CLONE_PATH}" != "${CI_PROJECT_DIR}" || \
+            test -z "$(ls -A "${CI_PROJECT_DIR}" 2>/dev/null)" || {
+            icon_ci_log_info_msg 'Backing up artifacts before the cloning...'
+            (
+              set -x
+              mkdir -p "${artifacts_backup_path}"
+              find "${CI_PROJECT_DIR}" -mindepth 1 -maxdepth 1 \
+                -path "${ICON_CI_UTILS_GIT_IGNORE_PATH}" -prune -o \
+                -exec mv -v '{}' "${artifacts_backup_path}/" ';'
+            ) 2>&1
+          }
 
           icon_ci_log_info_msg "Fetching changes with git depth set to ${GIT_DEPTH}..."
           (
@@ -149,7 +170,15 @@
             ${GIT_SUBMODULE_PATHS:+--} ${GIT_SUBMODULE_PATHS-}
         ) 2>&1
 
-        test none = "${GIT_STRATEGY}" || icon_ci_log_section_end
+        test none = "${GIT_STRATEGY}" || {
+          test ! -d "${artifacts_backup_path}" || (
+            icon_ci_log_info_msg 'Restoring artifacts from the backup...'
+            set -x
+            cp -afl "${artifacts_backup_path}/." "${CI_PROJECT_DIR}/"
+            rm -rf "${artifacts_backup_path}"
+          ) 2>&1
+          icon_ci_log_section_end
+        }
       )
 
 # Sets environment variables that speed up the cloning of the project
