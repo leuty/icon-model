@@ -41,15 +41,16 @@
 
 "$(dirname -- "${BASH_SOURCE[0]}")"/rcl.VE.nfort-5.1.0_mpi-3.5_oper \
   --disable-openmp \
-  --enable-ocean \
-  --enable-waves \
-  --enable-ecrad \
-  --enable-coupling \
-  --enable-yaxt \
-  --enable-hd \
-  --enable-fcgroup-OCEAN \
   --enable-comin \
+  --enable-coupling \
+  --enable-ecrad \
+  --enable-fcgroup-OCEAN \
+  --enable-hd \
+  --enable-ocean \
   --enable-testbed \
-  acx_cv_prog_mpirun='/opt/nec/ve/mpi/3.5.0/bin/runtime/mpirun' \
+  --enable-waves \
+  --enable-yaxt \
+  -DCOMIN_ENABLE_EXAMPLES=ON \
   acx_cv_fc_c_compatible_mpi=yes \
+  acx_cv_prog_mpirun='/opt/nec/ve/mpi/3.5.0/bin/runtime/mpirun' \
   "$@"

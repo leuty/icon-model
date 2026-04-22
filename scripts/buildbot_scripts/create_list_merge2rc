@@ -177,16 +177,11 @@ $addexp "checksuite.ocean_internal/era5/exp.test-ocean_era5" \
 $addexp "exp.test_nwp_R02B04N06multi"  --without-configureflags "--without-mpi" --runflags "cpu_time=00:30:00 queue=shared,compute memory=64G ntasks=32"  --builders "${LEVANTE_CPU_BUILDERS}" --list $listname
 $addexp "exp.test_nwp_R02B04_R02B05_nest"  --without-configureflags "--without-mpi" --runflags "cpu_time=00:30:00 queue=shared,compute memory=32G ntasks=32"  --builders "${LEVANTE_CPU_BUILDERS}" --list $listname
 
-$addexp "checksuite.infrastructure/comin/exp.build_comin_plugins_LEVANTE.run" --builders "levante_gcc levante_gcc_hybrid" --list $listname
 $addexp "exp.test_nwp_R02B04_R02B05_nest_comin" --builders "levante_gcc levante_gcc_hybrid" --list $listname
-./adddep --from-experiment "exp.test_nwp_R02B04_R02B05_nest_comin" --to-experiment "checksuite.infrastructure/comin/exp.build_comin_plugins_LEVANTE.run" --builders "levante_gcc levante_gcc_hybrid" --list $listname
 $addexp "exp.test_nwp_R02B04_R02B05_nest_comin_python" --without-configureflags "--without-mpi" --runflags "cpu_time=00:30:00 queue=shared,compute memory=32G ntasks=32" --builders "levante_gcc levante_gcc_hybrid" --list $listname
-./adddep --from-experiment "exp.test_nwp_R02B04_R02B05_nest_comin_python" --to-experiment "checksuite.infrastructure/comin/exp.build_comin_plugins_LEVANTE.run" --builders "levante_gcc levante_gcc_hybrid" --list $listname
 $addexp "checksuite.nwp/nwpexp.run_ICON_19_R2B4_cmip_forcing"  --without-configureflags "--without-mpi" --runflags "cpu_time=00:30:00 no_of_nodes=1" --builders "levante_intel_hybrid levante_gcc_hybrid" --list $listname
 
-$addexp "checksuite.infrastructure/comin/nwpexp.build_comin_plugins_DWD_nec" --builders "dwd_nec_coupling" --list $listname
 $addexp "exp.test_nwp_R02B04_R02B05_nest_comin"                              --builders "dwd_nec_coupling" --list $listname
-./adddep --from-experiment "exp.test_nwp_R02B04_R02B05_nest_comin" --to-experiment "checksuite.infrastructure/comin/nwpexp.build_comin_plugins_DWD_nec" --builders "dwd_nec_coupling" --list $listname
 
 # this experiment runs only with-mpi and without openmp
 #
@@ -332,7 +327,6 @@ $addexp checksuite.art/exp.art_levante_test.run --builders "levante_gcc" --list 
 # add tests for checking yaxt and yac stand-alone; this needs yaxt/yac to be enabled
 $addexp  checksuite.infrastructure/checkExternals/exp.check_externals_DWD.run --builders dwd_nec_coupling --list ${listname}
 $addexp  checksuite.infrastructure/checkExternals/exp.check_externals_LEVANTE.run --builders "${LEVANTE_CPU_BUILDERS} levante_nag_serial levante_intel_pio" --list ${listname}
-./adddep --from-experiment "checksuite.infrastructure/comin/exp.build_comin_plugins_LEVANTE.run" --to-experiment "checksuite.infrastructure/checkExternals/exp.check_externals_LEVANTE.run" --builders "levante_gcc" --list $listname
 
 #add tests for msgwam submodule
 $addexp "checksuite.icon-dev/check.atm_msgwam_gc_R2B4" --builders "levante_gcc" --list $listname

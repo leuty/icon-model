@@ -11,6 +11,7 @@ dnl ---------------------------------------------------------------
 
 AC_PREREQ([2.69])
 
+ACX_SUBDIR_ACCEPT_CMAKE_DEFINITIONS
 ACX_POLYMORPHIC_OPTION([enable], [fcgroup-*], [icon_fcgroups])
 
 AC_INIT([icon], [2025.10], [], [icon-2025.10])
@@ -3011,6 +3012,8 @@ bundled version of COMIN library @<:@default=$ICON_BUNDLED_CXXFLAGS@:>@])dnl
    ACX_SUBDIR_INIT_CMAKE([utils/cmake-wrapper],
      [no-run no-adjust-compilers no-adjust-utilities],
      [externals/comin/build], ['${CMAKE}'])
+   ACX_SUBDIR_DEFAULT_ARG_UNQUOTED([externals/comin/build],
+     [" '-DCOMIN_ENABLE_EXAMPLES=OFF'"])
    ACX_SUBDIR_REMOVE_ARGS([externals/comin/build],
      [-DCMAKE_C_FLAGS=*|-DCMAKE_Fortran_FLAGS=*|-DCMAKE_CXX_FLAGS=*])
    icon_comin_extra_args=
@@ -3034,7 +3037,6 @@ bundled version of COMIN library @<:@default=$ICON_BUNDLED_CXXFLAGS@:>@])dnl
      [-DCMAKE_INSTALL_LIBDIR="$libdir"],
      [-DCMAKE_INSTALL_INCLUDEDIR="$includedir"], [-DBUILD_TESTING=OFF],
      [-DICON_DEP_SOURCE_DIR="${icon_abs_top_srcdir}/externals/comin"],
-     [-DCOMIN_ENABLE_EXAMPLES=OFF],
      [-DCOMIN_ENABLE_PYTHON_ADAPTER="$icon_comin_python"],
      [-DPython3_EXECUTABLE="$PYTHON"], [$icon_comin_extra_args])
    AS_VAR_APPEND([bundled_CMAKE_PREFIX_PATH],

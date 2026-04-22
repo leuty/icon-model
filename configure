@@ -957,6 +957,8 @@ mandir='${datarootdir}/man'
 
 ac_prev=
 ac_dashdash=
+acx_cmake_defs=
+acx_prev_D=
 for ac_option
 do
   # If the previous option needs an argument, assign it.
@@ -965,6 +967,32 @@ do
     ac_prev=
     continue
   fi
+
+  if test -n "$acx_prev_D"; then :
+  case $ac_option in #(
+  *\'*) :
+    ac_option=`$as_echo "$ac_option" | sed "s/'/'\\\\\\\\''/g"` ;; #(
+  *) :
+     ;;
+esac
+     as_fn_append acx_cmake_defs " '-D' '$ac_option'"
+     acx_prev_D=
+     continue
+fi
+  case $ac_option in #(
+  -D) :
+    acx_prev_D=yes; continue ;; #(
+  -D*) :
+    case $ac_option in #(
+  *\'*) :
+    ac_option=`$as_echo "$ac_option" | sed "s/'/'\\\\\\\\''/g"` ;; #(
+  *) :
+     ;;
+esac
+     as_fn_append acx_cmake_defs " '$ac_option'"; continue ;; #(
+  *) :
+     ;;
+esac
 
   case $ac_option in
   *=?*) ac_optarg=`expr "X$ac_option" : '[^=]*=\(.*\)'` ;;
@@ -1315,6 +1343,9 @@ Try \`$0 --help' for more information"
   esac
 done
 
+if test -n "$acx_prev_D"; then :
+  as_fn_error $? "missing argument to -D"
+fi
 if test -n "$ac_prev"; then
   ac_option=--`echo $ac_prev | sed 's/_/-/g'`
   as_fn_error $? "missing argument to $ac_option"
@@ -2451,6 +2482,7 @@ if ${acx_subdir_pre_adjusted_cmake_args_nocomps_noutils+:} false; then :
 
 else
   acx_subdir_pre_adjusted_cmake_args_nocomps_noutils="'-Wno-dev' '--no-warn-unused-cli' '-GUnix Makefiles'"
+            as_fn_append acx_subdir_pre_adjusted_cmake_args_nocomps_noutils "$acx_cmake_defs"
             eval "set dummy $ac_configure_args"; shift
                                                 acx_subdir_cmake_vars_to_transform=
             for acx_tmp; do
@@ -2533,6 +2565,10 @@ else
    while test $# != 0; do
      acx_tmp=$1
      case $acx_tmp in #(
+  -D) :
+    test 2 -gt $# || shift;  ;; #(
+  -D*) :
+     ;; #(
   -cache-file|--cache-file|--cache-fil|--cache-fi|--cache-f|--cache-|--cache|--cach|--cac|--ca|--c| \
                 -srcdir|--srcdir|--srcdi|--srcd|--src|--sr| \
                 -prefix|--prefix|--prefi|--pref|--pre|--pr|--p) :
@@ -10797,6 +10833,7 @@ fi
                            asx_srcdirs_fn "externals/rte-rrtmgp"
    acx_subdir_run_cmd_externals_rte_rrtmgp="'$ac_top_srcdir/externals/rte-rrtmgp/configure'"
    acx_subdir_build_type_externals_rte_rrtmgp='config'
+   acx_subdir_run_default_args_externals_rte_rrtmgp=
          acx_subdir_pre_adjust_config_args
       acx_subdir_run_args_externals_rte_rrtmgp=$acx_subdir_pre_adjusted_config_args
       if test "x$cache_file" = x'/dev/null'; then :
@@ -10906,6 +10943,7 @@ fi
                            asx_srcdirs_fn "externals/ecrad"
    acx_subdir_run_cmd_externals_ecrad="'$ac_top_srcdir/externals/ecrad/configure'"
    acx_subdir_build_type_externals_ecrad='config'
+   acx_subdir_run_default_args_externals_ecrad=
          acx_subdir_pre_adjust_config_args
       acx_subdir_run_args_externals_ecrad=$acx_subdir_pre_adjusted_config_args
       if test "x$cache_file" = x'/dev/null'; then :
@@ -10991,6 +11029,7 @@ fi
                            asx_srcdirs_fn "externals/sct"
    acx_subdir_run_cmd_externals_sct="'$ac_top_srcdir/externals/sct/configure'"
    acx_subdir_build_type_externals_sct='config'
+   acx_subdir_run_default_args_externals_sct=
          acx_subdir_pre_adjust_config_args
       acx_subdir_run_args_externals_sct=$acx_subdir_pre_adjusted_config_args
       if test "x$cache_file" = x'/dev/null'; then :
@@ -11107,6 +11146,7 @@ fi
                               asx_srcdirs_fn "externals/yaxt"
    acx_subdir_run_cmd_externals_yaxt="'$ac_top_srcdir/externals/yaxt/configure'"
    acx_subdir_build_type_externals_yaxt='config'
+   acx_subdir_run_default_args_externals_yaxt=
          acx_subdir_pre_adjust_config_args
       acx_subdir_run_args_externals_yaxt=$acx_subdir_pre_adjusted_config_args
       if test "x$cache_file" = x'/dev/null'; then :
@@ -11242,6 +11282,7 @@ fi
                               asx_srcdirs_fn "externals/ppm"
    acx_subdir_run_cmd_externals_ppm="'$ac_top_srcdir/externals/ppm/configure'"
    acx_subdir_build_type_externals_ppm='config'
+   acx_subdir_run_default_args_externals_ppm=
          acx_subdir_pre_adjust_config_args
       acx_subdir_run_args_externals_ppm=$acx_subdir_pre_adjusted_config_args
       if test "x$cache_file" = x'/dev/null'; then :
@@ -11366,6 +11407,7 @@ fi
                            asx_srcdirs_fn "externals/cdi"
    acx_subdir_run_cmd_externals_cdi="'$ac_top_srcdir/externals/cdi/configure'"
    acx_subdir_build_type_externals_cdi='config'
+   acx_subdir_run_default_args_externals_cdi=
          acx_subdir_pre_adjust_config_args
       acx_subdir_run_args_externals_cdi=$acx_subdir_pre_adjusted_config_args
       if test "x$cache_file" = x'/dev/null'; then :
@@ -11612,6 +11654,7 @@ fi
                            asx_srcdirs_fn "externals/yac"
    acx_subdir_run_cmd_externals_yac="'$ac_top_srcdir/externals/yac/configure'"
    acx_subdir_build_type_externals_yac='config'
+   acx_subdir_run_default_args_externals_yac=
          acx_subdir_pre_adjust_config_args
       acx_subdir_run_args_externals_yac=$acx_subdir_pre_adjusted_config_args
       if test "x$cache_file" = x'/dev/null'; then :
@@ -11816,6 +11859,7 @@ fi
                            asx_srcdirs_fn "externals/tixi"
    acx_subdir_run_cmd_externals_tixi="'$ac_top_srcdir/externals/tixi/configure'"
    acx_subdir_build_type_externals_tixi='config'
+   acx_subdir_run_default_args_externals_tixi=
          acx_subdir_pre_adjust_config_args
       acx_subdir_run_args_externals_tixi=$acx_subdir_pre_adjusted_config_args
       if test "x$cache_file" = x'/dev/null'; then :
@@ -11905,6 +11949,7 @@ esac
       as_fn_append acx_subdir_run_args_externals_comin_build " '$acx_tmp'"
       as_fn_append extra_build_subdirs " externals/comin/build"
    acx_subdir_run_externals_comin_build=no
+   as_fn_append acx_subdir_run_default_args_externals_comin_build " '-DCOMIN_ENABLE_EXAMPLES=OFF'"
    eval "set dummy $acx_subdir_run_args_externals_comin_build"; shift
    acx_subdir_run_args_externals_comin_build=
    while test $# != 0; do
@@ -11939,7 +11984,7 @@ fi
      ;;
 esac
 fi
-   set dummy -DCMAKE_AR="$AR" -DCMAKE_RANLIB="$RANLIB" -DCMAKE_C_FLAGS="$subdir_CFLAGS $ICON_COMIN_CFLAGS $subdir_CPPFLAGS" -DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_COMIN_FCFLAGS" -DCMAKE_CXX_FLAGS="$subdir_CXXFLAGS $ICON_COMIN_CXXFLAGS $subdir_CPPFLAGS" -DCMAKE_BUILD_TYPE=None -DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH" -DCMAKE_INSTALL_LIBDIR="$libdir" -DCMAKE_INSTALL_INCLUDEDIR="$includedir" -DBUILD_TESTING=OFF -DICON_DEP_SOURCE_DIR="${icon_abs_top_srcdir}/externals/comin" -DCOMIN_ENABLE_EXAMPLES=OFF -DCOMIN_ENABLE_PYTHON_ADAPTER="$icon_comin_python" -DPython3_EXECUTABLE="$PYTHON" $icon_comin_extra_args; shift
+   set dummy -DCMAKE_AR="$AR" -DCMAKE_RANLIB="$RANLIB" -DCMAKE_C_FLAGS="$subdir_CFLAGS $ICON_COMIN_CFLAGS $subdir_CPPFLAGS" -DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_COMIN_FCFLAGS" -DCMAKE_CXX_FLAGS="$subdir_CXXFLAGS $ICON_COMIN_CXXFLAGS $subdir_CPPFLAGS" -DCMAKE_BUILD_TYPE=None -DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH" -DCMAKE_INSTALL_LIBDIR="$libdir" -DCMAKE_INSTALL_INCLUDEDIR="$includedir" -DBUILD_TESTING=OFF -DICON_DEP_SOURCE_DIR="${icon_abs_top_srcdir}/externals/comin" -DCOMIN_ENABLE_PYTHON_ADAPTER="$icon_comin_python" -DPython3_EXECUTABLE="$PYTHON" $icon_comin_extra_args; shift
    for acx_tmp; do
      case $acx_tmp in #(
   *\'*) :
@@ -12341,6 +12386,7 @@ fi
                               asx_srcdirs_fn "externals/hd"
    acx_subdir_run_cmd_externals_hd="'$ac_top_srcdir/externals/hd/configure'"
    acx_subdir_build_type_externals_hd='config'
+   acx_subdir_run_default_args_externals_hd=
          acx_subdir_pre_adjust_config_args
       acx_subdir_run_args_externals_hd=$acx_subdir_pre_adjusted_config_args
       if test "x$cache_file" = x'/dev/null'; then :
@@ -12468,7 +12514,7 @@ export FC CC CXX CUDACXX HIPCXX"
 
 else
   as_fn_append icon_delayed_epilogue_list "$as_nl$icon_bundled_builddir"
-        icon_bundled_config_cmd="`eval 'as_val=${'acx_subdir_run_cmd_\`$as_echo "$icon_bundled_builddir" | $as_tr_sh\`'};$as_echo "$as_val"'` `eval 'as_val=${'acx_subdir_run_args_\`$as_echo "$icon_bundled_builddir" | $as_tr_sh\`'};$as_echo "$as_val"'`"
+        icon_bundled_config_cmd="`eval 'as_val=${'acx_subdir_run_cmd_\`$as_echo "$icon_bundled_builddir" | $as_tr_sh\`'};$as_echo "$as_val"'``eval 'as_val=${'acx_subdir_run_default_args_\`$as_echo "$icon_bundled_builddir" | $as_tr_sh\`'};$as_echo "$as_val"'` `eval 'as_val=${'acx_subdir_run_args_\`$as_echo "$icon_bundled_builddir" | $as_tr_sh\`'};$as_echo "$as_val"'`"
         eval icon_bundled_type=\$acx_subdir_build_type_`$as_echo "$icon_bundled_builddir" | $as_tr_sh`
         if test "x$icon_bundled_type" = xcmake; then :
   icon_bundled_silent_var='silent_CMAKE'
@@ -12807,7 +12853,7 @@ fi
                  $as_echo "$as_me:${as_lineno-$LINENO}: $acx_tmp" >&5
                  $as_echo "$acx_tmp" >&6
                  as_dir="$acx_subdir_builddir"; as_fn_mkdir_p
-                 acx_subdir_run_cmd="`eval 'as_val=${'acx_subdir_run_cmd_\`$as_echo "$acx_subdir_builddir" | $as_tr_sh\`'};$as_echo "$as_val"'` `eval 'as_val=${'acx_subdir_run_args_\`$as_echo "$acx_subdir_builddir" | $as_tr_sh\`'};$as_echo "$as_val"'`"
+                 acx_subdir_run_cmd="`eval 'as_val=${'acx_subdir_run_cmd_\`$as_echo "$acx_subdir_builddir" | $as_tr_sh\`'};$as_echo "$as_val"'``eval 'as_val=${'acx_subdir_run_default_args_\`$as_echo "$acx_subdir_builddir" | $as_tr_sh\`'};$as_echo "$as_val"'` `eval 'as_val=${'acx_subdir_run_args_\`$as_echo "$acx_subdir_builddir" | $as_tr_sh\`'};$as_echo "$as_val"'`"
                  acx_subdir_run_cmd="( cd '$acx_subdir_builddir' && $acx_subdir_run_cmd $acx_subdir_silent_arg)"
                  { $as_echo "$as_me:${as_lineno-$LINENO}: running $acx_subdir_run_cmd" >&5
 $as_echo "$as_me: running $acx_subdir_run_cmd" >&6;}
