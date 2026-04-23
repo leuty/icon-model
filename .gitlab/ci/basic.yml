@@ -28,7 +28,7 @@ licenses:
         pre-commit run --color=always --hook-stage manual reuse || {
           icon_ci_log_error_msg \
             "You can reproduce this check locally with \`pre-commit run --hook-stage manual reuse\`.
-      See also ${CI_PROJECT_URL}/-/blob/${CI_DEFAULT_BRANCH}/CONTRIBUTING.md#coding-style."
+      See also ${CI_PAGES_URL}/contribute/guidelines/contribution_guidelines.html#coding-style."
           exit 1
         } 2>/dev/null
         # The check_license.py script does not ignore git submodules:
@@ -70,7 +70,7 @@ style:coding:
         }
         icon_ci_log_error_msg \
           "You can reproduce this check locally with \`pre-commit run --all-files\`.
-      See also ${CI_PROJECT_URL}/-/blob/${CI_DEFAULT_BRANCH}/CONTRIBUTING.md#coding-style."
+      See also ${CI_PAGES_URL}/contribute/guidelines/contribution_guidelines.html#coding-style."
         exit 1
       }
       icon_ci_log_section_end
