@@ -4,7 +4,7 @@ ICON is simultaneously developed in several repositories. There is the *primary*
 
 :::{admonition} Note for the beginners
 :class: admonition-icontheme
-This guide assumes some knowledge on git and the linux operating system. If that is not the case, check [**this tutorial for beginners**](ref_buildrun_beginners), that will guide you to run your first ICON simulation in a matter of minutes. Alternatively, for a more detailed tutorial with a focus on NWP physics, check the resources of the [**DWD Academic ICON Course – July 2025**](https://gitlab.dkrz.de/icon-training/icon-training-2025-scripts).
+This guide assumes some knowledge on git and the linux operating system. If that is not the case, check [**this tutorial for beginners**](ref_buildrun_beginners), that will guide you to run your first ICON simulation in a matter of minutes. Alternatively, for a more detailed tutorial with a focus on NWP physics, check the resources of the **DWD Academic ICON Course – July 2025** ([**Talks**](https://www.nat-esm.de/services/workshops-and-trainings/technical-trainings/techtraining4) and [**Notebooks**](https://gitlab.dkrz.de/icon-training/icon-training-2025-scripts)).
 :::
 
 :::{admonition} FAQ
