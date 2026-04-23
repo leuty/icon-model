@@ -2825,6 +2825,8 @@ version of MTIME library @<:@default=$ICON_BUNDLED_CFLAGS@:>@])dnl
    ACX_SUBDIR_INIT_CMAKE([externals/mtime],
      [no-run no-adjust-compilers no-adjust-utilities], [externals/mtime/build],
      ['${CMAKE}'])
+   ACX_SUBDIR_DEFAULT_ARG_UNQUOTED([externals/mtime/build],
+     [" '-DBUILD_TESTING=OFF'"])
    ACX_SUBDIR_REMOVE_ARGS([externals/mtime/build],
      [-DCMAKE_C_FLAGS=*|-DCMAKE_Fortran_FLAGS=*|-DCMAKE_CXX_*=*],
      [-DCMAKE_INSTALL_PREFIX=*])
@@ -2843,8 +2845,7 @@ dnl Normally, the subdirectory in the installation prefix for the Python
 dnl interface is detected automatically. If the detection fails, the generated
 dnl fallback value is based on CMAKE_INSTALL_LIBDIR, hence we override it too:
      [-DCMAKE_INSTALL_LIBDIR="$libdir"],
-     [-DBUILD_SHARED_LIBS=OFF], [-DBUILD_TESTING=OFF],
-     [-DMTIME_ENABLE_PYTHON="$icon_mtime_python"],
+     [-DBUILD_SHARED_LIBS=OFF], [-DMTIME_ENABLE_PYTHON="$icon_mtime_python"],
      [-DPython_EXECUTABLE="$PYTHON"])
    AS_VAR_APPEND([bundled_CMAKE_PREFIX_PATH],
      ["${bundled_CMAKE_PREFIX_PATH:+";"}dnl
@@ -3013,7 +3014,7 @@ bundled version of COMIN library @<:@default=$ICON_BUNDLED_CXXFLAGS@:>@])dnl
      [no-run no-adjust-compilers no-adjust-utilities],
      [externals/comin/build], ['${CMAKE}'])
    ACX_SUBDIR_DEFAULT_ARG_UNQUOTED([externals/comin/build],
-     [" '-DCOMIN_ENABLE_EXAMPLES=OFF'"])
+     [" '-DBUILD_TESTING=OFF' '-DCOMIN_ENABLE_EXAMPLES=OFF'"])
    ACX_SUBDIR_REMOVE_ARGS([externals/comin/build],
      [-DCMAKE_C_FLAGS=*|-DCMAKE_Fortran_FLAGS=*|-DCMAKE_CXX_FLAGS=*])
    icon_comin_extra_args=
@@ -3035,7 +3036,7 @@ bundled version of COMIN library @<:@default=$ICON_BUNDLED_CXXFLAGS@:>@])dnl
      [-DCMAKE_BUILD_TYPE=None],
      [-DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH"],
      [-DCMAKE_INSTALL_LIBDIR="$libdir"],
-     [-DCMAKE_INSTALL_INCLUDEDIR="$includedir"], [-DBUILD_TESTING=OFF],
+     [-DCMAKE_INSTALL_INCLUDEDIR="$includedir"],
      [-DICON_DEP_SOURCE_DIR="${icon_abs_top_srcdir}/externals/comin"],
      [-DCOMIN_ENABLE_PYTHON_ADAPTER="$icon_comin_python"],
      [-DPython3_EXECUTABLE="$PYTHON"], [$icon_comin_extra_args])
@@ -3079,6 +3080,8 @@ ${ICON_FORTRAN_SUPPORT_CFLAGS-$ICON_BUNDLED_CFLAGS}
    ACX_SUBDIR_INIT_CMAKE([externals/fortran-support],
      [no-run no-adjust-compilers no-adjust-utilities],
      [externals/fortran-support/build], ['${CMAKE}'])
+   ACX_SUBDIR_DEFAULT_ARG_UNQUOTED([externals/fortran-support/build],
+     [" '-DBUILD_TESTING=OFF'"])
    ACX_SUBDIR_REMOVE_ARGS([externals/fortran-support/build],
      [-DCMAKE_C_FLAGS=*|-DCMAKE_Fortran_FLAGS=*|-DCMAKE_CXX_*=*])
    AS_VAR_IF([icon_gpu_primary], [openacc],
@@ -3090,8 +3093,7 @@ ${ICON_FORTRAN_SUPPORT_CFLAGS-$ICON_BUNDLED_CFLAGS}
      [-DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_FORTRAN_SUPPORT_FCFLAGS"],
      [-DCMAKE_BUILD_TYPE=None],
      [-DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH"],
-     [-DBUILD_SHARED_LIBS=OFF], [-DBUILD_TESTING=OFF],
-     [-DFS_ENABLE_OMP="$enable_openmp"],
+     [-DBUILD_SHARED_LIBS=OFF], [-DFS_ENABLE_OMP="$enable_openmp"],
      [-DFS_ENABLE_MIXED_PRECISION="$enable_mixed_precision"],
      [-DFS_ENABLE_SINGLE_PRECISION="$enable_single_precision"],
      [-DFS_ENABLE_OPENACC="$icon_fs_openacc"])
@@ -3222,6 +3224,8 @@ version of MEMMAN library @<:@default=$ICON_BUNDLED_CXXFLAGS@:>@])dnl
    ACX_SUBDIR_INIT_CMAKE([utils/cmake-wrapper],
      [no-run no-adjust-compilers no-adjust-utilities],
      [externals/memman/build], ['${CMAKE}'])
+   ACX_SUBDIR_DEFAULT_ARG_UNQUOTED([externals/memman/build],
+     [" '-DBUILD_TESTING=OFF'"])
    ACX_SUBDIR_REMOVE_ARGS([externals/memman/build],
      [-DCMAKE_C_FLAGS=*|-DCMAKE_Fortran_FLAGS=*|-DCMAKE_CXX_FLAGS=*])
    icon_memman_extra_args=
@@ -3242,7 +3246,7 @@ version of MEMMAN library @<:@default=$ICON_BUNDLED_CXXFLAGS@:>@])dnl
 "$subdir_CXXFLAGS $ICON_MEMMAN_CXXFLAGS $subdir_CPPFLAGS"],
      [-DCMAKE_BUILD_TYPE=None],
      [-DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH"],
-     [-DBUILD_SHARED_LIBS=OFF], [-DBUILD_TESTING=OFF],
+     [-DBUILD_SHARED_LIBS=OFF],
      [-DICON_DEP_SOURCE_DIR="${icon_abs_top_srcdir}/externals/memman"],
      [-DMM_BUILD_DOC=OFF], [-DMM_GENERATE_BINDINGS=OFF], [-DMM_ENABLE_C=ON],
      [-DMM_ENABLE_FORTRAN=ON], [$icon_memman_extra_args])
@@ -3271,6 +3275,8 @@ ICON_ICONMATH_FCFLAGS=${ICON_ICONMATH_FCFLAGS-$ICON_BUNDLED_FCFLAGS}
 ACX_SUBDIR_INIT_CMAKE([externals/iconmath],
   [no-run no-adjust-compilers no-adjust-utilities],
   [externals/iconmath/build], ['${CMAKE}'])
+ACX_SUBDIR_DEFAULT_ARG_UNQUOTED([externals/iconmath/build],
+  [" '-DBUILD_TESTING=OFF'"])
 ACX_SUBDIR_REMOVE_ARGS([externals/iconmath/build],
   [-DCMAKE_Fortran_FLAGS=*|-DCMAKE_C_*=*|-DCMAKE_CXX_*=*])
 AS_VAR_IF([icon_gpu_primary], [openacc],
@@ -3279,7 +3285,7 @@ ACX_SUBDIR_APPEND_ARGS([externals/iconmath/build],
   [-DCMAKE_AR="$AR"], [-DCMAKE_RANLIB="$RANLIB"],
   [-DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_ICONMATH_FCFLAGS"],
   [-DCMAKE_BUILD_TYPE=None], [-DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH"],
-  [-DBUILD_SHARED_LIBS=OFF], [-DBUILD_TESTING=OFF],
+  [-DBUILD_SHARED_LIBS=OFF],
   [-DIM_ENABLE_LOOP_EXCHANGE="$enable_loop_exchange"],
   [-DIM_ENABLE_MIXED_PRECISION="$enable_mixed_precision"],
   [-DIM_ENABLE_SINGLE_PRECISION="$enable_single_precision"],
@@ -3324,6 +3330,7 @@ RAGNAROK library @<:@default=$ICON_BUNDLED_HIPFLAGS@:>@])dnl
    ACX_SUBDIR_INIT_CMAKE([ragnarok],
      [no-run no-adjust-compilers no-adjust-utilities],
      [ragnarok/build], [${icon_cmake_hipcc_workaround}'${CMAKE}'])
+   ACX_SUBDIR_DEFAULT_ARG_UNQUOTED([ragnarok/build], [" '-DBUILD_TESTING=OFF'"])
    ACX_SUBDIR_REMOVE_ARGS([ragnarok/build],
      [-DCMAKE_C_*=*|-DCMAKE_Fortran_FLAGS=*|-DCMAKE_CXX_FLAGS=*])
    ACX_SUBDIR_APPEND_ARGS([ragnarok/build],
@@ -3337,8 +3344,7 @@ RAGNAROK library @<:@default=$ICON_BUNDLED_HIPFLAGS@:>@])dnl
      [-DCMAKE_HIP_STANDARD_LIBRARIES="$LIBS"],
      [-DCMAKE_BUILD_TYPE=None],
      [-DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH"],
-     [-DBUILD_SHARED_LIBS=OFF], [-DBUILD_TESTING=OFF],
-     [-DRGK_ENABLE_STANDALONE=OFF],
+     [-DBUILD_SHARED_LIBS=OFF], [-DRGK_ENABLE_STANDALONE=OFF],
      [-DCMAKE_CUDA_ARCHITECTURES=OFF], [-DCMAKE_HIP_ARCHITECTURES=OFF])
    icon_bundled_config_after_config([ragnarok/build], [externals/kokkos/build])
    AS_VAR_APPEND([bundled_includes],

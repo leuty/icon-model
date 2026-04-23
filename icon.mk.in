@@ -411,16 +411,28 @@ else
 override ICON_COLOR_TESTS:=
 endif
 
-# Test colorization of the Automake- and Autotest-based packages:
-AM_COLOR_TESTS:= $(ICON_COLOR_TESTS)
-TESTSUITEFLAGS:= $(if $(ICON_COLOR_TESTS),--color=$(ICON_COLOR_TESTS))
+# Test colorization and verbosity for the Automake-based packages:
+AM_COLOR_TESTS?= $(ICON_COLOR_TESTS)
+VERBOSE?= $(ICON_VERBOSE_TESTS)
 
-# Test verbosity of the Automake- and Autotest-based packages:
-VERBOSE:= $(ICON_VERBOSE_TESTS)
-TESTSUITEFLAGS+= $(if $(ICON_VERBOSE_TESTS),--verbose)
+# Test colorization and verbosity for the Autotest-based packages (also skip
+# running the tests if requested):
+TESTSUITEFLAGS?= \
+  $(if $(ICON_COLOR_TESTS),--color=$(ICON_COLOR_TESTS)) \
+  $(if $(ICON_VERBOSE_TESTS),--verbose) \
+  $(if $(TESTS),,--keywords=_run_nothing_)
 
-# Skip running the Autotest-based tests if requested:
-TESTSUITEFLAGS+= $(if $(TESTS),,--keywords=_run_nothing_)
+# Test colorization and verbosity for the CMake-based packages (also skip
+# running the tests if requested):
+CLICOLOR_FORCE?= $(if $(filter always,$(ICON_COLOR_TESTS)),1,0)
+CLICOLOR?= $(if $(filter no,$(ICON_COLOR_TESTS)),0,1)
+CTEST_OUTPUT_ON_FAILURE?= $(if $(ICON_VERBOSE_TESTS),1,0)
+ARGS?= $(if $(TESTS),,--exclude-regex .)
+
+# Test colorization for the GTest-based packages:
+GTEST_COLOR?= \
+  $(if $(filter always,$(ICON_COLOR_TESTS)),1, \
+  $(if $(filter no,$(ICON_COLOR_TESTS)),0))
 
 # Disable built-in suffix rules:
 .SUFFIXES:
@@ -589,7 +601,7 @@ check-bundled: $(bundled_makefiles) $(bundled_cmake_builddirs) $(if $(filter che
 	fail=; \
 	for d in $(bundled_builddirs); do \
 	  case ' $(bundled_cmake_builddirs) ' in \
-	    *" $$d "*) MAKEFLAGS='$(filter-out --jobserver-fds=% --jobserver-auth=%,$(MAKEFLAGS))' $(MAKE) -j1 -C "$$d" test VERBOSE=$(filter-out 0,$(V)) || fail="$$fail$$d " ;; \
+	    *" $$d "*) MAKEFLAGS='$(filter-out --jobserver-fds=% --jobserver-auth=%,$(MAKEFLAGS))' $(MAKE) -j1 -C "$$d" test VERBOSE=$(filter-out 0,$(V)) CLICOLOR_FORCE='$(CLICOLOR_FORCE)' CLICOLOR='$(CLICOLOR)' CTEST_OUTPUT_ON_FAILURE='$(CTEST_OUTPUT_ON_FAILURE)' GTEST_COLOR='$(GTEST_COLOR)' ARGS='$(ARGS)' || fail="$$fail$$d " ;; \
 	    *) $(MAKE) -C "$$d" check V=$(V) AM_COLOR_TESTS='$(AM_COLOR_TESTS)' VERBOSE='$(VERBOSE)' TESTSUITEFLAGS='$(TESTSUITEFLAGS)' || fail="$$fail$$d " ;; \
 	  esac; \
 	done; \

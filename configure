@@ -11603,6 +11603,7 @@ esac
       as_fn_append acx_subdir_run_args_externals_mtime_build " '$acx_tmp'"
       as_fn_append extra_build_subdirs " externals/mtime/build"
    acx_subdir_run_externals_mtime_build=no
+   as_fn_append acx_subdir_run_default_args_externals_mtime_build " '-DBUILD_TESTING=OFF'"
    eval "set dummy $acx_subdir_run_args_externals_mtime_build"; shift
    acx_subdir_run_args_externals_mtime_build=
    while test $# != 0; do
@@ -11623,7 +11624,7 @@ esac
 esac
      shift
    done
-   set dummy -DCMAKE_AR="$AR" -DCMAKE_RANLIB="$RANLIB" -DCMAKE_C_FLAGS="$subdir_CFLAGS $ICON_MTIME_CFLAGS $subdir_CPPFLAGS" -DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_MTIME_FCFLAGS" -DCMAKE_BUILD_TYPE=None -DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH"      -DCMAKE_POSITION_INDEPENDENT_CODE="$icon_yac_python"      -DCMAKE_INSTALL_PREFIX="$exec_prefix"      -DCMAKE_INSTALL_LIBDIR="$libdir" -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF -DMTIME_ENABLE_PYTHON="$icon_mtime_python" -DPython_EXECUTABLE="$PYTHON"; shift
+   set dummy -DCMAKE_AR="$AR" -DCMAKE_RANLIB="$RANLIB" -DCMAKE_C_FLAGS="$subdir_CFLAGS $ICON_MTIME_CFLAGS $subdir_CPPFLAGS" -DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_MTIME_FCFLAGS" -DCMAKE_BUILD_TYPE=None -DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH"      -DCMAKE_POSITION_INDEPENDENT_CODE="$icon_yac_python"      -DCMAKE_INSTALL_PREFIX="$exec_prefix"      -DCMAKE_INSTALL_LIBDIR="$libdir" -DBUILD_SHARED_LIBS=OFF -DMTIME_ENABLE_PYTHON="$icon_mtime_python" -DPython_EXECUTABLE="$PYTHON"; shift
    for acx_tmp; do
      case $acx_tmp in #(
   *\'*) :
@@ -11949,7 +11950,7 @@ esac
       as_fn_append acx_subdir_run_args_externals_comin_build " '$acx_tmp'"
       as_fn_append extra_build_subdirs " externals/comin/build"
    acx_subdir_run_externals_comin_build=no
-   as_fn_append acx_subdir_run_default_args_externals_comin_build " '-DCOMIN_ENABLE_EXAMPLES=OFF'"
+   as_fn_append acx_subdir_run_default_args_externals_comin_build " '-DBUILD_TESTING=OFF' '-DCOMIN_ENABLE_EXAMPLES=OFF'"
    eval "set dummy $acx_subdir_run_args_externals_comin_build"; shift
    acx_subdir_run_args_externals_comin_build=
    while test $# != 0; do
@@ -11984,7 +11985,7 @@ fi
      ;;
 esac
 fi
-   set dummy -DCMAKE_AR="$AR" -DCMAKE_RANLIB="$RANLIB" -DCMAKE_C_FLAGS="$subdir_CFLAGS $ICON_COMIN_CFLAGS $subdir_CPPFLAGS" -DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_COMIN_FCFLAGS" -DCMAKE_CXX_FLAGS="$subdir_CXXFLAGS $ICON_COMIN_CXXFLAGS $subdir_CPPFLAGS" -DCMAKE_BUILD_TYPE=None -DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH" -DCMAKE_INSTALL_LIBDIR="$libdir" -DCMAKE_INSTALL_INCLUDEDIR="$includedir" -DBUILD_TESTING=OFF -DICON_DEP_SOURCE_DIR="${icon_abs_top_srcdir}/externals/comin" -DCOMIN_ENABLE_PYTHON_ADAPTER="$icon_comin_python" -DPython3_EXECUTABLE="$PYTHON" $icon_comin_extra_args; shift
+   set dummy -DCMAKE_AR="$AR" -DCMAKE_RANLIB="$RANLIB" -DCMAKE_C_FLAGS="$subdir_CFLAGS $ICON_COMIN_CFLAGS $subdir_CPPFLAGS" -DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_COMIN_FCFLAGS" -DCMAKE_CXX_FLAGS="$subdir_CXXFLAGS $ICON_COMIN_CXXFLAGS $subdir_CPPFLAGS" -DCMAKE_BUILD_TYPE=None -DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH" -DCMAKE_INSTALL_LIBDIR="$libdir" -DCMAKE_INSTALL_INCLUDEDIR="$includedir" -DICON_DEP_SOURCE_DIR="${icon_abs_top_srcdir}/externals/comin" -DCOMIN_ENABLE_PYTHON_ADAPTER="$icon_comin_python" -DPython3_EXECUTABLE="$PYTHON" $icon_comin_extra_args; shift
    for acx_tmp; do
      case $acx_tmp in #(
   *\'*) :
@@ -12032,6 +12033,7 @@ esac
       as_fn_append acx_subdir_run_args_externals_fortran_support_build " '$acx_tmp'"
       as_fn_append extra_build_subdirs " externals/fortran-support/build"
    acx_subdir_run_externals_fortran_support_build=no
+   as_fn_append acx_subdir_run_default_args_externals_fortran_support_build " '-DBUILD_TESTING=OFF'"
    eval "set dummy $acx_subdir_run_args_externals_fortran_support_build"; shift
    acx_subdir_run_args_externals_fortran_support_build=
    while test $# != 0; do
@@ -12055,7 +12057,7 @@ esac
 else
   icon_fs_openacc=OFF
 fi
-   set dummy -DCMAKE_AR="$AR" -DCMAKE_RANLIB="$RANLIB" -DCMAKE_C_FLAGS="$subdir_CFLAGS $ICON_FORTRAN_SUPPORT_CFLAGS $subdir_CPPFLAGS" -DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_FORTRAN_SUPPORT_FCFLAGS" -DCMAKE_BUILD_TYPE=None -DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH" -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF -DFS_ENABLE_OMP="$enable_openmp" -DFS_ENABLE_MIXED_PRECISION="$enable_mixed_precision" -DFS_ENABLE_SINGLE_PRECISION="$enable_single_precision" -DFS_ENABLE_OPENACC="$icon_fs_openacc"; shift
+   set dummy -DCMAKE_AR="$AR" -DCMAKE_RANLIB="$RANLIB" -DCMAKE_C_FLAGS="$subdir_CFLAGS $ICON_FORTRAN_SUPPORT_CFLAGS $subdir_CPPFLAGS" -DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_FORTRAN_SUPPORT_FCFLAGS" -DCMAKE_BUILD_TYPE=None -DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH" -DBUILD_SHARED_LIBS=OFF -DFS_ENABLE_OMP="$enable_openmp" -DFS_ENABLE_MIXED_PRECISION="$enable_mixed_precision" -DFS_ENABLE_SINGLE_PRECISION="$enable_single_precision" -DFS_ENABLE_OPENACC="$icon_fs_openacc"; shift
    for acx_tmp; do
      case $acx_tmp in #(
   *\'*) :
@@ -12203,6 +12205,7 @@ esac
       as_fn_append acx_subdir_run_args_externals_memman_build " '$acx_tmp'"
       as_fn_append extra_build_subdirs " externals/memman/build"
    acx_subdir_run_externals_memman_build=no
+   as_fn_append acx_subdir_run_default_args_externals_memman_build " '-DBUILD_TESTING=OFF'"
    eval "set dummy $acx_subdir_run_args_externals_memman_build"; shift
    acx_subdir_run_args_externals_memman_build=
    while test $# != 0; do
@@ -12230,7 +12233,7 @@ esac
   *) :
     as_fn_append icon_memman_extra_args ' -DMM_ENABLE_BACKEND_CUDA=OFF -DMM_ENABLE_BACKEND_HIP=OFF' ;;
 esac
-   set dummy -DCMAKE_AR="$AR" -DCMAKE_RANLIB="$RANLIB" -DCMAKE_C_FLAGS="$subdir_CFLAGS $ICON_MEMMAN_CFLAGS $subdir_CPPFLAGS" -DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_MEMMAN_FCFLAGS" -DCMAKE_CXX_FLAGS="$subdir_CXXFLAGS $ICON_MEMMAN_CXXFLAGS $subdir_CPPFLAGS" -DCMAKE_BUILD_TYPE=None -DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH" -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF -DICON_DEP_SOURCE_DIR="${icon_abs_top_srcdir}/externals/memman" -DMM_BUILD_DOC=OFF -DMM_GENERATE_BINDINGS=OFF -DMM_ENABLE_C=ON -DMM_ENABLE_FORTRAN=ON $icon_memman_extra_args; shift
+   set dummy -DCMAKE_AR="$AR" -DCMAKE_RANLIB="$RANLIB" -DCMAKE_C_FLAGS="$subdir_CFLAGS $ICON_MEMMAN_CFLAGS $subdir_CPPFLAGS" -DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_MEMMAN_FCFLAGS" -DCMAKE_CXX_FLAGS="$subdir_CXXFLAGS $ICON_MEMMAN_CXXFLAGS $subdir_CPPFLAGS" -DCMAKE_BUILD_TYPE=None -DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH" -DBUILD_SHARED_LIBS=OFF -DICON_DEP_SOURCE_DIR="${icon_abs_top_srcdir}/externals/memman" -DMM_BUILD_DOC=OFF -DMM_GENERATE_BINDINGS=OFF -DMM_ENABLE_C=ON -DMM_ENABLE_FORTRAN=ON $icon_memman_extra_args; shift
    for acx_tmp; do
      case $acx_tmp in #(
   *\'*) :
@@ -12268,6 +12271,7 @@ esac
       as_fn_append acx_subdir_run_args_externals_iconmath_build " '$acx_tmp'"
       as_fn_append extra_build_subdirs " externals/iconmath/build"
    acx_subdir_run_externals_iconmath_build=no
+as_fn_append acx_subdir_run_default_args_externals_iconmath_build " '-DBUILD_TESTING=OFF'"
 eval "set dummy $acx_subdir_run_args_externals_iconmath_build"; shift
    acx_subdir_run_args_externals_iconmath_build=
    while test $# != 0; do
@@ -12291,7 +12295,7 @@ if test "x$icon_gpu_primary" = xopenacc; then :
 else
   icon_im_openacc=OFF
 fi
-set dummy -DCMAKE_AR="$AR" -DCMAKE_RANLIB="$RANLIB" -DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_ICONMATH_FCFLAGS" -DCMAKE_BUILD_TYPE=None -DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH" -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF -DIM_ENABLE_LOOP_EXCHANGE="$enable_loop_exchange" -DIM_ENABLE_MIXED_PRECISION="$enable_mixed_precision" -DIM_ENABLE_SINGLE_PRECISION="$enable_single_precision" -DIM_ENABLE_DIM_SWAP="$enable_dim_swap" -DIM_ENABLE_OPENACC="$icon_im_openacc" -DIM_ENABLE_OPENMP="$enable_openmp"; shift
+set dummy -DCMAKE_AR="$AR" -DCMAKE_RANLIB="$RANLIB" -DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_ICONMATH_FCFLAGS" -DCMAKE_BUILD_TYPE=None -DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH" -DBUILD_SHARED_LIBS=OFF -DIM_ENABLE_LOOP_EXCHANGE="$enable_loop_exchange" -DIM_ENABLE_MIXED_PRECISION="$enable_mixed_precision" -DIM_ENABLE_SINGLE_PRECISION="$enable_single_precision" -DIM_ENABLE_DIM_SWAP="$enable_dim_swap" -DIM_ENABLE_OPENACC="$icon_im_openacc" -DIM_ENABLE_OPENMP="$enable_openmp"; shift
    for acx_tmp; do
      case $acx_tmp in #(
   *\'*) :
@@ -12335,6 +12339,7 @@ esac
       as_fn_append acx_subdir_run_args_ragnarok_build " '$acx_tmp'"
       as_fn_append extra_build_subdirs " ragnarok/build"
    acx_subdir_run_ragnarok_build=no
+   as_fn_append acx_subdir_run_default_args_ragnarok_build " '-DBUILD_TESTING=OFF'"
    eval "set dummy $acx_subdir_run_args_ragnarok_build"; shift
    acx_subdir_run_args_ragnarok_build=
    while test $# != 0; do
@@ -12353,7 +12358,7 @@ esac
 esac
      shift
    done
-   set dummy -DCMAKE_AR="$AR" -DCMAKE_RANLIB="$RANLIB" -DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_RAGNAROK_FCFLAGS" -DCMAKE_CXX_FLAGS="$subdir_CXXFLAGS $ICON_RAGNAROK_CXXFLAGS $subdir_CPPFLAGS" -DCMAKE_CUDA_FLAGS="$subdir_CUDAFLAGS $ICON_RAGNAROK_CUDAFLAGS" -DCMAKE_HIP_STANDARD_LIBRARIES="$LIBS" -DCMAKE_HIP_FLAGS="$subdir_HIPFLAGS $ICON_RAGNAROK_HIPFLAGS" -DCMAKE_HIP_STANDARD_LIBRARIES="$LIBS" -DCMAKE_BUILD_TYPE=None -DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH" -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF -DRGK_ENABLE_STANDALONE=OFF -DCMAKE_CUDA_ARCHITECTURES=OFF -DCMAKE_HIP_ARCHITECTURES=OFF; shift
+   set dummy -DCMAKE_AR="$AR" -DCMAKE_RANLIB="$RANLIB" -DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_RAGNAROK_FCFLAGS" -DCMAKE_CXX_FLAGS="$subdir_CXXFLAGS $ICON_RAGNAROK_CXXFLAGS $subdir_CPPFLAGS" -DCMAKE_CUDA_FLAGS="$subdir_CUDAFLAGS $ICON_RAGNAROK_CUDAFLAGS" -DCMAKE_HIP_STANDARD_LIBRARIES="$LIBS" -DCMAKE_HIP_FLAGS="$subdir_HIPFLAGS $ICON_RAGNAROK_HIPFLAGS" -DCMAKE_HIP_STANDARD_LIBRARIES="$LIBS" -DCMAKE_BUILD_TYPE=None -DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH" -DBUILD_SHARED_LIBS=OFF -DRGK_ENABLE_STANDALONE=OFF -DCMAKE_CUDA_ARCHITECTURES=OFF -DCMAKE_HIP_ARCHITECTURES=OFF; shift
    for acx_tmp; do
      case $acx_tmp in #(
   *\'*) :
