@@ -273,6 +273,25 @@ Vertically nested domains  can have significantly more additional layers via nam
 
 {material-regular}`warning;2em;pst-color-secondary` _If not using a reduced radiation grid, i.e. calculating radiation on the dynamics grid, neither longwave back radiation nor ozone absorption are taken into account above the model top. Especially for limited-area configurations with a model top in the lower stratosphere, this can lead to large biases._
 
+(ref_ecrad_debugging)=
+## Debugging & known issues
+
+The namelist option [`ecrad_check_input`](radiation_nml-ecrad_check_input) can be used to perform a series of checks and adjust some settings:
+
+- ecRad verbosity is increased significantly
+- Sanity checks on pressure input fields
+- Abort if the combination Intel+OpenMP+ecRad is used (see below)
+- Make use of `out_of_physical_bounds` checks provided by ecRad
+
+{material-regular}`warning;2em;pst-color-secondary` _Two fields (`zrg_clc` and `opt_ptrs_sw(jw)%ptr_ssa`) contained values slightly larger than 1 after upscaling (rounding error). These fields are clipped to 1 if [`ecrad_check_input`](radiation_nml-ecrad_check_input)` = .TRUE.`._
+
+:::{admonition} Combining Intel + OpenMP + ecRad
+:class: admonition-icontheme
+There is a known issue for the combination Intel + OpenMP + ecRad that leads to non-reproducible results.
+Since the cause of this error could not be identified yet, we highly recommend to avoid this combination.
+Note that ecRad with OpenMP in ICON works for other compilers.
+:::
+
 (ref_ecrad_single_precision)=
 ## Single precision
 

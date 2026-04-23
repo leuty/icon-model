@@ -30,7 +30,14 @@ makeflags="--jobs=${job_count} --no-print-directory --output-sync=target V=1"
 
 set -x
 
-${icon_dir}/config/dkrz/levante.intel --enable-openmp --enable-separate-mods --enable-bundled-python=yac,comin,mtime --enable-testbed --enable-concurrent-mpi-tests PYTHON='/work/mh0287/buildbot/venv/bin/python3' "$@"
+${icon_dir}/config/dkrz/levante.intel \
+  --enable-openmp \
+  --enable-separate-mods \
+  --enable-bundled-python=yac,comin,mtime \
+  --enable-testbed \
+  --enable-concurrent-mpi-tests \
+  --disable-ecrad \
+  PYTHON='/work/mh0287/buildbot/venv/bin/python3' "$@"
 
 make ${makeflags}
 

@@ -174,13 +174,15 @@ $addexp "checksuite.ocean_internal/era5/exp.test-ocean_era5" \
 # tests for nwp
 $addexp "exp.test_nwp_R02B04N06multi"  --without-configureflags "--without-mpi" --runflags "cpu_time=00:30:00 queue=shared,compute memory=64G ntasks=32"  --builders "${LEVANTE_CPU_BUILDERS}" --list $listname
 $addexp "exp.test_nwp_R02B04_R02B05_nest"  --without-configureflags "--without-mpi" --runflags "cpu_time=00:30:00 queue=shared,compute memory=32G ntasks=32"  --builders "${LEVANTE_CPU_BUILDERS}" --list $listname
+./rmexp "exp.test_nwp_R02B04N06multi"  --builders "levante_intel_hybrid levante_intel_hybrid_mixed" --list "$listname"
+./rmexp "exp.test_nwp_R02B04_R02B05_nest"  --builders "levante_intel_hybrid levante_intel_hybrid_mixed" --list "$listname"
 
 $addexp "checksuite.infrastructure/comin/exp.build_comin_plugins_LEVANTE.run" --builders "levante_gcc levante_gcc_hybrid" --list $listname
 $addexp "exp.test_nwp_R02B04_R02B05_nest_comin" --builders "levante_gcc levante_gcc_hybrid" --list $listname
 ./adddep --from-experiment "exp.test_nwp_R02B04_R02B05_nest_comin" --to-experiment "checksuite.infrastructure/comin/exp.build_comin_plugins_LEVANTE.run" --builders "levante_gcc levante_gcc_hybrid" --list $listname
 $addexp "exp.test_nwp_R02B04_R02B05_nest_comin_python" --without-configureflags "--without-mpi" --runflags "cpu_time=00:30:00 queue=shared,compute memory=32G ntasks=32" --builders "levante_gcc levante_gcc_hybrid" --list $listname
 ./adddep --from-experiment "exp.test_nwp_R02B04_R02B05_nest_comin_python" --to-experiment "checksuite.infrastructure/comin/exp.build_comin_plugins_LEVANTE.run" --builders "levante_gcc levante_gcc_hybrid" --list $listname
-$addexp "checksuite.nwp/nwpexp.run_ICON_19_R2B4_cmip_forcing"  --without-configureflags "--without-mpi" --runflags "cpu_time=00:30:00 no_of_nodes=1" --builders "levante_intel_hybrid levante_gcc_hybrid" --list $listname
+$addexp "checksuite.nwp/nwpexp.run_ICON_19_R2B4_cmip_forcing"  --without-configureflags "--without-mpi" --runflags "cpu_time=00:30:00 no_of_nodes=1" --builders "levante_gcc_hybrid" --list $listname
 
 $addexp "checksuite.infrastructure/comin/nwpexp.build_comin_plugins_DWD_nec" --builders "dwd_nec_coupling" --list $listname
 # deactivate COMIN expermiment for builder dwd_nec_coupling until a fix is available.
@@ -258,7 +260,7 @@ $addexp --builders levante_intel --list $listname checksuite.nwp/exp.test_atm_nw
 $addexp exp.esm_bb_ruby0 --without-configureflags "--without-mpi" --builders "${LEVANTE_CPU_BUILDERS}" --runflags "cpu_time=00:10:00 no_of_nodes=4" --list $listname
 $addexp "checksuite.infrastructure/output/exp.esm_bb_ruby0_check_output_LEVANTE.run" --builders "levante_gcc" --list $listname
 ./adddep --from-experiment "checksuite.infrastructure/output/exp.esm_bb_ruby0_check_output_LEVANTE.run" --to-experiment "exp.esm_bb_ruby0" --builders "levante_gcc" --list $listname
-$addexp "checksuite.infrastructure/coupling/exp.run_ICON_17_R2B4_AO_coupled_LEVANTE.run" --builders "levante_gcc levante_intel_hybrid" --list $listname
+$addexp "checksuite.infrastructure/coupling/exp.run_ICON_17_R2B4_AO_coupled_LEVANTE.run" --builders "levante_gcc_hybrid levante_intel" --list $listname
 
 ## new seamless entries for levante - hybrid with 4 openmp-threads with gcc (1 thread with intel_hybrid due to ecrad radiation)
 #-----------------------------------------------------------
@@ -270,17 +272,15 @@ $addexp "checksuite.infrastructure/coupling/exp.run_ICON_17_R2B4_AO_coupled_LEVA
 #          --runflags "cpu_time=00:10:00 no_of_nodes=4 openmp_threads=4" --list $listname
 ## Prototype-2:
 $addexp exp.seamless_bb-proto2 --builders "levante_intel levante_gcc" --runflags "cpu_time=00:10:00 no_of_nodes=4" --list $listname
-$addexp exp.seamless_bb-proto2 --builders "levante_intel_hybrid" \
-         --runflags "cpu_time=00:10:00 no_of_nodes=4 openmp_threads=1" --list $listname
 $addexp exp.seamless_bb-proto2 --builders "levante_gcc_hybrid" \
          --runflags "cpu_time=00:10:00 no_of_nodes=4 openmp_threads=4" --list $listname
 ## Prototype-1:
 $addexp exp.seamless_bb-proto1 --builders "levante_intel levante_gcc levante_nag" --runflags "cpu_time=00:10:00 no_of_nodes=4" --list $listname
-$addexp exp.seamless_bb-proto1 --builders "levante_intel_hybrid levante_gcc_hybrid" \
+$addexp exp.seamless_bb-proto1 --builders "levante_gcc_hybrid" \
          --runflags "cpu_time=00:10:00 no_of_nodes=4 openmp_threads=4" --list $listname
 ## ICON-NWP/ECRAD test:
 $addexp exp.seamless_bb-ecradmin --builders "levante_intel levante_gcc" --runflags "cpu_time=00:10:00 no_of_nodes=2" --list $listname
-$addexp exp.seamless_bb-ecradmin --builders "levante_intel_hybrid levante_gcc_hybrid" \
+$addexp exp.seamless_bb-ecradmin --builders "levante_gcc_hybrid" \
          --runflags "cpu_time=00:10:00 no_of_nodes=2 openmp_threads=4" --list $listname
 #-----------------------------------------------------------
 
@@ -420,7 +420,7 @@ $addexp "checksuite.infrastructure/comin/exp.atm_tracer_Hadley_comin_portability
 $addexp "checksuite.clm/check.ICON_CLM" --builders "levante_intel levante_gcc_hybrid levante_cpu_nvhpc" --list ${listname} --runflags="ntasks=32 queue=shared"
 $addexp "checksuite.clm/check.ICON_CLM" --builders "levante_gpu_nvhpc" --list ${listname}
 $addexp "checksuite.clm/check.ICON_CLM" --builders "dwd_nec_hybrid" --list ${listname}
-$addexp "checksuite.clm/clmexp.ICON_CLM_global_mean_no_boundary" --builders "levante_intel_hybrid levante_gcc_hybrid" --list $listname
+$addexp "checksuite.clm/clmexp.ICON_CLM_global_mean_no_boundary" --builders "levante_gcc_hybrid" --list $listname
 $addexp "checksuite.clm/clmexp.ICON_CLM_output_coupling" --builders "levante_intel levante_gcc_hybrid" --list ${listname} --runflags="ntasks=32 queue=shared"
 
 # remove tests for NAG which are buggy or take too long
