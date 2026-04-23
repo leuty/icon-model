@@ -10,6 +10,7 @@
 
 include:
   - local: .gitlab/ci/utils/git.yml
+  - local: .gitlab/ci/utils/pip.yml
   - local: .gitlab/ci/utils/icon.yml
   - local: .gitlab/ci/common/dkrz.yml
   - local: .gitlab/ci/common/any-image.yml
@@ -404,6 +405,53 @@ aes:coupled:cpu:analyze:
   extends: .system:analyze
   needs: [aes:coupled:cpu:run]
 
+comin:python:cpu:build:
+  extends: .system:build:levante
+  variables:
+    ICON_CI_UTILS_ICON_BUILD_EXTRA_SUBMODULE_PATHS: externals/comin
+    ICON_CI_UTILS_ICON_CONFIG_REL_PATH: config/dkrz/levante.intel
+    PYTHON: /sw/spack-levante/python-3.9.9-w7ch77/bin/python3
+    ICON_CI_UTILS_ICON_CONFIG_EXTRA_ARGS: >-
+      --enable-atmo --enable-nwp --enable-comin --enable-bundled-python=mtime,comin
+      PYTHON=${PYTHON}
+  artifacts:
+    paths:
+      - "**/*.log"
+      - "**/CMakeCache.txt"
+      - bin/icon
+      - externals/comin/build/_icon/plugins/**/*.so
+      - externals/mtime/build/python/mtime
+      - run/SETUP.config
+
+comin:python:cpu:run:
+  extends:
+    - .system:run:levante
+    - .utils:pip
+  needs: [comin:python:cpu:build]
+  variables:
+    ICON_CI_UTILS_ICON_RUN_EXTRA_SUBMODULE_PATHS: externals/comin
+    PYTHON: !reference [comin:python:cpu:build, variables, PYTHON]
+    ICON_CI_COMIN_PYVENV: ${ICON_CI_COMMON_DKRZ_SHMEM_PATH}/venv
+    ICON_CI_UTILS_PIP_PYTHON: ${ICON_CI_COMIN_PYVENV}/bin/python3
+    ICON_CI_UTILS_PIP_UPGRADE: true
+    ICON_CI_UTILS_PIP_PACKAGES: numpy
+    ICON_CI_UTILS_ICON_MKEXP_CONFIG_REL_PATH: >-
+      run/checksuite.infrastructure/comin/amip-nwp-comin.config
+    COMIN_PYTHON_EXECUTABLE: ${ICON_CI_UTILS_PIP_PYTHON}
+  before_script:
+    - !reference [.system:run:levante, before_script]
+    - |
+      # !reference [comin:python:cpu:run, before_script]
+      icon_ci_log_section_start 'Initializing Python environment'
+      (
+        set -x
+        "${PYTHON}" -m venv "${ICON_CI_COMIN_PYVENV}"
+      ) 2>&1
+      icon_ci_log_section_end
+    - !reference [.utils:pip, before_script]
+  artifacts:
+    paths: null
+
 generate-checksum-table:
   stage: system
   needs:
@@ -454,46 +502,6 @@ generate-checksum-table:
     - if: $CI_PIPELINE_SOURCE == "schedule"
       when: never
     - !reference [.system:analyze, rules]
-
-.comin:amip-nwp:
-  variables:
-    ICON_CI_UTILS_PIP_PYTHON: /sw/spack-levante/python-3.9.9-w7ch77/bin/python3
-    ICON_CI_UTILS_ICON_CONFIG_EXTRA_ARGS: --enable-atmo --enable-nwp --enable-comin --enable-bundled-python=mtime,comin PYTHON=${ICON_CI_UTILS_PIP_PYTHON}
-    ICON_CI_UTILS_ICON_BUILD_EXTRA_SUBMODULE_PATHS: externals/comin externals/jsbach
-    ICON_CI_UTILS_ICON_MKEXP_CONFIG_REL_PATH: run/checksuite.infrastructure/comin/amip-nwp-comin.config
-
-comin:amip-nwp:cpu:build:
-  extends:
-    - .system:build:levante
-    - .comin:amip-nwp
-  variables:
-    ICON_CI_UTILS_ICON_CONFIG_REL_PATH: config/dkrz/levante.intel
-
-comin:amip-nwp:cpu:run:
-  extends:
-    - .utils:pip
-    - .system:run:levante
-    - .comin:amip-nwp
-  needs: [comin:amip-nwp:cpu:build]
-  variables:
-    ICON_CI_COMMON_DKRZ_SLURM_NNODES: 1
-    ICON_CI_COMMON_DKRZ_SLURM_NTASKS: 256
-    ICON_CI_COMIN_VENV: ${CI_PROJECT_DIR}/venv
-    ICON_CI_UTILS_PIP_PYTHON_VENV_BASE: /sw/spack-levante/python-3.9.9-w7ch77/bin/python3
-    ICON_CI_UTILS_PIP_PYTHON: ${ICON_CI_COMIN_VENV}/bin/python3
-    COMIN_PYTHON_EXECUTABLE: ${ICON_CI_COMIN_VENV}/bin/python3
-    ICON_CI_UTILS_PIP_PACKAGES: numpy
-  before_script:
-    - !reference [.system:run:levante, before_script]
-    - |
-      # !reference [comin:amip-nwp:cpu:run, before_script]
-      icon_ci_log_section_start 'Initializing Python environment'
-      (
-        set -x
-        ${ICON_CI_UTILS_PIP_PYTHON_VENV_BASE} -m venv "${ICON_CI_COMIN_VENV}"
-      )
-      icon_ci_log_section_end
-    - !reference [.utils:pip, before_script]
 
 Accept new checksum table:
   stage: system
