@@ -141,6 +141,7 @@
 - mkexp: Additional comments giving examples in jsbach offline configuration (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1340)
 - Update several run scripts: use recent land data to allow running the current ICON-Land version
 - make_runscripts: Increase stacksize for default targets (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1363)
+- mkexp: Simplifying output switching in AMIP AES configurations (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1394)
 
 #### Building
 
