@@ -11,6 +11,7 @@
 
 include:
   - local: .gitlab/ci/utils/log.yml
+  - local: .gitlab/ci/utils/icon.yml
   - local: .gitlab/ci/utils/pip.yml
   - local: .gitlab/ci/common/any-image.yml
   - local: .gitlab/ci/common/alpine.yml
@@ -127,42 +128,67 @@ style:general:
 
 style:static-analysis:
   stage: basic
-  extends: .common:any-image
+  extends:
+    - .common:any-image
+    - .utils:icon:build
   variables:
+    FF_DISABLE_UMASK_FOR_DOCKER_EXECUTOR: 1
     DOCKER_AUTH_CONFIG: "{\"auths\":{\"registry.gitlab.dkrz.de\":{\"auth\":\"$CI_DOCKER_AUTH\"}}}"
-    REPORT_DIRECTORY: "${CI_PROJECT_DIR}/htmlReport"
-    GIT_SUBMODULE_STRATEGY: normal
-  image: registry.gitlab.dkrz.de/icon/ci-tooling/codee-check-container/codee:v2025.4.2
+    REPORT_DIRECTORY: ${CI_PROJECT_DIR}/htmlReport
+    GIT_SUBMODULE_PATHS: >-
+      externals/cdi
+      externals/fortran-support
+      externals/iconmath
+      externals/jsbach
+      externals/memman
+      externals/mtime
+      externals/rte-rrtmgp
+      externals/yac
+      externals/yaxt
+    ICON_CI_UTILS_ICON_CONFIG_REL_PATH: config/generic/gcc
+    ICON_CI_UTILS_ICON_BUILD_COMMAND: bear -- make
+    FCFLAGS: -O0
+    CFLAGS: -O0
+    ICON_CI_UTILS_ICON_CONFIG_EXTRA_ARGS: >-
+      --disable-separate-mods
+      --enable-aes
+      --enable-atmo
+      --enable-coupling
+      --enable-jsbach
+      --enable-les
+      --enable-nwp
+      --enable-ocean
+      --enable-openmp
+      --enable-rte-rrtmgp
+      --enable-upatmo
+  image: registry.gitlab.dkrz.de/icon/ci-tooling/codee-check-container/codee:v2025.4.7
+  before_script:
+    - !reference [.utils:log, before_script]
+    - !reference [.utils:icon:build, before_script]
   script:
+    - !reference [.utils:icon:build, script]
     - |
       icon_ci_log_section_start 'Running static analysis with codee' 'collapsed=false'
       (
         set -ux
-        LIBS="-lxml2 -lfyaml -llapack -lopenblas -lnetcdff -lnetcdf -lstdc++"
-        FCFLAGS="-I/usr/include -O0 -fmodule-private -fimplicit-none"
-        FCFLAGS+=" -fmax-identifier-length=63 -fall-intrinsics"
-        ICON_CFLAGS="-O0"
-        ICON_BUNDLED_CFLAGS="-O0"
-        ICON_BUNDLED_CXXFLAGS="-O0"
-
-        mkdir build && cd $_
-        ../config/generic/gcc --disable-delayed-config --disable-grib2 \
-        LIBS="${LIBS}"                                                 \
-        FCFLAGS="${FCFLAGS}"                                           \
-        ICON_CFLAGS="${ICON_CFLAGS}"                                   \
-        ICON_BUNDLED_CFLAGS=${ICON_BUNDLED_CFLAGS}                     \
-        ICON_BUNDLED_CXXFLAGS=${ICON_BUNDLED_CXXFLAGS}
-
-        bear -- make -j $(($(nproc)/4))
-
-        codee checks --html "$REPORT_DIRECTORY" --accept-eula \
-        --exclude "${PWD}"/externals                          \
-        --exclude "$(realpath $PWD/../externals)"             \
-        --fortran-flags "-I${PWD}/externals/yaxt/src/"        \
-        --check-id pwr007,pwr008,pwr063,pwr069,pwr072,pwr079  \
-        -p compile_commands.json
+        codee checks --html "${REPORT_DIRECTORY}" --accept-eula \
+          --exclude "${ICON_CI_UTILS_ICON_SOURCE_PATH}/externals" \
+          --exclude "${ICON_CI_UTILS_ICON_BUILD_PATH}/externals" \
+          --check-id pwr007,pwr008,pwr063,pwr069,pwr072,pwr079 \
+          -p compile_commands.json
       ) 2>&1
       icon_ci_log_section_end
+      icon_ci_log_info_msg "${CI_ENVIRONMENT_URL}"
+      cat <<_EOF >"${CI_PROJECT_DIR}/annotation.json"
+      {
+        "section": [{
+          "external_link": {
+              "label": "Static analysis report",
+              "url": "${CI_ENVIRONMENT_URL}"
+          }
+        }]
+      }
+      _EOF
   environment:
     name: codee-report
     url: https://${CI_PAGES_HOSTNAME}/-/${CI_PROJECT_NAME}/-/jobs/${CI_JOB_ID}/artifacts/htmlReport/index.html
@@ -170,6 +196,8 @@ style:static-analysis:
     expire_in: 2week
     paths:
       - ${REPORT_DIRECTORY}
+    reports:
+      annotations: annotation.json
   rules:
     - if: $CI_PROJECT_PATH != "icon/icon-mpim"
       when: never
