@@ -43,7 +43,7 @@ MODULE mo_ocean_math_operators
   USE mo_grid_subset,         ONLY: t_subset_range, get_index_range
   USE mo_sync,                ONLY: sync_c, sync_e, sync_v, sync_patch_array
   USE mo_grid_config,         ONLY: n_dom
-  USE mo_fortran_tools,       ONLY: set_acc_host_or_device
+  USE mo_fortran_tools,       ONLY: set_acc_host_or_device,copy,init
 
   IMPLICIT NONE
 
@@ -3222,7 +3222,11 @@ CONTAINS
     gam_times_beta = ab_gam * ab_beta
 
     !$ACC DATA CREATE(cell_idx, cell_blk, map_to_edgeStencil, gs, ap, dc) IF(lzacc)
-
+    !ICON_OMP PARALLEL DO PRIVATE(cell_StartIndex,cell_EndIndex,jc,cell_blk,cell_idx, &
+    !ICON_OMP & edge_connect,edge_idx_1,edge_blk_1,cell_stencil_index,edge_stencil_index, &
+    !ICON_OMP & grad_sign,gs,next_stencil,edge_connect_2,edge_idx_2,edge_blk_2, &
+    !ICON_OMP & cell_stencil_index_2,edge_stencil_index_2,ap,cell_idx_1,cell_blk_1, &
+    !ICON_OMP & map_to_edgeStencil,dc,cell_connect) ICON_OMP_DEFAULT_SCHEDULE
     DO blockNo = cells_in_domain%start_block, cells_in_domain%end_block
       CALL get_index_range(cells_in_domain, blockNo, cell_StartIndex, cell_EndIndex)
 
@@ -3385,6 +3389,7 @@ CONTAINS
       ENDDO
       !$ACC END PARALLEL LOOP
     ENDDO
+    !ICON_OMP END PARALLEL DO
     !$ACC WAIT(1)
 
     !$ACC END DATA
@@ -3401,14 +3406,18 @@ CONTAINS
     REAL(wp), POINTER :: cfl_diag(:,:,:)
     LOGICAL, INTENT(in)   :: stop_on_violation, output
     REAL(wp), POINTER :: cfl(:,:,:)
+    REAL(wp) :: max_cfl
 
     INTEGER :: je,level,blockNo,start_index,end_index
 
+    max_cfl = 0._wp
     ALLOCATE(cfl(LBOUND(normal_velocity,1):UBOUND(normal_velocity,1),&
       & LBOUND(normal_velocity,2):UBOUND(normal_velocity,2),&
       & LBOUND(normal_velocity,3):UBOUND(normal_velocity,3)))
-    cfl = 0.0_wp
-
+    !ICON_OMP PARALLEL
+    CALL init(cfl,lacc=.false.)
+    !ICON_OMP BARRIER
+    !ICON_OMP DO PRIVATE(start_index,end_index,je,level) REDUCTION(MAX:max_cfl)
     DO blockNo = edges%start_block, edges%end_block
       CALL get_index_range(edges,blockNo,start_index,end_index)
       DO je = start_index,end_index
@@ -3416,10 +3425,15 @@ CONTAINS
           cfl(je,level,blockNo) = ABS(dtime*normal_velocity(je,level,blockNo)*inv_dual_edge_length(je,blockNo))
         END DO
       END DO
+      max_cfl = MAX(max_cfl,MAXVAL(cfl(:,:,blockNo)))
     END DO
+    !ICON_OMP END DO
+    !ICON_OMP END PARALLEL
     IF (output) THEN
       IF (ASSOCIATED(cfl_diag)) THEN
-        cfl_diag(:,:,:) = cfl(:,:,:)
+        !ICON_OMP PARALLEL
+        CALL copy(cfl,cfl_diag,lacc=.false.)
+        !ICON_OMP END PARALLEL
       ELSE
         CALL finish('check_cfl_vertical','cfl_diag pointer for output NOT ASSOCIATED')
       ENDIF
@@ -3427,7 +3441,7 @@ CONTAINS
 
     CALL dbg_print('check horiz. CFL',cfl(:,1,:),str_module,1,in_subset=edges)
 
-    CALL check_cfl_threshold(MAXVAL(cfl),threshold,'horz',stop_on_violation)
+    CALL check_cfl_threshold(max_cfl,threshold,'horz',stop_on_violation)
 
     DEALLOCATE(cfl)
   END SUBROUTINE check_cfl_horizontal
@@ -3440,14 +3454,18 @@ CONTAINS
     REAL(wp), POINTER :: cfl_diag(:,:,:)
     LOGICAL, INTENT(in)  :: stop_on_violation,output
     REAL(wp), POINTER :: cfl(:,:,:)
+    REAL(wp) :: max_cfl
 
     INTEGER :: jc, level, blockNo, cell_StartIndex, cell_EndIndex
 
+    max_cfl = 0._wp
     ALLOCATE(cfl(LBOUND(vertical_velocity,1):UBOUND(vertical_velocity,1),&
       & LBOUND(vertical_velocity,2):UBOUND(vertical_velocity,2),&
       & LBOUND(vertical_velocity,3):UBOUND(vertical_velocity,3)))
-    cfl = 0.0_wp
-
+    !ICON_OMP PARALLEL
+    CALL init(cfl,lacc=.false.)
+    !ICON_OMP BARRIER
+    !ICON_OMP DO ICON_OMP_DEFAULT_SCHEDULE PRIVATE(cell_StartIndex, cell_EndIndex,jc,level) REDUCTION(MAX:max_cfl)
     DO blockNo = cells%start_block, cells%end_block
       CALL get_index_range(cells, blockNo, cell_StartIndex, cell_EndIndex)
       DO jc = cell_StartIndex, cell_EndIndex
@@ -3455,11 +3473,14 @@ CONTAINS
           cfl(jc,level,blockNo)=ABS(dtime*vertical_velocity(jc,level,blockNo)/thicknesses(jc,level,blockNo))
         END DO
       END DO
+      max_cfl = MAX(max_cfl,MAXVAL(cfl(:,:,blockNo)))
     END DO
-
+    !ICON_OMP END PARALLEL
     IF (output) THEN
       IF (ASSOCIATED(cfl_diag)) THEN
-        cfl_diag(:,:,:) = cfl(:,:,:)
+        !ICON_OMP PARALLEL
+        CALL copy(cfl,cfl_diag,lacc=.false.)
+        !ICON_OMP END PARALLEL
       ELSE
         CALL finish('check_cfl_vertical','cfl_diag pointer for output NOT ASSOCIATED')
       ENDIF
@@ -3467,7 +3488,7 @@ CONTAINS
 
     CALL dbg_print('check vert.  CFL',cfl(:,2,:),str_module,1,in_subset=cells)
 
-    CALL check_cfl_threshold(MAXVAL(cfl),threshold,'vert',stop_on_violation)
+    CALL check_cfl_threshold(max_cfl,threshold,'vert',stop_on_violation)
 
     DEALLOCATE(cfl)
   END SUBROUTINE check_cfl_vertical

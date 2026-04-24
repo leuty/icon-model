@@ -51,13 +51,12 @@
 
 MODULE mo_orbit
 
-  USE mo_kind,           ONLY : wp, i8
-  USE mo_math_constants, ONLY : pi           ,& ! pi
-       &                        twopi => pi2 ,& ! pi*2
+  USE mo_kind,           ONLY : wp
+  USE mo_math_constants, ONLY : twopi => pi2 ,& ! pi*2
        &                        deg2rad         ! pi/180
   USE mo_exception,      ONLY : finish, message, message_text,warning, print_value
-  USE mtime,             ONLY : julianday, newJulianday, deallocateJulianday, getJulianDayFromDatetime, &
-       &                        newDateTime, deallocateDateTime, datetime, no_of_ms_in_a_day, &
+  USE mtime,             ONLY : julianday, getJulianDayFromDatetime, &
+       &                        datetime, date, time, no_of_ms_in_a_day, &
        &                        getNoOfDaysInYearDateTime
   USE mo_fortran_tools,  ONLY: set_acc_host_or_device, set_acc_async_queue
 
@@ -838,35 +837,27 @@ CONTAINS
                            & time_of_day, orbit_date    )
 
     LOGICAL, INTENT(IN) :: l_orbvsop87
-    TYPE(datetime), POINTER, INTENT(IN) :: current_datetime
+    TYPE(datetime), INTENT(IN) :: current_datetime
     LOGICAL, INTENT(in) :: lyr_perp
     INTEGER, INTENT(in) :: yr_perp
     REAL (wp), INTENT (OUT) :: time_of_day, orbit_date
 
-    TYPE(julianday), POINTER :: jd, jd_pal
-    TYPE(datetime), POINTER  :: valid_datetime, pal_datetime
+    TYPE(julianday) :: jd, jd_pal
+    TYPE(datetime) :: valid_datetime, pal_datetime
     REAL(wp)    :: zdy, zdy_mar0, zscr, zyearlen_days
 
-       valid_datetime => newDateTime(current_datetime)
-       IF (lyr_perp) THEN
-         valid_datetime%date%year = yr_perp
-       END IF
-
+    valid_datetime = current_datetime
+    IF (lyr_perp) valid_datetime%date%year = yr_perp
+    CALL getJulianDayFromDatetime(valid_datetime, jd)
     IF (l_orbvsop87) THEN
-      jd => newJulianday(0_i8, 0_i8)
-      CALL getJulianDayFromDatetime(valid_datetime, jd)
       orbit_date = REAL(jd%day,wp) + REAL(jd%ms,wp)/REAL(no_of_ms_in_a_day,wp)
       time_of_day = (REAL(jd%ms,wp)/REAL(no_of_ms_in_a_day,wp)-0.5_wp)*twopi
-      CALL deallocateJulianday(jd)
-      CALL deallocateDateTime(valid_datetime)
     ELSE
       ! Kepler orbit that needs fraction with respect to vernal equinox in rad
       ! mtime routines should be able to handle different calendars...
-      jd => newJulianday(0_i8, 0_i8)
-      CALL getJulianDayFromDatetime(valid_datetime, jd)
       time_of_day = (REAL(jd%ms,wp)/REAL(no_of_ms_in_a_day,wp)-0.5_wp)*twopi
-      jd_pal => newJulianday(0_i8, 0_i8)
-      pal_datetime => newDateTime('1900-01-01T00:00:00Z')
+      pal_datetime = dateTime(date(year=1900, month=1, day=1), &
+        &                     time(hour=0, minute=0, second=0, ms=0))
       CALL getJulianDayFromDatetime(pal_datetime, jd_pal)
       zyearlen_days=REAL(getNoOfDaysInYearDateTime(valid_datetime),wp)
       zdy = (REAL(jd%day,wp)+REAL(jd%ms,wp)/REAL(no_of_ms_in_a_day,wp))-       &
@@ -877,9 +868,6 @@ CONTAINS
       zdy_mar0   = 78.41_wp - 0.0078_wp*(1900-1987) + 0.25_wp*MOD(1900,4)
       zscr       = zdy + zyearlen_days - zdy_mar0
       orbit_date = MOD(zscr/zyearlen_days,1.0_wp)*twopi
-      CALL deallocateJulianday(jd)
-      CALL deallocateJulianday(jd_pal)
-      CALL deallocateDateTime(valid_datetime)
     END IF
 
   END SUBROUTINE get_orbit_times

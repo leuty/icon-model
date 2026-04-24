@@ -20,10 +20,10 @@
 
 MODULE mo_bc_greenhouse_gases
 
-  USE mo_kind,               ONLY: wp, i8
-  USE mo_exception,          ONLY: finish, message, message_text, warning
+  USE mo_kind,               ONLY: wp
+  USE mo_exception,          ONLY: finish, message, message_text
   USE mo_physical_constants, ONLY: vmr_to_mmr_co2, vmr_to_mmr_ch4, vmr_to_mmr_n2o, vmr_to_mmr_c11, vmr_to_mmr_c12
-  USE mo_netcdf,             ONLY: nf90_noerr, nf90_nowrite, nf90_max_var_dims
+  USE mo_netcdf,             ONLY: nf90_nowrite, nf90_max_var_dims
   USE mo_netcdf_parallel,    ONLY: p_nf90_open, p_nf90_inq_dimid, p_nf90_inquire_dimension, &
        &                           p_nf90_inq_varid, p_nf90_get_var, p_nf90_close, &
        &                           p_nf90_inquire_variable
@@ -136,7 +136,7 @@ CONTAINS
 
   SUBROUTINE bc_greenhouse_gases_time_interpolation(radiation_date, print_report)
 
-    TYPE(datetime), POINTER, INTENT(in) :: radiation_date
+    TYPE(datetime), INTENT(in) :: radiation_date
     LOGICAL, INTENT(IN), OPTIONAL :: print_report
 
     REAL(wp) :: zsecref, zsecnow

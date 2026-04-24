@@ -28,7 +28,8 @@ MODULE mo_interface_aes_tmx
   USE mo_dynamics_config     ,ONLY: nnow, nnew, nnow_rcf
   USE mo_aes_phy_config      ,ONLY: aes_phy_config, aes_phy_tc, dt_zero
   USE mo_aes_phy_memory      ,ONLY: t_aes_phy_field, prm_field, prm_field_list, &
-    &                               t_aes_phy_tend,  prm_tend, prm_tend_list
+    &                               t_aes_phy_tend,  prm_tend, prm_tend_list, &
+    &                               cdimissval
 
   USE mo_timer               ,ONLY: ltimer, timer_start, timer_stop, timer_tmx
 
@@ -268,7 +269,7 @@ CONTAINS
         ! Retrieve computed tendency for tracers
         tend_tracer_vdf => vdf%atmo%Get_tendency_r4d(vdf%atmo%tracer_idx)
 
-!$OMP PARALLEL DO PRIVATE(jb,jc,jcs,jce,jk,jsfc) ICON_OMP_DEFAULT_SCHEDULE
+!$OMP PARALLEL DO PRIVATE(jb,jc,jcs,jce,jk) ICON_OMP_DEFAULT_SCHEDULE
         DO jb = jbs, jbe
 
           CALL get_indices_c(patch, jb, jbs, jbe, jcs, jce, rls, rle)
@@ -381,14 +382,6 @@ CONTAINS
             !$ACC END LOOP
           END IF
 
-          !$ACC LOOP GANG(STATIC: 1) VECTOR COLLAPSE(2)
-          DO jsfc = 1, nsfc_type
-            DO jc = jcs, jce
-              field%ts_tile(jc,jb,jsfc) = field%ts_tile(jc,jb,jsfc) + tend_ts(jc,jb,jsfc) * dtime
-            END DO
-          END DO
-          !$ACC END LOOP
-
           !$ACC LOOP GANG(STATIC: 1) VECTOR
           DO jc = jcs, jce
 
@@ -437,6 +430,31 @@ CONTAINS
 
         END DO
 
+!$OMP END PARALLEL DO
+
+!$OMP PARALLEL DO PRIVATE(jb,jc,jcs,jce,jsfc) ICON_OMP_DEFAULT_SCHEDULE
+        DO jb = jbs, jbe
+
+          CALL get_indices_c(patch, jb, jbs, jbe, jcs, jce, rls, rle)
+
+          !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1)
+          !$ACC LOOP GANG(STATIC: 1) VECTOR COLLAPSE(2)
+          DO jsfc = 1, nsfc_type
+            DO jc = jcs, jce
+              IF (field%frac_tile(jc,jb,jsfc) > 0.0_wp) THEN
+                field%ts_tile(jc,jb,jsfc) = field%ts_tile(jc,jb,jsfc) + tend_ts(jc,jb,jsfc) * dtime
+              ELSE
+                ! Set non-valid cells for each tile (fraction <= 0) to missing value for output purposes.
+                ! They are also used in mo_aes_phy_diag:surface_fractions at the beginning of the next time step to initialize the
+                ! sea ice surface temperature for newly formed sea ice.
+                field%ts_tile(jc,jb,jsfc) = cdimissval
+              END IF
+            END DO
+          END DO
+          !$ACC END LOOP
+          !$ACC END PARALLEL
+
+        END DO
 !$OMP END PARALLEL DO
 
         !$no EXIT DATA COPYOUT(tend_qtrc_vdf(iqv)%p)
@@ -490,17 +508,13 @@ CONTAINS
   SUBROUTINE init_tmx(p_patch, dtime)
 
     USE mo_vdf,      ONLY: heat_type, momentum_type
-    ! USE mo_vdf_sfc,  ONLY: t_vdf_sfc_diagnostics
     USE mo_tmx_field_class, ONLY: isfc_oce, isfc_ice, isfc_lnd
-    ! USE mo_vdf_diag_smag
 
     USE mo_nonhydro_state,     ONLY: p_nh_state
     USE mo_nonhydro_types,     ONLY: t_nh_metrics, t_nh_diag
     USE mo_dynamics_config,    ONLY: nnow, nnow_rcf
-    USE mo_physical_constants, ONLY: cpd, cpv, cvd, cvv, tmelt
-    USE mo_sea_ice_nml,        ONLY: Tf
+    USE mo_physical_constants, ONLY: cpd, cvd, cvv
 
-    USE mo_master_config, ONLY: isRestart
     USE mo_run_config,    ONLY: lmemman
 
     TYPE(t_patch), INTENT(inout), TARGET :: p_patch
@@ -599,6 +613,8 @@ CONTAINS
     CALL vdf%atmo%config%rturb_prandtl%Assign_r0d(aes_vdf_config(jg)%rturb_prandtl)
     CALL vdf%atmo%config%turb_prandtl%Assign_r0d(aes_vdf_config(jg)%turb_prandtl)
     CALL vdf%atmo%config%use_louis%Assign_l0d(aes_vdf_config(jg)%use_louis)
+    CALL vdf%atmo%config%use_louis_land%Assign_l0d(aes_vdf_config(jg)%use_louis_land)
+    CALL vdf%atmo%config%use_louis_ice%Assign_l0d(aes_vdf_config(jg)%use_louis_ice)
     CALL vdf%atmo%config%louis_constant_b%Assign_r0d(aes_vdf_config(jg)%louis_constant_b)
     CALL vdf%atmo%config%use_km_const%Assign_l0d(aes_vdf_config(jg)%use_km_const)
     CALL vdf%atmo%config%km_const%Assign_r0d(aes_vdf_config(jg)%km_const)

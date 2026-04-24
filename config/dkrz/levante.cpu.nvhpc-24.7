@@ -52,6 +52,9 @@ BUILD_ENV="export LD_LIBRARY_PATH=\"${STDCPP_ROOT}/lib64:${HDF5_ROOT}/lib:${NETC
 CC="${MPI_ROOT}/bin/mpicc"
 CFLAGS='-g -O2'
 
+# Let CDI know it can enable the support for compression filters even with the
+# older NetCDF version:
+ICON_CDI_CFLAGS='-DHAVE_DECL_NCAUX_H5FILTERSPEC_PARSELIST'
 # Let YAC find LAPACK with the C compiler:
 ICON_YAC_CFLAGS='-fortranlibs'
 
@@ -81,6 +84,7 @@ CXX="${CXX}" \
 CXXFLAGS="${CXXFLAGS}" \
 FC="${FC}" \
 FCFLAGS="${FCFLAGS}" \
+ICON_CDI_CFLAGS="${ICON_CDI_CFLAGS}" \
 ICON_YAC_CFLAGS="${ICON_YAC_CFLAGS}" \
 LDFLAGS="${LDFLAGS}" \
 LIBS="${LIBS}" \

@@ -3,6 +3,7 @@
 # ---------------------------------------------------------------
 # Copyright (C) 2004-2026, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 # Contact information: icon-model.org
+#
 # See AUTHORS.TXT for a list of authors
 # See LICENSES/ for license information
 # SPDX-License-Identifier: BSD-3-Clause
@@ -33,18 +34,6 @@ include:
   before_script:
     - !reference [.common:dkrz:levante, before_script]
     - !reference [.utils:icon:build, before_script]
-  script:
-    - !reference [.utils:icon:build, script]
-    - |
-      # !reference [.system:build:levante, script]
-      # We have to do it due to the hard-coded BUNDLED_PYTHONPATH:
-      icon_ci_log_info_msg 'Preparing SETUP.config for the dependent jobs...'
-      (
-        set -x
-        sed -i~ \
-          -e "s|${ICON_CI_UTILS_ICON_BUILD_PATH}|@ICON_CI_UTILS_ICON_BUILD_PATH@|g" \
-          "${CI_PROJECT_DIR}/run/SETUP.config"
-      ) 2>&1
   rules:
     - if: $CI_PIPELINE_SOURCE == "web"
       when: manual
@@ -77,16 +66,6 @@ include:
   before_script:
     - !reference [.common:dkrz:levante, before_script]
     - module load python3
-    - |
-      # !reference [.system:run:levante, before_script]
-      icon_ci_log_info_msg 'Preparing SETUP.config...'
-      (
-        set -x
-        sed -i~ \
-          -e "s|@ICON_CI_UTILS_ICON_BUILD_PATH@|${CI_PROJECT_DIR}|g" \
-          "${CI_PROJECT_DIR}/run/SETUP.config"
-        rm -f "${CI_PROJECT_DIR}/run/SETUP.config~"
-      ) 2>&1
     - !reference [.utils:icon:run, before_script]
   rules:
     - if: $CI_PIPELINE_SOURCE == "web"
@@ -125,6 +104,8 @@ include:
   extends:
     - .common:any-image
     - .system:checksum
+  variables:
+    LC_ALL: C
   image: registry.gitlab.dkrz.de/icon/containers/icon-ci-analyze:f6633645
   before_script:
     - |
@@ -142,12 +123,19 @@ include:
       icon_ci_log_section_start 'Verifying checksums of the model output' 'collapsed=false'
       (
         set -u
-        model_output_files=$(find "${ICON_CI_UTILS_ICON_OUTPUT_PATH}" -type f -name "${ICON_CI_UTILS_ICON_OUTPUT_FILENAME_PREFIX}*.nc" | sort)
+        model_output_files=$(find "${ICON_CI_UTILS_ICON_OUTPUT_PATH}" -type f -name "${ICON_CI_UTILS_ICON_OUTPUT_FILENAME_PREFIX}*.nc")
         cdo --version
+        cksum_pp_path="${ICON_CI_CHECKSUM_TMP_PATH}/pp"
+        ( set -x; rm -rf "${cksum_pp_path}"; mkdir -p "${cksum_pp_path}" )
+        for ofile in ${model_output_files}; do
+          splitgrid_obase="${cksum_pp_path}/$(basename "${ofile}")"
+          splitgrid_obase="${splitgrid_obase%.*}."
+          (set -x; cdo splitgrid "${ofile}" "${splitgrid_obase}" )
+        done
+        cksum_files=$(echo "${cksum_pp_path}"/* | sort)
         set -x
-        calculated_cksum=$( for ofile in ${model_output_files}; do tag=$(md5sum ${ofile} | cut -d ' ' -f1); cdo splitgrid ${ofile} ${tag}_ ; for splitted_output in ${tag}_*; do cdo -outputf,'%.17g' ${splitted_output}; done; done | sha256sum --text - | cut -d ' ' -f1)
+        calculated_cksum=$(cdo outputf,'%.17g' ${cksum_files} | sha256sum --text - | cut -d ' ' -f1)
         expected_cksum=$(python3 -c 'import sys, yaml; print(yaml.safe_load(open(sys.argv[1], "r"))[sys.argv[2]])' "${ICON_CI_CHECKSUM_TABLE_PATH}" "${ICON_CI_UTILS_ICON_OUTPUT_ID}") || expected_cksum=unknown
-        mkdir -p "${ICON_CI_CHECKSUM_TMP_PATH}"
         python3 -c 'import os, sys, yaml; yaml.safe_dump({sys.argv[2]: sys.argv[3]}, open(sys.argv[1], "w"))' "${ICON_CI_CHECKSUM_TMP_PATH}/${CI_JOB_NAME_SLUG}.yml" "${ICON_CI_UTILS_ICON_OUTPUT_ID}" "${calculated_cksum}"
         # We assume that the only reason for the job to fail after this line is
         # the checksum mismatch, which is an "expected failure" handled by the
@@ -337,6 +325,10 @@ aes:bubble:gpu:run:
     ICON_CI_COMMON_DKRZ_SLURM_GPUS_PER_NODE: 4
     ICON_CI_COMMON_DKRZ_SLURM_EXTRA_PARAMETERS: --exclusive
 
+aes:bubble:gpu:analyze:
+  extends: .system:analyze
+  needs: [aes:bubble:gpu:run]
+
 aes:bubble:gpu_sp:build:
   extends:
     - .system:build:levante
@@ -364,6 +356,10 @@ aes:bubble:gpu_sp:run:
       namelists.NAMELIST_atm.interpol_nml.lrbf_write=.FALSE.
       namelists.NAMELIST_atm.interpol_nml.lrbf_read=.TRUE.
 
+aes:bubble:gpu_sp:analyze:
+  extends: .system:analyze
+  needs: [aes:bubble:gpu_sp:run]
+
 aes:bubble:ragnarok:gpu:build:
   extends: aes:bubble:gpu:build
   variables:
@@ -376,6 +372,10 @@ aes:bubble:ragnarok:gpu:build:
 aes:bubble:ragnarok:gpu:run:
   extends: aes:bubble:gpu:run
   needs: [aes:bubble:ragnarok:gpu:build]
+
+aes:bubble:ragnarok:gpu:analyze:
+  extends: .system:analyze
+  needs: [aes:bubble:ragnarok:gpu:run]
 
 aes:coupled:cpu:build:
   extends: .system:build:levante
@@ -458,9 +458,12 @@ generate-checksum-table:
     - aes:bubble:cpu:analyze
     - aes:bubble:cpu_sp:analyze
     - aes:bubble:gcc:analyze
+    - aes:bubble:gpu:analyze
+    - aes:bubble:gpu_sp:analyze
     - aes:bubble:nag:analyze
     - aes:bubble:nag_sp:analyze
     - aes:bubble:ragnarok:cpu:analyze
+    - aes:bubble:ragnarok:gpu:analyze
     - aes:coupled:cpu:analyze
   extends:
     - .common:alpine

@@ -16,6 +16,7 @@ MODULE mo_aes_graupel
 USE mo_kind,               ONLY: wp         , &
                                  i4
 
+USE mo_cloud_mig_config,   ONLY: cloud_mig_config
 USE mo_physical_constants, ONLY: alv   , & !! latent heat of vapourization
                                  als   , & !! latent heat of sublimation
                                  rv    , & !! vapor gas constant
@@ -102,9 +103,9 @@ CONTAINS
     WRITE(*, "(a)") "Graupel now finalized"
   END SUBROUTINE graupel_finalize
 
-  SUBROUTINE graupel_run(nvec, ke, ivstart, ivend, kstart,    & !! start/end indicies
-             dt, dz, t, p, rho, qv, qc, qi, qr, qs, qg, qnc,  & !! prognostic variables
-             prr_gsp, pri_gsp, prs_gsp, prg_gsp, pflx, pre_gsp)  !  total precipitation flux
+  SUBROUTINE graupel_run(nvec, ke, ivstart, ivend, kstart,         & !! start/end indicies
+             dt, cia, dz, t, p, rho, qv, qc, qi, qr, qs, qg, qnc,  & !! prognostic variables
+             prr_gsp, pri_gsp, prs_gsp, prg_gsp, pflx, pre_gsp)       !  total precipitation flux
 
   INTEGER, INTENT(IN) ::  &
     nvec      , & !> number of horizontal points
@@ -115,6 +116,9 @@ CONTAINS
 
   REAL(KIND=wp), INTENT(IN) :: &
     dt            !> time step for integration of microphysics   (  s  )
+
+  REAL(KIND=wp), INTENT(IN) :: &
+    cia           !> parameter to control ice amount
 
   REAL(KIND=wp), DIMENSION(:,:), INTENT(IN) ::      &   ! (ie,ke)
     dz        , & !> layer thickness of full levels                (  m  )
@@ -250,7 +254,7 @@ CONTAINS
     IF (t(iv,k)<tmelt) THEN
       n_ice   = ice_number   (t(iv,k),rho(iv,k))
       m_ice   = ice_mass     (q(lqi)%x(iv,k),n_ice)
-      x_ice   = ice_sticking (t(iv,k))
+      x_ice   = ice_sticking (t(iv,k),cia)
 
       IF (is_sig_present(j)) THEN
         eta           = deposition_factor(t(iv,k),qvsi) ! neglect cloud depth cor. from gcsp_graupel
@@ -552,9 +556,10 @@ END FUNCTION ice_mass
 
 !!!=============================================================================================
 
-PURE FUNCTION ice_sticking(t)
+PURE FUNCTION ice_sticking(t,cia)
   REAL(KIND=wp)             :: ice_sticking ! returns sticking efficiency of ic3
   REAL(KIND=wp), INTENT(IN) :: t            ! temperature
+  REAL(KIND=wp), INTENT(IN) :: cia          ! parameter to control ice amount
 
   REAL(KIND=wp), PARAMETER  ::      &
       a       = 0.09_wp           , & ! scale factor for freezing depression
@@ -566,7 +571,7 @@ PURE FUNCTION ice_sticking(t)
   ! per original code seems like aggregation is allowed even with no snow present
   !
   !$ACC ROUTINE SEQ
-  ice_sticking = MAX(MIN(EXP(a*(t-tmelt)),b), eff_min, eff_fac*(t-tcrit))
+  ice_sticking = MAX(MIN(EXP(a*(t-tmelt)),b), eff_min, eff_fac*(t-tcrit))*cia
 
 END FUNCTION ice_sticking
 

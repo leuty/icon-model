@@ -17,14 +17,14 @@
 
 MODULE mo_aes_phy_bcs
 
-  USE mo_kind                       ,ONLY: wp
-  USE mtime                         ,ONLY: datetime , newDatetime ,                        &
-       &                                   timedelta, newTimedelta, max_timedelta_str_len, &
+  USE mo_kind                       ,ONLY: wp, dp
+  USE mtime                         ,ONLY: datetime ,                        &
+       &                                   timedelta, max_timedelta_str_len, &
        &                                   operator(+), operator(-), operator(*),          &
        &                                   operator(<=),operator(>),                       &
-       &                                   getPTStringFromSeconds,                         &
        &                                   getTotalSecondsTimeDelta,                       &
-       &                                   isCurrentEventActive, deallocateDatetime
+       &                                   isCurrentEventActive
+  USE mo_util_mtime                 ,ONLY: mtime_timedelta_from_fseconds
   USE mo_model_domain               ,ONLY: t_patch, p_patch
   USE mo_impl_constants             ,ONLY: max_dom
 
@@ -66,26 +66,6 @@ MODULE mo_aes_phy_bcs
   REAL(wp), ALLOCATABLE  :: sst_dat(:,:,:,:)
   REAL(wp), ALLOCATABLE  :: sic_dat(:,:,:,:)
 
-  ! NAG 7.1 Build 7101 fails to compile src/atm_phy_aes/mo_interface_iconam_aes.f90:
-  ! Error: src/atm_phy_aes/mo_interface_iconam_aes.f90, line 87: Inconsistent use of host associated derived type DATETIME
-  !        detected at :@AES_PHY_BCS
-  ! Therefore, we have to introduce the following workaround
-  !   (NAG 6.2 Build 6252 and NAG 7.0 Build 7048 are not affected):
-# if defined(NAGFOR) && __NAG_COMPILER_BUILD == 7101
-#   define NAGFOR_WORKAROUND
-# endif
-
-#ifdef NAGFOR_WORKAROUND
-  ! The following declaration actually belongs to subroutine aes_phy_bcs but we
-  ! have to move it here as a workaround:
-
-  ! mtime currently does not work with arrays of datetime pointers
-  ! therefore a type is constructed around the mtime pointer
-  TYPE t_radtime_domains
-    TYPE(datetime) , POINTER               :: radiation_time => NULL() !< date and time for radiative transfer
-  END TYPE t_radtime_domains
-#endif
-
 CONTAINS
   !>
   !! SUBROUTINE aes_phy_bcs
@@ -110,25 +90,14 @@ CONTAINS
     ! Arguments
 
     TYPE(t_patch)  , TARGET   ,INTENT(in)    :: patch          !< description of this grid
-    TYPE(datetime) , POINTER  ,INTENT(in)    :: mtime_old
+    TYPE(datetime)            ,INTENT(in)    :: mtime_old
     REAL(wp)                  ,INTENT(in)    :: dtadv_loc      !< timestep of advection and physics on this grid
 
     ! Local variables
-
-#ifndef NAGFOR_WORKAROUND
-    ! The following declaration actually belongs here but we have to move it to
-    ! the specification part of the module as a workaround:
-
-    ! mtime currently does not work with arrays of datetime pointers
-    ! therefore a type is constructed around the mtime pointer
-    TYPE t_radtime_domains
-      TYPE(datetime) , POINTER               :: radiation_time => NULL() !< date and time for radiative transfer
-    END TYPE t_radtime_domains
-#endif
     !
-    TYPE(t_radtime_domains), SAVE            :: radtime_domains(max_dom)
+    TYPE(datetime), SAVE            :: radtime_domains(max_dom)
 
-    TYPE(timedelta), POINTER                 :: td_radiation_offset
+    TYPE(timedelta)                 :: td_radiation_offset
     CHARACTER(len=max_timedelta_str_len)     :: dstring
 
     REAL(wp)                                 :: dsec           !< [s] time increment of datetime_radtran wrt. datetime
@@ -305,26 +274,21 @@ CONTAINS
       !
       IF (ltrig_rad) THEN
 
-        ! Set the time instance datetime_radtran for the zenith angle to be used
-        ! in the radiative transfer. All other input for the radiative transfer
-        ! is for datetime, i.e. the start date and time of the current timestep.
-        IF (ASSOCIATED(radtime_domains(jg)%radiation_time)) &
-          & CALL deallocateDatetime(radtime_domains(jg)%radiation_time)
-        radtime_domains(jg)%radiation_time => newDatetime(mtime_old)
-
         ! [s] local time step of radiation
         dtrad_loc = getTotalSecondsTimeDelta(aes_phy_tc(jg)%dt_rad,mtime_old)
 
         ! [s] time increment for zenith angle
         dsec = 0.5_wp*(dtrad_loc - dtadv_loc)
-        CALL getPTStringFromSeconds(dsec, dstring)
+        CALL mtime_timedelta_from_fseconds(REAL(dsec, dp), mtime_old, td_radiation_offset)
 
-        td_radiation_offset => newTimedelta(dstring)
-        radtime_domains(jg)%radiation_time = radtime_domains(jg)%radiation_time + td_radiation_offset
+        ! Set the time instance datetime_radtran for the zenith angle to be used
+        ! in the radiative transfer. All other input for the radiative transfer
+        ! is for datetime, i.e. the start date and time of the current timestep.
+        radtime_domains(jg) = mtime_old + td_radiation_offset
 
         ! interpolation weights for linear interpolation
         ! of monthly means onto the radiation time step
-        radiation_time_interpolation_weights = calculate_time_interpolation_weights(radtime_domains(jg)%radiation_time)
+        radiation_time_interpolation_weights = calculate_time_interpolation_weights(radtime_domains(jg))
 
         ! total and spectral solar irradiation at the mean sun earth distance
         IF (aes_rad_config(jg)% isolrad == 1) THEN
@@ -406,7 +370,7 @@ CONTAINS
 #ifndef __NO_RTE_RRTMGP__
       IF ( luse_rad ) THEN
         CALL pre_rte_rrtmgp_radiation( &
-             & patch,                     radtime_domains(jg)%radiation_time, &
+             & patch,                     radtime_domains(jg), &
              & mtime_old,                 ltrig_rad,                          &
              & prm_field(jg)%cosmu0,      prm_field(jg)%daylght_frc,          &
              & prm_field(jg)%cosmu0_rt,   prm_field(jg)%daylght_frc_rt        )

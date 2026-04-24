@@ -284,7 +284,7 @@ CONTAINS
     aes_phy_config(:)% suppress_shflx_adjustment_over_ice = .FALSE.
     !
     ! vertical range parameters
-    aes_phy_config(:)% zmaxcloudy = 33000.0_wp
+    aes_phy_config(:)% zmaxcloudy = 22500.0_wp
     !
   END SUBROUTINE init_aes_phy_config
 

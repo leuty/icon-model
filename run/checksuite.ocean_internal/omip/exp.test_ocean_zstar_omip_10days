@@ -84,7 +84,7 @@ cat > ${ocean_namelist} << EOF
   include_last     = .false.
   output_grid      = .TRUE.
   filename_format  = "<output_filename>_<datetime2>"
-  ml_varlist       = 'group:oce_default','group:oce_essentials', 'group:ice_default','stretch_c'
+  ml_varlist       = 'group:oce_default','group:oce_essentials', 'group:ice_default','group:ice_diag','stretch_c'
 /
 &output_nml
   filetype         = 5
@@ -222,7 +222,7 @@ cat > ${ocean_namelist} << EOF
   solver_tolerance                = 1.0E-13 ! this may further be reduced
 
   select_lhs                      = 1       ! 1=operator based (default) 2=matrix based
-  l_lhs_direct                    = .false. ! .true.= use lhs implementation directly  .false.= matrix scanner (default)
+  l_lhs_direct                    = .true.  ! .true.= use lhs implementation directly  .false.= matrix scanner (default)
   solver_FirstGuess               = 2       ! 0=start from zeros 1=last timestep smoothed 2=last timestep (default)
 
   fast_performance_level          = 200       ! performance level 12: for cell-based; 5: default
@@ -325,6 +325,7 @@ cat > ${ocean_namelist} << EOF
  albi         = 0.75         ! Albedo of ice (not melting)
  albim        = 0.70         ! Albedo of ice (melting)
  Pstar        = 40000
+ seaice_stress_diag               = .TRUE.
 /
 &ocean_forcing_nml
   iforc_oce                       = ${iforc}            ! ocean forcing

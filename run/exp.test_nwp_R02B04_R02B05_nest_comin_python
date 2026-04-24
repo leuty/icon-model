@@ -298,7 +298,7 @@ EOF
 #fi
 
 # load the python venv used for building comin
-[ ! -z $BB_NAME ] && . /fastdata/mh0156/buildbot/venv/bin/activate
+[ ! -z $BB_NAME ] && . /work/mh1570/m215048/buildbot/venv/bin/activate
 
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------

@@ -293,7 +293,11 @@ CONTAINS
 
         !$ACC PARALLEL DEFAULT(PRESENT) ASYNC(1) IF(lacc)
         !$ACC LOOP GANG VECTOR
+#if defined(__INTEL_COMPILER) || defined(__INTEL_LLVM_COMPILER)
+!$OMP SIMD
+#else
 !DIR$ SIMD
+#endif
         DO jc = 1,ie
           IF (n_cosmu0pos(jc,jb) > 0) THEN
             zsmu0(jc,jb) = SQRT(zsmu0(jc,jb)/REAL(n_cosmu0pos(jc,jb),wp))

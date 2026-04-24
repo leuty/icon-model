@@ -1959,14 +1959,12 @@ ocean_state%p_prog(nold(1))%tracer_collection%tracer(tracer_index)%concentration
 
       !Assess implicit contribution for analysis
       CALL map_cell2edges_3D( patch_3D,flux_vec_horz_center, GMRedi_flux_horz, op_coeff)
-      div_diff_flux_horz(:,:,:)=0.0_wp
       CALL div_oce_3d( GMRedi_flux_horz(:,:,:),&
                    &   patch_3d, &
                    &   op_coeff%div_coeff, &
                    &   div_diff_flux_horz )
 
       !vertical div of explicit part of vertical GMRedi-flux
-      div_diff_flux_vert(:,:,:) = 0.0_wp
       CALL verticalDiv_scalar_onFullLevels( patch_3d, &
         & GMRedi_flux_vert(:,:,:), &
         & div_diff_flux_vert)
@@ -2150,14 +2148,12 @@ ocean_state%p_prog(nold(1))%tracer_collection%tracer(tracer_index)%concentration
 
 
      CALL map_cell2edges_3D( patch_3D,flux_sum_horz, GMRedi_flux_horz, op_coeff)
-      div_diff_flux_horz(:,:,:)=0.0_wp
       CALL div_oce_3d( GMRedi_flux_horz(:,:,:),&
                    &   patch_3d, &
                    &   op_coeff%div_coeff, &
                    &   div_diff_flux_horz )
 
       !vertical div of explicit part of vertical GMRedi-flux
-      div_diff_flux_vert(:,:,:) = 0.0_wp
       CALL verticalDiv_scalar_onFullLevels( patch_3d, &
         & flux_sum_vert(:,:,:), &
         & div_diff_flux_vert)
@@ -2380,7 +2376,6 @@ ocean_state%p_prog(nold(1))%tracer_collection%tracer(tracer_index)%concentration
 !!$
 !!$  END SUBROUTINE calc_bolus_velocity
 !!$  !-------------------------------------------------------------------------
-
 
   !-------------------------------------------------------------------------
   !>

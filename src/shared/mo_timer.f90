@@ -1134,7 +1134,7 @@ CONTAINS
   !  @note Currently implemented for multi-threaded runs only!
   SUBROUTINE tic(time_s)
 #ifdef _OPENMP
-    USE OMP_LIB
+    USE OMP_LIB, ONLY: omp_get_wtime
 #endif
 
     REAL, INTENT(OUT) :: time_s
@@ -1152,7 +1152,7 @@ CONTAINS
   !  @note Currently implemented for multi-threaded runs only!
   FUNCTION toc(time_s)
 #ifdef _OPENMP
-    USE OMP_LIB
+    USE OMP_LIB, ONLY: omp_get_wtime
 #endif
 
     REAL :: toc

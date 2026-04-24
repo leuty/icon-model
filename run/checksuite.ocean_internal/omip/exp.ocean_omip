@@ -895,6 +895,8 @@ cat >> ${ocean_namelist} << EOF
   albsm                           = 0.65      ! Albedo of snow (melting)
   albi                            = 0.70      ! Albedo of ice (not melting)
   albim                           = 0.65      ! Albedo of ice (melting)
+  seaice_stress_diag              = .TRUE.
+
 
  initialize_seaice_fromfile = .true.
 !evp

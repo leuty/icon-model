@@ -42,7 +42,7 @@ ${icon_dir}/config/dkrz/levante.gcc \
   --enable-testbed \
   --enable-waves \
   --enable-yaxt \
-  PYTHON='/work/mh0287/buildbot/venv/bin/python3' \
+  PYTHON='/work/mh1570/m215048/buildbot/venv/bin/python3' \
   "$@"
 
 make ${makeflags}

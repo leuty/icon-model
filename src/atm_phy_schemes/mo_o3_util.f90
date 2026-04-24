@@ -268,7 +268,7 @@ CONTAINS
     INTEGER, INTENT(IN)         :: jcs, jce    !
     INTEGER, INTENT(IN)         :: kbdim       !
     INTEGER, INTENT(IN)         :: nlev_pres   ! number of o3 data levels
-    TYPE(datetime), POINTER, INTENT(in) :: current_date
+    TYPE(datetime), INTENT(in) :: current_date
     REAL(wp), INTENT(in) , DIMENSION(:,:,:)                :: ext_o3
     LOGICAL, INTENT(IN), OPTIONAL                          :: opt_use_acc
     REAL(wp), INTENT(OUT), DIMENSION(:,:)                  :: o3_time_int

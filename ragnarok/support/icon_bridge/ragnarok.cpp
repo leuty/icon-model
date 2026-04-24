@@ -16,6 +16,8 @@
 ///
 //----------------------------
 
+#include "ragnarok.hpp"
+
 #include <string.h>
 
 #include <Kokkos_Core.hpp>
@@ -33,13 +35,6 @@ bool is_initialized() { return init_state == InitState::initialized; }
 
 namespace {
 
-void finalize() {
-  assert(init_state == InitState::initialized);
-  Kokkos::finalize();
-  // enter final state - we are not even allowed to call Kokkos::initialize again:
-  init_state = InitState::finalized;
-}
-
 std::string construct_kokkos_version() {
   return std::to_string(KOKKOS_VERSION_MAJOR) + "." + std::to_string(KOKKOS_VERSION_MINOR) + "." +
          std::to_string(KOKKOS_VERSION_PATCH);
@@ -50,13 +45,18 @@ std::string construct_kokkos_version() {
 void init() {
   assert(init_state == InitState::pre_init);
   Kokkos::initialize();
-  const int err = std::atexit(finalize);
-  if (err) {
-    std::cerr << "ragnarok::init(): atexit(finalize) failed!\n";
-    init_state = InitState::problem;
-    return;
+  if (ragnarok::isCPU()) {
+    initialize_serial_backend();
   }
   init_state = InitState::initialized;
+}
+
+void finalize() {
+  assert(init_state == InitState::initialized);
+  serial_spaces.clear();
+  Kokkos::finalize();
+  // enter final state - we are not even allowed to call Kokkos::initialize again:
+  init_state = InitState::finalized;
 }
 
 const std::string& retrieve_kokkos_version() {
@@ -69,6 +69,7 @@ const std::string& retrieve_kokkos_version() {
 extern "C" {
 
 void init_ragnarok() { ragnarok::init(); }
+void finalize_ragnarok() { ragnarok::finalize(); }
 
 const char* retrieve_kokkos_version_c(int& length) {
   const std::string& version = ragnarok::retrieve_kokkos_version();

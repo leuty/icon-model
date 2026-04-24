@@ -1862,15 +1862,18 @@ CONTAINS
     INTEGER, INTENT(inout) :: ioff
     INTEGER, INTENT(in) :: nlevs
 
-    INTEGER :: i, jk, ri_blk, ri_idx
+    INTEGER :: i, jk, ri_blk, ri_idx,ioff_l
+    !$OMP PARALLEL DO PRIVATE(i,ri_blk,ri_idx,ioff_l) SCHEDULE(STATIC) COLLAPSE(2)
     DO jk = 1, nlevs
       DO i = 1, ri%n_own
+        ioff_l = ioff + (jk-1)*ri%n_own
         ri_blk = ri%own_blk(i)
         ri_idx = ri%own_idx(i)
-        buf(ioff+i) = REAL(r(ri_idx,jk,ri_blk),dp)
+        buf(ioff_l+i) = REAL(r(ri_idx,jk,ri_blk),dp)
       END DO
-      ioff = ioff + ri%n_own
     END DO
+    !$OMP END PARALLEL DO
+    ioff = ioff + nlevs*ri%n_own
   END SUBROUTINE var_copy_dp2dp
 
   SUBROUTINE var_copy_dp2dp_miss(buf, ioff, r, ri, nlevs, i_endblk, i_endidx, &
@@ -1881,20 +1884,23 @@ CONTAINS
     INTEGER, INTENT(inout) :: ioff
     INTEGER, INTENT(in) :: nlevs, i_endblk, i_endidx
 
-    INTEGER :: i, jk, ri_blk, ri_idx
+    INTEGER :: i, jk, ri_blk, ri_idx,ioff_l
+    !$OMP PARALLEL DO PRIVATE(i,ri_blk,ri_idx,ioff_l) SCHEDULE(STATIC) COLLAPSE(2)
     DO jk = 1, nlevs
       DO i = 1, ri%n_own
+        ioff_l = ioff + (jk-1)*ri%n_own
         ri_blk = ri%own_blk(i)
         ri_idx = ri%own_idx(i)
         IF (ri_blk > i_endblk &
              & .OR. ri_blk == i_endblk .AND. ri_idx > i_endidx) THEN
-          buf(ioff+i) = REAL(r(ri_idx,jk,ri_blk),dp)
+          buf(ioff_l+i) = REAL(r(ri_idx,jk,ri_blk),dp)
         ELSE
-          buf(ioff+i) = missval
+          buf(ioff_l+i) = missval
         END IF
       END DO
-      ioff = ioff + ri%n_own
     END DO
+    !$OMP END PARALLEL DO
+    ioff = ioff + nlevs*ri%n_own
   END SUBROUTINE var_copy_dp2dp_miss
 
   SUBROUTINE var_copy_dp2dp_ls(buf, ioff, r, ri, nlevs, level_selection)
@@ -1904,18 +1910,22 @@ CONTAINS
     INTEGER, INTENT(inout) :: ioff
     INTEGER, INTENT(in) :: level_selection(:), nlevs
 
-    INTEGER :: i, jk, lev_idx, ri_blk, ri_idx
+    INTEGER :: i, jk, lev_idx, ri_blk, ri_idx,ioff_l
+
+    !$OMP PARALLEL DO PRIVATE(i,lev_idx,ri_blk,ri_idx,ioff_l) SCHEDULE(STATIC) COLLAPSE(2)
     DO jk = 1, nlevs
       ! handle the case that a few levels have been selected out of
       ! the total number of levels:
-      lev_idx = level_selection(jk)
       DO i = 1, ri%n_own
+        lev_idx = level_selection(jk)
+        ioff_l = ioff + (jk-1)*ri%n_own
         ri_blk = ri%own_blk(i)
         ri_idx = ri%own_idx(i)
-        buf(ioff+i) = REAL(r(ri_idx,lev_idx,ri_blk),dp)
+        buf(ioff_l+i) = REAL(r(ri_idx,lev_idx,ri_blk),dp)
       END DO
-      ioff = ioff + ri%n_own
     END DO
+    !$OMP END PARALLEL DO
+    ioff = ioff + nlevs*ri%n_own
   END SUBROUTINE var_copy_dp2dp_ls
 
   SUBROUTINE var_copy_dp2dp_ls_miss(buf, ioff, r, ri, nlevs, &
@@ -1926,23 +1936,26 @@ CONTAINS
     INTEGER, INTENT(inout) :: ioff
     INTEGER, INTENT(in) :: level_selection(:), nlevs, i_endblk, i_endidx
 
-    INTEGER :: i, jk, lev_idx, ri_blk, ri_idx
+    INTEGER :: i, jk, lev_idx, ri_blk, ri_idx, ioff_l
+    !$OMP PARALLEL DO PRIVATE(i,lev_idx,ri_blk,ri_idx,ioff_l) SCHEDULE(STATIC) COLLAPSE(2)
     DO jk = 1, nlevs
       ! handle the case that a few levels have been selected out of
       ! the total number of levels:
-      lev_idx = level_selection(jk)
       DO i = 1, ri%n_own
+        lev_idx = level_selection(jk)
+        ioff_l = ioff + (jk-1)*ri%n_own
         ri_blk = ri%own_blk(i)
         ri_idx = ri%own_idx(i)
         IF (ri_blk > i_endblk &
              & .OR. ri_blk == i_endblk .AND. ri_idx > i_endidx) THEN
-          buf(ioff+i) = REAL(r(ri_idx,lev_idx,ri_blk),dp)
+          buf(ioff_l+i) = REAL(r(ri_idx,lev_idx,ri_blk),dp)
         ELSE
-          buf(ioff+i) = missval
+          buf(ioff_l+i) = missval
         END IF
       END DO
-      ioff = ioff + ri%n_own
     END DO
+    !$OMP END PARALLEL DO
+    ioff = ioff + nlevs*ri%n_own
   END SUBROUTINE var_copy_dp2dp_ls_miss
 
   SUBROUTINE var_copy_sp2dp(buf, ioff, r, ri, nlevs)
@@ -1952,15 +1965,18 @@ CONTAINS
     INTEGER, INTENT(inout) :: ioff
     INTEGER, INTENT(in) :: nlevs
 
-    INTEGER :: i, jk, ri_blk, ri_idx
+    INTEGER :: i, jk, ri_blk, ri_idx, ioff_l
+    !$OMP PARALLEL DO PRIVATE(i,ri_blk,ri_idx,ioff_l) SCHEDULE(STATIC) COLLAPSE(2)
     DO jk = 1, nlevs
       DO i = 1, ri%n_own
+        ioff_l = ioff + (jk-1)*ri%n_own
         ri_blk = ri%own_blk(i)
         ri_idx = ri%own_idx(i)
-        buf(ioff+i) = REAL(r(ri_idx,jk,ri_blk),dp)
+        buf(ioff_l+i) = REAL(r(ri_idx,jk,ri_blk),dp)
       END DO
-      ioff = ioff + ri%n_own
     END DO
+    !$OMP END PARALLEL DO
+    ioff = ioff + nlevs*ri%n_own
   END SUBROUTINE var_copy_sp2dp
 
   SUBROUTINE var_copy_sp2dp_miss(buf, ioff, r, ri, nlevs, i_endblk, i_endidx, &
@@ -1972,20 +1988,23 @@ CONTAINS
     INTEGER, INTENT(inout) :: ioff
     INTEGER, INTENT(in) :: nlevs, i_endblk, i_endidx
 
-    INTEGER :: i, jk, ri_blk, ri_idx
+    INTEGER :: i, jk, ri_blk, ri_idx, ioff_l
+    !$OMP PARALLEL DO PRIVATE(i,ri_blk,ri_idx,ioff_l) SCHEDULE(STATIC) COLLAPSE(2)
     DO jk = 1, nlevs
       DO i = 1, ri%n_own
+        ioff_l = ioff + (jk-1)*ri%n_own
         ri_blk = ri%own_blk(i)
         ri_idx = ri%own_idx(i)
         IF (ri_blk > i_endblk &
              & .OR. ri_blk == i_endblk .AND. ri_idx > i_endidx) THEN
-          buf(ioff+i) = REAL(r(ri_idx,jk,ri_blk),dp)
+          buf(ioff_l+i) = REAL(r(ri_idx,jk,ri_blk),dp)
         ELSE
-          buf(ioff+i) = missval
+          buf(ioff_l+i) = missval
         END IF
       END DO
-      ioff = ioff + ri%n_own
     END DO
+    !$OMP END PARALLEL DO
+    ioff = ioff + nlevs*ri%n_own
   END SUBROUTINE var_copy_sp2dp_miss
 
   SUBROUTINE var_copy_sp2dp_ls(buf, ioff, r, ri, nlevs, level_selection)
@@ -1995,18 +2014,21 @@ CONTAINS
     INTEGER, INTENT(inout) :: ioff
     INTEGER, INTENT(in) :: level_selection(:), nlevs
 
-    INTEGER :: i, jk, lev_idx, ri_blk, ri_idx
+    INTEGER :: i, jk, lev_idx, ri_blk, ri_idx, ioff_l
+    !$OMP PARALLEL DO PRIVATE(i,lev_idx,ri_blk,ri_idx,ioff_l) SCHEDULE(STATIC) COLLAPSE(2)
     DO jk = 1, nlevs
       ! handle the case that a few levels have been selected out of
       ! the total number of levels:
-      lev_idx = level_selection(jk)
       DO i = 1, ri%n_own
+        lev_idx = level_selection(jk)
+        ioff_l = ioff + (jk-1)*ri%n_own
         ri_blk = ri%own_blk(i)
         ri_idx = ri%own_idx(i)
-        buf(ioff+i) = REAL(r(ri_idx,lev_idx,ri_blk),dp)
+        buf(ioff_l+i) = REAL(r(ri_idx,lev_idx,ri_blk),dp)
       END DO
-      ioff = ioff + ri%n_own
     END DO
+    !$OMP END PARALLEL DO
+    ioff = ioff + nlevs*ri%n_own
   END SUBROUTINE var_copy_sp2dp_ls
 
   SUBROUTINE var_copy_sp2dp_ls_miss(buf, ioff, r, ri, nlevs, &
@@ -2018,23 +2040,26 @@ CONTAINS
     INTEGER, INTENT(inout) :: ioff
     INTEGER, INTENT(in) :: level_selection(:), nlevs, i_endblk, i_endidx
 
-    INTEGER :: i, jk, lev_idx, ri_blk, ri_idx
+    INTEGER :: i, jk, lev_idx, ri_blk, ri_idx, ioff_l
+    !$OMP PARALLEL DO PRIVATE(i,lev_idx,ri_blk,ri_idx,ioff_l) SCHEDULE(STATIC) COLLAPSE(2)
     DO jk = 1, nlevs
       ! handle the case that a few levels have been selected out of
       ! the total number of levels:
-      lev_idx = level_selection(jk)
       DO i = 1, ri%n_own
+        lev_idx = level_selection(jk)
+        ioff_l = ioff + (jk-1)*ri%n_own
         ri_blk = ri%own_blk(i)
         ri_idx = ri%own_idx(i)
         IF (ri_blk > i_endblk &
              & .OR. ri_blk == i_endblk .AND. ri_idx > i_endidx) THEN
-          buf(ioff+i) = REAL(r(ri_idx,lev_idx,ri_blk),dp)
+          buf(ioff_l+i) = REAL(r(ri_idx,lev_idx,ri_blk),dp)
         ELSE
-          buf(ioff+i) = missval
+          buf(ioff_l+i) = missval
         END IF
       END DO
-      ioff = ioff + ri%n_own
     END DO
+    !$OMP END PARALLEL DO
+    ioff = ioff + nlevs*ri%n_own
   END SUBROUTINE var_copy_sp2dp_ls_miss
 
   SUBROUTINE var_copy_i42dp(buf, ioff, r, ri, nlevs)
@@ -2044,15 +2069,18 @@ CONTAINS
     INTEGER, INTENT(inout) :: ioff
     INTEGER, INTENT(in) :: nlevs
 
-    INTEGER :: i, jk, ri_blk, ri_idx
+    INTEGER :: i, jk, ri_blk, ri_idx, ioff_l
+    !$OMP PARALLEL DO PRIVATE(i,ri_blk,ri_idx,ioff_l) SCHEDULE(STATIC) COLLAPSE(2)
     DO jk = 1, nlevs
       DO i = 1, ri%n_own
+        ioff_l = ioff + (jk-1)*ri%n_own
         ri_blk = ri%own_blk(i)
         ri_idx = ri%own_idx(i)
-        buf(ioff+i) = REAL(r(ri_idx,jk,ri_blk),dp)
+        buf(ioff_l+i) = REAL(r(ri_idx,jk,ri_blk),dp)
       END DO
-      ioff = ioff + ri%n_own
     END DO
+    !$OMP END PARALLEL DO
+    ioff = ioff + nlevs*ri%n_own
   END SUBROUTINE var_copy_i42dp
 
   SUBROUTINE var_copy_i42dp_miss(buf, ioff, r, ri, nlevs, i_endblk, i_endidx, &
@@ -2064,20 +2092,23 @@ CONTAINS
     INTEGER, INTENT(inout) :: ioff
     INTEGER, INTENT(in) :: nlevs, i_endblk, i_endidx
 
-    INTEGER :: i, jk, ri_blk, ri_idx
+    INTEGER :: i, jk, ri_blk, ri_idx, ioff_l
+    !$OMP PARALLEL DO PRIVATE(i,ri_blk,ri_idx,ioff_l) SCHEDULE(STATIC) COLLAPSE(2)
     DO jk = 1, nlevs
       DO i = 1, ri%n_own
+        ioff_l = ioff + (jk-1)*ri%n_own
         ri_blk = ri%own_blk(i)
         ri_idx = ri%own_idx(i)
         IF (ri_blk > i_endblk &
              & .OR. ri_blk == i_endblk .AND. ri_idx > i_endidx) THEN
-          buf(ioff+i) = REAL(r(ri_idx,jk,ri_blk),dp)
+          buf(ioff_l+i) = REAL(r(ri_idx,jk,ri_blk),dp)
         ELSE
-          buf(ioff+i) = missval
+          buf(ioff_l+i) = missval
         END IF
       END DO
-      ioff = ioff + ri%n_own
     END DO
+    !$OMP END PARALLEL DO
+    ioff = ioff + nlevs*ri%n_own
   END SUBROUTINE var_copy_i42dp_miss
 
   SUBROUTINE var_copy_i42dp_ls(buf, ioff, r, ri, nlevs, level_selection)
@@ -2087,18 +2118,21 @@ CONTAINS
     INTEGER, INTENT(inout) :: ioff
     INTEGER, INTENT(in) :: level_selection(:), nlevs
 
-    INTEGER :: i, jk, lev_idx, ri_blk, ri_idx
+    INTEGER :: i, jk, lev_idx, ri_blk, ri_idx, ioff_l
+    !$OMP PARALLEL DO PRIVATE(i,lev_idx,ri_blk,ri_idx,ioff_l) SCHEDULE(STATIC) COLLAPSE(2)
     DO jk = 1, nlevs
       ! handle the case that a few levels have been selected out of
       ! the total number of levels:
-      lev_idx = level_selection(jk)
       DO i = 1, ri%n_own
+        lev_idx = level_selection(jk)
+        ioff_l = ioff + (jk-1)*ri%n_own
         ri_blk = ri%own_blk(i)
         ri_idx = ri%own_idx(i)
-        buf(ioff+i) = REAL(r(ri_idx,lev_idx,ri_blk),dp)
+        buf(ioff_l+i) = REAL(r(ri_idx,lev_idx,ri_blk),dp)
       END DO
-      ioff = ioff + ri%n_own
     END DO
+    !$OMP END PARALLEL DO
+    ioff = ioff + nlevs*ri%n_own
   END SUBROUTINE var_copy_i42dp_ls
 
   SUBROUTINE var_copy_i42dp_ls_miss(buf, ioff, r, ri, nlevs, &
@@ -2110,23 +2144,26 @@ CONTAINS
     INTEGER, INTENT(inout) :: ioff
     INTEGER, INTENT(in) :: level_selection(:), nlevs, i_endblk, i_endidx
 
-    INTEGER :: i, jk, lev_idx, ri_blk, ri_idx
+    INTEGER :: i, jk, lev_idx, ri_blk, ri_idx, ioff_l
+    !$OMP PARALLEL DO PRIVATE(i,lev_idx,ri_blk,ri_idx,ioff_l) SCHEDULE(STATIC) COLLAPSE(2)
     DO jk = 1, nlevs
       ! handle the case that a few levels have been selected out of
       ! the total number of levels:
-      lev_idx = level_selection(jk)
       DO i = 1, ri%n_own
+        lev_idx = level_selection(jk)
+        ioff_l = ioff + (jk-1)*ri%n_own
         ri_blk = ri%own_blk(i)
         ri_idx = ri%own_idx(i)
         IF (ri_blk > i_endblk &
              & .OR. ri_blk == i_endblk .AND. ri_idx > i_endidx) THEN
-          buf(ioff+i) = REAL(r(ri_idx,lev_idx,ri_blk),dp)
+          buf(ioff_l+i) = REAL(r(ri_idx,lev_idx,ri_blk),dp)
         ELSE
-          buf(ioff+i) = missval
+          buf(ioff_l+i) = missval
         END IF
       END DO
-      ioff = ioff + ri%n_own
     END DO
+    !$OMP END PARALLEL DO
+    ioff = ioff + nlevs*ri%n_own
   END SUBROUTINE var_copy_i42dp_ls_miss
 
   SUBROUTINE var_copy_dp2sp(buf, ioff, r, ri, nlevs)
@@ -2136,15 +2173,18 @@ CONTAINS
     INTEGER, INTENT(inout) :: ioff
     INTEGER, INTENT(in) :: nlevs
 
-    INTEGER :: i, jk, ri_blk, ri_idx
+    INTEGER :: i, jk, ri_blk, ri_idx, ioff_l
+    !$OMP PARALLEL DO PRIVATE(i,ri_blk,ri_idx,ioff_l) SCHEDULE(STATIC) COLLAPSE(2)
     DO jk = 1, nlevs
       DO i = 1, ri%n_own
+        ioff_l = ioff + (jk-1)*ri%n_own
         ri_blk = ri%own_blk(i)
         ri_idx = ri%own_idx(i)
-        buf(ioff+i) = REAL(r(ri_idx,jk,ri_blk),sp)
+        buf(ioff_l+i) = REAL(r(ri_idx,jk,ri_blk),sp)
       END DO
-      ioff = ioff + ri%n_own
     END DO
+    !$OMP END PARALLEL DO
+    ioff = ioff + nlevs*ri%n_own
   END SUBROUTINE var_copy_dp2sp
 
   SUBROUTINE var_copy_dp2sp_miss(buf, ioff, r, ri, nlevs, i_endblk, i_endidx, &
@@ -2155,20 +2195,23 @@ CONTAINS
     INTEGER, INTENT(inout) :: ioff
     INTEGER, INTENT(in) :: nlevs, i_endblk, i_endidx
 
-    INTEGER :: i, jk, ri_blk, ri_idx
+    INTEGER :: i, jk, ri_blk, ri_idx, ioff_l
+    !$OMP PARALLEL DO PRIVATE(i,ri_blk,ri_idx,ioff_l) SCHEDULE(STATIC) COLLAPSE(2)
     DO jk = 1, nlevs
       DO i = 1, ri%n_own
+        ioff_l = ioff + (jk-1)*ri%n_own
         ri_blk = ri%own_blk(i)
         ri_idx = ri%own_idx(i)
         IF (ri_blk > i_endblk &
              & .OR. ri_blk == i_endblk .AND. ri_idx > i_endidx) THEN
-          buf(ioff+i) = REAL(r(ri_idx,jk,ri_blk),sp)
+          buf(ioff_l+i) = REAL(r(ri_idx,jk,ri_blk),sp)
         ELSE
-          buf(ioff+i) = REAL(missval, sp)
+          buf(ioff_l+i) = REAL(missval, sp)
         END IF
       END DO
-      ioff = ioff + ri%n_own
     END DO
+    !$OMP END PARALLEL DO
+    ioff = ioff + nlevs*ri%n_own
   END SUBROUTINE var_copy_dp2sp_miss
 
   SUBROUTINE var_copy_dp2sp_ls(buf, ioff, r, ri, nlevs, level_selection)
@@ -2178,18 +2221,21 @@ CONTAINS
     INTEGER, INTENT(inout) :: ioff
     INTEGER, INTENT(in) :: level_selection(:), nlevs
 
-    INTEGER :: i, jk, lev_idx, ri_blk, ri_idx
+    INTEGER :: i, jk, lev_idx, ri_blk, ri_idx, ioff_l
+    !$OMP PARALLEL DO PRIVATE(i,lev_idx,ri_blk,ri_idx,ioff_l) SCHEDULE(STATIC) COLLAPSE(2)
     DO jk = 1, nlevs
       ! handle the case that a few levels have been selected out of
       ! the total number of levels:
-      lev_idx = level_selection(jk)
       DO i = 1, ri%n_own
+        lev_idx = level_selection(jk)
+        ioff_l = ioff + (jk-1)*ri%n_own
         ri_blk = ri%own_blk(i)
         ri_idx = ri%own_idx(i)
-        buf(ioff+i) = REAL(r(ri_idx,lev_idx,ri_blk),sp)
+        buf(ioff_l+i) = REAL(r(ri_idx,lev_idx,ri_blk),sp)
       END DO
-      ioff = ioff + ri%n_own
     END DO
+    !$OMP END PARALLEL DO
+    ioff = ioff + nlevs*ri%n_own
   END SUBROUTINE var_copy_dp2sp_ls
 
   SUBROUTINE var_copy_dp2sp_ls_miss(buf, ioff, r, ri, nlevs, &
@@ -2200,23 +2246,26 @@ CONTAINS
     INTEGER, INTENT(inout) :: ioff
     INTEGER, INTENT(in) :: level_selection(:), nlevs, i_endblk, i_endidx
 
-    INTEGER :: i, jk, lev_idx, ri_blk, ri_idx
+    INTEGER :: i, jk, lev_idx, ri_blk, ri_idx, ioff_l
+    !$OMP PARALLEL DO PRIVATE(i,lev_idx,ri_blk,ri_idx,ioff_l) SCHEDULE(STATIC) COLLAPSE(2)
     DO jk = 1, nlevs
       ! handle the case that a few levels have been selected out of
       ! the total number of levels:
-      lev_idx = level_selection(jk)
       DO i = 1, ri%n_own
+        lev_idx = level_selection(jk)
+        ioff_l = ioff + (jk-1)*ri%n_own
         ri_blk = ri%own_blk(i)
         ri_idx = ri%own_idx(i)
         IF (ri_blk > i_endblk &
              & .OR. ri_blk == i_endblk .AND. ri_idx > i_endidx) THEN
-          buf(ioff+i) = REAL(r(ri_idx,lev_idx,ri_blk),sp)
+          buf(ioff_l+i) = REAL(r(ri_idx,lev_idx,ri_blk),sp)
         ELSE
-          buf(ioff+i) = missval
+          buf(ioff_l+i) = missval
         END IF
       END DO
-      ioff = ioff + ri%n_own
     END DO
+    !$OMP END PARALLEL DO
+    ioff = ioff + nlevs*ri%n_own
   END SUBROUTINE var_copy_dp2sp_ls_miss
 
   SUBROUTINE var_copy_sp2sp(buf, ioff, r, ri, nlevs)
@@ -2226,15 +2275,18 @@ CONTAINS
     INTEGER, INTENT(inout) :: ioff
     INTEGER, INTENT(in) :: nlevs
 
-    INTEGER :: i, jk, ri_blk, ri_idx
+    INTEGER :: i, jk, ri_blk, ri_idx, ioff_l
+    !$OMP PARALLEL DO PRIVATE(i,ri_blk,ri_idx,ioff_l) SCHEDULE(STATIC) COLLAPSE(2)
     DO jk = 1, nlevs
       DO i = 1, ri%n_own
+        ioff_l = ioff + (jk-1)*ri%n_own
         ri_blk = ri%own_blk(i)
         ri_idx = ri%own_idx(i)
-        buf(ioff+i) = REAL(r(ri_idx,jk,ri_blk),sp)
+        buf(ioff_l+i) = REAL(r(ri_idx,jk,ri_blk),sp)
       END DO
-      ioff = ioff + ri%n_own
     END DO
+    !$OMP END PARALLEL DO
+    ioff = ioff + nlevs*ri%n_own
   END SUBROUTINE var_copy_sp2sp
 
   SUBROUTINE var_copy_sp2sp_miss(buf, ioff, r, ri, nlevs, i_endblk, i_endidx, &
@@ -2246,20 +2298,23 @@ CONTAINS
     INTEGER, INTENT(inout) :: ioff
     INTEGER, INTENT(in) :: nlevs, i_endblk, i_endidx
 
-    INTEGER :: i, jk, ri_blk, ri_idx
+    INTEGER :: i, jk, ri_blk, ri_idx, ioff_l
+    !$OMP PARALLEL DO PRIVATE(i,ri_blk,ri_idx,ioff_l) SCHEDULE(STATIC) COLLAPSE(2)
     DO jk = 1, nlevs
       DO i = 1, ri%n_own
+        ioff_l = ioff + (jk-1)*ri%n_own
         ri_blk = ri%own_blk(i)
         ri_idx = ri%own_idx(i)
         IF (ri_blk > i_endblk &
              & .OR. ri_blk == i_endblk .AND. ri_idx > i_endidx) THEN
-          buf(ioff+i) = REAL(r(ri_idx,jk,ri_blk),sp)
+          buf(ioff_l+i) = REAL(r(ri_idx,jk,ri_blk),sp)
         ELSE
-          buf(ioff+i) = REAL(missval, sp)
+          buf(ioff_l+i) = REAL(missval, sp)
         END IF
       END DO
-      ioff = ioff + ri%n_own
     END DO
+    !$OMP END PARALLEL DO
+    ioff = ioff + nlevs*ri%n_own
   END SUBROUTINE var_copy_sp2sp_miss
 
   SUBROUTINE var_copy_sp2sp_ls(buf, ioff, r, ri, nlevs, level_selection)
@@ -2269,18 +2324,21 @@ CONTAINS
     INTEGER, INTENT(inout) :: ioff
     INTEGER, INTENT(in) :: level_selection(:), nlevs
 
-    INTEGER :: i, jk, lev_idx, ri_blk, ri_idx
+    INTEGER :: i, jk, lev_idx, ri_blk, ri_idx, ioff_l
+    !$OMP PARALLEL DO PRIVATE(i,lev_idx,ri_blk,ri_idx,ioff_l) SCHEDULE(STATIC) COLLAPSE(2)
     DO jk = 1, nlevs
       ! handle the case that a few levels have been selected out of
       ! the total number of levels:
-      lev_idx = level_selection(jk)
       DO i = 1, ri%n_own
+        lev_idx = level_selection(jk)
+        ioff_l = ioff + (jk-1)*ri%n_own
         ri_blk = ri%own_blk(i)
         ri_idx = ri%own_idx(i)
-        buf(ioff+i) = REAL(r(ri_idx,lev_idx,ri_blk),sp)
+        buf(ioff_l+i) = REAL(r(ri_idx,lev_idx,ri_blk),sp)
       END DO
-      ioff = ioff + ri%n_own
     END DO
+    !$OMP END PARALLEL DO
+    ioff = ioff + nlevs*ri%n_own
   END SUBROUTINE var_copy_sp2sp_ls
 
   SUBROUTINE var_copy_sp2sp_ls_miss(buf, ioff, r, ri, nlevs, &
@@ -2292,23 +2350,26 @@ CONTAINS
     INTEGER, INTENT(inout) :: ioff
     INTEGER, INTENT(in) :: level_selection(:), nlevs, i_endblk, i_endidx
 
-    INTEGER :: i, jk, lev_idx, ri_blk, ri_idx
+    INTEGER :: i, jk, lev_idx, ri_blk, ri_idx, ioff_l
+    !$OMP PARALLEL DO PRIVATE(i,lev_idx,ri_blk,ri_idx,ioff_l) SCHEDULE(STATIC) COLLAPSE(2)
     DO jk = 1, nlevs
       ! handle the case that a few levels have been selected out of
       ! the total number of levels:
-      lev_idx = level_selection(jk)
       DO i = 1, ri%n_own
+        lev_idx = level_selection(jk)
+        ioff_l = ioff + (jk-1)*ri%n_own
         ri_blk = ri%own_blk(i)
         ri_idx = ri%own_idx(i)
         IF (ri_blk > i_endblk &
              & .OR. ri_blk == i_endblk .AND. ri_idx > i_endidx) THEN
-          buf(ioff+i) = REAL(r(ri_idx,lev_idx,ri_blk),sp)
+          buf(ioff_l+i) = REAL(r(ri_idx,lev_idx,ri_blk),sp)
         ELSE
-          buf(ioff+i) = REAL(missval, sp)
+          buf(ioff_l+i) = REAL(missval, sp)
         END IF
       END DO
-      ioff = ioff + ri%n_own
     END DO
+    !$OMP END PARALLEL DO
+    ioff = ioff + nlevs*ri%n_own
   END SUBROUTINE var_copy_sp2sp_ls_miss
 
   SUBROUTINE var_copy_i42sp(buf, ioff, r, ri, nlevs)
@@ -2318,15 +2379,18 @@ CONTAINS
     INTEGER, INTENT(inout) :: ioff
     INTEGER, INTENT(in) :: nlevs
 
-    INTEGER :: i, jk, ri_blk, ri_idx
+    INTEGER :: i, jk, ri_blk, ri_idx, ioff_l
+    !$OMP PARALLEL DO PRIVATE(i,ri_blk,ri_idx,ioff_l) SCHEDULE(STATIC) COLLAPSE(2)
     DO jk = 1, nlevs
       DO i = 1, ri%n_own
+        ioff_l = ioff + (jk-1)*ri%n_own
         ri_blk = ri%own_blk(i)
         ri_idx = ri%own_idx(i)
-        buf(ioff+i) = REAL(r(ri_idx,jk,ri_blk),sp)
+        buf(ioff_l+i) = REAL(r(ri_idx,jk,ri_blk),sp)
       END DO
-      ioff = ioff + ri%n_own
     END DO
+    !$OMP END PARALLEL DO
+    ioff = ioff + nlevs*ri%n_own
   END SUBROUTINE var_copy_i42sp
 
   SUBROUTINE var_copy_i42sp_miss(buf, ioff, r, ri, nlevs, i_endblk, i_endidx, &
@@ -2338,20 +2402,23 @@ CONTAINS
     INTEGER, INTENT(inout) :: ioff
     INTEGER, INTENT(in) :: nlevs, i_endblk, i_endidx
 
-    INTEGER :: i, jk, ri_blk, ri_idx
+    INTEGER :: i, jk, ri_blk, ri_idx, ioff_l
+    !$OMP PARALLEL DO PRIVATE(i,ri_blk,ri_idx,ioff_l) SCHEDULE(STATIC) COLLAPSE(2)
     DO jk = 1, nlevs
       DO i = 1, ri%n_own
+        ioff_l = ioff + (jk-1)*ri%n_own
         ri_blk = ri%own_blk(i)
         ri_idx = ri%own_idx(i)
         IF (ri_blk > i_endblk &
              & .OR. ri_blk == i_endblk .AND. ri_idx > i_endidx) THEN
-          buf(ioff+i) = REAL(r(ri_idx,jk,ri_blk),sp)
+          buf(ioff_l+i) = REAL(r(ri_idx,jk,ri_blk),sp)
         ELSE
-          buf(ioff+i) = REAL(missval, sp)
+          buf(ioff_l+i) = REAL(missval, sp)
         END IF
       END DO
-      ioff = ioff + ri%n_own
     END DO
+    !$OMP END PARALLEL DO
+    ioff = ioff + nlevs*ri%n_own
   END SUBROUTINE var_copy_i42sp_miss
 
   SUBROUTINE var_copy_i42sp_ls(buf, ioff, r, ri, nlevs, level_selection)
@@ -2361,18 +2428,21 @@ CONTAINS
     INTEGER, INTENT(inout) :: ioff
     INTEGER, INTENT(in) :: level_selection(:), nlevs
 
-    INTEGER :: i, jk, lev_idx, ri_blk, ri_idx
+    INTEGER :: i, jk, lev_idx, ri_blk, ri_idx, ioff_l
+    !$OMP PARALLEL DO PRIVATE(i,lev_idx,ri_blk,ri_idx,ioff_l) SCHEDULE(STATIC) COLLAPSE(2)
     DO jk = 1, nlevs
       ! handle the case that a few levels have been selected out of
       ! the total number of levels:
-      lev_idx = level_selection(jk)
       DO i = 1, ri%n_own
+        lev_idx = level_selection(jk)
+        ioff_l = ioff + (jk-1)*ri%n_own
         ri_blk = ri%own_blk(i)
         ri_idx = ri%own_idx(i)
-        buf(ioff+i) = REAL(r(ri_idx,lev_idx,ri_blk),sp)
+        buf(ioff_l+i) = REAL(r(ri_idx,lev_idx,ri_blk),sp)
       END DO
-      ioff = ioff + ri%n_own
     END DO
+    !$OMP END PARALLEL DO
+    ioff = ioff + nlevs*ri%n_own
   END SUBROUTINE var_copy_i42sp_ls
 
   SUBROUTINE var_copy_i42sp_ls_miss(buf, ioff, r, ri, nlevs, &
@@ -2384,23 +2454,26 @@ CONTAINS
     INTEGER, INTENT(inout) :: ioff
     INTEGER, INTENT(in) :: level_selection(:), nlevs, i_endblk, i_endidx
 
-    INTEGER :: i, jk, lev_idx, ri_blk, ri_idx
+    INTEGER :: i, jk, lev_idx, ri_blk, ri_idx, ioff_l
+    !$OMP PARALLEL DO PRIVATE(i,lev_idx,ri_blk,ri_idx,ioff_l) SCHEDULE(STATIC) COLLAPSE(2)
     DO jk = 1, nlevs
       ! handle the case that a few levels have been selected out of
       ! the total number of levels:
-      lev_idx = level_selection(jk)
       DO i = 1, ri%n_own
+        lev_idx = level_selection(jk)
+        ioff_l = ioff + (jk-1)*ri%n_own
         ri_blk = ri%own_blk(i)
         ri_idx = ri%own_idx(i)
         IF (ri_blk > i_endblk &
              & .OR. ri_blk == i_endblk .AND. ri_idx > i_endidx) THEN
-          buf(ioff+i) = REAL(r(ri_idx,lev_idx,ri_blk),sp)
+          buf(ioff_l+i) = REAL(r(ri_idx,lev_idx,ri_blk),sp)
         ELSE
-          buf(ioff+i) = REAL(missval, sp)
+          buf(ioff_l+i) = REAL(missval, sp)
         END IF
       END DO
-      ioff = ioff + ri%n_own
     END DO
+    !$OMP END PARALLEL DO
+    ioff = ioff + nlevs*ri%n_own
   END SUBROUTINE var_copy_i42sp_ls_miss
 
   SUBROUTINE set_boundary_mask_dp(buf, missval, i_endblk, i_endidx, ri)
@@ -2412,12 +2485,14 @@ CONTAINS
     INTEGER :: i, n
 
     n = ri%n_own
+    !$OMP PARALLEL DO SCHEDULE(STATIC)
     DO i = 1, n
       IF (ri%own_blk(i) < i_endblk .OR. &
         & (ri%own_blk(i) == i_endblk .AND. ri%own_idx(i) <= i_endidx)) THEN
         buf(i) = missval
       END IF
     END DO
+    !$OMP END PARALLEL DO
   END SUBROUTINE set_boundary_mask_dp
 
   SUBROUTINE set_boundary_mask_sp(buf, missval, i_endblk, i_endidx, ri)
@@ -2429,12 +2504,14 @@ CONTAINS
     INTEGER :: i, n
 
     n = ri%n_own
+    !$OMP PARALLEL DO SCHEDULE(STATIC)
     DO i = 1, n
       IF (ri%own_blk(i) < i_endblk .OR. &
         & (ri%own_blk(i) == i_endblk .AND. ri%own_idx(i) <= i_endidx)) THEN
         buf(i) = missval
       END IF
     END DO
+    !$OMP END PARALLEL DO
   END SUBROUTINE set_boundary_mask_sp
 
   FUNCTION get_bdry_missval(info, idata_type) RESULT(missval)
@@ -3222,7 +3299,7 @@ CONTAINS
             END IF
           END IF
           IF (use_dp_mpi2io) THEN
-!$OMP DO PRIVATE(src_start, src_end)
+!$OMP DO PRIVATE(src_start, src_end) SCHEDULE(GUIDED)
             DO np = 0, num_work_procs-1
               src_start = p_ri%pe_off(np) * this_chunk_nlevs + (ilev-chunk_start)*p_ri%pe_own(np) + 1
               src_end   = p_ri%pe_off(np) * this_chunk_nlevs + (ilev-chunk_start+1)*p_ri%pe_own(np)
@@ -3233,7 +3310,7 @@ CONTAINS
           ELSE IF (have_GRIB) THEN
             ! ECMWF GRIB-API/CDI has only a double precision interface at the
             ! date of coding this
-!$OMP DO PRIVATE(src_start, src_end)
+!$OMP DO PRIVATE(src_start, src_end) SCHEDULE(GUIDED)
             DO np = 0, num_work_procs-1
               src_start = p_ri%pe_off(np) * this_chunk_nlevs &
                 + (ilev-chunk_start)*p_ri%pe_own(np) + 1
@@ -3244,7 +3321,7 @@ CONTAINS
             ENDDO
 !$OMP END DO NOWAIT
           ELSE
-!$OMP DO PRIVATE(src_start, src_end)
+!$OMP DO PRIVATE(src_start, src_end) SCHEDULE(GUIDED)
             DO np = 0, num_work_procs-1
               src_start = p_ri%pe_off(np) * this_chunk_nlevs &
                 + (ilev-chunk_start)*p_ri%pe_own(np) + 1

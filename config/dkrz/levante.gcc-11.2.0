@@ -88,6 +88,10 @@ CFLAGS='-g -gdwarf-4 -march=native -mpc64'
 ICON_CFLAGS='-O3'
 ICON_BUNDLED_CFLAGS='-O2'
 
+# Let CDI know it can enable the support for compression filters even with the
+# older NetCDF version:
+ICON_CDI_CFLAGS="${ICON_BUNDLED_CFLAGS} -DHAVE_DECL_NCAUX_H5FILTERSPEC_PARSELIST"
+
 CPPFLAGS="-I${HDF5_ROOT}/include -I${NETCDF_ROOT}/include -I${ECCODES_ROOT}/include -I${XML2_ROOT}/include/libxml2 -I${FYAML_ROOT}/include"
 
 CXX=$("${MPI_ROOT}/bin/mpicxx" -show | sed 's: .*$::')
@@ -126,6 +130,7 @@ FC="${FC}" \
 FCFLAGS="${FCFLAGS}" \
 ICON_BUNDLED_CFLAGS="${ICON_BUNDLED_CFLAGS}" \
 ICON_BUNDLED_FCFLAGS="${ICON_BUNDLED_FCFLAGS}" \
+ICON_CDI_CFLAGS="${ICON_CDI_CFLAGS}" \
 ICON_CFLAGS="${ICON_CFLAGS}" \
 ICON_DACE_FCFLAGS="${ICON_DACE_FCFLAGS}" \
 ICON_DACE_PATH="${ICON_DACE_PATH}" \

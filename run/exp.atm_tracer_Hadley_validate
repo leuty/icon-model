@@ -94,7 +94,7 @@ atmo_namelist=NAMELIST_${EXPNAME}_atm
 
 # (3) Define the model configuration
 
-cat > ${atmo_namelist} << EOF
+cat > ${basedir}/run/${atmo_namelist} << EOF
 !
 &parallel_nml
  nproma                 = ${nproma}
@@ -104,6 +104,8 @@ cat > ${atmo_namelist} << EOF
  l_test_openmp          = .false.
  l_log_checks           = .false.
  iorder_sendrecv        = 1
+ num_io_procs           = ${num_io_procs}
+ proc0_shift            = ${proc0_shift}
 /
 &grid_nml
  dynamics_grid_filename = "${atmo_dyn_grids}",
@@ -218,29 +220,32 @@ infile=native_ml_20080901T000000Z.nc
 # Replace 0,3 -> 0.3 in awk output
 export LC_NUMERIC=en_US.UTF-8
 
+# `cdo` set as shell variable in dwd runscripts
+cdo=${cdo:-$(which cdo)}
+
 #get weights from area
 grid="iconR5B04-grid.nc"
-cdo -s -selname,cell_area $grid $weights
+$cdo -s -selname,cell_area $grid $weights
 
 #subtract tracer field after one day from initial state
-cdo -s -splitday -seltimestep,1,-1 -selname,q1 $infile $time_step_file
-cdo -s -sub "$time_step_file"* $subtracted
+$cdo -s -splitday -seltimestep,1,-1 -selname,q1 $infile $time_step_file
+$cdo -s -sub "$time_step_file"* $subtracted
 
 #weighted l1 norm
-numer=$(cdo -s -outputtab,nohead,value -fldsum -mul $weights -vertsum -expr,"q1=abs(q1)" $subtracted | xargs)
-denom=$(cdo -s -outputtab,nohead,value -fldsum -mul $weights -vertsum -expr,"q1=abs(q1)" "$time_step_file"01.nc | xargs)
+numer=$($cdo -s -outputtab,nohead,value -fldsum -mul $weights -vertsum -expr,"q1=abs(q1)" $subtracted | xargs)
+denom=$($cdo -s -outputtab,nohead,value -fldsum -mul $weights -vertsum -expr,"q1=abs(q1)" "$time_step_file"01.nc | xargs)
 weighted_normed_l1=$(awk "BEGIN { print $numer/$denom }")
 
 #weighted l2 norm
-cdo -s -sqr $subtracted $squares_num
-cdo -s -sqr "$time_step_file"01.nc $squares_denom
-numer=$(cdo -s -outputtab,nohead,value -fldsum -mul $weights -vertsum $squares_num | xargs)
-denom=$(cdo -s -outputtab,nohead,value -fldsum -mul $weights -vertsum $squares_denom | xargs)
+$cdo -s -sqr $subtracted $squares_num
+$cdo -s -sqr "$time_step_file"01.nc $squares_denom
+numer=$($cdo -s -outputtab,nohead,value -fldsum -mul $weights -vertsum $squares_num | xargs)
+denom=$($cdo -s -outputtab,nohead,value -fldsum -mul $weights -vertsum $squares_denom | xargs)
 weighted_normed_l2=$(awk "BEGIN { print sqrt($numer/$denom) }")
 
 #maximum norm
-numer=$(cdo -s -outputtab,nohead,value -fldmax -vertmax -expr,"q1=abs(q1)" $subtracted | xargs)
-denom=$(cdo -s -outputtab,nohead,value -fldmax -vertmax -expr,"q1=abs(q1)" "$time_step_file"01.nc | xargs)
+numer=$($cdo -s -outputtab,nohead,value -fldmax -vertmax -expr,"q1=abs(q1)" $subtracted | xargs)
+denom=$($cdo -s -outputtab,nohead,value -fldmax -vertmax -expr,"q1=abs(q1)" "$time_step_file"01.nc | xargs)
 max_norm=$(awk "BEGIN { print $numer/$denom }")
 
 rm "$time_step_file"* $weights $squares_denom $squares_num $subtracted

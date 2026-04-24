@@ -255,7 +255,8 @@ subroutine stress_tensor(si_elem2D, si_idx_elem, lacc)
 ! velocity field. They are stored as elemental arrays (sigma11, sigma22 and
 ! sigma12).
 
-  USE mo_sea_ice_nml,         ONLY: delta_min, Tevp_inv, Pstar, c_pressure, luse_replacement_pressure
+  USE mo_sea_ice_nml,         ONLY: delta_min, Tevp_inv, Pstar, c_pressure, luse_replacement_pressure, &
+                                    seaice_stress_diag
 
 implicit none
 
@@ -327,6 +328,12 @@ implicit none
        P=pressure
      END IF
 
+     IF (seaice_stress_diag) THEN
+       ! ice strength / replacement pressure diagnostics
+       p0_diag(elem) = pressure*2.0_wp ! compensate for 0.5*pressure above
+       p_diag(elem) = p*2.0_wp         ! same for replacement pressure
+     END IF
+
       ! ===== Limiting pressure/Delta  (zeta): still it may happen that zeta is too
       ! large in regions with fine mesh so that CFL criterion is violated.
 
@@ -352,6 +359,31 @@ implicit none
      sigma12(elem)=det2*(sigma12(elem)+dte*r3)
      sigma11(elem)=0.5_wp*(si1(elem)+si2(elem))
      sigma22(elem)=0.5_wp*(si1(elem)-si2(elem))
+
+     ! Diagnostics only, not used in EVP time stepping
+     IF (seaice_stress_diag) THEN
+       ! =========================================
+       ! Stress invariants (diagnostic)
+       ! =========================================
+
+       ! Normal stress invariant (mean normal stress)
+       sigma_i(elem) = 0.5_wp * ( sigma11(elem) + sigma22(elem) )
+
+       ! Shear stress invariant
+       sigma_ii(elem) = sqrt( &
+         (0.5_wp * (sigma11(elem) - sigma22(elem)))**2 &
+         + sigma12(elem)**2 )
+
+       ! ==========================================================
+       ! Principal stresses (diagnostic)
+       ! ==========================================================
+
+       ! Maximum principal stress
+       sigma_1(elem) = sigma_i(elem) + sigma_ii(elem)
+
+       ! Minimum principal stress
+       sigma_2(elem) = sigma_i(elem) - sigma_ii(elem)
+     END IF
 
     END DO
     !$ACC END PARALLEL LOOP

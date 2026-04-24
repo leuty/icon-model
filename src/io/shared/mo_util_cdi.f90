@@ -48,7 +48,8 @@ MODULE mo_util_cdi
                                  & vlistDefVarName, vlistDefVarLongname, vlistDefVarTsteptype, &
                                  & vlistDefVarStdname, vlistDefVarUnits, vlistDefVarParam, vlistDefVarMissval, &
                                  & vlistDefVarDatatype, vlistDefVarIntKey, vlistDefVarDblKey, &
-                                 & TIME_CONSTANT, TIME_VARYING, TSTEP_CONSTANT
+                                 & TIME_CONSTANT, TIME_VARYING, TSTEP_CONSTANT, &
+                                 & vlistDefVarNSB, cdiDefKeyInt, cdiDefKeyString, CDI_KEY_CHUNKSIZE, CDI_KEY_FILTERSPEC
 #ifndef __NO_ICON_WAVES__
   USE mo_wave_grib2,         ONLY: set_grib2_pdt_wave_spectra
 #endif
@@ -1298,6 +1299,9 @@ CONTAINS
   FUNCTION create_cdi_variable(vlistID, gridID, zaxisID,    &
     &                          info, missval, output_type,  &
     &                          gribout_config, i_lctype,    &
+    &                          number_of_bits,              &
+    &                          chunk_size,                  &
+    &                          filter_spec,                 &
     &                          out_varnames_dict) RESULT(varID)
     INTEGER :: varID
     INTEGER,                INTENT(IN)         :: vlistID, gridID, zaxisID
@@ -1306,12 +1310,15 @@ CONTAINS
     INTEGER,                INTENT(IN)         :: output_type
     TYPE(t_gribout_config), INTENT(IN)         :: gribout_config
     INTEGER,                INTENT(IN)         :: i_lctype
+    INTEGER,                INTENT(IN)         :: number_of_bits
+    INTEGER,                INTENT(IN)         :: chunk_size
+    CHARACTER(len=MAX_CHAR_LENGTH), INTENT(IN) :: filter_spec
     TYPE(t_dictionary),     INTENT(IN)         :: out_varnames_dict
     ! local variables
     CHARACTER(LEN=DICT_MAX_STRLEN) :: mapped_name
     TYPE(t_cf_var), POINTER        :: this_cf
-    INTEGER                        :: i
-    INTEGER :: nval
+    INTEGER                        :: nval
+    INTEGER                        :: i, iret
 
     ! Search name mapping for name in NetCDF file
     IF (info%cf%short_name /= '') THEN
@@ -1435,6 +1442,16 @@ CONTAINS
 
     ELSE ! NetCDF
       CALL vlistDefVarDatatype(vlistID, varID, this_cf%datatype)
+
+      IF (number_of_bits .GT. 0) THEN
+        CALL vlistDefVarNSB(vlistID, varID, number_of_bits)
+      ENDIF
+      IF (chunk_size >= 0) THEN
+        iret = cdiDefKeyInt(vlistID, varID, CDI_KEY_CHUNKSIZE, chunk_size);
+      ENDIF
+      IF (LEN_TRIM(filter_spec) > 0) THEN
+        iret = cdiDefKeyString(vlistID, varID, CDI_KEY_FILTERSPEC, TRIM(filter_spec))
+      ENDIF
     ENDIF
 
   END FUNCTION create_cdi_variable

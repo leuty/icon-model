@@ -1,13 +1,14 @@
 #! %{JOB.python3} #%# -*- mode: python -*- vi: set ft=python :
 #%#- ICON
 #%#-
-#%#- ------------------------------------------
+#%#- ---------------------------------------------------------------
 #%#- Copyright (C) 2004-2026, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 #%#- Contact information: icon-model.org
+#%#-
 #%#- See AUTHORS.TXT for a list of authors
 #%#- See LICENSES/ for license information
 #%#- SPDX-License-Identifier: BSD-3-Clause
-#%#- ------------------------------------------
+#%#- ---------------------------------------------------------------
 #SBATCH --account=%{ACCOUNT}
 #%  if JOB.qos is defined:
 #SBATCH --qos=%{JOB.qos}
@@ -224,8 +225,8 @@ template_dict['restart_targets'] = ' '.join(restart_targets)
 # Generate Makefile
 
 makefile_template = '''\
-CDO = cdo
-CDOFLAGS = -r -O -z zip
+CDO = %{JOB.cdo}
+CDOFLAGS = -r -O -z zstd
 
 NC_COMPRESS = nccopy -d 1 -s
 

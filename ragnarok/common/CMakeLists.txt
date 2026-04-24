@@ -9,7 +9,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ---------------------------------------------------------------
 
-target_sources(ragnarok PRIVATE types.hpp physical_constants.hpp)
+target_sources(ragnarok PRIVATE types.hpp physical_constants.hpp utilities.hpp)
 
 if(BUILD_TESTING)
   set(kokkos_dependents types_test.cpp)

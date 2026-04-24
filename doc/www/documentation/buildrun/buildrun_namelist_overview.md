@@ -496,7 +496,7 @@ active process (_dt_prc_ > 0) is used for the integration
 * - (aes_phy_nml-zmaxcloudy)=
     **zmaxcloudy**
   - R
-  - 33000.0
+  - 22500.0
   - m
   - maximum height (m) for cloud related computations
   -
@@ -2070,7 +2070,26 @@ Defined and used in: {{ '[src/namelists/mo_comin_nml.f90]({}/src/namelists/mo_co
 (ref_buildrun_nml_cloud_mig_nml)=
 ## cloud_mig_nml
 
-The parameterization of cloud microphysics 'graupel' for the AES physics is configured by a data structure _cloud_mig_config(jg=1:ndom)%\<param>_, which is a 1-dimensional array extending over all  domains. There are no namelist parameters available for this parameterization.
+The parameterization of cloud microphysics 'graupel' for the AES physics is configured by a data structure _cloud_mig_config(jg=1:ndom)%\<param>_, which is a 1-dimensional array extending over all  domains.
+
+```{list-table}
+:header-rows: 1
+
+* - Parameter
+  - Type
+  - Default
+  - Unit
+  - Description
+  - Scope
+
+* - (cloud_mig_nml-cia)=
+    **cia**
+  - R
+  - 1.0
+  -
+  - parameter to change the ice sticking efficiency
+  -
+```
 
 
 (ref_buildrun_nml_cloud_two_nml)=
@@ -10281,17 +10300,6 @@ separate attributes for output.
   -
   - Use this variable for internal diagnostics applied on all given output variables or groups except time-constant ones: `mean` for generating time averaged, `square` for time averaged square values, `max` or `min` for maximum and minimum and `acc` for accumulated values within the corresponding interval, i.e.  `output_interval`. Supported are 2D, 3D and single values like global means on model levels of all components. All operations can be used on global and nested grids.
   -
-
-* - (output_nml-compression_type)=
-    **compression_type**
-  - I
-  - -1
-  -
-  - Compression type (available for GRIB2 output only)
-    - -1: take over the setting of `gribout_nml:lgribout_compress_ccsds`
-    - 0: (CDI_COMPRESS_NONE): No (special) data compression
-    - 1: (CDI_COMPRESS_SZIP): CCSDS compression
-  - filetype=2
 
 * - (output_nml-pe_placement_il)=
     **pe_placement_il**

@@ -42,7 +42,6 @@ MODULE mo_surface_height_lhs
 
   PRIVATE
 
-  !> module name string
   CHARACTER(LEN=*), PARAMETER :: modname = 'mo_surface_height_lhs'
 
   PUBLIC :: t_surface_height_lhs
@@ -51,7 +50,7 @@ MODULE mo_surface_height_lhs
     PRIVATE
     TYPE(t_patch_3d), POINTER :: patch_3d => NULL()
     TYPE(t_patch), POINTER :: patch_2d => NULL()
-    REAL(wp), POINTER :: thickness_e_wp(:,:)
+    REAL(wp), POINTER :: thickness_e_wp(:,:) => NULL()
     TYPE(t_operator_coeff), POINTER :: op_coeffs_wp => NULL()
     TYPE(t_solverCoeff_singlePrecision), POINTER :: op_coeffs_sp => NULL()
     REAL(wp), ALLOCATABLE, DIMENSION(:,:), PRIVATE :: z_grad_h_wp, z_e_wp
@@ -154,8 +153,7 @@ CONTAINS
     REAL(wp), INTENT(IN) :: x(:,:)
     REAL(wp), INTENT(INOUT) :: lhs(:,:)
     LOGICAL, INTENT(IN), OPTIONAL :: lacc
-
-    INTEGER :: start_index, end_index, jc, blkNo, ico
+    INTEGER :: start_index, end_index, jc, blkNo
     LOGICAL :: lzacc
     TYPE(t_subset_range), POINTER :: cells_in_domain
 #if defined(_OPENACC) || defined(__NO_CONT_SOLV_OCE__)
@@ -186,10 +184,6 @@ CONTAINS
       !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
       DO jc = start_index, end_index
         IF(.NOT.(this%patch_3d%lsm_c(jc,1,blkNo) > sea_boundary)) THEN
-!           FORALL(ico = 1:9) xco(ico) = x(idx(ico, jc, blkNo), blk(ico, jc, blkNo))
-!           lhs(jc,blkNo) = x(jc,blkNo) * lhs_coeffs(0, jc, blkNo) + &
-!             & SUM(xco(:) * lhs_coeffs(1:9, jc, blkNo))
-
           lhs(jc,blkNo) = x(jc,blkNo) * lhs_coeffs(0, jc, blkNo) + &
                & x(idx(1, jc, blkNo), blk(1, jc, blkNo)) * lhs_coeffs(1, jc, blkNo) + &
                & x(idx(2, jc, blkNo), blk(2, jc, blkNo)) * lhs_coeffs(2, jc, blkNo) + &
@@ -200,8 +194,6 @@ CONTAINS
                & x(idx(7, jc, blkNo), blk(7, jc, blkNo)) * lhs_coeffs(7, jc, blkNo) + &
                & x(idx(8, jc, blkNo), blk(8, jc, blkNo)) * lhs_coeffs(8, jc, blkNo) + &
                & x(idx(9, jc, blkNo), blk(9, jc, blkNo)) * lhs_coeffs(9, jc, blkNo)
-
-
         END IF
       END DO
       !$ACC END PARALLEL LOOP
@@ -221,9 +213,7 @@ CONTAINS
         END DO
       END DO
     ENDIF
-
     !$ACC END DATA
-
   END SUBROUTINE lhs_surface_height_ab_mim_matrix_wp
 
 ! internal backend routine to compute surface height lhs -- "operator" implementation
@@ -258,12 +248,14 @@ CONTAINS
       !Step 1) Calculate gradient of iterated height.
       CALL grad_fd_norm_oce_2d_3d( x, this%patch_2D, this%op_coeffs_wp%grad_coeff(:,1,:), &
         & this%z_grad_h_wp(:,:), subset_range=this%patch_2D%edges%gradIsCalculable)
+      !ICON_OMP_PARALLEL_DO PRIVATE(start_index,end_index, je) ICON_OMP_DEFAULT_SCHEDULE
       DO blkNo = edges_in_domain%start_block, edges_in_domain%end_block
         CALL get_index_range(edges_in_domain, blkNo, start_index, end_index)
         DO je = start_index, end_index
           this%z_e_wp(je,blkNo) = this%z_grad_h_wp(je,blkNo) * this%thickness_e_wp(je,blkNo)
         END DO
       END DO
+      !ICON_OMP_END_PARALLEL_DO
     ELSE  !IF(.NOT.l_edge_based)THEN
       CALL grad_fd_norm_oce_2d_3d( x, this%patch_2D, this%op_coeffs_wp%grad_coeff(:,1,:), &
         & this%z_grad_h_wp(:,:), subset_range=this%patch_2D%edges%gradIsCalculable)
@@ -272,7 +264,7 @@ CONTAINS
       CALL map_edges2edges_viacell_3d_const_z( this%patch_3d, &
         & this%z_grad_h_wp(:,:), this%op_coeffs_wp, this%z_e_wp(:,:))
     END IF ! l_edge_based
-!ICON_OMP_PARALLEL_DO PRIVATE(start_index,end_index, jc) ICON_OMP_DEFAULT_SCHEDULE
+    !ICON_OMP_PARALLEL_DO PRIVATE(start_index,end_index, jc) ICON_OMP_DEFAULT_SCHEDULE
     DO blkNo = cells_in_domain%start_block, cells_in_domain%end_block
       CALL get_index_range(cells_in_domain, blkNo, start_index, end_index)
       IF (this%patch_2d%cells%max_connectivity .EQ. 3) THEN
@@ -289,7 +281,7 @@ CONTAINS
         lhs(jc,blkNo) = x(jc,blkNo) * gdt2_inv - gam_times_beta * lhs(jc,blkNo)
       END DO
     END DO ! blkNo
-!ICON_OMP_END_PARALLEL_DO
+    !ICON_OMP_END_PARALLEL_DO
     IF (debug_check_level > 20) THEN
       DO blkNo = cells_in_domain%start_block, cells_in_domain%end_block
         CALL get_index_range(cells_in_domain, blkNo, start_index, end_index)
@@ -348,7 +340,7 @@ CONTAINS
         coeff(:, iblk, 1) = opc_coeff(0, :, iblk)
       END DO
 !ICON_OMP END DO NOWAIT
-!ICON_OMP DO SCHEDULE(GUIDED)
+!ICON_OMP DO SCHEDULE(GUIDED) COLLAPSE(3)
       DO inz = 2, nnz
         DO iblk = 1, nblk
           DO iidx = 1, nidx
@@ -367,7 +359,7 @@ CONTAINS
 !ICON_OMP END DO NOWAIT
 !ICON_OMP END PARALLEL
     ELSE
-!ICON_OMP PARALLEL DO PRIVATE(iblk)
+!ICON_OMP PARALLEL DO COLLAPSE(2)
       DO inz = 1, nnz
         DO iblk = 1, nblk
           coeff(:, iblk, inz) = opc_coeff(inz - 1, :, iblk)

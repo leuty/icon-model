@@ -228,3 +228,68 @@ Currently, there are two options to obtain [grid](ref_buildrun_gridextpar) and [
 
 (ref_buildrun_icbc)=
 ## Initial & Boundary Data
+
+## Using `hiopy` as an io component for ICON experiments
+[Hiopy](https://dkrz-sw.gitlab-pages.dkrz.de/hiopy/index.html) can be used to write output from ICON simulations. Currently, the [Zarr](https://zarr.dev/) data format is supported and the output can be written in regular lat-lon grid, unstructured grid or the healpix grid.
+
+Pre-requisites:
+1. Mkexp (for configuration)
+2. YAC built with a compiler which supports C++20 (eg: gcc 13)
+3. Python 3.11 or greater
+4. MPI 4.1.2 or greater
+
+Supported environments via mkexp:
+1. Levante-cpu
+2. Dolpung-hybrid (cpu-gpu)
+
+Current limitations for the experiment:
+1. Only proleptic-gregorian calendar is supported
+2. Only the ICON's native names (from add_var) is supported
+3. Using hiopy parallel to the icon' async-output (pio-type 1) is not possible via mkexp
+
+If you are interested in running hiopy without mkexp, refer to the [Hiopy](https://dkrz-sw.gitlab-pages.dkrz.de/hiopy/index.html) documentation or get in touch with its developers.
+
+### Setting up hiopy
+
+For HPC systems, the right modules will have to be known prior to building Hiopy alongside the ICON executable.
+Issues could arrise if the HPC system limits the use of the required C++20 support in its compilers or uses older Python versions.
+For further details on how to navigate potential limitations, visit [hiopy-installation](https://dkrz-sw.gitlab-pages.dkrz.de/hiopy/getting_started.html#installation).
+
+#### Install YAC to get a $PATH_TO_YOUR_YAC_PKG_CONFIG
+Build ICON with `--prefix ${PREFIX_PATH} --enable-bundled-python=mtime,yac` specified to an installation path of choice
+The --enable-bundled-python=mtime,yac ensures that YAC and its dependencies are built with the
+required -fPIC flag to allow Hiopy to use it.
+```
+cd $ICON_BUILD_DIR/externals/yac
+make install # installs to ${PREFIX_PATH}
+export PKG_CONFIG_PATH=${PREFIX_PATH}/lib/pkgconfig:${PKG_CONFIG_PATH}
+
+# hiopy scripting supports only the use of python venv
+python -m venv $MY_VENV # or use your own environment with >py3.11
+source $MY_VENV/bin/activate
+
+# ensure MPI is correctly set (or load appropriate modules on the HPC)
+export MPI_ROOT=$MY_MPI_PATH
+export CC="${MPI_ROOT}/bin/mpicc"
+export CXX="${MPI_ROOT}/bin/mpicxx"
+
+# clone and install hiopy
+# with additional dependencies to configure hiopy
+pip install git+https://gitlab.dkrz.de/dkrz-sw/hiopy isodate
+
+# xarray and netcdf4 are needed only if you need output on model grid
+pip install xarray netcdf4
+```
+
+#### Steps to configure an experiment with hiopy
+
+Hiopy has a dedicated section which controls the following parameters:
+1. Job: number of workers, pre-processing step for initialising the dataset
+2. Data request: grid-type, desired hierarchy in case of healpix, paths to grid files in case of unstructured grids
+3. User parameters: desired path to the dataset, virtual-env with hiopy installation
+
+Example config files are under `run/examples/hiopy/*.config`
+
+Running mkexp on it would create a pre-processing (.pre extension) python script alongside the regular run_start and run scripts. The pre-processing script can be used to initialise the Zarr store by running `./$EXP_NAME.pre`.
+
+Once the Zarr store is initialised, the run scripts and their restart mechanism will ensure that they are filled up incrementally until the simulation ends. In case there are overlaps in time between restarts for any reason, the data will be over-written automatically.

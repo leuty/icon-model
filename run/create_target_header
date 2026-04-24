@@ -79,7 +79,7 @@ start_header()
 #-----------------------------------------------------------------------------
 set +x
 set -o pipefail
-$(test "${use_ulimit:-yes}" != yes || printf 'ulimit -s unlimited')
+$(test "${use_ulimit:-yes}" != yes || printf 'ulimit -s $(ulimit -H -s)')
 #-----------------------------------------------------------------------------
 # handle job cancellation. Usually slurm return exit code 0 in that case
 catchCancel() {
@@ -283,7 +283,7 @@ set_run_target_default()
 
     icon_data_rootFolder=${icon_data_rootFolder:=~/pool/data/ICON}
 
-    set_default use_ulimit no
+    set_default use_ulimit yes
     set_default use_nproma 48
     set_default use_nproma_sub 48
     set_default use_nblocks_c 0
@@ -2205,13 +2205,6 @@ create_target_header()
                 ;;
             esac
             ;;
-	    *land_*_test*)
-            case $use_target in
-                *_gpu*)
-                    use_num_io_procs=0
-                ;;
-            esac
-            ;;
         *run_ICON_01_R3B9_lam*)
             case $use_target in
                 rcl)
@@ -2446,6 +2439,41 @@ create_target_header()
             ;;
         *atm_nwp_jsbach_test*)
             use_memory="18gb"
+            ;;
+        *land*sitelevel*)
+	    # ICON-Land experiments on one or more single sites (cells)
+            # These run only on one MPI proc, on a grid with one cell and need the bash shell
+            use_nodes=1
+            use_tasks=1
+            #use_mpi_procs_pernode=1
+            use_nproma=1
+            use_shell="/bin/bash"
+            use_cpu_time="00:10:00"
+            case $use_target in
+                bull_milan)
+                    use_queue="shared"
+                ;;
+            esac
+            case $job_name in
+                *land*iqj*sitelevel*)
+                # when running with quincy configuration in land mode -- in addition -- memory and cpu time need to be increased
+                use_memory="2gb"
+                use_cpu_time="00:29:00"
+                ;;
+            esac
+            case $job_name in
+                *land*sitelevel*test)
+                # test scripts only run for a couple of days and need less time
+                use_cpu_time="00:02:00"
+                ;;
+            esac
+            ;;
+        *land_*_test*)
+            case $use_target in
+                *_gpu*)
+                    use_num_io_procs=0
+                ;;
+            esac
             ;;
         *aes_bubble*)
             case $use_target in

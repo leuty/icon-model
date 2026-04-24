@@ -38,7 +38,8 @@ ${icon_dir}/config/dkrz/levante.intel \
 --enable-separate-mods \
 --enable-bundled-python=yac,comin,mtime \
 --enable-concurrent-mpi-tests \
-PYTHON='/work/mh0287/buildbot/venv/bin/python3' \
+--disable-ecrad \
+PYTHON='/work/mh1570/m215048/buildbot/venv/bin/python3' \
 "$@"
 
 make ${makeflags}

@@ -3,6 +3,7 @@
 # ---------------------------------------------------------------
 # Copyright (C) 2004-2026, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 # Contact information: icon-model.org
+#
 # See AUTHORS.TXT for a list of authors
 # See LICENSES/ for license information
 # SPDX-License-Identifier: BSD-3-Clause
@@ -116,4 +117,4 @@ Levante is down:
         )
       allow_failure: false
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_PIPELINE_SOURCE == "schedule" && $ICON_CI_TEST_SCHEDULE == "weekly"
+    - if: $CI_PIPELINE_SOURCE == "schedule"

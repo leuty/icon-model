@@ -112,18 +112,12 @@ if [[ -a "/etc/profile" ]]
 then
 	. /etc/profile
 fi
-#-----------------------------------------------------------------------------
-# load modules
-loadmodule="${PWD}/../etc/Modules/icon-levante"
-module load $loadmodule
-module list
-#-----------------------------------------------------------------------------
 
 #-----------------------------------------------------------------------------
 # directories with absolute paths
 # -------------------------------
 thisdir=$(pwd)
-export basedir="${thisdir}/../build/cpurun"
+export basedir="${basedir:-${thisdir}/../build/cpurun}"
 cd "${basedir}/run"
 # experiments_dir can be predefined in a machine specific run_target_* header
 experiments_dir="${experiments_dir:=${basedir}/experiments}"
@@ -548,7 +542,7 @@ cat >> ${ocean_namelist} << EOF
                                     'HeatFlux_LongWave','HeatFlux_Sensible','HeatFlux_Latent',
                                     'FrshFlux_Runoff','FrshFlux_Precipitation','FrshFlux_Evaporation',
                                     'FrshFlux_TotalOcean','FrshFlux_VolumeIce','totalsnowfall',
-                                    'FrshFlux_VolumeTotal','swsum','heatabs'${STRETCH_C}
+                                    'FrshFlux_VolumeTotal','swsum','heatabs','group:ice_diag'${STRETCH_C}
 /
 
 &output_nml
@@ -884,6 +878,7 @@ cat >> ${ocean_namelist} << EOF
 
 ! Pstar                           = 40000
   initialize_seaice_fromfile      = .true.
+  seaice_stress_diag              = .TRUE.
 /
 
 &ocean_forcing_nml
@@ -1350,8 +1345,9 @@ rm -f skeleton/finish.status
 cp ${RUNSCRIPTDIR}/checksuite.ocean_internal/gpu/omip_variations.sh .
 source omip_variations.sh
 
-# Load PYTHON environment variable pointing to the Python installation which has f90nml
-source ${RUNSCRIPTDIR}/set-up.info
+# A Python with f90nml is needed. If PYTHON is defined, prefer using that
+# and assume that the required package is available
+PYTHON=${PYTHON:-/work/mh1570/m215048/buildbot/venv/bin/python3}
 
 idx=0
 # Main loop calling srun (within START_MODEL) for each variation/in each subdirectory

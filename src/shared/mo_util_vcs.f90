@@ -35,6 +35,9 @@ MODULE mo_util_vcs
   USE mo_cf_convention, ONLY: set_cf_global
   USE mo_exception, ONLY: message
   USE mo_mpi, ONLY: my_process_is_global_root
+#ifndef __NO_JSBACH__
+  USE mo_jsb_version, ONLY: get_icon_land_version
+#endif
 
   IMPLICIT NONE
 
@@ -246,7 +249,9 @@ CONTAINS
 #if !defined(__NO_JSBACH__) || defined(__DACE__) || defined(HAVE_RADARFWO) || defined(__ICON_ART) || defined(__MSGWAM)
       CALL message('', 'model components:')
 #ifndef __NO_JSBACH__
-      CALL message('', '  JSBACH: '//get_revision('jsbach'))
+      CALL message('', '  ICON-Land:')
+      CALL message('', '    version: '//get_icon_land_version())
+      CALL message('', '    revision: '//get_revision('jsbach'))
 #endif
 #ifdef __DACE__
       CALL message('', '  DACE: '//get_revision('dace'))
@@ -512,7 +517,7 @@ CONTAINS
 #ifndef NOMPI
   FUNCTION get_mpi_library_version(fallback)
 #ifndef MPI_GET_LIBRARY_VERSION_BROKEN
-    USE mpi
+    USE mpi, ONLY: mpi_max_library_version_string, mpi_get_library_version, mpi_success
 #endif
     CHARACTER(:), ALLOCATABLE :: get_mpi_library_version
     CHARACTER(*), OPTIONAL, INTENT(in) :: fallback

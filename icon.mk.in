@@ -74,6 +74,9 @@ INSTALL:= @INSTALL@
 MKDIR_P:= @MKDIR_P@
 MPI_LAUNCH:= @MPI_LAUNCH@
 
+# Installation settings:
+TRANSFORM=@program_transform_name@
+
 # Fortran compiler flags:
 FCFLAGS:= @FCFLAGS@
 make_FCFLAGS:= @FC_MOD_IN@$(mod_builddir)
@@ -376,7 +379,7 @@ join_comma= $(subst $() ,$(join_comma_symbol),$(strip $(1)))
 
 # Issue warnings that command-line overrides of the installation prefixes are
 # not supported:
-$(foreach v,prefix exec_prefix bindir includedir libdir, \
+$(foreach v,prefix exec_prefix bindir datarootdir datadir includedir libdir, \
   $(if $(filter $(origin $(v)),command line), \
     $(warning command-line override of the '$(v)' variable is not supported; \
         the provided value '$($(v))' will be ignored)))
@@ -449,7 +452,8 @@ bundled_makefiles:= $(addsuffix /Makefile,$(bundled_builddirs))
 # Targets that do not need the dependency files:
 nodep_targets:= preprocess depend mostlyclean clean distclean config-bundled \
                 bundled check-bundled dummy-depend $(bundled_builddirs) \
-                $(bundled_makefiles) version.c version.@OBJEXT@ $(dep_files) \
+                $(bundled_makefiles) version.c version.@OBJEXT@ \
+                run/SETUP.config.install $(dep_files) \
                 $(pp_files) $(BUNDLED_LIBFILES)
 
 # Selective search paths:
@@ -530,7 +534,7 @@ mostlyclean: $(bundled_builddirs)
 # also translate 'clean' into 'distclean' for the bundled packages when the
 # delayed configuration is enabled but that would be counterproductive,
 # therefore, we do not do that):
-clean_files:= srclist version.c $(pp_files)
+clean_files:= srclist version.c run/SETUP.config.install $(pp_files)
 
 # With all components and all preprocessing steps enabled, the list above
 # contains ~3k filenames, which might result into the following error if we
@@ -579,13 +583,20 @@ distclean: clean
 	rm -f icon.mk
 
 # Installation rule:
-install: all
+install: all run/SETUP.config.install
 @COMIN_SHARED_ENABLED@	$(silent_none)echo 'Installation of the shared COMIN library is currently not supported.' >&2; exit 1
 @COMIN_STATIC_ENABLED@	$(silent_none)$(MAKE) -C externals/comin/build $@ VERBOSE=$(filter-out 0,$(V))
 @HD_ENABLED@	$(silent_none)$(MAKE) -C externals/hd $@ V=$(V) exec_prefix='@exec_prefix@' bindir='bin'
 @MTIME_PYTHON_ENABLED@	$(silent_none)$(MAKE) -C externals/mtime/build/python $@ VERBOSE=$(filter-out 0,$(V))
 @YAC_PYTHON_ENABLED@	$(silent_none)$(MAKE) -C externals/yac/python $@ V=$(V) prefix='@exec_prefix@'
-	$(INSTALL) -d $(DESTDIR)@bindir@ && $(INSTALL) $(exec_files) $(DESTDIR)@bindir@
+	$(INSTALL) -d $(DESTDIR)@bindir@
+	@for f in $(exec_files); do \
+	  tf=`basename $$f | sed '$(TRANSFORM)'`; \
+	  echo "$(INSTALL) '$$f' '$(DESTDIR)@bindir@/$$tf'"; \
+	  $(INSTALL) "$$f" "$(DESTDIR)@bindir@/$$tf"; \
+	done
+	$(INSTALL) -d $(DESTDIR)@datadir@/run
+	$(INSTALL) run/SETUP.config.install $(DESTDIR)@datadir@/run/SETUP.config
 
 # Explicit configuration rule for the bundled packages:
 config-bundled: $(bundled_makefiles)
@@ -779,6 +790,16 @@ $(bundled_cmake_builddirs):
 version.@OBJEXT@: config.h
 version.c: force-create-version
 	$(silent_GEN)$(PVCS) --srcdir $(srcdir) --output $@ --bundled-srcdirs $(PVCS_bundled_srcdirs)
+
+# Installable version of SETUP.config
+run/SETUP.config.install: run/SETUP.config
+	$(silent_GEN):;{ \
+	  sed '/^abs_top_srcdir = /d' $< ; \
+	  echo ; \
+	  echo '# Install settings' ; \
+	  echo PREFIX = $(DESTDIR)@prefix@ ; \
+	  echo BIN_DIR = $(DESTDIR)@bindir@ ; \
+	} > $@
 
 # Directory creation rule:
 %/.dirstamp:

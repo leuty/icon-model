@@ -15,7 +15,7 @@ set -euo pipefail
 MY_DIR=$(cd "$(dirname "$0")"; pwd)
 ICON_DIR=$(cd "${MY_DIR}/../.."; pwd)
 
-export PYTHON='/work/mh0287/buildbot/venv/bin/python3'
+export PYTHON='/work/mh1570/m215048/buildbot/venv/bin/python3'
 
 # Go one step up - otherwise the there might be recursive calls in "make install"
 cd ${ICON_DIR}

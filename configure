@@ -810,6 +810,7 @@ enable_bundled_python
 enable_loop_exchange
 enable_dim_swap
 enable_realloc_buf
+enable_lvector
 enable_vectorized_lrtm
 enable_mixed_precision
 enable_single_precision
@@ -1584,6 +1585,11 @@ _ACEOF
 
   cat <<\_ACEOF
 
+Program names:
+  --program-prefix=PREFIX            prepend PREFIX to installed program names
+  --program-suffix=SUFFIX            append SUFFIX to installed program names
+  --program-transform-name=PROGRAM   run sed PROGRAM on installed program names
+
 System types:
   --build=BUILD     configure for building on BUILD [guessed]
   --host=HOST       cross-compile to build programs to run on HOST [BUILD]
@@ -1724,6 +1730,16 @@ Optimization Features:
   --enable-dim-swap       enable dimension swap [default=auto]
   --enable-realloc-buf    enable reallocatable buffer in the communication
                           [default=no]
+  --enable-lvector        enable optimizations for vector engines in the ocean
+                          component of ICON. The value of the argument must be
+                          one of the following [default=auto]:
+                            auto   enable all optimizations for vector engines
+                                   only when using a NEC compiler
+                            all    enable all optimizations for vector engines
+                            bitid  enable optimizations for vector engines
+                                   that preserve bit-identical results
+                            yes    alias for 'all'
+                            no     disable optimizations for vector engines
   --enable-vectorized-lrtm
                           enable the parallelization-invariant version of LRTM
                           [default=no]
@@ -3191,6 +3207,17 @@ fi
 
 ############################# OPTION DECLARATIONS ##############################
 
+test "$program_prefix" != NONE &&
+  program_transform_name="s&^&$program_prefix&;$program_transform_name"
+# Use a double $ so make ignores it.
+test "$program_suffix" != NONE &&
+  program_transform_name="s&\$&$program_suffix&;$program_transform_name"
+# Double any \ or $.
+# By default was `s,x,x', remove it if useless.
+ac_script='s/[\\$]/&&/g;s/;s,x,x,$//'
+program_transform_name=`$as_echo "$program_transform_name" | sed "$ac_script"`
+
+
 # Check whether --enable-rpaths was given.
 if test "${enable_rpaths+set}" = set; then :
   enableval=$enable_rpaths; if test x"$enableval" != xno; then :
@@ -3782,6 +3809,21 @@ if test "${enable_realloc_buf+set}" = set; then :
 fi
 else
   enable_realloc_buf=no
+fi
+
+
+# Check whether --enable-lvector was given.
+if test "${enable_lvector+set}" = set; then :
+  enableval=$enable_lvector; case $enableval in #(
+  yes) :
+    enable_lvector=all ;; #(
+  auto|all|bitid|no) :
+     ;; #(
+  *) :
+    as_fn_error $? "unexpected value for the argument --enable-lvector='$enableval'; valid values are 'auto', 'all', 'bitid', 'yes' (same as 'all'), 'no'" "$LINENO" 5 ;;
+esac
+else
+  enable_lvector=auto
 fi
 
 
@@ -4972,6 +5014,16 @@ $as_echo "$acx_cv_fc_compiler_vendor" >&6; }
 
 FC_VENDOR=$acx_cv_fc_compiler_vendor
 
+
+if test "x$enable_lvector" = xauto; then :
+  if test "x$FC_VENDOR" = xnec; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: Optimized code for vector engines is enabled because $FC is recognized as the NEC Fortran compiler: disable the optimizations if required (--disable-lvector)" >&5
+$as_echo "$as_me: Optimized code for vector engines is enabled because $FC is recognized as the NEC Fortran compiler: disable the optimizations if required (--disable-lvector)" >&6;}
+      enable_lvector=all
+else
+  enable_lvector=no
+fi
+fi
 
 if test "x$enable_intel_consistency" = xauto; then :
   if test "x$FC_VENDOR" = xintel; then :
@@ -6286,6 +6338,13 @@ fi
 
 if test "x$enable_realloc_buf" = xyes; then :
   as_fn_append FCFLAGS " ${FC_PP_DEF}__REALLOC_BUF"
+fi
+
+if test x"$enable_lvector" != xno; then :
+  as_fn_append FCFLAGS " ${FC_PP_DEF}__LVECTOR__"
+   if test "x$enable_lvector" = xbitid; then :
+  as_fn_append FCFLAGS " ${FC_PP_DEF}__LVEC_BITID__"
+fi
 fi
 
 if test "x$enable_vectorized_lrtm" = xyes; then :
@@ -10758,7 +10817,7 @@ fi
 if test "x$exec_prefix" = xNONE; then :
   exec_prefix=$prefix
 fi
-for icon_installdir in bindir includedir libdir; do
+for icon_installdir in bindir datarootdir datadir includedir libdir; do
   eval icon_tmp=\$$icon_installdir
   eval "$icon_installdir=\"$icon_tmp\""
 done
@@ -11663,7 +11722,7 @@ esac
    done
    as_fn_append bundled_CMAKE_PREFIX_PATH "${bundled_CMAKE_PREFIX_PATH:+";"}${icon_abs_top_builddir}/externals/mtime/build"
    if test "x$icon_mtime_python" = xyes; then :
-  as_fn_append BUNDLED_PYTHONPATH "${BUNDLED_PYTHONPATH+"${PATH_SEPARATOR}"}${icon_abs_top_builddir}/externals/mtime/build/python"
+  as_fn_append BUNDLED_PYTHONPATH "${BUNDLED_PYTHONPATH:+"${PATH_SEPARATOR}"}\${abs_top_builddir}/externals/mtime/build/python"
 fi
    as_fn_append bundled_includes "${FC_MOD_IN}externals/mtime/build/src/mod "
    BUNDLED_LIBFILES="externals/mtime/build/src/libmtime.a $BUNDLED_LIBFILES"
@@ -11868,7 +11927,7 @@ esac
 fi
 fi
    if test "x$icon_yac_python" = xyes; then :
-  as_fn_append BUNDLED_PYTHONPATH "${BUNDLED_PYTHONPATH:+"${PATH_SEPARATOR}"}${icon_abs_top_builddir}/externals/yac/python"
+  as_fn_append BUNDLED_PYTHONPATH "${BUNDLED_PYTHONPATH:+"${PATH_SEPARATOR}"}\${abs_top_builddir}/externals/yac/python"
 fi
    as_fn_append bundled_includes "${FC_MOD_IN}externals/yac/src/mci "
    BUNDLED_LIBFILES="externals/yac/src/mci/libyac_mci.a externals/yac/src/core/libyac_core.a $BUNDLED_LIBFILES"
@@ -12144,10 +12203,9 @@ esac
      shift
    done
    icon_kokkos_extra_args=
+   as_fn_append icon_kokkos_extra_args ' -DKokkos_ENABLE_SERIAL=ON'
    if test "x$enable_openmp" = xyes; then :
   as_fn_append icon_kokkos_extra_args ' -DKokkos_ENABLE_OPENMP=ON'
-else
-  as_fn_append icon_kokkos_extra_args ' -DKokkos_ENABLE_SERIAL=ON'
 fi
    case $icon_gpu_secondary in #(
   cuda) :
@@ -12385,7 +12443,7 @@ esac
 esac
      shift
    done
-   set dummy -DCMAKE_AR="$AR" -DCMAKE_RANLIB="$RANLIB" -DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_RAGNAROK_FCFLAGS" -DCMAKE_CXX_FLAGS="$subdir_CXXFLAGS $ICON_RAGNAROK_CXXFLAGS $subdir_CPPFLAGS" -DCMAKE_CUDA_FLAGS="$subdir_CUDAFLAGS $ICON_RAGNAROK_CUDAFLAGS" -DCMAKE_HIP_STANDARD_LIBRARIES="$LIBS" -DCMAKE_HIP_FLAGS="$subdir_HIPFLAGS $ICON_RAGNAROK_HIPFLAGS" -DCMAKE_HIP_STANDARD_LIBRARIES="$LIBS" -DCMAKE_BUILD_TYPE=None -DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH" -DBUILD_SHARED_LIBS=OFF -DRGK_ENABLE_STANDALONE=OFF -DCMAKE_CUDA_ARCHITECTURES=OFF -DCMAKE_HIP_ARCHITECTURES=OFF; shift
+   set dummy -DCMAKE_AR="$AR" -DCMAKE_RANLIB="$RANLIB" -DCMAKE_Fortran_FLAGS="$subdir_FCFLAGS $ICON_RAGNAROK_FCFLAGS" -DCMAKE_CXX_FLAGS="$subdir_CXXFLAGS $ICON_RAGNAROK_CXXFLAGS $subdir_CPPFLAGS" -DCMAKE_CUDA_FLAGS="$subdir_CUDAFLAGS $ICON_RAGNAROK_CUDAFLAGS" -DCMAKE_HIP_STANDARD_LIBRARIES="$LIBS" -DCMAKE_HIP_FLAGS="$subdir_HIPFLAGS $ICON_RAGNAROK_HIPFLAGS" -DCMAKE_HIP_STANDARD_LIBRARIES="$LIBS" -DCMAKE_BUILD_TYPE=None -DCMAKE_PREFIX_PATH="$bundled_CMAKE_PREFIX_PATH" -DBUILD_SHARED_LIBS=OFF -DRGK_ENABLE_STANDALONE=OFF -DRGK_ENABLE_PYTHON_BINDINGS=OFF -DRGK_ENABLE_SINGLE_PRECISION="$enable_single_precision" -DCMAKE_CUDA_ARCHITECTURES=OFF -DCMAKE_HIP_ARCHITECTURES=OFF; shift
    for acx_tmp; do
      case $acx_tmp in #(
   *\'*) :

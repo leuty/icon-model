@@ -44,7 +44,7 @@ MODULE mo_ocean_tracer_transport_horz
   USE mo_mpi,                       ONLY: global_mpi_barrier
   USE mo_ocean_limiter,             ONLY: limiter_ocean_zalesak_horizontal
   USE mo_ocean_tracer_transport_types,  ONLY: t_ocean_transport_state
-  USE mo_fortran_tools,             ONLY: set_acc_host_or_device
+  USE mo_fortran_tools,             ONLY: set_acc_host_or_device,init
 
 
   IMPLICIT NONE
@@ -259,11 +259,10 @@ CONTAINS
 
 
     ELSE ! no l_with_horz_tracer_advection
-      !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-      div_advflux_horz (:,:,:) = 0.0_wp
-      z_adv_flux_h(:,:,:) = 0.0_wp
-      !$ACC END KERNELS
-      !$ACC WAIT(1)
+      !ICON_OMP PARALLEL
+      CALL init(div_advflux_horz,lacc=lzacc)
+      CALL init(z_adv_flux_h,lacc=lzacc)
+      !ICON_OMP END PARALLEL
     ENDIF ! l_with_horz_tracer_advection
 
 
@@ -410,6 +409,7 @@ CONTAINS
     !$ACC DATA CREATE(z_adv_flux_high, z_adv_flux_low) IF(lzacc)
 
     !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(3) ASYNC(1) IF(lzacc)
+    !ICON_OMP PARALLEL DO COLLAPSE(3)
     DO blockNo = 1, patch_3d%p_patch_2d(1)%nblks_e
       DO level = 1, n_zlev
         DO je = 1, nproma
@@ -418,6 +418,7 @@ CONTAINS
         END DO
       END DO
     END DO
+    !ICON_OMP END PARALLEL DO
     !$ACC END PARALLEL LOOP
     !$ACC WAIT(1)
 

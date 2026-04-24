@@ -104,6 +104,9 @@ CONTAINS
       &  CALL finish(routine,'ICON working precision (wp) does not match ecRad precision.')
     IF (EPSILON(wavelength_bound_sw(1)) /= EPSILON(ecrad_conf%cloud_fraction_threshold)) &
       &  CALL finish(routine,'Smallest number in working precision (wp) is different from ecRad precision.')
+#if ( defined (__INTEL_COMPILER) || defined (__INTEL_LLVM_COMPILER) ) && defined (_OPENMP) && !defined __ENABLE_ECRAD_INTEL_OPENMP
+    CALL finish(routine,'Using Intel compiler with OpenMP for ecRad in ICON has known issues')
+#endif
 
     !---------------------------------------------------------------------------------------
     ! Configuration based on ICON namelist settings

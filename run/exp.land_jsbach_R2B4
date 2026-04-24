@@ -54,6 +54,7 @@ atmo_dyn_grids="'${grid_name}.nc',"
 grids_folder=${icon_data_poolFolder}/${grid_id}
 
 lnd_data_InputFolder=${icon_data_poolFolder}/${grid_id}/land/r0101
+hd_data_InputFolder=${icon_data_poolFolder}/${grid_id}/hd/r0101
 refyear=1979
 
 calendar="proleptic gregorian"  # '365 day year' or '360 day year' or 'proleptic gregorian'
@@ -340,7 +341,6 @@ cat >> $jsbach_namelist << EOF
 &jsb_sse_nml
   l_heat_cap_dyn  = .TRUE.
   l_heat_cond_dyn = .TRUE.
-  l_snow          = .TRUE.
   l_dynsnow       = .TRUE.
   l_freeze        = .TRUE.
   l_supercool     = .TRUE.

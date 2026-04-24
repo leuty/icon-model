@@ -220,7 +220,7 @@ CONTAINS
   !! cache. This routine has to be called on initialization and on Jan 1 of each simulation year.
   SUBROUTINE read_bc_aeropt_volc(mtime_current, nbndlw, nbndsw)
 
-    TYPE(datetime), POINTER, INTENT(IN) :: mtime_current !< Current date.
+    TYPE(datetime), INTENT(IN) :: mtime_current !< Current date.
     INTEGER, INTENT(IN) :: nbndsw !< Number of short-wave bands.
     INTEGER, INTENT(in) :: nbndlw !< Number of long-wave bands.
 
@@ -310,7 +310,7 @@ CONTAINS
       & paer_tau_lw_vr,        lacc                                   )
 
     ! INPUT PARAMETERS
-    TYPE(datetime), POINTER, INTENT(IN) :: current_date !< Current date and time.
+    TYPE(datetime), INTENT(IN) :: current_date !< Current date and time.
     INTEGER, INTENT(IN) :: jg !< Domain index (for cell -> latitude mapping).
     INTEGER, INTENT(IN) :: jcs !< Start index in block.
     INTEGER, INTENT(IN) :: kproma !< Actual block length.
@@ -346,7 +346,6 @@ CONTAINS
     REAL(wp), DIMENSION(kbdim,klev,nb_lw) :: zext_t, zomg_t
     REAL(wp), DIMENSION(kbdim,nb_lw)      :: zaod_t, zext_t_int, zfact_t
     REAL(wp)                              :: p_lat_shift, p_rdeltalat
-    INTEGER                               :: jc
     REAL(wp)                              :: dz_clim, z_max_lim_clim
 
     TYPE(t_time_interpolation_weights) :: tiw

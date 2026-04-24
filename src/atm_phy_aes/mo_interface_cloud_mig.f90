@@ -26,6 +26,7 @@ MODULE mo_interface_cloud_mig
   USE mo_cloud_mig_types     ,ONLY: t_cloud_mig_input, t_cloud_mig_output
   USE mo_cloud_mig_memory    ,ONLY:   cloud_mig_input,   cloud_mig_output
   USE mo_cloud_mig           ,ONLY:   cloud_mig
+  USE mo_cloud_mig_config    ,ONLY:   cloud_mig_config
 
   USE mo_timer               ,ONLY: ltimer, timer_start, timer_stop, &
        &                            timer_mig, timer_cld_mig
@@ -57,6 +58,7 @@ CONTAINS
     INTEGER  :: nlev
     !
     REAL(wp) :: pdtime
+    REAL(wp) :: cia
     LOGICAL  :: is_in_sd_ed_interval
     LOGICAL  :: is_active
     !
@@ -86,6 +88,7 @@ CONTAINS
     pdtime               = aes_phy_tc(jg)%dt_phy_sec
     is_in_sd_ed_interval = aes_phy_tc(jg)%is_in_sd_ed_interval_mig
     is_active            = aes_phy_tc(jg)%is_active_mig
+    cia                  = cloud_mig_config(jg)% cia
 
     ! associate pointers
     !
@@ -138,6 +141,7 @@ CONTAINS
           !
           CALL cloud_mig( jcs, jce                            ,& !< in : column index range
                &          pdtime                              ,& !< in : timestep
+               &          cia                                 ,& !< in : control ice amount
                &          field% dz        (:,jks:jke,jb)     ,& !< in : vertical layer thickness
                &          field% rho       (:,jks:jke,jb)     ,& !< in : density
                &          field% pfull     (:,jks:jke,jb)     ,& !< in : pressure

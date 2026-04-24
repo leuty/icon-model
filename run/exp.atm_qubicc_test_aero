@@ -377,7 +377,6 @@ cat > ${jsbach_namelist} << EOF
   l_heat_cond_map         = .FALSE.
   l_heat_cap_dyn          = .FALSE.
   l_heat_cond_dyn         = .FALSE.
-  l_snow                  = .TRUE.
   l_dynsnow               = .TRUE.
   l_freeze                = .TRUE.
   l_supercool             = .TRUE.
@@ -418,7 +417,7 @@ fi # ${iforcing}
 # (3) Define the input: model constants, grid, initial state, boundary conditions
 
 # data directory for the input of this experiment
-datadir=${icon_data_rootFolder}/experiments/data.atm_qubicc_test.r1
+datadir=${icon_data_rootFolder}/experiments/data.atm_qubicc_test.r3
 if [ ! -d ${datadir} ]
 then
     echo "ERROR: input data directory ${datadir} not found"
@@ -485,7 +484,12 @@ do
     if [ -L ${file} ]                                # if this file is a symbolic links
     then
         source_file=$( readlink -f ${file} )         # the original file name
-	target_file=${expdir}/$( basename ${file} )  # the ICON file name
+        if [ $(echo $(basename ${file}) | cut -c1-5) == "link_" ] # if link name starts with "link_"
+        then
+            target_file=${expdir}/$( basename ${source_file} )  # identical name
+        else
+            target_file=${expdir}/$( basename ${file} )         # the ICON file name
+        fi
 	ln -s ${source_file} ${target_file}
     fi
 done

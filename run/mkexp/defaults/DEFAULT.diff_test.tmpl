@@ -1,13 +1,14 @@
 #! %{JOB.python3} #%# -*- mode: python -*- vi: set ft=python :
 #%#- ICON
 #%#-
-#%#- ------------------------------------------
+#%#- ---------------------------------------------------------------
 #%#- Copyright (C) 2004-2026, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 #%#- Contact information: icon-model.org
+#%#-
 #%#- See AUTHORS.TXT for a list of authors
 #%#- See LICENSES/ for license information
 #%#- SPDX-License-Identifier: BSD-3-Clause
-#%#- ------------------------------------------
+#%#- ---------------------------------------------------------------
 #
 # %{EXP_ID}.%{JOB.id}
 #
@@ -155,9 +156,9 @@ for info in file_infos:
         logging.error("%s: second file is missing", file_name)
         status += 1
     else:
-        command = "cdo -s diffn".split() + [file_path, other_path]
+        command = f"%{JOB.cdo} -s diffn {file_path} {other_path}"
         try:
-            subprocess.run(command).check_returncode()
+            subprocess.run(command, shell=True).check_returncode()
             logging.info("%s: ok", file_name)
         except subprocess.CalledProcessError:
             logging.debug("'%s'", " ".join(command))

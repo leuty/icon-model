@@ -47,18 +47,50 @@ Ragnarok is integrated into ICON and is built automatically when ICON is configu
   * BUILD_TESTING=__ON__/OFF
 * Standalone - compile standalone components
   * RGK_ENABLE_STANDALONE=__ON__/OFF
+* Bindings - interoperability with other programming languages; Fortran is supported by default.
+  * RGK_ENABLE_PYTHON_BINDINGS=ON/**OFF**
+* Precision - either single or double precision
+  * RGK_ENABLE_SINGLE_PRECISION=ON/**OFF**
 
 ### Build as part of ICON
 
 The ICON configuration scripts automatically configure both Ragnarok and Kokkos.
 
-### Build Standalone
+### Ragnarok standalone
 
-Ragnarok can also be built independently of ICON. Cache files for Levante are available under `ragnarok/cmake/caches/`. For example:
+The standalone has a dependency of [NetCDF for CXX](https://github.com/Unidata/netcdf-cxx4). For Levante: `spack load netcdf-cxx4@4.3.1`.
 
+To build ragnarok standalone, one can use the cache files provided for levante under `ragnarok/cmake/caches/`, e.g.:
   ```
-  cmake -B build -S ragnarok -C ragnarok/cmake/caches/levante_cpu.cmake`
+  cmake -B build \
+        -S ragnarok \
+        -C ragnarok/cmake/caches/levante_cpu.cmake \
+        && cmake --build build --parallel
   ```
+
+The aes_microphysics executable can be run in single or double precision, e.g.:
+  ```
+    ./build/aes_microphysics/standalone/aes_graupel <input.nc> double  
+  ```
+The results are saved to NetCDF file called `output.nc`.
+
+### Interoperability with python
+
+The aes_microphysics provides python bindings for connecting the library to python environments. To ensure that, python3 (&pybind11) and netcdf-cxx4 to be accessible. For Levante:
+  ```
+  module load python3
+  python3 -m venv venv
+  source venv/bin/activate
+  pip install -r ragnarok/aes_microphysics/bindings/python/requirements.txt
+  cmake -B build_py \
+        -S ragnarok \
+        -C ragnarok/cmake/caches/levante_cpu.cmake \
+        -DRGK_ENABLE_PYTHON_BINDINGS=ON \
+        -Dpybind11_DIR=<path-to-venv>/venv/lib/python3.10/site-packages/pybind11/share/cmake/pybind11/
+  cmake --build build_py --parallel
+  ```
+
+The following shared library will be generated `build_py/aes_microphysics/aes_muphys_py.so`, which can be later imported by a python source code.
 
 ## Testing
 

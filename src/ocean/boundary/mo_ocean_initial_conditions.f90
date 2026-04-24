@@ -7529,9 +7529,11 @@ END DO
         SELECT CASE (check_fg_oce(jg)%list(ivar))
           CASE("to", "SWPT")
             read_initicono%to = .TRUE.
+          CASE("zos", "DSLM")
+            read_initicono%zos = .TRUE.
           CASE("so", "SWPSAL")
             read_initicono%so = .TRUE.
-          CASE("vn", "VNSEA")
+          CASE("normal_velocity", "VNSEA")
             read_initicono%vn = .TRUE.
           CASE("u", "USEA")
             read_initicono%u = .TRUE.
@@ -7557,9 +7559,11 @@ END DO
         SELECT CASE (check_ana_oce(jg)%list(jvar))
           CASE("to", "SWPT")
             read_initicono%to = .TRUE.
+          CASE("zos", "DSLM")
+            read_initicono%zos = .TRUE.
           CASE("so", "SWPSAL")
             read_initicono%so = .TRUE.
-          CASE("vn", "VNSEA")
+          CASE("normal_velocity", "VNSEA")
             read_initicono%vn = .TRUE.
           CASE("u", "USEA")
             read_initicono%u = .TRUE.

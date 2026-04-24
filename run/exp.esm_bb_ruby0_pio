@@ -544,7 +544,6 @@ cat > ${jsbach_namelist} << EOF
   l_heat_cond_map      = .FALSE.
   l_heat_cap_dyn       = .FALSE.
   l_heat_cond_dyn      = .FALSE.
-  l_snow               = .TRUE.
   l_dynsnow            = .TRUE.
   l_freeze             = .TRUE.
   l_supercool          = .TRUE.

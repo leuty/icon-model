@@ -390,7 +390,7 @@ cat >> ${ocean_namelist} << EOF
                                     'HeatFlux_LongWave','HeatFlux_Sensible','HeatFlux_Latent',
                                     'FrshFlux_Runoff','FrshFlux_Precipitation','FrshFlux_Evaporation',
                                     'FrshFlux_TotalOcean','FrshFlux_VolumeIce','totalsnowfall',
-                                    'FrshFlux_VolumeTotal','swsum','heatabs'${STRETCH_C}
+                                    'FrshFlux_VolumeTotal','swsum','heatabs','group:ice_diag'${STRETCH_C}
 /
 
 &output_nml
@@ -756,6 +756,7 @@ cat >> ${ocean_namelist} << EOF
   albim                           = 0.65      ! Albedo of ice (melting)
 
 ! Pstar                           = 40000
+  seaice_stress_diag              = .TRUE.
 /
 
 &ocean_forcing_nml

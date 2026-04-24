@@ -30,7 +30,7 @@ makeflags="--jobs=${job_count} --no-print-directory --output-sync=target V=1"
 
 set -x
 
-${icon_dir}/config/dkrz/levante.gcc --disable-openmp --enable-yaxt --enable-waves --enable-bundled-python=yac,comin,mtime --enable-testbed --enable-concurrent-mpi-tests --enable-msgwam --enable-ragnarok --enable-deprecated PYTHON='/work/mh0287/buildbot/venv/bin/python3' -DCOMIN_ENABLE_EXAMPLES=ON "$@"
+${icon_dir}/config/dkrz/levante.gcc --disable-openmp --enable-yaxt --enable-waves --enable-bundled-python=yac,comin,mtime --enable-testbed --enable-concurrent-mpi-tests --enable-msgwam --enable-ragnarok --enable-deprecated PYTHON='/work/mh1570/m215048/buildbot/venv/bin/python3' -DCOMIN_ENABLE_EXAMPLES=ON "$@"
 
 make ${makeflags}
 

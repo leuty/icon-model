@@ -39,7 +39,7 @@ MODULE mo_ocean_velocity_advection
     & map_scalar_prismtop2center_onBlock, map_vector_center2prismtop_onBlock
   USE mo_operator_ocean_coeff_3d, ONLY: t_operator_coeff
   USE mo_grid_subset,         ONLY: t_subset_range, get_index_range
-  USE mo_fortran_tools,       ONLY: set_acc_host_or_device
+  USE mo_fortran_tools,       ONLY: set_acc_host_or_device,init
 
   IMPLICIT NONE
 
@@ -187,11 +187,9 @@ CONTAINS
       CALL veloc_adv_vert_rot( patch_3D, p_diag,ocean_coefficients, veloc_adv_vert_e)
 
     CASE(VerticalAdvection_None)
-      !$ACC KERNELS DEFAULT(PRESENT) ASYNC(1) IF(lzacc)
-      veloc_adv_vert_e(:,:,:) = 0.0_wp
-      !$ACC END KERNELS
-      !$ACC WAIT(1)
-
+      !ICON_OMP PARALLEL
+      CALL init(veloc_adv_vert_e,lacc=lzacc)
+      !ICON_OMP END PARALLEL
     CASE default
       CALL finish("veloc_adv_vert_mimetic","unknown HorizonatlVelocity_VerticalAdvection_form")
     END SELECT
@@ -342,8 +340,9 @@ CONTAINS
     patch_2D        => patch_3D%p_patch_2D(1)
     edges_in_domain => patch_2D%edges%in_domain
     !-----------------------------------------------------------------------
-
-    veloc_adv_horz_e = 0.0_wp
+    !ICON_OMP PARALLEL
+    CALL init(veloc_adv_horz_e,lacc=.false.)
+    !ICON_OMP END PARALLEL
 
 !ICON_OMP_PARALLEL_DO PRIVATE(start_edge_index,end_edge_index) ICON_OMP_DEFAULT_SCHEDULE
     DO blockNo = edges_in_domain%start_block, edges_in_domain%end_block
@@ -582,14 +581,15 @@ CONTAINS
     all_edges => patch_2D%edges%all
     all_cells => patch_2D%cells%all
 
-    veloc_tangential(1:nproma,1:n_zlev,1:patch_2D%nblks_e) = 0.0_wp
-    veloc_adv_horz_e(1:nproma,1:n_zlev,1:patch_2D%nblks_e) = 0.0_wp
-
-        div_veloc(1:nproma,1:n_zlev,1:patch_3D%p_patch_2D(1)%alloc_cell_blocks)=0.0_wp
-
     start_level = 1
     elev = n_zlev
 
+    !ICON_OMP PARALLEL
+    CALL init(veloc_tangential(1:nproma,1:n_zlev,1:patch_2D%nblks_e),lacc=.false.)
+    CALL init(veloc_adv_horz_e(1:nproma,1:n_zlev,1:patch_2D%nblks_e),lacc=.false.)
+    CALL init(div_veloc(1:nproma,1:n_zlev,1:patch_3D%p_patch_2D(1)%alloc_cell_blocks),lacc=.false.)
+    !ICON_OMP BARRIER
+    !ICON_OMP DO PRIVATE(start_edge_index, end_edge_index,jk,je,il_c1,ib_c1,il_c2,ib_c2) ICON_OMP_DEFAULT_SCHEDULE
     DO blockNo = all_edges%start_block, all_edges%end_block
       CALL get_index_range(all_edges, blockNo, start_edge_index, end_edge_index)
       DO jk = start_level, elev
@@ -619,7 +619,8 @@ CONTAINS
         END DO
       END DO
     END DO
-
+    !ICON_OMP END DO NOWAIT
+    !ICON_OMP DO PRIVATE(start_index_c,end_index_c,jk,jc,il_e1,ib_e1,il_e2,ib_e2,il_e3,ib_e3) ICON_OMP_DEFAULT_SCHEDULE
     DO blockNo = all_cells%start_block, all_cells%end_block
       CALL get_index_range(all_cells, blockNo, start_index_c, end_index_c)
       DO jk = start_level, elev
@@ -656,6 +657,7 @@ CONTAINS
         END DO
       END DO
     END DO
+    !ICON_OMP END DO
 
 
 
@@ -664,7 +666,7 @@ CONTAINS
 !    CALL map_cell2edges_3D( patch_3D, z_div_vec_c, veloc_adv_horz_e,ocean_coefficients)
 
 
-
+!ICON_OMP DO ICON_OMP_DEFAULT_SCHEDULE PRIVATE(start_edge_index, end_edge_index,jk,je,il_c1,ib_c1,il_c2,ib_c2)
 DO blockNo = all_edges%start_block, all_edges%end_block
   CALL get_index_range(all_edges, blockNo, start_edge_index, end_edge_index)
   DO jk = start_level, elev
@@ -692,7 +694,8 @@ DO blockNo = all_edges%start_block, all_edges%end_block
     END DO
   END DO
 END DO
-
+!ICON_OMP END DO
+!ICON_OMP END PARALLEL
 DO jk=1,n_zlev
 write(*,*)'ADV',jk,maxval(veloc_adv_horz_e(:,jk,:)),minval(veloc_adv_horz_e(:,jk,:)),&
 &maxval(veloc_tangential(:,jk,:)),minval(veloc_tangential(:,jk,:))
@@ -880,7 +883,7 @@ ENDDO
 
     !$ACC DATA CREATE(z_adv_u_i, z_adv_u_m) IF(lzacc)
 
-!ICON_OMP_PARALLEL_DO ICON_OMP_DEFAULT_SCHEDULE
+!ICON_OMP_PARALLEL_DO COLLAPSE(3) ICON_OMP_DEFAULT_SCHEDULE
     !$ACC PARALLEL LOOP GANG VECTOR DEFAULT(PRESENT) COLLAPSE(3) ASYNC(1) IF(lzacc)
     DO blockNo = 1, patch_2D%alloc_cell_blocks
       DO jk = 1, n_zlev
@@ -1142,21 +1145,20 @@ ENDDO
 
     start_level = 1
     elev = n_zlev
-
-    z_adv_u_i(1:nproma,1:n_zlev+1,1:patch_2D%alloc_cell_blocks)%x(1) = 0.0_wp
-    z_adv_u_i(1:nproma,1:n_zlev+1,1:patch_2D%alloc_cell_blocks)%x(2) = 0.0_wp
-    z_adv_u_i(1:nproma,1:n_zlev+1,1:patch_2D%alloc_cell_blocks)%x(3) = 0.0_wp
-
-    z_adv_u_m(1:nproma,1:n_zlev,1:patch_2D%alloc_cell_blocks)%x(1) = 0.0_wp
-    z_adv_u_m(1:nproma,1:n_zlev,1:patch_2D%alloc_cell_blocks)%x(2) = 0.0_wp
-    z_adv_u_m(1:nproma,1:n_zlev,1:patch_2D%alloc_cell_blocks)%x(3) = 0.0_wp
-
-    z_w_ave (1:nproma,1:n_zlev,  1:patch_2D%alloc_cell_blocks) = 0.0_wp
-    z_w_diff(1:nproma,1:n_zlev-1,1:patch_2D%alloc_cell_blocks) = 0.0_wp
-
+    !ICON_OMP PARALLEL
+    CALL init(z_adv_u_i(1:nproma,1:n_zlev+1,1:patch_2D%alloc_cell_blocks)%x(1),lacc=.false.)
+    CALL init(z_adv_u_i(1:nproma,1:n_zlev+1,1:patch_2D%alloc_cell_blocks)%x(2),lacc=.false.)
+    CALL init(z_adv_u_i(1:nproma,1:n_zlev+1,1:patch_2D%alloc_cell_blocks)%x(3),lacc=.false.)
+    CALL init(z_adv_u_m(1:nproma,1:n_zlev,1:patch_2D%alloc_cell_blocks)%x(1),lacc=.false.)
+    CALL init(z_adv_u_m(1:nproma,1:n_zlev,1:patch_2D%alloc_cell_blocks)%x(2),lacc=.false.)
+    CALL init(z_adv_u_m(1:nproma,1:n_zlev,1:patch_2D%alloc_cell_blocks)%x(3),lacc=.false.)
+    CALL init(z_w_ave (1:nproma,1:n_zlev,  1:patch_2D%alloc_cell_blocks),lacc=.false.)
+    CALL init(z_w_diff(1:nproma,1:n_zlev-1,1:patch_2D%alloc_cell_blocks),lacc=.false.)
+    !ICON_OMP BARRIER
 
     !Step 1: multiply vertical velocity with vertical derivative of horizontal velocity
     !This requires appropriate boundary conditions
+    !ICON_OMP DO ICON_OMP_DEFAULT_SCHEDULE PRIVATE(start_index, end_index,jc,fin_level,prism_center_distance,jk)
     DO blockNo = all_cells%start_block, all_cells%end_block
       CALL get_index_range(all_cells, blockNo, start_index, end_index)
       DO jc = start_index, end_index
@@ -1176,7 +1178,8 @@ ENDDO
         ENDIF
       END DO
     END DO
-
+    !ICON_OMP END DO
+    !ICON_OMP DO ICON_OMP_DEFAULT_SCHEDULE PRIVATE(start_index, end_index,jc,fin_level,prism_center_distance,jk)
     DO blockNo = all_cells%start_block, all_cells%end_block
       CALL get_index_range(all_cells, blockNo, start_index, end_index)
       DO jc = start_index, end_index
@@ -1197,11 +1200,12 @@ ENDDO
         ENDIF
       END DO
     END DO
+    !ICON_OMP END DO
 ! write(*,*)'vert 2: A max/min vert adv:',jk,&
 ! & maxval(z_adv_u_i(:,jk,:)%x(1)), minval(z_adv_u_m(:,jk,:)%x(1)),&
 ! & maxval(z_adv_u_i(:,jk,:)%x(2)), minval(z_adv_u_m(:,jk,:)%x(2)),&
 ! & maxval(z_adv_u_i(:,jk,:)%x(3)), minval(z_adv_u_m(:,jk,:)%x(3))
-
+    !ICON_OMP DO ICON_OMP_DEFAULT_SCHEDULE PRIVATE(start_index, end_index,jc,fin_level,prism_center_distance,jk)
     DO blockNo = all_cells%start_block, all_cells%end_block
       CALL get_index_range(all_cells, blockNo, start_index, end_index)
       DO jc = start_index, end_index
@@ -1230,7 +1234,8 @@ ENDDO
         ENDIF
       END DO
     END DO
-
+    !ICON_OMP END DO
+    !ICON_OMP END PARALLEL
     ! ! Step 3: Map result of previous calculations from cell centers to edges (for all vertical layers)
     CALL map_cell2edges_3D( patch_3D, z_adv_u_m, veloc_adv_vert_e,ocean_coefficients)
 
@@ -1292,13 +1297,13 @@ ENDDO
     !-----------------------------------------------------------------------
     start_level = 1
     elev = n_zlev
-
-    z_adv_u_i(1:nproma,1:n_zlev+1,1:patch_2D%alloc_cell_blocks)%x(1) = 0.0_wp
-    z_adv_u_i(1:nproma,1:n_zlev+1,1:patch_2D%alloc_cell_blocks)%x(2) = 0.0_wp
-    z_adv_u_i(1:nproma,1:n_zlev+1,1:patch_2D%alloc_cell_blocks)%x(3) = 0.0_wp
-
-    z_w_diff(1:nproma,1:n_zlev-1,1:patch_2D%alloc_cell_blocks) = 0.0_wp
-
+    !ICON_OMP PARALLEL
+    CALL init(z_adv_u_i(1:nproma,1:n_zlev+1,1:patch_2D%alloc_cell_blocks)%x(1),lacc=.false.)
+    CALL init(z_adv_u_i(1:nproma,1:n_zlev+1,1:patch_2D%alloc_cell_blocks)%x(2),lacc=.false.)
+    CALL init(z_adv_u_i(1:nproma,1:n_zlev+1,1:patch_2D%alloc_cell_blocks)%x(3),lacc=.false.)
+    CALL init(z_w_diff(1:nproma,1:n_zlev-1,1:patch_2D%alloc_cell_blocks),lacc=.false.)
+    !ICON_OMP BARRIER
+    !ICON_OMP DO ICON_OMP_DEFAULT_SCHEDULE PRIVATE(start_index, end_index,jc,fin_level,del_zlev_m,jk)
     DO blockNo = all_cells%start_block, all_cells%end_block
       CALL get_index_range(all_cells, blockNo, start_index, end_index)
       DO jc = start_index, end_index
@@ -1329,6 +1334,8 @@ ENDDO
         ENDIF
       END DO
     END DO
+    !ICON_OMP END DO
+    !ICON_OMP END PARALLEL
     ! ! Step 3: Map result of previous calculations from cell centers to edges (for all vertical layers)
     CALL map_cell2edges_3D( patch_3D, z_adv_u_i, veloc_adv_vert_e, ocean_coefficients)
 
@@ -1388,13 +1395,13 @@ ENDDO
     !-----------------------------------------------------------------------
     start_level = 1
     elev = n_zlev
-
-    z_adv_u_i(1:nproma,1:n_zlev+1,1:patch_2D%alloc_cell_blocks)%x(1) = 0.0_wp
-    z_adv_u_i(1:nproma,1:n_zlev+1,1:patch_2D%alloc_cell_blocks)%x(2) = 0.0_wp
-    z_adv_u_i(1:nproma,1:n_zlev+1,1:patch_2D%alloc_cell_blocks)%x(3) = 0.0_wp
-
-    z_w_diff(1:nproma,1:n_zlev-1,1:patch_2D%alloc_cell_blocks) = 0.0_wp
-
+    !ICON_OMP PARALLEL
+    CALL init(z_adv_u_i(1:nproma,1:n_zlev+1,1:patch_2D%alloc_cell_blocks)%x(1),lacc=.false.)
+    CALL init(z_adv_u_i(1:nproma,1:n_zlev+1,1:patch_2D%alloc_cell_blocks)%x(2),lacc=.false.)
+    CALL init(z_adv_u_i(1:nproma,1:n_zlev+1,1:patch_2D%alloc_cell_blocks)%x(3),lacc=.false.)
+    CALL init(z_w_diff(1:nproma,1:n_zlev-1,1:patch_2D%alloc_cell_blocks),lacc=.false.)
+    !ICON_OMP BARRIER
+    !ICON_OMP DO PRIVATE(start_index, end_index,jc,fin_level,del_zlev_m,jk) ICON_OMP_DEFAULT_SCHEDULE
     DO blockNo = all_cells%start_block, all_cells%end_block
       CALL get_index_range(all_cells, blockNo, start_index, end_index)
       DO jc = start_index, end_index
@@ -1423,6 +1430,8 @@ ENDDO
         ENDIF
       END DO
     END DO
+    !ICON_OMP END DO NOWAIT
+    !ICON_OMP END PARALLEL
     ! ! Step 3: Map result of previous calculations from cell centers to edges (for all vertical layers)
     CALL map_cell2edges_3D( patch_3D, z_adv_u_i, veloc_adv_vert_e, ocean_coefficients)
 

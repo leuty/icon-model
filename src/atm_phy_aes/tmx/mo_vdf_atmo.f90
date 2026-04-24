@@ -171,9 +171,6 @@ CONTAINS
     ! "partially present on device" OpenACC error
     CALL build_vdf_atmo_diags(this%diagnostics, this%domain)
 
-    ! Initialize Smagorinsky model
-    CALL Smagorinsky_init(this%domain, this%config, this%inputs, this%diagnostics)
-
   END SUBROUTINE Init_vdf_atmo
   !
   !============================================================================
@@ -208,7 +205,7 @@ CONTAINS
     REAL(wp), POINTER :: &
       & cpd, cvd, rturb_prandtl, louis_constant_b, km_min, km_const
     LOGICAL, POINTER :: &
-      & use_louis, use_km_const
+      & use_louis, use_louis_land, use_louis_ice, use_km_const
 
     ! Pointers to input variables
     REAL(wp), POINTER, DIMENSION(:,:,:) :: &
@@ -223,18 +220,25 @@ CONTAINS
     ! Pointers to diagnostic variables
     REAL(wp), POINTER, DIMENSION(:,:,:) :: &
       & ghf, ctgz, div_c, theta_v, pprfac, km, kh, km_c, heating, &  ! 3D full level cell diagnostics
-      & rho_ic, bruvais ,stab_func, mech_prod, km_ic, kh_ic, mix_len_sq, &  ! 3D half level cell diagnostics
+      & rho_ic, bruvais, mech_prod, km_ic, kh_ic, mix_len_sq, &  ! 3D half level cell diagnostics
       & vn, shear, div_stress, &  ! 3D full level edge diagnostics
       & vn_ie, vt_ie, w_ie, km_ie, &  ! 3D half level edge diagnostics
       & u_vert, v_vert, w_vert, km_iv ! 3D vertex diagnostics
     REAL(wp), POINTER, DIMENSION(:,:) :: &
-      & louis_factor ! 2D diagnostics
+      & louis_factor, &
+      & fract_land, &
+      & fract_ice
 
     INTEGER :: jg
     INTEGER :: rl_start, rl_end
     INTEGER :: istat
 
     CHARACTER(len=*), PARAMETER :: routine = modname//':Compute_diagnostics'
+
+    ! Initialize Smagorinsky model
+    IF (this%is_initial_time) THEN
+      CALL Smagorinsky_init(this%domain, this%config, this%inputs, this%diagnostics)
+    END IF
 
     ! Get pointer to structure for config variables
     config => this%config
@@ -264,6 +268,8 @@ CONTAINS
     cvd              => config%cvd%Get_ptr_r0d()
     rturb_prandtl    => config%rturb_prandtl%Get_ptr_r0d()
     use_louis        => config%use_louis%Get_ptr_l0d()
+    use_louis_land   => config%use_louis_land%Get_ptr_l0d()
+    use_louis_ice    => config%use_louis_ice%Get_ptr_l0d()
     louis_constant_b => config%louis_constant_b%Get_ptr_r0d()
     km_min           => config%km_min%Get_ptr_r0d()
     use_km_const     => config%use_km_const%Get_ptr_l0d()
@@ -293,6 +299,8 @@ CONTAINS
     papm1         => inputs%pres_c%Get_ptr_r3d()
     paphm1        => inputs%pres_ic%Get_ptr_r3d()
     ! vn            => inputs%vn_e%Get_ptr_r3d()
+    fract_land    => inputs%fract_land%Get_ptr_r2d()
+    fract_ice     => inputs%fract_ice%Get_ptr_r2d()
 
     ! Get pointers to diagnostic variables from the diagnostics structure
     ! 3D full level cell diagnostics
@@ -309,7 +317,6 @@ CONTAINS
     ! 3D half level cell diagnostics
     rho_ic        => diags%rho_ic%Get_ptr_r3d()
     bruvais       => diags%bruvais%Get_ptr_r3d()
-    stab_func     => diags%stab_func%Get_ptr_r3d()
     mech_prod     => diags%mech_prod%Get_ptr_r3d()
     km_ic         => diags%km_ic%Get_ptr_r3d()
     kh_ic         => diags%kh_ic%Get_ptr_r3d()
@@ -445,13 +452,13 @@ CONTAINS
 !$OMP END PARALLEL
 
     IF (.NOT. use_km_const) THEN
-      CALL Smagorinsky_model(domain, mech_prod, bruvais, rho_ic,         &
-                             mix_len_sq, rturb_prandtl, use_louis,       &
-                             louis_constant_b, louis_factor, patch,      &
-                             km_ic, kh_ic, stab_func)
+      CALL Smagorinsky_model(domain, mech_prod, bruvais, rho_ic,                   &
+                             mix_len_sq, rturb_prandtl, use_louis, use_louis_land, use_louis_ice, &
+                             louis_constant_b, louis_factor, fract_land, fract_ice, &
+                             km_ic, kh_ic)
     ELSE
-      CALL Assign_constant_eddy_viscosity(domain,  rho_ic, km_const,     &
-                                          rturb_prandtl, patch,          &
+      CALL Assign_constant_eddy_viscosity(domain,  rho_ic, km_const, &
+                                          rturb_prandtl,             &
                                           km_ic, kh_ic)
     END IF
 
@@ -615,6 +622,8 @@ CONTAINS
     !$ACC END DATA
 
     END ASSOCIATE
+
+    IF (this%is_initial_time) this%is_initial_time = .FALSE.
 
     IF (ltimer) CALL timer_stop(this%timer_diagnostics)
 
@@ -2015,7 +2024,6 @@ CONTAINS
     rho_ic,                     &
     km_const,                   &
     rturb_prandtl,              &
-    patch,                      &
     km_ic,                      &
     kh_ic                       &
     )
@@ -2023,7 +2031,6 @@ CONTAINS
     TYPE(t_domain), INTENT(in)    :: domain
     REAL(wp), INTENT(in), DIMENSION(:,:,:)  :: rho_ic
     REAL(wp), INTENT(in) :: km_const, rturb_prandtl
-    TYPE(t_patch), INTENT(in) :: patch
 
     REAL(wp), INTENT(inout), DIMENSION(:,:,:) :: km_ic, kh_ic
 
@@ -2036,12 +2043,12 @@ CONTAINS
 
     rl_start   = 3
     rl_end     = min_rlcell_int
-    i_startblk = patch%cells%start_block(rl_start)
-    i_endblk   = patch%cells%end_block(rl_end)
+    i_startblk = domain%patch%cells%start_block(rl_start)
+    i_endblk   = domain%patch%cells%end_block(rl_end)
 
 !$OMP PARALLEL DO PRIVATE(jb, jk, jc, i_startidx, i_endidx) ICON_OMP_DEFAULT_SCHEDULE
     DO jb = i_startblk,i_endblk
-      CALL get_indices_c(patch, jb, i_startblk, i_endblk, &
+      CALL get_indices_c(domain%patch, jb, i_startblk, i_endblk, &
                               i_startidx, i_endidx, rl_start, rl_end)
 
     !$ACC PARALLEL LOOP DEFAULT(PRESENT) GANG VECTOR COLLAPSE(2) ASYNC(1)

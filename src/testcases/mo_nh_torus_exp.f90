@@ -32,9 +32,10 @@ MODULE mo_nh_torus_exp
      &                              t_stream_id, read_2D_extdim, read_3D_extdim
   USE mo_mpi,                 ONLY: my_process_is_stdio
   USE mo_physical_constants,  ONLY: rd, cpd, p0ref, cvd_o_rd, rd_o_cpd, &
-     &                              grav, alv, vtmpc1, lh_v=>alv
+     &                              grav, alv, vtmpc1, lh_v=>alv, tmelt
   USE mo_nh_testcases_nml,    ONLY: u_cbl, v_cbl, th_cbl, psfc_cbl, &
-                                    bubctr_x, bubctr_y, nh_test_name, is_dry_cbl
+                                    bubctr_x, bubctr_y, nh_test_name, is_dry_cbl, &
+                                    ape_sst_val
   USE mo_nh_wk_exp,           ONLY: bub_amp, bub_ver_width, bub_hor_width, bubctr_z
   USE mo_model_domain,        ONLY: t_patch
   USE mo_math_constants,      ONLY: rad2deg, pi_2
@@ -1337,7 +1338,7 @@ MODULE mo_nh_torus_exp
 
     REAL(wp), DIMENSION(ptr_patch%nlev) :: hght
     REAL(wp) :: zvn1, zvn2, zu, zv
-    REAL(wp) :: tv0, tvi, tvt, pr, prt, ex_sfc, ex, qv0, thv, qv, o3, irho
+    REAL(wp) :: t0, tv0, tvi, tvt, pr, prt, ex_sfc, ex, qv0, thv, qv, o3, irho
     REAL(wp) :: z_exner_h(1:nproma,ptr_patch%nlev+1), z_help(1:nproma)
 
     REAL(wp), PARAMETER :: laps  = 0.0067_wp  ! Lapse rate [K/m]
@@ -1349,6 +1350,8 @@ MODULE mo_nh_torus_exp
 
     CHARACTER(len=*), PARAMETER :: &
        &  routine = 'mo_nh_torus_exp:init_torus_rcemip_analytical_sounding'
+    CHARACTER(len=256) :: temp_msg
+    CHARACTER(len=32) :: val_str
   !-------------------------------------------------------------------------
 
     ! values for the blocking
@@ -1375,20 +1378,23 @@ MODULE mo_nh_torus_exp
     ! Tracers: all zero by default
     ptr_nh_prog%tracer(:,:,:,:) = 0._wp
 
-  ! sst equal 300
-  !   IF (les_config(jg)%sst .eq. 295) THEN
-  !     qv0 = 12.0e-3_wp ! kg/kg
-  !   ELSE IF (les_config(jg)%sst .eq. 300) THEN
+    t0 = tmelt + ape_sst_val
+    IF (ABS(t0 - 295.0_wp) < EPSILON(1.0_wp)) THEN
+      qv0 = 12.0e-3_wp ! kg/kg
+    ELSE IF (ABS(t0 - 300.0_wp) < EPSILON(1.0_wp)) THEN
       qv0 = 18.65e-3_wp ! kg/kg
-  !   ELSE IF (les_config(jg)%sst .eq. 305) THEN
-  !     qv0 = 24.0e-3_wp ! kg/kg
-  !   ELSE
-  !     CALL finish(TRIM(routine),'No preset qv0 scernario for this SST!')
-  !   ENDIF
+    ELSE IF (ABS(t0 - 305.0_wp) < EPSILON(1.0_wp)) THEN
+      qv0 = 24.0e-3_wp ! kg/kg
+    ELSE
+      write(val_str, '(F0.2)') ape_sst_val
+      temp_msg = 'No preset ape_sst_val scenario for ' // &
+                 'nh_testcase_nml/ape_sst_val = ' // &
+                  TRIM(val_str) // ' C. ' // &
+                  'Permitted values are: 21.85, 26.85, 31.85.'
+      CALL finish(TRIM(routine), TRIM(temp_msg))
+    ENDIF
 
-  !   tv0 = les_config(jg)%sst * (1._wp + qv0*0.608_wp)
-  ! sst equal 300
-    tv0 = 300._wp * (1._wp + qv0*0.608_wp)
+    tv0 = t0 * (1._wp + qv0*0.608_wp)
     tvt = tv0 - laps*ztop
     prt = pr0 * (tvt/tv0)**(grav/(rd*laps))
 

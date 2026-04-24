@@ -3,6 +3,7 @@
 # ---------------------------------------------------------------
 # Copyright (C) 2004-2026, DWD, MPI-M, DKRZ, KIT, ETH, MeteoSwiss
 # Contact information: icon-model.org
+#
 # See AUTHORS.TXT for a list of authors
 # See LICENSES/ for license information
 # SPDX-License-Identifier: BSD-3-Clause
@@ -94,6 +95,8 @@
 
         icon_ci_log_section_start "Configuring with '${ICON_CI_UTILS_ICON_CONFIG_REL_PATH}'"
         time (
+          eval "set dummy ${ICON_CI_UTILS_ICON_CONFIG_EXTRA_ARGS-}; shift"
+
           set -x
 
           mkdir -p "${ICON_CI_UTILS_ICON_BUILD_PATH}"
@@ -109,7 +112,7 @@
             --disable-quincy --disable-ragnarok --disable-rte-rrtmgp --disable-rttov \
             --disable-silent-rules --disable-upatmo --disable-waves --disable-yaxt \
             --enable-bundled-python=mtime --enable-mpi --enable-separate-mods \
-            ${ICON_CI_UTILS_ICON_CONFIG_EXTRA_ARGS-}
+            "$@"
         ) 2>&1
         icon_ci_log_section_end
       )
@@ -236,6 +239,7 @@
           WORK_DIR="${CI_PROJECT_DIR}/${ICON_CI_UTILS_ICON_MKEXP_WORK_REL_PATH}" \
           EXP_ID="${ICON_CI_UTILS_ICON_MKEXP_EXP_ID}" \
           jobs.run.subdir="${ICON_CI_UTILS_ICON_MKEXP_RUN_SUBDIR}" \
+          jobs.run_start.log_timestamps=false \
           ${ICON_CI_UTILS_ICON_MKEXP_EXTRA_ARGS-}
       ) 2>&1
       icon_ci_log_section_end

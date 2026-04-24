@@ -229,7 +229,7 @@ END SUBROUTINE shift_months_bc_aeropt_kinne
 
 SUBROUTINE read_bc_aeropt_kinne(mtime_current, p_patch, l_filename_year, nbndlw, nbndsw, opt_from_coupler)
 
-  TYPE(datetime), POINTER, INTENT(in) :: mtime_current
+  TYPE(datetime), INTENT(in)          :: mtime_current
   TYPE(t_patch), INTENT(in)           :: p_patch
   LOGICAL, INTENT(in)                 :: l_filename_year
   INTEGER, INTENT(in)                 :: nbndlw, nbndsw
@@ -388,7 +388,7 @@ SUBROUTINE set_bc_aeropt_kinne (    current_date,                         &
 
   ! !INPUT PARAMETERS
 
-  TYPE(datetime), POINTER, INTENT(in) :: current_date
+  TYPE(datetime), INTENT(in) :: current_date
   INTEGER,INTENT(in)  :: jg,     &! grid index
                          jcs,    &! actual block, start at column with index jcs
                          jce,    &! actual block, end at column with index jce

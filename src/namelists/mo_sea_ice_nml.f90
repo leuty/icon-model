@@ -114,6 +114,7 @@ MODULE mo_sea_ice_nml
   REAL(wp),PUBLIC :: Ch_io             ! Ice-ocean heat transfer coefficient
 
   LOGICAL, PUBLIC :: luse_replacement_pressure = .FALSE. ! use replacement pressure in strain rate computation
+  LOGICAL, PUBLIC :: seaice_stress_diag
 
   NAMELIST /sea_ice_nml/ &
     &  kice, &
@@ -153,6 +154,7 @@ MODULE mo_sea_ice_nml
     &  Cd_ia, &
     &  Ch_io, &
     &  luse_replacement_pressure, &
+    &  seaice_stress_diag, &
     &  ice_VP_rheology, &
     &  ice_EVP1, &
     &  delta_min, &
@@ -209,7 +211,8 @@ CONTAINS
     ellipse     = 2.0_wp
     c_pressure  = 20.0_wp
     luse_replacement_pressure = .FALSE. ! if .true. use replacement pressure in strain rate computations
-
+    seaice_stress_diag = .FALSE. ! activate calculation/output of sea ice stress diagnostics
+                                 ! (sigma_i, sigma_ii, sigma_1, sigma_2, p0, p)
 
     ramp_wind    = 1.0_wp
 

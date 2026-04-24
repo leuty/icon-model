@@ -4068,7 +4068,7 @@ MODULE mo_nonhydro_state
                 &   vert_intp_type=vintp_types("P","Z","I"),                    &
                 &   vert_intp_method=VINTP_METHOD_LIN_NLEVP1 ),                 &
                 & in_group=group, isteptype=TSTEP_CONSTANT,                     &
-                & lmemman = .TRUE.,                                             &
+                & lmemman = lmemman,                                            &
                 & lopenacc = .TRUE. )
     __acc_attach(p_metrics%z_ifc)
 
@@ -4085,7 +4085,7 @@ MODULE mo_nonhydro_state
                 &    vert_intp_type=vintp_types("P","Z","I"),                   &
                 &    vert_intp_method=VINTP_METHOD_LIN ),                       &
                 & isteptype=TSTEP_CONSTANT,                                     &
-                & lmemman = .TRUE.,                                             &
+                & lmemman = lmemman,                                            &
                 & lopenacc = .TRUE. )
     __acc_attach(p_metrics%z_mc)
 

@@ -54,6 +54,7 @@ atmo_dyn_grids="'${grid_name}.nc',"
 grids_folder=${icon_data_poolFolder}/${grid_id}
 
 lnd_data_InputFolder=${icon_data_poolFolder}/${grid_id}/land/r0101
+hd_data_InputFolder=${icon_data_poolFolder}/${grid_id}/hd/r0101
 refyear=1979
 
 calendar="proleptic gregorian"  # '365 day year' or '360 day year' or 'proleptic gregorian'
@@ -77,7 +78,7 @@ jsbach_namelist="NAMELIST_${EXPNAME}_jsb"
 # interface variables input infos
 years_for_cyclic_forcing=0       # If > 0, number of years to use for cyclic forcing
 start_year_for_cyclic_forcing=9999 # First year of cyclic forcing; 9999 means use start year of experiment
-forcing_tag="GSWP3"
+forcing_tag="GSWP3" # "GSWP3", "ERA5"
 ghg_scenario="false"             # greenhouse gases file for scenario runs
 forcing_steps_per_day="1"        # Number of forcing time steps per day, e.g. 1 for daily forcing
 forcing_synchron_factor="48"     # Number of model time steps per forcing time step,
@@ -143,6 +144,17 @@ case ${forcing_tag} in
     forcing_height_humidity=2.           # reference height for specific humidity data
     forcing_height_wind=10.              # reference height for wind data
     #  CO2 forcing not included in GSWP3 forcing data
+    forcing_co2_frequ=CONST              # constant CO2 forcing
+    forcing_co2_const_co2=367            # default for 1999
+    forcing_co2_unit="ppmv"              # mol_per_mol (mol/mol) / ppmv / kg_per_kg (kg/kg)
+    ;;
+  ERA5 )
+    forcing_set_ocean_to_constants=true  # in this version wind is only defined for land cells
+    forcing_precip_in_mm_per_day=false    # true: mm/day; false: mm/s (= kg/m2s)
+    forcing_qair_type=QAIR               # specific humidity in forcing data
+    forcing_height_humidity=2.           # reference height for specific humidity data
+    forcing_height_wind=10.              # reference height for wind data
+    #  CO2 forcing not included in ERA5 forcing data
     forcing_co2_frequ=CONST              # constant CO2 forcing
     forcing_co2_const_co2=367            # default for 1999
     forcing_co2_unit="ppmv"              # mol_per_mol (mol/mol) / ppmv / kg_per_kg (kg/kg)
@@ -297,7 +309,6 @@ cat >> $jsbach_namelist << EOF
 &jsb_sse_nml
   l_heat_cap_dyn  = .TRUE.
   l_heat_cond_dyn = .TRUE.
-  l_snow          = .TRUE.
   l_dynsnow       = .TRUE.
   l_freeze        = .TRUE.
   l_supercool     = .TRUE.
@@ -388,6 +399,7 @@ add_link_file $datadir/bc_land_soil.nc                                  ./bc_lan
 add_link_file $datadir/bc_land_sso.nc                                   ./bc_land_sso.nc
 
 if [[ ${jsbach_with_hd} = yes ]]; then
+  datadir=${hd_data_InputFolder}
   add_link_file $datadir/hdpara_r2b4_0049_sc_hfrac_s_v1.nc              ./bc_land_hd.nc
 fi
 #
@@ -421,6 +433,18 @@ while [[ $year -le $end_year ]]
     GSWP3 )
       forcing_dir=${SEP}/GSWP3-W5E5/data
       add_link_file   ${forcing_dir}/climate_gswp3-w5e5_daily_${year}.nc            ./climate_${year}.nc
+      ;;
+    ERA5 )
+      forcing_dir=${SEP}/ERA5/data
+      case ${grid_refinement} in
+        'R02B04')
+          era5_grid_id="R2B4"
+        ;;
+        'R02B05')
+          era5_grid_id="R2B5"
+        ;;
+      esac
+      add_link_file   ${forcing_dir}/ERA5_${era5_grid_id}_${year}.nc            ./climate_${year}.nc
       ;;
     * )
       add_link_file   Climate_${forcing_tag}_${year}.nc                             ./climate_${year}.nc

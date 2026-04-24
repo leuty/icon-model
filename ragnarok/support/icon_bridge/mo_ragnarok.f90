@@ -12,11 +12,16 @@
 MODULE mo_ragnarok
   IMPLICIT NONE
   PRIVATE
-  PUBLIC :: init_ragnarok, getKokkosVersion
+  PUBLIC :: init_ragnarok, finalize_ragnarok, getKokkosVersion
 
   INTERFACE
+
     SUBROUTINE init_ragnarok() BIND(c, name="init_ragnarok")
     END SUBROUTINE init_ragnarok
+
+
+    SUBROUTINE finalize_ragnarok() BIND(c, name="finalize_ragnarok")
+    END SUBROUTINE finalize_ragnarok
 
 
     FUNCTION get_kokkos_version_c(len) RESULT(ret) BIND(c, name="retrieve_kokkos_version_c")

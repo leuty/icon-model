@@ -19,6 +19,7 @@ MODULE mo_ocean_hamocc_interface
   !-------------------------------------------------------------------------
   USE mo_kind,                   ONLY: wp
   USE mo_exception,              ONLY: message, finish
+  USE mo_fortran_tools,          ONLY: init
   USE mo_impl_constants,         ONLY: max_char_length, success
   USE mo_parallel_config,        ONLY: nproma
   USE mo_model_domain,           ONLY: t_patch, t_patch_3d
@@ -131,11 +132,13 @@ CONTAINS
              my_transport_state%mass_flux_e(nproma,n_zlev,nblks_e),      &
              my_transport_state%vn(nproma,n_zlev,nblks_e),      &
              my_transport_state%w(nproma,n_zlev+1,alloc_cell_blocks))
-    my_transport_state%h_new = 0.0_wp
-    my_transport_state%h_old = 0.0_wp
-    my_transport_state%mass_flux_e = 0.0_wp
-    my_transport_state%vn    = 0.0_wp
-    my_transport_state%w     = 0.0_wp
+    !ICON_OMP PARALLEL
+    CALL init(my_transport_state%h_new      ,lacc=.false.)
+    CALL init(my_transport_state%h_old      ,lacc=.false.)
+    CALL init(my_transport_state%mass_flux_e,lacc=.false.)
+    CALL init(my_transport_state%vn         ,lacc=.false.)
+    CALL init(my_transport_state%w          ,lacc=.false.)
+    !ICON_OMP END PARALLEL
     my_transport_state%patch_3d => patch_3d
     !----------------------------------------------
 
