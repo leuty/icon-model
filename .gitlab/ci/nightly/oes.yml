@@ -33,7 +33,7 @@ include:
       --enable-ocean
       --enable-lvector=${LVECTOR_SWITCH}
       FCFLAGS="-I/sw/spack-levante/netcdf-fortran-4.6.1-y65bmi/include -g -O2 -Mrecursive -Mallocatable=03 -Mstack_arrays ${FCFLAGS}"
-      PYTHON='/fastdata/mh0156/buildbot/venv/bin/python3'
+      PYTHON='/work/mh1570/m215048/buildbot/venv/bin/python3'
     ICON_CI_UTILS_ICON_BUILD_JOB_COUNT: ${ICON_CI_COMMON_DKRZ_SLURM_NTASKS}
   before_script:
     - !reference [.common:dkrz:levante, before_script]
@@ -68,7 +68,7 @@ include:
   before_script:
     - !reference [.common:dkrz:levante, before_script]
     - export PATH="/sw/spack-levante/cdo-2.2.2-4z4icb/bin:${PATH}"
-    - export PATH="/fastdata/mh0156/buildbot/venv/bin:${PATH}"
+    - export PATH="/work/mh1570/m215048/buildbot/venv/bin:${PATH}"
   script:
     - |
       # !reference [.nightly:oes:validation:cpu:run, script]

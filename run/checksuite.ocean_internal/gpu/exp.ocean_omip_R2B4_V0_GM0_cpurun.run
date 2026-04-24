@@ -1347,7 +1347,7 @@ source omip_variations.sh
 
 # A Python with f90nml is needed. If PYTHON is defined, prefer using that
 # and assume that the required package is available
-PYTHON=${PYTHON:-/fastdata/mh0156/buildbot/venv/bin/python3}
+PYTHON=${PYTHON:-/work/mh1570/m215048/buildbot/venv/bin/python3}
 
 idx=0
 # Main loop calling srun (within START_MODEL) for each variation/in each subdirectory
