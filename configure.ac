@@ -11,7 +11,7 @@ dnl ---------------------------------------------------------------
 
 AC_PREREQ([2.69])
 
-ACX_SUBDIR_ACCEPT_CMAKE_DEFINITIONS
+ACX_SUBDIR_ACCEPT_CMAKE_DEFINITIONS([-DCMAKE*])
 ACX_POLYMORPHIC_OPTION([enable], [fcgroup-*], [icon_fcgroups])
 
 AC_INIT([icon], [2025.10], [], [icon-2025.10])
