@@ -31,13 +31,16 @@ makeflags="--jobs=${job_count} --no-print-directory --output-sync=target V=1"
 set -x
 
 ${icon_dir}/config/dkrz/levante.intel \
+  --disable-ecrad \
+  --disable-option-checking \
+  --enable-bundled-python=yac,comin,mtime \
+  --enable-concurrent-mpi-tests \
   --enable-openmp \
   --enable-separate-mods \
-  --enable-bundled-python=yac,comin,mtime \
   --enable-testbed \
-  --enable-concurrent-mpi-tests \
-  --disable-ecrad \
-  PYTHON='/work/mh1570/m215048/buildbot/venv/bin/python3' "$@"
+  --enable-tests \
+  PYTHON='/work/mh1570/m215048/buildbot/venv/bin/python3' \
+  "$@"
 
 make ${makeflags}
 

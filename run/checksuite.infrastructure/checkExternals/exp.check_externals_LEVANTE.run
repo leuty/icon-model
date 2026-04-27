@@ -29,23 +29,27 @@ ulimit -s unlimited
 
 basedir=$(dirname "$(pwd)")
 
-icon_data_rootFolder=${icon_data_rootFolder:=/pool/data/ICON}
+# Space-separated list of builders that run tests for RTE-RRTMGP:
+rte_test_builders='levante_intel_hybrid'
+case " ${rte_test_builders} " in
+  *" ${BB_NAME:-unknown} "*)
+    # Prepare RTE-RRTMGP data:
+    rte_data_rootFolder="${icon_data_rootFolder:-/pool/data/ICON}/buildbot_data/rte-rrtmgp"
+    rte_data_id='11a1825f6b'
 
-# Prepare RTE-RRTMGP data:
-rte_data_rootFolder="${icon_data_rootFolder}/buildbot_data/rte-rrtmgp"
-rte_data_id='11a1825f6b'
+    rte_builddir="${basedir}/externals/rte-rrtmgp"
+    if [[ -f "${rte_builddir}/config.status" ]] ; then
+      rte_data_folder="${rte_data_rootFolder}/${rte_data_id}"
 
-rte_builddir="${basedir}/externals/rte-rrtmgp"
-if [[ -f "${rte_builddir}/config.status" ]] ; then
-  rte_data_folder="${rte_data_rootFolder}/${rte_data_id}"
-
-  if [[ -d "${rte_data_folder}" ]] ; then
-    rsync -rtvz --chmod=u=rwX "${rte_data_folder}/" "${rte_builddir}/.testcache"
-  else
-    # Most probably, the compute node will attempt to download the data and fail
-    echo "WARNING: directory '${rte_data_folder}' with RTE-RRTMGP test data does not exist" >&2
-  fi
-fi
+      if [[ -d "${rte_data_folder}" ]] ; then
+        rsync -rtvz --chmod=u=rwX "${rte_data_folder}/" "${rte_builddir}/.testcache"
+      else
+        # Most probably, the compute node will attempt to download the data and fail
+        echo "WARNING: directory '${rte_data_folder}' with RTE-RRTMGP test data does not exist" >&2
+      fi
+    fi
+  ;;
+esac
 
 unset MAKEFLAGS
 makeflags="--jobs=${SLURM_NTASKS:-22} --keep-going"

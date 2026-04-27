@@ -2408,6 +2408,12 @@ accordingly])])
 bundled version of RTE+RRTMGP library @<:@default=$ICON_BUNDLED_FCFLAGS@:>@])dnl
    ICON_RTE_RRTMGP_FCFLAGS=${ICON_RTE_RRTMGP_FCFLAGS-$ICON_BUNDLED_FCFLAGS}
    ACX_SUBDIR_INIT_CONFIG([externals/rte-rrtmgp], [no-run])
+dnl The tests of the current version of RTE-RRTMGP are known to fail when built
+dnl with OpenACC support. They also fail when the absolute path to the build
+dnl directory is too long. The problems are in the test programs and not in the
+dnl library itself.
+   ACX_SUBDIR_DEFAULT_ARG_UNQUOTED([externals/rte-rrtmgp],
+     [" '--disable-tests'"])
    ACX_SUBDIR_REMOVE_ARGS([externals/rte-rrtmgp],
      [BUILD_ENV=*|ICON_*FLAGS=*|CFLAGS=*|FCFLAGS=*],
      [NETCDF_FCFLAGS=*|NETCDF_FCLIBS=*|RANLIB=*|PYTHON=*],
@@ -2421,19 +2427,10 @@ bundled version of RTE+RRTMGP library @<:@default=$ICON_BUNDLED_FCFLAGS@:>@])dnl
      [PYTHON="$PYTHON"], [--enable-silent-rules="$enable_silent_rules"],
      [--enable-single-precision="$enable_single_precision"],
      [--disable-maintainer-mode], [--enable-gpu="$icon_gpu_primary"])
-dnl The tests of the current version of RTE-RRTMGP are known to fail when built
-dnl with OpenACC support. The problem is in the test programs and not in the
-dnl library itself.
-   AS_VAR_IF([icon_gpu_primary], [openacc],
-     [ACX_SUBDIR_REMOVE_ARGS([externals/rte-rrtmgp],
-        [ACX_SUBDIR_CONFIG_PATTERN_ENABLE([tests])])
-      ACX_SUBDIR_APPEND_ARGS([externals/rte-rrtmgp],
-        [--disable-tests])])
    AS_VAR_APPEND([bundled_includes], ["${FC_MOD_IN}externals/rte-rrtmgp "])
    icon_bundled_declare_libfiles([externals/rte-rrtmgp],
      [librrtmgp.a], [librte.a])
    AS_VAR_APPEND([icon_pvcs_bundled_srcdirs], [" $icon_subdir_srcdir"])])
-
 AS_IF([test "x$enable_ecrad" = xyes && test "x$with_external_ecrad" = xno],
   [icon_subdir_srcdir="$srcdir/externals/ecrad"
    icon_subdir_unique_file="radiation/radiation_flux.F90"
