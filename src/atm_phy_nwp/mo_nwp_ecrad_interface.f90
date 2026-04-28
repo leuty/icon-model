@@ -893,6 +893,15 @@ CONTAINS
     irg_zaeq3        = 0
     irg_zaeq4        = 0
     irg_zaeq5        = 0
+    irg_qvrad_ext    = 0
+    irg_o3rad_ext    = 0
+    irg_co2rad_ext   = 0
+    irg_o2rad_ext    = 0
+    irg_cfc11rad_ext = 0
+    irg_cfc12rad_ext = 0
+    irg_n2orad_ext   = 0
+    irg_ch4rad_ext   = 0
+
 
     CALL input_extra_flds%construct(nlev_rg)  ! Extra fields in upscaling routine: 3D fields with nlev_rg
     CALL input_extra_2D%construct(1)          ! Extra fields in upscaling routine: 2D fields

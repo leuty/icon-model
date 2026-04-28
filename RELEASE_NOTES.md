@@ -56,6 +56,7 @@
 - Fixes
   - fix for parallel GRIB decoding (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1947)
   - fix for soil ice content exceeding total soil water content (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/2052)
+  - fix uninitialized variables in ecrad interface (https://gitlab.dkrz.de/icon/icon/-/merge_requests/828)
 - cleanup
   - remove init mode iau old (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1962)
   - Deprecate RRTM radiation and associated ozone option (irad_o3 = 6) (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1897)
