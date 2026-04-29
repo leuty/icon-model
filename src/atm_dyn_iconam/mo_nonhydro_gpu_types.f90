@@ -23,7 +23,6 @@ MODULE mo_nonhydro_gpu_types
   USE mo_nonhydro_types,       ONLY: t_nh_state, t_nh_diag, t_nh_prog
   USE mo_prepadv_types,        ONLY: t_prepare_adv
   USE mo_advection_config,     ONLY: t_advection_config
-  USE mo_les_config,           ONLY: t_les_config
   USE mo_intp_data_strc,       ONLY: t_int_state
   USE mo_grf_intp_data_strc,   ONLY: t_gridref_single_state, t_gridref_state
   USE mo_var_list_gpu,         ONLY: gpu_update_var_list
@@ -44,7 +43,7 @@ MODULE mo_nonhydro_gpu_types
 CONTAINS
 
   SUBROUTINE h2d_icon( p_int_state, p_int_state_local_parent, p_patch, p_patch_local_parent, &
-                       p_nh_state, prep_adv, advection_config, les_config, iforcing, lacc )
+                       p_nh_state, prep_adv, advection_config, iforcing, lacc )
 
     TYPE ( t_int_state ),       INTENT(INOUT) :: p_int_state(:)
     TYPE ( t_int_state ),       INTENT(INOUT) :: p_int_state_local_parent(:)
@@ -53,7 +52,6 @@ CONTAINS
     TYPE ( t_nh_state ),        INTENT(INOUT) :: p_nh_state(:)
     TYPE ( t_prepare_adv),      INTENT(INOUT) :: prep_adv(:)
     TYPE ( t_advection_config), INTENT(INOUT) :: advection_config(:)
-    TYPE ( t_les_config),       INTENT(INOUT) :: les_config(:)
     INTEGER, INTENT(IN)                       :: iforcing
     LOGICAL, INTENT(IN), OPTIONAL :: lacc ! If true, use openacc
     INTEGER :: jg
@@ -65,7 +63,7 @@ CONTAINS
     CALL assert_acc_device_only("h2d_icon", lacc)
 
     !$ACC ENTER DATA COPYIN(p_int_state, p_int_state_local_parent, p_patch, p_patch_local_parent) &
-    !$ACC   COPYIN(p_nh_state, prep_adv, advection_config, les_config, num_lev)
+    !$ACC   COPYIN(p_nh_state, prep_adv, advection_config, num_lev)
 
     CALL transfer_int_state( p_int_state, .TRUE. )
     CALL transfer_int_state( p_int_state_local_parent, .TRUE. )
@@ -81,8 +79,6 @@ CONTAINS
 
     CALL transfer_advection_config( advection_config, .TRUE. )
 
-    CALL transfer_les_config( les_config, .TRUE. )
-
     IF( iforcing == iaes ) THEN
       CALL transfer_aes( p_patch, .TRUE. )
     END IF
@@ -92,7 +88,7 @@ CONTAINS
   END SUBROUTINE h2d_icon
 
   SUBROUTINE d2h_icon( p_int_state, p_int_state_local_parent, p_patch, p_patch_local_parent, &
-                       p_nh_state, prep_adv, advection_config, les_config, iforcing, lacc )
+                       p_nh_state, prep_adv, advection_config, iforcing, lacc )
 
     TYPE ( t_int_state ),  INTENT(INOUT)      :: p_int_state(:)
     TYPE ( t_int_state ),  INTENT(INOUT)      :: p_int_state_local_parent(:)
@@ -101,7 +97,6 @@ CONTAINS
     TYPE ( t_nh_state ),   INTENT(INOUT)      :: p_nh_state(:)
     TYPE ( t_prepare_adv), INTENT(INOUT)      :: prep_adv(:)
     TYPE ( t_advection_config), INTENT(INOUT) :: advection_config(:)
-    TYPE ( t_les_config),       INTENT(INOUT) :: les_config(:)
     INTEGER, INTENT(IN)                       :: iforcing
     LOGICAL, INTENT(IN), OPTIONAL :: lacc ! If true, use openacc
 
@@ -123,7 +118,6 @@ CONTAINS
     CALL transfer_int_state( p_int_state, .FALSE. )
     CALL transfer_int_state( p_int_state_local_parent, .FALSE. )
     CALL transfer_advection_config( advection_config, .FALSE. )
-    CALL transfer_les_config( les_config, .FALSE. )
 
     IF( iforcing == iaes ) THEN
       CALL transfer_aes( p_patch, .FALSE. )
@@ -134,10 +128,10 @@ CONTAINS
     ! ACCWA (Cray Fortran 16.0.1) : p_int_state and p_int_state_local_parent are interpreted
     !  as already deleted; I think this is bug so treat as a workaround for time being
     !$ACC EXIT DATA DELETE(p_patch, p_patch_local_parent) &
-    !$ACC   DELETE(p_nh_state, prep_adv, advection_config, les_config, num_lev)
+    !$ACC   DELETE(p_nh_state, prep_adv, advection_config, num_lev)
 #else
     !$ACC EXIT DATA DELETE(p_int_state, p_int_state_local_parent, p_patch, p_patch_local_parent) &
-    !$ACC   DELETE(p_nh_state, prep_adv, advection_config, les_config, num_lev)
+    !$ACC   DELETE(p_nh_state, prep_adv, advection_config, num_lev)
 #endif
 
     IF (timers_level > 9) CALL timer_stop(timer_acc_data_copies)
@@ -349,22 +343,6 @@ CONTAINS
     !$ACC EXIT DATA DELETE(advection_config) IF(.NOT. host_to_device)
 
   END SUBROUTINE transfer_advection_config
-
-  SUBROUTINE transfer_les_config( les_config, host_to_device )
-
-    LOGICAL, INTENT(IN)                        :: host_to_device     !   .TRUE. : h2d   .FALSE. : d2h
-    TYPE ( t_les_config ), TARGET, INTENT(INOUT) :: les_config(:)
-
-    INTEGER :: j
-
-    IF ( host_to_device ) THEN
-        !$ACC ENTER DATA COPYIN(les_config)
-    ELSE
-        !$ACC WAIT(1)
-        !$ACC EXIT DATA DELETE(les_config)
-    ENDIF
-
-  END SUBROUTINE transfer_les_config
 
   SUBROUTINE transfer_nh_state( p_nh, host_to_device )
     LOGICAL, INTENT(IN)                        :: host_to_device     !   .TRUE. : h2d   .FALSE. : d2h

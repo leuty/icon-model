@@ -506,7 +506,10 @@ MODULE mo_nh_stepping
 #ifdef _OPENACC
     ! initialize GPU for NWP and AES
     CALL h2d_icon( p_int_state, p_int_state_local_parent, p_patch, p_patch_local_parent, &
-    &            p_nh_state, prep_adv, advection_config, les_config, iforcing, lacc=.TRUE. )
+    &            p_nh_state, prep_adv, advection_config, iforcing, lacc=.TRUE. )
+#ifndef __NO_ICON_LES__
+    !$ACC ENTER DATA COPYIN(les_config)
+#endif
     IF (n_dom > 1 .OR. l_limited_area) THEN
       CALL devcpy_grf_state (p_grf_state, .TRUE., lacc=.TRUE.)
       CALL devcpy_grf_state (p_grf_state_local_parent, .TRUE., lacc=.TRUE.)
@@ -775,7 +778,11 @@ MODULE mo_nh_stepping
 
 #if defined( _OPENACC )
   CALL d2h_icon( p_int_state, p_int_state_local_parent, p_patch, p_patch_local_parent, &
-    &            p_nh_state, prep_adv, advection_config, les_config, iforcing, lacc=.TRUE. )
+    &            p_nh_state, prep_adv, advection_config, iforcing, lacc=.TRUE. )
+#ifndef __NO_ICON_LES__
+  !$ACC WAIT(1)
+  !$ACC EXIT DATA DELETE(les_config)
+#endif
   IF (n_dom > 1 .OR. l_limited_area) THEN
     CALL devcpy_grf_state (p_grf_state, .FALSE., lacc=.TRUE.)
     CALL devcpy_grf_state (p_grf_state_local_parent, .FALSE., lacc=.TRUE.)

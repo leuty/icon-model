@@ -309,10 +309,6 @@ aes:bubble:gpu:build:
     - .aes:bubble
   variables:
     ICON_CI_UTILS_ICON_CONFIG_REL_PATH: config/dkrz/levante.gpu.nvhpc
-    # Enable Large-Eddy Simulation to work around a bug
-    # (see https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/706#note_351521):
-    ICON_CI_UTILS_ICON_CONFIG_EXTRA_ARGS: >-
-      --enable-atmo --enable-aes --enable-rte-rrtmgp --enable-les
 
 aes:bubble:gpu:run:
   extends:
@@ -335,10 +331,8 @@ aes:bubble:gpu_sp:build:
     - .aes:bubble
   variables:
     ICON_CI_UTILS_ICON_CONFIG_REL_PATH: config/dkrz/levante.gpu.nvhpc
-    # Enable Large-Eddy Simulation to work around a bug
-    # (see https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/706#note_351521):
     ICON_CI_UTILS_ICON_CONFIG_EXTRA_ARGS: >-
-      --enable-atmo --enable-aes --enable-rte-rrtmgp --enable-les --enable-single-precision
+      --enable-atmo --enable-aes --enable-rte-rrtmgp --enable-single-precision
 
 aes:bubble:gpu_sp:run:
   extends:
@@ -363,10 +357,8 @@ aes:bubble:gpu_sp:analyze:
 aes:bubble:ragnarok:gpu:build:
   extends: aes:bubble:gpu:build
   variables:
-    # Enable Large-Eddy Simulation to work around a bug
-    # (see https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/706#note_351521):
     ICON_CI_UTILS_ICON_CONFIG_EXTRA_ARGS: >-
-      --enable-atmo --enable-aes --enable-rte-rrtmgp --enable-les --enable-ragnarok
+      --enable-atmo --enable-aes --enable-rte-rrtmgp --enable-ragnarok
     ICON_CI_UTILS_ICON_BUILD_EXTRA_SUBMODULE_PATHS: externals/kokkos externals/rte-rrtmgp externals/memman
 
 aes:bubble:ragnarok:gpu:run:
