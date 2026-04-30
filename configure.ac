@@ -14,7 +14,7 @@ AC_PREREQ([2.69])
 ACX_SUBDIR_ACCEPT_CMAKE_DEFINITIONS([-DCMAKE*])
 ACX_POLYMORPHIC_OPTION([enable], [fcgroup-*], [icon_fcgroups])
 
-AC_INIT([icon], [2025.10], [], [icon-2025.10])
+AC_INIT([icon], [2026.04], [], [icon-2026.04])
 
 AC_CONFIG_MACRO_DIR([m4])
 m4_pattern_forbid([^A[SC]?X_])dnl

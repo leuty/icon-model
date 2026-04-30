@@ -1,4 +1,4 @@
-# Release notes for icon-2026.MM
+# Release notes for icon-2026.04
 
 ## ICON-Atmo
 
@@ -38,7 +38,6 @@
 - RTE-RRTMGP radiation
   - Simplified the radiation interface by using only one unique criterion for the presence of clouds
   - Restructured the radiation interface for better readability
-
 
 ### NWP Physics
 
@@ -81,7 +80,6 @@
   - Bugfix for HAMOCC binary identical restarts
   - Correct unit of amoc26n diagnostic
 - Add shallow water as supported configuration
-
 
 ## ICON-Waves
 

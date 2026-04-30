@@ -39,7 +39,7 @@ myst_enable_extensions = [
     "substitution",
 ]
 
-myst_substitutions = {"release": "2025.10"}
+myst_substitutions = {"release": "2026.04"}
 
 # Important: This needs to be updated with a new release.
 # Several URLs are built using this string
