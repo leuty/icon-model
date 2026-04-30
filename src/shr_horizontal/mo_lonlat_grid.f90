@@ -156,7 +156,7 @@ CONTAINS
       IF (lonlat_grid%reg_lon_def(2) == 0._wp) THEN
         CALL finish(routine, "Invalid setting for reg_lon_def increment!")
       END IF
-      lonlat_grid%lon_dim  = INT( (lonlat_grid%reg_lon_def(3)-lonlat_grid%reg_lon_def(1))/lonlat_grid%reg_lon_def(2) ) + 1
+      lonlat_grid%lon_dim  = NINT( (lonlat_grid%reg_lon_def(3)-lonlat_grid%reg_lon_def(1))/lonlat_grid%reg_lon_def(2) ) + 1
       IF (lskip_last_lon .AND. (lonlat_grid%lon_dim > 0)) THEN
          lonlat_grid%lon_dim = lonlat_grid%lon_dim - 1
       END IF
@@ -175,7 +175,7 @@ CONTAINS
       IF (lonlat_grid%reg_lat_def(2) == 0._wp) THEN
         CALL finish(routine, "Invalid setting for reg_lat_def increment!")
       END IF
-      lonlat_grid%lat_dim  = INT( (lonlat_grid%reg_lat_def(3)-lonlat_grid%reg_lat_def(1))/lonlat_grid%reg_lat_def(2) ) + 1
+      lonlat_grid%lat_dim  = NINT( (lonlat_grid%reg_lat_def(3)-lonlat_grid%reg_lat_def(1))/lonlat_grid%reg_lat_def(2) ) + 1
     END IF
   END SUBROUTINE compute_lonlat_specs
 
@@ -452,8 +452,8 @@ CONTAINS
     ! treat the special case of the poles (compute area of "triangle"
     ! with one vertex at the pole and the opposite side with constant
     ! latitude)
-    pole1 = INT(( 90._wp - grid%reg_lat_def(1))/grid%reg_lat_def(2)) + 1
-    pole2 = INT((-90._wp - grid%reg_lat_def(1))/grid%reg_lat_def(2)) + 1
+    pole1 = NINT(( 90._wp - grid%reg_lat_def(1))/grid%reg_lat_def(2)) + 1
+    pole2 = NINT((-90._wp - grid%reg_lat_def(1))/grid%reg_lat_def(2)) + 1
     IF ((pole1 > 0) .AND. (pole1 <= grid%lat_dim)) THEN
       area(pole1) = rr_dlon*(1._wp-SIN(latitude(pole1)-delta_lat_2))
     END IF
