@@ -99,7 +99,9 @@ include:
     expire_in: 1 day
   rules:
     changes:
+      - RELEASE_NOTES.md
       - doc/www/**/*
       - scripts/buildbot_scripts/**/*
+      - scripts/ci_scripts/collect_release_info.py
       - scripts/ci_scripts/generate_test_list.py
       - scripts/experiments/**/*

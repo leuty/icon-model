@@ -1,236 +1,263 @@
 # Release notes for icon-2026.MM
 
-### ICON-Atmo
+## ICON-Atmo
 
-#### Dynamics
+### Dynamics
 
-- Swap dimensions of coefficient fields for igradp_method (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1978)
-- Assume `itime_scheme>=4` for the dycore (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1969)
-- Fix for diagnostic output with option `totint` (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1245)
-- Fix possible surface temperatures and related profiles for RCE test case (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1192)
-- Performance optimization for the GPU maxwinds computation (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1376)
+- Swap dimensions of coefficient fields for igradp_method from (sparse, nproma, ...) to (nproma, sparse, ...) for consistency with icon4py.
+- The velocity tendencies are now accessed with same pattern as prognostics (using nnow and nnew). This assumes `itime_scheme>=4` for the dycore.
+- Fixed computation of total integrals diagnostic with output namelist option "totint"
+- Performance optimization on GPU for the computation of runtime maximum wind speed diagnostic
 
-#### AES Physics
+#### Assimilation Interfaces
 
-- Use tile-specific relative wind speed for surface roughness, exchange coefficients and fluxes in TMX
-- Use memory manager library for data management in TMX
-- Fix for double definition of cloud_num in microphysics
-- Correction to rain microphysics (evap and accretion)
-- Fix GPU async queues in TMX surface module
-- OpenACC, memory manager and some other fixes in TMX (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1296)
-- Simplification of the rte-rrtmgp radiation interface (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1087)
-- Fix loop indexing in TMX surface module (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1241)
-- Added options to not use Louis stability formula over land and/or sea ice
-- Fix in TMX of the near-surface diagnostics interpolation effecting 2m temperature and 10m wind
-- Re-introduce a new namelist switch for microphysics (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1344)
-- Change zmaxcloudy to 22500.0 m (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1370)
-- Implement C++/Kokkos AES microphysics (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/915)
+- Update of `dace_icon` and changes in data assimilation interfaces.
+- EMVORADO: Replace NetCDF77 procedures by NetCDF90 procedures.
 
-#### NWP Physics
+### AES Physics
 
-- Gravity waves parametrisation MS-GWaM (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1647, https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/2000)
-- Revision of diagnostics for ceiling and visibility (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1881)
-- Tuning options to improve 10m-winds in mountainous regions (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1890)
-- Modified cloud fraction for two-moment cloud ice microphysics (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1769, https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1922)
-- Change default setting for init_latbc_from_fg to TRUE (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/2063)
-- ecRad updates (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1869)
-- Coupling CAMS aerosols with Segal and Khain cloud droplets activation scheme (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1555)
-- Update of dace_icon and changes in data assimilation interfaces (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/2001)
-- upgrades to Single Column and LES Mode (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/555)
-- Exit when using Intel+OpenMP+ecRad (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1395)
-- EMVORADO:
-  - reduce memory usage of emvorado and remove MODE_IAU_OLD (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/2024)
-  - Replace netcdf77 procedures by netcdf90 procedures in mo_fdbk_emvorado.f90 (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/2028)
-- ART:
-  - GPU optimization of OEM and VPRM (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1945)
-  - prepared art_nml for varying solar irradiances (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1983)
-  - new namelist switch for MieAI (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1855)
-  - enable overwriting of GFAS data at selected time intervals via iart_gfas_dt_ovrwrite (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/2045)
-  - TLEV_UPDATE_ADVECTION group for ART tracers (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/2082)
-- Upper atmosphere physics:
-  - encapsulation and consolidation (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/2070, https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/2091)
-- New diagnostic output fields
-  - accumulated freezing rain (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1989)
-  - new optional turbulence diagnostics (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1993)
-  - new hail diagnostics for the 2-moment microphysics (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/2016)
+- Turbulent mixing (TMX)
+  - Use Memory Manager library for data management
+  - Use tile-specific relative wind speed for land/ocean/sea ice tiles in computations of surface roughness, exchange coefficients and fluxes
+  - Added namelist options to not use Louis stability formula over land and/or sea ice
+  - Fixes
+    - Fixed GPU async queues in surface module to prevent possible race conditions
+    - Implemented several OpenACC-related fixes to prevent model crashes in some circumstances
+    - Fixed loop indexing in surface module to prevent acting on cells outside of valid domain
+    - Fixed the vertical interpolation in the computation of near-surface diagnostics effecting 2m temperature and 10m wind
+
+- Microphysics
+  - Added C++/Kokkos implementation of AES microphysics (used with `--enable-ragnarok`)  
+    **Development of the Fortran implementation of AES microphysics is frozen and it may be removed in a future release**
+  - Added a `cloud_mig` tuning parameter `cia` to change the ice sticking efficiency
+  - Changed the default maximum height up to which microphysics is computed from 33000m to 22500m
+    (same as default height up to which transport of water tracers is computed)
+  - Fixed double definition of cloud droplet number concentration
+  - Corrections for rain microphysics (evaporation and accretion)
+
+- RTE-RRTMGP radiation
+  - Simplified the radiation interface by using only one unique criterion for the presence of clouds
+  - Restructured the radiation interface for better readability
+
+
+### NWP Physics
+
+- Implementation of gravity waves parametrization MS-GWaM
+- Revision of diagnostics for ceiling and visibility to provide a better agreement with SYNOP measurements.
+- Tuning options to improve 10m-winds in mountainous regions.
+- Modified cloud fraction for two-moment cloud ice microphysics.
+- Change default setting for `init_latbc_from_fg` to `TRUE`, to prevent mismatches between initial conditions and the initial set of lateral boundary data in LAM setups.
+- Synchronization of ecRad with ECMWF code.
+- Provide interactive CO2 to ecRad radiation.
+- Finish when using Intel+OpenMP+ecRad: Using OpenMP for ecRad with Intel compiler leads to non-reproducible results due to various race conditions.
+- Coupling CAMS aerosols with Segal and Khain cloud droplets activation scheme.
+- Upgrades to Single Column and LES Mode.
+- Added diagnostic output fields: accumulated freezing rain, optional turbulence diagnostics, hail diagnostics for the 2-moment microphysics.
+- Remove init mode `MODE_IAU_OLD`.
+- Deprecate RRTM radiation and associated ozone option (`irad_o3 = 6`).
+- Fix uninitialized variables in ecRad interface.
+- Fix OpenMP directive in Kinne aerosol preparation for ecRad.
+
+#### Upper atmosphere physics
+
+- Further encapsulation and consolidation of the code base
+
+## ICON-Ocean
+
+- Implementation of symmetric incremental analysis update (IAU) in the ocean
+- Implement the core features for limited area ocean setups
+- Ocean ERA5 forcing via python provider script and YAC coupling
+- Solver option lhs_direct=.true. now also available for zstar
+- Optimizations
+  - Port solver global sums on GPU
+  - OpenMP improvements
+- Diagnostics
+  - Ocean vorticity on cells for output with hiopy
+  - Surface-level-type for Sea Ice Vars changed to ice_class
+  - Seaice principal stress diagnostic
 - Fixes
-  - fix for parallel GRIB decoding (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1947)
-  - fix for soil ice content exceeding total soil water content (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/2052)
-  - fix uninitialized variables in ecrad interface (https://gitlab.dkrz.de/icon/icon/-/merge_requests/828)
-- cleanup
-  - remove init mode iau old (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1962)
-  - Deprecate RRTM radiation and associated ozone option (irad_o3 = 6) (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1897)
+  - Fix write_initial_state (variable assignments and transfer to GPU)
+  - Include jstep_shift to fix timing of ocean output in case of enabled timeshift
+  - Bugfix for HAMOCC binary identical restarts
+  - Correct unit of amoc26n diagnostic
+- Add shallow water as supported configuration
 
-### ICON-Ocean
 
-- Include jstep_shift to fix timing of ocean output in case of enabled timeshift (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/983)
-- Feature ocean vorticity on cells (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1086)
-- Add constant initial u velocity for torus tests (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1103)
-- Fix variable assignment of some vars for write_initial_state (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/993)
-- Bugfix ocean initial state on GPU (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1133)
-- Implementation of symmetric IAU in ICON-O (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1020)
-- ICON-O-LAM: Implement the core features (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/560)
-- Bugfix HAMOCC restart (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1225)
-- Feature ocean era5 coupling (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/728)
-- Port solver global sums on GPU (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1173)
-- Correct unit of amoc26n diagnostic (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1289)
-- Fix Sea Ice treatment and Fillvalues for initicon-o (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1229)
-- Feature seaice principal stress diagnostic (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1242)
-- Add solver option lhs_direct for zstar (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1153)
-- OMP related optimizations (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1152)
+## ICON-Waves
 
-### ICON-Waves
+- Support NetCDF file input for model initialization
+- Restructure analytic wave spectrum initialization
+- Revise wave propagation testcase
+- Improve memory layout of 4D wave fields
+- Support grib2 encoding of wave energy spectra
+- Add coupling to the ocean component
+- Code improvements regarding active and passive diagnostics
+- Add diagnostics: wave steepness, kurtosis, Benjamin-Feir index, peak frequency and direction
+- Fixes:
+  - Boundary condition for wave group velocity at ocean-land boundary
+  - Units and descriptions for wave-specific fields
 
-- netcdf reader for initial conditions (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1867)
-- Restructure analytic wave spectrum initialization (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1875)
-- revise swell propagation testcase (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/2014, https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/2047)
-- Improve memory layout of 4D wave fields (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1904, https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1901)
-- Enable grib2 encoding of wave energy spectra (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1931, https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1876)
-- ocean-wave coupling (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1902)
-- technical separation between active and passive diagnostic quantities in the code (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/2068, https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/2086)
-- new diagnostics (wave steepness, kurtosis, Benjamin-Feir index, peak frequency and direction)  (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1739)
-- Fixes
-  - fix boundary condition for wave group velocity at ocean-land boundary edges (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1951)
-  - Fix units and descriptions for wave-specific fields (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1995)
+## Soil and Surface
 
-### Soil and Surface
+### Climate: ICON-Land
 
-#### Climate: ICON-Land
-
-- QUINCY development
-  - Refactoring of the execution control of the soil-biogeochemistry slow-pool spinup accelerator in QUINCY
-  - Fix effects of ice and supercooled water on vegetation growth and nutrient leaching
-  - Bugfix vegetation litter decomposition in the Carbon-only QUINCY model
-  - Added interactive nitrogen and phosphorus flags in soil biogeochemistry
-  - Remove QUINCY code parts not required in ICON-Land
-  - Fix minor diagnostic issue when restarting using IQJ configuration
-  - Code cleanup removing deprecated QUINCY SPP1685 project code
-  - Bugfix in soil nutrient vertical transport
-  - Fix multiple issues in soil biogeochemistry langmuir kinetics
-  - Improve vegetation Nitrogen uptake in high latitudes
-- Cleaned up the use of mo_util_string routines
-- Refactored the calculation of global diagnostics and ported to GPU
-- Added a script to process ERA5 data into ICON-Land standalone forcing
-- Update of the script to equilibrate jsbach humus carbon pools
-- Fixing an error in the effect of supercooled water on plant water stress
-- Fix for jsbach simulations with natural and anthropogenic land cover change
-- Hydrology: Removed old checks in initialization
-- Hydrology: added new routine to simplify reading soil boundary condition data
-- Fixed freeing of some leftover memory when reading initial data
-- Fixed finish message for invalid var name in output_nml with standalone model
 - Enabled running ICON-Land standalone for one or more single sites
-- Remove legacy snow scheme and namelist switch l_snow
+- Enabled JSBACH simulations with natural and anthropogenic land cover change
+- Refactored the calculation of global diagnostics and ported to GPU
+- QUINCY
+  - Improved vegetation Nitrogen uptake in high latitudes
+  - Added interactive nitrogen and phosphorus flags in soil biogeochemistry
+  - Fixed the effects of ice and supercooled water on vegetation growth and nutrient leaching
+  - Fixed a bug in the vegetation litter decomposition in the carbon-only model
+  - Fixed an issue in restart file comparisons caused by a purely diagnostic variable only used with optimality code
+  - Fixed a bug in the soil nutrient vertical transport
+  - Fixed multiple issues in soil biogeochemistry Langmuir kinetics
+  - Refactored the execution control of the slow pool spinup accelerator in the soil biogeochemistry
+  - Removed code parts not required in ICON-Land
+  - Removed deprecated code from the SPP1685 project
+- Hydrology
+  - Fix concerning the effect of supercooled water on plant water stress
+  - Removed checks needed with deprecated initial files
+  - Simplified the reading of soil boundary condition data
+- Code cleaning and technical fixes
+  - Cleaned up the use of string functions from `fortran-support` library
+  - Fixed freeing of some leftover memory when reading initial data
+  - Fixed error message in case of invalid variable names defined in
+    the output namelist
+- Pre- and postprocessing scripts
+  - New script to process ERA5 data for ICON-Land standalone forcing
+  - Updated the script to equilibrate JSBACH humus carbon pools
 
-### Externals
+### NWP: TERRA
+
+- Fix to avoid soil ice content exceeding total soil water content.
+
+## ICON-ART
+
+- GPU optimization of OEM and VPRM
+- Introduction of MieAI
+- enable overwriting of GFAS data at selected time intervals
+- Emissions of natural aerosols and trace gases from fully coupled and interactive ocean and land modules:
+  - Dust emission parameterization with JSBACH and vdiff coupling
+  - Dry deposition for aerosols with JSBACH and VDIFF
+  - JSBACH PFTs mapped to MEGAN
+- Updated submodule CloudJ from version 7.4 to version 8.0.2
+- Daily varying solar irradiances / photon fluxes for CloudJ
+- Rename diagnostic variables of MECCA and CLOUDJ; completed/corrected photolysis indices
+- DMS online emissions for MECCA tracers
+- Adjustment for allowing more than one time interval for latbc
+- Reintroduce calculation of effective radii for cloud-j to fixe an issue where droplet radii were evaluated as zero, effectively ignoring clouds
+- Added TLEV_UPDATE_ADVECTION group to all ART tracers to allow ComIn to properly reference them when forwarded to plugins
+
+## Externals
 
 - Added Memory Manager library 1.0.0 as external in externals/memman
-- Added Gravity waves parametrisation MS-GWaM as external in externals/msgwam
+- Added Gravity waves parametrization MS-GWaM as external in externals/msgwam
 - Switch to fortran-support 2.2.1
 - Switch to iconmath 1.3.0
 - Switch to probtest v3.1
 - Switch to YAC v3.14.0_p1
 - Switch to CDI v2.6.0
+- Switch to ComIn 0.5
+- Switch to YAXT 0.11.5
+- Switch to mkexp 1.5.0
 
-### Infrastructure
+## Documentation
 
-- Add namelist parameter for RBF coefficients filenames (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1057)
-- Fix for timeshift crosscheck affecting dwd_nec_sp (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1144)
-- Add single precision buildbot tests and download of grids (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1058)
-- Refactor Output Coupling: Masking and Half-Level Support (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1097)
-- Enable coupling between atmo on GPU and oce on CPU (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1868)
-- Coupling of icon-waves and ocean (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1833)
-- Skip reading of output_jfile information for model init from restart (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/2017)
+- Rework of the documentation frontpage
+- Include contribution, reviewing, merging and documentation guidelines
+- Convert the namelist overview PDF to markdown and include it in the documentation
+- Add section to announce deprecated features
+- Various updates to the Getting Started and Documentation parts
 
-#### Scripting and testing
+## Infrastructure
 
-- Add integration tests for Ragnarok (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1091)
-- Add summary of mkexp input file settings for ICON (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1084)
-- Make-runscripts: Removed unused and deprecated hiopy nml configs (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1114)
-- mkexp config updates from use in DYAMOND3 hackathon (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1115)
-- Clarify interfaces of the reusable CI templates (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1119)
-- mkexp: fix handling of SLURM variables on non-SLURM systems (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1128)
-- mkexp: update to 1.5.0, drop six dependency (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1143)
-- Add static analysis with Codee as nightly job (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1112)
-- mkexp: Update hardware parameters of the Levante gpu partition (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1148)
-- mkexp: remove deprecated hiopy setup (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1113)
-- mkexp: use more than one thread per task only if OpenMP is enabled (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1167)
-- Add parameter changes for Sapphire-2.0 and basic settings and links for more resolutions (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1255)
-- mkexp: require account (compute project) setting on levante (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1203)
-- Disable slp coupling to work around restart differences (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1193)
-- update CLM test (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1864)
-- Add new test case for lterra_urb=.true. (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1911)
-- mkexp: Add support for hybrid and GPU only runs at Levante dolpung partition (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/877)
-- make_runscripts: Experiment template for dycore testcase `jabw` (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1245)
-- mkexp: Add support for LUMI CPUs and GPUs (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/835)
-- mkexp: Additional comments giving examples in jsbach offline configuration (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1340)
-- Update several run scripts: use recent land data to allow running the current ICON-Land version
-- make_runscripts: Increase stacksize for default targets (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1363)
-- In mkexp, introduce machine-level defaults for blocking paramters (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1232)
-- Delete outdated make_runscripts configs (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1264)
-- Avoid pre-fetching for ocean Williamson test (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1291)
-- Update mkexp AMIP-AES setup and add R2B7 resolution (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1259)
-- mkexp: Hiopy integration with defaults (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1183)
-- Remove default config overrides from AMIP configs (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1324)
-- mkexp: fix missing log timestamps (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1338)
-- hiopy-mkexp: Improvements based on user feedback (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1356)
-- Hiopy configuration to store simulated data directly to S3 (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1368)
-- make_runscripts: Increase stacksize for default targets (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1363)
-- Cleanup experiment lists for single-precision and related bugfixes (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1353)
-- Improve mkexp support for run time environment settings (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1374)
-- Extend hiopy scripting to allow creating Zarr 2 datasets (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1373)
-- mkexp: Simplifying output switching in AMIP AES configurations (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1394)
+- Support file input for RBF coefficients
+- Fix timeshift crosscheck for single precision runs
+- Add single precision tests for buildbot-CI
+- Refactor output coupling to allow masking and half-levels
+- Enable coupling between atmosphere on GPU and ocean on CPU
+- Coupling of icon-waves and ocean
+- Avoid read-in of deprecated `output_jfile` parameter from restart for model initialization
+- Improve distributed patch generation from grid files
+- Added support for new Memory Manager library in ICON variable lists infrastructure
+  - Logical switch `lmemman` in run config, currently only set to true if `--enable-aes` and TMX turbulence in AES physics is used
+  - Added `lmemman` to `add_var` parameters in order to register and allocate variables in Memory Manager
+    (no effect on using such variables in traditional way)
+- Fix computation of `lon_dim/lat_dim` for regular output grids. In rare cases one line of lon/lat was missing.
 
-#### Building
+### Scripting and testing
 
-- Added Add Levante dolpung wrapper using NVHPC 25.7 and OpenMPI 4.1.8 (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1052)
-- Fix for dolpung NVHPC config wrappers to support C++/CUDA with MemMan (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1130)
+- mkexp
+  - Simplify CI using mkexp 1.5.0 extended command line features
+  - Update documentation/examples (input file, jsbach offline config)
+  - Update model coupling (fix restart, output coupling integration)
+  - Fix config handling (name handling "R02B10", lists in job environment)
+  - Improve scripting (run-time helpers, name handling "R02B10", progress indicator, non-SLURM systems, log timestamps, Python override at run-time)
+  - Extend/update platform support (host settings, OpenMP support, vector blocking)
+  - Extend/update supported configurations (AES AMIP: fix defaults, add R2B7, output config; OES: shallow water setup)
+  - hiopy
+    - Rewrite hiopy integration
+    - Handle unimplemented time intervals and calendars
+    - Fix interaction with mkexp Python settings
+    - Added hiopy configuration to store simulated data directly to S3
+    - Extended hiopy scripting to allow creating Zarr 2 datasets
+- make_runscripts and buildbot
+  - Added parameter changes for the Sapphire-2.0 configuration and basic settings and links for more resolutions to the AES AMIP template
+  - Removed unused and deprecated hiopy content from the templates
+  - Updated several run scripts: use recent land data to allow running the current ICON-Land version
+  - Increased stacksize for default targets
+  - Implemented experiment template for Jablonowski Williamson test case `jabw` and added it to single precision builders
+  - Cleanup of experiment lists for single precision and related bugfixes
+  - Avoid pre-fetching for ocean Williamson test
+  - Deleted outdated templates
+- Test cases
+  - Fixed the RCE test case by making explicit which surface temperatures it can be run with and by adding the correct initial profiles for each
+  - Added constant u-velocity from namelist to some ocean torus tests
+
+### Building
+
 - BLAS is made an optional dependency
-- Add kokkos/ragnarok for building on levante dolpung (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1131)
-- Fix up MPI-M configure and Buildbot wrappers (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1095)
-- Update JUPITER config wrapper (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1085)
-- Add dolpung config wrappers and links (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1101)
-- Report to the relevant config.log when calling config.status of the bundled packages (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1161)
-- Fix detection of an external ComIn (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1163)
-- Fix the configuration and building order of the bundled packages (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1162)
-- Configure YAC and YAXT in parallel when possible (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1198)
-- Fix usage of configure option --enable-async-io-rma=no (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/2035)
-- Fetch DACE from the private repository at build time when `--enable-dace`.
-- Fix inconsistent usage of the GRIBAPI macro (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/2002)
+- Report to the relevant `config.log` when calling `config.status` of the bundled packages
+- Fix detection of an external ComIn
+- Configure YAC and YAXT in parallel when possible
+- Fix usage of configure option `--disable-async-io-rma`
+- Fetch DACE from the private repository at build time when `--enable-dace`
+- Fix inconsistent usage of the `GRIBAPI` macro
 - Added option `--enable-lvector` to control optimizations for vector engines in the ocean component of ICON
 - Refactored ICON-Land model version and release handling following ICON OSR naming scheme
-- Add mkexp setup config to 'make install' target (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1094)
-- Adjust generic GCC wrapper (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1293)
+- Add mkexp setup config to `make install` target
+- Make the generic GCC wrapper more flexible
+- Allow for CMake definitions as configure script command-line arguments
+- Optionally enable tests of CMake-based bundled packages
+- Disentangle dependency of NWP physics on LES configuration on GPUs (make `--disable-les` work with `--enable-gpu`)
 
-#### Miscellaneous
+### Miscellaneous
 
-- Switch from fprettify to Codee for Fortran formatting (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1059)
-- Add unit-tests section to iconbot notifications (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1146)
-- Improve entry point of documentation and add tutorial for beginners (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1027)
-- Open mkexp section and polish supported configurations in the documentation (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1147)
-- Add contributing guidelines for Ragnarok (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1081)
-- Add shallow water example to supported configurations (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1190)
-- Fixing a CPU/GPU divergence by using a comparison with an epsilon, instead of 0.\_wp (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1896)
-- Add deprecated features section to the documentation (https://gitlab.dkrz.de/icon/icon-nwp/-/merge_requests/1897)
+- Replace frettify with Codee for Fortran formatting
+- Ragnarok:
+  - Add contributing guidelines
+  - Refactoring and cleanup
+- Fix a CPU/GPU divergence in snow fraction
 - Implemented workarounds to support Cray compiler 20 for AMD GPUs
-- Compression of NetCDF-4 output data (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/790, https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1283)
-- Introduce in-place variant of Allreduce (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1284)
-- Clean up USE declarations (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1160)
-- Icon compute spherical geometry: step 1 (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1310)
-- Fix of leftover messages warning since libfortran-support move (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1358)
-- Refactoring and cleanup for Ragnarok (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1362)
-- Fix 2 mtime-related memory leaks (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1371)
-- Replace deprecated Intel SIMD directives (https://gitlab.dkrz.de/icon/icon-mpim/-/merge_requests/1257)
+- Support filter-based NetCDF-4 compression for output
+- Introduction of in-place variant for `mpi_allreduce`
+- Clean up `USE` declarations: removed unnecessary includes and enforced the usage of the ONLY keyword
+- Reorganize grid-related modules
+- Improve error handling in case of memory tracing
+- Fix mtime-related memory leaks
+- Replace deprecated Intel SIMD directives with OMP SIMD
 
 
 # Release notes for icon-2025.10-2
 
-### ICON-Atmo
+## ICON-Atmo
 
 - Improved consistency of surface roughness, drag and momentum flux over ocean/sea ice in VDIFF
 - Added viscous term in computation of surface roughness over ocean in VDIFF
 - Implement a new version of the Mironov scheme that accounts for the thermal effects of snow on seaice
 
-#### NWP Physics
+### NWP Physics
 
 - Correction of the roughness length computation over ocean in TMX
 - Add multiscale stochastic pattern generator and iSPPT
@@ -238,15 +265,15 @@
 - Added diagnostics: pressure at convective cloud top/base
 - Added C-cycle flags for C4MIP in XPP configuration
 
-### ICON-Ocean
+## ICON-Ocean
 
 - Vectorization of HAMOCC subroutines
 - Use consistent freezing temperature for sea ice in coupled XPP and AES
 - Bugfixes for extended N-cycle in HAMOCC
 
-### Soil and Surface
+## Soil and Surface
 
-#### Climate: ICON-Land
+### Climate: ICON-Land
 
 - QUINCY development
   - Enable anthropogenic land cover change with QUINCY biogeochemistry
@@ -274,9 +301,9 @@
 - Update BSD-3C licence year to 2026
 - More flexible handling of the number of PFTs
 
-### Infrastructure
+## Infrastructure
 
-#### Building
+### Building
 
 - Fix building of the YAC Python interface when the Python interface of MTIME is disabled
 - Consistently install ICON and the relevant bundled packages to the specified installation prefixes and subdirectories
@@ -284,9 +311,9 @@
 
 # Release notes for icon-2025.10-1
 
-### ICON-Atmo
+## ICON-Atmo
 
-#### NWP Physics
+### NWP Physics
 
 - Bugfix in vdiff interface concerning restart reproducibility
 - Introducing CO2 prognostic tracer to ecRad to enable emission-driven simulations with interactive land-ocean-atmosphere carbon cycle
@@ -298,24 +325,24 @@
   - determination of nearest ICON cell
   - fix interface to eccodes routine codes_open_file
 
-### ICON-Ocean
+## ICON-Ocean
 
 - Use ice class as vertical axis attribute for 3d sea ice variables
 
-### ICON-ART
+## ICON-ART
 
 - Update the testsuite setup and scripts
 
-### Externals
+## Externals
 
 - Switch to ComIn 0.4.0
 
-### Infrastructure
+## Infrastructure
 
 - Add distributed GRIB decoding
 - Merge 2-Moment Microphysics Type Extensions into Parent Types
 
-#### Building
+### Building
 
 - Clean up and clarify single-precision options
 - Fixes:
@@ -324,9 +351,9 @@
 
 # Release notes for icon-2025.10
 
-### ICON-Atmo
+## ICON-Atmo
 
-#### AES Physics
+### AES Physics
 
 - Implemented a new convective boundary layer (CBL) test case for TMX validation
 - Optimization of the read-in of ozone data
@@ -350,7 +377,7 @@
   - surface exchange coefficients in TMX
   - Implemented additional checks and fixes for using 6-hourly SST/SIC data
 
-#### NWP Physics
+### NWP Physics
 
 - Allow for external specification of trace gases in ecrad
 - New mixed-phase Spectral Bin Microphysics
@@ -378,7 +405,7 @@
   - Bug fix in pressure bias correction for IFS lateral boundary data
   - Bugfix in mo_nonhydro_state for turbdiff, affecting SCM
 
-### ICON-Ocean
+## ICON-Ocean
 
 - Add optimised variant of the CG-solver for ocean sea surface height
 - Improve sea ice evp solver convergence
@@ -394,16 +421,16 @@
   - Fix concurrent HAMOCC
   - Correct vertical axis attributes for some HAMOCC and sea ice variables
 
-### ICON-Waves
+## ICON-Waves
 
 - Implementation of Stokes depth diagnostic
 - new diagnostic: peak wavenumber
 - Introducing the ocean layers table in Icon-Waves
 - Restructure wave model initialization
 
-### Soil and Surface
+## Soil and Surface
 
-#### Climate: ICON-Land
+### Climate: ICON-Land
 
 - QUINCY development
   - Integrated QUINCY processes with JSBACH physics processes (HYDRO, SEB, SSE, TURB, RAD)
@@ -442,14 +469,14 @@
 - Revised effect of phase change in snow, surface water and top layer soil storages
 - Updated snow density parametrization to include a dependency on mean snow temperature
 
-#### NWP: TERRA and other surface issues
+### NWP: TERRA and other surface issues
 
 - Fixes:
   - rime formation term for interception storage
   - w_i nonconservation
   - bug fix for bare-soil evaporation
 
-### ICON-ART
+## ICON-ART
 
 - Implement heat emission from wildfire as sensible heat flux from the surface
 - Update of OEM and VPRM code
@@ -460,7 +487,7 @@
   - optical properties
   - colum calculation in full chemistry
 
-### Coupling
+## Coupling
 
 - Optimization of synchronization between atmosphere and ocean in coupled configurations
 - Expose valid_masks in output_coupling
@@ -470,7 +497,7 @@
 - Bugfix to ensure restartability of coupled ocean-atmosphere configurations
 - Fix overwriting of Tskin after ocean coupling
 
-### Externals
+## Externals
 
 - Switch to fortran-support 2.2.0
 - Switch to CDI 2.5.2.1
@@ -479,7 +506,7 @@
 - Switch to YAC v3.9.2_p2
 - Switch to mkexp 1.4.3
 
-### Infrastructure
+## Infrastructure
 
 - Add option to build ICON in single precision (experimental)
 - single precision for ecRad
@@ -493,7 +520,7 @@
 - Empa GPU developments
 - Fix for the CUDA 13 release coming with NVHPC 25.9
 
-#### Scripting and testing
+### Scripting and testing
 
 - Added AMIP test for TMX with PFTs in ICON-Land
 - Added 158, 49, 5 and 2.1 km AMIP template with AES physics for mkexp (cpu + gpu, distributed IO)
@@ -505,7 +532,7 @@
 - New AMIP setup in exp.aes_amip
 - Re-enable restart mechanism in AMIP-runscripts, generated with make_runscripts
 
-#### Building
+### Building
 
 - Find and check MPI_LAUNCH command in the configure script
 - Detect GPU architecture in the configure script
@@ -515,7 +542,7 @@
 - Drop the HIP event handling suppression of the Cray OpenACC runtime
 - Fix cached configuration
 
-#### Miscellaneous
+### Miscellaneous
 
 - Some OpenACC optimizations and fixes
 - Cleaned up obsolete workarounds for NVHPC/PGI compiler (OpenACC and OpenMP)
@@ -526,28 +553,28 @@
 
 # Release notes for icon-2025.04-2
 
-### Infrastructure
+## Infrastructure
 
 - Increase buffer size for auxiliary field during nest start
 
 
 # Release notes for icon-2025.04-1
 
-### ICON-Atmo
+## ICON-Atmo
 
-#### NWP Physics
+### NWP Physics
 
 - Fixes:
   - Enables using spun-up FLake variables from first guess in MODE_COMBINED
 
-### ICON-ART
+## ICON-ART
 
 Fixes:
   - changed used height array (z_mc -> z_ifc) for column computation in chemistry
   - changed usage of tracer names to mode names in diagnostics routine regarding optical properties
   - fixed setup information for standard configurations
 
-### Externals
+## Externals
 
 - Switch to the latest version of ICON-TIXI
 - Switch to YAXT 0.11.4
@@ -555,9 +582,9 @@ Fixes:
 
 # Release notes for icon-2025.04
 
-### ICON-Atmo
+## ICON-Atmo
 
-#### AES Physics
+### AES Physics
 
 - Add new radiation fields:
     - rsntcs: toa net clear-sky shortwave
@@ -576,7 +603,7 @@ Fixes:
     - Initialization for nesting and latbc
     - Nesting and restarting with sea-ice on GPU
 
-#### NWP Physics
+### NWP Physics
 
 - 1-moment Microphysics
   - Option to use more accurate coefficients for saturation pressure from IFS: itype_satpres_coeffs
@@ -610,11 +637,11 @@ Fixes:
   - Add accumulated and max/min diagnostic fields to nest start interpolation
   - EMVORADO: Bugfix call to polarimetric dbz diagnostic in case of Tmatrix
 
-#### Modifications by the CLM Community
+### Modifications by the CLM Community
 
 - Fixes in soil-moisture dependent albedo tuning to enable reproducibilty of ICON-CLM on GPU
 
-### ICON-Ocean
+## ICON-Ocean
 
 - Add diagnostics for all terms of the temperature and salinity budget
 - Add diagnostics for upper ocean heat content (hc300m and hc700m)
@@ -626,7 +653,7 @@ Fixes:
 - Bugfix for dynamic short wave radiation absorption
 - Bugfix when initializing the ocean from restart files
 
-### ICON-Waves
+## ICON-Waves
 
 - Memory layout (blocks as last dimension) and runtime improvements (precomputation of expensive operations where possible)
 - Revision of wave-atmosphere coupling, specifically for the usage of z0 (roughness length) passed from the wave model to the atmosphere
@@ -643,9 +670,9 @@ Fixes:
   - Usage of bathymetry versus water depth field
   - Formula for Charnock output parameter
 
-### Soil and Surface
+## Soil and Surface
 
-#### Climate: ICON-Land
+### Climate: ICON-Land
 
 - Added per-process namelist option lrestart_cont to allow restarting from other experiments run
   without that process
@@ -708,7 +735,7 @@ Fixes:
   - Simulations with JSBACH assimilation and LAI prescribed from climatology
   - HD global water conservation test
 
-#### NWP: TERRA and other surface issues
+### NWP: TERRA and other surface issues
 
 - Modularization: The one long TERRA routine has been split into smaller subroutines containing one task each. Some issues for the water budget have been fixed
 - nwp_sfc_interface: move accumulation of runoff_[sg] to nwp_statistics
@@ -717,7 +744,7 @@ Fixes:
 - Implementation of ocean surface layer parameterization: warm layer, cold skin
 - Fix for extpar data and the usage of snow analysis increments on subgrid-scale glacier points
 
-### ICON-ART
+## ICON-ART
 
 - Implemented LinozV3 ozone chemistry parameterization
 - Added Upper Boundary NOy to stratospheric SimNOy scheme
@@ -731,7 +758,7 @@ Fixes:
 - Implemented a new dry deposition scheme for gases
 - Added wet deposition processes for trace gases
 
-#### Coupling
+### Coupling
 
 - First implementation of coupling the nested AES atmosphere to the ocean model
 - Support coupled setups with one component starting from IAU
@@ -740,7 +767,7 @@ Fixes:
 - Output coupling improvements for prognostic variables, variables on pressure levels and more vertical grids
 - Add coupling infrastructure for one-way coupling with Super-Droplet cloud micropphysics model CLEO
 
-### Externals
+## Externals
 
 - Replace math-support and math-interpolation with iconmath 1.2.0
 - Make use of the math-horizontal component of iconmath 1.2.0
@@ -752,12 +779,12 @@ Fixes:
 - Switch to YAC v3.6.2_p2
 - Switch to the latest version of HD
 
-### Infrastructure
+## Infrastructure
 
 - Several improvements for single precision: communication, mpi, io
 - Fix the generation of index lists on GPUs for LAM and nested simulation runs
 
-#### Scripting and testing
+### Scripting and testing
 
 - Update land data for simulations with ICON-Land on R02B04 grid 0049
 - Add check for memory consumption on vector machines
@@ -769,12 +796,12 @@ Fixes:
 - Restructure mkexp templates and add bubble test
 - Add log file monitoring to mkexp
 
-#### Building
+### Building
 
 - Improve building on macOS
 - Update the generic configure wrapper and its documentation
 
-#### Miscellaneous
+### Miscellaneous
 
 - Improve support for Cray compiler 17+ for AMD GPUs
 - Single precision improvements for TMX
@@ -792,9 +819,9 @@ The following lists give an overview on the main changes since the last release 
 Note that this release now also contains the external model HD-couple, which is ready for
 open source now.
 
-### ICON-Atmo
+## ICON-Atmo
 
-#### DyCore
+### DyCore
 
 - Revise projection to tangent plane for the FFSL scheme
 - Algorithmic optimization of the MIURA3 transport scheme
@@ -806,7 +833,7 @@ open source now.
 - OpenACC bugfix in interpolation of ozone from pressure levels to model levels
 - Cleaned up some time-related constants (wrong place / doubled definitions)
 
-#### NWP Physics
+### NWP Physics
 
 - Extension of adaptive parameter tuning
 - Preparing a major revision of the NWP turbulence code including the integration of some not yet
@@ -818,7 +845,7 @@ open source now.
 - Cleanup in radiation and aerosol code parts
 - Initialise aerosol fields in case of Kinne/CAMS Aerosol
 
-#### AES Physics
+### AES Physics
 
 - VDIFF turbulence: deep-atmosphere fixes (similar to NWP Physics)
   - Consistently use full geopotential when converting between dry static energy and temperature
@@ -831,7 +858,7 @@ open source now.
 - Re-activate output of aerosol optical properties with RTE-RRTMGP
 - Revise clear sky radiation computations
 
-### ICON-Ocean
+## ICON-Ocean
 
 - Add ocean isopycnal transport diagnostic
 - Bug fix: calculate sea water density always on fixed depth levels
@@ -841,9 +868,9 @@ open source now.
 - ICON-Waves: prepare coupling of surface waves to the ocean
 - ICON-Waves: Add restart and checkpointing functionality
 
-### Soil and Surface
+## Soil and Surface
 
-#### Climate: ICON-Land
+### Climate: ICON-Land
 
 - Fixes for using older restart files from before the JSBACH pond scheme was implemented
 - Improvements in JSBACH soil hydrology
@@ -876,12 +903,12 @@ open source now.
 - Fix too cold soil temperatures for partially snow-covered grid cells
 - Fixes for natural land cover change
 
-#### NWP: TERRA
+### NWP: TERRA
 
 - Encapsulate initialization of land use-related parameters for NWP
 - Add option for ICON-internal soil moisture adjustment
 
-### Externals
+## Externals
 
 - Update HD model
 - ComIn 0.2.0
@@ -891,20 +918,20 @@ open source now.
 - Introduce the math-support and math-interpolation libraries
 - Update to MTIME 1.2.2
 
-### Infrastructure
+## Infrastructure
 
 - MPI: check worker architecture during communicator creation
 - Restructured Subroutine initicon_inverse_post_op
 - Update the mechanism for source provenance collection
 
-#### Coupling
+### Coupling
 
 - Add detailed timers for output_coupling
 - Fix OpenACC bugs that affect coupled het jobs
 - Do runoff diagnostic only when new data are received from YAC
 - Interface aes/ocean: move ocean coupling call from `mo_interface_iconam_aes.f90` to `mo_nh_stepping.f90`
 
-#### Scripting and testing
+### Scripting and testing
 
 - Fix component names in mkexp experiment to prevent wrong coupling setups
 - New option -P for mars4icon_smi to use surface pressure instead of lnsp
@@ -919,7 +946,7 @@ open source now.
 - Update of JSC run scripts
 - Fix buildbot test scripts for Juwels and Booster
 
-#### Building
+### Building
 
 - Several minor fixes for the configure script
 - Fix `USE mtime`, `INCLUDE netcdf.inc` and check for NetCDF Fortran 77 API
@@ -929,7 +956,7 @@ open source now.
 - Introduce configure option `--enable-bundled-python` to build the Python
    interfaces of `MTIME`, `YAC` and `COMIN`
 
-#### GPU port, technical developments and optimizations
+### GPU port, technical developments and optimizations
 
 - GPU port of radiation namelist switch irad_o3=5
 - Prepare for eccodes versions >= 2.32.0
@@ -946,15 +973,15 @@ open source now.
 These are the release notes of the ICON model.
 Below the main changes as compared to the previous ICON release.
 
-### ICON-Atmo
+## ICON-Atmo
 
-#### DyCore
+### DyCore
 
 - Improve adaptive CFL reduction at model start
 - Update and extend diagnostics in supervise_total_integrals_nh
 - Fix OpenACC loops in vertical advection
 
-#### NWP Physics
+### NWP Physics
 
 - Improvements to adaptive parameter tuning
 - Implemented option for Cloud droplet number from MODIS climatology
@@ -976,14 +1003,14 @@ Below the main changes as compared to the previous ICON release.
 - Wave-dependent sea surface roughness in icon-nwp
 - Fix initialisation of aerosol fields in case of Kinne/CAMS Aerosol
 
-#### Modifications by the CLM Community
+### Modifications by the CLM Community
 
 - CDNC scaling for climate projections
 - Removed the alteration of Modis Cdnc
 - Add namelist parameter (rat_lam,rsmin_fac) to enhance tuning capabilities
 - Added correction for albedo dependent on soil moisture for soil types 3 to 6
 
-#### Various bug fixes
+### Various bug fixes
 
 - Several bug fixes for OpenACC and Cray compiler
 - Make limited-area model (LAM) and nested grids work on CPU
@@ -999,7 +1026,7 @@ Below the main changes as compared to the previous ICON release.
 - Performance fixes for OpenACC and fixes for OpenMP in TMX turbulence package
 - Fixed some potentially non-contiguous OpenACC transfers in coupling code plus removed some OpenACC KERNELS constructs in VDIFF
 
-#### New features and other modifications
+### New features and other modifications
 
 - Replace `lrad_yac` for coupling O3 and aerosols via python processes
 - Add namelist parameter for lower tropospheric stability correction
@@ -1014,7 +1041,7 @@ Below the main changes as compared to the previous ICON release.
 - Remove unused code in the RTE-RRTMGP interface
 - Change setup for Sapphire base/nextGEMS prefinal
 
-### ICON-ART
+## ICON-ART
 
 - Changed initialization of chemtracers for init_gas=0 in ART (now sets tracers to 0)
 - INAS ice nucleation scheme preparation, dusty cirrus, meteogram output
@@ -1029,7 +1056,7 @@ Below the main changes as compared to the previous ICON release.
 - Water content computation of sea salt aerosol
 - Refactored and GPU-ported OEM (Online Emission Module) code
 
-### ICON-Ocean
+## ICON-Ocean
 
 - New feature: Add diagnostic for ocean bottom pressure
 - New Feature: Add ocean potential temperature in Kelvin as optional output
@@ -1039,7 +1066,7 @@ Below the main changes as compared to the previous ICON release.
 - Refactoring: Improve initialization of 2D variables
 - Call interface_aes_ocean only if coupled_to_ocean
 
-### ICON-Land
+## ICON-Land
 
 - Adapted ICON-Land to the interface change of init and copy functions of mo_fortran_tools
 - Bugfix: Fixed restartability of offline model
@@ -1061,7 +1088,7 @@ Below the main changes as compared to the previous ICON release.
 - Refactoring and fixes for the LCC (land cover change) framework including the processes for disturbances (wind/fire), fuel/carbon and anthropogenic land cover change
 - OpenACC updates and fixes: use of ASYNCs and other changes to follow ICON OpenACC programming guidelines; remove some ACC WAITs for optimization
 
-### Externals
+## Externals
 
 - Updates to ecRad: gas model split & spectral weights; fixes from ecrad master
 - CAMS forecasted aerosol as an option for ecRad radiation
@@ -1071,7 +1098,7 @@ Below the main changes as compared to the previous ICON release.
 - Update to CDI version 2.4.0
 - Update to RTE+RRTMGP version 1.7
 
-### Infrastructure
+## Infrastructure
 
 Several bug and technical fixes, below the most relevant ones:
 
@@ -1094,7 +1121,7 @@ And some modifications to coupling:
 - Online diagnose of global sum runoffs before and after the YAC coupling
 - Correct calculation of Qtop and re-enable LSM patching in NWP-Ocean coupling
 
-### GPU
+## GPU
 
 - GPU performance fixes and workarounds for NVIDIA and AMD GPUs
 - Removing majority of i_am_accel_node instances (deprecated debugging feature)
@@ -1119,7 +1146,7 @@ Nevertheless, a lot of changes have been applied to icon-2024.01 since
 the last released version icon-2.6.6. The given list might not contain
 all changes (eg.bug fixes, ...), but is a good overview.
 
-### Buildbot
+## Buildbot
 
 - Consolidate probtest
 - Read/write access for experiment directory on NEC
@@ -1141,7 +1168,7 @@ all changes (eg.bug fixes, ...), but is a good overview.
 - Add latest GPU build wrapper for levante
 - Add the ocean-gpu Buildbot list for variants of ocean_omip experiments with NVHPC on Levante
 
-### NWP
+## NWP
 
 - Redesign of bias corretion of reference precipitation.
 - Modified time dependence of EPS perturbations for LHN tuning parameters
@@ -1216,7 +1243,7 @@ all changes (eg.bug fixes, ...), but is a good overview.
 - securing that cloud water is not being diffused above the level 'kstart_moist'
 - Bug fix for nest initialization during runtime: add filtered wind speed increment
 
-### GPU
+## GPU
 
 - GPU port of the visibility diagnostic
 - GPU port of the explicit two-moment microphysics scheme
@@ -1239,7 +1266,7 @@ all changes (eg.bug fixes, ...), but is a good overview.
 - fix for iterative IAU test on GPU
 - Workaround for cray mpi bug using async/IO
 
-### MPIM Atmosphere
+## MPIM Atmosphere
 
 - Rewrite and corrections of one-moment microphysics (graupel)
 - ICON-Land update for land offline simulations
@@ -1251,7 +1278,7 @@ all changes (eg.bug fixes, ...), but is a good overview.
 - collect changes for nextGEMS cycle 3 except hiopy and compresm
 - Refactoring of coupling via YAC
 
-### MPIM Ocean
+## MPIM Ocean
 
 - refactor TKE (ocean)
 - port the ocean time loop to GPU
@@ -1260,7 +1287,7 @@ all changes (eg.bug fixes, ...), but is a good overview.
 - enable concurrent hamocc to work with the ICON-O z-star levels
 - Bugfixes and refactoring for MOC diagnostic
 
-### JSBACH
+## JSBACH
 
 - Replaced CLAW directives and preprocessing with pure OpenACC
 - JSBACH workarounds for Cray compiler on lumi GPU
@@ -1269,13 +1296,13 @@ all changes (eg.bug fixes, ...), but is a good overview.
 - fix a bug in carbon conservation test
 - harmonize scripts for ICON-Land ic and bc file generation
 
-### Update yac2 -> yac3
+## Update yac2 -> yac3
 
 - XML config file is replaced by yaml
 - all coupled experiments in buildbot are converted to yaml
 - many non-buildbot tests are converted to yaml
 
-### ART
+## ART
 
 - Ensemble and VPRM functionality of the Online Emission Module
 - Extension of the pollen treatment with hazel (CORY)

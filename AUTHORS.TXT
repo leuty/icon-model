@@ -1,11 +1,15 @@
 # ICON AUTHORS
 
 # INDIVIDUAL CONTRIBUTORS
+Aamir Nadeem
 Abishek Gopal
 Achim Randelhoff
 Alberto de Lozar
+Aleksandar Mitic
+Alena Kosareva
 Ali Hoshyaripour
 Ali Sedighi
+Alija Bevrnja
 Almut Gassmann
 Andre Walser
 Andrea Leuthard
@@ -34,6 +38,8 @@ Carmen Koehler
 Carolin Mehlmann
 Carolin Walter
 Cathy Hohenegger
+Chiara Ghielmini
+Christian Steger
 Christine Sgoff
 Christoph Gebhardt
 Christoph Heinze
@@ -76,6 +82,7 @@ Felix Koehler
 Felix Pithan
 Florian Prill
 Florian Ziemen
+Francisco Jose Cuesta-Valero
 Fraser Goldsworth
 Gabriel Vollenweider
 Georgiana Mania
@@ -113,17 +120,21 @@ Hermann Asensio
 Hernan Campos
 Hideki Ninomiya
 Hui Wan
+Igor Detring
+Igor Kroener
 Inge Bischoff-Gauss
 Ingo Kirchner
 Irene Stemmler
 Ivan Bastak Duran
 Jacob Shpund
+Jacopo Canton
 Jairo Segura
 Jan Ackmann
 Jan Engel
 Jan Frederik Engels
 Jan-Niklas Welss
 Jan-Peter Schulz
+Jared Frazier
 Jennifer Buchmueller
 Jens-Olaf Beismann
 Jochem Marotzke
@@ -158,6 +169,7 @@ Lin Yu
 Linda Schlemmer
 Lisa Boland
 Lisa Muth
+Loris Lucido
 Luca Bunaventura
 Luca Reissig
 Luis Kornblueh
@@ -173,6 +185,7 @@ Mareike Burba
 Marek Jacob
 Maria Pilar Ripodas
 Mariano Mertens
+Markus Kunze
 Martin Charron
 Martin Koehler
 Martin Sprengel
@@ -199,22 +212,26 @@ Mukund Pondkule
 Nadja Samtleben
 Nander Wever
 Nathanael Huebbe
+Niclas Schroeter
 Nikolai Ponomarev
 Nikolas Porz
 Nils Brueggemann
 Nils Noll
 Nils-Arne Dreier
+Nina Loeseke
 Nora Schenk
 Nuno Serra
 Oliver Fuhrer
 Oliver Gutjahr
 Oliver Heidmann
 Panagiotis Adamidis
+Pankaj Kumar
 Pavel Khain
 Peter Korn
 Philip Freese
 Philipp De-Vrese
 Philippe Marti
+Pierre Olivier Downey
 Pinhsin Hu
 Pradipta Samanta
 Praveen Kumar Pothapakula
@@ -252,6 +269,7 @@ Stefan Koerner
 Stefan Poll
 Stefan Versick
 Stephan Lorenz
+Susanne Brienen
 Susanne Fuchs
 Sven Ulbrich
 Sven Werchner
@@ -268,6 +286,7 @@ Thorsten Mauritsen
 Thorsten Reinhardt
 Tobias Goecke
 Tobias Stacke
+Tom Riddick
 Trang Van Pham
 Tuomas Lunttila
 Ulrich Blahak
