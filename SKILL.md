@@ -43,20 +43,59 @@ Check that contributions follow the established repository conventions:
 - **`IMPLICIT NONE`**: required in every module, subroutine, and function.
 - **Encapsulation**: modules should declare `PRIVATE` by default and explicitly
   `PUBLIC` only what is part of the interface. No `COMMON` blocks or `EQUIVALENCE`.
-- **`INTENT`**: every dummy argument must have an explicit `INTENT(IN/OUT/INOUT)`.
-  Use `OPTIONAL` with `PRESENT()` checks rather than sentinel values where it
-  improves clarity.
+- **`INTENT`**: every dummy argument must have an explicit `INTENT(IN/OUT/INOUT)`,
+  and is conventionally documented with a trailing `!<` comment that includes
+  units (e.g. `REAL(wp), INTENT(IN) :: dt !< integration time-step [s]`). Use
+  `OPTIONAL` with `PRESENT()` checks rather than sentinel values.
+- **`USE ... ONLY`**: imports are always restricted with `ONLY:` and list only
+  the symbols actually used (e.g. `USE mo_kind, ONLY: wp`). Flag wildcard `USE`
+  without `ONLY`.
+- **Documentation comments**: modules and public procedures begin with a `!>`
+  doc comment; declarations use trailing `!<` comments. This drives the
+  generated API docs — keep them accurate.
 - **Formatting**: the repo enforces formatting via pre-commit hooks
   (`codee-format`/`.codee-format`, `fprettify`-style rules: 2-space indent,
-  132-column limit, uppercase keywords, `::` separators). Do not flag whitespace
-  or casing the formatter already normalizes — flag only logic.
-- **OpenACC/OpenMP**: GPU and threading directives use the ICON wrappers
-  (`!$ACC`, `ICON_OMP_*`). When reviewing kernels, check that data clauses
-  (`PRESENT`, `COPYIN`, `CREATE`) are correct, that loop-carried dependencies
-  are absent, and that the directives are kept in sync with the underlying
-  computation. The `icon-openacc-beautifier` hook handles their formatting.
+  132-column limit, uppercase keywords, `::` always added, `EndStructureAndName`
+  end statements). Do not flag whitespace or casing the formatter already
+  normalizes — flag only logic.
 - **Tests**: numerical/unit changes should come with or update tests under
-  `test/unit-tests/` (pFUnit-style). Cross-check that new behavior is covered.
+  `test/unit-tests/`. Tests are exit-code based via `mo_test_common`
+  (`test_pass` → exit 0, `test_skip` → exit 77, `test_fail` → exit 2) and are
+  MPI-aware. Cross-check that new behavior is covered.
+
+## Distilled ICON idioms (verify these are followed)
+
+These are the concrete, recurring patterns in the codebase; deviations are worth
+flagging.
+
+- **Error handling — `finish`**: abort via `USE mo_exception, ONLY: finish` and
+  `CALL finish(routine_name, message)`, where `routine_name` matches the
+  enclosing procedure. This is MPI-aware (prints rank, aborts all ranks). Do not
+  use bare `STOP`, `ERROR STOP`, or `WRITE(*,*)`-then-continue for fatal errors.
+  Informational/warning output goes through `mo_exception` (`message`/`warning`),
+  not raw `PRINT`/`WRITE(*,*)`.
+- **Float comparison — `notEqual`**: compare reals via
+  `USE mo_compare_float, ONLY: notEqual` (relative + absolute tolerance), never
+  `==`/`/=` on `REAL`.
+- **`nproma` blocking**: array fields are dimensioned `(nproma, nlev, nblks)`
+  with `USE mo_parallel_config, ONLY: nproma`. The canonical loop nest is:
+  outer block loop `jb = 1, nblks_c` (handling the partial last block via
+  `npromz_c`/`nlen`), vertical loop `jk = 1, nlev`, inner column loop
+  `jc = 1, nlen`. The innermost loop must run over the first (column) dimension
+  for cache-friendly, column-major access. Flag loop nests that violate this
+  ordering.
+- **Index naming**: `jb` = block index, `jc` = cell/column index, `jk` = vertical
+  level index, `jg` = domain/grid index. Prefixes `n*` are counts/sizes, `i*` are
+  generic integers. Follow these so blocking code stays readable.
+- **OpenMP via macros**: threading uses the `ICON_OMP_*` macros from
+  `#include "omp_definitions.inc"` and `ICON_OMP_DEFAULT_SCHEDULE`. When
+  reviewing parallel regions, verify `PRIVATE`/`SHARED` clauses list every
+  thread-local (especially per-block temporaries) and that there are no
+  loop-carried dependencies or races across blocks.
+- **OpenACC**: GPU kernels use `!$ACC` directives gated by an `lzacc`/`lacc`
+  logical and `#ifdef _OPENACC`. Check that data clauses (`PRESENT`, `COPYIN`,
+  `CREATE`, `ASYNC`) are correct and host/device data stays consistent; the
+  `icon-openacc-beautifier` hook handles their formatting.
 
 ## Numerical correctness (highest priority)
 
@@ -112,9 +151,10 @@ Check that contributions follow the established repository conventions:
 
 - Public procedures and modules should have a short description of purpose,
   arguments (with units), assumptions, and references to papers/equations.
-- Names should be descriptive (indices like `i,j,k` are fine); explain
+- Names should follow the ICON index conventions (`jb`/`jc`/`jk`/`jg`); explain
   non-obvious algorithms and any numerical tolerances.
-- Comments should explain *why*, not restate the code.
+- Comments should explain *why*, not restate the code. Use `!>` for procedure/module
+  headers and `!<` for inline declaration docs, as the rest of the codebase does.
 
 ## Review output
 
@@ -132,7 +172,13 @@ rather than only a code edit.
 ## References
 
 - Repository conventions: `.codee-format`, `.pre-commit-config.yaml`,
-  `CONTRIBUTING.md`, `src/shared/mo_kind.f90`, `src/shared/mo_compare_float.f90`.
+  `CONTRIBUTING.md`, `src/shared/mo_kind.f90`, `src/shared/mo_compare_float.f90`,
+  `src/include/omp_definitions.inc`,
+  `test/unit-tests/common/mo_test_common.f90`. The `mo_exception` module
+  (`USE mo_exception, ONLY: finish, message, warning`) provides the standard
+  abort/logging routines.
+- Idiom examples: `src/atm_dyn_iconam/mo_hydro_adjust.f90` (nproma blocking,
+  OpenMP), `src/lnd_phy_schemes/sfc_terra_transport.f90` (INTENT, `finish`).
 - ICON Contribution Guidelines: https://docs.icon-model.org/contribute/guidelines/contribution_guidelines.html
 - *Modern Fortran Explained* (Metcalf, Reid, Cohen).
 - Fortran-lang best practices: https://fortran-lang.org/learn/best_practices/
