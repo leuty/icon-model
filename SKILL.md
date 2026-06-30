@@ -156,6 +156,60 @@ flagging.
 - Comments should explain *why*, not restate the code. Use `!>` for procedure/module
   headers and `!<` for inline declaration docs, as the rest of the codebase does.
 
+## Scientific code review (what makes scientific codes special)
+
+Scientific simulation codes like ICON carry a burden that ordinary software does
+not: their output is a *scientific result*, so a subtle defect does not just
+crash a program — it can silently corrupt published science. Review must
+therefore protect **trustworthiness** along these axes, all of which have
+concrete support in this repository:
+
+- **Verification vs. validation** — "did we build the model right" vs. "is it the
+  right model". As a reviewer, separate *implementation* correctness (the focus of
+  the numerical-correctness checks above) from *scientific* validity: does the new
+  code match the governing equations, the cited paper, and the documented units?
+  Require a reference to the equation/paper for new parameterizations.
+- **Reproducibility & bit-identity** — results must be reproducible across
+  decompositions and runtime configuration. ICON's system tests enforce this
+  directly: the `m` (MPI layout), `n` (nproma), `o` (OpenMP threads), `r`
+  (restart from checkpoint), and `u` (update vs. stored reference) tests all check
+  **bit-identity** of results. This means a change must produce *identical* bits
+  regardless of `nproma`, MPI rank count, or thread count. Flag anything that
+  could break this: order-dependent reductions, race conditions across blocks,
+  uninitialized memory, or non-associative parallel sums. (Reference:
+  `doc/www/documentation/infrastructure/testing/system_tests.md`.)
+- **Tolerance-based regression testing** — bit-identity is not always possible
+  (e.g. legitimately changing the science), so ICON also uses *statistical*
+  regression via the `t` (tolerance) test, which runs
+  [probtest](https://github.com/MeteoSwiss/probtest) to compare output statistics
+  against stored references within predefined tolerance intervals
+  (`tolerance_factor` in `scripts/experiments/*/`). When a change is *expected* to
+  alter results, the reviewer should expect updated references/tolerances and a
+  scientific justification, not a silent diff.
+- **Accumulation over long integrations** — climate/NWP runs integrate over very
+  many time steps, so tiny per-step biases or instabilities accumulate. Scrutinize
+  conservation properties (mass, energy), long-term drift, and the numerical
+  stability of any new time-stepping or flux term more strictly than you would in
+  a short-lived program.
+- **Multi-component coupling** — ICON couples atmosphere, ocean, land, etc., so a
+  change in one component can violate invariants another relies on. Check
+  interface quantities (units, sign conventions, staggering) at component
+  boundaries.
+- **GPU/host correctness & memory safety** — ports must agree between CPU and GPU.
+  The `g` (CUDA Graph) test checks GPU-vs-base correctness and the `c` (Compute
+  Sanitizer) test detects uninitialized memory, races, and bad accesses on the
+  GPU. Verify OpenACC data clauses keep host and device consistent.
+- **Provenance & transparency** — scientific review demands documentation of the
+  *scientific rationale*, not just the code: parameter meanings, units, valid
+  ranges, and literature references, so results can be interpreted and reproduced
+  by others.
+
+When reviewing, ask the scientific questions explicitly: *Will this stay
+bit-identical under the `m`/`n`/`o`/`r` tests? If not, is the change to results
+intended, justified, and reflected in updated probtest tolerances? Are
+conservation and stability preserved over long runs? Is the science documented and
+referenced?*
+
 ## Review output
 
 For each finding, provide:
@@ -180,6 +234,10 @@ rather than only a code edit.
 - Idiom examples: `src/atm_dyn_iconam/mo_hydro_adjust.f90` (nproma blocking,
   OpenMP), `src/lnd_phy_schemes/sfc_terra_transport.f90` (INTENT, `finish`).
 - ICON Contribution Guidelines: https://docs.icon-model.org/contribute/guidelines/contribution_guidelines.html
+- System/regression tests (bit-identity, probtest tolerances):
+  `doc/www/documentation/infrastructure/testing/system_tests.md`,
+  `scripts/experiments/*/` (e.g. `c2sm/mch_tests.yml`).
+- probtest (statistical regression tolerances): https://github.com/MeteoSwiss/probtest
 - *Modern Fortran Explained* (Metcalf, Reid, Cohen).
 - Fortran-lang best practices: https://fortran-lang.org/learn/best_practices/
 - pFUnit testing framework: https://github.com/Goddard-Fortran-Ecosystem/pFUnit
